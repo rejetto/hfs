@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "start": "node src"
+  },
+  "dependencies": {
+    "koa": "^2.13.4",
+    "koa-static": "^5.0.0"
+  }
+}

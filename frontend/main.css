@@ -1,0 +1,54 @@
+body { font:10pt verdana, arial, sans-serif; }
+a img { border:0; } /* conform IE */
+
+#items { list-style:none; padding:0; margin-top:1em; }
+#control-tiles { display: inline; }
+#control-tiles > div {
+    display:inline-block;
+    border-left: 5px solid #bbb;
+    background-color: #eee;
+    padding: 0.3em 1em;
+    margin: 0.1em 0;
+    color: #777;
+    line-height: 2em;
+}
+#folder { font-size:1.6em; font-weight:bold; word-break:break-all; display:block !important; padding-left:0.5em !important; }
+#folder img { height:1em; padding: 0 0.1em; }
+#folder a { text-decoration:none; }
+#folder a:hover { text-decoration:underline; }
+
+#num-items { min-width:3em; display: inline-block; font-weight:bold; }
+
+.full-label { position:absolute; padding-right:1em; text-align:left; background-color:#eee;  }
+
+/*  tiles */
+[mode=tiles] #items li { display:inline-block; } /* without this, the LI has height:0 */
+[mode=tiles] #items li.forced-br { display:block; } /* used for easeing the CPU */
+[mode=tiles] .item-link { float:left; overflow:hidden; width:8.2em; height:9.1em; /* this 0.1 more ensure the content doesn't go over for very little causing necessary effects */
+    text-align:center; text-decoration:none;     
+    margin:1px; /* reserve space for the border on hover */ 
+}
+[mode=tiles].hover .item-link:hover {
+    background:#ddd;
+    border:1px solid #bbb; margin:0; /* replace margin with border */
+}
+[mode=tiles].hover .item-link:hover + .item-details { display:block; float:left; }
+
+[mode=tiles] .item-label { display:block; padding:0 0.5em; margin:3px; word-wrap:break-word; }
+[mode=tiles] .item-details { display:none; }
+[mode=tiles] .item-details-wrapper { position:absolute; background:#ffe; border:1px solid #eec; padding:0.2em 0.4em; }
+[mode=tiles] .full-label { max-width:17em; border:1px solid #bbb; padding:0.2em 0.5em; }
+
+/*  list */ 
+[mode=list] li { border-bottom:1px solid #eee; height:1.5em; }
+[mode=list] li:nth-of-type(odd) { background:#eee; } /* stripes */
+[mode=list] .item-link { clear:left; float:left; text-decoration:none;
+    width:80%; max-width:30em; height:1.5em; overflow:hidden;
+    margin-right:1em; /* leave some space to breathe */
+    white-space:nowrap; /* show as much as you can, even half-words, otherwise it will wrap under */
+}
+[mode=list] .full-label { white-space:normal; } /* re-enable wrapping */
+[mode=list] .item-link img { height:1.5em; vertical-align:middle; float:left; } 
+[mode=list] .item-label { margin-left:0.5em; margin-right:1em; }
+[mode=list] .item-type { display:none; } 
+[mode=list] .item-size { display:inline; min-width:7em; }
