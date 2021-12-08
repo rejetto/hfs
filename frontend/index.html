@@ -1,33 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 	<meta charset="UTF-8" />
-	<title>HFS 3 front end</title>
+	<title>HFS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" href="/~/frontend/main.css" /> 
-
-	<!--[if lt IE 9 ]> <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script> <![endif]-->
-	<script src='/socket.io/socket.io.js'></script>
-    <script src='/~/jquery-1.11.3.js'></script>
-    <script src='/~/frontend/main.js'></script>
-    </head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <link rel="stylesheet" type="text/css" href="/~/main.css" />
+    <script type="module" src='/~/main.js'></script>
+</head>
 <body>
-<div id="control-tiles">
-    <div id='folder'></div>
-    <div id='folder-info'></div>
-    <div>
-        <label>View mode</label>
-        <select id='mode'><option>tiles<option>list</select>
-    </div>
-    <div>
-        <label>Order</label>
-        <select id='order'><option value=''>none<option value='label' selected>name<option>type<option>size</select>
-    </div>
-    <div>
-        <label>Pagination</label>
-        <select id='pagination'><option value=''>none<option>50<option selected>200<option>500</select>
-    </div>
-</div>
-<ul id='items'></ul>
 </body>
 </html>
