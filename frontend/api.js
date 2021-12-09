@@ -3,7 +3,8 @@ import { useEffect, useState } from "./main.js";
 export function apiCall(cmd, params) {
     return fetch('/~/api/'+cmd, {
         method: 'POST',
-        body:params && JSON.stringify(params)
+        headers: { 'content-type': 'application/json' },
+        body: params && JSON.stringify(params),
     }).then(res => {
         if (res.ok)
             return res.json()

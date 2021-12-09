@@ -2,11 +2,13 @@ import Koa from 'koa'
 import serve from 'koa-static'
 import send from 'koa-send'
 import mount from 'koa-mount'
+import bodyParser from 'koa-bodyparser'
 import apis from './apis'
 
 const srv = new Koa()
 srv.use(preventCrossDir())
 srv.use(serveRoot())
+srv.use(bodyParser())
 srv.use(mount('/~/api/', api(apis)))
 srv.use(mount('/~/', serve('frontend')))
 
@@ -23,22 +25,23 @@ function preventCrossDir() : Koa.Middleware {
 
 function serveRoot() : Koa.Middleware {
     return async (ctx, next) => {
-        if (ctx.method === 'GET' && ctx.path === '/')
+        if (ctx.method === 'GET' && ctx.path.endsWith('/'))
             await send(ctx, 'frontend/index.html')
         await next()
    }
 }
 
-type ApiHandler = (ctx:any) => any
+type ApiHandler = (params?:any, ctx?:any) => any
 type ApiHandlers = Record<string, ApiHandler>
 
 function api(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx, next) => {
-        console.log('API',ctx.method, ctx.path)
+        const params = ctx.request.body
+        console.log('API', ctx.method, ctx.path, params)
         // @ts-ignore
         ctx.assert(ctx.path in apis, 404, 'invalid api')
         const cb = (apis as any)[ctx.path]
-        const res = await cb(ctx)
+        const res = await cb(params, ctx)
         if (res)
             ctx.body = res
         await next()

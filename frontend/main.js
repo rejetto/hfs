@@ -23,6 +23,9 @@ function Head() {
 }
 
 function FilesList() {
-    const list = useApi('files_list', { path:'/' })
-    return h('pre', {}, list ? JSON.stringify(list) : 'list')
+    const res = useApi('files_list', { path: location.pathname })
+    if (!res)
+        return 'loading'
+    return h('ul', {}, res.list.map(({ n }) =>
+        h('li',{}, h('a',{ href:n }, n)) ))
 }
