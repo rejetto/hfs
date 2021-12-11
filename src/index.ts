@@ -2,14 +2,14 @@ import Koa from 'koa'
 import serve from 'koa-static'
 import mount from 'koa-mount'
 import bodyParser from 'koa-bodyparser'
-import Router from '@koa/router'
-import proxy from 'koa-better-http-proxy'
 import apis from './apis'
+import { serveFrontend } from './frontend'
 
 const PORT = 80
-const FRONTEND = 'frontend/build'
-const DEV = process.env.NODE_ENV === 'development' ? 'DEV' : ''
-const API_URI = '/~api/'
+export const DEV = process.env.NODE_ENV === 'development' ? 'DEV' : ''
+const SPECIAL_URI = '/~/'
+export const FRONTEND_URI = SPECIAL_URI + 'front/'
+const API_URI = SPECIAL_URI + 'api/'
 
 if (DEV)
     console.clear()
@@ -24,9 +24,20 @@ srv.use(preventCrossDir())
 
 srv.use(mount(API_URI, new Koa().use(bodyParser()).use(api(apis))))
 
-const router = new Router();
-router.get('/(.*)', DEV ? proxy('localhost:3000', {}) : serve(FRONTEND))
-srv.use(router.routes())
+const serveFiles = serve('.')
+
+srv.use(async (ctx, next) => {
+    if (ctx.method === 'GET') {
+        if (ctx.url.endsWith('/'))
+            await serveFrontend(ctx,next)
+        else if (ctx.url.startsWith(FRONTEND_URI))
+            await mount(FRONTEND_URI, serveFrontend)(ctx,next)
+        else
+            await serveFiles(ctx,next)
+    }
+    else
+        await next()
+})
 
 srv.on('error', err => console.error('server error', err))
 srv.listen(PORT, ()=> console.log('running on port', PORT, DEV, new Date().toLocaleString()))

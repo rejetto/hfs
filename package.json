@@ -10,7 +10,8 @@
     "koa-better-http-proxy": "^0.2.9",
     "koa-bodyparser": "^4.3.0",
     "koa-mount": "^4.0.0",
-    "koa-static": "^5.0.0"
+    "koa-static": "^5.0.0",
+    "mime-types": "^2.1.34"
   },
   "devDependencies": {
     "@types/koa": "^2.13.4",
@@ -18,6 +19,7 @@
     "@types/koa-bodyparser": "^4.3.4",
     "@types/koa-mount": "^4.0.1",
     "@types/koa-static": "^4.0.2",
+    "@types/mime-types": "^2.1.1",
     "@types/node": "^16.11.12",
     "nodemon": "^2.0.15",
     "ts-node": "^10.4.0",

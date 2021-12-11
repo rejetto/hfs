@@ -1,0 +1,40 @@
+import proxy from 'koa-better-http-proxy'
+import Koa from 'koa'
+import MemoMap from './MemoMap'
+import mime from 'mime-types'
+import { readFile } from 'fs'
+import { DEV, FRONTEND_URI } from '.'
+
+const FRONTEND = 'frontend/build/'
+
+export const serveFrontend = DEV ? serveProxyFrontend() : serveStaticFrontend()
+
+function serveProxyFrontend() {
+    return proxy('localhost:3000', {
+        userResDecorator: (res, data) => replaceFrontEndRes(data.toString('utf8'))
+    })
+}
+
+function serveStaticFrontend() : Koa.Middleware {
+    const cache = new MemoMap()
+    return async (ctx, next) => {
+        let file = ctx.url
+        if (file.startsWith('/'))
+            file = file.slice(1)
+        ctx.body = await cache.getOrSet(file, () =>
+            filePromise(FRONTEND + (file || 'index.html')).then(res =>
+                replaceFrontEndRes(res.toString('utf8')) ))
+        ctx.type = file ? (mime.lookup(file) || 'application/octet-stream') : 'html'
+        await next()
+    }
+}
+
+function filePromise(path: string) : Promise<Buffer> {
+    return new Promise((resolve, reject) =>
+        readFile(path, (err,res) =>
+            err ? reject(err) : resolve(res) ))
+}
+
+function replaceFrontEndRes(body: string) {
+    return body.replace(/((?:src|href) *= *['"])\/?/g, '$1'+FRONTEND_URI)
+}

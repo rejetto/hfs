@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 export function apiCall(cmd: string, params?: object) : Promise<any> {
-    return fetch('/~api/'+cmd, {
+    return fetch('/~/api/'+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: params && JSON.stringify(params),
