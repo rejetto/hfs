@@ -1,7 +1,7 @@
-import { useEffect, useState } from "./main.js";
+import { useEffect, useState } from 'react';
 
-export function apiCall(cmd, params) {
-    return fetch('/~/api/'+cmd, {
+export function apiCall(cmd: string, params?: object) : Promise<any> {
+    return fetch('/~api/'+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: params && JSON.stringify(params),
@@ -14,10 +14,10 @@ export function apiCall(cmd, params) {
     })
 }
 
-export function useApi(cmd, params) {
+export function useApi(cmd: string, params?: object) : any {
     const [x, setX] = useState()
     useEffect(()=>{
         apiCall(cmd, params).then(setX, setX)
-    }, [cmd])
+    }, [cmd, JSON.stringify(params)]) //eslint-disable-line
     return x
 }

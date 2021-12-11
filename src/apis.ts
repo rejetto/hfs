@@ -12,11 +12,10 @@ export default {
             const o = x.stats
             const folder = x.path.endsWith('/')
             return {
-                n: x.name,
+                n: x.name+(folder ? '/' : ''),
                 c: o?.ctime,
                 m: o?.mtime,
                 s: folder ? undefined : o?.size,
-                d: folder || undefined,
             }
         })
         return { list }

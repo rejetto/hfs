@@ -1,19 +1,35 @@
 import Koa from 'koa'
 import serve from 'koa-static'
-import send from 'koa-send'
 import mount from 'koa-mount'
 import bodyParser from 'koa-bodyparser'
+import Router from '@koa/router'
+import proxy from 'koa-better-http-proxy'
 import apis from './apis'
 
+const PORT = 80
+const FRONTEND = 'frontend/build'
+const DEV = process.env.NODE_ENV === 'development' ? 'DEV' : ''
+const API_URI = '/~api/'
+
+if (DEV)
+    console.clear()
+
 const srv = new Koa()
+srv.use(async (ctx, next) => {
+    const r = ctx.request.req
+    console.debug(r.method, r.url)
+    await next()
+})
 srv.use(preventCrossDir())
-srv.use(serveRoot())
-srv.use(bodyParser())
-srv.use(mount('/~/api/', api(apis)))
-srv.use(mount('/~/', serve('frontend')))
+
+srv.use(mount(API_URI, new Koa().use(bodyParser()).use(api(apis))))
+
+const router = new Router();
+router.get('/(.*)', DEV ? proxy('localhost:3000', {}) : serve(FRONTEND))
+srv.use(router.routes())
 
 srv.on('error', err => console.error('server error', err))
-srv.listen(80, ()=> console.log('running',new Date().toLocaleString()))
+srv.listen(PORT, ()=> console.log('running on port', PORT, DEV, new Date().toLocaleString()))
 
 function preventCrossDir() : Koa.Middleware {
     return async (ctx, next) => {
@@ -21,14 +37,6 @@ function preventCrossDir() : Koa.Middleware {
         ctx.assert(!ctx.originalUrl.includes('..'), 400, 'cross-dir');
         await next()
     }
-}
-
-function serveRoot() : Koa.Middleware {
-    return async (ctx, next) => {
-        if (ctx.method === 'GET' && ctx.path.endsWith('/'))
-            await send(ctx, 'frontend/index.html')
-        await next()
-   }
 }
 
 type ApiHandler = (params?:any, ctx?:any) => any
