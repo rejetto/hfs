@@ -38,5 +38,5 @@ function filePromise(path: string) : Promise<Buffer> {
 }
 
 function replaceFrontEndRes(body: string) {
-    return body.replace(/((?:src|href) *= *['"])\/?/g, '$1'+FRONTEND_URI)
+    return body.replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1'+FRONTEND_URI)
 }
