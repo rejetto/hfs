@@ -40,14 +40,21 @@ function File({ n, m, c, s }: DirEntry) {
     const isDir = n.endsWith('/')
     const t = m||c ||null
     return h('li', {},
-        isDir ? h(Link, { to: n }, h(Icon, { name:'folder' }), n)
-            : h('a', { href: n }, h(Icon, { name:'description' }), n),
+        isDir ? h(Link, { to: n }, hIcon('folder'), n)
+            : h('a', { href: n }, hIcon('description'), n),
         h('div', { className:'entry-props' },
-            s !== undefined && h('span', { className:'entry-size' }, formatBytes(s)),
+            s !== undefined && h(Fragment, {},
+                h('span', { className:'entry-size' }, formatBytes(s)),
+                hIcon('download'),
+            ),
             t && h('span', { className:'entry-ts' }, new Date(t).toLocaleString()),
         ),
         h('div', { style:{ clear:'both' } })
     )
+}
+
+function hIcon(name: string) {
+    return h(Icon, { name })
 }
 
 function Icon({ name }: { name:string }) {
