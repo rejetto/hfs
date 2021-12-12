@@ -27,7 +27,7 @@ function Head() {
 interface FileObj { n:string, s?:number }
 
 function FilesList() {
-    const res = useApi('files_list', { path: useLocation().pathname })?.list
+    const res = useApi('file_list', { path: useLocation().pathname })?.list
     if (!res)
         return h(Loading)
     return h('ul', {}, res.map(({ n }:FileObj) => {

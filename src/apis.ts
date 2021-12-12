@@ -1,7 +1,7 @@
 import glob from 'fast-glob'
 
 export default {
-    async files_list(params:any) {
+    async file_list(params:any) {
         const res = await glob('.' + (params.path || '/') + '*', {
             stats: true,
             dot: true,

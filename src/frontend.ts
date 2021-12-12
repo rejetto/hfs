@@ -3,19 +3,21 @@ import Koa from 'koa'
 import MemoMap from './MemoMap'
 import mime from 'mime-types'
 import { readFile } from 'fs'
-import { DEV, FRONTEND_URI } from '.'
+import { DEV, FRONTEND_URI } from './const'
 
 const FRONTEND = 'frontend/build/'
 
 export const serveFrontend = DEV ? serveProxyFrontend() : serveStaticFrontend()
 
 function serveProxyFrontend() {
+    console.debug('fronted: proxied')
     return proxy('localhost:3000', {
         userResDecorator: (res, data) => replaceFrontEndRes(data.toString('utf8'))
     })
 }
 
 function serveStaticFrontend() : Koa.Middleware {
+    console.debug('fronted: static')
     const cache = new MemoMap()
     return async (ctx, next) => {
         let file = ctx.url
