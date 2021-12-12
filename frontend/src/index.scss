@@ -20,12 +20,39 @@ code {
 a {
     text-decoration: none;
     color: #357;
-    border: 1px solid transparent;
-    padding: 0 0.1em;
+}
+button {
+    background-color: #bcd;
+    color: #444;
+    padding: 0.5em 1em;
+    border: transparent;
+    text-decoration: none;
+    border-radius: 0.3em;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+#folder-path {
+    margin: 0.2em;
+    & a {
+        float: left;
+        height: 2em;
+    }
+    & button {
+        padding: 0.4em 0.6em;
+        border-radius: 0.7em;
+    }
+}
+#folder-stats {
+    font-size: 90%;
+    padding: 0.1em 0.3em;
+    margin: 0.2em 0.5em;
+    float: right;
 }
 
 ul.dir {
     padding:0;
+    clear: both;
     & li {
         display: block;
         list-style-type: none;
