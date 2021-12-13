@@ -20,4 +20,6 @@ https://www.tutorialspoint.com/koajs/koajs_quick_guide.htm
 
 # To do
 - vfs
+  - yaml
 - sticky breadcrumbs
+- interruption of long requests if client aborted

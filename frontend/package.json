@@ -5,7 +5,7 @@
   "proxy": "http://localhost",
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "cross-env GENERATE_SOURCEMAP=false BUILD_PATH='../dist/frontend' react-scripts build",
     "test": "react-scripts test",
     "test-dep": "npm audit --production",
     "eject": "react-scripts eject"
@@ -17,7 +17,6 @@
     "web-vitals": "^1.0.1"
   },
   "devDependencies": {
-    "sass": "^1.45.0",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
@@ -25,7 +24,9 @@
     "@types/node": "^12.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
+    "cross-env": "^7.0.3",
     "react-scripts": "4.0.3",
+    "sass": "^1.45.0",
     "typescript": "^4.1.2"
   },
   "eslintConfig": {

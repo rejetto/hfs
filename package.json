@@ -12,6 +12,7 @@
   "scripts": {
     "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts",
     "start": "node dist",
+    "build": "tsc",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'"
   },
   "dependencies": {

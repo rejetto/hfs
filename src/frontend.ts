@@ -5,7 +5,7 @@ import mime from 'mime-types'
 import { readFile } from 'fs'
 import { DEV, FRONTEND_URI } from './const'
 
-const FRONTEND = 'frontend/build/'
+const FRONTEND = __dirname + '/frontend/'
 
 export const serveFrontend = DEV ? serveProxyFrontend() : serveStaticFrontend()
 
