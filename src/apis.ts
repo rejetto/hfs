@@ -1,7 +1,7 @@
 import glob from 'fast-glob'
 import Koa from 'koa'
 import { vfs, VfsNode } from './vfs'
-import { enforceFinal } from './misc'
+import { enforceFinal, wantArray } from './misc'
 import { Stats } from 'fs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
@@ -36,12 +36,13 @@ export const frontEndApis: ApiHandlers = {
         let path = node.source
         if (path) {
             // using / because trying path.join broke glob() on my Windows machine
-            path = enforceFinal('/', glob.escapePath(path)) + '*'
-            const res = await glob(path, {
+            path = enforceFinal('/', glob.escapePath(path))
+            const res = await glob(path + '*', {
                 stats: true,
                 dot: true,
                 markDirectories: true,
                 onlyFiles: false,
+                ignore: wantArray(node.hide).map(x => path+x),
             })
             list.push( ...res.map(x => statToFile(x.name, x.stats!)) )
         }

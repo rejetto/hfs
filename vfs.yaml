@@ -1,3 +1,4 @@
 source: .
 children:
   - source: /music
+    hide: mix*
