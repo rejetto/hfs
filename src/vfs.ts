@@ -34,8 +34,14 @@ export class Vfs {
             throw `Couldn't load ${path}`
         this.root.type = VfsNodeType.root
         recur(this.root)
-        if (watchFile)
-            this.watcher = watch(path, () => this.load(path))
+        if (!watchFile) return
+        let doing = false
+        this.watcher = watch(path, async () => {
+            if (doing) return
+            doing = true
+            await this.load(path)
+            doing = false
+        })
 
         function recur(node:VfsNode) {
             if (node.type !== VfsNodeType.root && !node.name && node.source)
