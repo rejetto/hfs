@@ -20,7 +20,7 @@ function serveStaticFrontend() : Koa.Middleware {
     console.debug('fronted: static')
     const cache = new MemoMap()
     return async (ctx, next) => {
-        let file = ctx.url
+        let file = ctx.path
         if (file.startsWith('/'))
             file = file.slice(1)
         ctx.body = await cache.getOrSet(file, () =>
