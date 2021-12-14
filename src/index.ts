@@ -23,7 +23,7 @@ srv.use(mount(API_URI, new Koa().use(bodyParser()).use(apiMw(frontEndApis))))
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
 srv.use(async (ctx, next) => {
     const { path } = ctx
-    if (ctx.method !== 'GET')
+    if (ctx.method !== 'GET' || ctx.body)
         return await next()
     if (path.endsWith('/'))
         return await serveFrontend(ctx,next)
