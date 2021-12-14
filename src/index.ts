@@ -1,10 +1,10 @@
 import Koa from 'koa'
-import serve from 'koa-static'
 import mount from 'koa-mount'
 import bodyParser from 'koa-bodyparser'
 import { apiMw, frontEndApis } from './apis'
 import { serveFrontend } from './frontend'
 import { API_URI, DEV, FRONTEND_URI } from './const'
+import { serveFileFromVfs } from './vfs'
 
 const PORT = 80
 
@@ -22,7 +22,7 @@ srv.use(async (ctx, next) => {
 srv.use(mount(API_URI, new Koa().use(bodyParser()).use(apiMw(frontEndApis))))
 
 // serve shared files and front-end files
-const serveFiles = serve('.', { hidden:true })
+const serveFiles = serveFileFromVfs()
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
 srv.use(async (ctx, next) => {
     if (ctx.method !== 'GET')

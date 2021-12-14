@@ -1,14 +1,16 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useApi } from './api'
 import { createElement as h, Fragment } from 'react'
-import { formatBytes, hIcon, Loading } from './misc'
+import { formatBytes, hError, hIcon, Loading } from './misc'
 import { Head } from './Head'
 
 export function BrowseFiles() {
-    const path = useLocation().pathname
+    const path = decodeURI(useLocation().pathname)
     let res = useApi('file_list', { path })
     if (!res)
         return h(Loading)
+    if (res instanceof Error)
+        return hError(res)
     const { list } = res
     return h(Fragment, {},
         h(Head, { list }),

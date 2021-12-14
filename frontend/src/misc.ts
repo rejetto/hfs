@@ -4,6 +4,10 @@ export function hIcon(name: string) {
     return h(Icon, { name })
 }
 
+export function hError(err: Error) {
+    return h('div', { className:'error-msg' }, err.message)
+}
+
 const SYS_ICONS: Record<string,string> = {
     file: 'description',
 }
@@ -41,4 +45,8 @@ export function round(v: number, decimals: number = 0) {
 
 export function prefix(pre:string, v:string|number, post:string='') {
     return v ? pre+v+post : ''
+}
+
+export function enforceFinal(sub:string, s:string) {
+    return s.endsWith(sub) ? s : s+sub
 }

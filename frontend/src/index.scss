@@ -32,6 +32,11 @@ button {
     cursor: pointer;
 }
 
+.error-msg {
+    background-color: #faa;
+    color: #833;
+}
+
 #folder-path {
     margin: 0.2em;
     & a {

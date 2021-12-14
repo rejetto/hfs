@@ -1,5 +1,10 @@
 import glob from 'fast-glob'
 import Koa from 'koa'
+import { vfs } from './vfs'
+import { enforceFinal } from '../frontend/src/misc'
+import { Stats } from 'fs'
+import { stat } from 'fs/promises'
+import _ from 'lodash'
 
 type ApiHandler = (params?:any, ctx?:any) => any
 type ApiHandlers = Record<string, ApiHandler>
@@ -20,22 +25,36 @@ export function apiMw(apis: ApiHandlers) : Koa.Middleware {
 
 export const frontEndApis: ApiHandlers = {
     async file_list(params:any) {
-        const res = await glob('.' + (params.path || '/') + '*', {
-            stats: true,
-            dot: true,
-            markDirectories: true,
-            onlyFiles: false,
-        })
-        const list = res.map(x => {
-            const o = x.stats
-            const folder = x.path.endsWith('/')
-            return {
-                n: x.name+(folder ? '/' : ''),
-                c: o?.ctime,
-                m: o?.mtime,
-                s: folder ? undefined : o?.size,
-            }
-        })
+        let node = vfs.urlToNode(params.path || '/')
+        if (!node)
+            return
+        const list = await Promise.all((node.children ||[]).map(async node =>
+            node.source && await stat(node.source).then(
+                statRes => statToFile(node.name, statRes),
+                () => null) ))
+        _.remove(list, x => !x)
+        let path = node.source
+        if (path) {
+            // using / because trying path.join broke glob() on my Windows machine
+            path = enforceFinal('/', glob.escapePath(path)) + '*'
+            const res = await glob(path, {
+                stats: true,
+                dot: true,
+                markDirectories: true,
+                onlyFiles: false,
+            })
+            list.push( ...res.map(x => statToFile(x.name, x.stats!)) )
+        }
         return { list }
+    }
+}
+
+function statToFile(name: string | undefined, stat:Stats) {
+    const folder = stat.isDirectory()
+    return {
+        n: name + (folder ? '/' : ''),
+        c: stat?.ctime,
+        m: stat?.mtime,
+        s: folder ? undefined : stat?.size,
     }
 }
