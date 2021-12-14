@@ -34,5 +34,8 @@ srv.use(async (ctx, next) => {
     await serveFiles(ctx,next)
 })
 
-srv.on('error', err => console.error('server error', err))
+srv.on('error', err => {
+    if (DEV && err.code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out
+    console.error('server error', err)
+})
 srv.listen(PORT, ()=> console.log('running on port', PORT, DEV, new Date().toLocaleString()))
