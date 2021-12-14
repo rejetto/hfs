@@ -14,6 +14,7 @@ export interface VfsNode {
     source?: string,
     children?: VfsNode[],
     hide?: string | string[],
+    rename?: Record<string,string>,
 }
 
 export class Vfs {
@@ -60,13 +61,19 @@ export class Vfs {
         let run = this.root
         const rest = url.split('/').filter(Boolean)
         while (rest.length) {
-            const piece = rest[0]
+            let piece = rest.shift()
+            const { rename } = run
+            if (rename)
+                for (const k in rename)
+                    if (rename[k] === piece) {
+                        piece = k
+                        break
+                    }
             // @ts-ignore
             const find = run?.children?.find(x => x.name === piece)
             if (!find)
-                return run.source ? { source:run.source + '/' + rest.join('/') } : null
+                return run.source ? { source:run.source + '/' + piece + '/' + rest.join('/') } : null
             run = find
-            rest.shift()
         }
         return run
     }

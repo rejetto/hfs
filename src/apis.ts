@@ -44,7 +44,8 @@ export const frontEndApis: ApiHandlers = {
                 onlyFiles: false,
                 ignore: wantArray(node.hide).map(x => path+x),
             })
-            list.push( ...res.map(x => statToFile(x.name, x.stats!)) )
+            const { rename } = node
+            list.push( ...res.map(x => statToFile(rename?.[x.name] || x.name, x.stats!)) )
         }
         return { list }
     }

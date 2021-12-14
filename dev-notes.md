@@ -8,7 +8,6 @@
 - https://www.tutorialspoint.com/koajs/koajs_quick_guide.htm
 
 # To do
-- vfs: rename file in source folder
 - vfs: serve an html for a folder?
   - "default" property for vfsNode?
 - sticky breadcrumbs
