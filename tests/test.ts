@@ -1,7 +1,7 @@
 const axios = require('axios')
 
 describe('file', () => {
-    itHttp('md', '/NOTES.md', '##')
+    itHttp('md', '/dev-notes.md', '#')
     itHttp('frontend', '/', '<body>')
     itHttp('api.list', '/~/api/file_list', data => Array.isArray(data.list))
 })

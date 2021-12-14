@@ -12,7 +12,7 @@ type ApiHandlers = Record<string, ApiHandler>
 export function apiMw(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx, next) => {
         const params = ctx.request.body
-        console.log('API', ctx.method, ctx.path, params)
+        console.debug('API', ctx.method, ctx.path, params)
         // @ts-ignore
         ctx.assert(ctx.path in apis, 404, 'invalid api')
         const cb = (apis as any)[ctx.path]

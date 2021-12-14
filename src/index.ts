@@ -11,10 +11,7 @@ const PORT = 80
 const srv = new Koa()
 srv.use(async (ctx, next) => {
     // log all requests
-    console.debug(ctx.request.method, ctx.url)
-    // prevent cross-dir
-    // @ts-ignore
-    ctx.assert(!ctx.originalUrl.includes('..'), 400, 'cross-dir')
+    console.debug(new Date().toLocaleTimeString(), ctx.request.method, ctx.url)
     await next()
 })
 
