@@ -27,20 +27,26 @@ export class Vfs {
 
     async load(path: string, watchFile:boolean=true) {
         console.debug('loading vfs')
-        this.watcher?.close()
-        const data = await fs.readFile(path, 'utf8')
-        this.root = yaml.parse(data)
+        try {
+            const data = await fs.readFile(path, 'utf8')
+            this.root = yaml.parse(data)
+        }
+        catch(e){
+            return
+        }
         if (!this.root)
-            throw `Couldn't load ${path}`
+            throw `Load failed for ${path}`
         this.root.type = VfsNodeType.root
+        this.watcher?.close()
+        this.watcher = undefined
         recur(this.root)
         if (!watchFile) return
         let doing = false
         this.watcher = watch(path, async () => {
             if (doing) return
             doing = true
-            await this.load(path)
-            doing = false
+            try { await this.load(path).catch() }
+            finally { doing = false }
         })
 
         function recur(node:VfsNode) {

@@ -9,7 +9,6 @@
 
 # To do
 - vfs: rename file in source folder
-- fix: crash if vfs is not loadable
 - vfs: serve an html for a folder?
   - "default" property for vfsNode?
 - sticky breadcrumbs
