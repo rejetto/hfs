@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { createElement as h } from 'react'
-import './App.css'
 import { BrowseFiles } from "./BrowseFiles";
 
 function App() {
