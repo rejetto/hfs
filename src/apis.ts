@@ -1,7 +1,7 @@
 import glob from 'fast-glob'
 import Koa from 'koa'
 import { vfs } from './vfs'
-import { enforceFinal } from '../frontend/src/misc'
+import { enforceFinal } from './misc'
 import { Stats } from 'fs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'

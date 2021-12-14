@@ -46,7 +46,3 @@ export function round(v: number, decimals: number = 0) {
 export function prefix(pre:string, v:string|number, post:string='') {
     return v ? pre+v+post : ''
 }
-
-export function enforceFinal(sub:string, s:string) {
-    return s.endsWith(sub) ? s : s+sub
-}
