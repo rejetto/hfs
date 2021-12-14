@@ -10,7 +10,7 @@
   "license": "GPL-3.0",
   "author": "Massimo Melina <a@rejetto.com> (https://rejetto.com)",
   "scripts": {
-    "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts",
+    "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts vfs.yaml",
     "start": "node dist",
     "build": "tsc",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'"
@@ -25,6 +25,7 @@
     "koa-static": "^5.0.0",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.34",
+    "minimist": "^1.2.5",
     "yaml": "^1.10.2"
   },
   "devDependencies": {
@@ -36,6 +37,7 @@
     "@types/koa-static": "^4.0.2",
     "@types/lodash": "^4.14.178",
     "@types/mime-types": "^2.1.1",
+    "@types/minimist": "^1.2.2",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.11.12",
     "axios": "^0.24.0",

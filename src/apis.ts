@@ -1,6 +1,6 @@
 import glob from 'fast-glob'
 import Koa from 'koa'
-import { vfs } from './vfs'
+import { vfs, VfsNode } from './vfs'
 import { enforceFinal } from './misc'
 import { Stats } from 'fs'
 import { stat } from 'fs/promises'
@@ -28,7 +28,7 @@ export const frontEndApis: ApiHandlers = {
         let node = vfs.urlToNode(params.path || '/')
         if (!node)
             return
-        const list = await Promise.all((node.children ||[]).map(async node =>
+        const list = await Promise.all((node.children ||[]).map(async (node:VfsNode) =>
             node.source && await stat(node.source).then(
                 statRes => statToFile(node.name, statRes),
                 () => null) ))

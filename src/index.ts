@@ -3,10 +3,11 @@ import mount from 'koa-mount'
 import bodyParser from 'koa-bodyparser'
 import { apiMw, frontEndApis } from './apis'
 import { serveFrontend } from './frontend'
-import { API_URI, DEV, FRONTEND_URI } from './const'
-import { serveFileFromVfs } from './vfs'
+import { API_URI, argv, DEV, FRONTEND_URI } from './const'
+import { createReadStream } from 'fs'
+import { vfs } from './vfs'
 
-const PORT = 80
+const PORT = argv.port || 80
 
 const srv = new Koa()
 srv.use(async (ctx, next) => {
@@ -19,16 +20,18 @@ srv.use(async (ctx, next) => {
 srv.use(mount(API_URI, new Koa().use(bodyParser()).use(apiMw(frontEndApis))))
 
 // serve shared files and front-end files
-const serveFiles = serveFileFromVfs()
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
 srv.use(async (ctx, next) => {
+    const { path } = ctx
     if (ctx.method !== 'GET')
         return await next()
-    if (ctx.path.endsWith('/'))
+    if (path.endsWith('/'))
         return await serveFrontend(ctx,next)
-    if (ctx.path.startsWith(FRONTEND_URI))
+    if (path.startsWith(FRONTEND_URI))
         return await serveFrontendPrefixed(ctx,next)
-    await serveFiles(ctx,next)
+    const source = vfs.urlToNode(decodeURI(path))?.source
+    if (source)
+        ctx.body = createReadStream(source as string)
 })
 
 srv.on('error', err => {

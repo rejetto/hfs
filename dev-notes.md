@@ -8,7 +8,6 @@
 - https://www.tutorialspoint.com/koajs/koajs_quick_guide.htm
 
 # To do
-- fix dist
 - vfs: rename file in source folder
 - vfs: hide file in source folder
 - fix: crash if vfs is not loadable

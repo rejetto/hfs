@@ -1,31 +1,41 @@
-import Koa from 'koa'
+import { argv } from './const'
 import yaml from 'yaml'
-import fs, { createReadStream } from 'fs'
+import fs from 'fs/promises'
+import { FSWatcher, watch } from 'fs'
 import { basename } from 'path'
 
 enum VfsNodeType {
     root,
 }
 
-interface VfsNode {
+export interface VfsNode {
     type?: VfsNodeType,
     name?: string,
     source?: string,
-    children?: VfsNode[]
+    children?: VfsNode[],
+    hide?: string | string[],
 }
 
-class Vfs {
+export class Vfs {
     root: VfsNode = {}
+    watcher?: FSWatcher
 
-    load(path: string, watch:boolean=true) {
-        const data = fs.readFileSync(path, 'utf8')
+    constructor(path?:string) {
+        if (path)
+            this.load(path).then()
+    }
+
+    async load(path: string, watchFile:boolean=true) {
+        console.debug('loading vfs')
+        this.watcher?.close()
+        const data = await fs.readFile(path, 'utf8')
         this.root = yaml.parse(data)
         if (!this.root)
             throw `Couldn't load ${path}`
         this.root.type = VfsNodeType.root
         recur(this.root)
-        if (watch)
-            fs.watch(path, () => vfs.load(path))
+        if (watchFile)
+            this.watcher = watch(path, () => this.load(path))
 
         function recur(node:VfsNode) {
             if (node.type !== VfsNodeType.root && !node.name && node.source)
@@ -50,15 +60,4 @@ class Vfs {
     }
 }
 
-export function serveFileFromVfs() : Koa.Middleware {
-    return async (ctx, next) => {
-        let { url } = ctx
-        const path = vfs.urlToNode(decodeURI(url))?.source
-        if (path)
-            ctx.body = createReadStream(path as string)
-        await next()
-    }
-}
-
-export const vfs = new Vfs()
-vfs.load('vfs.yaml')
+export const vfs = new Vfs(argv._[0])
