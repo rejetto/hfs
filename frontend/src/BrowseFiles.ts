@@ -21,9 +21,10 @@ interface DirEntry { n:string, s?:number, m?:string, c?:string }
 export type DirList = DirEntry[]
 
 function FilesList({ list }:{ list:DirList }) {
-    return h('ul', { className:'dir' },
-        list.map((entry:DirEntry) =>
-            h(File, { key: entry.n, ...entry }) ))
+    return h('ul', { className: 'dir' },
+        !list.length ? 'Nothing here'
+            : list.map((entry: DirEntry) =>
+                h(File, { key: entry.n, ...entry })))
 }
 
 function File({ n, m, c, s }: DirEntry) {

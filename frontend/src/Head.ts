@@ -31,7 +31,7 @@ function FolderStats({ list }:{ list:DirList }) {
         [
             prefix('', stats.files,' file(s)'),
             prefix('', stats.folders, ' folder(s)'),
-            formatBytes(stats.size),
+            stats.size ? formatBytes(stats.size) : '',
         ].filter(Boolean).join(', ')
     )
 }
