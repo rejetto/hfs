@@ -28,13 +28,8 @@ export const frontEndApis: ApiHandlers = {
         let node = vfs.urlToNode(params.path || '/')
         if (!node)
             return
-        const list = await Promise.all((node.children ||[]).map(async (node:VfsNode) =>
-            node.hidden ? null
-                : node.source?.includes('//') ? { n:node.name }
-                    : node.source ? stat(node.source).then(res => statToFile(node.name, res), () => null)
-                        : node.name ? { n: node.name + '/' }
-                            : null
-        ))
+        const list = await Promise.all((node.children ||[]).map(node =>
+            !node.hidden && nodeToFile(node) ))
         _.remove(list, x => !x)
         let path = node.source
         if (path) {
@@ -51,6 +46,19 @@ export const frontEndApis: ApiHandlers = {
             list.push( ...res.map(x => statToFile(rename?.[x.name] || x.name, x.stats!)) )
         }
         return { list }
+    }
+}
+
+async function nodeToFile(node: VfsNode) {
+    try {
+        return node.source?.includes('//') ? { n:node.name }
+            : node.source ? statToFile(node.name, await stat(node.source))
+                : node.name ? { n: node.name + '/' }
+                    : null
+    }
+    catch (err:any) {
+        console.error('ERR', node.source, err?.code || err)
+        return null
     }
 }
 
