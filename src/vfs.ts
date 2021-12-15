@@ -14,6 +14,7 @@ export interface VfsNode {
     source?: string,
     children?: VfsNode[],
     hide?: string | string[],
+    hidden?: boolean,
     rename?: Record<string,string>,
 }
 
