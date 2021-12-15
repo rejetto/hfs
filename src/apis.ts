@@ -30,9 +30,10 @@ export const frontEndApis: ApiHandlers = {
             return
         const list = await Promise.all((node.children ||[]).map(async (node:VfsNode) =>
             node.hidden ? null
-                : node.source ? stat(node.source).then(res => statToFile(node.name, res), () => null)
-                    : node.name ? { n: node.name + '/' }
-                        : null
+                : node.source?.includes('//') ? { n:node.name }
+                    : node.source ? stat(node.source).then(res => statToFile(node.name, res), () => null)
+                        : node.name ? { n: node.name + '/' }
+                            : null
         ))
         _.remove(list, x => !x)
         let path = node.source

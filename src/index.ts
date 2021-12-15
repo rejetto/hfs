@@ -6,7 +6,8 @@ import { serveFrontend } from './frontend'
 import { API_URI, argv, DEV, FRONTEND_URI } from './const'
 import { createReadStream } from 'fs'
 import { vfs } from './vfs'
-import { stat } from 'fs/promises'
+import { isDirectory } from './misc'
+import proxy from 'koa-better-http-proxy'
 
 const PORT = argv.port || 80
 
@@ -26,18 +27,19 @@ srv.use(async (ctx, next) => {
     const { path } = ctx
     if (ctx.method !== 'GET' || ctx.body)
         return await next()
-    if (path.endsWith('/'))
-        return await serveFrontend(ctx,next)
     if (path.startsWith(FRONTEND_URI))
         return await serveFrontendPrefixed(ctx,next)
     const node = vfs.urlToNode(decodeURI(path))
     if (!node)
         return await next()
     const { source } = node
-    if (!source || (await stat(source)).isDirectory()) // this folder was requested without the trailing /
-        return ctx.redirect(ctx.path+'/')
+    if (!source || await isDirectory(source)) // this folder was requested without the trailing /
+        return path.endsWith('/') ? await serveFrontend(ctx,next)
+            : ctx.redirect(ctx.path+'/')
     if (source)
-        ctx.body = createReadStream(source as string)
+        return ctx.body = source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
+            : createReadStream(source)
+    await next()
 })
 
 srv.on('error', err => {
