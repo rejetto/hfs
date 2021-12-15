@@ -18,7 +18,7 @@
 - vfs: serve an html for a folder?
   - "default" property for vfsNode?
 - sticky breadcrumbs
-- interruption of long requests if client aborted
+- interruption of long requests if client aborted (searching/listing)
 - frontend
   - don't depend on cdn
 - webdav?
