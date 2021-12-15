@@ -29,14 +29,17 @@ export const frontEndApis: ApiHandlers = {
         if (!node)
             return
         const list = await Promise.all((node.children ||[]).map(async (node:VfsNode) =>
-            node.source && await stat(node.source).then(
-                statRes => statToFile(node.name, statRes),
-                () => null) ))
+            node.source ? await stat(node.source).then(
+                    statRes => statToFile(node.name, statRes),
+                    () => null)
+                : node.name ? { n: node.name+'/' }
+                    : null
+        ))
         _.remove(list, x => !x)
         let path = node.source
         if (path) {
             // using / because trying path.join broke glob() on my Windows machine
-            path = enforceFinal('/', glob.escapePath(path))
+            path = enforceFinal('/', glob.escapePath(path.replace(/\\/g,'/')))
             const res = await glob(path + '*', {
                 stats: true,
                 dot: true,
