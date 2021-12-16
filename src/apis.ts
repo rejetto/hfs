@@ -1,7 +1,6 @@
-import glob from 'fast-glob'
 import Koa from 'koa'
 import { vfs, VfsNode } from './vfs'
-import { enforceFinal, wantArray } from './misc'
+import { globDir } from './misc'
 import { Stats } from 'fs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
@@ -25,7 +24,7 @@ export function apiMw(apis: ApiHandlers) : Koa.Middleware {
 
 export const frontEndApis: ApiHandlers = {
     async file_list(params:any) {
-        let node = vfs.urlToNode(params.path || '/')
+        let node = await vfs.urlToNode(params.path || '/')
         if (!node)
             return
         const list = await Promise.all((node.children ||[]).map(node =>
@@ -33,17 +32,8 @@ export const frontEndApis: ApiHandlers = {
         _.remove(list, x => !x)
         let path = node.source
         if (path) {
-            // using / because trying path.join broke glob() on my Windows machine
-            path = enforceFinal('/', glob.escapePath(path.replace(/\\/g,'/')))
-            const res = await glob(path + '*', {
-                stats: true,
-                dot: true,
-                markDirectories: true,
-                onlyFiles: false,
-                ignore: wantArray(node.hide).map(x => path+x),
-            })
-            const { rename } = node
-            list.push( ...res.map(x => statToFile(rename?.[x.name] || x.name, x.stats!)) )
+            const res = await globDir(path, [node.hide, node.remove])
+            list.push( ...res.map(x => statToFile(node!.rename?.[x.name] || x.name, x.stats!)) )
         }
         return { list }
     }

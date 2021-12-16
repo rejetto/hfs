@@ -3,6 +3,8 @@ import yaml from 'yaml'
 import fs from 'fs/promises'
 import { FSWatcher, watch } from 'fs'
 import { basename } from 'path'
+import { isMatch } from 'micromatch'
+import { complySlashes, prefix } from './misc'
 
 enum VfsNodeType {
     root,
@@ -14,6 +16,7 @@ export interface VfsNode {
     source?: string,
     children?: VfsNode[],
     hide?: string | string[],
+    remove?: string | string[],
     hidden?: boolean,
     rename?: Record<string,string>,
 }
@@ -28,7 +31,7 @@ export class Vfs {
     }
 
     async load(path: string, watchFile:boolean=true) {
-        console.debug('loading vfs')
+        console.debug('loading',path)
         try {
             const data = await fs.readFile(path, 'utf8')
             this.root = yaml.parse(data)
@@ -58,7 +61,7 @@ export class Vfs {
         }
     }
 
-    urlToNode(url: string) {
+    async urlToNode(url: string) {
         let run = this.root
         const rest = url.split('/').filter(Boolean)
         while (rest.length) {
@@ -72,8 +75,15 @@ export class Vfs {
                     }
             // @ts-ignore
             const find = run?.children?.find(x => x.name === piece)
-            if (!find)
-                return run.source ? { source:run.source + '/' + piece + '/' + rest.join('/') } : null
+            if (!find) {
+                if (!run.source)
+                    return null
+                const relativeSource = piece + prefix('/', rest.join('/'))
+                const baseSource = complySlashes(run.source+ '/')
+                const source = baseSource + relativeSource
+                const removed = isMatch(source, [run.remove].flat().map(x => baseSource + x))
+                return removed || !await fs.stat(source) ? null : { source }
+            }
             run = find
         }
         return run
