@@ -2,7 +2,7 @@ import { argv } from './const'
 import yaml from 'yaml'
 import fs from 'fs/promises'
 import { FSWatcher, watch } from 'fs'
-import { basename } from 'path'
+import { dirname, basename } from 'path'
 import { isMatch } from 'micromatch'
 import { complySlashes, prefix } from './misc'
 import { getCurrentUser } from './perm'
@@ -30,10 +30,13 @@ const EMPTY = { type: VfsNodeType.root }
 export class Vfs {
     root: VfsNode = EMPTY
     watcher?: FSWatcher
+    basePath: string
 
     constructor(path?:string) {
+        this.basePath = ''
         if (path)
-            this.load(path).then()
+            this.load(path).then(()=>
+                this.basePath = dirname(path))
         else
             this.reset()
     }
@@ -51,7 +54,7 @@ export class Vfs {
             console.debug('loaded')
         }
         catch(e) {
-            console.error(`Load failed for ${path}`)
+            console.error(`Load failed for ${path}`,e)
         }
         this.watcher?.close()
         this.watcher = undefined

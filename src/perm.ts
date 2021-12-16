@@ -3,8 +3,9 @@ import fs from 'fs/promises'
 import _ from 'lodash'
 import yaml from 'yaml'
 import { hashPassword } from './crypt'
+import { argv } from './const'
 
-const PATH = 'accounts.yaml'
+const PATH = argv.accounts || 'accounts.yaml'
 
 interface UserDetails {
     user: string, // we'll have user in it, so we don't need to pass it separately
@@ -33,7 +34,7 @@ async function load() {
             file = await fs.readFile(PATH, 'utf8')
         }
         catch(e){
-            console.warn('cannot read', PATH)
+            console.warn('cannot read', PATH, e)
             return
         }
         const res = yaml.parse(file)

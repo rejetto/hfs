@@ -8,6 +8,7 @@
 - https://www.tutorialspoint.com/koajs/koajs_quick_guide.htm
 
 # To do
+- more tests
 - permissions
 - search
 - vfs: serve an html for a folder?

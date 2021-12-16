@@ -13,8 +13,8 @@ export function apiMw(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx, next) => {
         const params = ctx.request.body
         console.debug('API', ctx.method, ctx.path, params)
-        // @ts-ignore
-        ctx.assert(ctx.path in apis, 404, 'invalid api')
+        if (!(ctx.path in apis))
+            return ctx.throw(404, 'invalid api')
         const cb = (apis as any)[ctx.path]
         const res = await cb(params, ctx)
         if (res)

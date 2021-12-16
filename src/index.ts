@@ -4,7 +4,7 @@ import bodyParser from 'koa-bodyparser'
 import { apiMw, frontEndApis } from './apis'
 import { serveFrontend } from './frontend'
 import { API_URI, argv, DEV, FRONTEND_URI } from './const'
-import { createReadStream } from 'fs'
+import { serveFile } from './serveFile'
 import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import proxy from 'koa-better-http-proxy'
@@ -37,8 +37,8 @@ srv.use(async (ctx, next) => {
         return path.endsWith('/') ? await serveFrontend(ctx,next)
             : ctx.redirect(ctx.path+'/')
     if (source)
-        return ctx.body = source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
-            : createReadStream(source)
+        return source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
+            : serveFile(source)(ctx,next)
     await next()
 })
 
