@@ -20,3 +20,4 @@
 - streamable zip archives
   - no compression 
   - resumable?
+- vfs: ability to remove/hide/rename files deep in a source

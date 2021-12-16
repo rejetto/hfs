@@ -21,13 +21,21 @@ export interface VfsNode {
     rename?: Record<string,string>,
 }
 
+const EMPTY = { type: VfsNodeType.root }
+
 export class Vfs {
-    root: VfsNode = {}
+    root: VfsNode = EMPTY
     watcher?: FSWatcher
 
     constructor(path?:string) {
         if (path)
             this.load(path).then()
+        else
+            this.reset()
+    }
+
+    reset(){
+        this.root = { ...EMPTY }
     }
 
     async load(path: string, watchFile:boolean=true) {
@@ -35,13 +43,12 @@ export class Vfs {
         try {
             const data = await fs.readFile(path, 'utf8')
             this.root = yaml.parse(data)
+            // we should validate content now
+            console.debug('loaded')
         }
-        catch(e){
-            return
+        catch(e) {
+            console.error(`Load failed for ${path}`)
         }
-        if (!this.root)
-            throw `Load failed for ${path}`
-        this.root.type = VfsNodeType.root
         this.watcher?.close()
         this.watcher = undefined
         recur(this.root)
