@@ -1,9 +1,10 @@
 import Koa from 'koa'
-import { vfs, VfsNode } from './vfs'
+import { directPermOnNode, vfs, VfsNode } from './vfs'
 import { globDir } from './misc'
 import { Stats } from 'fs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
+import { getCurrentUser } from './perm'
 
 type ApiHandler = (params?:any, ctx?:any) => any
 type ApiHandlers = Record<string, ApiHandler>
@@ -27,8 +28,9 @@ export const frontEndApis: ApiHandlers = {
         let node = await vfs.urlToNode(params.path || '/')
         if (!node)
             return
+        const who = await getCurrentUser() // cache value
         const list = await Promise.all((node.children ||[]).map(node =>
-            !node.hidden && nodeToFile(node) ))
+            !node.hidden && directPermOnNode(node,who) && nodeToFile(node) ))
         _.remove(list, x => !x)
         let path = node.source
         if (path) {
