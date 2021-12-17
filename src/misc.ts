@@ -1,5 +1,6 @@
 import { stat } from 'fs/promises'
 import glob from 'fast-glob'
+import { objSameKeys } from './obj'
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
@@ -31,4 +32,8 @@ export async function globDir(path: string, ignore?: any[]) {
         onlyFiles: false,
         ignore: ignore?.flat().filter(Boolean).map(x => path!+x),
     })
+}
+
+export function setHidden(dest: object, src:object) {
+    Object.defineProperties(dest, objSameKeys(src, value => ({ enumerable:false, value })))
 }

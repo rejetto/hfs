@@ -4,6 +4,7 @@ import _ from 'lodash'
 import yaml from 'yaml'
 import { hashPassword } from './crypt'
 import { argv } from './const'
+import { setHidden } from './misc'
 
 const PATH = argv.accounts || 'accounts.yaml'
 
@@ -44,10 +45,7 @@ async function load() {
         accounts = res.accounts
         let changed = false
         await Promise.all(_.map(accounts, async (rec,k) => {
-            Object.defineProperty(rec, 'user', {
-                enumerable: false, // sneak it in
-                value: k,
-            })
+            setHidden(rec, { user: k })
             if (rec.password) {
                 rec.hashedPassword = await hashPassword(rec.password)
                 delete rec.password
