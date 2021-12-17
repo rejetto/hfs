@@ -2,9 +2,12 @@ import { watch } from 'fs'
 import fs from 'fs/promises'
 import _ from 'lodash'
 import yaml from 'yaml'
-import { hashPassword } from './crypt'
+import { hashPassword, verifyPassword } from './crypt'
 import { argv } from './const'
 import { setHidden } from './misc'
+import { SESSION_COOKIE } from './apis'
+import { sessions } from './sessions'
+import Koa from 'koa'
 
 const PATH = argv.accounts || 'accounts.yaml'
 
@@ -17,8 +20,14 @@ interface Accounts { [username:string]: UserDetails }
 
 let accounts: Accounts = {}
 
-export async function getCurrentUser() {
-    return 'max'
+export async function getCurrentUser(ctx: Koa.Context) {
+    const id = ctx.cookies.get(SESSION_COOKIE)
+    return id && sessions.get(id)?.user || ''
+}
+
+export async function verifyLogin(user:string, password: string) {
+    const acc = accounts[user]
+    return acc && verifyPassword(acc.hashedPassword, password)
 }
 
 let doing = false

@@ -8,8 +8,8 @@ export function apiCall(cmd: string, params?: object) : Promise<any> {
     }).then(res => {
         if (res.ok)
             return res.json()
-        const msg = 'Failed API ' + cmd + (params ? ' ' + JSON.stringify(params) : '')
-        console.warn(msg)
+        const msg = 'Failed API ' + cmd
+        console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
         throw Error(msg)
     })
 }

@@ -1,7 +1,9 @@
 import { createElement as h, Fragment, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { DirList } from './BrowseFiles'
+import { login, logout } from './login'
 import { formatBytes, hIcon, prefix } from './misc'
+import { useSnapState } from './state'
 
 export function Head({ list }:{ list:DirList }) {
     return h(Fragment, {},
@@ -12,7 +14,34 @@ export function Head({ list }:{ list:DirList }) {
 }
 
 function MenuPanel() {
-    return null
+    const snap = useSnapState()
+    return h('div', { id:'menu-panel' },
+        h('div', { id:'menu-bar' },
+            MenuButton(snap.username ? {
+                icon: 'user',
+                label: snap.username,
+                onClick(){
+                    if (window.confirm('Logout?'))
+                        logout()
+                },
+            } : {
+                icon: 'login',
+                label: 'Login',
+                async onClick(){
+                    const user = prompt('Username')
+                    if (!user) return
+                    const password = prompt('Password')
+                    if (!password) return
+                    await login(user, password)
+                }
+            })
+        ))
+}
+
+function MenuButton({ icon, label, onClick }:{ icon:string, label:string, onClick?:()=>void }) {
+    return h('button', { title:label, onClick },
+        hIcon(icon),
+        h('label',{}, label))
 }
 
 function FolderStats({ list }:{ list:DirList }) {

@@ -15,8 +15,7 @@ describe('basics', () => {
     it('partial download', req('/f1/f2/alfa.txt', s => s.includes('a') && !s.includes('d'), {
         headers: { Range: 'bytes=0-2' }
     }))
-    it('perm1', req('/for-fred', 404))
-    it('perm2', req('/for-max/', 200))
+    it('missing perm', req('/for-rejetto/', 404))
     it('proxy', req('/proxy', s => s.includes('github')))
 })
 

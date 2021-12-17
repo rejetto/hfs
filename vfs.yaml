@@ -6,9 +6,6 @@ children:
           - source: tests/alfa.txt
   - name: proxy
     source: https://raw.githubusercontent.com/nodejs/node/master/README.md
-  - name: for-max
+  - name: for-rejetto
     perm:
-      max: r
-  - name: for-fred
-    perm:
-      fred: r
+      rejetto: r

@@ -4,8 +4,12 @@ import { createElement as h, Fragment } from 'react'
 import { formatBytes, hError, hIcon, Loading } from './misc'
 import { Head } from './Head'
 
+function usePath() {
+    return decodeURI(useLocation().pathname)
+}
+
 export function BrowseFiles() {
-    const path = decodeURI(useLocation().pathname)
+    const path = usePath()
     let res = useApi('file_list', { path })
     if (!res)
         return h(Loading)
@@ -28,7 +32,7 @@ function FilesList({ list }:{ list:DirList }) {
 }
 
 function File({ n, m, c, s }: DirEntry) {
-    const base = useLocation().pathname
+    const base = usePath()
     const isDir = n.endsWith('/')
     const t = m||c ||null
     return h('li', {},

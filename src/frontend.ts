@@ -18,7 +18,6 @@ function serveProxyFrontend() {
 }
 
 function serveStaticFrontend() : Koa.Middleware {
-    console.debug('fronted: static')
     const cache = new MemoMap()
     return async (ctx, next) => {
         let file = ctx.path

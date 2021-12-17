@@ -6,6 +6,7 @@ import { dirname, basename } from 'path'
 import { isMatch } from 'micromatch'
 import { complySlashes, prefix } from './misc'
 import { getCurrentUser } from './perm'
+import Koa from 'koa'
 
 enum VfsNodeType {
     root,
@@ -51,7 +52,6 @@ export class Vfs {
             const data = await fs.readFile(path, 'utf8')
             this.root = yaml.parse(data)
             // we should validate content now
-            console.debug('loaded')
         }
         catch(e) {
             console.error(`Load failed for ${path}`,e)
@@ -75,8 +75,8 @@ export class Vfs {
         }
     }
 
-    async urlToNode(url: string) {
-        const who = await getCurrentUser()
+    async urlToNode(url: string, ctx: Koa.Context) {
+        const who = await getCurrentUser(ctx)
         let run = this.root
         const rest = url.split('/').filter(Boolean)
         if (forbidden()) return
@@ -91,7 +91,7 @@ export class Vfs {
             if (!run.source)
                 return null
             const relativeSource = piece + prefix('/', rest.join('/'))
-            const baseSource = complySlashes(run.source+ '/') //** serve comply qui?
+            const baseSource = complySlashes(run.source+ '/') //TODO do we really need complySlashes here?
             const source = baseSource + relativeSource
             const removed = isMatch(source, [run.remove].flat().map(x => baseSource + x))
             return removed || !await fs.stat(source) ? null : { source }
@@ -107,7 +107,7 @@ export class Vfs {
 
 }
 
-export const vfs = new Vfs(argv._[0])
+export const vfs = new Vfs(argv._[0] || 'vfs.yaml')
 
 function findChildByName(name:string, node:VfsNode) {
     const { rename } = node
@@ -118,5 +118,5 @@ function findChildByName(name:string, node:VfsNode) {
 
 export function directPermOnNode(node:VfsNode, username:string) {
     const { perm } = node
-    return !perm ? 'r' : (perm[username] || perm['*'])
+    return !perm ? 'r' : (username && perm[username] || perm['*'])
 }

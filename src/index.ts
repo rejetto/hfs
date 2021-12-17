@@ -29,7 +29,7 @@ srv.use(async (ctx, next) => {
         return await next()
     if (path.startsWith(FRONTEND_URI))
         return await serveFrontendPrefixed(ctx,next)
-    const node = await vfs.urlToNode(decodeURI(path))
+    const node = await vfs.urlToNode(decodeURI(path), ctx)
     if (!node)
         return await next()
     const { source } = node

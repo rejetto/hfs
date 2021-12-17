@@ -9,6 +9,8 @@ export function hError(err: Error) {
 }
 
 const SYS_ICONS: Record<string,string> = {
+    login: 'person',
+    user: 'account_circle',
     file: 'description',
 }
 export function Icon({ name }: { name:string }) {
