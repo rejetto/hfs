@@ -12,6 +12,7 @@ export const serveFrontend = DEV ? serveProxyFrontend() : serveStaticFrontend()
 function serveProxyFrontend() {
     console.debug('fronted: proxied')
     return proxy('localhost:3000', {
+        proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
         userResDecorator: (res, data) => replaceFrontEndRes(data.toString('utf8'))
     })
 }

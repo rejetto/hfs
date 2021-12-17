@@ -1,4 +1,14 @@
-source: .
 children:
-  - source: /music
-    hide: mix*
+  - name: f1
+    children:
+      - name: f2
+        children:
+          - source: tests/alfa.txt
+  - name: proxy
+    source: https://raw.githubusercontent.com/nodejs/node/master/README.md
+  - name: for-max
+    perm:
+      max: r
+  - name: for-fred
+    perm:
+      fred: r
