@@ -4,15 +4,12 @@
 - material
   - css+js https://materializecss.com/
 
-# Study
-- https://www.tutorialspoint.com/koajs/koajs_quick_guide.htm
-
 # To do
 - search
+- sticky breadcrumbs
 - frontend: dialogs
 - vfs: serve an html for a folder?
   - "default" property for vfsNode?
-- sticky breadcrumbs
 - interruption of long requests if client aborted (searching/listing)
 - throttle speed
 - frontend
