@@ -1,11 +1,12 @@
 import Koa from 'koa'
 import { directPermOnNode, vfs, VfsNode } from './vfs'
-import { globDir } from './misc'
+import { complySlashes, enforceFinal } from './misc'
 import { Stats } from 'fs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { getCurrentUser, verifyLogin } from './perm'
 import { sessions } from './sessions'
+import glob from 'fast-glob'
 
 export const SESSION_COOKIE = 'hfs_$id'
 
@@ -37,7 +38,7 @@ export function apiMw(apis: ApiHandlers) : Koa.Middleware {
 }
 
 export const frontEndApis: ApiHandlers = {
-    async file_list({ path }, ctx) {
+    async file_list({ path, offset, limit }, ctx) {
         let node = await vfs.urlToNode(path || '/', ctx)
         if (!node)
             return
@@ -45,11 +46,34 @@ export const frontEndApis: ApiHandlers = {
         const list = await Promise.all((node.children ||[]).map(node =>
             !node.hidden && directPermOnNode(node,who) && nodeToFile(node) ))
         _.remove(list, x => !x)
-        const source = node.source
-        if (source) {
-            const res = await globDir(source, [node.hide, node.remove])
-            list.push( ...res.map(x => statToFile(node!.rename?.[x.name] || x.name, x.stats!)) )
+        if (offset)
+            offset -= list.splice(0, offset).length
+        const { source } = node
+        if (list.length > limit)
+            list.splice(limit)
+        else if (source) {
+            const base = enforceFinal('/', complySlashes(source)) // fast-glob lib wants forward-slashes
+            const ignore = [node.hide, node.remove].flat().filter(Boolean).map(x => base!+x)
+            const dirStream = glob.stream(base+'*', {
+                dot: true,
+                onlyFiles: false,
+                ignore,
+            })
+            for await (let path of dirStream) {
+                if (offset) {
+                    offset--
+                    continue
+                }
+                if (limit === list.length)
+                    break
+                if (path instanceof Buffer)
+                    path = path.toString('utf8')
+                const stats = await stat(path)
+                const name = path.slice(base.length)
+                list.push(statToFile(node!.rename?.[name] || name, stats))
+            }
         }
+
         return { list }
     },
     async login({ user, password }, ctx) {

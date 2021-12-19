@@ -23,17 +23,6 @@ export function prefix(pre:string, v:string|number, post:string='') {
     return v ? pre+v+post : ''
 }
 
-export async function globDir(path: string, ignore?: any[]) {
-    path = enforceFinal('/', complySlashes(path)) // fast-glob lib wants forward-slashes
-    return await glob(path + '*', {
-        stats: true,
-        dot: true,
-        markDirectories: true,
-        onlyFiles: false,
-        ignore: ignore?.flat().filter(Boolean).map(x => path!+x),
-    })
-}
-
 export function setHidden(dest: object, src:object) {
     Object.defineProperties(dest, objSameKeys(src, value => ({ enumerable:false, value })))
 }

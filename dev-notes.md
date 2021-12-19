@@ -8,6 +8,7 @@
 - when reloading vfs wait for it to be unlocked 
 - search
 - sticky breadcrumbs
+- frontend: ensure icons are loaded before going on 
 - frontend: dialogs
 - vfs: serve an html for a folder?
   - "default" property for vfsNode?
