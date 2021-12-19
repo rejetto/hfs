@@ -5,8 +5,6 @@ import mime from 'mime-types'
 import { createReadStream, readFile } from 'fs'
 import { DEV, FRONTEND_URI } from './const'
 
-const FRONTEND = __dirname + '/frontend/'
-
 export const serveFrontend = DEV ? serveProxyFrontend() : serveStaticFrontend()
 
 function serveProxyFrontend() {
@@ -21,15 +19,16 @@ function serveProxyFrontend() {
 }
 
 function serveStaticFrontend() : Koa.Middleware {
+    const BASE = __dirname + (DEV ? '/../dist' : '') + '/frontend/'
     const cache = new MemoMap()
     return async (ctx, next) => {
         let file = ctx.path
         if (file.startsWith('/'))
             file = file.slice(1)
         const untouched = Boolean(file)
-        ctx.body = untouched ? createReadStream(FRONTEND + file)
+        ctx.body = untouched ? createReadStream(BASE + file)
             : await cache.getOrSet(file, () =>
-                filePromise(FRONTEND + (file || 'index.html')).then(res =>
+                filePromise(BASE + (file || 'index.html')).then(res =>
                     replaceFrontEndRes(res.toString('utf8')) ))
         ctx.type = file ? (mime.lookup(file) || 'application/octet-stream') : 'html'
         await next()
