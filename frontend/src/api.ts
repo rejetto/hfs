@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Falsy } from './misc'
 
 export function apiCall(cmd: string, params?: object) : Promise<any> {
     return fetch('/~/api/'+cmd, {
@@ -14,11 +15,12 @@ export function apiCall(cmd: string, params?: object) : Promise<any> {
     })
 }
 
-export function useApi(cmd: string, params?: object) : any {
+export function useApi(cmd: string | Falsy, params?: object) : any {
     const [x, setX] = useState()
     useEffect(()=>{
         setX(undefined)
-        apiCall(cmd, params).then(setX, setX)
+        if (cmd)
+            apiCall(cmd, params).then(setX, setX)
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
     return x
 }

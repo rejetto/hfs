@@ -1,4 +1,6 @@
-import React, { createElement as h } from 'react'
+import { createElement as h } from 'react'
+
+export type Falsy = false | null | undefined | '' | 0
 
 export function hIcon(name: string) {
     return h(Icon, { name })
@@ -12,16 +14,22 @@ const SYS_ICONS: Record<string,string> = {
     login: 'person',
     user: 'account_circle',
     file: 'description',
+    spinner: 'sports_baseball',
 }
-export function Icon({ name }: { name:string }) {
+export function Icon({ name, ...props }: { name:string }) {
     name = SYS_ICONS[name] || name
     return h('span',{
         className: 'material-icons-outlined icon',
+        ...props
     }, name)
 }
 
 export function Loading() {
-    return 'loading' as React.ReactNode as React.ReactElement
+    return h(Spinner)
+}
+
+export function Spinner() {
+    return h(Icon, { name:'spinner', style: { animation:'1s spin infinite' } })
 }
 
 export function formatBytes(n: number, post: string = 'B') {

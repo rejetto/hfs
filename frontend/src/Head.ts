@@ -1,15 +1,15 @@
-import { createElement as h, Fragment, useMemo } from 'react'
+import { createElement as h, Fragment, useContext, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { DirList } from './BrowseFiles'
+import { ListContext } from './BrowseFiles'
 import { login, logout } from './login'
-import { formatBytes, hIcon, prefix } from './misc'
+import { formatBytes, hIcon, prefix, Spinner } from './misc'
 import { useSnapState } from './state'
 
-export function Head({ list }:{ list:DirList }) {
+export function Head() {
     return h(Fragment, {},
         h(MenuPanel),
         h(Breadcrumbs),
-        h(FolderStats, { list })
+        h(FolderStats)
     )
 }
 
@@ -44,7 +44,8 @@ function MenuButton({ icon, label, onClick }:{ icon:string, label:string, onClic
         h('label',{}, label))
 }
 
-function FolderStats({ list }:{ list:DirList }) {
+function FolderStats() {
+    const { list, unfinished } = useContext(ListContext)
     const stats = useMemo(() =>{
         let files = 0, folders = 0, size = 0
         for (const x of list) {
@@ -57,6 +58,7 @@ function FolderStats({ list }:{ list:DirList }) {
         return { files, folders, size }
     }, [list])
     return h('div', { id:'folder-stats' },
+        unfinished && h(Spinner),
         [
             prefix('', stats.files,' file(s)'),
             prefix('', stats.folders, ' folder(s)'),
