@@ -5,6 +5,7 @@
   - css+js https://materializecss.com/
 
 # To do
+- when reloading vfs wait for it to be unlocked 
 - search
 - sticky breadcrumbs
 - frontend: dialogs

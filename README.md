@@ -54,4 +54,4 @@ As soon as possible HFS will encrypt passwords in a non-reversible way.
 
 You'll find the output in `dist` folder.
 
-Now you can run `node dist`, or `cd dist` and `node .`
+Now to run it you should `cd dist` and `node .`
