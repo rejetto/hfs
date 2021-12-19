@@ -23,6 +23,8 @@ function serveStaticFrontend() : Koa.Middleware {
     const cache = new MemoMap()
     return async (ctx, next) => {
         let file = ctx.path
+        if (file.endsWith('/'))
+            file = '/'
         if (file.startsWith('/'))
             file = file.slice(1)
         const untouched = Boolean(file)
