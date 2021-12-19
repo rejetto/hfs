@@ -6,7 +6,7 @@ import { formatBytes, hIcon, prefix, Spinner } from './misc'
 import { useSnapState } from './state'
 
 export function Head() {
-    return h(Fragment, {},
+    return h('header', {},
         h(MenuPanel),
         h(Breadcrumbs),
         h(FolderStats)
@@ -70,16 +70,15 @@ function FolderStats() {
 function Breadcrumbs() {
     const path = useLocation().pathname.slice(1,-1)
     let prev = ''
-    const breadcrumbs = path ? path.split('/').map(x => [prev = prev + x + '/', x]) : []
-    return h('div', { id: 'folder-path' },
+    const breadcrumbs = path ? path.split('/').map(x => [prev = prev + x + '/', decodeURI(x)]) : []
+    return h(Fragment, {},
         h(Breadcrumb),
         breadcrumbs.map(([path,label]) => h(Breadcrumb, { key: path, path, label }))
     )
 }
 
 function Breadcrumb({ path, label }:{ path?: string, label?: string }) {
-    return h(Link, { to:path||'/' },
-        h('button', {},
-            label || hIcon('home')) )
+    return h(Link, { className:'breadcrumb', to:path||'/' },
+        label || hIcon('home') )
 }
 

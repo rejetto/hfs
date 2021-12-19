@@ -42,16 +42,11 @@ button {
     to { transform: rotate(360deg); }
 }
 
-#folder-path {
-    margin: 0.2em;
-    & a {
-        float: left;
-        height: 2em;
-    }
-    & button {
-        padding: 0.4em 0.6em;
-        border-radius: 0.7em;
-    }
+.breadcrumb {
+    padding: 0.1em 0.6em 0.2em;
+    border-radius: 0.7em;
+    background-color: #bcd;
+    color: #444;
 }
 #folder-stats {
     font-size: 90%;
@@ -63,6 +58,7 @@ button {
 ul.dir {
     padding:0;
     clear: both;
+    margin-top:.5em;
     & li {
         display: block;
         list-style-type: none;
@@ -93,7 +89,10 @@ ul.dir {
     }
 }
 
-#menu-panel button label {
-    cursor: inherit;
-    margin-left: 0.8em;
+#menu-panel {
+    margin-bottom: .2em;
+    & button label {
+        cursor: inherit;
+        margin-left: 0.8em;
+    }
 }
