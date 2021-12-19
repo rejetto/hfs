@@ -8,7 +8,7 @@
   ],
   "homepage": "https://rejetto.com/hfs",
   "license": "GPL-3.0",
-  "author": "Massimo Melina <a@rejetto.com> (https://rejetto.com)",
+  "author": "Massimo Melina <a@rejetto.com>",
   "scripts": {
     "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts vfs.yaml",
     "start": "node dist",

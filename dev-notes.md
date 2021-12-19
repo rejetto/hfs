@@ -23,6 +23,7 @@
   - resumable?
 - vfs: ability to remove/hide/rename files deep in a source
 - let user change password
+- user should be able to inherit from another a group (another user)
 - login without passing clear text password?
   we could use asymmetric encryption, possibly on a hashed password, that means
   we should store a hash2(hash1(password+salt1)), where hash1 is applied on both client
