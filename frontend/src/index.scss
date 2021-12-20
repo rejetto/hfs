@@ -10,8 +10,7 @@ body {
     max-width: 50em;
 }
 code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 .icon {
@@ -57,6 +56,9 @@ header {
     background-color: #bcd;
     color: #444;
     line-height: 1.6em;
+
+    border-top: 1px solid #666;
+    margin-left: -1px;
 }
 #folder-stats {
     font-size: 90%;
