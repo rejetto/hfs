@@ -71,7 +71,7 @@ function FolderStats() {
 function Breadcrumbs() {
     const path = useLocation().pathname.slice(1,-1)
     let prev = ''
-    const breadcrumbs = path ? path.split('/').map(x => [prev = prev + x + '/', decodeURI(x)]) : []
+    const breadcrumbs = path ? path.split('/').map(x => [prev = prev + x + '/', decodeURIComponent(x)]) : []
     return h(Fragment, {},
         h(Breadcrumb),
         breadcrumbs.map(([path,label]) => h(Breadcrumb, { key: path, path, label }))

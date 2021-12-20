@@ -1,13 +1,6 @@
-# What GUI lib?
-- none? 
-  - would none allow easier customization?
-- material
-  - css+js https://materializecss.com/
-
 # To do
 - when reloading vfs wait for it to be unlocked 
 - sticky breadcrumbs
-- frontend: ensure icons are loaded before going on 
 - filter list
 - search
     try to use server-sent events for the reply

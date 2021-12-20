@@ -60,9 +60,10 @@ function File({ n, m, c, s }: DirEntry) {
     const base = usePath()
     const isDir = n.endsWith('/')
     const t = m||c ||null
+    const href = n.replace(/#/g, encodeURIComponent)
     return h('li', {},
-        isDir ? h(Link, { to: base+n }, hIcon('folder'), n)
-            : h('a', { href: n }, hIcon('file'), n),
+        isDir ? h(Link, { to: base+href }, hIcon('folder'), n)
+            : h('a', { href }, hIcon('file'), n),
         h('div', { className:'entry-props' },
             s !== undefined && h(Fragment, {},
                 h('span', { className:'entry-size' }, formatBytes(s)),

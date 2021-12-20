@@ -78,7 +78,7 @@ export class Vfs {
     async urlToNode(url: string, ctx: Koa.Context) {
         const who = await getCurrentUser(ctx)
         let run = this.root
-        const rest = url.split('/').filter(Boolean)
+        const rest = url.split('/').filter(Boolean).map(decodeURIComponent)
         if (forbidden()) return
         while (rest.length) {
             let piece = rest.shift() as string
