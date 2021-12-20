@@ -1,4 +1,4 @@
-import { apiCall } from './api'
+import { apiCall, ApiError } from './api'
 import { state } from './state'
 
 let refresher: NodeJS.Timeout
@@ -12,6 +12,9 @@ export async function login(user:string, password:string) {
         state.username = user
     }
     catch(err) {
+        if (err instanceof ApiError)
+            if (err.code === 401)
+                err = 'Invalid credentials'
         alert(err)
     }
 }

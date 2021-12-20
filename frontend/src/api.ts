@@ -11,8 +11,14 @@ export function apiCall(cmd: string, params?: object) : Promise<any> {
             return res.json()
         const msg = 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
-        throw Error(msg)
+        throw new ApiError(res.status, msg)
     })
+}
+
+export class ApiError extends Error {
+    constructor(readonly code:number, message: string) {
+        super(message);
+    }
 }
 
 export function useApi(cmd: string | Falsy, params?: object) : any {
