@@ -1,35 +1,14 @@
 import { createElement as h } from 'react'
+import { Icon } from './components'
 
 export type Falsy = false | null | undefined | '' | 0
 
-export function hIcon(name: string) {
-    return h(Icon, { name })
+export function hIcon(name: string, props?:any) {
+    return h(Icon, { name, ...props })
 }
 
 export function hError(err: Error) {
     return h('div', { className:'error-msg' }, err.message)
-}
-
-const SYS_ICONS: Record<string,string> = {
-    login: 'person',
-    user: 'account_circle',
-    file: 'description',
-    spinner: 'sports_baseball',
-}
-export function Icon({ name, ...props }: { name:string }) {
-    name = SYS_ICONS[name] || name
-    return h('span',{
-        className: 'material-icons-outlined icon',
-        ...props
-    }, name)
-}
-
-export function Loading() {
-    return h(Spinner)
-}
-
-export function Spinner() {
-    return h(Icon, { name:'spinner', style: { animation:'1s spin infinite' } })
 }
 
 export function formatBytes(n: number, post: string = 'B') {
@@ -55,4 +34,24 @@ export function round(v: number, decimals: number = 0) {
 
 export function prefix(pre:string, v:string|number, post:string='') {
     return v ? pre+v+post : ''
+}
+
+export function wait(ms: number) {
+    return new Promise(res=> setTimeout(res,ms))
+}
+
+export function waitFor<T>(cb:()=>T, ms:number=200) : Promise<Exclude<T,Falsy>> {
+    return new Promise(resolve=>{
+        let h: NodeJS.Timeout
+        if (go())
+            h = setInterval(go, ms)
+
+        function go() {
+            const v = cb()
+            if (!v) return true
+            // @ts-ignore  we know it's not falsy
+            resolve(v)
+            clearInterval(h)
+        }
+    })
 }

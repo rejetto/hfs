@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useApi } from './api'
 import { createContext, createElement as h, Fragment, useContext, useEffect, useMemo, useState } from 'react'
-import { formatBytes, hError, hIcon, Loading, Spinner } from './misc'
+import { formatBytes, hError, hIcon } from './misc'
+import { Loading, Spinner } from './components'
 import { Head } from './Head'
 
 function usePath() {

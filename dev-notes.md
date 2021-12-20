@@ -8,7 +8,10 @@
 - when reloading vfs wait for it to be unlocked 
 - sticky breadcrumbs
 - frontend: ensure icons are loaded before going on 
+- filter list
 - search
+    try to use server-sent events for the reply
+    https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
 - frontend: dialogs
 - vfs: serve an html for a folder?
   - "default" property for vfsNode?

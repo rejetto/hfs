@@ -2,7 +2,8 @@ import { createElement as h, Fragment, useContext, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ListContext } from './BrowseFiles'
 import { login, logout } from './login'
-import { formatBytes, hIcon, prefix, Spinner } from './misc'
+import { formatBytes, hIcon, prefix } from './misc'
+import { Spinner } from './components'
 import { useSnapState } from './state'
 
 export function Head() {
