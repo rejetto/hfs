@@ -37,6 +37,13 @@ button {
     color: #833;
 }
 
+header {
+    position: sticky;
+    top: 0;
+    padding-bottom: 0.3em;
+    background: #fff;
+}
+
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -47,18 +54,22 @@ button {
     border-radius: 0.7em;
     background-color: #bcd;
     color: #444;
+    line-height: 1.6em;
 }
 #folder-stats {
     font-size: 90%;
     padding: 0.1em 0.3em;
     margin: 0.2em 0.5em;
     float: right;
+
+    position: sticky;
+    top: 0;
 }
 
 ul.dir {
-    padding:0;
+    padding: 0;
+    margin: 0;
     clear: both;
-    margin-top:.5em;
     & li {
         display: block;
         list-style-type: none;

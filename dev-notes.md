@@ -1,5 +1,4 @@
 # To do
-- sticky breadcrumbs
 - filter list
 - search
     try to use server-sent events for the reply

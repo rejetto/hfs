@@ -7,9 +7,11 @@ import { Spinner } from './components'
 import { useSnapState } from './state'
 
 export function Head() {
-    return h('header', {},
-        h(MenuPanel),
-        h(Breadcrumbs),
+    return h(Fragment, {},
+        h('header', {},
+            h(MenuPanel),
+            h(Breadcrumbs),
+        ),
         h(FolderStats)
     )
 }
