@@ -4,6 +4,7 @@ children:
       - name: f2
         children:
           - source: tests/alfa.txt
+      - name: f3
   - name: proxy
     source: https://raw.githubusercontent.com/nodejs/node/master/README.md
   - name: for-rejetto

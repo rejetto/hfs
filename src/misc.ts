@@ -1,5 +1,4 @@
 import fs from 'fs/promises'
-import glob from 'fast-glob'
 import { objSameKeys } from './obj'
 
 export function enforceFinal(sub:string, s:string) {
@@ -12,7 +11,7 @@ export async function isDirectory(path: string) {
 }
 
 export function complySlashes(path: string) {
-    return glob.escapePath(path.replace(/\\/g,'/'))
+    return path.replace(/\\/g,'/')
 }
 
 export function prefix(pre:string, v:string|number, post:string='') {

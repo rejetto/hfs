@@ -4,12 +4,15 @@ import fs from 'fs/promises'
 import { FSWatcher, watch } from 'fs'
 import { dirname, basename } from 'path'
 import { isMatch } from 'micromatch'
-import { complySlashes, prefix, readFileBusy } from './misc'
+import { complySlashes, enforceFinal, prefix, readFileBusy } from './misc'
 import { getCurrentUser } from './perm'
 import Koa from 'koa'
+import glob from 'fast-glob'
+import _ from 'lodash'
 
-enum VfsNodeType {
+export enum VfsNodeType {
     root,
+    temp,
 }
 
 export interface VfsNode {
@@ -75,7 +78,7 @@ export class Vfs {
         }
     }
 
-    async urlToNode(url: string, ctx: Koa.Context) {
+    async urlToNode(url: string, ctx: Koa.Context) : Promise<VfsNode | undefined> {
         const who = await getCurrentUser(ctx)
         let run = this.root
         const rest = url.split('/').filter(Boolean).map(decodeURIComponent)
@@ -89,12 +92,12 @@ export class Vfs {
                 continue
             }
             if (!run.source)
-                return null
+                return
             const relativeSource = piece + prefix('/', rest.join('/'))
-            const baseSource = complySlashes(run.source+ '/') //TODO do we really need complySlashes here?
+            const baseSource = run.source+ '/'
             const source = baseSource + relativeSource
             const removed = isMatch(source, [run.remove].flat().map(x => baseSource + x))
-            return removed || !await fs.stat(source) ? null : { source }
+            return removed || !await fs.stat(source) ? undefined : { source }
         }
         return run
 
@@ -119,4 +122,48 @@ function findChildByName(name:string, node:VfsNode) {
 export function directPermOnNode(node:VfsNode, username:string) {
     const { perm } = node
     return !perm ? 'r' : (username && perm[username] || perm['*'])
+}
+
+
+export async function* walkNode(root:VfsNode, who:string, depth:number=0): AsyncIterableIterator<VfsNode> {
+    yield* recur(root, '', depth)
+
+    async function* recur(parent:VfsNode, prefixPath:string, depth:number): AsyncGenerator<VfsNode> {
+        const { children, source } = parent
+        if (children)
+            for (const c of children) {
+                if (c.hidden || !directPermOnNode(c,who))
+                    continue
+                yield prefixPath ? { ...c, name: prefixPath+c.name } : c
+                if (depth > 0 && c)
+                    yield* recur(c, prefixPath+c.name+'/', depth - 1)
+            }
+        if (!source)
+            return
+        const base = enforceFinal('/', complySlashes(source)) // fast-glob lib wants forward-slashes
+        const baseForGlob = glob.escapePath(base)
+        const ignore = [parent.hide, parent.remove].flat().filter(Boolean).map(x => baseForGlob+x)
+        const depthPath = depth === Infinity ? '**/' : _.repeat('*/',depth)
+        try {
+            const dirStream = glob.stream(baseForGlob + depthPath + '*', {
+                dot: true,
+                onlyFiles: false,
+                ignore,
+            })
+            for await (let path of dirStream) {
+                if (path instanceof Buffer)
+                    path = path.toString('utf8')
+                const name = path.slice(base.length)
+                yield {
+                    type: VfsNodeType.temp,
+                    source: path,
+                    name: parent!.rename?.[name] || name
+                }
+            }
+        }
+        catch(e) {
+            if ((e as any).code !== 'ENOTDIR')
+                throw e
+        }
+    }
 }

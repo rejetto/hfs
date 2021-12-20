@@ -1,12 +1,10 @@
 import Koa from 'koa'
-import { directPermOnNode, vfs, VfsNode } from './vfs'
-import { complySlashes, enforceFinal } from './misc'
+import { vfs, VfsNode, walkNode } from './vfs'
 import { Stats } from 'fs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { getCurrentUser, verifyLogin } from './perm'
 import { sessions } from './sessions'
-import glob from 'fast-glob'
 
 export const SESSION_COOKIE = 'hfs_$id'
 
@@ -37,43 +35,32 @@ export function apiMw(apis: ApiHandlers) : Koa.Middleware {
     }
 }
 
+interface DirEntry { n:string, s?:number, m?:Date, c?:Date }
+
 export const frontEndApis: ApiHandlers = {
-    async file_list({ path, offset, limit }, ctx) {
+
+    async file_list({ path, offset, limit, search }, ctx) {
         let node = await vfs.urlToNode(path || '/', ctx)
         if (!node)
             return
+        if (search?.includes('..'))
+            return ctx.throw(400)
+        const re = new RegExp(_.escapeRegExp(search),'i')
+        const match = (s?:string) => !s || !search || re.test(s)
         const who = await getCurrentUser(ctx) // cache value
-        const list = await Promise.all((node.children ||[]).map(node =>
-            !node.hidden && directPermOnNode(node,who) && nodeToFile(node) ))
-        _.remove(list, x => !x)
-        if (offset)
-            offset -= list.splice(0, offset).length
-        const { source } = node
-        if (list.length > limit)
-            list.splice(limit)
-        else if (source) {
-            const base = enforceFinal('/', complySlashes(source)) // fast-glob lib wants forward-slashes
-            const ignore = [node.hide, node.remove].flat().filter(Boolean).map(x => base!+x)
-            const dirStream = glob.stream(base+'*', {
-                dot: true,
-                onlyFiles: false,
-                ignore,
-            })
-            for await (let path of dirStream) {
-                if (offset) {
-                    offset--
-                    continue
-                }
-                if (limit === list.length)
-                    break
-                if (path instanceof Buffer)
-                    path = path.toString('utf8')
-                const stats = await stat(path)
-                const name = path.slice(base.length)
-                list.push(statToFile(node!.rename?.[name] || name, stats))
+        const list = []
+        const walker = walkNode(node, who, search ? Infinity : 0)
+        for await (const sub of walker) {
+            if (!match(sub.name))
+                continue
+            if (offset) {
+                --offset
+                continue
             }
+            list.push(await nodeToFile(sub))
+            if (limit === list.length)
+                break
         }
-
         return { list }
     },
     async login({ user, password }, ctx) {
@@ -112,9 +99,9 @@ export const frontEndApis: ApiHandlers = {
     }
 }
 
-async function nodeToFile(node: VfsNode) {
+async function nodeToFile(node: VfsNode): Promise<DirEntry | null> {
     try {
-        return node.source?.includes('//') ? { n:node.name }
+        return node.source?.includes('//') ? { n:node.name||'' }
             : node.source ? statToFile(node.name, await stat(node.source))
                 : node.name ? { n: node.name + '/' }
                     : null
