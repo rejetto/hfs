@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { FSWatcher, watch } from 'fs'
 import { dirname, basename } from 'path'
 import { isMatch } from 'micromatch'
-import { complySlashes, prefix } from './misc'
+import { complySlashes, prefix, readFileBusy } from './misc'
 import { getCurrentUser } from './perm'
 import Koa from 'koa'
 
@@ -49,7 +49,7 @@ export class Vfs {
     async load(path: string, watchFile:boolean=true) {
         console.debug('loading',path)
         try {
-            const data = await fs.readFile(path, 'utf8')
+            const data = await readFileBusy(path)
             this.root = yaml.parse(data)
             // we should validate content now
         }

@@ -1,4 +1,4 @@
-import { stat } from 'fs/promises'
+import fs from 'fs/promises'
 import glob from 'fast-glob'
 import { objSameKeys } from './obj'
 
@@ -11,7 +11,7 @@ export function wantArray(x:any) {
 }
 
 export async function isDirectory(path: string) {
-    try { return (await stat(path)).isDirectory() }
+    try { return (await fs.stat(path)).isDirectory() }
     catch(e) { return false }
 }
 
@@ -25,4 +25,17 @@ export function prefix(pre:string, v:string|number, post:string='') {
 
 export function setHidden(dest: object, src:object) {
     Object.defineProperties(dest, objSameKeys(src, value => ({ enumerable:false, value })))
+}
+
+export function wait(ms: number) {
+    return new Promise(res=> setTimeout(res,ms))
+}
+
+export async function readFileBusy(path: string): Promise<string> {
+    return fs.readFile(path, 'utf8').catch(e => {
+        if ((e as any)?.code !== 'EBUSY')
+            throw e
+        console.debug('busy')
+        return wait(100).then(()=> readFileBusy(path))
+    })
 }

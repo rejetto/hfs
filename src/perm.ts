@@ -4,7 +4,7 @@ import _ from 'lodash'
 import yaml from 'yaml'
 import { hashPassword, verifyPassword } from './crypt'
 import { argv } from './const'
-import { setHidden } from './misc'
+import { readFileBusy, setHidden } from './misc'
 import { SESSION_COOKIE } from './apis'
 import { sessions } from './sessions'
 import Koa from 'koa'
@@ -39,15 +39,14 @@ async function load() {
     doing = true
     try {
         console.debug('loading', PATH)
-        let file
+        let res
         try {
-            file = await fs.readFile(PATH, 'utf8')
+            res = yaml.parse(await readFileBusy(PATH))
         }
         catch(e){
             console.warn('cannot read', PATH, e)
             return
         }
-        const res = yaml.parse(file)
         // we should validate content here
         if (!res?.accounts)
             return accounts = {}

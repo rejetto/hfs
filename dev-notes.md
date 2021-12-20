@@ -1,5 +1,4 @@
 # To do
-- when reloading vfs wait for it to be unlocked 
 - sticky breadcrumbs
 - filter list
 - search
