@@ -127,10 +127,11 @@ async function nodeToFile(node: VfsNode) {
 
 function statToFile(name: string | undefined, stat:Stats) {
     const folder = stat.isDirectory()
+    const { ctime, mtime } = stat
     return {
         n: name + (folder ? '/' : ''),
-        c: stat?.ctime,
-        m: stat?.mtime,
-        s: folder ? undefined : stat?.size,
+        c: ctime,
+        m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
+        s: folder ? undefined : stat.size,
     }
 }
