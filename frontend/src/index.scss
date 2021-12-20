@@ -65,6 +65,12 @@ header {
     position: sticky;
     top: 0;
 }
+#filter {
+    width: calc(100% - 0.5em);
+    margin: 0.2em auto;
+    box-sizing: border-box;
+    display: block;
+}
 
 ul.dir {
     padding: 0;

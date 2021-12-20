@@ -6,6 +6,7 @@ const SYS_ICONS: Record<string,string> = {
     user: 'account_circle',
     file: 'description',
     spinner: 'sports_baseball',
+    filter: 'filter_alt',
 }
 
 const iconClass = ICON_FONT_NAME.then(v => v.replace(/ /g,'-').toLowerCase())

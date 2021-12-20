@@ -1,7 +1,9 @@
 import { proxy, useSnapshot } from 'valtio'
 
 export const state = proxy({
-    username: ''
+    username: '',
+    listFilter: '',
+    filteredEntries: -1,
 })
 
 export function useSnapState() {

@@ -4,6 +4,8 @@ import { createContext, createElement as h, Fragment, useContext, useEffect, use
 import { formatBytes, hError, hIcon } from './misc'
 import { Loading, Spinner } from './components'
 import { Head } from './Head'
+import { state, useSnapState } from './state'
+import _ from 'lodash'
 
 function usePath() {
     return decodeURI(useLocation().pathname)
@@ -49,19 +51,24 @@ export type DirList = DirEntry[]
 
 function FilesList() {
     const { list, unfinished } = useContext(ListContext)
-    return h('ul', { className: 'dir' },
+    const snap = useSnapState()
+    const filter = snap.listFilter > '' && new RegExp(_.escapeRegExp(snap.listFilter),'i')
+    let n = 0 // if I try to use directly the state as counter I get a "too many re-renders" error
+    const ret = h('ul', { className: 'dir' },
         !list.length ? 'Nothing here'
             : list.map((entry: DirEntry) =>
-                h(File, { key: entry.n, ...entry })),
+                h(File, { key: entry.n, hidden: filter && !filter.test(entry.n) || !++n, ...entry })),
         unfinished && h(Spinner))
+    state.filteredEntries = filter ? n : -1
+    return ret
 }
 
-function File({ n, m, c, s }: DirEntry) {
+function File({ n, m, c, s, hidden }: DirEntry & { hidden:boolean }) {
     const base = usePath()
     const isDir = n.endsWith('/')
     const t = m||c ||null
     const href = n.replace(/#/g, encodeURIComponent)
-    return h('li', {},
+    return h('li', { style:hidden ? { display:'none' } : null },
         isDir ? h(Link, { to: base+href }, hIcon('folder'), n)
             : h('a', { href }, hIcon('file'), n),
         h('div', { className:'entry-props' },
