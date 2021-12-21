@@ -45,7 +45,7 @@ function MenuPanel() {
                 }
             })
         ),
-        remoteSearch && h('div', {}, 'Searched for: ',remoteSearch),
+        remoteSearch && h('div', { id:'searched' }, 'Searched for: ',remoteSearch),
         showFilter && h('input',{
             id: 'filter',
             placeholder: 'Filter',
@@ -122,6 +122,9 @@ function Breadcrumbs() {
 }
 
 function Breadcrumb({ path, label }:{ path?: string, label?: string }) {
+    const PAD = '\u00A0' // make small elements easier to tap. Don't use min-width 'cause it requires display-inline that breaks word-wrapping
+    if (label && label.length < 3)
+        label = PAD+label+PAD
     return h(Link, { className:'breadcrumb', to:path||'/' },
         label || hIcon('home') )
 }

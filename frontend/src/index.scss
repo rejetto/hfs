@@ -44,8 +44,8 @@ button.toggled {
 header {
     position: sticky;
     top: 0;
-    padding-bottom: 0.3em;
     background: #fff;
+    padding: .2em;
 }
 
 @keyframes spin {
@@ -61,7 +61,7 @@ header {
     line-height: 1.6em;
 
     border-top: 1px solid #666;
-    margin-left: -1px;
+    margin-right: -0.1em;
 }
 #folder-stats {
     font-size: 90%;
@@ -113,7 +113,7 @@ ul.dir {
 }
 
 #menu-panel {
-    margin: 0 0.1em 0.2em;
+    margin-bottom: 0.2em;
 
     & button {
         margin: 0.1em;
@@ -122,6 +122,9 @@ ul.dir {
         cursor: inherit;
         margin-left: 0.8em;
     }
+}
+#searched {
+    margin: .2em;
 }
 
 @media (max-width: 50em) {
