@@ -1,6 +1,5 @@
 import proxy from 'koa-better-http-proxy'
 import Koa from 'koa'
-import MemoMap from './MemoMap'
 import mime from 'mime-types'
 import { createReadStream, readFile } from 'fs'
 import { DEV, FRONTEND_URI } from './const'
@@ -20,19 +19,16 @@ function serveProxyFrontend() {
 
 function serveStaticFrontend() : Koa.Middleware {
     const BASE = __dirname + (DEV ? '/../dist' : '') + '/frontend/'
-    const cache = new MemoMap()
     return async (ctx, next) => {
-        let file = ctx.path
-        if (file.endsWith('/'))
-            file = '/'
-        if (file.startsWith('/'))
-            file = file.slice(1)
-        const untouched = Boolean(file)
-        ctx.body = untouched ? createReadStream(BASE + file)
-            : await cache.getOrSet(file, () =>
-                filePromise(BASE + (file || 'index.html')).then(res =>
-                    replaceFrontEndRes(res.toString('utf8')) ))
-        ctx.type = file ? (mime.lookup(file) || 'application/octet-stream') : 'html'
+        let { path } = ctx
+        if (path.endsWith('/')) {
+            const res = await filePromise(BASE + 'index.html')
+            ctx.body = replaceFrontEndRes(res.toString('utf8'))
+            ctx.type = 'html'
+        } else {
+            ctx.body = createReadStream(BASE + path.slice(1))
+            ctx.type = mime.lookup(path) || 'application/octet-stream'
+        }
         await next()
     }
 }
