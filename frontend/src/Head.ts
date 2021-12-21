@@ -18,33 +18,59 @@ export function Head() {
 }
 
 function MenuPanel() {
-    const [showFilter, setShowFilter] = useState(false)
-    const [filter, setFilter] = useState('')
+    const [showFilter, setShowFilter] = useState(state.listFilter > '')
+    const [showSearch, setShowSearch] = useState(state.remoteSearch > '')
+    const [filter, setFilter] = useState(state.listFilter)
+    const [search, setSearch] = useState(state.remoteSearch)
     ;[state.listFilter] = useDebounce(filter, 300)
+    ;[state.remoteSearch] = useDebounce(search, 1000)
+    if (!showFilter)
+        state.listFilter = ''
+    if (!showSearch)
+        state.remoteSearch = ''
     return h('div', { id:'menu-panel' },
         h('div', { id:'menu-bar' },
             h(LoginButton),
             h(MenuButton, {
                 icon: 'filter',
                 label: 'Filter',
+                toggled: showFilter,
                 onClick() {
                     setShowFilter(!showFilter)
+                }
+            }),
+            h(MenuButton, {
+                icon: 'search',
+                label: 'Search',
+                toggled: showSearch,
+                onClick() {
+                    setShowSearch(!showSearch)
                 }
             })
         ),
         showFilter && h('input',{
-            id:'filter',
+            id: 'filter',
+            placeholder: 'Filter',
             value: filter,
             autoFocus: true,
             onChange(ev) {
                 setFilter(ev.target.value)
             }
-        })
+        }),
+        showSearch && h('input',{
+            id: 'search',
+            placeholder: 'Search',
+            value: search,
+            autoFocus: true,
+            onChange(ev) {
+                setSearch(ev.target.value)
+            }
+        }),
     )
 }
 
-function MenuButton({ icon, label, onClick }:{ icon:string, label:string, onClick?:()=>void }) {
-    return h('button', { title:label, onClick },
+function MenuButton({ icon, label, toggled, onClick }:{ icon:string, label:string, toggled?:boolean, onClick?:()=>void }) {
+    return h('button', { title:label, onClick, className:toggled ? 'toggled' : '' },
         hIcon(icon),
         h('label',{}, label))
 }

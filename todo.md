@@ -1,7 +1,6 @@
 # To do
-- search
-    try to use server-sent events for the reply
-    https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
+- search: try to use server-sent events for the reply
+  https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
 - file_list: option to decide what fields to get. If m && !c but we have no m, then copy from c.
 - api: gzip for >5kb
 - frontend: dialogs
@@ -13,7 +12,7 @@
   - don't depend on cdn
 - webdav?
 - streamable zip archives
-  - no compression 
+  - no compression
   - resumable?
 - vfs: ability to remove/hide/rename files deep in a source
 - let user change password

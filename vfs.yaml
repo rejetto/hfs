@@ -10,3 +10,5 @@ children:
   - name: for-rejetto
     perm:
       rejetto: r
+    children:
+      - source: tests/alfa.txt

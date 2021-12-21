@@ -32,6 +32,9 @@ button {
     vertical-align: middle;
     cursor: pointer;
 }
+button.toggled {
+    background-color: #79b;
+}
 
 .error-msg {
     background-color: #faa;
@@ -69,11 +72,10 @@ header {
     position: sticky;
     top: 0;
 }
-#filter {
-    width: calc(100% - 0.5em);
+header input {
+    width: 100%;
     margin: 0.2em auto;
     box-sizing: border-box;
-    display: block;
 }
 
 ul.dir {
@@ -111,9 +113,17 @@ ul.dir {
 }
 
 #menu-panel {
+    margin: .1em;
     margin-bottom: .2em;
+    & button {
+        margin: 0.1em;
+    }
     & button label {
         cursor: inherit;
         margin-left: 0.8em;
     }
+}
+
+@media (max-width: 50em) {
+    #menu-bar button:nth-child(1n+2) label { display: none } /* icons only */
 }

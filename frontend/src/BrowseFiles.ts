@@ -30,12 +30,17 @@ function useFetchList() {
     const [preloading, setPreloading] = useState(true)
     const [path, setPath] = useState('')
     useEffect(()=>{
+        const loc = window.location
+        if (!desiredPath.endsWith('/')) // useful only in dev, while accessing the frontend directly without passing by the main server
+            loc.href = loc.href+'/'
         setPreloading(true)
         setPath(desiredPath)
     }, [desiredPath])
     const API = 'file_list'
-    const preload = useApi(path && API, { path, limit: PRELOAD_SIZE })
-    const rest = useApi(!preloading && API, { path, offset: PRELOAD_SIZE })
+    const snap = useSnapState()
+    const search = snap.remoteSearch
+    const preload = useApi(path && API, { path, search, limit: PRELOAD_SIZE })
+    const rest = useApi(!preloading && API, { path, search, offset: PRELOAD_SIZE })
     const list = useMemo(() => !preload ? null
             : !rest ? (preload.list||preload) // the || is for an Error instance
             : [...preload.list, ...rest.list],
