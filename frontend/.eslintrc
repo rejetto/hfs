@@ -1,0 +1,7 @@
+{
+  "extends": "react-app",
+  "rules": {
+    "no-mixed-operators": 0,
+    "no-ex-assign": 0
+  }
+}
