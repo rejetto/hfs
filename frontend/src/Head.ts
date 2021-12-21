@@ -45,7 +45,7 @@ function MenuPanel() {
                 }
             })
         ),
-        remoteSearch && h('div', {}, 'Searched for: ',remoteSearch),
+        remoteSearch && h('div', { id:'searched' }, 'Searched for: ',remoteSearch),
         showFilter && h('input',{
             id: 'filter',
             placeholder: 'Filter',
