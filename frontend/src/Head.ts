@@ -19,15 +19,11 @@ export function Head() {
 
 function MenuPanel() {
     const [showFilter, setShowFilter] = useState(state.listFilter > '')
-    const [showSearch, setShowSearch] = useState(state.remoteSearch > '')
     const [filter, setFilter] = useState(state.listFilter)
-    const [search, setSearch] = useState(state.remoteSearch)
     ;[state.listFilter] = useDebounce(filter, 300)
-    ;[state.remoteSearch] = useDebounce(search, 1000)
     if (!showFilter)
         state.listFilter = ''
-    if (!showSearch)
-        state.remoteSearch = ''
+    const { remoteSearch } = useSnapState()
     return h('div', { id:'menu-panel' },
         h('div', { id:'menu-bar' },
             h(LoginButton),
@@ -42,12 +38,14 @@ function MenuPanel() {
             h(MenuButton, {
                 icon: 'search',
                 label: 'Search',
-                toggled: showSearch,
                 onClick() {
-                    setShowSearch(!showSearch)
+                    const res = prompt('Search for...')
+                    if (res !== null)
+                        state.remoteSearch = res
                 }
             })
         ),
+        remoteSearch && h('div', {}, 'Searched for: ',remoteSearch),
         showFilter && h('input',{
             id: 'filter',
             placeholder: 'Filter',
@@ -55,15 +53,6 @@ function MenuPanel() {
             autoFocus: true,
             onChange(ev) {
                 setFilter(ev.target.value)
-            }
-        }),
-        showSearch && h('input',{
-            id: 'search',
-            placeholder: 'Search',
-            value: search,
-            autoFocus: true,
-            onChange(ev) {
-                setSearch(ev.target.value)
             }
         }),
     )

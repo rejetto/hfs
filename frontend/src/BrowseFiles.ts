@@ -33,6 +33,7 @@ function useFetchList() {
         const loc = window.location
         if (!desiredPath.endsWith('/')) // useful only in dev, while accessing the frontend directly without passing by the main server
             loc.href = loc.href+'/'
+        state.remoteSearch = ''
         setPreloading(true)
         setPath(desiredPath)
     }, [desiredPath])
