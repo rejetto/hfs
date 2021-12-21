@@ -125,45 +125,41 @@ export function directPermOnNode(node:VfsNode, username:string) {
 }
 
 
-export async function* walkNode(root:VfsNode, who:string, depth:number=0): AsyncIterableIterator<VfsNode> {
-    yield* recur(root, '', depth)
-
-    async function* recur(parent:VfsNode, prefixPath:string, depth:number): AsyncGenerator<VfsNode> {
-        const { children, source } = parent
-        if (children)
-            for (const c of children) {
-                if (c.hidden || !directPermOnNode(c,who))
-                    continue
-                yield prefixPath ? { ...c, name: prefixPath+c.name } : c
-                if (depth > 0 && c)
-                    yield* recur(c, prefixPath+c.name+'/', depth - 1)
-            }
-        if (!source)
-            return
-        const base = enforceFinal('/', complySlashes(source)) // fast-glob lib wants forward-slashes
-        const baseForGlob = glob.escapePath(base)
-        const ignore = [parent.hide, parent.remove].flat().filter(Boolean).map(x => baseForGlob+x)
-        const depthPath = depth === Infinity ? '**/' : _.repeat('*/',depth)
-        try {
-            const dirStream = glob.stream(baseForGlob + depthPath + '*', {
-                dot: true,
-                onlyFiles: false,
-                ignore,
-            })
-            for await (let path of dirStream) {
-                if (path instanceof Buffer)
-                    path = path.toString('utf8')
-                const name = path.slice(base.length)
-                yield {
-                    type: VfsNodeType.temp,
-                    source: path,
-                    name: parent!.rename?.[name] || name
-                }
+export async function* walkNode(parent:VfsNode, who:string, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
+    const { children, source } = parent
+    if (children)
+        for (const c of children) {
+            if (c.hidden || !directPermOnNode(c,who))
+                continue
+            yield prefixPath ? { ...c, name: prefixPath+c.name } : c
+            if (depth > 0 && c)
+                yield* walkNode(c, prefixPath+c.name+'/', depth - 1)
+        }
+    if (!source)
+        return
+    const base = enforceFinal('/', complySlashes(source)) // fast-glob lib wants forward-slashes
+    const baseForGlob = glob.escapePath(base)
+    const ignore = [parent.hide, parent.remove].flat().filter(Boolean).map(x => baseForGlob+x)
+    const depthPath = depth === Infinity ? '**/' : _.repeat('*/',depth)
+    try {
+        const dirStream = glob.stream(baseForGlob + depthPath + '*', {
+            dot: true,
+            onlyFiles: false,
+            ignore,
+        })
+        for await (let path of dirStream) {
+            if (path instanceof Buffer)
+                path = path.toString('utf8')
+            const name = path.slice(base.length)
+            yield {
+                type: VfsNodeType.temp,
+                source: path,
+                name: parent!.rename?.[name] || name
             }
         }
-        catch(e) {
-            if ((e as any).code !== 'ENOTDIR')
-                throw e
-        }
+    }
+    catch(e) {
+        if ((e as any).code !== 'ENOTDIR')
+            throw e
     }
 }
