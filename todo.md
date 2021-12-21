@@ -2,12 +2,12 @@
 - search: try to use server-sent events for the reply
   https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
 - node.link
-- api: gzip for >5kb
-- frontend: dialogs
 - vfs: serve an html for a folder?
   - "default" property for vfsNode?
 - interruption of long requests if client aborted (searching/listing)
+- log file
 - throttle speed
+- frontend: dialogs
 - frontend
   - don't depend on cdn
 - webdav?

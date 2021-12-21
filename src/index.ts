@@ -8,6 +8,7 @@ import { serveFile } from './serveFile'
 import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import proxy from 'koa-better-http-proxy'
+import compress from 'koa-compress'
 
 const PORT = argv.port || 80
 
@@ -19,7 +20,16 @@ srv.use(async (ctx, next) => {
 })
 
 // serve apis
-srv.use(mount(API_URI, new Koa().use(bodyParser()).use(apiMw(frontEndApis))))
+srv.use(mount(API_URI, new Koa()
+    .use(bodyParser())
+    .use(apiMw(frontEndApis))
+    .use(compress({
+        threshold: 2048,
+        gzip: { flush: require('zlib').constants.Z_SYNC_FLUSH },
+        deflate: { flush: require('zlib').constants.Z_SYNC_FLUSH },
+        br: false // disable brotli
+    }))
+))
 
 // serve shared files and front-end files
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)

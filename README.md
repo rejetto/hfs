@@ -1,10 +1,21 @@
 # HFS: HTTP File Server
 
-This project is currently at a very early stage, only basic features are available.
-
 HFS is a file server offering a virtual file system (vfs).
 You can easily share a single file instead of the whole folder,
 or you can rename it, but without touching the real file, just virtually.
+
+This project is in an early stage and distribution will be made easier.
+
+This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
+You won't find all previous features here (yet), but still we got:
+
+# Features
+- unicode
+- virtual file system
+- mobile friendly front-end
+- search
+- accounts
+- resumable downloads
 
 # Configuration
 
@@ -45,10 +56,11 @@ accounts:
         password: guest    
 ```
 
-As soon as possible HFS will encrypt passwords in a non-reversible way.
+As soon as the file is read HFS will encrypt passwords in a non-reversible way.
 
 # Building instructions
 
+0. Install [Node.js](https://nodejs.org/) 16+ 
 1. Launch `npm run build` in the root
 2. Launch `npm run build` inside `frontend` folder
 
