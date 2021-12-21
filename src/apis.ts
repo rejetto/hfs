@@ -13,7 +13,7 @@ type ApiHandlers = Record<string, ApiHandler>
 
 export function apiMw(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx, next) => {
-        const params = ctx.request.body
+        const params = ctx.method === 'POST' ? ctx.request.body : ctx.request.query
         console.debug('API', ctx.method, ctx.path, params)
         if (!(ctx.path in apis))
             return ctx.throw(404, 'invalid api')
@@ -45,6 +45,8 @@ export const frontEndApis: ApiHandlers = {
             return
         if (search?.includes('..'))
             return ctx.throw(400)
+        offset = Number(offset)
+        limit = Number(limit)
         const re = new RegExp(_.escapeRegExp(search),'i')
         const match = (s?:string) => !s || !search || re.test(s)
         const who = await getCurrentUser(ctx) // cache value
