@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useApi } from './api'
 import { createContext, createElement as h, Fragment, useContext, useEffect, useMemo, useState } from 'react'
 import { formatBytes, hError, hIcon } from './misc'
-import { Loading, Spinner } from './components'
+import { Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import _ from 'lodash'
@@ -16,7 +16,7 @@ export const ListContext = createContext<{ list:DirList, unfinished:boolean }>({
 export function BrowseFiles() {
     const [list, unfinished] = useFetchList()
     if (!list)
-        return h(Loading)
+        return h(Spinner)
     if (list instanceof Error)
         return hError(list)
     return h(ListContext.Provider, { value:{ list, unfinished } },

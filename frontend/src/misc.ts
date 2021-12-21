@@ -1,5 +1,5 @@
 import { createElement as h } from 'react'
-import { Icon } from './components'
+import { Icon } from './icons'
 
 export type Falsy = false | null | undefined | '' | 0
 
