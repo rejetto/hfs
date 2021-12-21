@@ -2,6 +2,7 @@
 - search: try to use server-sent events for the reply
   https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
 - node.link
+- frontend cache should update on file change
 - vfs: serve an html for a folder?
   - "default" property for vfsNode?
 - interruption of long requests if client aborted (searching/listing)
