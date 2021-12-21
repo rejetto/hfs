@@ -39,7 +39,7 @@ interface DirEntry { n:string, s?:number, m?:Date, c?:Date }
 
 export const frontEndApis: ApiHandlers = {
 
-    async file_list({ path, offset, limit, search }, ctx) {
+    async file_list({ path, offset, limit, search, omit }, ctx) {
         let node = await vfs.urlToNode(path || '/', ctx)
         if (!node)
             return
@@ -53,11 +53,21 @@ export const frontEndApis: ApiHandlers = {
         for await (const sub of walker) {
             if (!match(sub.name))
                 continue
+            const entry = await nodeToDirEntry(sub)
+            if (!entry)
+                continue
             if (offset) {
                 --offset
                 continue
             }
-            list.push(await nodeToFile(sub))
+            if (omit) {
+                if (omit !== 'c')
+                    ctx.throw(400, 'omit')
+                if (!entry.m)
+                    entry.m = entry.c
+                delete entry.c
+            }
+            list.push(entry)
             if (limit === list.length)
                 break
         }
@@ -99,10 +109,10 @@ export const frontEndApis: ApiHandlers = {
     }
 }
 
-async function nodeToFile(node: VfsNode): Promise<DirEntry | null> {
+async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
     try {
         return node.source?.includes('//') ? { n:node.name||'' }
-            : node.source ? statToFile(node.name, await stat(node.source))
+            : node.source ? statToDirEntry(node.name, await stat(node.source))
                 : node.name ? { n: node.name + '/' }
                     : null
     }
@@ -112,7 +122,7 @@ async function nodeToFile(node: VfsNode): Promise<DirEntry | null> {
     }
 }
 
-function statToFile(name: string | undefined, stat:Stats) {
+function statToDirEntry(name: string | undefined, stat:Stats) {
     const folder = stat.isDirectory()
     const { ctime, mtime } = stat
     return {

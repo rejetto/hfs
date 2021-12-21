@@ -40,11 +40,12 @@ function useFetchList() {
     const API = 'file_list'
     const snap = useSnapState()
     const search = snap.remoteSearch
-    const preload = useApi(path && API, { path, search, limit: PRELOAD_SIZE })
-    const rest = useApi(!preloading && API, { path, search, offset: PRELOAD_SIZE })
+    const baseParams = { path, search, omit:'c' }
+    const preload = useApi(path && API, { ...baseParams, limit: PRELOAD_SIZE })
+    const rest = useApi(!preloading && API, { ...baseParams, offset: PRELOAD_SIZE })
     const list = useMemo(() => !preload ? null
-            : !rest ? (preload.list||preload) // the || is for an Error instance
-            : [...preload.list, ...rest.list],
+            : !rest ? (preload.list || preload) // the || is for an Error instance
+                : [...preload.list, ...rest.list],
         [preload, rest])
     const unfinished = preload && !rest && list.length === PRELOAD_SIZE
     if (unfinished && preloading) // let load it all
