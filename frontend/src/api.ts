@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Falsy } from './misc'
 
+const PREFIX = '/~/api/'
+
 export function apiCall(cmd: string, params?: object) : Promise<any> {
-    return fetch('/~/api/'+cmd, {
+    return fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: params && JSON.stringify(params),
@@ -30,3 +32,24 @@ export function useApi(cmd: string | Falsy, params?: object) : any {
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
     return x
 }
+
+type EventHandler = (type:string, data?:any) => void
+
+export function apiEvents(cmd: string, params: object, cb:EventHandler) {
+    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(params as any))
+    source.onopen = () => cb('connected')
+    source.onerror = err => cb('error', err)
+    source.onmessage = ({ data }) => {
+        if (!data) {
+            cb('closed')
+            return source.close()
+        }
+        try { data = JSON.parse(data) }
+        catch(e) {
+            return cb('string', data)
+        }
+        cb('msg', data)
+    }
+    return source
+}
+

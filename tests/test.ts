@@ -16,9 +16,6 @@ describe('basics', () => {
     it('api.search', req('/~/api/file_list', res => inList(res, 'f2/') && !inList(res, 'f3/'), {
         data: { path:'f1', search:'2' }
     }))
-    it('api.search', req('/~/api/file_list', res => inList(res, 'f2/alfa.txt'), {
-        data: { path:'f1', search:'.txt' }
-    }))
     it('download', req('/f1/f2/alfa.txt', s => s.includes('abcd')))
     it('partial download', req('/f1/f2/alfa.txt', s => s.includes('a') && !s.includes('d'), {
         headers: { Range: 'bytes=0-2' }
@@ -41,7 +38,7 @@ function req(methodUrl: string, test:Tester, requestOptions?:any) {
             }
             const ok = test(res.data, res)
             if (!ok)
-                console.debug('got',res.data)
+                console.debug('sent', requestOptions, 'got',res.data)
             done(!ok && Error())
         }
         axios.request({ method, url, ...requestOptions })
