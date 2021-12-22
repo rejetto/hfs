@@ -8,12 +8,11 @@ import { state, useSnapState } from './state'
 import { useDebounce } from 'use-debounce'
 
 export function Head() {
-    return h(Fragment, {},
-        h('header', {},
-            h(MenuPanel),
-            h(Breadcrumbs),
-        ),
-        h(FolderStats)
+    return h('header', {},
+        h(MenuPanel),
+        h(Breadcrumbs),
+        h(FolderStats),
+        h('div', { style:{ clear:'both' }}),
     )
 }
 
