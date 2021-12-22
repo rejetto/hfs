@@ -12,6 +12,8 @@ import compress from 'koa-compress'
 
 const PORT = argv.port || 80
 
+const BUILD_TIMESTAMP = ""
+
 const srv = new Koa()
 srv.use(async (ctx, next) => {
     // log all requests
@@ -43,9 +45,11 @@ srv.use(async (ctx, next) => {
     if (!node)
         return await next()
     const { source } = node
-    if (!source || await isDirectory(source)) // this folder was requested without the trailing /
-        return path.endsWith('/') ? await serveFrontend(ctx,next)
-            : ctx.redirect(ctx.path+'/')
+    if (!source || await isDirectory(source)) { // this folder was requested without the trailing /
+        ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
+        return path.endsWith('/') ? await serveFrontend(ctx, next)
+            : ctx.redirect(ctx.path + '/')
+    }
     if (source)
         return source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
             : serveFile(source)(ctx,next)
