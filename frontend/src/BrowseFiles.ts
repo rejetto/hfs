@@ -1,13 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { apiCall, apiEvents } from './api'
-import { createContext, createElement as h, Fragment, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, createElement as h, Fragment, useContext } from 'react'
 import { formatBytes, hError, hIcon } from './misc'
 import { Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import _ from 'lodash'
+import useFetchList from './useFetchList'
 
-function usePath() {
+export function usePath() {
     return decodeURI(useLocation().pathname)
 }
 
@@ -26,88 +26,6 @@ export function BrowseFiles() {
     return h(ListContext.Provider, { value:{ list, unfinished } },
         h(Head),
         h(FilesList))
-}
-
-function useFetchList() {
-    const snap = useSnapState()
-    const desiredPath = usePath()
-    const search = snap.remoteSearch || undefined
-    const [list, setList] = useState<DirList>([])
-    const [unfinished, setUnfinished] = useState(true)
-    const [error, setError] = useState<Error>()
-    const lastPath = useRef('')
-    useEffect(()=>{
-        const loc = window.location
-        if (!desiredPath.endsWith('/')) { // useful only in dev, while accessing the frontend directly without passing by the main server
-            loc.href = loc.href + '/'
-            return
-        }
-        const previous = lastPath.current
-        lastPath.current = desiredPath
-        if (previous !== desiredPath && search) {
-            state.remoteSearch = ''
-            state.stopSearch?.()
-            return
-        }
-
-        ;(async ()=>{
-            const API = 'file_list'
-            const sse = search
-            const baseParams = { path:desiredPath, search, sse, omit:'c' }
-            let list: DirList = []
-            setUnfinished(true)
-            setList(list)
-
-            if (sse) { // buffering entries is necessary against burst of events that will hang the browser
-                const buffer:DirList = []
-                const flush = () => {
-                    const chunk = buffer.splice(0, Infinity)
-                    if (chunk.length)
-                        setList(list = [...list, ...chunk])
-                }
-                const timer = setInterval(flush, 1000)
-                const src = apiEvents(API, baseParams, (type, data) => {
-                    switch (type) {
-                        case 'error':
-                            return setError(Error(JSON.stringify(data)))
-                        case 'closed':
-                            clearInterval(timer)
-                            flush()
-                            return setUnfinished(false)
-                        case 'msg':
-                            if (src?.readyState === src?.CLOSED)
-                                return state.stopSearch?.()
-                            let { entry } = data
-                            console.log(entry.n)
-                            buffer.push(entry)
-                    }
-                })
-                state.stopSearch = ()=>{
-                    buffer.length = 0
-                    clearInterval(timer)
-                    state.stopSearch = undefined
-                    src.close()
-                }
-                return
-            }
-
-            let offset = 0
-            while (1) {
-                const limit = list.length ? 1000 : 100
-                const res = await apiCall(API, { ...baseParams, offset, limit })
-                    || Error()
-                if (res instanceof Error)
-                    return setError(res)
-                const chunk = res.list
-                setList(list = [ ...list, ...chunk ])
-                if (chunk.length < limit)
-                    break
-                offset = list.length
-            }
-            setUnfinished(false)
-        })()
-    }, [desiredPath, search])
-    return { list, unfinished, error }
 }
 
 function FilesList() {
