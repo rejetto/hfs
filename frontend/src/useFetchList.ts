@@ -19,6 +19,7 @@ export default function useFetchList() {
         }
         const previous = lastPath.current
         lastPath.current = desiredPath
+        state.stoppedSearch = false
         if (previous !== desiredPath && search) {
             state.remoteSearch = ''
             state.stopSearch?.()

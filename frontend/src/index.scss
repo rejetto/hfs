@@ -53,6 +53,10 @@ header {
     to { transform: rotate(360deg); }
 }
 
+.spinner {
+    animation: 1s spin infinite;
+}
+
 .breadcrumb {
     padding: 0.1em 0.6em 0.2em;
     border-radius: 0.7em;
@@ -68,6 +72,9 @@ header {
     padding: 0.1em 0.3em;
     margin: 0.2em 0.5em;
     float: right;
+    & .icon {
+        margin-right: .3em;
+    }
 }
 header input {
     width: 100%;

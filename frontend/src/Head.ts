@@ -2,7 +2,7 @@ import { createElement as h, Fragment, useContext, useMemo, useState } from 'rea
 import { Link, useLocation } from 'react-router-dom'
 import { ListContext } from './BrowseFiles'
 import { login, logout } from './login'
-import { formatBytes, hIcon, prefix } from './misc'
+import { formatBytes, hIcon, prefix, wait } from './misc'
 import { Spinner } from './components'
 import { state, useSnapState } from './state'
 import { useDebounce } from 'use-debounce'
@@ -22,7 +22,7 @@ function MenuPanel() {
     ;[state.listFilter] = useDebounce(filter, 300)
     if (!showFilter)
         state.listFilter = ''
-    const { remoteSearch } = useSnapState()
+    const { remoteSearch, stopSearch } = useSnapState()
     return h('div', { id:'menu-panel' },
         h('div', { id:'menu-bar' },
             h(LoginButton),
@@ -37,10 +37,23 @@ function MenuPanel() {
             h(MenuButton, {
                 icon: 'search',
                 label: 'Search',
-                onClick() {
+                async onClick() {
                     const res = prompt('Search for...')
-                    if (res !== null)
-                        state.remoteSearch = res
+                    if (res === null) return
+                    if (state.stoppedSearch) {
+                        state.remoteSearch = ''
+                        await wait(500)
+                    }
+                    stopSearch?.()
+                    state.remoteSearch = res
+                }
+            }),
+            stopSearch && h(MenuButton, {
+                icon: 'stop',
+                label: 'Stop list',
+                onClick() {
+                    stopSearch()
+                    state.stoppedSearch = true
                 }
             })
         ),
@@ -98,14 +111,14 @@ function FolderStats() {
         }
         return { files, folders, size }
     }, [list])
-    const snap = useSnapState()
+    const { filteredEntries, stoppedSearch } = useSnapState()
     return h('div', { id:'folder-stats' },
-        unfinished && h(Spinner),
+        stoppedSearch ? hIcon('interrupted') : unfinished && h(Spinner),
         [
             prefix('', stats.files,' file(s)'),
             prefix('', stats.folders, ' folder(s)'),
             stats.size ? formatBytes(stats.size) : '',
-            snap.filteredEntries >= 0 && snap.filteredEntries+' displayed',
+            filteredEntries >= 0 && filteredEntries+' displayed',
         ].filter(Boolean).join(', ')
     )
 }

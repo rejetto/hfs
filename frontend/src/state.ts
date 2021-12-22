@@ -2,6 +2,7 @@ import { proxy, useSnapshot } from 'valtio'
 
 export const state = proxy<{
     stopSearch?: ()=>void,
+    stoppedSearch?: boolean,
     iconsClass: string,
     username: string,
     listFilter: string,

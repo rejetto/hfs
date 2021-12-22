@@ -8,6 +8,7 @@ const SYS_ICONS: Record<string,string> = {
     file: 'description',
     spinner: 'sports_baseball',
     filter: 'filter_alt',
+    interrupted: 'heart_broken',
 }
 
 document.fonts.ready.then(async ()=> {
@@ -17,12 +18,12 @@ document.fonts.ready.then(async ()=> {
     state.iconsClass = name.replace(/ /g,'-').toLowerCase()
 })
 
-export function Icon({ name, ...props }: { name:string, style?:any }) {
+export function Icon({ name, className, ...props }: { name:string, className?:string, style?:any }) {
     name = SYS_ICONS[name] || name
     const { iconsClass } = useSnapState()
     return h('span',{
-        className: iconsClass+' icon',
-        ...props
+        ...props,
+        className: iconsClass+' icon '+className,
     }, iconsClass ? name : '#')
 }
 

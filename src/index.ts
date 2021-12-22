@@ -54,6 +54,7 @@ srv.use(async (ctx, next) => {
 
 srv.on('error', err => {
     if (DEV && err.code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out
+    if (err.code === 'ECONNRESET') return // someone interrupted, don't care
     console.error('server error', err)
 })
 srv.listen(PORT, ()=> console.log('running on port', PORT, DEV, new Date().toLocaleString()))
