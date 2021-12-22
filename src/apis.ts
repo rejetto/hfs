@@ -5,6 +5,8 @@ import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { getCurrentUser, verifyLogin } from './perm'
 import { sessions } from './sessions'
+import createSSE from './sse'
+import { basename } from 'path'
 
 export const SESSION_COOKIE = 'hfs_$id'
 
@@ -17,7 +19,6 @@ export function apiMw(apis: ApiHandlers) : Koa.Middleware {
         console.debug('API', ctx.method, ctx.path, params)
         if (!(ctx.path in apis))
             return ctx.throw(404, 'invalid api')
-        ctx.body = {}
         const cb = (apis as any)[ctx.path]
         let res
         try {
@@ -39,7 +40,7 @@ interface DirEntry { n:string, s?:number, m?:Date, c?:Date }
 
 export const frontEndApis: ApiHandlers = {
 
-    async file_list({ path, offset, limit, search, omit }, ctx) {
+    async file_list({ path, offset, limit, search, omit, sse }, ctx) {
         let node = await vfs.urlToNode(path || '/', ctx)
         if (!node)
             return
@@ -50,31 +51,44 @@ export const frontEndApis: ApiHandlers = {
         const re = new RegExp(_.escapeRegExp(search),'i')
         const match = (s?:string) => !s || !search || re.test(s)
         const who = await getCurrentUser(ctx) // cache value
-        const list = []
         const walker = walkNode(node, who, search ? Infinity : 0)
-        for await (const sub of walker) {
-            if (!match(sub.name))
-                continue
-            const entry = await nodeToDirEntry(sub)
-            if (!entry)
-                continue
-            if (offset) {
-                --offset
-                continue
+        const sseSrv = sse ? createSSE(ctx) : null
+        const res = produceEntries()
+        return !sseSrv && { list: await res }
+
+        async function produceEntries() {
+            const list = []
+            for await (const sub of walker) {
+                if (sseSrv?.stopped) break
+                const filename = basename(sub.name||'')
+                if (!match(filename))
+                    continue
+                const entry = await nodeToDirEntry(sub)
+                if (!entry)
+                    continue
+                if (offset) {
+                    --offset
+                    continue
+                }
+                if (omit) {
+                    if (omit !== 'c')
+                        ctx.throw(400, 'omit')
+                    if (!entry.m)
+                        entry.m = entry.c
+                    delete entry.c
+                }
+                if (sseSrv)
+                    sseSrv.send({ entry })
+                else
+                    list.push(entry)
+                if (limit && !--limit)
+                    break
             }
-            if (omit) {
-                if (omit !== 'c')
-                    ctx.throw(400, 'omit')
-                if (!entry.m)
-                    entry.m = entry.c
-                delete entry.c
-            }
-            list.push(entry)
-            if (limit === list.length)
-                break
+            sseSrv?.close()
+            return list
         }
-        return { list }
     },
+
     async login({ user, password }, ctx) {
         if (!user)
             return ctx.status = 400
@@ -86,6 +100,7 @@ export const frontEndApis: ApiHandlers = {
         ctx.cookies.set(SESSION_COOKIE, sess.id)
         return sess
     },
+
     async logout({}, ctx) {
         const sid = ctx.cookies.get(SESSION_COOKIE)
         if (!sid)
@@ -95,6 +110,7 @@ export const frontEndApis: ApiHandlers = {
         ctx.status = 200
         ctx.cookies.set(SESSION_COOKIE, null)
     },
+
     async refresh_session({}, ctx) {
         const prevId = ctx.cookies.get(SESSION_COOKIE)
         if (!prevId) return
@@ -108,7 +124,8 @@ export const frontEndApis: ApiHandlers = {
         else
             ctx.cookies.set(SESSION_COOKIE, sess.id)
         return sess
-    }
+    },
+
 }
 
 async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
