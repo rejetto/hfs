@@ -1,11 +1,19 @@
 import Koa from 'koa'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
+import { METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
 
 export function serveFile(source: string) : Koa.Middleware {
     return async (ctx) => {
         const { range } = ctx.request.header
         ctx.set('Accept-Ranges', 'bytes')
+        if (ctx.method === 'OPTIONS') {
+            ctx.status = NO_CONTENT
+            ctx.set({ Allow: 'OPTIONS, GET' })
+            return
+        }
+        if (ctx.method !== 'GET')
+            return ctx.status = METHOD_NOT_ALLOWED
         if (!range)
             return ctx.body = createReadStream(source)
         const ranges = range.split('=')[1]

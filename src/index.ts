@@ -37,7 +37,7 @@ srv.use(mount(API_URI, new Koa()
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
 srv.use(async (ctx, next) => {
     const { path } = ctx
-    if (ctx.method !== 'GET' || ctx.body)
+    if (ctx.body)
         return await next()
     if (path.startsWith(FRONTEND_URI))
         return await serveFrontendPrefixed(ctx,next)
@@ -48,7 +48,7 @@ srv.use(async (ctx, next) => {
     if (!source || await isDirectory(source)) { // this folder was requested without the trailing /
         ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
         return path.endsWith('/') ? await serveFrontend(ctx, next)
-            : ctx.redirect(ctx.path + '/')
+            : ctx.redirect(path + '/')
     }
     if (source)
         return source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
