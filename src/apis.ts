@@ -16,7 +16,7 @@ type ApiHandlers = Record<string, ApiHandler>
 export function apiMw(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx, next) => {
         const params = ctx.method === 'POST' ? ctx.request.body : ctx.request.query
-        console.debug('API', ctx.method, ctx.path, params)
+        console.debug('API', ctx.method, ctx.path, { ...params })
         if (!(ctx.path in apis))
             return ctx.throw(404, 'invalid api')
         const cb = (apis as any)[ctx.path]
@@ -58,6 +58,7 @@ export const frontEndApis: ApiHandlers = {
 
         async function produceEntries() {
             const list = []
+            const h = sseSrv && setInterval(()=> console.log('WALKING'), 500)
             for await (const sub of walker) {
                 if (sseSrv?.stopped) break
                 const filename = basename(sub.name||'')
@@ -84,6 +85,7 @@ export const frontEndApis: ApiHandlers = {
                 if (limit && !--limit)
                     break
             }
+            if (h) clearInterval(h)
             sseSrv?.close()
             return list
         }
