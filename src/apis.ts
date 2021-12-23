@@ -138,7 +138,7 @@ async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
                     : null
     }
     catch (err:any) {
-        console.error('ERR', node.source, err?.code || err)
+        console.error(String(err))
         return null
     }
 }

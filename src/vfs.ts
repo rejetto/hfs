@@ -24,7 +24,8 @@ export interface VfsNode {
     remove?: string | string[],
     hidden?: boolean,
     rename?: Record<string,string>,
-    perm?: Record<string, SinglePerm>
+    perm?: Record<string, SinglePerm>,
+    mime?: string
 }
 
 type SinglePerm = 'r' | 'w'

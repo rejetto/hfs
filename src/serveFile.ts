@@ -2,11 +2,17 @@ import Koa from 'koa'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
+import { VfsNode } from './vfs'
 
-export function serveFile(source: string) : Koa.Middleware {
+export function serveFile(node: VfsNode) : Koa.Middleware {
     return async (ctx) => {
+        let { source, mime } = node
+        if (!source)
+            return
         const { range } = ctx.request.header
         ctx.set('Accept-Ranges', 'bytes')
+        if (mime)
+            ctx.type = mime
         if (ctx.method === 'OPTIONS') {
             ctx.status = NO_CONTENT
             ctx.set({ Allow: 'OPTIONS, GET' })

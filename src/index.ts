@@ -52,7 +52,7 @@ srv.use(async (ctx, next) => {
     }
     if (source)
         return source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
-            : serveFile(source)(ctx,next)
+            : serveFile(node)(ctx,next)
     await next()
 })
 
