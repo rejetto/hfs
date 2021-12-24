@@ -48,6 +48,12 @@ header {
     padding: .2em;
 }
 
+.ani-working { animation:1s blink infinite }
+
+@keyframes blink {
+    0% {opacity: 1}
+    50% {opacity: 0.1}
+}
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }

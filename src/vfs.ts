@@ -137,7 +137,7 @@ export async function* walkNode(parent:VfsNode, who:string, depth:number=0, pref
                 continue
             yield prefixPath ? { ...c, name: prefixPath+c.name } : c
             if (depth > 0 && c)
-                yield* walkNode(c, prefixPath+c.name+'/', depth - 1)
+                yield* walkNode(c, '', depth - 1, prefixPath+c.name+'/')
         }
     if (!source)
         return
@@ -158,7 +158,7 @@ export async function* walkNode(parent:VfsNode, who:string, depth:number=0, pref
             yield {
                 type: VfsNodeType.temp,
                 source: path,
-                name: parent!.rename?.[name] || name
+                name: prefixPath + (parent!.rename?.[name] || name)
             }
         }
     }

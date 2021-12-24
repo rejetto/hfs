@@ -2,7 +2,7 @@ import { createElement as h, Fragment, useContext, useMemo, useState } from 'rea
 import { Link, useLocation } from 'react-router-dom'
 import { ListContext } from './BrowseFiles'
 import { login, logout } from './login'
-import { formatBytes, hIcon, prefix, wait } from './misc'
+import { formatBytes, hIcon, prefix } from './misc'
 import { Spinner } from './components'
 import { state, useSnapState } from './state'
 import { useDebounce } from 'use-debounce'
@@ -34,28 +34,29 @@ function MenuPanel() {
                     setShowFilter(!showFilter)
                 }
             }),
-            h(MenuButton, {
-                icon: 'search',
-                label: 'Search',
-                async onClick() {
-                    const res = prompt('Search for...')
-                    if (res === null) return
-                    if (state.stoppedSearch) {
-                        state.remoteSearch = ''
-                        await wait(500)
+            h(MenuButton,
+                stopSearch ? {
+                    icon: 'stop',
+                    label: 'Stop list',
+                    className: 'ani-working',
+                    onClick() {
+                        stopSearch()
+                        state.stoppedSearch = true
                     }
-                    stopSearch?.()
-                    state.remoteSearch = res
+                } : state.remoteSearch ? {
+                    icon: 'search_off',
+                    label: 'Clear search',
+                    onClick() {
+                        state.remoteSearch = ''
+                    }
+                } : {
+                    icon: 'search',
+                    label: 'Search',
+                    async onClick() {
+                        state.remoteSearch = prompt('Search for...') ||''
+                    }
                 }
-            }),
-            stopSearch && h(MenuButton, {
-                icon: 'stop',
-                label: 'Stop list',
-                onClick() {
-                    stopSearch()
-                    state.stoppedSearch = true
-                }
-            })
+            )
         ),
         remoteSearch && h('div', { id:'searched' }, 'Searched for: ',remoteSearch),
         showFilter && h('input',{
@@ -70,8 +71,8 @@ function MenuPanel() {
     )
 }
 
-function MenuButton({ icon, label, toggled, onClick }:{ icon:string, label:string, toggled?:boolean, onClick?:()=>void }) {
-    return h('button', { title:label, onClick, className:toggled ? 'toggled' : '' },
+function MenuButton({ icon, label, toggled, onClick, className='' }:{ icon:string, label:string, toggled?:boolean, className?:string, onClick?:()=>void }) {
+    return h('button', { title:label, onClick, className:className+' '+(toggled ? 'toggled' : '') },
         hIcon(icon),
         h('label',{}, label))
 }
@@ -113,7 +114,7 @@ function FolderStats() {
     }, [list])
     const { filteredEntries, stoppedSearch } = useSnapState()
     return h('div', { id:'folder-stats' },
-        stoppedSearch ? hIcon('interrupted') : loading && h(Spinner),
+        stoppedSearch ? hIcon('interrupted', { title:'Search was interrupted' }) : loading && h(Spinner),
         [
             prefix('', stats.files,' file(s)'),
             prefix('', stats.folders, ' folder(s)'),
