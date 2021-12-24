@@ -73,6 +73,10 @@ export default function useFetchList() {
                     || Error()
                 if (res instanceof Error)
                     return setError(res)
+                if (res.redirect) {
+                    window.history.back() // cancel last piece of navigation that brought us here, we'll replace it with the following
+                    loc.href = res.redirect
+                }
                 const chunk = res.list
                 setList(list = [ ...list, ...chunk ])
                 if (chunk.length < limit)

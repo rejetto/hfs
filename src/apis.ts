@@ -45,6 +45,8 @@ export const frontEndApis: ApiHandlers = {
             return
         if (search?.includes('..'))
             return ctx.throw(400)
+        if (node.default)
+            return { redirect: path }
         offset = Number(offset)
         limit = Number(limit)
         const re = new RegExp(_.escapeRegExp(search),'i')
