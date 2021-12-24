@@ -7,8 +7,8 @@ export function hIcon(name: string, props?:any) {
     return h(Icon, { name, ...props })
 }
 
-export function hError(err: Error) {
-    return h('div', { className:'error-msg' }, err.message)
+export function hError(err?: Error | string) {
+    return err && h('div', { className:'error-msg' }, typeof err === 'string' ? err : err.message)
 }
 
 export function formatBytes(n: number, post: string = 'B') {

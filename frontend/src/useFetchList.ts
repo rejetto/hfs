@@ -8,7 +8,7 @@ export default function useFetchList() {
     const desiredPath = usePath()
     const search = snap.remoteSearch || undefined
     const [list, setList] = useState<DirList>([])
-    const [unfinished, setUnfinished] = useState(true)
+    const [loading, setLoading] = useState(false)
     const [error, setError] = useState<Error>()
     const lastPath = useRef('')
     useEffect(()=>{
@@ -25,13 +25,13 @@ export default function useFetchList() {
             state.stopSearch?.()
             return
         }
+        setLoading(true)
 
         ;(async ()=>{
             const API = 'file_list'
             const sse = search
             const baseParams = { path:desiredPath, search, sse, omit:'c' }
             let list: DirList = []
-            setUnfinished(true)
             setList(list)
 
             if (sse) { // buffering entries is necessary against burst of events that will hang the browser
@@ -49,7 +49,7 @@ export default function useFetchList() {
                         case 'closed':
                             flush()
                             state.stopSearch?.()
-                            return setUnfinished(false)
+                            return setLoading(false)
                         case 'msg':
                             if (src?.readyState === src?.CLOSED)
                                 return state.stopSearch?.()
@@ -58,6 +58,7 @@ export default function useFetchList() {
                 })
                 state.stopSearch = ()=>{
                     buffer.length = 0
+                    setLoading(false)
                     clearInterval(timer)
                     state.stopSearch = undefined
                     src.close()
@@ -68,7 +69,7 @@ export default function useFetchList() {
             let offset = 0
             while (1) {
                 const limit = list.length ? 1000 : 100
-                const res = await apiCall(API, { ...baseParams, offset, limit })
+                const res = await apiCall(API, { ...baseParams, offset, limit }).catch(e => e)
                     || Error()
                 if (res instanceof Error)
                     return setError(res)
@@ -78,9 +79,9 @@ export default function useFetchList() {
                     break
                 offset = list.length
             }
-            setUnfinished(false)
+            setLoading(false)
         })()
     }, [desiredPath, search])
-    return { list, unfinished, error }
+    return { list, loading, error }
 }
 

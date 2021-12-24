@@ -99,7 +99,7 @@ function LoginButton() {
 }
 
 function FolderStats() {
-    const { list, unfinished } = useContext(ListContext)
+    const { list, loading } = useContext(ListContext)
     const stats = useMemo(() =>{
         let files = 0, folders = 0, size = 0
         for (const x of list) {
@@ -113,7 +113,7 @@ function FolderStats() {
     }, [list])
     const { filteredEntries, stoppedSearch } = useSnapState()
     return h('div', { id:'folder-stats' },
-        stoppedSearch ? hIcon('interrupted') : unfinished && h(Spinner),
+        stoppedSearch ? hIcon('interrupted') : loading && h(Spinner),
         [
             prefix('', stats.files,' file(s)'),
             prefix('', stats.folders, ' folder(s)'),

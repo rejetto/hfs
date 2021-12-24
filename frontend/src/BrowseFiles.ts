@@ -13,32 +13,28 @@ export function usePath() {
 
 interface DirEntry { n:string, s?:number, m?:string, c?:string }
 export type DirList = DirEntry[]
-interface ListRes { list:DirList, unfinished?:boolean, err?:Error }
+interface ListRes { list:DirList, loading?:boolean, err?:Error }
 
-export const ListContext = createContext<ListRes>({ list:[], unfinished: false })
+export const ListContext = createContext<ListRes>({ list:[], loading: false })
 
 export function BrowseFiles() {
-    const { list, unfinished, error } = useFetchList()
-    if (error)
-        return hError(error)
-    if (!list)
-        return h(Spinner)
-    return h(ListContext.Provider, { value:{ list, unfinished } },
+    const { list, loading, error } = useFetchList()
+    return h(ListContext.Provider, { value:{ list, loading } },
         h(Head),
-        h(FilesList))
+        hError(error && 'Failed to retrieve list') || h(list ? FilesList : Spinner))
 }
 
 function FilesList() {
-    const { list, unfinished } = useContext(ListContext)
+    const { list, loading } = useContext(ListContext)
     const snap = useSnapState()
     if (!list) return null
     const filter = snap.listFilter > '' && new RegExp(_.escapeRegExp(snap.listFilter),'i')
     let n = 0 // if I try to use directly the state as counter I get a "too many re-renders" error
     const ret = h('ul', { className: 'dir' },
-        !list.length ? (unfinished || 'Nothing here')
+        !list.length ? (loading || 'Nothing here')
             : list.map((entry: DirEntry) =>
                 h(File, { key: entry.n, hidden: filter && !filter.test(entry.n) || !++n, ...entry })),
-        unfinished && h(Spinner))
+        loading && h(Spinner))
     state.filteredEntries = filter ? n : -1
     return ret
 }
