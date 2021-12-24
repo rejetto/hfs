@@ -7,9 +7,10 @@ export default function createSSE(ctx: Koa.Context) {
     socket.setNoDelay(true)
     socket.setKeepAlive(true)
     ctx.set({
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no', // avoid buffering when reverse-proxied through nginx
     })
     ctx.status = 200
     const stream = ctx.body = new PassThrough()
