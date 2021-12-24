@@ -1,6 +1,5 @@
 import Koa from 'koa'
 import { vfs, VfsNode, walkNode } from './vfs'
-import { Stats } from 'fs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { getCurrentUser, verifyLogin } from './perm'
@@ -132,24 +131,28 @@ export const frontEndApis: ApiHandlers = {
 
 async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
     try {
-        return node.source?.includes('//') ? { n:node.name||'' }
-            : node.source ? statToDirEntry(node.name, await stat(node.source))
-                : node.name ? { n: node.name + '/' }
-                    : null
+        let { name, source, default:def } = node
+        if (source?.includes('//'))
+            return { n: name || source }
+        if (source) {
+            if (!name)
+                name = basename(source)
+            if (def)
+                return { n: name }
+            const st = await stat(source)
+            const folder = st.isDirectory()
+            const { ctime, mtime } = st
+            return {
+                n: name + (folder ? '/' : ''),
+                c: ctime,
+                m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
+                s: folder ? undefined : st.size,
+            }
+        }
+        return name ? { n: name + '/' } : null
     }
     catch (err:any) {
         console.error(String(err))
         return null
-    }
-}
-
-function statToDirEntry(name: string | undefined, stat:Stats) {
-    const folder = stat.isDirectory()
-    const { ctime, mtime } = stat
-    return {
-        n: name + (folder ? '/' : ''),
-        c: ctime,
-        m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
-        s: folder ? undefined : stat.size,
     }
 }

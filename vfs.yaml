@@ -4,9 +4,12 @@ children:
       - name: f2
         children:
           - source: tests/alfa.txt
-      - name: f3
-        mime: html
-        source: tests/index.html
+      - name: pic
+        mime: png
+        source: tests/page/gpl.png
+      - name: page
+        default: index.html
+        source: tests/page
   - name: proxy
     source: https://raw.githubusercontent.com/nodejs/node/master/README.md
   - name: for-rejetto

@@ -1,6 +1,4 @@
 # To do
-- vfs: serve an html for a folder?
-  - "default" property for vfsNode?
 - log file
 - throttle speed
 - frontend: dialogs

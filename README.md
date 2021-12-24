@@ -16,6 +16,7 @@ You won't find all previous features here (yet), but still we got:
 - search
 - accounts
 - resumable downloads
+- simple website serving
 
 # Configuration
 
@@ -42,6 +43,8 @@ Valid keys in a node are:
 - `perm`: specify who can see this.
      Use this to limit access to this node.
      Value is a dictionary, where the key is the username, and the value is `r`.    
+- `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
+- `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".  
 
 # Accounts
 

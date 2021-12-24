@@ -25,12 +25,15 @@ export interface VfsNode {
     hidden?: boolean,
     rename?: Record<string,string>,
     perm?: Record<string, SinglePerm>,
+    default?: string,
     mime?: string
 }
 
 type SinglePerm = 'r' | 'w'
 
 const EMPTY = { type: VfsNodeType.root }
+
+export const MIME_AUTO = 'auto'
 
 export class Vfs {
     root: VfsNode = EMPTY
@@ -98,7 +101,7 @@ export class Vfs {
             const baseSource = run.source+ '/'
             const source = baseSource + relativeSource
             const removed = isMatch(source, [run.remove].flat().map(x => baseSource + x))
-            return removed || !await fs.stat(source) ? undefined : { source }
+            return removed || !await fs.stat(source) ? undefined : { source, mime: run.mime || (run.default && MIME_AUTO) }
         }
         return run
 

@@ -41,14 +41,21 @@ srv.use(async (ctx, next) => {
         return await next()
     if (path.startsWith(FRONTEND_URI))
         return await serveFrontendPrefixed(ctx,next)
-    const node = await vfs.urlToNode(decodeURI(path), ctx)
+    const decoded = decodeURI(path)
+    const node = await vfs.urlToNode(decoded, ctx)
     if (!node)
         return await next()
     const { source } = node
-    if (!source || await isDirectory(source)) { // this folder was requested without the trailing /
+    if (!source || await isDirectory(source)) {
+        if (!path.endsWith('/')) // this folder was requested without the trailing /
+            return ctx.redirect(path + '/')
+        if (node.default) {
+            const def = await vfs.urlToNode(decoded + node.default, ctx)
+            if (def)
+                return serveFile(def)(ctx, next)
+        }
         ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
-        return path.endsWith('/') ? await serveFrontend(ctx, next)
-            : ctx.redirect(path + '/')
+        return await serveFrontend(ctx, next)
     }
     if (source)
         return source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)

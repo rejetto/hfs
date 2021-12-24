@@ -2,7 +2,8 @@ import Koa from 'koa'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
-import { VfsNode } from './vfs'
+import { MIME_AUTO, VfsNode } from './vfs'
+import mimetypes from 'mime-types'
 
 export function serveFile(node: VfsNode) : Koa.Middleware {
     return async (ctx) => {
@@ -11,6 +12,8 @@ export function serveFile(node: VfsNode) : Koa.Middleware {
             return
         const { range } = ctx.request.header
         ctx.set('Accept-Ranges', 'bytes')
+        if (mime === MIME_AUTO)
+            mime = mimetypes.lookup(source) || ''
         if (mime)
             ctx.type = mime
         if (ctx.method === 'OPTIONS') {

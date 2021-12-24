@@ -10,6 +10,11 @@ export async function isDirectory(path: string) {
     catch(e) { return false }
 }
 
+export async function isFile(path: string) {
+    try { return (await fs.stat(path)).isFile() }
+    catch(e) { return false }
+}
+
 export function complySlashes(path: string) {
     return path.replace(/\\/g,'/')
 }

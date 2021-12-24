@@ -10,16 +10,17 @@ const appStarted = new Promise(resolve =>
 describe('basics', () => {
     //before(async () => appStarted)
     it('frontend', req('/', s => s.includes('<body>')))
-    it('api.list', req('/~/api/file_list', res => inList(res, 'f2/') && inList(res, 'f3/'), {
+    it('api.list', req('/~/api/file_list', res => inList(res, 'f2/') && inList(res, 'page'), {
         data: { path:'/f1/' }
     }))
-    it('api.search', req('/~/api/file_list', res => inList(res, 'f2/') && !inList(res, 'f3/'), {
+    it('api.search', req('/~/api/file_list', res => inList(res, 'f2/') && !inList(res, 'page'), {
         data: { path:'f1', search:'2' }
     }))
     it('download', req('/f1/f2/alfa.txt', s => s.includes('abcd')))
     it('partial download', req('/f1/f2/alfa.txt', s => s.includes('a') && !s.includes('d'), {
         headers: { Range: 'bytes=0-2' }
     }))
+    it('website', req('/f1/page/', s => s.includes('This is a test')))
     it('missing perm', req('/for-rejetto/', 404))
     it('proxy', req('/proxy', s => s.includes('github')))
 })
