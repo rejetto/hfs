@@ -1,12 +1,16 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom"
-import { createElement as h } from 'react'
+import { createElement as h, Fragment } from 'react'
 import { BrowseFiles } from "./BrowseFiles";
+import { Dialogs } from './dialog'
 
 function App() {
-    return h(BrowserRouter, {},
-        h(Routes, {},
-            h(Route, { path:'*', element:h(BrowseFiles) })
-        )
+    return h(Fragment, {},
+        h(BrowserRouter, {},
+            h(Routes, {},
+                h(Route, { path:'*', element:h(BrowseFiles) })
+            )
+        ),
+        h(Dialogs)
     )
 }
 

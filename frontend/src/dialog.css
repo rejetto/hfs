@@ -1,0 +1,56 @@
+.dialog-backdrop {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #888a;
+    display: flex;
+    justify-Content: center;
+    align-Items: center;
+}
+.dialog {
+    background: #fff;
+    padding: 1em 1.5em;
+    border-radius: 1em;
+    position: relative;
+    color: var(--color);
+    border: 3px solid var(--color);
+    margin: 0 1.5em; /* leave space for corner icons */
+}
+.dialog-icon {
+    color: #fff;
+    position: absolute;
+    width: 1.6em;
+    height: 1.6em;
+    text-align: center;
+    border-radius: 50%;
+    opacity: .8;
+}
+.dialog-closer {
+    background: #c77;
+    right: -1.4em;
+    bottom: -1.4em;
+    width: 2.5em;
+    height: 2.5em;
+    opacity: .9;
+}
+.dialog-type {
+    left: -0.8em;
+    top: -0.8em;
+    overflow: hidden;
+    line-height: 1.7em;
+    background-color: var(--color);
+}
+.dialog-prompt {
+    --color: #228
+}
+.dialog-alert-info {
+    --color: #282
+}
+.dialog-alert-warning {
+    --color: #c91
+}
+.dialog-alert-error {
+    --color: #822;
+}

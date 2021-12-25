@@ -10,6 +10,8 @@
 - streamable zip archives (no compression, resumable?)
 - config: max speed (total/per-ip)
 - config: max connections (total/per-ip)
+- user.ignoreLimits
+- user.redirect
 - config: bans
 - config: min disk space
 - frontend: dialogs

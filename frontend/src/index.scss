@@ -6,11 +6,17 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
-#root {
+#root, input {
     max-width: 50em;
+    color: #555;
 }
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+input {
+    padding: 0.3em 0.4em;
+    border-radius: 0.5em;
+    border-color: #0005;
 }
 
 .icon {
