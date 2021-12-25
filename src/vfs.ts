@@ -5,7 +5,7 @@ import { FSWatcher, watch } from 'fs'
 import { dirname, basename } from 'path'
 import { isMatch } from 'micromatch'
 import { complySlashes, enforceFinal, prefix, readFileBusy } from './misc'
-import { getCurrentUser } from './perm'
+import { getCurrentUserExpanded } from './perm'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
@@ -83,16 +83,16 @@ export class Vfs {
     }
 
     async urlToNode(url: string, ctx: Koa.Context) : Promise<VfsNode | undefined> {
-        const who = await getCurrentUser(ctx)
+        const users = await getCurrentUserExpanded(ctx)
         let run = this.root
         const rest = url.split('/').filter(Boolean).map(decodeURIComponent)
-        if (forbidden()) return
+        if (forbidden(run, users)) return
         while (rest.length) {
             let piece = rest.shift() as string
             const child = findChildByName(piece, run)
             if (child) {
                 run = child
-                if (forbidden()) return
+                if (forbidden(run, users)) return
                 continue
             }
             if (!run.source)
@@ -104,12 +104,6 @@ export class Vfs {
             return removed || !await fs.stat(source) ? undefined : { source, mime: run.mime || (run.default && MIME_AUTO) }
         }
         return run
-
-        function forbidden() {
-            const { perm } = run
-            return perm && (!perm[who] || perm['*'])
-        }
-
     }
 
 }
@@ -123,21 +117,21 @@ function findChildByName(name:string, node:VfsNode) {
     return node?.children?.find(x => x.name === name)
 }
 
-export function directPermOnNode(node:VfsNode, username:string) {
+export function forbidden(node:VfsNode, users:string[]) {
     const { perm } = node
-    return !perm ? 'r' : (username && perm[username] || perm['*'])
+    return perm && !users.some(u => perm[u])
 }
 
 
-export async function* walkNode(parent:VfsNode, who:string, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
+export async function* walkNode(parent:VfsNode, who:string[], depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
     if (children)
         for (const c of children) {
-            if (c.hidden || !directPermOnNode(c,who))
+            if (c.hidden || forbidden(c, who))
                 continue
             yield prefixPath ? { ...c, name: prefixPath+c.name } : c
             if (depth > 0 && c)
-                yield* walkNode(c, '', depth - 1, prefixPath+c.name+'/')
+                yield* walkNode(c, who, depth - 1, prefixPath+c.name+'/')
         }
     if (!source)
         return

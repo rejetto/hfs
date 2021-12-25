@@ -12,8 +12,8 @@ children:
         source: tests/page
   - name: proxy
     source: https://raw.githubusercontent.com/nodejs/node/master/README.md
-  - name: for-rejetto
+  - name: for-admins
     perm:
-      rejetto: r
+      admin: r
     children:
       - source: tests/alfa.txt

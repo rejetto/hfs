@@ -1,5 +1,4 @@
 # To do
-- user should be able to inherit from another a group (another user)
 - file sorting
 - let user change password (need dialogs)
 - folders before?

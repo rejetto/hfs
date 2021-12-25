@@ -39,3 +39,7 @@ export async function readFileBusy(path: string): Promise<string> {
         return wait(100).then(()=> readFileBusy(path))
     })
 }
+
+export function wantArray(x:any) {
+    return x == null ? [] : Array.isArray(x) ? x : [x]
+}

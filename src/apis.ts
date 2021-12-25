@@ -2,7 +2,7 @@ import Koa from 'koa'
 import { vfs, VfsNode, walkNode } from './vfs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
-import { getCurrentUser, verifyLogin } from './perm'
+import { getCurrentUserExpanded, verifyLogin } from './perm'
 import { sessions } from './sessions'
 import createSSE from './sse'
 import { basename } from 'path'
@@ -51,7 +51,7 @@ export const frontEndApis: ApiHandlers = {
         limit = Number(limit)
         const re = new RegExp(_.escapeRegExp(search),'i')
         const match = (s?:string) => !s || !search || re.test(s)
-        const who = await getCurrentUser(ctx) // cache value
+        const who = await getCurrentUserExpanded(ctx) // cache value
         const walker = walkNode(node, who, search ? Infinity : 0)
         const sseSrv = sse ? createSSE(ctx) : null
         const res = produceEntries()

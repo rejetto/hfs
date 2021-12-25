@@ -4,7 +4,7 @@ import _ from 'lodash'
 import yaml from 'yaml'
 import { hashPassword, verifyPassword } from './crypt'
 import { argv } from './const'
-import { readFileBusy, setHidden } from './misc'
+import { readFileBusy, setHidden, wantArray } from './misc'
 import { SESSION_COOKIE } from './apis'
 import { sessions } from './sessions'
 import Koa from 'koa'
@@ -14,7 +14,8 @@ const PATH = argv.accounts || 'accounts.yaml'
 interface UserDetails {
     user: string, // we'll have user in it, so we don't need to pass it separately
     password?: string
-    hashedPassword: string
+    hashedPassword?: string
+    belongs?: string[]
 }
 interface Accounts { [username:string]: UserDetails }
 
@@ -25,9 +26,28 @@ export async function getCurrentUser(ctx: Koa.Context) {
     return id && sessions.get(id)?.user || ''
 }
 
+export async function getCurrentUserExpanded(ctx: Koa.Context) {
+    const who = await getCurrentUser(ctx)
+    if (!who)
+        return []
+    const ret = [who]
+    for (const u of ret) {
+        const a = getAccount(u)
+        if (a?.belongs)
+            ret.push(...a.belongs)
+    }
+    return ret
+}
+
 export async function verifyLogin(user:string, password: string) {
     const acc = accounts[user]
-    return acc && verifyPassword(acc.hashedPassword, password)
+    if (!acc) return
+    const { hashedPassword: h } = acc
+    return h && verifyPassword(h, password)
+}
+
+export function getAccount(user:string) : UserDetails {
+    return accounts[user]
 }
 
 let doing = false
@@ -53,7 +73,12 @@ async function load() {
         accounts = res.accounts
         let changed = false
         await Promise.all(_.map(accounts, async (rec,k) => {
+            if (!rec) // an empty object in yaml is stored as null
+                rec = accounts[k] = { user: '' }
             setHidden(rec, { user: k })
+            rec.belongs = wantArray(rec.belongs).filter(b =>
+                b in accounts // at this stage the group record may still be null if specified later in the file
+                || console.error(`user ${k} belongs to non-existing ${b}`) )
             if (rec.password) {
                 rec.hashedPassword = await hashPassword(rec.password)
                 delete rec.password
