@@ -85,7 +85,7 @@ export default function useFetchList() {
             }
             setLoading(false)
         })()
-    }, [desiredPath, search])
+    }, [desiredPath, search, snap.username])
     return { list, loading, error }
 }
 

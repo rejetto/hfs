@@ -55,8 +55,10 @@ E.g.
 accounts:
     admin:
         password: hello123
+        belongs: group1
     guest:
-        password: guest    
+        password: guest
+    group1:
 ```
 
 As soon as the file is read HFS will encrypt passwords in a non-reversible way.

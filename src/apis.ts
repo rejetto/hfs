@@ -30,7 +30,7 @@ export function apiMw(apis: ApiHandlers) : Koa.Middleware {
             if (res instanceof Error)
                 ctx.throw(400, res)
             else
-                ctx.body = res
+                ctx.body = res === true ? {} : res
         await next()
     }
 }
@@ -112,6 +112,7 @@ export const frontEndApis: ApiHandlers = {
             return ctx.status = 500
         ctx.status = 200
         ctx.cookies.set(SESSION_COOKIE, null)
+        return true
     },
 
     async refresh_session({}, ctx) {
@@ -124,8 +125,7 @@ export const frontEndApis: ApiHandlers = {
             ctx.message = 'session not found'
             return
         }
-        else
-            ctx.cookies.set(SESSION_COOKIE, sess.id)
+        ctx.cookies.set(SESSION_COOKIE, sess.id)
         return sess
     },
 
