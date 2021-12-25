@@ -68,7 +68,6 @@ header {
     border-radius: 0.7em;
     background-color: #bcd;
     color: #444;
-    line-height: 1.6em;
 
     border-top: 1px solid #666;
     margin-right: -0.1em;
@@ -127,6 +126,7 @@ ul.dir {
 
     & button {
         margin: 0.1em;
+        font-size: 1.1em;
     }
     & button label {
         cursor: inherit;
@@ -139,4 +139,7 @@ ul.dir {
 
 @media (max-width: 50em) {
     #menu-bar button:nth-child(1n+2) label { display: none } /* icons only */
+    .breadcrumb .icon {
+        font-size:24px;
+    }
 }
