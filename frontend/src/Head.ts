@@ -18,12 +18,10 @@ export function Head() {
 }
 
 function MenuPanel() {
-    const [showFilter, setShowFilter] = useState(state.listFilter > '')
-    const [filter, setFilter] = useState(state.listFilter)
-    ;[state.listFilter] = useDebounce(filter, 300)
-    if (!showFilter)
-        state.listFilter = ''
-    const { remoteSearch, stopSearch } = useSnapState()
+    const { remoteSearch, stopSearch, listFilter } = useSnapState()
+    const [showFilter, setShowFilter] = useState(listFilter > '')
+    const [filter, setFilter] = useState(listFilter)
+    ;[state.listFilter] = useDebounce(showFilter ? filter : '', 300)
     return h('div', { id:'menu-panel' },
         h('div', { id:'menu-bar' },
             h(LoginButton),
