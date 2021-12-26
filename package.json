@@ -12,6 +12,7 @@
   "scripts": {
     "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts vfs.yaml",
     "start": "node dist",
+    "start-frontend": "cd frontend && npm run start",
     "build": "node timestamp && tsc && cp package*.json *.yaml dist && cd dist && npm ci --production",
     "build-all": "npm run build && cd frontend && npm run build && cd ..",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'"

@@ -1,4 +1,6 @@
 import { createElement as h } from 'react'
+import { Spinner } from './components'
+import { newDialog } from './dialog'
 import { Icon } from './icons'
 
 export type Falsy = false | null | undefined | '' | 0
@@ -53,5 +55,13 @@ export function waitFor<T>(cb:()=>T, ms:number=200) : Promise<Exclude<T,Falsy>> 
             resolve(v)
             clearInterval(h)
         }
+    })
+}
+
+export function working() {
+    return newDialog({
+        closable: false,
+        content: Spinner,
+        className: 'working',
     })
 }

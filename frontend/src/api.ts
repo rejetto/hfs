@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Falsy } from './misc'
+import { Falsy, working } from './misc'
 
 const PREFIX = '/~/api/'
 
 export function apiCall(cmd: string, params?: object) : Promise<any> {
+    const stop = working()
     return fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -14,7 +15,7 @@ export function apiCall(cmd: string, params?: object) : Promise<any> {
         const msg = 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
         throw new ApiError(res.status, msg)
-    })
+    }).finally(stop)
 }
 
 export class ApiError extends Error {

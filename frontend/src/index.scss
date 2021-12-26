@@ -64,6 +64,10 @@ header {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+@keyframes fade-in {
+    0% {opacity: 0}
+    100% {opacity: 1}
+}
 
 .spinner {
     animation: 1s spin infinite;
@@ -146,6 +150,12 @@ ul.dir {
     display:flex;
     flex-direction: column;
     gap: 1em;
+}
+
+.dialog.working {
+    background: none;
+    font-size: 5em;
+    animation: 1s spin infinite, 1s fade-in;
 }
 
 @media (max-width: 50em) {
