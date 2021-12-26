@@ -6,7 +6,8 @@ import { formatBytes, hIcon, prefix } from './misc'
 import { Spinner } from './components'
 import { state, useSnapState } from './state'
 import { useDebounce } from 'use-debounce'
-import { closeDialog, newDialog, promptDialog } from './dialog'
+import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
+import { apiCall } from './api'
 
 export function Head() {
     return h('header', {},
@@ -82,18 +83,7 @@ function LoginButton() {
         icon: 'user',
         label: snap.username,
         onClick(){
-            newDialog({
-                content: ()=> h('div',{ id:'user-panel' },
-                    h('div',{}, 'User: '+snap.username),
-                    h(MenuButton,{
-                        icon: 'logout',
-                        label: 'Logout',
-                        onClick(){
-                            logout().then(closeDialog)
-                        }
-                    })
-                )
-            })
+            newDialog({ content: UserPanel })
         },
     } : {
         icon: 'login',
@@ -106,6 +96,34 @@ function LoginButton() {
             await login(user, password)
         }
     })
+}
+
+function UserPanel() {
+    const snap = useSnapState()
+    return h('div',{ id:'user-panel' },
+        h('div',{}, 'User: '+snap.username),
+        h(MenuButton,{
+            icon: 'key',
+            label: 'Change password',
+            async onClick(){
+                const pwd = await promptDialog('Enter new password', { type:'password' })
+                if (!pwd) return
+                const check = await promptDialog('RE-enter new password', { type:'password' })
+                if (!check) return
+                if (check !== pwd)
+                    return alertDialog('The second password you entered did not match the first. Procedure aborted.', 'warning')
+                await apiCall('change_pwd', { newPassword: pwd })
+                return alertDialog('Password changed')
+            }
+        }),
+        h(MenuButton,{
+            icon: 'logout',
+            label: 'Logout',
+            onClick(){
+                logout().then(closeDialog)
+            }
+        })
+    )
 }
 
 function FolderStats() {

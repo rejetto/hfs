@@ -1,6 +1,5 @@
 # To do
 - file sorting
-- let user change password (need dialogs)
 - folders before?
 - upload
 - log file
@@ -14,7 +13,6 @@
 - user.redirect
 - config: bans
 - config: min disk space
-- frontend: dialogs
 - frontend: don't depend on cdn
 - webdav?
 - vfs: ability to remove/hide/rename files deep in a source

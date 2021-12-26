@@ -8,7 +8,8 @@ interface DialogOptions {
     onClose?: (v?:any)=> any,
     className?: string,
     icon?: string | FunctionComponent,
-    closableContent?: string | ReactNode
+    closableContent?: string | ReactNode,
+    reserveClosing?: true
 }
 
 const dialogs = proxy<DialogOptions[]>([])
@@ -57,7 +58,14 @@ export function newDialog(options: DialogOptions) {
 }
 
 export function closeDialog(v?:any) {
-    dialogs.pop()?.onClose?.(v)
+    let i = dialogs.length
+    while (i--) {
+        const d = dialogs[i]
+        if (d.reserveClosing)
+            continue
+        dialogs.splice(i,1)
+        d.onClose?.(v)
+    }
 }
 
 interface PromptOptions { def?:string, type?:string }

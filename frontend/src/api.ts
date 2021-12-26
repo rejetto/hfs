@@ -10,12 +10,16 @@ export function apiCall(cmd: string, params?: object) : Promise<any> {
         headers: { 'content-type': 'application/json' },
         body: params && JSON.stringify(params),
     }).then(res => {
+        stop()
         if (res.ok)
             return res.json()
         const msg = 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
         throw new ApiError(res.status, msg)
-    }).finally(stop)
+    }, err => {
+        stop()
+        throw err
+    })
 }
 
 export class ApiError extends Error {

@@ -5,7 +5,7 @@ import { FSWatcher, watch } from 'fs'
 import { dirname, basename } from 'path'
 import { isMatch } from 'micromatch'
 import { complySlashes, enforceFinal, prefix, readFileBusy } from './misc'
-import { getCurrentUserExpanded } from './perm'
+import { getCurrentUsernameExpanded } from './perm'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
@@ -83,7 +83,7 @@ export class Vfs {
     }
 
     async urlToNode(url: string, ctx: Koa.Context) : Promise<VfsNode | undefined> {
-        const users = await getCurrentUserExpanded(ctx)
+        const users = await getCurrentUsernameExpanded(ctx)
         let run = this.root
         const rest = url.split('/').filter(Boolean).map(decodeURIComponent)
         if (forbidden(run, users)) return

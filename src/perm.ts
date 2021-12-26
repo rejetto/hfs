@@ -11,23 +11,23 @@ import Koa from 'koa'
 
 const PATH = argv.accounts || 'accounts.yaml'
 
-interface UserDetails {
+interface Account {
     user: string, // we'll have user in it, so we don't need to pass it separately
     password?: string
     hashedPassword?: string
     belongs?: string[]
 }
-interface Accounts { [username:string]: UserDetails }
+interface Accounts { [username:string]: Account }
 
 let accounts: Accounts = {}
 
-export async function getCurrentUser(ctx: Koa.Context) {
+export async function getCurrentUsername(ctx: Koa.Context) {
     const id = ctx.cookies.get(SESSION_COOKIE)
     return id && sessions.get(id)?.user || ''
 }
 
-export async function getCurrentUserExpanded(ctx: Koa.Context) {
-    const who = await getCurrentUser(ctx)
+export async function getCurrentUsernameExpanded(ctx: Koa.Context) {
+    const who = await getCurrentUsername(ctx)
     if (!who)
         return []
     const ret = [who]
@@ -46,8 +46,25 @@ export async function verifyLogin(user:string, password: string) {
     return h && verifyPassword(h, password)
 }
 
-export function getAccount(user:string) : UserDetails {
-    return accounts[user]
+export function getAccount(username:string) : Account {
+    return accounts[username]
+}
+
+type Changer = (account:Account)=> void | Promise<void>
+export async function updateAccount(username: string, changer:Changer) {
+    const account = getAccount(username)
+    await changer(account)
+    if (account.password) {
+        account.hashedPassword = await hashPassword(account.password)
+        delete account.password
+    }
+    saveAccountsAsap()
+}
+
+const saveAccountsAsap = _.debounce(saveAccounts)
+
+function saveAccounts() {
+    return fs.writeFile(PATH, yaml.stringify({ accounts }))
 }
 
 let doing = false
@@ -87,7 +104,7 @@ async function load() {
             }
         }))
         if (changed)
-            await fs.writeFile(PATH, yaml.stringify(res))
+            await saveAccountsAsap()
     }
     finally { doing = false }
 }

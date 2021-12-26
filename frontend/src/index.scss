@@ -138,10 +138,6 @@ ul.dir {
         margin: 0.1em;
         font-size: 1.1em;
     }
-    & button label {
-        cursor: inherit;
-        margin-left: 0.8em;
-    }
 }
 #searched {
     margin: .2em;
@@ -152,6 +148,10 @@ ul.dir {
     gap: 1em;
 }
 
+button label {
+    cursor: inherit;
+    margin-left: 0.5em;
+}
 .dialog.working {
     background: none;
     font-size: 5em;
