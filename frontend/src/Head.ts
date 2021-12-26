@@ -6,6 +6,7 @@ import { formatBytes, hIcon, prefix } from './misc'
 import { Spinner } from './components'
 import { state, useSnapState } from './state'
 import { useDebounce } from 'use-debounce'
+import { closeDialog, newDialog, promptDialog } from './dialog'
 
 export function Head() {
     return h('header', {},
@@ -53,12 +54,12 @@ function MenuPanel() {
                     icon: 'search',
                     label: 'Search',
                     async onClick() {
-                        state.remoteSearch = prompt('Search for...') ||''
+                        state.remoteSearch = await promptDialog('Search for...') ||''
                     }
                 }
             )
         ),
-        remoteSearch && h('div', { id:'searched' }, 'Searched for: ',remoteSearch),
+        remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch),
         showFilter && h('input',{
             id: 'filter',
             placeholder: 'Filter',
@@ -83,16 +84,26 @@ function LoginButton() {
         icon: 'user',
         label: snap.username,
         onClick(){
-            if (window.confirm('Logout?'))
-                logout()
+            newDialog({
+                content: ()=> h('div',{ id:'user-panel' },
+                    h('div',{}, 'User: '+snap.username),
+                    h(MenuButton,{
+                        icon: 'logout',
+                        label: 'Logout',
+                        onClick(){
+                            logout().then(closeDialog)
+                        }
+                    })
+                )
+            })
         },
     } : {
         icon: 'login',
         label: 'Login',
         async onClick(){
-            const user = prompt('Username')
+            const user = await promptDialog('Username')
             if (!user) return
-            const password = prompt('Password')
+            const password = await promptDialog('Password', { type:'password' })
             if (!password) return
             await login(user, password)
         }

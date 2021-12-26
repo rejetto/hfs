@@ -1,5 +1,6 @@
 import { apiCall, ApiError } from './api'
 import { state } from './state'
+import { alertDialog } from './dialog'
 
 let refresher: NodeJS.Timeout
 
@@ -15,7 +16,7 @@ export async function login(user:string, password:string) {
         if (err instanceof ApiError)
             if (err.code === 401)
                 err = 'Invalid credentials'
-        alert(err)
+        await alertDialog(err as Error, 'error')
     }
 }
 apiCall('refresh_session').then(sessionRefresher, ()=>{})
@@ -30,5 +31,5 @@ function sessionRefresher({ exp, user }:{ exp:string, user:string }) {
 }
 
 export function logout(){
-    apiCall('logout').then(()=> state.username = '')
+    return apiCall('logout').then(()=> state.username = '')
 }

@@ -142,6 +142,11 @@ ul.dir {
 #searched {
     margin: .2em;
 }
+#user-panel {
+    display:flex;
+    flex-direction: column;
+    gap: 1em;
+}
 
 @media (max-width: 50em) {
     #menu-bar button:nth-child(1n+2) label { display: none } /* icons only */
