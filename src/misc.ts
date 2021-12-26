@@ -1,5 +1,7 @@
 import fs from 'fs/promises'
 import { objSameKeys } from './obj'
+import { watch } from 'fs'
+import yaml from 'yaml'
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
@@ -42,4 +44,33 @@ export async function readFileBusy(path: string): Promise<string> {
 
 export function wantArray(x:any) {
     return x == null ? [] : Array.isArray(x) ? x : [x]
+}
+
+export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>) {
+    let doing = false
+    const timer = setInterval(()=>{
+        try {
+            watch(path, load)
+            load().then()
+            clearInterval(timer)
+        }
+        catch(e){
+        }
+    }, 1000)
+
+    async function load(){
+        if (doing) return
+        doing = true
+        console.debug('loading', path)
+        let data: any
+        try {
+            data = yaml.parse(await readFileBusy(path))
+        } catch (e) {
+            doing = false
+            console.warn('cannot read', path, String(e))
+            return
+        }
+        await parser(data)
+        doing = false
+    }
 }

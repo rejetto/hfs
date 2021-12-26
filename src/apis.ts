@@ -107,7 +107,7 @@ export const frontEndApis: ApiHandlers = {
     async logout({}, ctx) {
         const sid = ctx.cookies.get(SESSION_COOKIE)
         if (!sid)
-            return ctx.status = 404
+            return ctx.status = 401
         if (!sessions.destroy(sid))
             return ctx.status = 500
         ctx.status = 200

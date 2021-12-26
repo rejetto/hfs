@@ -9,20 +9,20 @@ import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import proxy from 'koa-better-http-proxy'
 import compress from 'koa-compress'
-
-const PORT = argv.port || 80
+import { Server } from 'http'
+import { subscribe } from './config'
 
 const BUILD_TIMESTAMP = ""
 
-const srv = new Koa()
-srv.use(async (ctx, next) => {
+const app = new Koa()
+app.use(async (ctx, next) => {
     // log all requests
     console.debug(new Date().toLocaleTimeString(), ctx.request.method, ctx.url)
     await next()
 })
 
 // serve apis
-srv.use(mount(API_URI, new Koa()
+app.use(mount(API_URI, new Koa()
     .use(bodyParser())
     .use(apiMw(frontEndApis))
     .use(compress({
@@ -35,7 +35,7 @@ srv.use(mount(API_URI, new Koa()
 
 // serve shared files and front-end files
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
-srv.use(async (ctx, next) => {
+app.use(async (ctx, next) => {
     const { path } = ctx
     if (ctx.body)
         return await next()
@@ -63,9 +63,32 @@ srv.use(async (ctx, next) => {
     await next()
 })
 
-srv.on('error', err => {
+app.on('error', err => {
     if (DEV && err.code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out
     if (err.code === 'ECONNRESET') return // someone interrupted, don't care
     console.error('server error', err)
 })
-srv.listen(PORT, ()=> console.log('running on port', PORT, DEV, new Date().toLocaleString()))
+
+let srv: Server
+if (argv.port)
+    listenOn(argv.port).then()
+else
+    subscribe('port', port =>
+        listenOn(port||80))
+
+async function listenOn(port: number) {
+    await new Promise(resolve => {
+        if (!srv)
+            return resolve(null)
+        srv.close(err => {
+            if (err)
+                console.debug('failed to stop server', err)
+            resolve(err)
+        })
+    })
+    await new Promise(resolve =>
+        srv = app.listen(port, () => {
+            console.log('running on port', port, DEV, new Date().toLocaleString())
+            resolve(null)
+        }))
+}
