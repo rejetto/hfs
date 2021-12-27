@@ -3,7 +3,6 @@
 - folders before?
 - upload
 - log file
-- config: mime
 - node.comment
 - streamable zip archives (no compression, resumable?)
 - config: max speed (total/per-ip)

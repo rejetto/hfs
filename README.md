@@ -22,6 +22,17 @@ You won't find all previous features here (yet), but still we got:
 
 At the moment there's no administration UI. You must edit configuration files.
 
+## Config
+
+General configuration is read by default from file `config.yaml`.
+When not specified, default values will be used.
+Supported entries are:
+- `port` where to accept http connections. Default is 80.
+- `mime` command what mime-type to be returned with some files. 
+    E.g.: `"*.jpg": image/jpeg`
+    You can specify multiple entries, or separate multiple file masks with a p|pe.
+    You can use the special value `auto` to attempt automatic detection.
+
 ## Virtual File System (VFS)
 
 The virtual file system is a tree of nodes.
