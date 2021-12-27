@@ -1,14 +1,12 @@
-import { argv } from './const'
-import yaml from 'yaml'
 import fs from 'fs/promises'
-import { FSWatcher, watch } from 'fs'
-import { dirname, basename } from 'path'
+import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { complySlashes, enforceFinal, prefix, readFileBusy } from './misc'
+import { complySlashes, enforceFinal, prefix } from './misc'
 import { getCurrentUsernameExpanded } from './perm'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
+import { subscribe } from './config'
 
 export enum VfsNodeType {
     root,
@@ -37,49 +35,13 @@ export const MIME_AUTO = 'auto'
 
 export class Vfs {
     root: VfsNode = EMPTY
-    watcher?: FSWatcher
-    basePath: string
 
-    constructor(path?:string) {
-        this.basePath = ''
-        if (path)
-            this.load(path).then(()=>
-                this.basePath = dirname(path))
-        else
-            this.reset()
+    constructor() {
+        this.reset()
     }
 
     reset(){
         this.root = { ...EMPTY }
-    }
-
-    async load(path: string, watchFile:boolean=true) {
-        console.debug('loading',path)
-        try {
-            const data = await readFileBusy(path)
-            this.root = yaml.parse(data)
-            // we should validate content now
-        }
-        catch(e) {
-            console.error(`Load failed for ${path}`,e)
-        }
-        this.watcher?.close()
-        this.watcher = undefined
-        recur(this.root)
-        if (!watchFile) return
-        let doing = false
-        this.watcher = watch(path, async () => {
-            if (doing) return
-            doing = true
-            try { await this.load(path).catch() }
-            finally { doing = false }
-        })
-
-        function recur(node:VfsNode) {
-            if (node.type !== VfsNodeType.root && !node.name && node.source)
-                node.name = basename(node.source)
-            node.children?.forEach(recur)
-        }
     }
 
     async urlToNode(url: string, ctx: Koa.Context) : Promise<VfsNode | undefined> {
@@ -108,7 +70,18 @@ export class Vfs {
 
 }
 
-export const vfs = new Vfs(argv._[0] || 'vfs.yaml')
+export const vfs = new Vfs()
+subscribe('vfs', data => {
+    // we should validate content now
+    recur(data)
+    vfs.root = data
+
+    function recur(node:VfsNode) {
+        if (node.type !== VfsNodeType.root && !node.name && node.source)
+            node.name = basename(node.source)
+        node.children?.forEach(recur)
+    }
+})
 
 function findChildByName(name:string, node:VfsNode) {
     const { rename } = node

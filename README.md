@@ -28,6 +28,7 @@ General configuration is read by default from file `config.yaml`.
 When not specified, default values will be used.
 Supported entries are:
 - `port` where to accept http connections. Default is 80.
+- `vfs` the files and folders you want to expose. For details see the dedicated following section.
 - `mime` command what mime-type to be returned with some files. 
     E.g.: `"*.jpg": image/jpeg`
     You can specify multiple entries, or separate multiple file masks with a p|pe.
@@ -35,10 +36,8 @@ Supported entries are:
 
 ## Virtual File System (VFS)
 
-The virtual file system is a tree of nodes.
-By default, it's in the file `vfs.yaml`.
-You can decide a different file by passing it as first parameter at command line.
-A node is folder, unless you provide for it a source that's not a folder itself.
+The virtual file system is a tree of files and folders, collectively called *nodes*.
+By default a node is folder, unless you provide for it a source that's a file.
 Valid keys in a node are: 
 - `name`: how to display it. If not provided HFS will infer it from the source.  
 - `source`: where to get its content from. Absolute or relative file path, or even http url.

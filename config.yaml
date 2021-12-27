@@ -1,3 +1,23 @@
 port: 80
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
+vfs:
+  children:
+    - name: f1
+      children:
+        - name: f2
+          children:
+            - source: tests/alfa.txt
+        - name: pic
+          mime: png
+          source: tests/page/gpl.png
+        - name: page
+          default: index.html
+          source: tests/page
+    - name: proxy
+      source: https://raw.githubusercontent.com/nodejs/node/master/README.md
+    - name: for-admins
+      perm:
+        admin: r
+      children:
+        - source: tests/alfa.txt

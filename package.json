@@ -10,7 +10,7 @@
   "license": "GPL-3.0",
   "author": "Massimo Melina <a@rejetto.com>",
   "scripts": {
-    "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts vfs.yaml",
+    "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts",
     "start": "node dist",
     "start-frontend": "cd frontend && npm run start",
     "build": "node timestamp && tsc && cp package*.json *.yaml dist && cd dist && npm ci --production",
