@@ -5,8 +5,6 @@ import yaml from 'yaml'
 import { hashPassword, verifyPassword } from './crypt'
 import { argv } from './const'
 import { readFileBusy, setHidden, wantArray } from './misc'
-import { SESSION_COOKIE } from './apis'
-import { sessions } from './sessions'
 import Koa from 'koa'
 
 const PATH = argv.accounts || 'accounts.yaml'
@@ -22,8 +20,7 @@ interface Accounts { [username:string]: Account }
 let accounts: Accounts = {}
 
 export async function getCurrentUsername(ctx: Koa.Context) {
-    const id = ctx.cookies.get(SESSION_COOKIE)
-    return id && sessions.get(id)?.user || ''
+    return ctx.session?.user || ''
 }
 
 export async function getCurrentUsernameExpanded(ctx: Koa.Context) {

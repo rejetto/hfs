@@ -11,10 +11,18 @@ import proxy from 'koa-better-http-proxy'
 import compress from 'koa-compress'
 import { Server } from 'http'
 import { subscribe } from './config'
+import session from 'koa-session'
 
 const BUILD_TIMESTAMP = ""
 
 const app = new Koa()
+app.keys = ['hfs-keys-test']
+app.use(session({
+    key: 'hfs_$id',
+    signed: true,
+    rolling: true,
+    maxAge: 30*60_000,
+}, app))
 app.use(async (ctx, next) => {
     // log all requests
     console.debug(new Date().toLocaleTimeString(), ctx.request.method, ctx.url)

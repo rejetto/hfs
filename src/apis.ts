@@ -3,11 +3,8 @@ import { vfs, VfsNode, walkNode } from './vfs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { getCurrentUsername, getCurrentUsernameExpanded, updateAccount, verifyLogin } from './perm'
-import { sessions } from './sessions'
 import createSSE from './sse'
 import { basename } from 'path'
-
-export const SESSION_COOKIE = 'hfs_$id'
 
 type ApiHandler = (params:any, ctx:Koa.Context) => any
 type ApiHandlers = Record<string, ApiHandler>
@@ -99,34 +96,20 @@ export const frontEndApis: ApiHandlers = {
             return ctx.status = 400
         if (!await verifyLogin(user, password))
             return ctx.status = 401
-        const sess = sessions.create(user)
-        ctx.cookies.set(SESSION_COOKIE, sess.id)
-        return sess
+        if (ctx.session)
+            ctx.session.user = user
+        return true
     },
 
     async logout({}, ctx) {
-        const sid = ctx.cookies.get(SESSION_COOKIE)
-        if (!sid)
-            return ctx.status = 401
-        if (!sessions.destroy(sid))
-            return ctx.status = 500
+        if (ctx.session)
+            ctx.session.user = undefined
         ctx.status = 200
-        ctx.cookies.set(SESSION_COOKIE, null)
         return true
     },
 
     async refresh_session({}, ctx) {
-        const prevId = ctx.cookies.get(SESSION_COOKIE)
-        if (!prevId) return
-        const sess = sessions.refresh(prevId)
-        if (!sess) {
-            ctx.cookies.set(SESSION_COOKIE)
-            ctx.status = 400
-            ctx.message = 'session not found'
-            return
-        }
-        ctx.cookies.set(SESSION_COOKIE, sess.id)
-        return sess
+        return { user: ctx.session?.user }
     },
 
     async change_pwd({ newPassword }, ctx) {

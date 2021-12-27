@@ -1,4 +1,5 @@
 # To do
+- anti-csrf
 - file sorting
 - folders before?
 - upload
