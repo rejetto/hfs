@@ -99,15 +99,16 @@ export function forbidden(node:VfsNode, users:string[]) {
 }
 
 
-export async function* walkNode(parent:VfsNode, who:string[], depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
+export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
+    ctx._who = ctx._who || await getCurrentUsernameExpanded(ctx) // cache value
     if (children)
         for (const c of children) {
-            if (c.hidden || forbidden(c, who))
+            if (c.hidden || forbidden(c, ctx._who))
                 continue
             yield prefixPath ? { ...c, name: prefixPath+c.name } : c
             if (depth > 0 && c)
-                yield* walkNode(c, who, depth - 1, prefixPath+c.name+'/')
+                yield* walkNode(c, ctx, depth - 1, prefixPath+c.name+'/')
         }
     if (!source)
         return
@@ -122,6 +123,8 @@ export async function* walkNode(parent:VfsNode, who:string[], depth:number=0, pr
             ignore,
         })
         for await (let path of dirStream) {
+            if (ctx.req.aborted)
+                return
             if (path instanceof Buffer)
                 path = path.toString('utf8')
             const name = path.slice(base.length)

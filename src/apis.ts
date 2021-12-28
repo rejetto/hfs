@@ -2,7 +2,7 @@ import Koa from 'koa'
 import { vfs, VfsNode, walkNode } from './vfs'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
-import { getCurrentUsername, getCurrentUsernameExpanded, updateAccount, verifyLogin } from './perm'
+import { getCurrentUsername, updateAccount, verifyLogin } from './perm'
 import createSSE from './sse'
 import { basename } from 'path'
 
@@ -48,8 +48,7 @@ export const frontEndApis: ApiHandlers = {
         limit = Number(limit)
         const re = new RegExp(_.escapeRegExp(search),'i')
         const match = (s?:string) => !s || !search || re.test(s)
-        const who = await getCurrentUsernameExpanded(ctx) // cache value
-        const walker = walkNode(node, who, search ? Infinity : 0)
+        const walker = walkNode(node, ctx, search ? Infinity : 0)
         const sseSrv = sse ? createSSE(ctx) : null
         const res = produceEntries()
         return !sseSrv && { list: await res }
@@ -58,7 +57,7 @@ export const frontEndApis: ApiHandlers = {
             const list = []
             const h = sseSrv && setInterval(()=> console.log('WALKING'), 500)
             for await (const sub of walker) {
-                if (sseSrv?.stopped) break
+                if (sseSrv?.stopped || ctx.aborted) break
                 const filename = basename(sub.name||'')
                 if (!match(filename))
                     continue
