@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { complySlashes, enforceFinal, prefix } from './misc'
+import { complySlashes, enforceFinal, prefix, wantArray } from './misc'
 import { getCurrentUsernameExpanded } from './perm'
 import Koa from 'koa'
 import glob from 'fast-glob'
@@ -15,7 +15,7 @@ export enum VfsNodeType {
 
 export interface VfsNode {
     type?: VfsNodeType,
-    name?: string,
+    name: string,
     source?: string,
     children?: VfsNode[],
     hide?: string | string[],
@@ -29,16 +29,12 @@ export interface VfsNode {
 
 type SinglePerm = 'r' | 'w'
 
-const EMPTY = { type: VfsNodeType.root }
+const EMPTY = { name:'', type: VfsNodeType.root }
 
 export const MIME_AUTO = 'auto'
 
 export class Vfs {
-    root: VfsNode = EMPTY
-
-    constructor() {
-        this.reset()
-    }
+    root: VfsNode = { ...EMPTY }
 
     reset(){
         this.root = { ...EMPTY }
@@ -62,8 +58,15 @@ export class Vfs {
             const relativeSource = piece + prefix('/', rest.join('/'))
             const baseSource = run.source+ '/'
             const source = baseSource + relativeSource
-            const removed = isMatch(source, [run.remove].flat().map(x => baseSource + x))
-            return removed || !await fs.stat(source) ? undefined : { source, mime: run.mime || (run.default && MIME_AUTO) }
+            if (isMatch(source, wantArray(run.remove).map(x => baseSource + x)))
+                return
+            try { await fs.stat(source) } // check existence
+            catch(e){ return }
+            return {
+                source,
+                name: basename(source),
+                mime: run.mime || (run.default && MIME_AUTO)
+            }
         }
         return run
     }
