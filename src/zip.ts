@@ -1,19 +1,22 @@
 import { VfsNode, walkNode } from './vfs'
-import { getCurrentUsernameExpanded } from './perm'
 import Koa from 'koa'
-import archiver from 'archiver'
-import { isFile } from './misc'
+import { filterMapGenerator } from './misc'
+import { QuickZipStream } from './QuickZipStream'
+import { createReadStream } from 'fs'
+import fs from 'fs/promises'
 
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.status = 200
     ctx.mime = 'zip'
     const { name } = node
     ctx.attachment(name+'.zip')
-    const who = await getCurrentUsernameExpanded(ctx) // cache value
-    const walker = walkNode(node, who, Infinity)
-    const archive = ctx.body = archiver('zip', { store: true })
-    for await (const { source, name } of walker)
-        if (source && await isFile(source))
-            archive.file(source, { name })
-    archive.finalize().then()
+    const walker = filterMapGenerator(walkNode(node, ctx, Infinity), async (el:VfsNode) => {
+        if (!el.source || ctx.req.aborted)
+            return
+        const st = await fs.stat(el.source)
+        if (!st?.isFile())
+            return
+        return { path:el.name, size:st.size, ts:st.mtime||st.ctime, data: createReadStream(el.source) }
+    })
+    ctx.body = new QuickZipStream(walker)
 }

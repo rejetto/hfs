@@ -5,7 +5,6 @@
 - upload
 - log file
 - node.comment
-- streamable zip archives (no compression, resumable?)
 - config: max speed (total/per-ip)
 - config: max connections (total/per-ip)
 - user.ignoreLimits
@@ -16,6 +15,8 @@
 - webdav?
 - vfs: ability to remove/hide/rename files deep in a source
 - administration interface
+- log: ip2name
+- errors in separated log file
 - login without passing clear text password?
   we could use asymmetric encryption, possibly on a hashed password, that means
   we should store a hash2(hash1(password+salt1)), where hash1 is applied on both client

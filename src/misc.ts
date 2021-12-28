@@ -74,3 +74,12 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>) {
         doing = false
     }
 }
+
+// callback can return undefined to skip element
+export async function* filterMapGenerator<IN,OUT>(generator: AsyncIterableIterator<IN>, filterMap: (el: IN) => Promise<OUT>) {
+    for await (const x of generator) {
+        const res:OUT = await filterMap(x)
+        if (res !== undefined)
+            yield res as Exclude<OUT,undefined>
+    }
+}
