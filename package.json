@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@koa/router": "^10.1.1",
+    "archiver": "^5.3.0",
     "fast-glob": "^3.2.7",
     "koa": "^2.13.4",
     "koa-better-http-proxy": "^0.2.9",
@@ -31,6 +32,7 @@
     "yaml": "^1.10.2"
   },
   "devDependencies": {
+    "@types/archiver": "^5.1.1",
     "@types/axios": "^0.14.0",
     "@types/koa": "^2.13.4",
     "@types/koa__router": "^8.0.11",

@@ -23,6 +23,28 @@ function MenuPanel() {
     const [showFilter, setShowFilter] = useState(listFilter > '')
     const [filter, setFilter] = useState(listFilter)
     ;[state.listFilter] = useDebounce(showFilter ? filter : '', 300)
+    const searchButtonProps = stopSearch ? {
+        icon: 'stop',
+        label: 'Stop list',
+        className: 'ani-working',
+        onClick() {
+            stopSearch()
+            state.stoppedSearch = true
+        }
+    } : state.remoteSearch ? {
+        icon: 'search_off',
+        label: 'Clear search',
+        onClick() {
+            state.remoteSearch = ''
+        }
+    } : {
+        icon: 'search',
+        label: 'Search',
+        async onClick() {
+            state.remoteSearch = await promptDialog('Search for...') ||''
+        }
+    }
+
     return h('div', { id:'menu-panel' },
         h('div', { id:'menu-bar' },
             h(LoginButton),
@@ -34,29 +56,14 @@ function MenuPanel() {
                     setShowFilter(!showFilter)
                 }
             }),
-            h(MenuButton,
-                stopSearch ? {
-                    icon: 'stop',
-                    label: 'Stop list',
-                    className: 'ani-working',
-                    onClick() {
-                        stopSearch()
-                        state.stoppedSearch = true
-                    }
-                } : state.remoteSearch ? {
-                    icon: 'search_off',
-                    label: 'Clear search',
-                    onClick() {
-                        state.remoteSearch = ''
-                    }
-                } : {
-                    icon: 'search',
-                    label: 'Search',
-                    async onClick() {
-                        state.remoteSearch = await promptDialog('Search for...') ||''
-                    }
+            h(MenuButton, searchButtonProps),
+            h(MenuButton, {
+                icon: 'archive',
+                label: 'Archive',
+                onClick() {
+                    window.location.href = '?get=zip'
                 }
-            )
+            })
         ),
         remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch),
         showFilter && h('input',{

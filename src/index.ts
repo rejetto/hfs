@@ -12,6 +12,7 @@ import compress from 'koa-compress'
 import { Server } from 'http'
 import { subscribe } from './config'
 import session from 'koa-session'
+import { zipStreamFromFolder } from './zip'
 
 const BUILD_TIMESTAMP = ""
 
@@ -55,6 +56,9 @@ app.use(async (ctx, next) => {
         return await next()
     const { source } = node
     if (!source || await isDirectory(source)) {
+        const { get } = ctx.query
+        if (get === 'zip')
+            return await zipStreamFromFolder(node, ctx)
         if (!path.endsWith('/')) // this folder was requested without the trailing /
             return ctx.redirect(path + '/')
         if (node.default) {
