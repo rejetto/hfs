@@ -69,7 +69,7 @@ export default function useFetchList() {
             let offset = 0
             while (1) {
                 const limit = list.length ? 1000 : 100
-                const res = await apiCall(API, { ...baseParams, offset, limit }).catch(e => e)
+                const res = await apiCall(API, { ...baseParams, offset, limit }, { noModal:true }).catch(e => e)
                     || Error()
                 if (res instanceof Error)
                     return setError(res)

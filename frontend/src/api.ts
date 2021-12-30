@@ -3,21 +3,22 @@ import { Falsy, working } from './misc'
 
 const PREFIX = '/~/api/'
 
-export function apiCall(cmd: string, params?: object) : Promise<any> {
-    const stop = working()
+interface ApiCallOptions { noModal?:true }
+export function apiCall(cmd: string, params?: object, options: ApiCallOptions={}) : Promise<any> {
+    const stop = options.noModal ? undefined : working()
     return fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: params && JSON.stringify(params),
     }).then(res => {
-        stop()
+        stop?.()
         if (res.ok)
             return res.json()
         const msg = 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
         throw new ApiError(res.status, msg)
     }, err => {
-        stop()
+        stop?.()
         throw err
     })
 }
