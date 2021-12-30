@@ -58,11 +58,18 @@ export function waitFor<T>(cb:()=>T, ms:number=200) : Promise<Exclude<T,Falsy>> 
     })
 }
 
+let isWorking = false // we want the 'working' thing to be singleton
 export function working() {
+    if (isWorking)
+        return ()=>{} // noop
+    isWorking = true
     return newDialog({
         closable: false,
         content: Spinner,
         reserveClosing: true,
         className: 'working',
+        onClose(){
+            isWorking = false
+        }
     })
 }
