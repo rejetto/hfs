@@ -98,9 +98,14 @@ async function listenOn(port: number) {
             resolve(err)
         })
     })
-    await new Promise(resolve =>
+    await new Promise(resolve => {
         srv = app.listen(port, () => {
             console.log('running on port', port, DEV, new Date().toLocaleString())
             resolve(null)
-        }))
+        }).on('error', e => {
+            const { code } = e as any
+            if (code === 'EADDRINUSE')
+                console.error(`couldn't listen on busy port ${port}`)
+        })
+    })
 }
