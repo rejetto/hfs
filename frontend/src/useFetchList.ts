@@ -25,7 +25,6 @@ export default function useFetchList() {
             state.stopSearch?.()
             return
         }
-        setLoading(true)
 
         ;(async ()=>{
             const API = 'file_list'
@@ -33,6 +32,8 @@ export default function useFetchList() {
             const baseParams = { path:desiredPath, search, sse, omit:'c' }
             let list: DirList = []
             setList(list)
+            setLoading(true)
+            setError(undefined)
 
             if (sse) { // buffering entries is necessary against burst of events that will hang the browser
                 const buffer:DirList = []

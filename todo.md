@@ -1,4 +1,5 @@
 # To do
+- platform-independent crc32 module
 - anti-csrf
 - file sorting
 - folders before?

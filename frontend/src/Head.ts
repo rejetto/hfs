@@ -148,7 +148,8 @@ function FolderStats() {
     }, [list])
     const { filteredEntries, stoppedSearch } = useSnapState()
     return h('div', { id:'folder-stats' },
-        stoppedSearch ? hIcon('interrupted', { title:'Search was interrupted' }) : loading && h(Spinner),
+        stoppedSearch ? hIcon('interrupted', { title:'Search was interrupted' })
+            : list?.length>0 && loading && h(Spinner),
         [
             prefix('', stats.files,' file(s)'),
             prefix('', stats.folders, ' folder(s)'),
