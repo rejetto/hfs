@@ -16,6 +16,7 @@ import { zipStreamFromFolder } from './zip'
 
 const BUILD_TIMESTAMP = ""
 
+console.log('started', new Date().toLocaleString())
 const app = new Koa()
 app.keys = ['hfs-keys-test']
 app.use(session({
@@ -100,7 +101,7 @@ async function listenOn(port: number) {
     })
     await new Promise(resolve => {
         srv = app.listen(port, () => {
-            console.log('running on port', port, DEV, new Date().toLocaleString())
+            console.log('running on port', port, DEV)
             resolve(null)
         }).on('error', e => {
             const { code } = e as any
