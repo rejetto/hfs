@@ -41,8 +41,14 @@ export function useApi(cmd: string | Falsy, params?: object) : any {
 
 type EventHandler = (type:string, data?:any) => void
 
-export function apiEvents(cmd: string, params: object, cb:EventHandler) {
-    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(params as any))
+export function apiEvents(cmd: string, params: Record<string,any>, cb:EventHandler) {
+    const processed: Record<string,string> = {}
+    for (const k in params) {
+        const v = params[k]
+        if (v === undefined) continue
+        processed[k] = v === true ? '1' : v
+    }
+    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(processed))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {

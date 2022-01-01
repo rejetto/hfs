@@ -1,4 +1,4 @@
-import { createElement as h, Fragment, useContext, useMemo, useState } from 'react'
+import { createElement as h, Fragment, useContext, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ListContext } from './BrowseFiles'
 import { login, logout } from './login'
@@ -23,7 +23,15 @@ function MenuPanel() {
     const [showFilter, setShowFilter] = useState(listFilter > '')
     const [filter, setFilter] = useState(listFilter)
     ;[state.listFilter] = useDebounce(showFilter ? filter : '', 300)
-    const searchButtonProps = stopSearch ? {
+
+    const [started1secAgo, setStarted1secAgo] = useState(false)
+    useEffect(()=>{
+        if (!stopSearch) return
+        setStarted1secAgo(false)
+        setTimeout(()=> setStarted1secAgo(true), 1000)
+    }, [stopSearch])
+
+    const searchButtonProps = stopSearch && started1secAgo ? {
         icon: 'stop',
         label: 'Stop list',
         className: 'ani-working',

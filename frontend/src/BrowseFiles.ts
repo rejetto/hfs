@@ -31,7 +31,7 @@ function FilesList() {
     const filter = snap.listFilter > '' && new RegExp(_.escapeRegExp(snap.listFilter),'i')
     let n = 0 // if I try to use directly the state as counter I get a "too many re-renders" error
     const ret = h('ul', { className: 'dir' },
-        !list.length ? (loading || 'Nothing here')
+        !list.length ? (!loading && 'Nothing here')
             : list.map((entry: DirEntry) =>
                 h(File, { key: entry.n, hidden: filter && !filter.test(entry.n) || !++n, ...entry })),
         loading && h(Spinner))
