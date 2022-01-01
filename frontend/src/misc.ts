@@ -1,4 +1,4 @@
-import { createElement as h } from 'react'
+import { createElement as h, useCallback, useState } from 'react'
 import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
@@ -72,4 +72,9 @@ export function working() {
             isWorking = false
         }
     })
+}
+
+export function useForceUpdate(): [()=>void, number] {
+    const [n, setN] = useState(0)
+    return [ useCallback(()=> setN(n => n+1), [setN]), n ]
 }

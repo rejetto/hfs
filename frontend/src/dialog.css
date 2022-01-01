@@ -42,6 +42,10 @@
     line-height: 1.7em;
     background-color: var(--color);
 }
+.dialog-confirm button {
+    margin-top: 1em;
+}
+.dialog-confirm,
 .dialog-prompt {
     --color: #228
 }

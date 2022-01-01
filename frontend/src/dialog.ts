@@ -121,3 +121,24 @@ export async function alertDialog(msg: string | Error, type:AlertType='info') {
     }))
 }
 
+export async function confirmDialog(msg: string) : Promise<boolean> {
+    return new Promise(resolve => newDialog({
+        className: 'dialog-confirm',
+        icon: '?',
+        onClose: resolve,
+        content: Content
+    }) )
+
+    function Content() {
+        return h('div', {},
+            h('div', {}, msg),
+            h('button', {
+                autoFocus: true,
+                onClick(){
+                    closeDialog(true)
+                }
+            }, 'Confirm')
+        )
+    }
+}
+

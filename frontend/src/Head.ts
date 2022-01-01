@@ -6,7 +6,7 @@ import { formatBytes, hIcon, prefix } from './misc'
 import { Spinner } from './components'
 import { state, useSnapState } from './state'
 import { useDebounce } from 'use-debounce'
-import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
+import { alertDialog, closeDialog, confirmDialog, newDialog, promptDialog } from './dialog'
 import { apiCall } from './api'
 
 export function Head() {
@@ -168,20 +168,33 @@ function FolderStats() {
 }
 
 function Breadcrumbs() {
-    const path = useLocation().pathname.slice(1,-1)
+    const currentPath = useLocation().pathname.slice(1,-1)
     let prev = ''
-    const breadcrumbs = path ? path.split('/').map(x => [prev = prev + x + '/', decodeURIComponent(x)]) : []
+    const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev = prev + x + '/', decodeURIComponent(x)]) : []
     return h(Fragment, {},
         h(Breadcrumb),
-        breadcrumbs.map(([path,label]) => h(Breadcrumb, { key: path, path, label }))
+        breadcrumbs.map(([path,label]) =>
+            h(Breadcrumb, {
+                key: path,
+                path,
+                label,
+                current: path === currentPath+'/',
+            }) )
     )
 }
 
-function Breadcrumb({ path, label }:{ path?: string, label?: string }) {
+function Breadcrumb({ path, label, current }:{ current: boolean, path?: string, label?: string }) {
     const PAD = '\u00A0' // make small elements easier to tap. Don't use min-width 'cause it requires display-inline that breaks word-wrapping
     if (label && label.length < 3)
         label = PAD+label+PAD
-    return h(Link, { className:'breadcrumb', to:path||'/' },
-        label || hIcon('home') )
+    const { reload } = useContext(ListContext)
+    return h(Link, {
+        className: 'breadcrumb',
+        to: path || '/',
+        async onClick() {
+            if (current && await confirmDialog('Reload?'))
+                reload?.()
+        }
+    }, label || hIcon('home') )
 }
 

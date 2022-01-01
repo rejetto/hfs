@@ -2,6 +2,7 @@ import { state, useSnapState } from './state'
 import { useEffect, useRef, useState } from 'react'
 import { apiEvents } from './api'
 import { DirList, usePath } from './BrowseFiles'
+import { useForceUpdate } from './misc'
 
 export default function useFetchList() {
     const snap = useSnapState()
@@ -11,6 +12,7 @@ export default function useFetchList() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<Error>()
     const lastPath = useRef('')
+    const [reload, forcer] = useForceUpdate()
     useEffect(()=>{
         const loc = window.location
         if (!desiredPath.endsWith('/')) { // useful only in dev, while accessing the frontend directly without passing by the main server
@@ -66,7 +68,14 @@ export default function useFetchList() {
             }
 
         })()
-    }, [desiredPath, search, snap.username])
-    return { list, loading, error }
+    }, [desiredPath, search, snap.username, forcer])
+    return {
+        list, loading, error,
+        reload() {
+            state.remoteSearch = ''
+            state.stopSearch?.()
+            reload()
+        }
+    }
 }
 

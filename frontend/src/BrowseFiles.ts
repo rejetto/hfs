@@ -13,13 +13,13 @@ export function usePath() {
 
 interface DirEntry { n:string, s?:number, m?:string, c?:string }
 export type DirList = DirEntry[]
-interface ListRes { list:DirList, loading?:boolean, err?:Error }
+interface ListRes { list:DirList, loading?:boolean, err?:Error, reload?:()=>void }
 
 export const ListContext = createContext<ListRes>({ list:[], loading: false })
 
 export function BrowseFiles() {
-    const { list, loading, error } = useFetchList()
-    return h(ListContext.Provider, { value:{ list, loading } },
+    const { list, loading, error, reload } = useFetchList()
+    return h(ListContext.Provider, { value:{ list, loading, reload } },
         h(Head),
         hError(error && 'Failed to retrieve list') || h(list ? FilesList : Spinner))
 }
