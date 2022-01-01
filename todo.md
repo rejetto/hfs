@@ -1,5 +1,5 @@
 # To do
-- platform-independent crc32 module
+- let user access the folder of a file in a search-result
 - anti-csrf
 - file sorting
 - folders before?

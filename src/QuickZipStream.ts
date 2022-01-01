@@ -1,7 +1,13 @@
-import { crc32 } from '@node-rs/crc32'
 import { Readable } from 'stream'
+// @ts-ignore
+import { crc32number } from 'buffer-crc32'
 
 const ZIP64_LIMIT = 2**31 -1
+
+const crc32provider = import('@node-rs/crc32').then(lib => lib.crc32, () => {
+    console.debug('using generic lib for crc32')
+    return crc32number
+})
 
 interface ZipSource {
     path: string
@@ -35,7 +41,7 @@ export class QuickZipStream extends Readable {
         ++this.numberOfFiles
         let { path, data, size, ts } = value
         const pathAsBuffer = Buffer.from(path, 'utf8')
-
+        const crc32 = await crc32provider
         let crc: number | undefined = undefined
         const offset = this.dataWritten
         let version = 20
