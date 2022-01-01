@@ -1,7 +1,7 @@
 import Koa from 'koa'
 import mount from 'koa-mount'
 import bodyParser from 'koa-bodyparser'
-import { apiMw, frontEndApis } from './apis'
+import { apiMiddleware } from './apis'
 import { serveFrontend } from './serveFrontend'
 import { API_URI, argv, DEV, FRONTEND_URI } from './const'
 import { serveFile } from './serveFile'
@@ -13,6 +13,7 @@ import { Server } from 'http'
 import { subscribe } from './config'
 import session from 'koa-session'
 import { zipStreamFromFolder } from './zip'
+import { frontEndApis } from './frontEndApis'
 
 const BUILD_TIMESTAMP = ""
 
@@ -34,7 +35,7 @@ app.use(async (ctx, next) => {
 // serve apis
 app.use(mount(API_URI, new Koa()
     .use(bodyParser())
-    .use(apiMw(frontEndApis))
+    .use(apiMiddleware(frontEndApis))
     .use(compress({
         threshold: 2048,
         gzip: { flush: require('zlib').constants.Z_SYNC_FLUSH },

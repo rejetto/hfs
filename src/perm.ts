@@ -58,12 +58,9 @@ export async function updateAccount(username: string, changer:Changer) {
     saveAccountsAsap()
 }
 
-const saveAccountsAsap = _.debounce(saveAccounts)
-
-function saveAccounts() {
-    return fs.writeFile(PATH, yaml.stringify({ accounts })).catch(err =>
-        console.error('Failed at saving accounts file, please ensure it is writable.', String(err)))
-}
+const saveAccountsAsap = _.debounce(() =>
+    fs.writeFile(PATH, yaml.stringify({ accounts })).catch(err =>
+        console.error('Failed at saving accounts file, please ensure it is writable.', String(err))))
 
 let doing = false
 load().then()
