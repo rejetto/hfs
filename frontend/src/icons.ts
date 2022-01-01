@@ -18,7 +18,7 @@ document.fonts.ready.then(async ()=> {
     state.iconsClass = name.replace(/ /g,'-').toLowerCase()
 })
 
-export function Icon({ name, className, ...props }: { name:string, className?:string, style?:any }) {
+export function Icon({ name, className='', ...props }: { name:string, className:string, style?:any }) {
     name = SYS_ICONS[name] || name
     const { iconsClass } = useSnapState()
     return h('span',{

@@ -43,10 +43,16 @@ function File({ n, m, c, s, hidden }: DirEntry & { hidden:boolean }) {
     const base = usePath()
     const isDir = n.endsWith('/')
     const t = m||c ||null
-    const href = n.replace(/#/g, encodeURIComponent)
+    const containerDir = isDir ? '' : n.substring(0, n.lastIndexOf('/')+1)
+    if (containerDir)
+        n = n.substring(containerDir.length)
+    const href = fix(containerDir + n)
     return h('li', { style:hidden ? { display:'none' } : null },
         isDir ? h(Link, { to: base+href }, hIcon('folder'), n)
-            : h('a', { href }, hIcon('file'), n),
+            : h(Fragment, {},
+                containerDir && h(Link, { to: base+fix(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
+                h('a', { href }, !containerDir && hIcon('file'),  n)
+            ),
         h('div', { className:'entry-props' },
             s !== undefined && h(Fragment, {},
                 h('span', { className:'entry-size' }, formatBytes(s)),
@@ -56,4 +62,8 @@ function File({ n, m, c, s, hidden }: DirEntry & { hidden:boolean }) {
         ),
         h('div', { style:{ clear:'both' } })
     )
+}
+
+function fix(s:string) {
+    return s.replace(/#/g, encodeURIComponent)
 }

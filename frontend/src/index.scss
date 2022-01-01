@@ -114,6 +114,9 @@ ul.dir {
             & .icon {
                 margin-right: .3em;
             }
+            &.container-folder:hover {
+                text-decoration: underline;
+            }
         }
         & .entry-props {
             float: right;
