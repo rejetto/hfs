@@ -16,8 +16,7 @@ import { subscribe } from './config'
 import session from 'koa-session'
 import { zipStreamFromFolder } from './zip'
 import { frontEndApis } from './frontEndApis'
-import { createWriteStream } from 'fs'
-import { Writable } from 'stream'
+import { log } from './log'
 
 const BUILD_TIMESTAMP = ""
 
@@ -30,16 +29,7 @@ app.use(session({
     rolling: true,
     maxAge: 30*60_000,
 }, app))
-
-let logMw: Koa.Middleware
-let logStream: Writable
-subscribe('log', path => {
-    console.debug('log file: '+(path || 'disabled'))
-    logStream?.end()
-    logStream = path && createWriteStream(path, { flags:'a' })
-    logMw = accesslog(logStream)
-}, 'access.log')
-app.use((ctx, next) => logMw?.(ctx,next)) // wrapping in a function will make it use current value
+app.use(log())
 
 // serve apis
 app.use(mount(API_URI, new Koa()

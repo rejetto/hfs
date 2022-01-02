@@ -19,6 +19,7 @@
 - vfs: ability to remove/hide/rename files deep in a source
 - administration interface
 - log: ip2name
+- apis in separated log file with parameters?
 - errors in separated log file
 - login without passing clear text password?
   we could use asymmetric encryption, possibly on a hashed password, that means
