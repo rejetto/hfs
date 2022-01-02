@@ -19,7 +19,7 @@ export function Head() {
 }
 
 function MenuPanel() {
-    const { remoteSearch, stopSearch, listFilter } = useSnapState()
+    const { remoteSearch, stopSearch, stoppedSearch, listFilter } = useSnapState()
     const [showFilter, setShowFilter] = useState(listFilter > '')
     const [filter, setFilter] = useState(listFilter)
     ;[state.listFilter] = useDebounce(showFilter ? filter : '', 300)
@@ -73,7 +73,7 @@ function MenuPanel() {
                 }
             })
         ),
-        remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch),
+        remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (',stoppedSearch && 'interrupted',')')),
         showFilter && h('input',{
             id: 'filter',
             placeholder: 'Filter',

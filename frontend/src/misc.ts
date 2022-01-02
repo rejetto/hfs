@@ -34,7 +34,7 @@ export function round(v: number, decimals: number = 0) {
     return Math.round(v * decimals) / decimals
 } // round
 
-export function prefix(pre:string, v:string|number, post:string='') {
+export function prefix(pre:string, v:string|number|undefined|null|false, post:string='') {
     return v ? pre+v+post : ''
 }
 

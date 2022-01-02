@@ -3,7 +3,9 @@
 - file sorting
 - folders before?
 - upload
-- log file
+- get config values from command line
+- accounts path in config
+- search dialog to add to history
 - node.comment
 - config: max speed (total/per-ip)
 - config: max connections (total/per-ip)
