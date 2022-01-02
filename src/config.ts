@@ -1,4 +1,5 @@
 import EventEmitter from 'events'
+import { argv } from './const'
 import { watchLoad } from './misc'
 
 const PATH = 'config.yaml'
@@ -21,8 +22,16 @@ watchLoad(PATH,  data => {
     }
 })
 
-export function subscribe(k:string, cb:(v:any,was:any)=>void) {
+export function subscribe(k:string, cb:(v:any,was?:any)=>void, defaultValue?:any, caster?:(argV:string)=>any) {
+    if (!caster)
+        if (typeof defaultValue === 'number')
+            caster = Number
+    const a = argv[k]
+    if (a !== undefined)
+        return cb(caster ? caster(a) : a)
     emitter.on('new.'+k, cb)
+    if (defaultValue !== undefined)
+        cb(defaultValue)
 }
 
 export function getConfig(k:string) {

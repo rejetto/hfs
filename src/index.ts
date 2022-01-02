@@ -3,17 +3,21 @@ import mount from 'koa-mount'
 import bodyParser from 'koa-bodyparser'
 import { apiMiddleware } from './apis'
 import { serveFrontend } from './serveFrontend'
-import { API_URI, argv, DEV, FRONTEND_URI } from './const'
+import { API_URI, DEV, FRONTEND_URI } from './const'
 import { serveFile } from './serveFile'
 import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import proxy from 'koa-better-http-proxy'
 import compress from 'koa-compress'
+// @ts-ignore
+import accesslog from 'koa-accesslog'
 import { Server } from 'http'
 import { subscribe } from './config'
 import session from 'koa-session'
 import { zipStreamFromFolder } from './zip'
 import { frontEndApis } from './frontEndApis'
+import { createWriteStream } from 'fs'
+import { Writable } from 'stream'
 
 const BUILD_TIMESTAMP = ""
 
@@ -26,11 +30,16 @@ app.use(session({
     rolling: true,
     maxAge: 30*60_000,
 }, app))
-app.use(async (ctx, next) => {
-    // log all requests
-    console.debug(new Date().toLocaleTimeString(), ctx.request.method, ctx.url)
-    await next()
-})
+
+let logMw: Koa.Middleware
+let logStream: Writable
+subscribe('log', path => {
+    console.debug('log file: '+(path || 'disabled'))
+    logStream?.end()
+    logStream = path && createWriteStream(path, { flags:'a' })
+    logMw = accesslog(logStream)
+}, 'access.log')
+app.use((ctx, next) => logMw?.(ctx,next)) // wrapping in a function will make it use current value
 
 // serve apis
 app.use(mount(API_URI, new Koa()
@@ -84,13 +93,7 @@ app.on('error', err => {
 })
 
 let srv: Server
-if (argv.port)
-    listenOn(argv.port).then()
-else
-    subscribe('port', port =>
-        listenOn(port||80))
-
-async function listenOn(port: number) {
+subscribe('port', async (port: number) => {
     await new Promise(resolve => {
         if (!srv)
             return resolve(null)
@@ -110,4 +113,4 @@ async function listenOn(port: number) {
                 console.error(`couldn't listen on busy port ${port}`)
         })
     })
-}
+}, 80)
