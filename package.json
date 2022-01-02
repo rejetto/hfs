@@ -13,7 +13,7 @@
     "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts",
     "start-frontend": "cd frontend && npm run start",
     "start": "node dist",
-    "build": "npm install && node timestamp && tsc && cp package*.json *.yaml dist && cd dist && npm ci --production",
+    "build": "npm install && node timestamp && tsc --target es2018 && cp package*.json *.yaml dist && cd dist && npm ci --production",
     "build-all": "npm run build && cd frontend && npm install && npm run build && cd ..",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "make-exe-after-build": "pkg . -C brotli"
