@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { complySlashes, enforceFinal, prefix, wantArray } from './misc'
+import { complySlashes, enforceFinal, isDirectory, prefix, wantArray } from './misc'
 import { getCurrentUsernameExpanded } from './perm'
 import Koa from 'koa'
 import glob from 'fast-glob'
@@ -107,7 +107,7 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
             if (c.hidden || forbidden(c, ctx._who))
                 continue
             yield prefixPath ? { ...c, name: prefixPath+c.name } : c
-            if (depth > 0 && c)
+            if (depth > 0 && c && (c.children || c.source && await isDirectory(c.source)))
                 yield* walkNode(c, ctx, depth - 1, prefixPath+c.name+'/')
         }
     if (!source)
