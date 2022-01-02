@@ -47,7 +47,7 @@ function File({ n, m, c, s, hidden }: DirEntry & { hidden:boolean }) {
     if (containerDir)
         n = n.substring(containerDir.length)
     const href = fix(containerDir + n)
-    return h('li', { style:hidden ? { display:'none' } : null },
+    return h('li', { className:isDir ? 'folder' : 'file', style:hidden ? { display:'none' } : null },
         isDir ? h(Link, { to: base+href }, hIcon('folder'), n)
             : h(Fragment, {},
                 containerDir && h(Link, { to: base+fix(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),

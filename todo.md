@@ -3,6 +3,7 @@
 - file sorting
 - folders before?
 - upload
+- search and login dialogs should push to history so that mobile can use back button to close them
 - get config values from command line
 - accounts path in config
 - search dialog to add to history
@@ -13,6 +14,9 @@
 - user.redirect
 - config: bans
 - config: min disk space
+- link to parent folder in the list
+- archive for search results
+- archive only selected files
 - https
 - frontend: don't depend on cdn
 - webdav?
