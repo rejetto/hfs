@@ -30,8 +30,10 @@ export function subscribe(k:string, cb:(v:any,was?:any)=>void, defaultValue?:any
     if (a !== undefined)
         return cb(caster ? caster(a) : a)
     emitter.on('new.'+k, cb)
-    if (defaultValue !== undefined)
+    if (defaultValue !== undefined) {
+        state[k] = defaultValue
         cb(defaultValue)
+    }
 }
 
 export function getConfig(k:string) {
