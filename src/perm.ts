@@ -23,6 +23,7 @@ export async function getCurrentUsername(ctx: Koa.Context) {
     return ctx.session?.user || ''
 }
 
+// provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
 export async function getCurrentUsernameExpanded(ctx: Koa.Context) {
     const who = await getCurrentUsername(ctx)
     if (!who)

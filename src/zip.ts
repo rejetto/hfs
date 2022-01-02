@@ -9,7 +9,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.status = 200
     ctx.mime = 'zip'
     const { name } = node
-    ctx.attachment(name+'.zip')
+    ctx.attachment((name || 'archive') + '.zip')
     const walker = filterMapGenerator(walkNode(node, ctx, Infinity), async (el:VfsNode) => {
         if (!el.source || ctx.req.aborted)
             return

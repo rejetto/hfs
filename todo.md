@@ -13,6 +13,7 @@
 - user.redirect
 - config: bans
 - config: min disk space
+- https
 - frontend: don't depend on cdn
 - webdav?
 - vfs: ability to remove/hide/rename files deep in a source
