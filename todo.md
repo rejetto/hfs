@@ -13,7 +13,9 @@
 - archive for search results
 - archive only selected files
 - https
-- frontend: don't depend on cdn
+- frontend: light/dark theme
+- frontend: load custom css
+- frontend: custom css should be able to access resource files 
 - webdav?
 - vfs: ability to remove/hide/rename files deep in a source
 - administration interface

@@ -74,6 +74,7 @@ accounts:
 ```
 
 As soon as the file is read HFS will encrypt passwords in a non-reversible way.
+For this reason HFS needs that your accounts file is writable.
 
 # Building instructions
 
