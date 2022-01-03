@@ -24,6 +24,7 @@ subscribe('log', path => {
 }, 'access.log')
 
 export function log(): Koa.Middleware {
-    return (ctx, next) => // wrapping in a function will make it use current value
+    return (ctx, next) => // wrapping in a function will make it use current 'mw' value
         accessLogger.mw?.(ctx, next)
+        || next()
 }
