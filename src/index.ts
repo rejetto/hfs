@@ -100,19 +100,25 @@ subscribeConfig({ k:'port', defaultValue: 80 }, async (port: number) => {
         if (!srv)
             return resolve(null)
         srv.close(err => {
-            if (err)
-                console.debug('failed to stop server', err)
+            if (err && (err as any).code !== 'ERR_SERVER_NOT_RUNNING')
+                console.debug('failed to stop server', String(err))
             resolve(err)
         })
     })
     await new Promise(resolve => {
-        srv = app.listen(port, () => {
-            console.log('running on port', port, DEV)
-            resolve(null)
-        }).on('error', e => {
-            const { code } = e as any
-            if (code === 'EADDRINUSE')
-                console.error(`couldn't listen on busy port ${port}`)
-        })
+        try {
+            srv = app.listen(port, () => {
+                console.log('running on port', port, DEV)
+                resolve(null)
+            }).on('error', e => {
+                const { code } = e as any
+                if (code === 'EADDRINUSE')
+                    console.error(`couldn't listen on busy port ${port}`)
+            })
+        }
+        catch(e) {
+            console.error("couldn't listen on port", port, String(e))
+        }
+
     })
 })

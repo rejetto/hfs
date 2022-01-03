@@ -9,7 +9,7 @@ const emitter = new EventEmitter()
 watchLoad(PATH,  data => {
     for (const k in data)
         check(k)
-    for (const k in state)
+    for (const k in { ...state, ...configProps })
         if (!(k in data))
             check(k)
 
@@ -42,15 +42,11 @@ export function defineConfig(k:string, definition:ConfigProps) {
 export function subscribeConfig({ k, ...definition }:{ k:string } & ConfigProps, cb:(v:any, was?:any)=>void) {
     if (definition)
         defineConfig(k, definition)
-    const { caster, defaultValue } = configProps[k] ?? {}
+    const { caster } = configProps[k] ?? {}
     const a = argv[k]
     if (a !== undefined)
         return cb(caster ? caster(a) : a)
     emitter.on('new.'+k, cb)
-    if (defaultValue !== undefined) {
-        state[k] = defaultValue
-        cb(defaultValue)
-    }
 }
 
 export function getConfig(k:string) {
