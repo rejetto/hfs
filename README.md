@@ -76,7 +76,7 @@ As soon as the file is read HFS will encrypt passwords in a non-reversible way.
 # Building instructions
 
 0. Install [Node.js](https://nodejs.org/) 16+ 
-1. Launch `npm -g i typescript`
+1. Install Typescript: launch `npm -g i typescript`
 3. Launch `npm run build-all` in the root
 
 You'll find the output in `dist` folder.
