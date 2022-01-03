@@ -3,7 +3,7 @@ import mount from 'koa-mount'
 import bodyParser from 'koa-bodyparser'
 import { apiMiddleware } from './apis'
 import { serveFrontend } from './serveFrontend'
-import { API_URI, DEV, FRONTEND_URI } from './const'
+import { API_URI, DEV, FRONTEND_URI, PLUGINS_PUB_URI } from './const'
 import { serveFile } from './serveFile'
 import { vfs } from './vfs'
 import { isDirectory } from './misc'
@@ -17,6 +17,10 @@ import session from 'koa-session'
 import { zipStreamFromFolder } from './zip'
 import { frontEndApis } from './frontEndApis'
 import { log } from './log'
+import './plugins'
+import { createReadStream } from 'fs'
+import { PATH as PLUGINS_PATH } from './plugins'
+import mime from 'mime-types'
 
 const BUILD_TIMESTAMP = ""
 
@@ -47,10 +51,18 @@ app.use(mount(API_URI, new Koa()
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
 app.use(async (ctx, next) => {
     const { path } = ctx
+    if (path.includes('..'))
+        ctx.throw(500)
     if (ctx.body)
         return await next()
     if (path.startsWith(FRONTEND_URI))
         return await serveFrontendPrefixed(ctx,next)
+    if (path.startsWith(PLUGINS_PUB_URI)) { // expose public plugins' files
+        const a = path.substring(PLUGINS_PUB_URI.length).split('/')
+        a.splice(1,0,'public')
+        ctx.type = mime.lookup(path) || ''
+        return ctx.body = createReadStream(PLUGINS_PATH + '/' + a.join('/'))
+    }
     const decoded = decodeURI(path)
     const node = await vfs.urlToNode(decoded, ctx)
     if (!node)

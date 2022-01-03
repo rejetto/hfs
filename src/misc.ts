@@ -2,6 +2,7 @@ import fs from 'fs/promises'
 import { objSameKeys } from './obj'
 import { FSWatcher, watch } from 'fs'
 import yaml from 'yaml'
+import _ from 'lodash'
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
@@ -50,10 +51,11 @@ export function wantArray(x:any) {
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>) {
     let doing = false
     let watcher: FSWatcher
+    const debounced = _.debounce(load, 100)
     const timer = setInterval(()=>{
         try {
-            watcher = watch(path, load)
-            load().then()
+            watcher = watch(path, debounced)
+            debounced()
             clearInterval(timer)
         }
         catch(e){

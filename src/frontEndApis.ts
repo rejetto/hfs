@@ -5,6 +5,9 @@ import { basename } from 'path'
 import { getCurrentUsername, updateAccount, verifyLogin } from './perm'
 import { stat } from 'fs/promises'
 import { ApiHandlers } from './apis'
+import { plugins } from './plugins'
+import { wantArray } from './misc'
+import { PLUGINS_PUB_URI } from './const'
 
 export const frontEndApis: ApiHandlers = {
 
@@ -86,7 +89,14 @@ export const frontEndApis: ApiHandlers = {
             account.password = newPassword
         })
         return true
-    }
+    },
+
+    async extras_to_load() {
+        const css = []
+        for (const k in plugins)
+            css.push(...wantArray(plugins[k].data.frontend?.load?.css).map(f => PLUGINS_PUB_URI + k + '/' + f))
+        return { css }
+    },
 }
 
 interface DirEntry { n:string, s?:number, m?:Date, c?:Date }

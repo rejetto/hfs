@@ -85,3 +85,9 @@ For this reason HFS needs that your accounts file is writable.
 You'll find the output in `dist` folder.
 
 Now to run it you should `cd dist` and `node .`
+
+# Plugins
+
+We are slowly introducing a plug-ins system.
+Each plug-in is a `plugin.yaml` file sub-folder of `plugins` folder.
+You can quickly disable a plug-in by appending `-disabled` to the plug-in folder.
