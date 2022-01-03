@@ -5,6 +5,7 @@ import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
 import { hIcon, prefix } from './misc'
 import { login, logout } from './login'
 import { apiCall } from './api'
+import { Checkbox, FlexV } from './components'
 
 export function MenuPanel() {
     const { remoteSearch, stopSearch, stoppedSearch, listFilter } = useSnapState()
@@ -30,6 +31,33 @@ export function MenuPanel() {
                 }
             }),
             h(MenuButton, getSearchProps()),
+            h(MenuButton, {
+                icon: 'sort',
+                label: 'Sort',
+                onClick(){
+                    const options = ['name','extension','size','time']
+                    const close = newDialog({ Content })
+
+                    function Content(){
+                        const snap = useSnapState()
+                        return h(FlexV, {},
+                            h('div', {}, 'Sort by'),
+                            options.map(x => h('button',{
+                                key: x,
+                                onClick(){
+                                    close(state.sortBy = x)
+                                }
+                            }, x, ' ', snap.sortBy===x && hIcon('check'))),
+                            h(Checkbox, {
+                                value: snap.foldersFirst,
+                                onChange(v) {
+                                    state.foldersFirst = v
+                                }
+                            }, 'Folders first')
+                        )
+                    }
+                }
+            }),
             h(MenuButton, {
                 icon: 'archive',
                 label: 'Archive',
@@ -96,7 +124,7 @@ function LoginButton() {
         icon: 'user',
         label: snap.username,
         onClick() {
-            newDialog({ content: UserPanel })
+            newDialog({ Content: UserPanel })
         },
     } : {
         icon: 'login',

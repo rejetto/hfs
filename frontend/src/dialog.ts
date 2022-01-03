@@ -3,7 +3,7 @@ import { proxy, useSnapshot } from 'valtio'
 import './dialog.css'
 
 interface DialogOptions {
-    content: string | FunctionComponent,
+    Content: FunctionComponent,
     closable?: boolean,
     onClose?: (v?:any)=> any,
     className?: string,
@@ -35,7 +35,7 @@ function Dialog(d:DialogOptions) {
         h('div', { className:'dialog '+(d.className||'') },
             d.closable || d.closable===undefined && h('button', { className:'dialog-icon dialog-closer', onClick:()=> closeDialog() }, d.closableContent),
             d.icon && h('div', { className:'dialog-icon dialog-type' }, d.icon),
-            h('div', {}, typeof d.content === 'function' ? h(d.content) : d.content)
+            h('div', {}, h(d.Content || 'div'))
         ))
 }
 
@@ -74,7 +74,7 @@ export async function promptDialog(msg: string, { def, type }:PromptOptions={}) 
         className: 'dialog-prompt',
         icon: '?',
         onClose: resolve,
-        content: Content
+        Content
     }) )
 
     function Content() {
@@ -117,8 +117,12 @@ export async function alertDialog(msg: string | Error, type:AlertType='info') {
         className: 'dialog-alert-'+type,
         icon: '!',
         onClose: resolve,
-        content: String(msg),
+        Content
     }))
+
+    function Content(){
+        return h('span', String(msg))
+    }
 }
 
 export async function confirmDialog(msg: string) : Promise<boolean> {
@@ -126,7 +130,7 @@ export async function confirmDialog(msg: string) : Promise<boolean> {
         className: 'dialog-confirm',
         icon: '?',
         onClose: resolve,
-        content: Content
+        Content
     }) )
 
     function Content() {

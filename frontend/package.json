@@ -16,7 +16,8 @@
     "react-router-dom": "^6.1.1",
     "use-debounce": "^7.0.1",
     "valtio": "^1.2.7",
-    "web-vitals": "^1.0.1"
+    "web-vitals": "^1.0.1",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.11.4",

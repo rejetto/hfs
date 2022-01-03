@@ -13,10 +13,13 @@ body {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-input {
+input, select {
     padding: 0.3em 0.4em;
     border-radius: 0.5em;
     border-color: #0005;
+}
+input[type=checkbox] {
+    vertical-align: text-bottom;
 }
 
 .icon {

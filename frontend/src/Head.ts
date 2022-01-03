@@ -20,7 +20,7 @@ function FolderStats() {
     const stats = useMemo(() =>{
         let files = 0, folders = 0, size = 0
         for (const x of list) {
-            if (x.n.endsWith('/'))
+            if (x.isFolder)
                 ++folders
             else
                 ++files

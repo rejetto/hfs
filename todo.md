@@ -1,7 +1,5 @@
 # To do
 - anti-csrf
-- file sorting
-- folders before?
 - upload
 - search and login dialogs should push to history so that mobile can use back button to close them
 - get config values from command line

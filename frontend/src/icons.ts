@@ -9,6 +9,7 @@ const SYS_ICONS: Record<string,string> = {
     spinner: 'sports_baseball',
     filter: 'filter_alt',
     interrupted: 'heart_broken',
+    sort: 'sort_by_alpha',
 }
 
 document.fonts.ready.then(async ()=> {

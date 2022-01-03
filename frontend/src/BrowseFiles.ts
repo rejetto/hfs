@@ -11,7 +11,8 @@ export function usePath() {
     return decodeURI(useLocation().pathname)
 }
 
-interface DirEntry { n:string, s?:number, m?:string, c?:string }
+export interface DirEntry { n:string, s?:number, m?:string, c?:string,
+    ext:string, isFolder:boolean, t:Date } // we memoize these value for speed
 export type DirList = DirEntry[]
 interface ListRes { list:DirList, loading?:boolean, err?:Error, reload?:()=>void }
 
@@ -39,16 +40,14 @@ function FilesList() {
     return ret
 }
 
-function File({ n, m, c, s, hidden }: DirEntry & { hidden:boolean }) {
+function File({ n, t, s, hidden, isFolder }: DirEntry & { hidden:boolean }) {
     const base = usePath()
-    const isDir = n.endsWith('/')
-    const t = m||c ||null
-    const containerDir = isDir ? '' : n.substring(0, n.lastIndexOf('/')+1)
+    const containerDir = isFolder ? '' : n.substring(0, n.lastIndexOf('/')+1)
     if (containerDir)
         n = n.substring(containerDir.length)
     const href = fix(containerDir + n)
-    return h('li', { className:isDir ? 'folder' : 'file', style:hidden ? { display:'none' } : null },
-        isDir ? h(Link, { to: base+href }, hIcon('folder'), n)
+    return h('li', { className:isFolder ? 'folder' : 'file', style:hidden ? { display:'none' } : null },
+        isFolder ? h(Link, { to: base+href }, hIcon('folder'), n)
             : h(Fragment, {},
                 containerDir && h(Link, { to: base+fix(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
                 h('a', { href }, !containerDir && hIcon('file'),  n)
@@ -58,7 +57,7 @@ function File({ n, m, c, s, hidden }: DirEntry & { hidden:boolean }) {
                 h('span', { className:'entry-size' }, formatBytes(s)),
                 hIcon('download'),
             ),
-            t && h('span', { className:'entry-ts' }, new Date(t).toLocaleString()),
+            t && h('span', { className:'entry-ts' }, t.toLocaleString()),
         ),
         h('div', { style:{ clear:'both' } })
     )

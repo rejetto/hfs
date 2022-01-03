@@ -1,7 +1,7 @@
 import { state, useSnapState } from './state'
 import { useEffect, useRef, useState } from 'react'
 import { apiEvents } from './api'
-import { DirList, usePath } from './BrowseFiles'
+import { DirEntry, DirList, usePath } from './BrowseFiles'
 import { useForceUpdate } from './misc'
 
 export default function useFetchList() {
@@ -13,6 +13,13 @@ export default function useFetchList() {
     const [error, setError] = useState<Error>()
     const lastPath = useRef('')
     const [reload, forcer] = useForceUpdate()
+
+    // reorder in case sort criteria change
+    const { sortBy, foldersFirst } = snap
+    useEffect(()=>{
+        setList(sort(list))
+    }, [sortBy, foldersFirst])
+
     useEffect(()=>{
         const loc = window.location
         if (!desiredPath.endsWith('/')) { // useful only in dev, while accessing the frontend directly without passing by the main server
@@ -43,7 +50,7 @@ export default function useFetchList() {
             const flush = () => {
                 const chunk = buffer.splice(0, Infinity)
                 if (chunk.length)
-                    setList(list = [...list, ...chunk])
+                    setList(list = sort([...list, ...chunk.map(precalculate)]))
             }
             const timer = setInterval(flush, 1000)
             const src = apiEvents(API, baseParams, (type, data) => {
@@ -81,3 +88,35 @@ export default function useFetchList() {
     }
 }
 
+const { compare:localCompare } = new Intl.Collator(navigator.language)
+
+function sort(list: DirList) {
+    const { sortBy, foldersFirst } = state
+    // optimization: precalculate string comparisons
+    const bySize = sortBy === 'size'
+    const byExt = sortBy === 'extension'
+    const byTime = sortBy === 'time'
+    return list.sort((a,b) =>
+        foldersFirst && -compare(a.isFolder, b.isFolder)
+        || (bySize ? compare(a.s||0, b.s||0)
+            : byExt ? localCompare(a.ext, b.ext)
+                : byTime ? compare(a.t, b.t)
+                    : 0
+        )
+        || localCompare(a.n, b.n) // fallback to name/path
+    )
+}
+
+function precalculate(rec:DirEntry) {
+    const i = rec.n.lastIndexOf('.') + 1
+    rec.ext = i ? rec.n.substring(i) : ''
+    rec.isFolder = rec.n.endsWith('/')
+    const t = rec.m || rec.c
+    rec.t = new Date(t||0)
+    return rec
+}
+
+// generic comparison
+function compare(a:any, b:any) {
+    return a < b ? -1 : a > b ? 1 : 0
+}
