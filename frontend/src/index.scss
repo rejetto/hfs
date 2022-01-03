@@ -6,8 +6,11 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
-#root, input {
+#root {
     max-width: 50em;
+    margin: auto;
+}
+#root, input {
     color: #555;
 }
 code {
@@ -78,6 +81,7 @@ header {
 
 .breadcrumb {
     padding: 0.1em 0.6em 0.2em;
+    line-height: 1.8em;
     border-radius: 0.7em;
     background-color: #bcd;
     color: #444;
@@ -88,7 +92,7 @@ header {
 #folder-stats {
     font-size: 90%;
     padding: 0.1em 0.3em;
-    margin: 0.2em 0.5em;
+    margin: 0.3em 0.5em 0;
     float: right;
     & .icon {
         margin-right: .3em;
