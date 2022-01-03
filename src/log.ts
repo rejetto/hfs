@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import { Writable } from 'stream'
-import { subscribe } from './config'
+import { subscribeConfig } from './config'
 import { createWriteStream } from 'fs'
 // @ts-ignore
 import accesslog from 'koa-accesslog'
@@ -18,10 +18,10 @@ class Logger {
 }
 const accessLogger = new Logger()
 
-subscribe('log', path => {
+subscribeConfig({ k:'log', defaultValue:'access.log' }, path => {
     console.debug('log file: ' + (path || 'disabled'))
     accessLogger.setPath(path)
-}, 'access.log')
+})
 
 export function log(): Koa.Middleware {
     return (ctx, next) => // wrapping in a function will make it use current 'mw' value

@@ -2,9 +2,7 @@
 - anti-csrf
 - upload
 - search and login dialogs should push to history so that mobile can use back button to close them
-- get config values from command line
 - accounts path in config
-- search dialog to add to history
 - node.comment
 - config: max speed (total/per-ip)
 - config: max connections (total/per-ip)

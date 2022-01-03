@@ -6,7 +6,7 @@ import { getCurrentUsernameExpanded } from './perm'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
-import { subscribe } from './config'
+import { subscribeConfig } from './config'
 
 export enum VfsNodeType {
     root,
@@ -74,7 +74,7 @@ export class Vfs {
 }
 
 export const vfs = new Vfs()
-subscribe('vfs', data => {
+subscribeConfig({ k: 'vfs' }, data => {
     // we should validate content now
     recur(data)
     vfs.root = data

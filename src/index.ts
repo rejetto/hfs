@@ -12,7 +12,7 @@ import compress from 'koa-compress'
 // @ts-ignore
 import accesslog from 'koa-accesslog'
 import { Server } from 'http'
-import { subscribe } from './config'
+import { subscribeConfig } from './config'
 import session from 'koa-session'
 import { zipStreamFromFolder } from './zip'
 import { frontEndApis } from './frontEndApis'
@@ -83,7 +83,7 @@ app.on('error', err => {
 })
 
 let srv: Server
-subscribe('port', async (port: number) => {
+subscribeConfig({ k:'port', defaultValue: 80 }, async (port: number) => {
     await new Promise(resolve => {
         if (!srv)
             return resolve(null)
@@ -103,4 +103,4 @@ subscribe('port', async (port: number) => {
                 console.error(`couldn't listen on busy port ${port}`)
         })
     })
-}, 80)
+})
