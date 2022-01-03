@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
 import { objSameKeys } from './obj'
-import { watch } from 'fs'
+import { FSWatcher, watch } from 'fs'
 import yaml from 'yaml'
 
 export function enforceFinal(sub:string, s:string) {
@@ -46,17 +46,26 @@ export function wantArray(x:any) {
     return x == null ? [] : Array.isArray(x) ? x : [x]
 }
 
+// return canceler
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>) {
     let doing = false
+    let watcher: FSWatcher
     const timer = setInterval(()=>{
         try {
-            watch(path, load)
+            watcher = watch(path, load)
             load().then()
             clearInterval(timer)
         }
         catch(e){
         }
     }, 1000)
+    let running = true
+    return () => {
+        if (!running) return
+        running = false
+        clearInterval(timer)
+        watcher?.close()
+    }
 
     async function load(){
         if (doing) return

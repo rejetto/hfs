@@ -29,6 +29,8 @@ When not specified, default values will be used.
 Supported entries are:
 - `port` where to accept http connections. Default is 80.
 - `vfs` the files and folders you want to expose. For details see the dedicated following section.
+- `log` path of the log file. Default is `access.log`.
+- `accounts` path of the accounts file. Default is `accounts.yaml`.
 - `mime` command what mime-type to be returned with some files. 
     E.g.: `"*.jpg": image/jpeg`
     You can specify multiple entries, or separate multiple file masks with a p|pe.

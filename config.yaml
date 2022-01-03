@@ -1,7 +1,6 @@
 port: 80
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
-log: access.log
 vfs:
   children:
     - name: f1

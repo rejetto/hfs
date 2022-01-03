@@ -2,7 +2,6 @@
 - anti-csrf
 - upload
 - search and login dialogs should push to history so that mobile can use back button to close them
-- accounts path in config
 - node.comment
 - config: max speed (total/per-ip)
 - config: max connections (total/per-ip)
@@ -10,7 +9,7 @@
 - user.redirect
 - config: bans
 - config: min disk space
-- link to parent folder in the list
+- link to parent folder in the list (as an option of the frontend?)
 - archive for search results
 - archive only selected files
 - https

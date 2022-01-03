@@ -1,13 +1,12 @@
-import { watch } from 'fs'
 import fs from 'fs/promises'
 import _ from 'lodash'
 import yaml from 'yaml'
 import { hashPassword, verifyPassword } from './crypt'
-import { argv } from './const'
-import { readFileBusy, setHidden, wantArray } from './misc'
+import { setHidden, wantArray, watchLoad } from './misc'
 import Koa from 'koa'
+import { subscribeConfig } from './config'
 
-const PATH = argv.accounts || 'accounts.yaml'
+let path = ''
 
 interface Account {
     user: string, // we'll have user in it, so we don't need to pass it separately
@@ -60,47 +59,42 @@ export async function updateAccount(username: string, changer:Changer) {
 }
 
 const saveAccountsAsap = _.debounce(() =>
-    fs.writeFile(PATH, yaml.stringify({ accounts })).catch(err =>
+    fs.writeFile(path, yaml.stringify({ accounts })).catch(err =>
         console.error('Failed at saving accounts file, please ensure it is writable.', String(err))))
 
-let doing = false
-load().then()
-try { watch(PATH, load) } // find a better way to handle missing file
-catch(e){}
-async function load() {
-    if (doing) return
-    doing = true
-    try {
-        console.debug('loading', PATH)
-        let res
-        try {
-            res = yaml.parse(await readFileBusy(PATH))
+let watcher: undefined | (()=>void)
+subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
+    watcher?.()
+    if (!v)
+        return applyAccounts({})
+    if (typeof v !== 'string')
+        return console.error('bad type for accounts')
+    watcher = watchLoad(path = v, async data => {
+        const a = data?.accounts
+        if (!a)
+            return console.error('accounts file must contain "accounts" key')
+        await applyAccounts(a)
+    })
+})
+
+async function applyAccounts(newAccounts:Accounts) {
+    // we should validate content here
+    accounts = newAccounts
+    let changed = false
+    await Promise.all(_.map(newAccounts, async (rec,k) => {
+        if (!rec) // an empty object in yaml is stored as null
+            rec = accounts[k] = { user: '' }
+        setHidden(rec, { user: k })
+        rec.belongs = wantArray(rec.belongs).filter(b =>
+            b in accounts // at this stage the group record may still be null if specified later in the file
+            || console.error(`user ${k} belongs to non-existing ${b}`) )
+        if (rec.password) {
+            rec.hashedPassword = await hashPassword(rec.password)
+            delete rec.password
+            changed = true
+            console.debug('hashing password for', k)
         }
-        catch(e){
-            console.warn('cannot read', PATH, e)
-            return
-        }
-        // we should validate content here
-        if (!res?.accounts)
-            return accounts = {}
-        accounts = res.accounts
-        let changed = false
-        await Promise.all(_.map(accounts, async (rec,k) => {
-            if (!rec) // an empty object in yaml is stored as null
-                rec = accounts[k] = { user: '' }
-            setHidden(rec, { user: k })
-            rec.belongs = wantArray(rec.belongs).filter(b =>
-                b in accounts // at this stage the group record may still be null if specified later in the file
-                || console.error(`user ${k} belongs to non-existing ${b}`) )
-            if (rec.password) {
-                rec.hashedPassword = await hashPassword(rec.password)
-                delete rec.password
-                changed = true
-                console.debug('hashing password for', k)
-            }
-        }))
-        if (changed)
-            await saveAccountsAsap()
-    }
-    finally { doing = false }
+    }))
+    if (changed)
+        await saveAccountsAsap()
 }
