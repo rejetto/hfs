@@ -1,8 +1,5 @@
 import fs from 'fs/promises'
 import { objSameKeys } from './obj'
-import { FSWatcher, watch } from 'fs'
-import yaml from 'yaml'
-import _ from 'lodash'
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
@@ -26,7 +23,7 @@ export function prefix(pre:string, v:string|number, post:string='') {
     return v ? pre+v+post : ''
 }
 
-export function setHidden(dest: object, src:object) {
+export function setHidden(dest: object, src:Record<string,any>) {
     Object.defineProperties(dest, objSameKeys(src, value => ({ enumerable:false, value })))
 }
 
@@ -45,45 +42,6 @@ export async function readFileBusy(path: string): Promise<string> {
 
 export function wantArray(x:any) {
     return x == null ? [] : Array.isArray(x) ? x : [x]
-}
-
-// return canceler
-export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>) {
-    let doing = false
-    let watcher: FSWatcher
-    const debounced = _.debounce(load, 100)
-    const timer = setInterval(()=>{
-        try {
-            watcher = watch(path, debounced)
-            debounced()
-            clearInterval(timer)
-        }
-        catch(e){
-        }
-    }, 1000)
-    let running = true
-    return () => {
-        if (!running) return
-        running = false
-        clearInterval(timer)
-        watcher?.close()
-    }
-
-    async function load(){
-        if (doing) return
-        doing = true
-        console.debug('loading', path)
-        let data: any
-        try {
-            data = yaml.parse(await readFileBusy(path))
-        } catch (e) {
-            doing = false
-            console.warn('cannot read', path, String(e))
-            return
-        }
-        await parser(data)
-        doing = false
-    }
 }
 
 // callback can return undefined to skip element

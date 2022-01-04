@@ -6,7 +6,6 @@ import { getCurrentUsername, updateAccount, verifyLogin } from './perm'
 import { stat } from 'fs/promises'
 import { ApiHandlers } from './apis'
 import { plugins } from './plugins'
-import { wantArray } from './misc'
 import { PLUGINS_PUB_URI } from './const'
 
 export const frontEndApis: ApiHandlers = {
@@ -93,8 +92,9 @@ export const frontEndApis: ApiHandlers = {
 
     async extras_to_load() {
         const css = []
-        for (const k in plugins)
-            css.push(...wantArray(plugins[k].data.frontend?.load?.css).map(f => PLUGINS_PUB_URI + k + '/' + f))
+        for (const [k,plug] of Object.entries(plugins))
+            if (plug.frontend_css)
+                css.push( ...plug.frontend_css.map(f => PLUGINS_PUB_URI + k + '/' + f) )
         return { css }
     },
 }

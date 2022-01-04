@@ -9,7 +9,7 @@
 - user.redirect
 - config: bans
 - config: min disk space
-- link to parent folder in the list (as an option of the frontend?)
+- link to parent folder in the list (as an option of the frontend? plugin?)
 - archive for search results
 - archive only selected files
 - https

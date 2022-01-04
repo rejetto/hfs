@@ -1,0 +1,2 @@
+ver: 1
+middleware: import(blocker.js)

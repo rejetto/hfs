@@ -1,6 +1,6 @@
 import EventEmitter from 'events'
 import { argv } from './const'
-import { watchLoad } from './misc'
+import { watchLoad } from './watchLoad'
 
 const PATH = 'config.yaml'
 

@@ -86,8 +86,27 @@ You'll find the output in `dist` folder.
 
 Now to run it you should `cd dist` and `node .`
 
-# Plugins
+# Plug-ins
 
 We are slowly introducing a plug-ins system.
-Each plug-in is a `plugin.yaml` file sub-folder of `plugins` folder.
-You can quickly disable a plug-in by appending `-disabled` to the plug-in folder.
+Each plug-in is a sub-folder of `plugins` folder.
+You can quickly disable a plug-in by appending `-disabled` to the plug-in's folder name.
+Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server. 
+
+Each plug-in has access to the same set of features.
+Normally you'll have a plug-in that's a theme, and another that's a firewall,
+but nothing is preventing a single plug-in from doing both tasks.
+
+## For plug-in makers
+
+What a plug-in does is declared in its `plugin.yaml` file.
+Supported keys are:
+
+- `middleware` javascript file exporting a function that will be used as a middleware: it can interfere with http activity. 
+
+    If the function returns `true`, other executions on this http request will be interrupted.
+    Return another function if you want to execute it in the "upstream" of middlewares.
+ 
+- `frontend_css` path to one or more css files that you want the frontend to load.
+
+Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLPUGIN_NAME/FILENAME`.
