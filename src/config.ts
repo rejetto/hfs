@@ -6,7 +6,7 @@ const PATH = 'config.yaml'
 
 let state:Record<string,any> = {}
 const emitter = new EventEmitter()
-watchLoad(PATH,  data => {
+watchLoad(argv.config || process.env.hfs_config || PATH,  data => {
     for (const k in data)
         check(k)
     for (const k in { ...state, ...configProps })

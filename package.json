@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -13,7 +13,8 @@
     "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts",
     "start-frontend": "cd frontend && npm run start",
     "start": "node dist",
-    "build": "npm install && node timestamp && tsc --target es2018 && cp package*.json *.yaml dist && cd dist && npm ci --production",
+    "build": "npm install && node timestamp && tsc --target es2018 && cp package*.json *.yaml dist && cd dist && npm ci --production && cd .. && npm run build-prune",
+    "build-prune": "cd dist && nm-prune --force && cd node_modules && rm -rf yaml/browser && mkdir lodash2 && cp lodash/lodash.min.js lodash2/lodash.js && cp lodash/package.json lodash2 && rm -rf lodash && mv lodash2 lodash",
     "build-all": "npm run build && cd frontend && npm install && npm run build && cd ..",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "make-exe-after-build": "pkg . -C brotli"
@@ -33,7 +34,6 @@
     "buffer-crc32": "https://github.com/rejetto/buffer-crc32.git",
     "fast-glob": "^3.2.7",
     "koa": "^2.13.4",
-    "koa-accesslog": "^1.0.0",
     "koa-better-http-proxy": "^0.2.9",
     "koa-bodyparser": "^4.3.0",
     "koa-compress": "^5.1.0",
@@ -60,8 +60,8 @@
     "@types/node": "^16.11.12",
     "axios": "^0.24.0",
     "mocha": "^9.1.3",
+    "nm-prune": "^5.0.0",
     "nodemon": "^2.0.15",
-    "ts-node": "^10.4.0",
-    "typescript": "^4.5.2"
+    "ts-node": "^10.4.0"
   }
 }

@@ -9,8 +9,6 @@ import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import proxy from 'koa-better-http-proxy'
 import compress from 'koa-compress'
-// @ts-ignore
-import accesslog from 'koa-accesslog'
 import { Server } from 'http'
 import { subscribeConfig } from './config'
 import session from 'koa-session'
