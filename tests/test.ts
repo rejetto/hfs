@@ -58,7 +58,7 @@ function req(methodUrl: string, test:Tester, requestOptions?:any) {
             })
 
         function fun(res:any) {
-            console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : res)
+            console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status, res.data])
             if (typeof test === 'number') {
                 const got = res.status || res.response.status
                 const ok = got === test
