@@ -1,5 +1,4 @@
 import fs from 'fs/promises'
-import { objSameKeys } from './obj'
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
@@ -23,8 +22,12 @@ export function prefix(pre:string, v:string|number, post:string='') {
     return v ? pre+v+post : ''
 }
 
-export function setHidden(dest: object, src:Record<string,any>) {
+export function setHidden(dest: object, src:object) {
     Object.defineProperties(dest, objSameKeys(src, value => ({ enumerable:false, value })))
+}
+
+export function objSameKeys(src: object, newValue:(value:any,key:string)=>any) {
+    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k)]))
 }
 
 export function wait(ms: number) {
