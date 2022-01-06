@@ -121,7 +121,7 @@ export async function alertDialog(msg: string | Error, type:AlertType='info') {
     }))
 
     function Content(){
-        return h('span', String(msg))
+        return h('span', {}, String(msg))
     }
 }
 
