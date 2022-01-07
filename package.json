@@ -14,7 +14,7 @@
     "start-frontend": "cd frontend && npm run start",
     "start": "node dist",
     "build": "npm install && node timestamp && tsc --target es2018 && cp -r plugins READ* package*.json *.yaml dist && cd dist && npm ci --production && cd .. && npm run build-prune",
-    "build-prune": "cd dist && nm-prune --force && cd node_modules && rm -rf yaml/browser && mkdir lodash2 && cp lodash/lodash.min.js lodash2/lodash.js && cp lodash/package.json lodash2 && rm -rf lodash && mv lodash2 lodash",
+    "build-prune": "cd dist/node_modules/yaml/dist && mv doc do_c && cd ../.. && mkdir lodash2 && cp lodash/lodash.min.js lodash2/lodash.js && cp lodash/package.json lodash2 && rm -rf lodash && mv lodash2 lodash && cd .. && nm-prune --force && cd node_modules/yaml/dist && mv do_c doc",
     "build-all": "rm -rf dist && npm run build && cd frontend && npm install && npm run build && echo COMPLETED",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "make-exe-after-build": "pkg . -C brotli"
@@ -41,7 +41,8 @@
     "koa-session": "^6.2.0",
     "lodash": "^4.17.21",
     "minimist": "^1.2.5",
-    "yaml": "^1.10.2"
+    "tssrp6a": "^3.0.0",
+    "yaml": "^2.0.0-10"
   },
   "devDependencies": {
     "@types/archiver": "^5.1.1",

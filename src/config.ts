@@ -2,6 +2,8 @@ import EventEmitter from 'events'
 import { argv } from './const'
 import { watchLoad } from './watchLoad'
 
+export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow clear text login'
+
 const PATH = 'config.yaml'
 
 let state:Record<string,any> = {}

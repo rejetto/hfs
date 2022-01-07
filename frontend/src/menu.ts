@@ -6,6 +6,7 @@ import { hIcon, prefix } from './misc'
 import { login, logout } from './login'
 import { apiCall } from './api'
 import { Checkbox, FlexV } from './components'
+import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 
 export function MenuPanel() {
     const { remoteSearch, stopSearch, stoppedSearch, listFilter } = useSnapState()
@@ -153,7 +154,13 @@ function UserPanel() {
                 if (!check) return
                 if (check !== pwd)
                     return alertDialog('The second password you entered did not match the first. Procedure aborted.', 'warning')
-                await apiCall('change_pwd', { newPassword: pwd })
+                const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
+                const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
+                await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }).catch(e => {
+                    if (e.code !== 406) // 406 = server was configured to support clear text authentication
+                        throw e
+                    return apiCall('change_password', { newPassword: pwd }) // unencrypted version
+                })
                 return alertDialog('Password changed')
             }
         }),

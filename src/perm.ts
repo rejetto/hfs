@@ -1,11 +1,12 @@
 import fs from 'fs/promises'
 import _ from 'lodash'
 import yaml from 'yaml'
-import { hashPassword, verifyPassword } from './crypt'
+import { hashPassword } from './crypt'
 import { setHidden, wantArray } from './misc'
 import { watchLoad } from './watchLoad'
 import Koa from 'koa'
-import { subscribeConfig } from './config'
+import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig, subscribeConfig } from './config'
+import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 
 let path = ''
 
@@ -13,6 +14,7 @@ interface Account {
     user: string, // we'll have user in it, so we don't need to pass it separately
     password?: string
     hashedPassword?: string
+    srp?: string
     belongs?: string[]
 }
 interface Accounts { [username:string]: Account }
@@ -37,31 +39,47 @@ export async function getCurrentUsernameExpanded(ctx: Koa.Context) {
     return ret
 }
 
-export async function verifyLogin(user:string, password: string) {
-    const acc = accounts[user]
-    if (!acc) return
-    const { hashedPassword: h } = acc
-    return h && verifyPassword(h, password)
-}
-
 export function getAccount(username:string) : Account {
     return accounts[username]
 }
 
-type Changer = (account:Account)=> void | Promise<void>
-export async function updateAccount(username: string, changer:Changer) {
-    const account = getAccount(username)
-    await changer(account)
-    if (account.password) {
-        account.hashedPassword = await hashPassword(account.password)
-        delete account.password
-    }
-    saveAccountsAsap()
+export function saveSrpInfo(account:Account, salt:string | bigint, verifier: string | bigint) {
+    account.srp = String(salt) + '|' + String(verifier)
 }
 
-const saveAccountsAsap = _.debounce(() =>
-    fs.writeFile(path, yaml.stringify({ accounts })).catch(err =>
-        console.error('Failed at saving accounts file, please ensure it is writable.', String(err))))
+const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
+
+type Changer = (account:Account)=> void | Promise<void>
+export async function updateAccount(username: string, changer?:Changer) {
+    const account = getAccount(username)
+    const was = JSON.stringify(account)
+    await changer?.(account)
+    if (account.password) {
+        console.debug('hashing password for', username)
+        if (getConfig(CFG_ALLOW_CLEAR_TEXT_LOGIN))
+            account.hashedPassword = await hashPassword(account.password)
+        const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, account.password)
+        saveSrpInfo(account, res.s, res.v)
+        delete account.password
+    }
+    else if (!account.srp && account.hashedPassword) {
+        console.log('please reset password for account', username)
+        process.exit(1)
+    }
+    account.belongs = wantArray(account.belongs).filter(b =>
+        b in accounts // at this stage the group record may still be null if specified later in the file
+        || console.error(`user ${username} belongs to non-existing ${b}`) )
+    if (was !== JSON.stringify(account))
+        saveAccountsAsap()
+}
+
+let saving = false
+const saveAccountsAsap = _.debounce(() => {
+    saving = true
+    fs.writeFile(path, yaml.stringify({ accounts }, { lineWidth:1000 })) // we don't want big numbers to be folded
+        .catch(err => console.error('Failed at saving accounts file, please ensure it is writable.', String(err)))
+        .finally(()=> saving = false)
+})
 
 let watcher: undefined | (()=>void)
 subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
@@ -71,6 +89,7 @@ subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
     if (typeof v !== 'string')
         return console.error('bad type for accounts')
     watcher = watchLoad(path = v, async data => {
+        if (saving) return
         const a = data?.accounts
         if (!a)
             return console.error('accounts file must contain "accounts" key')
@@ -81,21 +100,10 @@ subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
 async function applyAccounts(newAccounts:Accounts) {
     // we should validate content here
     accounts = newAccounts
-    let changed = false
     await Promise.all(_.map(newAccounts, async (rec,k) => {
         if (!rec) // an empty object in yaml is stored as null
-            rec = accounts[k] = { user: '' }
+            rec = accounts[k] = { user: k, srp:'' }
         setHidden(rec, { user: k })
-        rec.belongs = wantArray(rec.belongs).filter(b =>
-            b in accounts // at this stage the group record may still be null if specified later in the file
-            || console.error(`user ${k} belongs to non-existing ${b}`) )
-        if (rec.password) {
-            rec.hashedPassword = await hashPassword(rec.password)
-            delete rec.password
-            changed = true
-            console.debug('hashing password for', k)
-        }
+        await updateAccount(k)
     }))
-    if (changed)
-        await saveAccountsAsap()
 }

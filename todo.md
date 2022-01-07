@@ -1,4 +1,5 @@
 # To do
+- fix: plugins folder is not found
 - anti-csrf
 - upload
 - search and login dialogs should push to history so that mobile can use back button to close them
