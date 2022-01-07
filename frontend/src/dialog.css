@@ -58,3 +58,9 @@
 .dialog-alert-error {
     --color: #822;
 }
+
+@media (max-width: 50em) {
+    .dialog-closer {
+        font-size: 120%
+    }
+}

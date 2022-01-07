@@ -169,7 +169,8 @@ button label {
 }
 
 @media (max-width: 50em) {
-    #menu-bar button:nth-child(1n+2) label { display: none } /* icons only */
+    body { font-size: 120%; }
+    #menu-bar button label { display: none } /* icons only */
     .breadcrumb .icon {
         font-size:24px;
     }
