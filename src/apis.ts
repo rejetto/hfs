@@ -1,6 +1,6 @@
 import Koa from 'koa'
 
-type ApiHandler = (params:any, ctx:Koa.Context) => any
+export type ApiHandler = (params:any, ctx:Koa.Context) => any
 export type ApiHandlers = Record<string, ApiHandler>
 
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {

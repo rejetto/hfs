@@ -17,6 +17,7 @@
     "build-prune": "cd dist/node_modules/yaml/dist && mv doc do_c && cd ../.. && mkdir lodash2 && cp lodash/lodash.min.js lodash2/lodash.js && cp lodash/package.json lodash2 && rm -rf lodash && mv lodash2 lodash && cd .. && nm-prune --force && cd node_modules/yaml/dist && mv do_c doc",
     "build-all": "rm -rf dist && npm run build && cd frontend && npm install && npm run build && echo COMPLETED",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
+    "zip-dist": "zip hfs.zip -r *.yaml READ* dist/*",
     "make-exe-after-build": "pkg . -C brotli"
   },
   "bin": "dist/index.js",
