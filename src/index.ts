@@ -20,6 +20,8 @@ import { pluginsMiddleware } from './plugins'
 
 const BUILD_TIMESTAMP = ""
 
+export const SESSION_DURATION = 30*60_000
+
 console.log('started', new Date().toLocaleString())
 const app = new Koa()
 app.keys = ['hfs-keys-test']
@@ -27,7 +29,7 @@ app.use(session({
     key: 'hfs_$id',
     signed: true,
     rolling: true,
-    maxAge: 30*60_000,
+    maxAge: SESSION_DURATION,
 }, app))
 app.use(log())
 app.use(pluginsMiddleware())

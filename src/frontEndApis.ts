@@ -69,7 +69,7 @@ export const frontEndApis: ApiHandlers = {
             return ctx.status = 401
         if (ctx.session)
             ctx.session.user = user
-        return true
+        return makeExp()
     },
 
     async logout({}, ctx) {
@@ -80,7 +80,7 @@ export const frontEndApis: ApiHandlers = {
     },
 
     async refresh_session({}, ctx) {
-        return { user: ctx.session?.user }
+        return { user: ctx.session?.user, ...makeExp() }
     },
 
     async change_pwd({ newPassword }, ctx) {
@@ -127,4 +127,8 @@ async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
         console.error(String(err))
         return null
     }
+}
+
+function makeExp() {
+    return { exp: new Date(Date.now() + SESSION_DURATION) }
 }
