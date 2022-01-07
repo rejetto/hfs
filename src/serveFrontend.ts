@@ -30,11 +30,15 @@ function serveStaticFrontend() : Koa.Middleware {
         if (method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
         if (path.endsWith('/')) {
-            const res = await filePromise(BASE + 'index.html')
-            ctx.body = replaceFrontEndRes(res.toString('utf8'))
+            ctx.body = replaceFrontEndRes(String(await filePromise(BASE + 'index.html')))
             ctx.type = 'html'
         } else {
-            ctx.body = createReadStream(BASE + path.slice(1))
+            const fullPath = BASE + path.slice(1)
+            if (path.includes('static/js')) // webpack
+                ctx.body = String(await filePromise(fullPath))
+                    .replace(/(return")(static\/)/g, '$1'+FRONTEND_URI.substring(1)+'$2')
+            else
+                ctx.body = createReadStream(fullPath)
             ctx.type = mime.lookup(path) || 'application/octet-stream'
         }
         await next()
