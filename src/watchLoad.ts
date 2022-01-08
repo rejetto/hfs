@@ -8,7 +8,7 @@ export type WatchLoadCanceller = () => void
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>): WatchLoadCanceller {
     let doing = false
     let watcher: FSWatcher
-    const debounced = _.debounce(load, 100)
+    const debounced = _.debounce(load, 500)
     const timer = setInterval(()=>{
         try {
             watcher = watch(path, debounced)
