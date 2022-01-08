@@ -7,6 +7,7 @@ import { PLUGINS_PUB_URI } from './const'
 import mime from 'mime-types'
 import Koa from 'koa'
 import { WatchLoadCanceller } from './watchLoad'
+import { getOrSet, wantArray } from './misc'
 
 const PATH = 'plugins'
 
@@ -124,7 +125,7 @@ async function resolveImport(x: Record<string,any>, basePath: string) {
                 cancellers.push(watchLoad(path, async () => {
                     try {
                         x[k] = (await import(path)).default
-                        deleteModule(path) // avoid caching
+                        deleteModule(require.resolve(path)) // avoid caching
                         console.log('plugin imported', fn)
                     } catch (e) {
                         console.log('plugin error importing', fn, String(e))
@@ -140,11 +141,24 @@ async function resolveImport(x: Record<string,any>, basePath: string) {
     }
 }
 
-function deleteModule(name: string) {
-    let solvedName = require.resolve(name)
-    let mod = require.cache[solvedName]
-    if (!mod) return
-    for (const child of mod.children)
-        deleteModule(child.filename)
-    delete require.cache[solvedName]
+function deleteModule(id: string) {
+    const { cache } = require
+    // build reversed map of dependencies
+    const requiredBy: Record<string,string[]> = { '.':['.'] } // don't touch main entry
+    for (const k in cache)
+        if (k !== id)
+            for (const child of wantArray(cache[k]?.children))
+                getOrSet(requiredBy, child.id, ()=> [] as string[]).push(k)
+    const deleted: string[] = []
+    recur(id)
+
+    function recur(id: string) {
+        let mod = cache[id]
+        if (!mod) return
+        delete cache[id]
+        deleted.push(id)
+        for (const child of mod.children)
+            if (! _.difference(requiredBy[child.id], deleted).length)
+                recur(child.id)
+    }
 }

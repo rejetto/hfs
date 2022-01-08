@@ -1,5 +1,4 @@
 # To do
-- fix: deleteModule is unloading even shared modules
 - fix: icons are not being cached
 - fix: plugins folder is not found
 - anti-csrf
