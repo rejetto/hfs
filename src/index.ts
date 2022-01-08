@@ -17,6 +17,7 @@ import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import './plugins'
 import { pluginsMiddleware } from './plugins'
+import { throttler } from './throttler'
 
 const BUILD_TIMESTAMP = ""
 
@@ -33,6 +34,7 @@ app.use(session({
 }, app))
 app.use(log())
 app.use(pluginsMiddleware())
+app.use(throttler())
 
 // serve apis
 app.use(mount(API_URI, new Koa()

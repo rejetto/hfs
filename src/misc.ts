@@ -55,3 +55,8 @@ export async function* filterMapGenerator<IN,OUT>(generator: AsyncIterableIterat
             yield res as Exclude<OUT,undefined>
     }
 }
+
+export function getOrSet<T>(o:any, k:string, creator:()=>T): T {
+    return k in o ? o[k]
+        : (o[k] = creator())
+}

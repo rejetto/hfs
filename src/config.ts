@@ -6,9 +6,11 @@ export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow clear text login'
 
 const PATH = 'config.yaml'
 
+let started = false
 let state:Record<string,any> = {}
 const emitter = new EventEmitter()
 watchLoad(argv.config || process.env.hfs_config || PATH,  data => {
+    started = true
     for (const k in data)
         check(k)
     for (const k in { ...state, ...configProps })
@@ -44,11 +46,17 @@ export function defineConfig(k:string, definition:ConfigProps) {
 export function subscribeConfig({ k, ...definition }:{ k:string } & ConfigProps, cb:(v:any, was?:any)=>void) {
     if (definition)
         defineConfig(k, definition)
-    const { caster } = configProps[k] ?? {}
+    const { caster, defaultValue } = configProps[k] ?? {}
     const a = argv[k]
     if (a !== undefined)
         return cb(caster ? caster(a) : a)
     emitter.on('new.'+k, cb)
+    if (!started) return
+    let v = state[k]
+    if (v === undefined)
+        v = defaultValue
+    if (v !== undefined)
+        cb(v)
 }
 
 export function getConfig(k:string) {

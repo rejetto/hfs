@@ -20,6 +20,7 @@ You won't find all previous features here (yet), but still we got:
 - simple website serving
 - plug-ins
 - log file
+- speed throttler
 
 # Configuration
 
@@ -38,7 +39,9 @@ Supported entries are:
     E.g.: `"*.jpg": image/jpeg`
     You can specify multiple entries, or separate multiple file masks with a p|pe.
     You can use the special value `auto` to attempt automatic detection.
-
+- `max-kbps` throttle output speed. Default is Infinity.
+- `max-kbps-per-ip` throttle out speed on a per-ip basis. Default is Infinity.
+ 
 ## Virtual File System (VFS)
 
 The virtual file system is a tree of files and folders, collectively called *nodes*.

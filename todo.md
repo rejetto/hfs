@@ -1,10 +1,11 @@
 # To do
+- fix: deleteModule is unloading even shared modules
+- fix: icons are not being cached
 - fix: plugins folder is not found
 - anti-csrf
 - upload
 - search and login dialogs should push to history so that mobile can use back button to close them
 - node.comment
-- config: max speed (total/per-ip)
 - config: max connections (total/per-ip)
 - user.ignoreLimits
 - user.redirect

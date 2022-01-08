@@ -1,4 +1,6 @@
-port: 80
+#port: 80
+#max-kbps: 1000
+#max-kbps-per-ip: 500
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
 vfs:
