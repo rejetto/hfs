@@ -33,8 +33,8 @@ export function MenuPanel() {
             }),
             h(MenuButton, getSearchProps()),
             h(MenuButton, {
-                icon: 'sort',
-                label: 'Sort',
+                icon: 'options',
+                label: 'Options',
                 onClick(){
                     const options = ['name','extension','size','time']
                     const close = newDialog({ Content })

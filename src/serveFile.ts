@@ -9,16 +9,20 @@ import mm from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
 
-export function serveFile(node: VfsNode) : Koa.Middleware {
+export function serveFileNode(node: VfsNode) : Koa.Middleware {
+    const { source, mime } = node
+    return serveFile(source||'', mime)
+}
+
+export function serveFile(source:string, mime?:string) : Koa.Middleware {
     return async (ctx) => {
-        let { source, mime } = node
         if (!source)
             return
         const { range } = ctx.request.header
         ctx.set('Accept-Ranges', 'bytes')
         const mimeCfg = getConfig('mime')
-        const fn = path.basename(source!)
-        mime = mime || _.find(mimeCfg, (v,k) => mm.isMatch(fn, k))
+        const fn = path.basename(source)
+        mime = mime ?? _.find(mimeCfg, (v,k) => mm.isMatch(fn, k))
         if (mime === MIME_AUTO)
             mime = mimetypes.lookup(source) || ''
         if (mime)
@@ -30,6 +34,11 @@ export function serveFile(node: VfsNode) : Koa.Middleware {
         }
         if (ctx.method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
+        const stats = await fs.stat(source)
+        ctx.set('Last-Modified', stats.mtime.toUTCString())
+        ctx.status = 200
+        if (ctx.fresh)
+            return ctx.status = 304
         if (!range)
             return ctx.body = createReadStream(source)
         const ranges = range.split('=')[1]
@@ -38,18 +47,17 @@ export function serveFile(node: VfsNode) : Koa.Middleware {
         let bytes = ranges?.split('-')
         if (!bytes?.length)
             return ctx.throw(400, 'bad range')
-        const stat = await fs.stat(source)
-        const max = stat.size - 1
+        const max = stats.size - 1
         let start = Number(bytes[0])
         let end = Number(bytes[1]) || max
         if (end > max || start > max) {
             ctx.status = 416
-            ctx.set('Content-Range', `bytes ${stat.size}`)
+            ctx.set('Content-Range', `bytes ${stats.size}`)
             ctx.body = 'Requested Range Not Satisfiable'
             return
         }
         ctx.status = 206
-        ctx.set('Content-Range', `bytes ${start}-${end}/${stat.size}`)
+        ctx.set('Content-Range', `bytes ${start}-${end}/${stats.size}`)
         ctx.body = createReadStream(source, { start, end })
     }
 }

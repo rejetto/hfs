@@ -4,7 +4,7 @@ import bodyParser from 'koa-bodyparser'
 import { apiMiddleware } from './apis'
 import { serveFrontend } from './serveFrontend'
 import { API_URI, DEV, FRONTEND_URI} from './const'
-import { serveFile } from './serveFile'
+import { serveFileNode } from './serveFile'
 import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import proxy from 'koa-better-http-proxy'
@@ -72,14 +72,14 @@ app.use(async (ctx, next) => {
         if (node.default) {
             const def = await vfs.urlToNode(decoded + node.default, ctx)
             if (def)
-                return serveFile(def)(ctx, next)
+                return serveFileNode(def)(ctx, next)
         }
         ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
         return await serveFrontend(ctx, next)
     }
     if (source)
         return source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
-            : serveFile(node)(ctx,next)
+            : serveFileNode(node)(ctx,next)
     await next()
 })
 

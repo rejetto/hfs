@@ -1,8 +1,8 @@
 import proxy from 'koa-better-http-proxy'
 import Koa from 'koa'
-import mime from 'mime-types'
-import { createReadStream, readFile } from 'fs'
+import { readFile } from 'fs'
 import { DEV, FRONTEND_URI, METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
+import { serveFile } from './serveFile'
 
 export const serveFrontend = DEV ? serveProxyFrontend() : serveStaticFrontend()
 
@@ -34,12 +34,13 @@ function serveStaticFrontend() : Koa.Middleware {
             ctx.type = 'html'
         } else {
             const fullPath = BASE + path.slice(1)
-            if (path.includes('static/js')) // webpack
+            if (path.includes('static/js')) {// webpack
                 ctx.body = String(await filePromise(fullPath))
-                    .replace(/(return")(static\/)/g, '$1'+FRONTEND_URI.substring(1)+'$2')
+                    .replace(/(return")(static\/)/g, '$1' + FRONTEND_URI.substring(1) + '$2')
+                ctx.type = 'js'
+            }
             else
-                ctx.body = createReadStream(fullPath)
-            ctx.type = mime.lookup(path) || 'application/octet-stream'
+                return serveFile(fullPath, 'auto')(ctx, next)
         }
         await next()
     }
