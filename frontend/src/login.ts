@@ -2,12 +2,14 @@ import { apiCall, ApiError } from './api'
 import { state } from './state'
 import { alertDialog } from './dialog'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
+import { working } from './misc'
 
 let refresher: NodeJS.Timeout
 
 export async function login(user:string, password:string) {
     if (refresher)
         clearInterval(refresher)
+    const stopWorking = working()
     try {
 /* simple login without encryption. Here commented just for example. Please use SRP version.
         const res = await apiCall('login', { user, password })
@@ -39,6 +41,7 @@ export async function login(user:string, password:string) {
                 err = 'Invalid credentials'
         await alertDialog(err as Error, 'error')
     }
+    finally { stopWorking() }
 }
 apiCall('refresh_session').then(sessionRefresher, ()=>{})
 
