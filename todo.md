@@ -1,4 +1,6 @@
 # To do
+- case insensitive usernames
+- api to get config
 - update tests to SRP login
 - anti-csrf
 - upload

@@ -13,7 +13,7 @@
     "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts",
     "start-frontend": "cd frontend && npm run start",
     "start": "node dist",
-    "build": "npm install && node timestamp && tsc --target es2018 && cp package*.json dist && cd dist && npm ci --production && cd .. && npm run build-prune",
+    "build": "npm install && tsc --target es2018 && node timestamp && cp package*.json dist && cd dist && npm ci --production && cd .. && npm run build-prune",
     "build-prune": "cd dist/node_modules/yaml/dist && mv doc do_c && cd ../.. && mkdir lodash2 && cp lodash/lodash.min.js lodash2/lodash.js && cp lodash/package.json lodash2 && rm -rf lodash && mv lodash2 lodash && cd .. && nm-prune --force && cd node_modules/yaml/dist && mv do_c doc",
     "build-all": "rm -rf dist && npm run build && cd frontend && npm install && npm run build && echo COMPLETED",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",

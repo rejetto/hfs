@@ -90,7 +90,7 @@ For this reason HFS needs that your accounts file is writable.
 
 You'll find the output in `dist` folder.
 
-Now to run it you should `cd dist` and `node .`
+Now you can run it with `node dist`.
 
 # Plug-ins
 
