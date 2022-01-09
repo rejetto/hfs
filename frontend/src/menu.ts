@@ -1,12 +1,11 @@
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'use-debounce'
-import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
+import { promptDialog } from './dialog'
 import { hIcon, prefix } from './misc'
-import { login, logout } from './login'
-import { apiCall } from './api'
-import { Checkbox, FlexV } from './components'
-import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
+import { login } from './login'
+import { showOptions } from './options'
+import showUserPanel from './UserPanel'
 
 export function MenuPanel() {
     const { remoteSearch, stopSearch, stoppedSearch, listFilter } = useSnapState()
@@ -33,31 +32,9 @@ export function MenuPanel() {
             }),
             h(MenuButton, getSearchProps()),
             h(MenuButton, {
-                icon: 'options',
+                icon: 'settings',
                 label: 'Options',
-                onClick(){
-                    const options = ['name','extension','size','time']
-                    const close = newDialog({ Content })
-
-                    function Content(){
-                        const snap = useSnapState()
-                        return h(FlexV, {},
-                            h('div', {}, 'Sort by'),
-                            options.map(x => h('button',{
-                                key: x,
-                                onClick(){
-                                    close(state.sortBy = x)
-                                }
-                            }, x, ' ', snap.sortBy===x && hIcon('check'))),
-                            h(Checkbox, {
-                                value: snap.foldersFirst,
-                                onChange(v) {
-                                    state.foldersFirst = v
-                                }
-                            }, 'Folders first')
-                        )
-                    }
-                }
+                onClick: showOptions
             }),
             h(MenuButton, {
                 icon: 'archive',
@@ -113,7 +90,7 @@ interface MenuButtonProps {
     onClick?: () => void
 }
 
-function MenuButton({ icon, label, toggled, onClick, className = '' }: MenuButtonProps) {
+export function MenuButton({ icon, label, toggled, onClick, className = '' }: MenuButtonProps) {
     return h('button', { title: label, onClick, className: className + ' ' + (toggled ? 'toggled' : '') },
         hIcon(icon),
         h('label', {}, label))
@@ -124,9 +101,7 @@ function LoginButton() {
     return MenuButton(snap.username ? {
         icon: 'user',
         label: snap.username,
-        onClick() {
-            newDialog({ Content: UserPanel })
-        },
+        onClick: showUserPanel
     } : {
         icon: 'login',
         label: 'Login',
@@ -140,37 +115,4 @@ function LoginButton() {
     })
 }
 
-function UserPanel() {
-    const snap = useSnapState()
-    return h('div', { id: 'user-panel' },
-        h('div', {}, 'User: ' + snap.username),
-        h(MenuButton, {
-            icon: 'key',
-            label: 'Change password',
-            async onClick() {
-                const pwd = await promptDialog('Enter new password', { type: 'password' })
-                if (!pwd) return
-                const check = await promptDialog('RE-enter new password', { type: 'password' })
-                if (!check) return
-                if (check !== pwd)
-                    return alertDialog('The second password you entered did not match the first. Procedure aborted.', 'warning')
-                const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-                const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
-                await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }).catch(e => {
-                    if (e.code !== 406) // 406 = server was configured to support clear text authentication
-                        throw e
-                    return apiCall('change_password', { newPassword: pwd }) // unencrypted version
-                })
-                return alertDialog('Password changed')
-            }
-        }),
-        h(MenuButton, {
-            icon: 'logout',
-            label: 'Logout',
-            onClick() {
-                logout().then(closeDialog)
-            }
-        })
-    )
-}
 

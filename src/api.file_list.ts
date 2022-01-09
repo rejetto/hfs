@@ -24,7 +24,6 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
 
     async function produceEntries() {
         const list = []
-        const h = sseSrv && setInterval(()=> console.debug('walking'), 500)
         for await (const sub of walker) {
             if (sseSrv?.stopped || ctx.aborted) break
             const filename = basename(sub.name||'')
@@ -51,7 +50,6 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
             if (limit && !--limit)
                 break
         }
-        if (h) clearInterval(h)
         sseSrv?.close()
         return list
     }
