@@ -4,6 +4,8 @@ HFS is a file server offering a virtual file system (vfs).
 You can easily share a single file instead of the whole folder,
 or you can rename it, but without touching the real file, just virtually.
 
+Listing files, searching files, zipping folders, it's all very fast, streamed while data is produced, so you don't have to wait. 
+
 This project is in an early stage and distribution will be made easier.
 
 This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
@@ -40,7 +42,7 @@ Supported entries are:
     You can specify multiple entries, or separate multiple file masks with a p|pe.
     You can use the special value `auto` to attempt automatic detection.
 - `max-kbps` throttle output speed. Default is Infinity.
-- `max-kbps-per-ip` throttle out speed on a per-ip basis. Default is Infinity.
+- `max-kbps-per-ip` throttle output speed on a per-ip basis. Default is Infinity.
  
 ## Virtual File System (VFS)
 
@@ -112,7 +114,9 @@ Supported keys are:
 
     If the function returns `true`, other executions on this http request will be interrupted.
     Return another function if you want to execute it in the "upstream" of middlewares.
- 
+
 - `frontend_css` path to one or more css files that you want the frontend to load.
+
+- `frontend_js` path to one or more js files that you want the frontend to load.
 
 Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLPUGIN_NAME/FILENAME`.

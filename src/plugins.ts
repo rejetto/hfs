@@ -53,14 +53,16 @@ class Plugin {
         plugins[k] = this // track this
 
         // some validation
-        let v = data.frontend_css
-        if (typeof v === 'string')
-            data.frontend_css = [v]
-        else if (v && !Array.isArray(v)) {
-            delete data.frontend_css
-            console.warn('invalid frontend_css')
+        for (const k of ['frontend_css', 'frontend_js']) {
+            const v = data[k]
+            if (typeof v === 'string')
+                data[k] = [v]
+            else if (v && !Array.isArray(v)) {
+                delete data[k]
+                console.warn('invalid', k)
+            }
         }
-        v = data.middleware
+        let v = data.middleware
         if (v && !(v instanceof Function)) {
             delete data.middleware
             console.warn('invalid middleware')
@@ -71,6 +73,9 @@ class Plugin {
     }
     get frontend_css(): undefined | string[] {
         return this.data.frontend_css
+    }
+    get frontend_js(): undefined | string[] {
+        return this.data.frontend_js
     }
 
     unload() {

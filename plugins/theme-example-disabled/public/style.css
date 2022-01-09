@@ -1,1 +1,4 @@
-header { background:#fff url(star.png) top right no-repeat; }
+header { 
+	background: var(--bg) url(star.svg) top right no-repeat; 
+	background-size: 3em;
+}

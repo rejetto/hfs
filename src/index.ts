@@ -23,6 +23,7 @@ const BUILD_TIMESTAMP = ""
 export const SESSION_DURATION = 30*60_000
 
 console.log('started', new Date().toLocaleString())
+console.log('build', BUILD_TIMESTAMP)
 const app = new Koa()
 app.keys = ['hfs-keys-test']
 app.use(session({
