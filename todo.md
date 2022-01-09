@@ -7,8 +7,8 @@
 - search and login dialogs should push to history so that mobile can use back button to close them
 - node.comment
 - config: max connections (total/per-ip)
-- user.ignoreLimits
-- user.redirect
+- account.ignoreLimits
+- account.redirect
 - config: bans
 - config: min disk space
 - link to parent folder in the list (as an option of the frontend? plugin?)

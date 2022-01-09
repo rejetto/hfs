@@ -11,7 +11,7 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 let path = ''
 
 interface Account {
-    user: string, // we'll have user in it, so we don't need to pass it separately
+    username: string, // we'll have username in it, so we don't need to pass it separately
     password?: string
     hashedPassword?: string
     srp?: string
@@ -22,7 +22,7 @@ interface Accounts { [username:string]: Account }
 let accounts: Accounts = {}
 
 export async function getCurrentUsername(ctx: Koa.Context) {
-    return ctx.session?.user || ''
+    return ctx.session?.username || ''
 }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
@@ -68,7 +68,7 @@ export async function updateAccount(username: string, changer?:Changer) {
     }
     account.belongs = wantArray(account.belongs).filter(b =>
         b in accounts // at this stage the group record may still be null if specified later in the file
-        || console.error(`user ${username} belongs to non-existing ${b}`) )
+        || console.error(`account ${username} belongs to non-existing ${b}`) )
     if (was !== JSON.stringify(account))
         saveAccountsAsap()
 }
@@ -100,10 +100,10 @@ subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
 async function applyAccounts(newAccounts:Accounts) {
     // we should validate content here
     accounts = newAccounts
-    await Promise.all(_.map(newAccounts, async (rec,k) => {
+    await Promise.all(_.map(accounts, async (rec,k) => {
         if (!rec) // an empty object in yaml is stored as null
-            rec = accounts[k] = { user: k, srp:'' }
-        setHidden(rec, { user: k })
+            rec = accounts[k] = { username: k, srp:'' }
+        setHidden(rec, { username: k })
         await updateAccount(k)
     }))
 }

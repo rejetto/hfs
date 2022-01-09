@@ -6,20 +6,20 @@ import { working } from './misc'
 
 let refresher: NodeJS.Timeout
 
-export async function login(user:string, password:string) {
+export async function login(username:string, password:string) {
     if (refresher)
         clearInterval(refresher)
     const stopWorking = working()
     try {
 /* simple login without encryption. Here commented just for example. Please use SRP version.
-        const res = await apiCall('login', { user, password })
+        const res = await apiCall('login', { username, password })
 */
-        const { pubKey, salt } = await apiCall('loginSrp1', { user })
+        const { pubKey, salt } = await apiCall('loginSrp1', { username })
         if (!salt) return
 
         const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
         const srp = new SRPClientSession(srp6aNimbusRoutines);
-        const resStep1 = await srp.step1(user, password)
+        const resStep1 = await srp.step1(username, password)
         const resStep2 = await resStep1.step2(BigInt(salt), BigInt(pubKey))
         const res = await apiCall('loginSrp2', { pubKey: String(resStep2.A), proof: String(resStep2.M1) }) // bigint-s must be cast to string to be json-ed
         try {
@@ -32,8 +32,8 @@ export async function login(user:string, password:string) {
         }
 
         // login was successful, update state
-        sessionRefresher({ user, exp:res.exp })
-        state.username = user
+        sessionRefresher({ username, exp:res.exp })
+        state.username = username
     }
     catch(err) {
         if (err instanceof ApiError)
@@ -45,8 +45,8 @@ export async function login(user:string, password:string) {
 }
 apiCall('refresh_session').then(sessionRefresher, ()=>{})
 
-function sessionRefresher({ exp, user }:{ exp:string, user:string }) {
-    state.username = user
+function sessionRefresher({ exp, username }:{ exp:string, username:string }) {
+    state.username = username
     if (!exp) return
     const delta = new Date(exp).getTime() - Date.now()
     const every = delta - 30_000

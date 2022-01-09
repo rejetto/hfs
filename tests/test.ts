@@ -8,7 +8,7 @@ const appStarted = new Promise(resolve =>
     srv.on( 'app_started', resolve) )
 */
 
-const user = 'rejetto'
+const username = 'rejetto'
 const password = 'password'
 
 describe('basics', () => {
@@ -28,14 +28,14 @@ describe('basics', () => {
     it('missing perm', req('/for-admins/', 404))
     it('proxy', req('/proxy', s => s.includes('github')))
     it('login', req('/~/api/login', 200, {
-        data: { user, password }
+        data: { username, password }
     }))
 })
 
 let cookie:any
 describe('after-login', () => {
     before(req('/~/api/login', (data, res) => Boolean(cookie = res.headers['set-cookie']), {
-        data: { user, password }
+        data: { username, password }
     }))
     it('list protected', done => // defer execution of req() to have cookie set
         req('/~/api/file_list', data => inList(data, 'alfa.txt'), {

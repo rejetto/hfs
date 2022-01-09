@@ -13,12 +13,12 @@ function makeExp() {
     return { exp: new Date(Date.now() + SESSION_DURATION) }
 }
 
-export const login: ApiHandler = async ({ user, password }, ctx) => {
-    if (!user)
+export const login: ApiHandler = async ({ username, password }, ctx) => {
+    if (!username)
         return ctx.status = 400
     if (!password)
         return ctx.status = 400
-    const acc = getAccount(user)
+    const acc = getAccount(username)
     if (!acc)
         return ctx.status = 401
     if (!acc.hashedPassword)
@@ -26,12 +26,12 @@ export const login: ApiHandler = async ({ user, password }, ctx) => {
     if (!await verifyPassword(acc.hashedPassword, password))
         return ctx.status = 401
     if (ctx.session)
-        ctx.session.user = user
+        ctx.session.username = username
     return makeExp()
 }
 
-export const loginSrp1: ApiHandler = async ({ user }, ctx) => {
-    const account = getAccount(user)
+export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
+    const account = getAccount(username)
     if (!ctx.session)
         return ctx.throw(500)
     if (!account) // TODO simulate fake account to prevent knowing valid usernames
@@ -40,23 +40,23 @@ export const loginSrp1: ApiHandler = async ({ user }, ctx) => {
         return ctx.status = 406 // unacceptable
 
     const [salt, verifier] = account.srp.split('|')
-    const step1 = await srpSession.step1(account.user, BigInt(salt), BigInt(verifier))
+    const step1 = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
     const sid = Math.random()
     ongoingLogins[sid] = step1
     setTimeout(()=> delete ongoingLogins[sid], 60_000)
 
-    ctx.session.login = { user, sid }
+    ctx.session.login = { username, sid }
     return { salt, pubKey: String(step1.B) } // cast to string cause bigint can't be jsonized
 }
 
 export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     if (!ctx.session)
         return ctx.throw(500)
-    const { user, sid } = ctx.session.login
+    const { username, sid } = ctx.session.login
     const step1 = ongoingLogins[sid]
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
-        ctx.session.user = user
+        ctx.session.username = username
         return { proof: String(M2), ...makeExp() }
     }
     catch(e) {
@@ -67,13 +67,13 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
 
 export const logout: ApiHandler = async ({}, ctx) => {
     if (ctx.session)
-        ctx.session.user = undefined
+        ctx.session.username = undefined
     ctx.status = 200
     return true
 }
 
 export const refresh_session: ApiHandler = async ({}, ctx) => {
-    return { user: ctx.session?.user, ...makeExp() }
+    return { username: ctx.session?.username, ...makeExp() }
 }
 
 export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
