@@ -15,7 +15,6 @@ import session from 'koa-session'
 import { zipStreamFromFolder } from './zip'
 import { frontEndApis } from './frontEndApis'
 import { log } from './log'
-import './plugins'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
 

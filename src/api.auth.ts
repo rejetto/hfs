@@ -18,6 +18,7 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
         return ctx.status = 400
     if (!password)
         return ctx.status = 400
+    username = username.toLocaleLowerCase()
     const acc = getAccount(username)
     if (!acc)
         return ctx.status = 401
@@ -31,6 +32,7 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
 }
 
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
+    username = username.toLocaleLowerCase()
     const account = getAccount(username)
     if (!ctx.session)
         return ctx.throw(500)

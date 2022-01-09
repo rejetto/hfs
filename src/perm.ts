@@ -101,8 +101,14 @@ async function applyAccounts(newAccounts:Accounts) {
     // we should validate content here
     accounts = newAccounts
     await Promise.all(_.map(accounts, async (rec,k) => {
+        const lc = k.toLocaleLowerCase()
         if (!rec) // an empty object in yaml is stored as null
-            rec = accounts[k] = { username: k, srp:'' }
+            rec = accounts[lc] = { username: lc, srp:'' }
+        else if (lc !== k) {
+            accounts[lc] = rec
+            delete accounts[k]
+            k = lc
+        }
         setHidden(rec, { username: k })
         await updateAccount(k)
     }))
