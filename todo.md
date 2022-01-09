@@ -1,5 +1,5 @@
 # To do
-- api to get config
+- download counter
 - update tests to SRP login
 - anti-csrf
 - upload

@@ -11,23 +11,7 @@ let state:Record<string,any> = {}
 const emitter = new EventEmitter()
 watchLoad(argv.config || process.env.hfs_config || PATH,  data => {
     started = true
-    for (const k in data)
-        check(k)
-    for (const k in { ...state, ...configProps })
-        if (!(k in data))
-            check(k)
-
-    function check(k: string) {
-        const oldV = state[k]
-        const newV = data[k]
-        const { caster, defaultValue } = configProps[k] ?? {}
-        let v = newV === undefined ? defaultValue : newV
-        if (caster)
-            v = caster(v)
-        if (JSON.stringify(v) === JSON.stringify(oldV)) return
-        state[k] = v
-        emitter.emit('new.'+k, v, oldV)
-    }
+    setConfig(data)
 })
 
 const configProps:Record<string, ConfigProps> = {}
@@ -61,4 +45,26 @@ export function subscribeConfig({ k, ...definition }:{ k:string } & ConfigProps,
 
 export function getConfig(k:string) {
     return state[k]
+}
+
+export function setConfig(newCfg: Record<string,any>) {
+    for (const k in newCfg)
+        check(k)
+    const oldKeys = Object.keys(state)
+    oldKeys.push(...Object.keys(configProps))
+    for (const k of oldKeys)
+        if (!newCfg.hasOwnProperty(k))
+            check(k)
+
+    function check(k: string) {
+        const oldV = state[k]
+        const newV = newCfg[k]
+        const { caster, defaultValue } = configProps[k] ?? {}
+        let v = newV === undefined ? defaultValue : newV
+        if (caster)
+            v = caster(v)
+        if (JSON.stringify(v) === JSON.stringify(oldV)) return
+        state[k] = v
+        emitter.emit('new.'+k, v, oldV)
+    }
 }

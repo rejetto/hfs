@@ -4,6 +4,7 @@ import { PLUGINS_PUB_URI } from './const'
 import * as api_file_list from './api.file_list'
 import * as api_auth from './api.auth'
 import _ from 'lodash'
+import { setConfig } from './config'
 
 export const frontEndApis: ApiHandlers = {
 
@@ -19,4 +20,13 @@ export const frontEndApis: ApiHandlers = {
         return { css, js }
     },
 
+    async config({ values }, ctx) {
+        if (isLocalhost(ctx.ip))
+            setConfig(values)
+    },
+
+}
+
+function isLocalhost(ip: string) {
+    return ip === '127.0.0.1' || ip === '::1'
 }
