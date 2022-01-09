@@ -1,7 +1,7 @@
 import { newDialog } from './dialog'
 import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
-import { Checkbox, FlexV } from './components'
+import { Checkbox, FlexV, Select } from './components'
 import { hIcon } from './misc'
 
 export function showOptions (){
@@ -24,6 +24,14 @@ export function showOptions (){
                     state.foldersFirst = v
                 }
             }, 'Folders first'),
+
+            h(Select, {
+                options: ['light', 'dark'].map(s => ({ label:'theme: ' + s, value: s })),
+                value: snap.theme,
+                onChange(v) {
+                    state.theme = v
+                }
+            })
         )
     }
 }

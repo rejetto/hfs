@@ -1,4 +1,24 @@
+:root {
+    --bg: #fff;
+    --text: #555;
+    --mild-contrast: #0005;
+    --button-bg: #bcd;
+    --button-text: #444;
+    .theme-dark {
+        --bg: #000;
+        --text: #999;
+        --mild-contrast: #fff5;
+        --good-contrast: #fffa;
+        --button-bg: #345;
+        --button-text: #999;
+        a { color:#68a; }
+        .dialog-confirm, .dialog-prompt { --color:#77a }
+        .dialog-closer { background: #844 }
+        .dialog-icon { color: #ccc; }
+    }
+}
 body {
+    background: var(--bg);
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -11,7 +31,7 @@ body {
     margin: auto;
 }
 #root, input {
-    color: #555;
+    color: var(--text);
 }
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
@@ -19,7 +39,9 @@ code {
 input, select {
     padding: 0.3em 0.4em;
     border-radius: 0.5em;
-    border-color: #0005;
+    background: var(--bg);
+    border-color: var(--mild-contrast);
+    color: var(--good-contrast);
 }
 input[type=checkbox] {
     vertical-align: text-bottom;
@@ -35,8 +57,8 @@ a {
     color: #357;
 }
 button {
-    background-color: #bcd;
-    color: #444;
+    background-color: var(--button-bg);
+    color: var(--button-text);
     padding: 0.5em 1em;
     border: transparent;
     text-decoration: none;
@@ -56,7 +78,7 @@ button.toggled {
 header {
     position: sticky;
     top: 0;
-    background: #fff;
+    background: var(--bg);
     padding: .2em;
 }
 
@@ -83,8 +105,8 @@ header {
     padding: 0.1em 0.6em 0.2em;
     line-height: 1.8em;
     border-radius: 0.7em;
-    background-color: #bcd;
-    color: #444;
+    background-color: var(--button-bg);
+    color: var(--button-text);
 
     border-top: 1px solid #666;
     margin-right: -0.1em;
@@ -162,6 +184,8 @@ button label {
     cursor: inherit;
     margin-left: 0.5em;
 }
+select { font-size:110% }
+
 .dialog.working {
     background: none;
     font-size: 5em;

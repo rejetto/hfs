@@ -13,7 +13,6 @@
 - archive for search results
 - archive only selected files
 - https
-- frontend: light/dark theme
 - webdav?
 - vfs: ability to remove/hide/rename files deep in a source
 - administration interface

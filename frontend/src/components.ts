@@ -19,8 +19,8 @@ export function FlexV(props:any) {
     return h(Flex, { vert:true, ...props })
 }
 
-interface CheckboxOptions { children?:ReactNode, value:any, onChange?:(v:boolean)=>void }
-export function Checkbox({ onChange, value, children, ...props }:CheckboxOptions) {
+interface CheckboxProps { children?:ReactNode, value:any, onChange?:(v:boolean)=>void }
+export function Checkbox({ onChange, value, children, ...props }:CheckboxProps) {
     return h('label', {},
         h('input',{
             type:'checkbox',
@@ -31,4 +31,15 @@ export function Checkbox({ onChange, value, children, ...props }:CheckboxOptions
         }),
         children
     )
+}
+
+type Options = { label:string, value:string }[]
+interface SelectProps { value:any, onChange?:(v:string)=>void, options:Options }
+export function Select({ onChange, value, options, ...props }:SelectProps) {
+    return h('select', {
+        onChange: ev => // @ts-ignore
+            onChange?.(ev.target.value),
+        value,
+        ...props,
+    }, options.map(({ value, label }) => h('option', { key:value, value }, label)))
 }
