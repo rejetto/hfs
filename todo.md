@@ -1,6 +1,5 @@
 # To do
-- inverted order
-- download counter
+- download counter (as plugin?)
 - update tests to SRP login
 - anti-csrf
 - upload

@@ -15,10 +15,10 @@ export default function useFetchList() {
     const [reload, forcer] = useForceUpdate()
 
     // reorder in case sort criteria change
-    const { sortBy, foldersFirst } = snap
+    const { sortBy, invertOrder, foldersFirst } = snap
     useEffect(()=>{
         setList(sort(list))
-    }, [sortBy, foldersFirst])
+    }, [sortBy, invertOrder, foldersFirst])
 
     useEffect(()=>{
         const loc = window.location
@@ -96,14 +96,15 @@ function sort(list: DirList) {
     const bySize = sortBy === 'size'
     const byExt = sortBy === 'extension'
     const byTime = sortBy === 'time'
+    const invert = state.invertOrder ? -1 : 1
     return list.sort((a,b) =>
         foldersFirst && -compare(a.isFolder, b.isFolder)
-        || (bySize ? compare(a.s||0, b.s||0)
+        || invert*(bySize ? compare(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
                 : byTime ? compare(a.t, b.t)
                     : 0
         )
-        || localCompare(a.n, b.n) // fallback to name/path
+        || invert*localCompare(a.n, b.n) // fallback to name/path
     )
 }
 

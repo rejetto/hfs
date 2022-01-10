@@ -19,6 +19,12 @@ export function showOptions (){
                 }
             }, x, ' ', snap.sortBy===x && hIcon('check'))),
             h(Checkbox, {
+                value: snap.invertOrder,
+                onChange(v) {
+                    state.invertOrder = v
+                }
+            }, 'Invert order'),
+            h(Checkbox, {
                 value: snap.foldersFirst,
                 onChange(v) {
                     state.foldersFirst = v

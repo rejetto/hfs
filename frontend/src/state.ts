@@ -11,6 +11,7 @@ export const state = proxy<{
     remoteSearch: string,
     filteredEntries: number,
     sortBy: string,
+    invertOrder: boolean,
     foldersFirst: boolean,
     theme: string,
 }>({
@@ -20,6 +21,7 @@ export const state = proxy<{
     remoteSearch: '',
     filteredEntries: -1,
     sortBy: 'name',
+    invertOrder: false,
     foldersFirst: true,
     theme: '',
 })
