@@ -17,6 +17,7 @@ import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
+import { getAccount, getCurrentUsername } from './perm'
 
 const BUILD_TIMESTAMP = ""
 
@@ -32,6 +33,10 @@ app.use(session({
     rolling: true,
     maxAge: SESSION_DURATION,
 }, app))
+app.use(async (ctx, next) => {
+    ctx.account = getAccount(getCurrentUsername(ctx))
+    await next()
+})
 app.use(log())
 app.use(pluginsMiddleware())
 app.use(throttler())

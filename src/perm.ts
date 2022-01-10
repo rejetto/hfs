@@ -21,13 +21,13 @@ interface Accounts { [username:string]: Account }
 
 let accounts: Accounts = {}
 
-export async function getCurrentUsername(ctx: Koa.Context) {
+export function getCurrentUsername(ctx: Koa.Context): string {
     return ctx.session?.username || ''
 }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
 export async function getCurrentUsernameExpanded(ctx: Koa.Context) {
-    const who = await getCurrentUsername(ctx)
+    const who = getCurrentUsername(ctx)
     if (!who)
         return []
     const ret = [who]
@@ -39,8 +39,8 @@ export async function getCurrentUsernameExpanded(ctx: Koa.Context) {
     return ret
 }
 
-export function getAccount(username:string) : Account {
-    return accounts[username]
+export function getAccount(username:string) : Account | undefined {
+    return username ? accounts[username] : undefined
 }
 
 export function saveSrpInfo(account:Account, salt:string | bigint, verifier: string | bigint) {
@@ -50,10 +50,10 @@ export function saveSrpInfo(account:Account, salt:string | bigint, verifier: str
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
 type Changer = (account:Account)=> void | Promise<void>
-export async function updateAccount(username: string, changer?:Changer) {
-    const account = getAccount(username)
+export async function updateAccount(account: Account, changer?:Changer) {
     const was = JSON.stringify(account)
     await changer?.(account)
+    const { username } = account
     if (account.password) {
         console.debug('hashing password for', username)
         if (getConfig(CFG_ALLOW_CLEAR_TEXT_LOGIN))
@@ -110,6 +110,6 @@ async function applyAccounts(newAccounts:Accounts) {
             k = lc
         }
         setHidden(rec, { username: k })
-        await updateAccount(k)
+        await updateAccount(rec)
     }))
 }

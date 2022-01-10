@@ -1,4 +1,4 @@
-import { getAccount, getCurrentUsername, saveSrpInfo, updateAccount } from './perm'
+import { getAccount, saveSrpInfo, updateAccount } from './perm'
 import { verifyPassword } from './crypt'
 import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig } from './config'
 import { ApiHandler } from './apis'
@@ -32,6 +32,8 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
 }
 
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
+    if (!username)
+        return ctx.status = 400
     username = username.toLocaleLowerCase()
     const account = getAccount(username)
     if (!ctx.session)
@@ -81,7 +83,9 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
 export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
     if (!newPassword) // clear text version
         return Error('missing parameters')
-    await updateAccount(await getCurrentUsername(ctx), account => {
+    if (!ctx.account)
+        return ctx.status = 401
+    await updateAccount(ctx.account, account => {
         account.password = newPassword
     })
     return true
@@ -92,7 +96,9 @@ export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
         return ctx.status = 406
     if (!salt || !verifier)
         return Error('missing parameters')
-    await updateAccount(await getCurrentUsername(ctx), account => {
+    if (!ctx.account)
+        return ctx.status = 401
+    await updateAccount(ctx.account, account => {
         saveSrpInfo(account, salt, verifier)
         delete account.hashedPassword // remove leftovers
     })
