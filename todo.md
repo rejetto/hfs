@@ -3,6 +3,7 @@
 - update tests to SRP login
 - anti-csrf
 - upload
+- delete
 - https
 - updater (stop,unzip,start)
 - search and login dialogs should push to history so that mobile can use back button to close them
@@ -12,7 +13,6 @@
 - config: bans
 - config: min disk space
 - thumbnails support
-- link to parent folder in the list (as an option of the frontend? plugin?)
 - archive for search results
 - archive only selected files
 - webdav?

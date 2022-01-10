@@ -111,6 +111,9 @@ header {
     border-top: 1px solid #666;
     margin-right: -0.1em;
 }
+.breadcrumb:nth-child(-n+3) .icon {
+    padding: 0 0.2em;
+}
 #folder-stats {
     font-size: 90%;
     margin: 0.4em 0 0 0.5em;
