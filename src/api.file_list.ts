@@ -2,7 +2,7 @@ import { vfs, VfsNode, walkNode } from './vfs'
 import _ from 'lodash'
 import createSSE from './sse'
 import { basename } from 'path'
-import { ApiHandler } from './apis'
+import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
 
 export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
@@ -10,7 +10,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
     if (!node)
         return
     if (search?.includes('..'))
-        return ctx.throw(400)
+        return new ApiError(400)
     if (node.default)
         return { redirect: path }
     offset = Number(offset)

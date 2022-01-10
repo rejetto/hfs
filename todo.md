@@ -4,6 +4,7 @@
 - update tests to SRP login
 - anti-csrf
 - upload
+- https
 - updater (stop,unzip,start)
 - search and login dialogs should push to history so that mobile can use back button to close them
 - node.comment
@@ -11,10 +12,10 @@
 - account.redirect
 - config: bans
 - config: min disk space
+- thumbnails support
 - link to parent folder in the list (as an option of the frontend? plugin?)
 - archive for search results
 - archive only selected files
-- https
 - webdav?
 - vfs: ability to remove/hide/rename files deep in a source
 - administration interface
