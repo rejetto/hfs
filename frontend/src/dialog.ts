@@ -31,8 +31,19 @@ function Dialog(d:DialogOptions) {
     }, [])
     const ref = useRef<HTMLElement>()
     d = { ...dialogsDefaults, ...d }
-    return h('div', { ref, className:'dialog-backdrop', tabIndex:0, onKeyDown },
-        h('div', { className:'dialog '+(d.className||'') },
+    return h('div', {
+            ref,
+            className: 'dialog-backdrop',
+            tabIndex: 0,
+            onKeyDown,
+            onClick: ()=> closeDialog()
+        },
+        h('div', {
+            className:'dialog '+(d.className||''),
+            onClick(ev:any){
+                ev.stopPropagation()
+            }
+        },
             d.closable || d.closable===undefined && h('button', { className:'dialog-icon dialog-closer', onClick:()=> closeDialog() }, d.closableContent),
             d.icon && h('div', { className:'dialog-icon dialog-type' }, d.icon),
             h('div', { className:'dialog-content' }, h(d.Content || 'div'))

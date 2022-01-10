@@ -1,5 +1,4 @@
 # To do
-- backdrop click to close dialog
 - inverted order
 - download counter
 - update tests to SRP login
