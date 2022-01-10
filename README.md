@@ -41,8 +41,8 @@ Supported entries are:
     E.g.: `"*.jpg": image/jpeg`
     You can specify multiple entries, or separate multiple file masks with a p|pe.
     You can use the special value `auto` to attempt automatic detection.
-- `max-kbps` throttle output speed. Default is Infinity.
-- `max-kbps-per-ip` throttle output speed on a per-ip basis. Default is Infinity.
+- `max_kbps` throttle output speed. Default is Infinity.
+- `max_kbps_per_ip` throttle output speed on a per-ip basis. Default is Infinity.
  
 ## Virtual File System (VFS)
 

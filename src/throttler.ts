@@ -6,7 +6,7 @@ import { getOrSet } from './misc'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
-subscribeConfig({ k:'max-kbps', defaultValue:Infinity }, v =>
+subscribeConfig({ k:'max_kbps', defaultValue:Infinity }, v =>
     mainThrottleGroup.updateLimit(v))
 
 interface GroupThrottler { count:number, throttler:ThrottledStream }
@@ -20,7 +20,7 @@ export function throttler(): Koa.Middleware {
             return
         const ipGroup = getOrSet(ip2group, ctx.ip, ()=> {
             const tg = new ThrottleGroup(Infinity, mainThrottleGroup)
-            subscribeConfig({ k:'max-kbps-per-ip', defaultValue:Infinity }, v =>
+            subscribeConfig({ k:'max_kbps_per_ip', defaultValue:Infinity }, v =>
                 tg.updateLimit(v))
             return { tg, count:0 }
         })

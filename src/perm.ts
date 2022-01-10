@@ -13,7 +13,7 @@ let path = ''
 interface Account {
     username: string, // we'll have username in it, so we don't need to pass it separately
     password?: string
-    hashedPassword?: string
+    hashed_password?: string
     srp?: string
     belongs?: string[]
     ignore_limits?: boolean
@@ -58,12 +58,12 @@ export async function updateAccount(account: Account, changer?:Changer) {
     if (account.password) {
         console.debug('hashing password for', username)
         if (getConfig(CFG_ALLOW_CLEAR_TEXT_LOGIN))
-            account.hashedPassword = await hashPassword(account.password)
+            account.hashed_password = await hashPassword(account.password)
         const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, account.password)
         saveSrpInfo(account, res.s, res.v)
         delete account.password
     }
-    else if (!account.srp && account.hashedPassword) {
+    else if (!account.srp && account.hashed_password) {
         console.log('please reset password for account', username)
         process.exit(1)
     }

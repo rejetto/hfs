@@ -22,9 +22,9 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
     const acc = getAccount(username)
     if (!acc)
         return ctx.status = 401
-    if (!acc.hashedPassword)
+    if (!acc.hashed_password)
         return ctx.status = 406
-    if (!await verifyPassword(acc.hashedPassword, password))
+    if (!await verifyPassword(acc.hashed_password, password))
         return ctx.status = 401
     if (ctx.session)
         ctx.session.username = username
@@ -100,7 +100,7 @@ export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
         return ctx.status = 401
     await updateAccount(ctx.account, account => {
         saveSrpInfo(account, salt, verifier)
-        delete account.hashedPassword // remove leftovers
+        delete account.hashed_password // remove leftovers
     })
     return true
 }
