@@ -43,6 +43,10 @@
     line-height: 1.7em;
     background-color: var(--color);
 }
+.dialog-content p {
+    white-space: pre;
+    margin: .5em 0;
+}
 .dialog-confirm button {
     margin-top: 1em;
 }

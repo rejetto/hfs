@@ -1,4 +1,4 @@
-import { createElement as h, Fragment, FunctionComponent, ReactNode, useEffect, useRef } from 'react'
+import { createElement as h, Fragment, FunctionComponent, ReactElement, ReactNode, useEffect, useRef } from 'react'
 import { proxy, useSnapshot } from 'valtio'
 import './dialog.css'
 
@@ -35,7 +35,7 @@ function Dialog(d:DialogOptions) {
         h('div', { className:'dialog '+(d.className||'') },
             d.closable || d.closable===undefined && h('button', { className:'dialog-icon dialog-closer', onClick:()=> closeDialog() }, d.closableContent),
             d.icon && h('div', { className:'dialog-icon dialog-type' }, d.icon),
-            h('div', {}, h(d.Content || 'div'))
+            h('div', { className:'dialog-content' }, h(d.Content || 'div'))
         ))
 }
 
@@ -88,7 +88,7 @@ export async function promptDialog(msg: string, { def, type }:PromptOptions={}) 
                 inp.value = def
         },[])
         return h('div', {},
-            h('div', {}, msg),
+            h('p', {}, msg),
             h('input', {
                 ref,
                 type,
@@ -108,7 +108,7 @@ export async function promptDialog(msg: string, { def, type }:PromptOptions={}) 
 
 type AlertType = 'error' | 'warning' | 'info'
 
-export async function alertDialog(msg: string | Error, type:AlertType='info') {
+export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info') {
     if (msg instanceof Error) {
         msg = String(msg)
         type = 'error'
@@ -121,7 +121,9 @@ export async function alertDialog(msg: string | Error, type:AlertType='info') {
     }))
 
     function Content(){
-        return h('span', {}, String(msg))
+        if (typeof msg === 'string' || msg instanceof Error)
+            msg = h('p', {}, String(msg))
+        return msg
     }
 }
 
@@ -135,7 +137,7 @@ export async function confirmDialog(msg: string) : Promise<boolean> {
 
     function Content() {
         return h('div', {},
-            h('div', {}, msg),
+            h('p', {}, msg),
             h('button', {
                 autoFocus: true,
                 onClick(){
