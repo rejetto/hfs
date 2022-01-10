@@ -1,8 +1,10 @@
 # To do
+- inverted order
 - download counter
 - update tests to SRP login
 - anti-csrf
 - upload
+- updater (stop,unzip,start)
 - search and login dialogs should push to history so that mobile can use back button to close them
 - node.comment
 - config: max connections (total/per-ip)
