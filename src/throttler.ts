@@ -16,7 +16,7 @@ export function throttler(): Koa.Middleware {
     return async (ctx, next) => {
         await next()
         const { body } = ctx
-        if (!body || !(body instanceof Readable))
+        if (!body || !(body instanceof Readable) || ctx.account?.ignore_limits)
             return
         const ipGroup = getOrSet(ip2group, ctx.ip, ()=> {
             const tg = new ThrottleGroup(Infinity, mainThrottleGroup)

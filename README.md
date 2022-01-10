@@ -81,8 +81,17 @@ accounts:
     group1:
 ```
 
-As soon as the file is read HFS will encrypt passwords in a non-reversible way.
+As soon as the file is read HFS will encrypt passwords in a non-reversible way. It means that `password` property is replaced with an encrypted property: `srp`.
 For this reason HFS needs that your accounts file is writable.
+
+As you can see in the example, `group1` has no password. This implies that you cannot log in as `group1`, but still `group1` exists and its purpose is to
+gather multiple accounts and refer to them collectively as `group1`, so you can quickly share powers among several accounts.
+
+## Account options
+
+Other options you can define as properties of an account:
+
+- `ignore_limits` to ignore speed limits. Default is `false`.
 
 # Building instructions
 

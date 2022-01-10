@@ -16,6 +16,7 @@ interface Account {
     hashedPassword?: string
     srp?: string
     belongs?: string[]
+    ignore_limits?: boolean
 }
 interface Accounts { [username:string]: Account }
 
