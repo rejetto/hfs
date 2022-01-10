@@ -112,7 +112,8 @@ function precalculate(rec:DirEntry) {
     rec.ext = i ? rec.n.substring(i) : ''
     rec.isFolder = rec.n.endsWith('/')
     const t = rec.m || rec.c
-    rec.t = new Date(t||0)
+    if (t)
+        rec.t = new Date(t)
     return rec
 }
 

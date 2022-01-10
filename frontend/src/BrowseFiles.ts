@@ -12,7 +12,7 @@ export function usePath() {
 }
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string,
-    ext:string, isFolder:boolean, t:Date } // we memoize these value for speed
+    ext:string, isFolder:boolean, t?:Date } // we memoize these value for speed
 export type DirList = DirEntry[]
 interface ListRes { list:DirList, loading?:boolean, err?:Error, reload?:()=>void }
 
