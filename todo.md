@@ -1,6 +1,5 @@
 # To do
 - backdrop click to close dialog
-- fix: dialog scrolling
 - inverted order
 - download counter
 - update tests to SRP login
