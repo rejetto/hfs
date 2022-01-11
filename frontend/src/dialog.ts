@@ -10,6 +10,7 @@ interface DialogOptions {
     icon?: string | FunctionComponent,
     closableContent?: string | ReactNode,
     reserveClosing?: true
+    noFrame?: boolean
 }
 
 const dialogs = proxy<DialogOptions[]>([])
@@ -33,21 +34,23 @@ function Dialog(d:DialogOptions) {
     d = { ...dialogsDefaults, ...d }
     return h('div', {
             ref,
-            className: 'dialog-backdrop',
+            className: 'dialog-backdrop '+(d.className||''),
             tabIndex: 0,
             onKeyDown,
             onClick: ()=> closeDialog()
         },
-        h('div', {
-            className:'dialog '+(d.className||''),
-            onClick(ev:any){
-                ev.stopPropagation()
-            }
-        },
-            d.closable || d.closable===undefined && h('button', { className:'dialog-icon dialog-closer', onClick:()=> closeDialog() }, d.closableContent),
-            d.icon && h('div', { className:'dialog-icon dialog-type' }, d.icon),
-            h('div', { className:'dialog-content' }, h(d.Content || 'div'))
-        ))
+        d.noFrame ? h(d.Content || 'div')
+            : h('div', {
+                className: 'dialog',
+                onClick(ev:any){
+                    ev.stopPropagation()
+                }
+            },
+                d.closable || d.closable===undefined && h('button', { className:'dialog-icon dialog-closer', onClick:()=> closeDialog() }, d.closableContent),
+                d.icon && h('div', { className:'dialog-icon dialog-type' }, d.icon),
+                h('div', { className:'dialog-content' }, h(d.Content || 'div'))
+            )
+    )
 }
 
 function onKeyDown(ev:any) {

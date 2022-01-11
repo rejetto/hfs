@@ -65,6 +65,7 @@ export function working() {
     isWorking = true
     return newDialog({
         closable: false,
+        noFrame: true,
         Content: Spinner,
         reserveClosing: true,
         className: 'working',

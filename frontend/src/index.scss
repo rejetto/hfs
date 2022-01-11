@@ -15,6 +15,7 @@
         .dialog-confirm, .dialog-prompt { --color:#77a }
         .dialog-closer { background: #844 }
         .dialog-icon { color: #ccc; }
+        .dialog-backdrop { background: #333b; }
     }
 }
 body {
@@ -188,15 +189,19 @@ button label {
 }
 select { font-size:110% }
 
-.dialog.working {
-    background: none;
+.dialog-backdrop.working {
     font-size: 5em;
-    animation: 1s spin infinite, 1s fade-in;
+    animation: 1s fade-in;
 }
 
-@media (max-width: 50em) {
+@media (max-width: 40em) {
     body { font-size: 120%; }
-    #menu-bar button label { display: none } /* icons only */
+    #menu-bar {
+        display: flex;
+        justify-content: space-between;
+        align-content: stretch;
+        & button label { display: none } /* icons only */
+    }
     .breadcrumb .icon {
         font-size:24px;
     }

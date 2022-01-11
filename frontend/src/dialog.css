@@ -10,14 +10,15 @@
     align-Items: center;
 }
 .dialog {
-    background: #fff;
+    background: #fff; /*fallback*/
     background: var(--bg);
     padding: 1em 1.5em;
     border-radius: 1em;
     position: relative;
     color: var(--color);
     border: 3px solid var(--color);
-    margin: 0 1.5em; /* leave space for corner icons */
+    margin: -10vh 1.5em 0; /* leave space for corner icons */
+    max-height: 80vh;
 }
 .dialog-icon {
     color: #fff;
@@ -42,6 +43,10 @@
     overflow: hidden;
     line-height: 1.7em;
     background-color: var(--color);
+}
+.dialog-content {
+    overflow: auto;
+    max-height: 80vh;
 }
 .dialog-content p {
     white-space: pre;
