@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Falsy, working } from './misc'
+import { Falsy, getCookie, working } from './misc'
 
 const PREFIX = '/~/api/'
 
 interface ApiCallOptions { noModal?:true }
-export function apiCall(cmd: string, params?: object, options: ApiCallOptions={}) : Promise<any> {
+export function apiCall(cmd: string, params?: Record<string,any>, options: ApiCallOptions={}) : Promise<any> {
     const stop = options.noModal ? undefined : working()
+    params = addCsrf(params)
     return fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -48,7 +49,7 @@ export function apiEvents(cmd: string, params: Record<string,any>, cb:EventHandl
         if (v === undefined) continue
         processed[k] = v === true ? '1' : v
     }
-    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(processed))
+    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(addCsrf(processed)))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {
@@ -65,3 +66,10 @@ export function apiEvents(cmd: string, params: Record<string,any>, cb:EventHandl
     return source
 }
 
+function addCsrf(params?: Record<string,any>) {
+    const csrf = getCookie('csrf')
+    if (!csrf)
+        return params
+    console.log({ csrf })
+    return { csrf, ...params }
+}

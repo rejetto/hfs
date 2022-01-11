@@ -60,3 +60,12 @@ export function getOrSet<T>(o:any, k:string, creator:()=>T): T {
     return k in o ? o[k]
         : (o[k] = creator())
 }
+
+export function randomId(len = 10) {
+    // 10 chars is 51+bits, the max we can give. 8 is 41+bits
+    if (len > 10) throw Error('bad length');
+    return Math.random()
+        .toString(36)
+        .substring(2, 2+len)
+        .replace(/l/g, 'L'); // avoid confusion reading l1
+}

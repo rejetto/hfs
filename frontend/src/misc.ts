@@ -79,3 +79,15 @@ export function useForceUpdate(): [()=>void, number] {
     const [n, setN] = useState(0)
     return [ useCallback(()=> setN(n => n+1), [setN]), n ]
 }
+
+export function getCookie(name: string) {
+    const pre = name + '='
+    let decodedCookie = decodeURIComponent(document.cookie)
+    let ca = decodedCookie.split(';')
+    for (let c of ca) {
+        c = c.trim()
+        if (c.startsWith(pre))
+            return c.substring(pre.length, c.length)
+    }
+    return ''
+}

@@ -19,16 +19,24 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         let res
         try {
-            res = await apis[ctx.path](params || {}, ctx)
+            const csrf = ctx.cookies.get('csrf')
+            if (csrf && csrf !== params.csrf)  // we don't rely on SameSite cookie option because it's https-only
+                res = new ApiError(401, 'csrf')
+            else
+                res = await apis[ctx.path](params || {}, ctx)
         }
         catch(e) {
             ctx.throw(500, String(e))
         }
         if (res)
-            if (res instanceof ApiError)
-                ctx.throw(res.status, res.message)
-            else if (res instanceof Error)
-                ctx.throw(400, res)
+            if (res instanceof ApiError) {
+                ctx.body = res.message
+                ctx.status = res.status
+            }
+            else if (res instanceof Error) {
+                ctx.body = String(res)
+                ctx.status = 400
+            }
             else
                 ctx.body = res
         await next()
