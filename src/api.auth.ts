@@ -26,8 +26,9 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
         return new ApiError(406)
     if (!await verifyPassword(acc.hashed_password, password))
         return new ApiError(401)
-    if (ctx.session)
-        ctx.session.username = username
+    if (!ctx.session)
+        return new ApiError(500)
+    ctx.session.username = username
     return makeExp()
 }
 
@@ -37,7 +38,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     username = username.toLocaleLowerCase()
     const account = getAccount(username)
     if (!ctx.session)
-        return ctx.throw(500)
+        return new ApiError(500)
     if (!account) // TODO simulate fake account to prevent knowing valid usernames
         return new ApiError(401)
     if (!account.srp)
@@ -55,7 +56,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
 
 export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     if (!ctx.session)
-        return ctx.throw(500)
+        return new ApiError(500)
     const { username, sid } = ctx.session.login
     const step1 = ongoingLogins[sid]
     try {
@@ -66,17 +67,23 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     catch(e) {
         return new ApiError(401, String(e))
     }
+    finally {
+        delete ongoingLogins[sid]
+        delete ctx.session.login
+    }
 }
 
 export const logout: ApiHandler = async ({}, ctx) => {
-    if (ctx.session)
-        ctx.session.username = undefined
-    ctx.status = 200
-    return true
+    if (!ctx.session)
+        return new ApiError(500)
+    delete ctx.session.username
+    return {}
 }
 
 export const refresh_session: ApiHandler = async ({}, ctx) => {
-    return { username: ctx.session?.username, ...makeExp() }
+    if (!ctx.session)
+        return new ApiError(500)
+    return { username: ctx.session.username, ...makeExp() }
 }
 
 export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
@@ -87,7 +94,7 @@ export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
     await updateAccount(ctx.account, account => {
         account.password = newPassword
     })
-    return true
+    return {}
 }
 
 export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
@@ -101,6 +108,6 @@ export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
         saveSrpInfo(account, salt, verifier)
         delete account.hashed_password // remove leftovers
     })
-    return true
+    return {}
 }
 

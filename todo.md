@@ -3,8 +3,9 @@
 - update tests to SRP login
 - anti-csrf
 - upload
-- delete
+- upload unzipping (while streaming?)
 - https
+- delete
 - updater (stop,unzip,start)
 - search and login dialogs should push to history so that mobile can use back button to close them
 - node.comment
