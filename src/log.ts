@@ -1,6 +1,6 @@
 import Koa from 'koa'
 import { Writable } from 'stream'
-import { subscribeConfig } from './config'
+import { getConfig, subscribeConfig } from './config'
 import { createWriteStream } from 'fs'
 import * as util from 'util'
 
@@ -16,16 +16,23 @@ class Logger {
 }
 
 const accessLogger = new Logger()
+const errorLogger = new Logger()
 
 subscribeConfig({ k: 'log', defaultValue: 'access.log' }, path => {
     console.debug('log file: ' + (path || 'disabled'))
     accessLogger.setPath(path)
 })
 
+subscribeConfig({ k: 'error_log', defaultValue: 'error.log' }, path => {
+    console.debug('error log: ' + (path || 'disabled'))
+    errorLogger.setPath(path)
+})
+
 export function log(): Koa.Middleware {
     return async (ctx, next) => {  // wrapping in a function will make it use current 'mw' value
         await next()
-        const st = accessLogger.stream
+        const isError = ctx.status >= 400
+        let st = isError && !getConfig('errors_in_main_log') && errorLogger.stream || accessLogger.stream
         if (!st) return
         const format = '%s - - [%s] "%s %s HTTP/%s" %d %s\n';
         const a = new Date().toString().split(' ')

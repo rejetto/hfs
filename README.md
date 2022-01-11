@@ -36,6 +36,8 @@ Supported entries are:
 - `port` where to accept http connections. Default is 80.
 - `vfs` the files and folders you want to expose. For details see the dedicated following section.
 - `log` path of the log file. Default is `access.log`.
+- `error_log` path of the log file for errors. Default is `error.log`.
+- `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
 - `accounts` path of the accounts file. Default is `accounts.yaml`.
 - `mime` command what mime-type to be returned with some files. 
     E.g.: `"*.jpg": image/jpeg`

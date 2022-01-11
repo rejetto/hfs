@@ -21,4 +21,3 @@
 - administration interface
 - log: ip2name
 - apis in separated log file with parameters?
-- errors in separated log file
