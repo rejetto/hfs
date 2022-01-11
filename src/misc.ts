@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events'
 import fs from 'fs/promises'
 
 export function enforceFinal(sub:string, s:string) {
@@ -68,4 +69,18 @@ export function randomId(len = 10) {
         .toString(36)
         .substring(2, 2+len)
         .replace(/l/g, 'L'); // avoid confusion reading l1
+}
+
+export function onProcessExit(cb: ()=>void) {
+    onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT'], cb)
+}
+
+export function onFirstEvent(emitter:EventEmitter, events: string[], cb: ()=> void) {
+    let already = false
+    for (const e of events)
+        emitter.on(e, () => {
+            if (already) return
+            already = true
+            cb()
+        })
 }

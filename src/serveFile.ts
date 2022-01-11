@@ -36,6 +36,7 @@ export function serveFile(source:string, mime?:string) : Koa.Middleware {
             return ctx.status = METHOD_NOT_ALLOWED
         const stats = await fs.stat(source)
         ctx.set('Last-Modified', stats.mtime.toUTCString())
+        ctx.fileSource = source
         ctx.status = 200
         if (ctx.fresh)
             return ctx.status = 304

@@ -6,8 +6,7 @@ import path from 'path'
 import { PLUGINS_PUB_URI } from './const'
 import mime from 'mime-types'
 import Koa from 'koa'
-import { WatchLoadCanceller } from './watchLoad'
-import { getOrSet, wantArray } from './misc'
+import { getOrSet, onProcessExit, wantArray } from './misc'
 
 const PATH = 'plugins'
 
@@ -18,13 +17,18 @@ export function pluginsMiddleware(): Koa.Middleware {
         const { path } = ctx
         const after = []
         // run middleware plugins
-        for (const pl of Object.values(plugins)) {
-            const res = await pl.middleware?.(ctx)
-            if (res === true)
-                ctx.pluginStopped = true
-            if (typeof res === 'function')
-                after.push(res)
-        }
+        for (const k in plugins)
+            try {
+                const pl = plugins[k]
+                const res = await pl.middleware?.(ctx)
+                if (res === true)
+                    ctx.pluginStopped = true
+                if (typeof res === 'function')
+                    after.push(res)
+            }
+            catch(e){
+                console.log('error middleware plugin', k)
+            }
         // expose public plugins' files
         if (path.startsWith(PLUGINS_PUB_URI)) {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
@@ -49,9 +53,15 @@ catch(e){
 }
 
 class Plugin {
+    js: any
     constructor(readonly k:string, private data:any, private unwatch:()=>void){
+        if (!data) return
+        // if a previous instance is present, we are going to overwrite it, but first call its unload callback
+        try { plugins[k]?.data?.unload?.() }
+        catch(e){
+            console.debug('error unloading plugin', k, String(e))
+        }
         plugins[k] = this // track this
-
         // some validation
         for (const k of ['frontend_css', 'frontend_js']) {
             const v = data[k]
@@ -62,24 +72,23 @@ class Plugin {
                 console.warn('invalid', k)
             }
         }
-        let v = data.middleware
-        if (v && !(v instanceof Function)) {
-            delete data.middleware
-            console.warn('invalid middleware')
-        }
     }
     get middleware(): undefined | PluginMiddleware {
-        return this.data.middleware
+        return this.data?.middleware
     }
     get frontend_css(): undefined | string[] {
-        return this.data.frontend_css
+        return this.data?.frontend_css
     }
     get frontend_js(): undefined | string[] {
-        return this.data.frontend_js
+        return this.data?.frontend_js
     }
 
     unload() {
         console.log('unloading plugin', this.k)
+        try { this.data?.unload?.() }
+        catch(e) {
+            console.debug('error unloading plugin', this.k, String(e))
+        }
         delete plugins[this.k]
         this.unwatch()
     }
@@ -92,58 +101,27 @@ type CallMeAfter = ()=>void
 async function rescan() {
     console.debug('scanning plugins')
     const found = []
-    for (const f of await glob(PATH+'/*/plugin.yaml')) {
+    for (let f of await glob(PATH+'/*/plugin.js')) {
         const k = f.split('/').slice(-2)[0]
         if (k.endsWith('-disabled')) continue
         found.push(k)
         if (plugins[k]) // already loaded
             continue
-        const unwatch = watchLoad(f, async data => {
-            console.log('loading plugin', k)
-            const importCanceller = await resolveImport(data, path.resolve(PATH)+'/'+k+'/')
-            new Plugin(k, data, () => {
-                unwatch()
-                importCanceller()
-            })
+        f = path.resolve(f) // without this, import won't work
+        const unwatch = watchLoad(f, async () => {
+            try {
+                console.log('loading plugin', k)
+                const data = await import(f)
+                deleteModule(require.resolve(f)) // avoid caching
+                new Plugin(k, data, unwatch)
+            } catch (e) {
+                console.log('plugin error importing', k, e)
+            }
         })
     }
     for (const k in plugins)
         if (!found.includes(k))
             plugins[k].unload()
-}
-
-const re = /^ *import\((.+)\) *$/
-async function resolveImport(x: Record<string,any>, basePath: string) {
-    const cancellers: WatchLoadCanceller[] = []
-    for (const k in x) {
-        let v = x[k]
-        if (!v)
-            continue
-        if (typeof v === 'object')
-            await resolveImport(v, basePath)
-        else if (typeof v === 'string' && re.test(v)) {
-            const fn = re.exec(v)![1].replace(/\\/g, '//')
-            if (fn.includes('..') || fn.startsWith('/') || fn.includes(':'))
-                continue
-            const path = basePath + fn
-            await new Promise(resolve => // wait for first execution, so that the caller sees imported stuff instead of string
-                cancellers.push(watchLoad(path, async () => {
-                    try {
-                        x[k] = (await import(path)).default
-                        deleteModule(require.resolve(path)) // avoid caching
-                        console.log('plugin imported', fn)
-                    } catch (e) {
-                        console.log('plugin error importing', fn, String(e))
-                        delete x[k]
-                    }
-                    resolve(0)
-                })) )
-        }
-    }
-    return () => {
-        for (const c of cancellers)
-            c()
-    }
 }
 
 function deleteModule(id: string) {
@@ -167,3 +145,8 @@ function deleteModule(id: string) {
                 recur(child.id)
     }
 }
+
+onProcessExit(() => {
+    for (const pl of Object.values(plugins))
+        pl.unload()
+})

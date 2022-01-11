@@ -118,16 +118,21 @@ but nothing is preventing a single plug-in from doing both tasks.
 
 ## For plug-in makers
 
-What a plug-in does is declared in its `plugin.yaml` file.
+A plug-in must have a `plugin.yaml` file, even if empty.
 Supported keys are:
-
-- `middleware` javascript file exporting a function that will be used as a middleware: it can interfere with http activity. 
-
-    If the function returns `true`, other executions on this http request will be interrupted.
-    Return another function if you want to execute it in the "upstream" of middlewares.
 
 - `frontend_css` path to one or more css files that you want the frontend to load.
 
 - `frontend_js` path to one or more js files that you want the frontend to load.
 
 Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLPUGIN_NAME/FILENAME`.
+
+If a file `plugin.js` is also present, it will be required as a javascript module.
+The js module can export some properties. Supported ones are:
+
+- `middleware: function(Context): undefined | true` a function that will be used as a middleware: it can interfere with http activity.
+
+  To know what the Context contains please refer to [Koa's documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md). 
+  If the function returns `true`, other executions on this http request will be interrupted.
+  Return another function if you want to execute it in the "upstream" of middlewares.
+  

@@ -94,6 +94,10 @@ app.on('error', err => {
     console.error('server error', err)
 })
 
+process.on('uncaughtException', err => {
+    console.error(err)
+})
+
 let srv: Server
 subscribeConfig({ k:'port', defaultValue: 80 }, async (port: number) => {
     await new Promise(resolve => {
