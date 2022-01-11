@@ -27,6 +27,7 @@ export async function login(username:string, password:string) {
         }
         catch(e){
             console.debug(String(e))
+            stopWorking()
             await alertDialog("Server identity cannot be trusted. Login aborted.", 'error')
             return
         }
@@ -36,6 +37,7 @@ export async function login(username:string, password:string) {
         state.username = username
     }
     catch(err) {
+        stopWorking()
         if (err instanceof ApiError)
             if (err.code === 401)
                 err = 'Invalid credentials'
