@@ -118,21 +118,21 @@ but nothing is preventing a single plug-in from doing both tasks.
 
 ## For plug-in makers
 
-A plug-in must have a `plugin.yaml` file, even if empty.
-Supported keys are:
+A plug-in must have a `plugin.js` file in its own folder.
+This file is javascript module that is supposed to expose one or more of the supported keys:
 
-- `frontend_css` path to one or more css files that you want the frontend to load.
+- `frontend_css` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
 
-- `frontend_js` path to one or more js files that you want the frontend to load.
-
-Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLPUGIN_NAME/FILENAME`.
-
-If a file `plugin.js` is also present, it will be required as a javascript module.
-The js module can export some properties. Supported ones are:
+- `frontend_js` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
 
 - `middleware: function(Context): undefined | true` a function that will be used as a middleware: it can interfere with http activity.
 
-  To know what the Context contains please refer to [Koa's documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md). 
-  If the function returns `true`, other executions on this http request will be interrupted.
-  Return another function if you want to execute it in the "upstream" of middlewares.
-  
+  To know what the Context object contains please refer to [Koa's documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
+  You don't get the `next` parameter as in standard Koa's middlewares because this is different, but we are now explaining how to achieve the same results.
+  To interrupt other middlewares on this http request, return `true`.
+  If you want to execute something in the "upstream" of middlewares, return a function.
+
+Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`.
+
+If your plugin need to get some configuration, it should require the `getPluginConfig(pluginName:string)` function.
+The content will be read from the main config file, under the `plugins_config` property.

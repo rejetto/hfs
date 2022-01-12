@@ -2,11 +2,12 @@ import { createReadStream, watch } from 'fs'
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import path from 'path'
+import { resolve } from 'path'
 import { PLUGINS_PUB_URI } from './const'
 import mime from 'mime-types'
 import Koa from 'koa'
 import { getOrSet, onProcessExit, wantArray } from './misc'
+import { getConfig, subscribeConfig } from './config'
 
 const PATH = 'plugins'
 
@@ -18,7 +19,6 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginKey:string)=> T
 
 export function pluginsMiddleware(): Koa.Middleware {
     return async (ctx, next) => {
-        const { path } = ctx
         const after = []
         // run middleware plugins
         for (const k in plugins)
@@ -31,14 +31,18 @@ export function pluginsMiddleware(): Koa.Middleware {
                     after.push(res)
             }
             catch(e){
-                console.log('error middleware plugin', k)
+                console.log('error middleware plugin', k, String(e))
+                console.debug(e)
             }
         // expose public plugins' files
-        if (path.startsWith(PLUGINS_PUB_URI)) {
+        const { path } = ctx
+        if (!ctx.pluginStopped && path.startsWith(PLUGINS_PUB_URI)) {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
-            a.splice(1,0,'public')
-            ctx.type = mime.lookup(path) || ''
-            return ctx.body = createReadStream(PATH + '/' + a.join('/'))
+            if (plugins.hasOwnProperty(a[0])) { // do it only if the plugin is loaded
+                a.splice(1,0,'public')
+                ctx.type = mime.lookup(path) || ''
+                ctx.body = createReadStream(resolve(PATH, a.join('/')))
+            }
         }
         if (!ctx.pluginStopped)
             await next()
@@ -47,25 +51,28 @@ export function pluginsMiddleware(): Koa.Middleware {
     }
 }
 
-try {
-    const debounced = _.debounce(rescan, 1000)
-    watch(PATH, debounced)
-    debounced()
-}
-catch(e){
-    console.debug('plugins not found')
-}
+subscribeConfig({ k:'disable_plugins', defaultValue:[] }, () => {
+    try {
+        const debounced = _.debounce(rescan, 1000)
+        watch(PATH, debounced)
+        debounced()
+    }
+    catch(e){
+        console.debug('plugins not found')
+    }
+})
 
 class Plugin {
     js: any
     constructor(readonly k:string, private data:any, private unwatch:()=>void){
-        if (!data) return
+        if (!data) throw 'invalid data'
         // if a previous instance is present, we are going to overwrite it, but first call its unload callback
         try { plugins[k]?.data?.unload?.() }
         catch(e){
             console.debug('error unloading plugin', k, String(e))
         }
         plugins[k] = this // track this
+        this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
         // some validation
         for (const k of ['frontend_css', 'frontend_js']) {
             const v = data[k]
@@ -105,21 +112,27 @@ type CallMeAfter = ()=>void
 async function rescan() {
     console.debug('scanning plugins')
     const found = []
+    const disable_plugins = wantArray(getConfig('disable_plugins'))
     for (let f of await glob(PATH+'/*/plugin.js')) {
         const k = f.split('/').slice(-2)[0]
-        if (k.endsWith('-disabled')) continue
+        if (k.endsWith('-disabled') || disable_plugins.includes(k)) continue
         found.push(k)
         if (plugins[k]) // already loaded
             continue
-        f = path.resolve(f) // without this, import won't work
+        f = resolve(f) // without this, import won't work
         const unwatch = watchLoad(f, async () => {
             try {
                 console.log('loading plugin', k)
                 const data = await import(f)
                 deleteModule(require.resolve(f)) // avoid caching
                 new Plugin(k, data, unwatch)
+                if (data.api)
+                    Object.assign(data.api, {
+                        getConfig: (cfgKey: string) =>
+                            getConfig('plugins_config')?.[k]?.[cfgKey]
+                    })
             } catch (e) {
-                console.log('plugin error importing', k, e)
+                console.log('plugin error:', e)
             }
         })
     }

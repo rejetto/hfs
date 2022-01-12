@@ -5,6 +5,7 @@
 #error_log:
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
+disable_plugins: [ 'theme-example', 'middleware-example' ]
 vfs:
   children:
     - name: f1
