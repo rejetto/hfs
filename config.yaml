@@ -5,7 +5,7 @@
 #error_log:
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
-disable_plugins: [ 'theme-example', 'middleware-example' ]
+disable_plugins: [ 'theme-example', 'middleware-example', 'download-counter' ]
 plugins_config:
   middleware-example:
     message: ciao

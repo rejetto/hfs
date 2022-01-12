@@ -1,5 +1,4 @@
-# To do
-- download counter (as plugin?)
+  To do
 - update tests to SRP login
 - upload
 - upload unzipping (while streaming?)
