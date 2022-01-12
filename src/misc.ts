@@ -24,10 +24,10 @@ export function prefix(pre:string, v:string|number, post:string='') {
 }
 
 export function setHidden(dest: object, src:object) {
-    Object.defineProperties(dest, objSameKeys(src, value => ({ enumerable:false, value })))
+    Object.defineProperties(dest, objSameKeys(src as any, value => ({ enumerable:false, value })))
 }
 
-export function objSameKeys(src: object, newValue:(value:any,key:string)=>any) {
+export function objSameKeys<T,R>(src: Record<string,T>, newValue:(value:T,key:string)=>R) {
     return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k)]))
 }
 

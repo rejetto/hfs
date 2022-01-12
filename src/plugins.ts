@@ -10,7 +10,11 @@ import { getOrSet, onProcessExit, wantArray } from './misc'
 
 const PATH = 'plugins'
 
-export const plugins: Record<string, Plugin> = {}
+const plugins: Record<string, Plugin> = {}
+
+export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginKey:string)=> T) {
+    return _.map(plugins, cb)
+}
 
 export function pluginsMiddleware(): Koa.Middleware {
     return async (ctx, next) => {
