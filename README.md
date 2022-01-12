@@ -94,6 +94,7 @@ gather multiple accounts and refer to them collectively as `group1`, so you can 
 Other options you can define as properties of an account:
 
 - `ignore_limits` to ignore speed limits. Default is `false`.
+- `redirect` provide a URL if you want the user to be redirected upon login. Default is none. 
 
 # Building instructions
 

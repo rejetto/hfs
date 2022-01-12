@@ -8,7 +8,6 @@
 - search and login dialogs should push to history so that mobile can use back button to close them
 - node.comment
 - config: max connections (total/per-ip)
-- account.redirect
 - config: bans
 - config: min disk space
 - thumbnails support

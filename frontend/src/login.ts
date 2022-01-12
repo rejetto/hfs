@@ -35,6 +35,7 @@ export async function login(username:string, password:string) {
         // login was successful, update state
         sessionRefresher({ username, exp:res.exp })
         state.username = username
+        return res
     }
     catch(err) {
         stopWorking()

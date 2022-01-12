@@ -45,7 +45,7 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
     if (!ctx.session)
         return new ApiError(500)
     loggedIn(ctx, username)
-    return makeExp()
+    return { ...makeExp(), redirect: acc.redirect }
 }
 
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
@@ -78,7 +78,8 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
         loggedIn(ctx, username)
-        return { proof: String(M2), ...makeExp() }
+        const acc = getAccount(username)
+        return { proof: String(M2), redirect: acc?.redirect, ...makeExp() }
     }
     catch(e) {
         return new ApiError(401, String(e))

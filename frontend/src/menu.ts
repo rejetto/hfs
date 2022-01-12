@@ -6,6 +6,7 @@ import { hIcon, prefix } from './misc'
 import { login } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
+import { useNavigate } from 'react-router-dom'
 
 export function MenuPanel() {
     const { remoteSearch, stopSearch, stoppedSearch, listFilter } = useSnapState()
@@ -98,6 +99,7 @@ export function MenuButton({ icon, label, toggled, onClick, className = '' }: Me
 
 function LoginButton() {
     const snap = useSnapState()
+    const navigate = useNavigate()
     return MenuButton(snap.username ? {
         icon: 'user',
         label: snap.username,
@@ -110,7 +112,9 @@ function LoginButton() {
             if (!user) return
             const password = await promptDialog('Password', { type: 'password' })
             if (!password) return
-            await login(user, password)
+            const res = await login(user, password)
+            if (res.redirect)
+                navigate(res.redirect)
         }
     })
 }

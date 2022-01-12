@@ -17,6 +17,7 @@ interface Account {
     srp?: string
     belongs?: string[]
     ignore_limits?: boolean
+    redirect?: string
 }
 interface Accounts { [username:string]: Account }
 
