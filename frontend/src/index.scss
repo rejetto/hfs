@@ -27,11 +27,12 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
+body, button, select { font-size: 12pt; }
 #root {
     max-width: 50em;
     margin: auto;
 }
-#root, input {
+body, input {
     color: var(--text);
 }
 code {
@@ -45,7 +46,7 @@ input, select {
     color: var(--good-contrast);
 }
 input[type=checkbox] {
-    vertical-align: text-bottom;
+    margin-right: 0.5em;
 }
 
 .icon {
@@ -138,7 +139,7 @@ ul.dir {
         list-style-type: none;
         margin-bottom: 0.3em;
         padding: 0.3em;
-        border-top: 1px solid #ddd;
+        border-top: 1px solid var(--button-bg);
 
         & a {
             word-break: break-word;
@@ -171,7 +172,6 @@ ul.dir {
 
     & button {
         margin: 0.1em;
-        font-size: 1.1em;
     }
 }
 #searched {
@@ -187,7 +187,6 @@ button label {
     cursor: inherit;
     margin-left: 0.5em;
 }
-select { font-size:110% }
 
 .dialog-backdrop.working {
     font-size: 5em;
@@ -195,7 +194,7 @@ select { font-size:110% }
 }
 
 @media (max-width: 40em) {
-    body { font-size: 120%; }
+    body, button, select { font-size: 16pt; }
     #menu-bar {
         display: flex;
         justify-content: space-between;
