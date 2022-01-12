@@ -1,6 +1,6 @@
 import proxy from 'koa-better-http-proxy'
 import Koa from 'koa'
-import { readFile } from 'fs'
+import fs from 'fs/promises'
 import { DEV, FRONTEND_URI, METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
 import { serveFile } from './serveFile'
 
@@ -30,12 +30,12 @@ function serveStaticFrontend() : Koa.Middleware {
         if (method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
         if (path.endsWith('/')) {
-            ctx.body = replaceFrontEndRes(String(await filePromise(BASE + 'index.html')))
+            ctx.body = replaceFrontEndRes(String(await fs.readFile(BASE + 'index.html')))
             ctx.type = 'html'
         } else {
             const fullPath = BASE + path.slice(1)
             if (path.includes('static/js')) {// webpack
-                ctx.body = String(await filePromise(fullPath))
+                ctx.body = String(await fs.readFile(fullPath))
                     .replace(/(return")(static\/)/g, '$1' + FRONTEND_URI.substring(1) + '$2')
                 ctx.type = 'js'
             }
@@ -44,12 +44,6 @@ function serveStaticFrontend() : Koa.Middleware {
         }
         await next()
     }
-}
-
-function filePromise(path: string) : Promise<Buffer> {
-    return new Promise((resolve, reject) =>
-        readFile(path, (err,res) =>
-            err ? reject(err) : resolve(res) ))
 }
 
 function replaceFrontEndRes(body: string) {

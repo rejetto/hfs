@@ -94,6 +94,7 @@ subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
         const a = data?.accounts
         if (!a)
             return console.error('accounts file must contain "accounts" key')
+        console.debug('#accounts', Object.keys(a).length)
         await applyAccounts(a)
     })
 })
