@@ -118,21 +118,50 @@ but nothing is preventing a single plug-in from doing both tasks.
 
 ## For plug-in makers
 
+You should find some examples within your installation.
+
 A plug-in must have a `plugin.js` file in its own folder.
 This file is javascript module that is supposed to expose one or more of the supported keys:
 
-- `frontend_css` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
-
-- `frontend_js` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
-
-- `middleware: function(Context): undefined | true` a function that will be used as a middleware: it can interfere with http activity.
+- `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
+- `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
+- `middleware: (Context) => void | true` a function that will be used as a middleware: it can interfere with http activity.
 
   To know what the Context object contains please refer to [Koa's documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
   You don't get the `next` parameter as in standard Koa's middlewares because this is different, but we are now explaining how to achieve the same results.
   To interrupt other middlewares on this http request, return `true`.
   If you want to execute something in the "upstream" of middlewares, return a function.
+  
+- `unload: () => void` callback called when unloading a plugin. This is a good place for example to clearInterval().
+- `onDirEntry: ({ entry: DirEntry, listPath: string }) => void | false` by providing this callback you can manipulate the record
+  that is sent to the frontend (`entry`), or you can return false to exclude this entry from the results.
 
 Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`.
 
-If your plugin need to get some configuration, it should require the `getPluginConfig(pluginName:string)` function.
+If your plugin needs to get some configuration, it should require the `getPluginConfig(pluginName:string)` function.
 The content will be read from the main config file, under the `plugins_config` property.
+
+### Front-end specific
+
+The following information applies to the default front-end, and may not apply to a custom one.
+
+#### Javascript
+Once your script is loaded into the frontend (via `frontend_js`), you will have access to the `HFS` object in the global scope.
+There you'll find `HFS.onEvent` function that is the base of communication.
+
+`onEvent(eventName:string, callback: (object) => any)` your callback will be called on the specified event.
+Depending on the event you'll have an object with parameters in it, and may return some output. Refer to the specific event for further information.
+
+This is a list of available frontend events, with respective parameters and output.
+
+- `additionalEntryProps` 
+  - parameters `{ entry: Entry }`
+  
+    The `Entry` type is an object with the following properties:
+    - `n: string` name of the entry, including relative path in some cases.
+    - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
+    - `t?: Date` generic timestamp, combination of creation-time and modified-time.
+    - `c?: Date` creation-time.
+    - `m?: Date` modified-time.
+  - output `string | void`
+  - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-props` container.  

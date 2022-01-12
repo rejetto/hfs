@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Falsy, getCookie, working } from './misc'
+import { Dict, Falsy, getCookie, working } from './misc'
 
 const PREFIX = '/~/api/'
 
 interface ApiCallOptions { noModal?:true }
-export function apiCall(cmd: string, params?: Record<string,any>, options: ApiCallOptions={}) : Promise<any> {
+export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) : Promise<any> {
     const stop = options.noModal ? undefined : working()
     params = addCsrf(params)
     return fetch(PREFIX+cmd, {
@@ -42,7 +42,7 @@ export function useApi(cmd: string | Falsy, params?: object) : any {
 
 type EventHandler = (type:string, data?:any) => void
 
-export function apiEvents(cmd: string, params: Record<string,any>, cb:EventHandler) {
+export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     const processed: Record<string,string> = {}
     for (const k in params) {
         const v = params[k]
@@ -66,10 +66,6 @@ export function apiEvents(cmd: string, params: Record<string,any>, cb:EventHandl
     return source
 }
 
-function addCsrf(params?: Record<string,any>) {
-    const csrf = getCookie('csrf')
-    if (!csrf)
-        return params
-    console.log({ csrf })
-    return { csrf, ...params }
+function addCsrf(params?: Dict) {
+    return { csrf: getCookie('csrf'), ...params }
 }

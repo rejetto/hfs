@@ -1,9 +1,11 @@
-import { createElement as h, useCallback, useState } from 'react'
+import { createElement as h, HTMLAttributes, useCallback, useMemo, useState } from 'react'
 import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
 
 export type Falsy = false | null | undefined | '' | 0
+
+export type Dict = Record<string, any>
 
 export function hIcon(name: string, props?:any) {
     return h(Icon, { name, ...props })
@@ -90,4 +92,28 @@ export function getCookie(name: string) {
             return c.substring(pre.length, c.length)
     }
     return ''
+}
+
+export function Html({ code, ...rest }:{ code:string } & HTMLAttributes<any>) {
+    const o = useMemo(() => ({ __html: code }), [code])
+    if (!code)
+        return null
+    return h('span', { ...rest, dangerouslySetInnerHTML: o })
+}
+
+export function hfsEvent(name: string, params?:Dict) {
+    const output: any[] = []
+    document.dispatchEvent(new CustomEvent('hfs.'+name, { detail:{ params, output } }))
+    return output
+}
+
+const HFS: any = (window as any).HFS = {}
+
+HFS.onEvent = (name: string, cb: (params:any, output:any) => any) => {
+    document.addEventListener('hfs.' + name, ev => {
+        const { params, output } = (ev as CustomEvent).detail
+        const res = cb(params, output)
+        if (res !== undefined && Array.isArray(output))
+            output.push(res)
+    })
 }

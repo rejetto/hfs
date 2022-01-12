@@ -6,6 +6,9 @@
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
 disable_plugins: [ 'theme-example', 'middleware-example' ]
+plugins_config:
+  middleware-example:
+    message: ciao
 vfs:
   children:
     - name: f1

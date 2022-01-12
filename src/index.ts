@@ -19,7 +19,7 @@ import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
 import { getAccount, getCurrentUsername } from './perm'
 
-const BUILD_TIMESTAMP = ""
+const BUILD_TIMESTAMP = "-"
 
 export const SESSION_DURATION = 30*60_000
 
