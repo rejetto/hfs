@@ -57,5 +57,8 @@ function sessionRefresher({ exp, username }:{ exp:string, username:string }) {
 }
 
 export function logout(){
-    return apiCall('logout').then(()=> state.username = '')
+    return apiCall('logout').then(()=> {
+        clearInterval(refresher)
+        state.username = ''
+    })
 }
