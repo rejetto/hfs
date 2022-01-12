@@ -4,6 +4,7 @@ import createSSE from './sse'
 import { basename } from 'path'
 import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
+import { mapPlugins } from './plugins'
 
 export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await vfs.urlToNode(path || '/', ctx)
@@ -19,6 +20,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
     const match = (s?:string) => !s || !search || re.test(s)
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const sseSrv = sse ? createSSE(ctx) : null
+    const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const res = produceEntries()
     return !sseSrv && { list: await res }
 
@@ -32,6 +34,14 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
             const entry = await nodeToDirEntry(sub)
             if (!entry)
                 continue
+            const cbParams = { entry, ctx, listPath:path, node:sub }
+            try {
+                if (onDirEntryHandlers.some(cb => cb(cbParams) === false))
+                    continue
+            }
+            catch(e) {
+                console.log('a plugin with onDirEntry is causing problems:', e)
+            }
             if (offset) {
                 --offset
                 continue
@@ -55,7 +65,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
     }
 }
 
-interface DirEntry { n:string, s?:number, m?:Date, c?:Date }
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date }
 
 async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
     try {

@@ -8,13 +8,20 @@ import mime from 'mime-types'
 import Koa from 'koa'
 import { getOrSet, onProcessExit, wantArray } from './misc'
 import { getConfig, subscribeConfig } from './config'
+import { DirEntry } from './api.file_list'
+import { VfsNode } from './vfs'
 
 const PATH = 'plugins'
 
 const plugins: Record<string, Plugin> = {}
 
-export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginKey:string)=> T) {
-    return _.map(plugins, cb)
+export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T) {
+    return _.map(plugins, (pl,plName) => {
+        try { return cb(pl,plName) }
+        catch(e) {
+            console.log('plugin error', plName, String(e))
+        }
+    }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
 
 export function pluginsMiddleware(): Koa.Middleware {
@@ -62,6 +69,10 @@ subscribeConfig({ k:'disable_plugins', defaultValue:[] }, () => {
     }
 })
 
+// return false to ask to exclude this entry from results
+interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
+type OnDirEntry = (params:OnDirEntryParams) => void | false
+
 class Plugin {
     js: any
     constructor(readonly k:string, private data:any, private unwatch:()=>void){
@@ -93,6 +104,9 @@ class Plugin {
     get frontend_js(): undefined | string[] {
         return this.data?.frontend_js
     }
+    get onDirEntry(): undefined | OnDirEntry {
+        return this.data?.onDirEntry
+    }
 
     unload() {
         console.log('unloading plugin', this.k)
@@ -122,7 +136,7 @@ async function rescan() {
         f = resolve(f) // without this, import won't work
         const unwatch = watchLoad(f, async () => {
             try {
-                console.log('loading plugin', k)
+                console.log(plugins[k] ? 'reloading plugin' : 'loading plugin', k)
                 const data = await import(f)
                 deleteModule(require.resolve(f)) // avoid caching
                 new Plugin(k, data, unwatch)
