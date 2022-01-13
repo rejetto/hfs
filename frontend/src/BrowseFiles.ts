@@ -61,14 +61,14 @@ function isMobile() {
 function Entry(entry: DirEntry & { hidden:boolean, midnight: Date }) {
     let { n, hidden, isFolder } = entry
     const base = usePath()
+    const href = fixUrl(n)
     const containerDir = isFolder ? '' : n.substring(0, n.lastIndexOf('/')+1)
     if (containerDir)
         n = n.substring(containerDir.length)
-    const href = fix(containerDir + n)
     return h('li', { className:isFolder ? 'folder' : 'file', style:hidden ? { display:'none' } : null },
         isFolder ? h(Link, { to: base+href }, hIcon('folder'), n)
             : h(Fragment, {},
-                containerDir && h(Link, { to: base+fix(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
+                containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
                 h('a', { href }, !containerDir && hIcon('file'),  n)
             ),
         h(EntryProps, entry),
@@ -76,7 +76,7 @@ function Entry(entry: DirEntry & { hidden:boolean, midnight: Date }) {
     )
 }
 
-function fix(s:string) {
+function fixUrl(s:string) {
     return s.replace(/#/g, encodeURIComponent)
 }
 
