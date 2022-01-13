@@ -136,11 +136,35 @@ This file is javascript module that is supposed to expose one or more of the sup
 - `unload: () => void` callback called when unloading a plugin. This is a good place for example to clearInterval().
 - `onDirEntry: ({ entry: DirEntry, listPath: string }) => void | false` by providing this callback you can manipulate the record
   that is sent to the frontend (`entry`), or you can return false to exclude this entry from the results.
+- `api: object` if your plugin exports an empty object with name `api`, it will be filled with useful functions.
+  You'll just need this line
+  ```js
+  const api = exports.api = {}
+  ```
+  Now let's have a look at what you'll find inside.
+  - `getConfig(key: string): any` this is the way to go if you need some configuration to do your job.
+    
+    Eg: you want a `message` text. This should be put by the user in the main config file, under the `plugins_config` property.
+    If for example your plugin is called `banner`, in the `config.yaml` you should have
+    ```yaml
+    plugins_config:
+      banner:
+        message: Hi there!
+    ```
+    Now you can use `api.getConfig('message')` to read it.
+
+  Beware: `api` object is filled just after plugin initialization. So it will be empty if you use it right-away, but it will
+  be good if you use it inside a callback. If you need to do something with it at the very start, then please make your code like this
+  ```js
+  
+  setTimeout(() => { // delay execution just a bit
+    console.log('getting my message correctly', api.getConfig('message')) // this is good
+  })
+  //console.log( api.getConfig('message') ) // this would fail because the api object is still empty
+  ```
 
 Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`.
 
-If your plugin needs to get some configuration, it should require the `getPluginConfig(pluginName:string)` function.
-The content will be read from the main config file, under the `plugins_config` property.
 
 ### Front-end specific
 
