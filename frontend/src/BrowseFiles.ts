@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
-import { createContext, createElement as h, Fragment, useContext, useEffect, useMemo } from 'react'
-import { formatBytes, hError, hIcon, Html, useForceUpdate, hfsEvent } from './misc'
+import { createContext, createElement as h, Fragment, useContext, useEffect, useMemo, useState } from 'react'
+import { formatBytes, hError, hIcon, Html, hfsEvent } from './misc'
 import { Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
@@ -43,15 +43,19 @@ function FilesList() {
 }
 
 function useMidnight() {
-    const midnight = new Date()
-    midnight.setHours(0,0,0,0)
-    const [forceUpdate] = useForceUpdate()
-    useEffect(()=>{
-        const nextMidnight = new Date(midnight) // as an optimization we calculate this only once per list
-        nextMidnight.setDate( 1 + nextMidnight.getDate() )
-        setTimeout(forceUpdate, +nextMidnight - +midnight)
-    },[])
+    const [midnight, setMidnight] = useState(calcMidnight)
+    useEffect(() => {
+        setTimeout(()=> setMidnight(calcMidnight()), 10 * 60_000) // refresh every 10 minutes
+    }, [])
     return midnight
+
+    function calcMidnight() {
+        const recent = new Date()
+        recent.setHours(recent.getHours() - 6)
+        const midnight = new Date()
+        midnight.setHours(0,0,0,0)
+        return recent < midnight ? recent : midnight
+    }
 }
 
 function isMobile() {
