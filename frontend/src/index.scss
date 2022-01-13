@@ -201,6 +201,11 @@ button label {
         align-content: stretch;
         & button label { display: none } /* icons only */
     }
+    .breadcrumb {
+        word-break: break-all; /* solves with very long names without spaces. 'break-word' is nicer but doesn't handle worst
+              cases like /gear/mininova/x/LOOPMASTERS%204Gig%20Pack/LOOPMASTERS_2015/BASS_HOUSE_AND_GARAGE_2_DEMOS/SOUNDS_AND_FX/
+              */
+    }
     .breadcrumb .icon {
         font-size:24px;
     }
