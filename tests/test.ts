@@ -27,7 +27,10 @@ describe('basics', () => {
     it('website', req('/f1/page/', s => s.includes('This is a test')))
     it('missing perm', req('/for-admins/', 404))
     it('proxy', req('/proxy', s => s.includes('github')))
-    it('login', req('/~/api/login', 200, {
+    it('zip+head', req('/f1/?get=zip',
+        (data, res) => !data && res.headers['content-length'] === '13058',
+        { method:'HEAD' }) )
+    it('login', req('/~/api/login', 406, { // by default we don't support clear-text login
         data: { username, password }
     }))
 })

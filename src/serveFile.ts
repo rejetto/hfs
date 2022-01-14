@@ -29,7 +29,7 @@ export function serveFile(source:string, mime?:string) : Koa.Middleware {
             ctx.type = mime
         if (ctx.method === 'OPTIONS') {
             ctx.status = NO_CONTENT
-            ctx.set({ Allow: 'OPTIONS, GET' })
+            ctx.set({ Allow: 'OPTIONS, GET, HEAD' })
             return
         }
         if (ctx.method !== 'GET')
