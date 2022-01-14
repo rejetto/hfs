@@ -29,6 +29,9 @@ export function throttler(): Koa.Middleware {
             if (!--ipGroup.count) // any left?
                 delete ip2group[ctx.ip]
         })
+        const bak = ctx.response.length // preserve
         ctx.body = ctx.body.pipe(ts)
+        if (bak)
+            ctx.response.length = bak
     }
 }

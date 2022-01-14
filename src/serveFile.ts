@@ -40,8 +40,11 @@ export function serveFile(source:string, mime?:string) : Koa.Middleware {
         ctx.status = 200
         if (ctx.fresh)
             return ctx.status = 304
-        if (!range)
-            return ctx.body = createReadStream(source)
+        if (!range) {
+            ctx.body = createReadStream(source)
+            ctx.response.length = stats.size
+            return
+        }
         const ranges = range.split('=')[1]
         if (ranges.includes(','))
             return ctx.throw(400, 'multi-range not supported')
@@ -49,7 +52,7 @@ export function serveFile(source:string, mime?:string) : Koa.Middleware {
         if (!bytes?.length)
             return ctx.throw(400, 'bad range')
         const max = stats.size - 1
-        let start = Number(bytes[0])
+        let start = Number(bytes[0]) || 0
         let end = Number(bytes[1]) || max
         if (end > max || start > max) {
             ctx.status = 416
@@ -60,5 +63,6 @@ export function serveFile(source:string, mime?:string) : Koa.Middleware {
         ctx.status = 206
         ctx.set('Content-Range', `bytes ${start}-${end}/${stats.size}`)
         ctx.body = createReadStream(source, { start, end })
+        ctx.response.length = end - start + 1
     }
 }
