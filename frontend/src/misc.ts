@@ -1,4 +1,4 @@
-import { createElement as h, HTMLAttributes, useCallback, useMemo, useState } from 'react'
+import { createElement as h, useCallback, useState } from 'react'
 import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
@@ -92,13 +92,6 @@ export function getCookie(name: string) {
             return c.substring(pre.length, c.length)
     }
     return ''
-}
-
-export function Html({ code, ...rest }:{ code:string } & HTMLAttributes<any>) {
-    const o = useMemo(() => ({ __html: code }), [code])
-    if (!code)
-        return null
-    return h('span', { ...rest, dangerouslySetInnerHTML: o })
 }
 
 export function hfsEvent(name: string, params?:Dict) {

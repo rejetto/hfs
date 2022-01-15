@@ -1,5 +1,5 @@
 import { hIcon } from './misc'
-import { createElement as h, ReactNode } from 'react'
+import { createElement as h, HTMLAttributes, ReactNode, useMemo } from 'react'
 
 export function Spinner() {
     return hIcon('spinner', { className:'spinner' })
@@ -42,4 +42,11 @@ export function Select({ onChange, value, options, ...props }:SelectProps) {
         value,
         ...props,
     }, options.map(({ value, label }) => h('option', { key:value, value }, label)))
+}
+
+export function Html({ code, ...rest }:{ code:string } & HTMLAttributes<any>) {
+    const o = useMemo(() => ({ __html: code }), [code])
+    if (!code)
+        return null
+    return h('span', { ...rest, dangerouslySetInnerHTML: o })
 }
