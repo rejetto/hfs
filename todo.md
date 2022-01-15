@@ -1,5 +1,4 @@
 # To do
-- confirm archive
 - emoji as an alternative to icons?
 - smaller icons file?
 - remove seconds from time

@@ -1,7 +1,7 @@
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'use-debounce'
-import { promptDialog } from './dialog'
+import { confirmDialog, promptDialog } from './dialog'
 import { hIcon, prefix } from './misc'
 import { login } from './login'
 import { showOptions } from './options'
@@ -40,7 +40,8 @@ export function MenuPanel() {
             h(MenuLink, {
                 icon: 'archive',
                 label: 'Archive',
-                href: '?get=zip',
+                href: '?get=zip', // @ts-ignore
+                confirm: 'Download whole folder as ZIP archive?',
             })
         ),
         remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),
@@ -95,8 +96,16 @@ export function MenuButton({ icon, label, toggled, onClick, className = '' }: Me
         h('label', {}, label))
 }
 
-export function MenuLink({ href, ...rest }: MenuButtonProps & { href: string }) {
-    return h('a', { href }, h(MenuButton, rest))
+export function MenuLink({ href, confirm, ...rest }: MenuButtonProps & { href: string, confirm?: string }) {
+    return h('a', {
+        href,
+        async onClick(ev) {
+            if (!confirm) return
+            ev.preventDefault()
+            if (!await confirmDialog(confirm)) return
+            window.location.href = href
+        }
+    }, h(MenuButton, rest))
 }
 
 function LoginButton() {
