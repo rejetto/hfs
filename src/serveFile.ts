@@ -14,7 +14,7 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
     return serveFile(source||'', mime)
 }
 
-export function serveFile(source:string, mime?:string) : Koa.Middleware {
+export function serveFile(source:string, mime?:string, modifier?:(s:string)=>string) : Koa.Middleware {
     return async (ctx) => {
         if (!source)
             return
@@ -40,6 +40,9 @@ export function serveFile(source:string, mime?:string) : Koa.Middleware {
         ctx.status = 200
         if (ctx.fresh)
             return ctx.status = 304
+
+        if (modifier)
+            return ctx.body = modifier(String(await fs.readFile(source)))
         if (!range) {
             ctx.body = createReadStream(source)
             ctx.response.length = stats.size

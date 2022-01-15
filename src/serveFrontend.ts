@@ -30,18 +30,15 @@ function serveStaticFrontend() : Koa.Middleware {
         }
         if (method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
-        if (path.endsWith('/')) {
+        if (path.endsWith('/')) { // we don't cache the index as it's small and may prevent plugins change to apply
             ctx.body = treatIndex(String(await fs.readFile(BASE + 'index.html')))
             ctx.type = 'html'
         } else {
             const fullPath = BASE + path.slice(1)
-            if (path.includes('static/js')) {// webpack
-                ctx.body = String(await fs.readFile(fullPath))
-                    .replace(/(return")(static\/)/g, '$1' + FRONTEND_URI.substring(1) + '$2')
-                ctx.type = 'js'
-            }
-            else
-                return serveFile(fullPath, 'auto')(ctx, next)
+            const modifier = path.includes('static/js') ? // webpack
+                (s:string) => s.replace(/(return")(static\/)/g, '$1' + FRONTEND_URI.substring(1) + '$2')
+                : undefined
+            return serveFile(fullPath, 'auto', modifier)(ctx, next)
         }
         await next()
     }
