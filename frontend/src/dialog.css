@@ -18,7 +18,7 @@
     color: var(--color);
     border: 3px solid var(--color);
     margin: -10vh 1.5em 0; /* leave space for corner icons */
-    max-height: 80vh;
+    max-width: calc(100vw - 7em);
 }
 .dialog-icon {
     color: #fff;
@@ -49,7 +49,7 @@
     max-height: 80vh;
 }
 .dialog-content p {
-    white-space: pre;
+    white-space: pre-wrap;
     margin: .5em 0;
 }
 .dialog-confirm button {
