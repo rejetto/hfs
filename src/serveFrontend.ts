@@ -4,6 +4,8 @@ import fs from 'fs/promises'
 import { DEV, FRONTEND_URI, METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI } from './const'
 import { serveFile } from './serveFile'
 import { mapPlugins } from './plugins'
+import { refresh_session } from './api.auth'
+import { ApiError } from './apis'
 
 export const serveFrontend = DEV ? serveProxyFrontend() : serveStaticFrontend()
 
@@ -12,8 +14,8 @@ function serveProxyFrontend() {
     return proxy('localhost:3000', {
         filter: ctx => ctx.method === 'GET' || (ctx.status = METHOD_NOT_ALLOWED) && false,
         proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
-        userResDecorator: (res, data, req) => {
-            return req.url.endsWith('/') ? treatIndex(data.toString('utf8'))
+        userResDecorator(res, data, ctx) {
+            return ctx.url.endsWith('/') ? treatIndex(ctx, data.toString('utf8'))
                 : data
         }
     })
@@ -31,7 +33,7 @@ function serveStaticFrontend() : Koa.Middleware {
         if (method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
         if (path.endsWith('/')) { // we don't cache the index as it's small and may prevent plugins change to apply
-            ctx.body = treatIndex(String(await fs.readFile(BASE + 'index.html')))
+            ctx.body = await treatIndex(ctx, String(await fs.readFile(BASE + 'index.html')))
             ctx.type = 'html'
         } else {
             const fullPath = BASE + path.slice(1)
@@ -48,8 +50,11 @@ function replaceFrontEndRes(body: string) {
     return body.replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1'+FRONTEND_URI)
 }
 
-function treatIndex(body: string) {
+async function treatIndex(ctx: Koa.Context, body: string) {
+    const session = await refresh_session({}, ctx)
+    ctx.set('etag', '')
     return replaceFrontEndRes(body)
+        .replace('_HFS_SESSION_', session instanceof ApiError ? 'null' : JSON.stringify(session))
         // replacing this text allow us to avoid injecting in frontends that don't support plugins. Don't use a <--comment--> or it will be removed by webpack
         .replace('_HFS_PLUGINS_', pluginsInjection)
 }

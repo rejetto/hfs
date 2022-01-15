@@ -18,10 +18,9 @@ export default function useFetchList() {
     const { sortBy, invertOrder, foldersFirst } = snap
     useEffect(()=>{
         setList(sort(list))
-    }, [sortBy, invertOrder, foldersFirst])
+    }, [sortBy, invertOrder, foldersFirst]) //eslint-disable-line
 
     useEffect(()=>{
-        if (snap.restoringSession) return // we need this to avoid double file_list just after session is restored at start (happens on slow connections)
         if (!desiredPath.endsWith('/')) { // useful only in dev, while accessing the frontend directly without passing by the main server
             window.location.href = window.location.href + '/'
             return
@@ -74,7 +73,7 @@ export default function useFetchList() {
             state.stopSearch = undefined
             src.close()
         }
-    }, [desiredPath, search, snap.restoringSession, snap.username, forcer])
+    }, [desiredPath, search, snap.username, forcer])
     return {
         list, loading, error,
         reload() {
