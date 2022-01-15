@@ -46,7 +46,9 @@ export async function login(username:string, password:string) {
     }
     finally { stopWorking() }
 }
+
 apiCall('refresh_session').then(sessionRefresher, ()=>{})
+    .finally(()=> state.restoringSession=false)
 
 function sessionRefresher({ exp, username }:{ exp:string, username:string }) {
     state.username = username

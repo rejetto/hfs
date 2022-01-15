@@ -14,6 +14,7 @@ export const state = proxy<{
     invertOrder: boolean,
     foldersFirst: boolean,
     theme: string,
+    restoringSession: boolean,
 }>({
     iconsClass: '',
     username: '',
@@ -24,6 +25,7 @@ export const state = proxy<{
     invertOrder: false,
     foldersFirst: true,
     theme: '',
+    restoringSession: true,
 })
 
 export function useSnapState() {
