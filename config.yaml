@@ -3,6 +3,7 @@
 #max_kbps_per_ip: 500
 #log:
 #error_log:
+#zip-calculate-size-for-seconds: 1
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
 disable_plugins: [ 'theme-example', 'middleware-example', 'download-counter' ]

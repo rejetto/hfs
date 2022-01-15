@@ -51,13 +51,13 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (path.includes('..'))
         ctx.throw(500)
     if (ctx.body)
-        return await next()
+        return next()
     if (path.startsWith(FRONTEND_URI))
-        return await serveFrontendPrefixed(ctx,next)
+        return serveFrontendPrefixed(ctx,next)
     const decoded = decodeURI(path)
     const node = await vfs.urlToNode(decoded, ctx)
     if (!node)
-        return await next()
+        return next()
     const { source } = node
     if (!source || await isDirectory(source)) {
         const { get } = ctx.query
@@ -71,10 +71,10 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
                 return serveFileNode(def)(ctx, next)
         }
         ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
-        return await serveFrontend(ctx, next)
+        return serveFrontend(ctx, next)
     }
     if (source)
         return source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
             : serveFileNode(node)(ctx,next)
-    await next()
+    return next()
 }

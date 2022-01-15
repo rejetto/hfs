@@ -21,6 +21,7 @@ export class QuickZipStream extends Readable {
     private finished = false
     private readonly centralDir: ({ size:number, crc:number, ts:Date, pathAsBuffer:Buffer, offset:number, version:number })[] = []
     private dataWritten = 0
+    private prewalk?: ZipSource[]
 
     constructor(private readonly walker:  AsyncIterableIterator<ZipSource>) {
         super({})
@@ -33,13 +34,41 @@ export class QuickZipStream extends Readable {
         this.dataWritten += chunk.length
     }
 
+    async calculateSize(howLong:number = 1000) {
+        this.prewalk = []
+        let timeIsOut = false
+        setTimeout(() => timeIsOut = true, howLong) // give it 1 second
+        while (!timeIsOut) {
+            const { value } = await this.walker.next()
+            if (!value) break
+            this.prewalk.push(value) // we keep same shape of the generator, so
+        }
+        if (timeIsOut)
+            return NaN
+        let size = 0
+        let centralDirSize = 0
+        for (const file of this.prewalk) {
+            const pathSize = Buffer.from(file.path, 'utf8').length
+            const sizeSize = size > ZIP64_LIMIT ? 8 : 4
+            const extraLength = (file.size > ZIP64_LIMIT ? 2 : 0) + (size > ZIP64_LIMIT ? 1 : 0)
+            const extraDataSize = extraLength && (2+2 + extraLength*8)
+            size += 4+2+2+4+4+4+4+2+2+ pathSize + file.size +4+4 +sizeSize*2
+            centralDirSize += 4+2+2+2+4+4+4+4+2+2+2+2+2+4+4 + pathSize + extraDataSize
+        }
+        const centralOffset = size
+        if (centralOffset > ZIP64_LIMIT)
+            centralDirSize += 4+8+2+2+4+4+8+8+8+8+4+4+8+4
+        centralDirSize += 4+4+2+2+4+4+2
+        return size + centralDirSize
+    }
+
     async _read(): Promise<void> {
-        if (this.workingFile || this.finished) return
-        const { value } = await this.walker.next() as { value: ZipSource }
-        if (!value)
+        if (this.workingFile || this.finished || this.destroyed) return
+        const file = this.prewalk?.shift() || (await this.walker.next()).value as ZipSource
+        if (!file)
             return this.closeArchive()
         ++this.numberOfFiles
-        let { path, data, size, ts } = value
+        let { path, data, size, ts } = file
         const pathAsBuffer = Buffer.from(path, 'utf8')
         const crc32 = await crc32provider
         let crc: number | undefined = undefined
@@ -62,6 +91,8 @@ export class QuickZipStream extends Readable {
         let total = 0
         data.on('error', (err) => console.error(err))
         data.on('data', chunk => {
+            if (this.destroyed)
+                return data.destroy()
             this._push(chunk)
             crc = crc32(chunk, crc)
             total += chunk.length
@@ -69,7 +100,6 @@ export class QuickZipStream extends Readable {
         this.workingFile = true
         data.on('end', ()=>{
             this.workingFile = false
-            console.debug('zip', total, path)
             this.centralDir.push({ size, crc:crc!, pathAsBuffer, ts, offset, version })
             const sizeSize = size > ZIP64_LIMIT ? 8 : 4
             this._push([
