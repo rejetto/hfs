@@ -1,4 +1,5 @@
 # To do
+- inject extras directly into <head> ? easier for makers and faster to load
 - confirm archive
 - automatic theme based on system preferences
 - archive button as a link that can be copied

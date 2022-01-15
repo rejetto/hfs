@@ -1,15 +1,15 @@
-import { createReadStream, watch } from 'fs'
+import { watch } from 'fs'
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import { resolve } from 'path'
 import { PLUGINS_PUB_URI } from './const'
-import mime from 'mime-types'
 import Koa from 'koa'
 import { getOrSet, onProcessExit, wantArray } from './misc'
 import { getConfig, subscribeConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
+import { serveFile } from './serveFile'
 
 const PATH = 'plugins'
 
@@ -43,16 +43,16 @@ export function pluginsMiddleware(): Koa.Middleware {
             }
         // expose public plugins' files
         const { path } = ctx
-        if (!ctx.pluginStopped && path.startsWith(PLUGINS_PUB_URI)) {
-            const a = path.substring(PLUGINS_PUB_URI.length).split('/')
-            if (plugins.hasOwnProperty(a[0])) { // do it only if the plugin is loaded
-                a.splice(1,0,'public')
-                ctx.type = mime.lookup(path) || ''
-                ctx.body = createReadStream(resolve(PATH, a.join('/')))
+        if (!ctx.pluginStopped) {
+            if (path.startsWith(PLUGINS_PUB_URI)) {
+                const a = path.substring(PLUGINS_PUB_URI.length).split('/')
+                if (plugins.hasOwnProperty(a[0])) { // do it only if the plugin is loaded
+                    a.splice(1, 0, 'public')
+                    await serveFile(PATH + '/' + a.join('/'), 'auto')(ctx, next)
+                }
             }
-        }
-        if (!ctx.pluginStopped)
             await next()
+        }
         for (const f of after)
             await f()
     }
