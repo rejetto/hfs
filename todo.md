@@ -1,6 +1,5 @@
 # To do
 - emoji as an alternative to icons?
-- smaller icons file?
 - remove seconds from time
 - update tests to SRP login
 - upload

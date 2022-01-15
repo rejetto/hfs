@@ -1,0 +1,64 @@
+@font-face {
+  font-family: 'fontello';
+  src: url('fontello.woff2?16824442') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+[class^="fa-"]:before, [class*=" fa-"]:before {
+  font-family: "fontello";
+  font-style: normal;
+  font-weight: normal;
+  speak: never;
+
+  display: inline-block;
+  text-decoration: inherit;
+  width: 1em;
+  margin-right: .2em;
+  text-align: center;
+  /* opacity: .8; */
+
+  /* For safety - reset parent styles, that can break glyph codes*/
+  font-variant: normal;
+  text-transform: none;
+
+  /* fix buttons height, for twitter bootstrap */
+  line-height: 1em;
+
+  /* Animation center compensation - margins should be symmetric */
+  /* remove if not needed */
+  margin-left: .2em;
+
+  /* you can be more comfortable with increased icons size */
+  /* font-size: 120%; */
+
+  /* Font smoothing. That was taken from TWBS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Uncomment for 3D effect */
+  /* text-shadow: 1px 1px 1px rgba(127, 127, 127, 0.3); */
+}
+
+.fa-cog:before { content: '\e800'; } /* '' */
+.fa-check-circled:before { content: '\e801'; } /* '' */
+.fa-doc:before { content: '\e802'; } /* '' */
+.fa-stop:before { content: '\e803'; } /* '' */
+.fa-download:before { content: '\e804'; } /* '' */
+.fa-upload:before { content: '\e805'; } /* '' */
+.fa-edit:before { content: '\e807'; } /* '' */
+.fa-check:before { content: '\e808'; } /* '' */
+.fa-folder:before { content: '\e809'; } /* '' */
+.fa-home:before { content: '\e80b'; } /* '' */
+.fa-key:before { content: '\e80c'; } /* '' */
+.fa-cancel-circled:before { content: '\e811'; } /* '' */
+.fa-search:before { content: '\e813'; } /* '' */
+.fa-logout:before { content: '\e814'; } /* '' */
+.fa-spin6:before { content: '\e839'; } /* '' */
+.fa-filter:before { content: '\f0b0'; } /* '' */
+.fa-menu:before { content: '\f0c9'; } /* '' */
+.fa-quote-left:before { content: '\f10d'; } /* '' */
+.fa-unlink:before { content: '\f127'; } /* '' */
+.fa-level-up:before { content: '\f148'; } /* '' */
+.fa-file-archive:before { content: '\f1c6'; } /* '' */
+.fa-trash:before { content: '\f1f8'; } /* '' */
+.fa-user-o:before { content: '\f2c0'; } /* '' */

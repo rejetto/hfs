@@ -50,10 +50,10 @@ input[type=checkbox] {
 }
 
 .icon {
-    vertical-align: text-bottom;
     font-size: 1.2em;
 }
 
+.icon.mirror:before { transform: scaleX(-1); }
 a {
     text-decoration: none;
     color: #357;
@@ -91,16 +91,15 @@ header {
     50% {opacity: 0.2}
 }
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    100% { transform: rotate(360deg); }
 }
 @keyframes fade-in {
     0% {opacity: 0}
     100% {opacity: 1}
 }
 
-.spinner {
-    animation: 1s spin infinite;
+.spinner, .icon.spinner:before {
+    animation: 1.5s spin infinite linear;
 }
 
 .breadcrumb {
@@ -194,7 +193,7 @@ button label {
 }
 
 @media (max-width: 40em) {
-    body, button, select { font-size: 16pt; }
+    body, button, select { font-size: 14pt; }
     #menu-bar {
         display: flex;
         justify-content: space-between;

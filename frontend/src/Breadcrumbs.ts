@@ -10,7 +10,7 @@ export function Breadcrumbs() {
     const parent = currentPath.split('/').slice(0,-1).join('/')+'/'
     const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev = prev + x + '/', decodeURIComponent(x)]) : []
     return h(Fragment, {},
-        h(Breadcrumb, { label: hIcon('reply'), path: parent }),
+        h(Breadcrumb, { label: hIcon('parent'), path: parent }),
         h(Breadcrumb),
         breadcrumbs.map(([path,label]) =>
             h(Breadcrumb, {

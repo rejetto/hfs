@@ -2,17 +2,18 @@ import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 
 const SYS_ICONS: Record<string,string> = {
-    login: 'person',
-    user: 'account_circle',
-    file: 'description',
-    spinner: 'sports_baseball',
-    filter: 'filter_alt',
-    interrupted: 'heart_broken',
-    sort: 'sort_by_alpha',
+    login: 'user-o',
+    user: 'user-o',
+    file: 'doc',
+    spinner: 'spin6 spinner',
+    settings: 'cog',
+    parent: 'level-up mirror',
+    archive: 'file-archive',
+    interrupted: 'unlink',
 }
 
 document.fonts.ready.then(async ()=> {
-    const fontName = 'icons'
+    const fontName = 'fontello'
     await document.fonts.load(`9px "${fontName}"`) // force font to be loaded even if we didn't display anything with it yet
     state.iconsClass = ' ' // don't need additional class, but the empty space will cause reload
 })
@@ -20,9 +21,9 @@ document.fonts.ready.then(async ()=> {
 export function Icon({ name, className='', ...props }: { name:string, className:string, style?:any }) {
     name = SYS_ICONS[name] || name
     const { iconsClass } = useSnapState()
-    return h('span',{
+    return h('i',{
         ...props,
-        className: iconsClass+' icon '+className,
-    }, iconsClass ? name : '#')
+        className: iconsClass && 'icon fa-'+name,
+    }, iconsClass ? null : '#')
 }
 
