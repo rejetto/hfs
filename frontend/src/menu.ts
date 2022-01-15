@@ -37,12 +37,10 @@ export function MenuPanel() {
                 label: 'Options',
                 onClick: showOptions
             }),
-            h(MenuButton, {
+            h(MenuLink, {
                 icon: 'archive',
                 label: 'Archive',
-                onClick() {
-                    window.location.href = '?get=zip'
-                }
+                href: '?get=zip',
             })
         ),
         remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),
@@ -95,6 +93,10 @@ export function MenuButton({ icon, label, toggled, onClick, className = '' }: Me
     return h('button', { title: label, onClick, className: className + ' ' + (toggled ? 'toggled' : '') },
         hIcon(icon),
         h('label', {}, label))
+}
+
+export function MenuLink({ href, ...rest }: MenuButtonProps & { href: string }) {
+    return h('a', { href }, h(MenuButton, rest))
 }
 
 function LoginButton() {

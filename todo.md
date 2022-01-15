@@ -1,6 +1,5 @@
 # To do
 - confirm archive
-- archive button as a link that can be copied
 - emoji as an alternative to icons?
 - smaller icons file?
 - remove seconds from time
