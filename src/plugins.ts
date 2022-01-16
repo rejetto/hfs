@@ -177,7 +177,9 @@ function deleteModule(id: string) {
     }
 }
 
-onProcessExit(() => {
+onProcessExit(sig => {
     for (const pl of Object.values(plugins))
         pl.unload()
+    if (sig === 'SIGINT') // ctrl+c
+        setTimeout(()=> process.exit(0))
 })

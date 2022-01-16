@@ -71,16 +71,16 @@ export function randomId(len = 10) {
         .replace(/l/g, 'L'); // avoid confusion reading l1
 }
 
-export function onProcessExit(cb: ()=>void) {
+export function onProcessExit(cb: (signal:string)=>void) {
     onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT'], cb)
 }
 
-export function onFirstEvent(emitter:EventEmitter, events: string[], cb: ()=> void) {
+export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {
     let already = false
     for (const e of events)
-        emitter.on(e, () => {
+        emitter.on(e, (...args) => {
             if (already) return
             already = true
-            cb()
+            cb(...args)
         })
 }
