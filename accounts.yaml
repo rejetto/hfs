@@ -1,6 +1,5 @@
 accounts:
   rejetto:
-    belongs: admin
+    belongs: admins
     password: password
-  admin:
-    belongs: []
+  admins:
