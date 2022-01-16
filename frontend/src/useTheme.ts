@@ -1,7 +1,7 @@
 import { state, useSnapState } from './state'
 import { useEffect } from 'react'
 
-export default () => {
+export default function() {
     const { theme } = useSnapState()
     useEffect(()=>{
         const e = document.body
