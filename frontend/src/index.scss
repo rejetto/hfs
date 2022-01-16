@@ -101,6 +101,7 @@ header {
 .spinner, .icon.spinner:before {
     animation: 1.5s spin infinite linear;
 }
+.icon.emoji.spinner { display: inline-block; }
 
 .breadcrumb {
     padding: 0.1em 0.6em 0.2em;

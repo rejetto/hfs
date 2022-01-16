@@ -15,7 +15,7 @@ function Content() {
     return h('div', { id: 'user-panel' },
         h('div', {}, 'User: ' + snap.username),
         h(MenuButton, {
-            icon: 'key',
+            icon: 'password',
             label: 'Change password',
             async onClick() {
                 const pwd = await promptDialog('Enter new password', { type: 'password' })

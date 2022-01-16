@@ -1,5 +1,6 @@
 # To do
-- emoji as an alternative to icons?
+- log filter option
+- log filter plugin
 - remove seconds from time
 - update tests to SRP login
 - upload
