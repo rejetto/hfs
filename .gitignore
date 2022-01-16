@@ -1,5 +1,6 @@
 node_modules
-build
 .idea
 dist
+#produced by running
+counters.yaml
 *.log

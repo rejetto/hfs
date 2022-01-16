@@ -1,6 +1,8 @@
 # To do
+- fix: if plugins folder is not found at the start, it won't try anymore
 - log filter option
 - log filter plugin
+- frontend search supporting masks
 - remove seconds from time
 - update tests to SRP login
 - upload

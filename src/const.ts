@@ -1,6 +1,6 @@
 import minimist from 'minimist'
 
-export const DEV = __dirname.endsWith('src') ? 'DEV' : ''
+export const DEV = process.env.DEV ? 'DEV' : ''
 
 if (DEV)
     console.clear()

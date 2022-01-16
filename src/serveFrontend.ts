@@ -1,17 +1,18 @@
 import proxy from 'koa-better-http-proxy'
 import Koa from 'koa'
 import fs from 'fs/promises'
-import { DEV, FRONTEND_URI, METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI } from './const'
+import { FRONTEND_URI, METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI } from './const'
 import { serveFile } from './serveFile'
 import { mapPlugins } from './plugins'
 import { refresh_session } from './api.auth'
 import { ApiError } from './apis'
 
-export const serveFrontend = DEV ? serveProxyFrontend() : serveStaticFrontend()
+const proxyPort = process.env.FRONTEND_PROXY
+export const serveFrontend = proxyPort ? serveProxyFrontend() : serveStaticFrontend()
 
 function serveProxyFrontend() {
     console.debug('fronted: proxied')
-    return proxy('localhost:3000', {
+    return proxy('localhost:'+proxyPort, {
         filter: ctx => ctx.method === 'GET' || (ctx.status = METHOD_NOT_ALLOWED) && false,
         proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
         userResDecorator(res, data, ctx) {
@@ -22,7 +23,7 @@ function serveProxyFrontend() {
 }
 
 function serveStaticFrontend() : Koa.Middleware {
-    const BASE = __dirname + (DEV ? '/../dist' : '') + '/frontend/'
+    const BASE = 'frontend/'
     return async (ctx, next) => {
         let { path, method } = ctx
         if (method === 'OPTIONS') {
