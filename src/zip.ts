@@ -20,8 +20,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 return
             return { path:el.name, size:st.size, ts:st.mtime||st.ctime, data: createReadStream(el.source) }
         }
-        catch(e) {}
-
+        catch {}
     })
     const zip = new QuickZipStream(walker)
     const time = 1000 * (getConfig('zip-calculate-size-for-seconds') ?? 1)

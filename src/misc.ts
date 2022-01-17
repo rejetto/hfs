@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events'
 import fs from 'fs/promises'
+import { basename, dirname } from 'path'
+import { watch } from 'fs'
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
@@ -7,12 +9,12 @@ export function enforceFinal(sub:string, s:string) {
 
 export async function isDirectory(path: string) {
     try { return (await fs.stat(path)).isDirectory() }
-    catch(e) { return false }
+    catch { return false }
 }
 
 export async function isFile(path: string) {
     try { return (await fs.stat(path)).isFile() }
-    catch(e) { return false }
+    catch { return false }
 }
 
 export function complySlashes(path: string) {
@@ -83,4 +85,15 @@ export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...arg
             already = true
             cb(...args)
         })
+}
+
+export function watchDir(dir: string, cb: ()=>void) {
+    const base = basename(dir)
+    watch(dirname(dir), (event,name) => {
+        if (name === base)
+            cb()
+    })
+    cb()
+    try { watch(dir, cb) }
+    catch {}
 }

@@ -42,7 +42,7 @@ function loadSettings() {
     if (!json) return
     let read
     try { read = JSON.parse(json) }
-    catch(e) {
+    catch {
         console.error('invalid settings stored', json)
         return
     }

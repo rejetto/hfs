@@ -58,7 +58,7 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
             return source.close()
         }
         try { data = JSON.parse(data) }
-        catch(e) {
+        catch {
             return cb('string', data)
         }
         cb('msg', data)

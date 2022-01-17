@@ -61,7 +61,7 @@ export class Vfs {
             if (isMatch(source, wantArray(run.remove).map(x => baseSource + x)))
                 return
             try { await fs.stat(source) } // check existence
-            catch(e){ return }
+            catch { return }
             return {
                 source,
                 name: basename(source),

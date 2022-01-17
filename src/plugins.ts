@@ -1,11 +1,10 @@
-import { watch } from 'fs'
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import { resolve } from 'path'
 import { PLUGINS_PUB_URI } from './const'
 import Koa from 'koa'
-import { getOrSet, onProcessExit, wantArray } from './misc'
+import { getOrSet, onProcessExit, wantArray, watchDir } from './misc'
 import { getConfig, subscribeConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
@@ -59,12 +58,8 @@ export function pluginsMiddleware(): Koa.Middleware {
 }
 
 subscribeConfig({ k:'disable_plugins', defaultValue:[] }, () => {
-    try {
-        const debounced = _.debounce(rescan, 1000)
-        watch(PATH, debounced)
-        debounced()
-    }
-    catch(e){
+    try { watchDir(PATH, _.debounce(rescan, 1000)) }
+    catch {
         console.debug('plugins not found')
     }
 })

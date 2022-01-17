@@ -18,8 +18,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             watcher = watch(path, debounced)
             debounced()
         }
-        catch(e){
-        }
+        catch {}
     }, 1000)
     let running = true
     return () => {
