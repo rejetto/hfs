@@ -1,32 +1,23 @@
 import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 
-const SYS_ICONS: Record<string,string> = {
-    login: 'user-o',
-    user: 'user-o',
-    file: 'doc',
-    spinner: 'spin6 spinner',
-    settings: 'cog',
-    parent: 'level-up mirror',
-    archive: 'file-archive',
-    interrupted: 'unlink',
-    password: 'key',
-}
-const ICON2EMOJI = {
-    login: '👤',
-    user: '👤',
-    filter: '✂',
-    search: '🔍',
-    settings: '⚙',
-    archive: '📦',
-    logout: '🚪',
-    home: '🏠',
-    parent: '⬆️',
-    folder: '📂',
-    file: '📄',
-    spinner: '🎲',
-    password: '🗝️',
-    download: '📥'
+const SYS_ICONS = {
+    login: 'user:👤',
+    user: 'user:👤',
+    filter: ':✂',
+    search: ':🔍',
+    search_off: 'cancel:❌',
+    stop: ':⏹️',
+    settings: 'cog:⚙',
+    archive: 'file-archive:📦',
+    logout: ':🚪',
+    home: ':🏠',
+    parent: 'level-up mirror️:⬆',
+    folder: ':📂',
+    file: 'doc:📄',
+    spinner: 'spin6 spinner:🎲',
+    password: 'key:🗝️',
+    download: ':📥',
 }
 
 document.fonts.ready.then(async ()=> {
@@ -37,12 +28,11 @@ document.fonts.ready.then(async ()=> {
 
 export function Icon({ name, className='', ...props }: { name:string, className:string, style?:any }) {
     // @ts-ignore
-    const emoji = ICON2EMOJI[name] || '#'
-    name = SYS_ICONS[name] || name
+    const [clazz,emoji] = (SYS_ICONS[name] || name).split(':')
     const { iconsClass } = useSnapState()
     return h('span',{
         ...props,
-        className: className+' icon '+(iconsClass ? 'fa-'+name : 'emoji'),
-    }, iconsClass ? null : emoji)
+        className: className+' icon '+(iconsClass ? 'fa-'+(clazz||name) : 'emoji'),
+    }, iconsClass ? null : (emoji||'#'))
 }
 

@@ -1,9 +1,19 @@
 @font-face {
   font-family: 'fontello';
-  src: url('fontello.woff2?16824442') format('woff2');
+  src: url('fontello.woff2?71539586') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
+/* Chrome hack: SVG is rendered more smooth in Windozze. 100% magic, uncomment if you need it. */
+/* Note, that will break hinting! In other OS-es font will be not as sharp as it could be */
+/*
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  @font-face {
+    font-family: 'fontello';
+    src: url('../font/fontello.svg?71539586#fontello') format('svg');
+  }
+}
+*/
 [class^="fa-"]:before, [class*=" fa-"]:before {
   font-family: "fontello";
   font-style: normal;
@@ -45,9 +55,11 @@
 .fa-stop:before { content: '\e803'; } /* '' */
 .fa-download:before { content: '\e804'; } /* '' */
 .fa-upload:before { content: '\e805'; } /* '' */
+.fa-cancel:before { content: '\e806'; } /* '' */
 .fa-edit:before { content: '\e807'; } /* '' */
 .fa-check:before { content: '\e808'; } /* '' */
 .fa-folder:before { content: '\e809'; } /* '' */
+.fa-user:before { content: '\e80a'; } /* '' */
 .fa-home:before { content: '\e80b'; } /* '' */
 .fa-key:before { content: '\e80c'; } /* '' */
 .fa-cancel-circled:before { content: '\e811'; } /* '' */
@@ -61,4 +73,3 @@
 .fa-level-up:before { content: '\f148'; } /* '' */
 .fa-file-archive:before { content: '\f1c6'; } /* '' */
 .fa-trash:before { content: '\f1f8'; } /* '' */
-.fa-user-o:before { content: '\f2c0'; } /* '' */
