@@ -5,15 +5,18 @@ import { readFileBusy } from './misc'
 
 export type WatchLoadCanceller = () => void
 
-export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>): WatchLoadCanceller {
+interface Options { failOnFirstAttempt?: ()=>void }
+
+export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failOnFirstAttempt }:Options={}): WatchLoadCanceller {
     let doing = false
+    let first = true
     let watcher: FSWatcher
     const debounced = _.debounce(load, 500)
+    debounced()
     const timer = setInterval(()=>{
         try {
             watcher = watch(path, debounced)
             debounced()
-            clearInterval(timer)
         }
         catch(e){
         }
@@ -29,17 +32,21 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>): W
     async function load(){
         if (doing) return
         doing = true
-        console.debug('loading', path)
         let data: any
         try {
             data = await readFileBusy(path)
+            console.debug('loaded', path)
             if (path.endsWith('.yaml'))
                 data = yaml.parse(data)
         } catch (e) {
+            if (first)
+                failOnFirstAttempt?.()
             doing = false
-            console.warn('cannot read', path, String(e))
+            console.debug('cannot read', path, String(e))
             return
         }
+        first = false
+        clearInterval(timer)
         await parser(data)
         doing = false
     }

@@ -9,10 +9,11 @@ const PATH = 'config.yaml'
 let started = false
 let state:Record<string,any> = {}
 const emitter = new EventEmitter()
-watchLoad(argv.config || process.env.hfs_config || PATH,  data => {
+const path = argv.config || process.env.hfs_config || PATH
+watchLoad(path,  data => {
     started = true
     setConfig(data)
-})
+}, { failOnFirstAttempt:()=> setConfig({}) })
 
 const configProps:Record<string, ConfigProps> = {}
 
