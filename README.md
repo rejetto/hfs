@@ -102,10 +102,6 @@ Other options you can define as properties of an account:
 1. Install Typescript: launch `npm -g i typescript`
 3. Launch `npm run build-all` in the root
 
-You'll find the output in `dist` folder.
-
-Now you can run it with `node dist`.
-
 # Plug-ins
 
 We are slowly introducing a plug-ins system.
