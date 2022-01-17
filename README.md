@@ -133,13 +133,15 @@ This file is javascript module that is supposed to expose one or more of the sup
   To interrupt other middlewares on this http request, return `true`.
   If you want to execute something in the "upstream" of middlewares, return a function.
   
-- `unload: () => void` callback called when unloading a plugin. This is a good place for example to clearInterval().
+- `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
 - `onDirEntry: ({ entry: DirEntry, listPath: string }) => void | false` by providing this callback you can manipulate the record
   that is sent to the frontend (`entry`), or you can return false to exclude this entry from the results.
+- `init: function` called when the plugin is initialized.
+  If you need to use the `api` object immediately after the plugin is loaded, be sure to put your code in this callback.
 - `api: object` if your plugin exports an empty object with name `api`, it will be filled with useful functions.
   You'll just need this line
   ```js
-  const api = exports.api = {}
+  exports.api = {}
   ```
   Now let's have a look at what you'll find inside.
   - `getConfig(key: string): any` this is the way to go if you need some configuration to do your job.
@@ -152,17 +154,18 @@ This file is javascript module that is supposed to expose one or more of the sup
         message: Hi there!
     ```
     Now you can use `api.getConfig('message')` to read it.
-
-  Beware: `api` object is filled just after plugin initialization. So it will be empty if you use it right-away, but it will
-  be good if you use it inside a callback. If you need to do something with it at the very start, then please make your code like this
-  ```js
-  
-  setTimeout(() => { // delay execution just a bit
-    console.log('getting my message correctly', api.getConfig('message')) // this is good
-  })
-  //console.log( api.getConfig('message') ) // this would fail because the api object is still empty
-  ```
-
+  - `srcDir: string` this can be useful if you need to import some extra function not available in `api`.
+    ```js
+    exports.api = {}
+    exports.init = function() {
+        const { BUILD_TIMESTAMP } = require(exports.api.srcDir + '/index')
+        console.log(BUILD_TIMESTAMP)
+    }
+    ```
+    You *should* try to keep this kind of behavior at its minimum, as name of sources and of elements in them are subject to change.
+    If you need something for your plugin that's not covered by `api`, you can test it with this method, 
+    but you should then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin. 
+    
 Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`.
 
 
