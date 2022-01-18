@@ -2,6 +2,7 @@ import { EventEmitter } from 'events'
 import fs from 'fs/promises'
 import { basename, dirname } from 'path'
 import { watch } from 'fs'
+import _ from 'lodash'
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
@@ -96,4 +97,10 @@ export function watchDir(dir: string, cb: ()=>void) {
     cb()
     try { watch(dir, cb) }
     catch {}
+}
+
+export function pattern2filter(pattern: string){
+    const re = new RegExp(_.escapeRegExp(pattern), 'i')
+    return (s?:string) =>
+        !s || !pattern || re.test(basename(s))
 }

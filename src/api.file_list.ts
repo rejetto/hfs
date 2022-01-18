@@ -1,10 +1,10 @@
 import { vfs, VfsNode, walkNode } from './vfs'
-import _ from 'lodash'
 import createSSE from './sse'
 import { basename } from 'path'
 import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
+import { pattern2filter } from './misc'
 
 export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await vfs.urlToNode(path || '/', ctx)
@@ -16,8 +16,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
         return { redirect: path }
     offset = Number(offset)
     limit = Number(limit)
-    const re = new RegExp(_.escapeRegExp(search),'i')
-    const match = (s?:string) => !s || !search || re.test(s)
+    const filter = pattern2filter(search)
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const sseSrv = sse ? createSSE(ctx) : null
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
@@ -28,8 +27,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
         const list = []
         for await (const sub of walker) {
             if (sseSrv?.stopped || ctx.aborted) break
-            const filename = basename(sub.name||'')
-            if (!match(filename))
+            if (!filter(sub.name))
                 continue
             const entry = await nodeToDirEntry(sub)
             if (!entry)

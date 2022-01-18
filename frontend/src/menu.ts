@@ -40,8 +40,8 @@ export function MenuPanel() {
             h(MenuLink, {
                 icon: 'archive',
                 label: 'Archive',
-                href: '?get=zip', // @ts-ignore
-                confirm: 'Download whole folder as ZIP archive?',
+                href: '?get=zip' + prefix('&search=', remoteSearch),
+                confirm: remoteSearch ? 'Download results of this search as ZIP archive?' : 'Download whole folder as ZIP archive?',
             })
         ),
         remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),

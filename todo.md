@@ -15,7 +15,6 @@
 - config: bans
 - config: min disk space
 - thumbnails support
-- archive for search results
 - archive only selected files
 - "bottom" button (only on long screens, only after you scroll a bit, only for a few seconds)
 - webdav?
