@@ -5,6 +5,9 @@
 #error_log:
 #zip-calculate-size-for-seconds: 1
 #open_browser_at_start: false
+#https_port: 443
+#cert: filepath
+#private_key: filepath
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
 disable_plugins: [ 'theme-example', 'middleware-example', 'download-counter' ]

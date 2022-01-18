@@ -6,10 +6,9 @@
 - update tests to SRP login
 - upload
 - upload unzipping (while streaming?)
-- https
+- plugin to automatic generate letsencrypt cert?
 - delete
 - updater (stop,unzip,start)
-- search and login dialogs should push to history so that mobile can use back button to close them
 - node.comment
 - config: max connections (total/per-ip)
 - config: bans

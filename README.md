@@ -12,6 +12,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 You won't find all previous features here (yet), but still we got:
 
 # Features
+- https
 - unicode
 - virtual file system
 - mobile friendly front-end
@@ -45,6 +46,12 @@ Supported entries are:
     You can use the special value `auto` to attempt automatic detection.
 - `max_kbps` throttle output speed. Default is Infinity.
 - `max_kbps_per_ip` throttle output speed on a per-ip basis. Default is Infinity.
+- `zip-calculate-size-for-seconds` how long should we wait before the zip archive starts streaming, trying to understand its finale size. Default is 1.
+- `open_browser_at_start` should HFS open browser on localhost on start? Default is true.
+- `https_port` listen on a specific port. Default is 443.
+- `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none. 
+- `private_key` use this file for https private key. Default is none.
+- `plugins_config` 
  
 ## Virtual File System (VFS)
 
