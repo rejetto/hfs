@@ -4,11 +4,7 @@ import { alertDialog } from './dialog'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { working } from './misc'
 
-let refresher: NodeJS.Timeout
-
 export async function login(username:string, password:string) {
-    if (refresher)
-        clearInterval(refresher)
     const stopWorking = working()
     try {
 /* simple login without encryption. Here commented just for example. Please use SRP version.
@@ -48,20 +44,21 @@ export async function login(username:string, password:string) {
 }
 
 // @ts-ignore
-if (window.SESSION) sessionRefresher(window.SESSION)
+sessionRefresher(window.SESSION)
 
-function sessionRefresher({ exp, username }:{ exp:string, username:string }) {
+function sessionRefresher(response: any) {
+    if (!response) return
+    const { exp, username } = response
     state.username = username
-    if (!exp) return
+    if (!username || !exp) return
     const delta = new Date(exp).getTime() - Date.now()
-    const every = delta - 30_000
-    console.debug('session refresh every', Math.round(every/1000))
-    refresher = setInterval(() => apiCall('refresh_session'),  every)
+    const t = Math.min(delta - 30_000, 600_000)
+    console.debug('session refresh in', Math.round(t/1000))
+    setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
 }
 
 export function logout(){
     return apiCall('logout').then(()=> {
-        clearInterval(refresher)
         state.username = ''
     })
 }

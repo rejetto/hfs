@@ -36,6 +36,7 @@ function serveStaticFrontend() : Koa.Middleware {
         if (path.endsWith('/')) { // we don't cache the index as it's small and may prevent plugins change to apply
             ctx.body = await treatIndex(ctx, String(await fs.readFile(BASE + 'index.html')))
             ctx.type = 'html'
+            ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
         } else {
             const fullPath = BASE + path.slice(1)
             const modifier = path.includes('static/js') ? // webpack
