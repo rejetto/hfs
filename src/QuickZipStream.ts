@@ -52,8 +52,8 @@ export class QuickZipStream extends Readable {
             const sizeSize = size > ZIP64_LIMIT ? 8 : 4
             const extraLength = (file.size > ZIP64_LIMIT ? 2 : 0) + (size > ZIP64_LIMIT ? 1 : 0)
             const extraDataSize = extraLength && (2+2 + extraLength*8)
-            size += 4+2+2+4+4+4+4+2+2+ pathSize + file.size +4+4 +sizeSize*2
-            centralDirSize += 4+2+2+2+4+4+4+4+2+2+2+2+2+4+4 + pathSize + extraDataSize
+            size += 4+2+2+2+ 4+4+4+4+ 2+2+ pathSize + file.size +4+4 +sizeSize*2
+            centralDirSize += 4+2+2+2+2+ 4+4+4+4+ 2+2+2+2+2+ 4+4 + pathSize + extraDataSize
         }
         const centralOffset = size
         if (centralOffset > ZIP64_LIMIT)
