@@ -11,7 +11,7 @@ const crc32provider = import('@node-rs/crc32').then(lib => lib.crc32, () => {
 
 interface ZipSource {
     path: string
-    data: Readable
+    getData: () => Readable // deferred stream, so that we don't keep many open files because of calculateSize()
     size: number
     ts: Date
 }
@@ -68,7 +68,8 @@ export class QuickZipStream extends Readable {
         if (!file)
             return this.closeArchive()
         ++this.numberOfFiles
-        let { path, data, size, ts } = file
+        let { path, getData, size, ts } = file
+        const data = getData()
         const pathAsBuffer = Buffer.from(path, 'utf8')
         const crc32 = await crc32provider
         let crc: number | undefined = undefined

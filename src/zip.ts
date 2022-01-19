@@ -13,13 +13,19 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.attachment((name || 'archive') + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
     const walker = filterMapGenerator(walkNode(node, ctx, Infinity), async (el:VfsNode) => {
-        if (!el.source || ctx.req.aborted || !filter(el.name))
+        const { source } = el
+        if (!source || ctx.req.aborted || !filter(el.name))
             return
         try {
-            const st = await fs.stat(el.source)
+            const st = await fs.stat(source)
             if (!st || !st.isFile())
                 return
-            return { path:el.name, size:st.size, ts:st.mtime||st.ctime, data: createReadStream(el.source) }
+            return {
+                path: el.name,
+                size: st.size,
+                ts: st.mtime || st.ctime,
+                getData: () => createReadStream(source)
+            }
         }
         catch {}
     })
