@@ -1,4 +1,5 @@
 # To do
+- fix for 1 second, starting a search, will show "clear" button instead of "stop"
 - log filter option
 - log filter plugin
 - frontend search supporting masks
