@@ -66,7 +66,7 @@ export function MenuPanel() {
                 stopSearch()
                 state.stoppedSearch = true
             }
-        } : state.remoteSearch ? {
+        } : state.remoteSearch && !stopSearch ? {
             icon: 'search_off',
             label: 'Clear search',
             onClick() {
