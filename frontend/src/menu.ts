@@ -102,8 +102,7 @@ export function MenuLink({ href, confirm, ...rest }: MenuButtonProps & { href: s
         async onClick(ev) {
             if (!confirm) return
             ev.preventDefault()
-            if (!await confirmDialog(confirm)) return
-            window.location.href = href
+            await confirmDialog(confirm, { href })
         }
     }, h(MenuButton, rest))
 }

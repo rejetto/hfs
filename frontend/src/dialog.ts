@@ -141,7 +141,8 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
     }
 }
 
-export async function confirmDialog(msg: string) : Promise<boolean> {
+interface ConfirmOptions { href?: string }
+export async function confirmDialog(msg: string, { href }: ConfirmOptions={}) : Promise<boolean> {
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
         icon: '?',
@@ -152,12 +153,10 @@ export async function confirmDialog(msg: string) : Promise<boolean> {
     function Content() {
         return h('div', {},
             h('p', {}, msg),
-            h('button', {
-                autoFocus: true,
-                onClick(){
-                    closeDialog(true)
-                }
-            }, 'Confirm')
+            h('a', {
+                href,
+                onClick: () => closeDialog(true),
+            }, h('button', {}, 'Confirm'))
         )
     }
 }
