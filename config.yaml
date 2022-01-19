@@ -1,3 +1,4 @@
+# BEWARE all lines starting with # are disabled, just placeholders. If you need to set the option remove the initial #
 #port: 80
 #max_kbps: 1000
 #max_kbps_per_ip: 500
@@ -5,7 +6,7 @@
 #error_log:
 #zip-calculate-size-for-seconds: 1
 #open_browser_at_start: false
-#https_port: 443
+#https_port: 443  # https will work only if you give a valid certificate and private key
 #cert: filepath
 #private_key: filepath
 mime:

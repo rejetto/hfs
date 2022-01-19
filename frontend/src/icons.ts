@@ -12,7 +12,7 @@ const SYS_ICONS = {
     archive: 'file-archive:📦',
     logout: ':🚪',
     home: ':🏠',
-    parent: 'level-up mirror️:⬆',
+    parent: 'level-up mirror:⬆',
     folder: ':📂',
     file: 'doc:📄',
     spinner: 'spin6 spinner:🎲',
@@ -26,13 +26,16 @@ document.fonts.ready.then(async ()=> {
     state.iconsClass = ' ' // with fontello we don't need an additional class (unlike google material icons), but the empty space will cause reload
 })
 
-export function Icon({ name, className='', ...props }: { name:string, className:string, style?:any }) {
+export function Icon({ name, alt, className='', ...props }: { name:string, className:string, alt?:string, style?:any }) {
     // @ts-ignore
     const [clazz,emoji] = (SYS_ICONS[name] || name).split(':')
     const { iconsClass } = useSnapState()
+    className += ' icon ' + (iconsClass ? 'fa-'+(clazz||name) : 'emoji')
     return h('span',{
         ...props,
-        className: className+' icon '+(iconsClass ? 'fa-'+(clazz||name) : 'emoji'),
+        'aria-label': alt,
+        role: 'img',
+        className,
     }, iconsClass ? null : (emoji||'#'))
 }
 

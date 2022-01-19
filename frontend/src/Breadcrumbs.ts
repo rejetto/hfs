@@ -10,8 +10,8 @@ export function Breadcrumbs() {
     const parent = currentPath.split('/').slice(0,-1).join('/')+'/'
     const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev = prev + x + '/', decodeURIComponent(x)]) : []
     return h(Fragment, {},
-        h(Breadcrumb, { label: hIcon('parent'), path: parent }),
-        h(Breadcrumb),
+        h(Breadcrumb, { label: hIcon('parent', { alt:'parent folder' }), path: parent }),
+        h(Breadcrumb, { label: hIcon('home', { alt:'home' }) }),
         breadcrumbs.map(([path,label]) =>
             h(Breadcrumb, {
                 key: path,
@@ -34,6 +34,6 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path?: string,
             if (current && await confirmDialog('Reload?'))
                 reload?.()
         }
-    }, label || hIcon('home') )
+    }, label)
 }
 
