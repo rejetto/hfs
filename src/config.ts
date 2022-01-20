@@ -9,7 +9,7 @@ const PATH = 'config.yaml'
 let started = false
 let state:Record<string,any> = {}
 const emitter = new EventEmitter()
-const path = argv.config || process.env.hfs_config || PATH
+const path = argv.config || process.env.HFS_CONFIG || PATH
 watchLoad(path,  data => {
     started = true
     setConfig(data)

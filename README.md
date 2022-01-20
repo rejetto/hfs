@@ -109,6 +109,20 @@ Other options you can define as properties of an account:
 1. Install Typescript: launch `npm -g i typescript`
 3. Launch `npm run build-all` in the root
 
+You'll see some warnings about vulnerabilities. Fear not, for those are in the dev tools we are using.
+If you want to be assured, run `npm audit --production` that will exclude dev stuff, and you should see something
+more reassuring, like "found 0 vulnerabilities", hopefully.
+
+# Dev environment
+
+One way of working on sources here is to `npm run watch-server`.
+This will give you auto-restarting of the server on back-end changes.
+A good idea is to first clone/create your working config file, and set an env to point to it `HFS_CONFIG=/tmp/config.yaml`, so that your gitted config file is not changed.
+
+If you want to work on the front-end too, you should *first*
+1. set an env `FRONTEND_PROXY=3000`
+2. `npm run start-frontend`
+
 # Plug-ins
 
 We are slowly introducing a plug-ins system.
