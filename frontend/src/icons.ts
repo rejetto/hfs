@@ -1,5 +1,5 @@
 import { state, useSnapState } from './state'
-import { createElement as h } from 'react'
+import { createElement as h, memo } from 'react'
 
 const SYS_ICONS = {
     login: 'user:👤',
@@ -26,7 +26,7 @@ document.fonts.ready.then(async ()=> {
     state.iconsClass = ' ' // with fontello we don't need an additional class (unlike google material icons), but the empty space will cause reload
 })
 
-export function Icon({ name, alt, className='', ...props }: { name:string, className:string, alt?:string, style?:any }) {
+export const Icon = memo(({ name, alt, className='', ...props }: { name:string, className?:string, alt?:string, style?:any }) => {
     // @ts-ignore
     const [clazz,emoji] = (SYS_ICONS[name] || name).split(':')
     const { iconsClass } = useSnapState()
@@ -37,5 +37,4 @@ export function Icon({ name, alt, className='', ...props }: { name:string, class
         role: 'img',
         className,
     }, iconsClass ? null : (emoji||'#'))
-}
-
+})

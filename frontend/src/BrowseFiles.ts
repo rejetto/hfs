@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { createContext, createElement as h, Fragment, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, createElement as h, Fragment, useContext, useEffect, useMemo, useState, memo } from 'react'
 import { formatBytes, hError, hIcon, hfsEvent } from './misc'
 import { Html, Spinner } from './components'
 import { Head } from './Head'
@@ -62,7 +62,7 @@ function isMobile() {
     return window.innerWidth < 800
 }
 
-function Entry(entry: DirEntry & { hidden:boolean, midnight: Date }) {
+const Entry = memo(function(entry: DirEntry & { hidden:boolean, midnight: Date }) {
     let { n, hidden, isFolder } = entry
     const base = usePath()
     const href = fixUrl(n)
@@ -78,13 +78,13 @@ function Entry(entry: DirEntry & { hidden:boolean, midnight: Date }) {
         h(EntryProps, entry),
         h('div', { style:{ clear:'both' } })
     )
-}
+})
 
 function fixUrl(s:string) {
     return s.replace(/#/g, encodeURIComponent)
 }
 
-function EntryProps(entry: DirEntry & { midnight: Date }) {
+const EntryProps = memo(function(entry: DirEntry & { midnight: Date }) {
     const { t, s } = entry
     const today = t && t > entry.midnight
     const shortTs = isMobile()
@@ -105,4 +105,4 @@ function EntryProps(entry: DirEntry & { midnight: Date }) {
             }
         }, !shortTs ? t.toLocaleString() : today ? t.toLocaleTimeString() : t.toLocaleDateString()),
     )
-}
+})
