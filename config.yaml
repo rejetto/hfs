@@ -11,7 +11,7 @@
 #private_key: filepath
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
-disable_plugins: [ 'theme-example', 'middleware-example', 'download-counter' ]
+disable_plugins: [ 'theme-example', 'download-counter' ]
 plugins_config:
   middleware-example:
     message: ciao

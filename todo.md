@@ -1,4 +1,6 @@
 # To do
+- filter: add button to invert selection
+- filter: add button to select all
 - log filter option
 - log filter plugin
 - frontend search supporting masks
