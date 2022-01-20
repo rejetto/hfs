@@ -36,15 +36,14 @@ export class QuickZipStream extends Readable {
 
     async calculateSize(howLong:number = 1000) {
         this.prewalk = []
-        let timeIsOut = false
-        setTimeout(() => timeIsOut = true, howLong) // give it 1 second
-        while (!timeIsOut) {
+        const endBy = Date.now() + howLong
+        while (1) {
+            if (Date.now() >= endBy)
+                return NaN
             const { value } = await this.walker.next()
             if (!value) break
             this.prewalk.push(value) // we keep same shape of the generator, so
         }
-        if (timeIsOut)
-            return NaN
         let size = 0
         let centralDirSize = 0
         for (const file of this.prewalk) {
