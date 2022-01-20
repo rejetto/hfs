@@ -67,10 +67,10 @@ export default function useFetchList() {
             }
         })
         state.stopSearch = ()=>{
+            state.stopSearch = undefined
             buffer.length = 0
             setLoading(false)
             clearInterval(timer)
-            state.stopSearch = undefined
             src.close()
         }
     }, [desiredPath, search, snap.username, forcer])

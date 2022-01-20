@@ -14,7 +14,6 @@
 - config: bans
 - config: min disk space
 - thumbnails support
-- archive only selected files
 - "bottom" button (only on long screens, only after you scroll a bit, only for a few seconds)
 - webdav?
 - vfs: ability to remove/hide/rename files deep in a source

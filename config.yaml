@@ -28,8 +28,6 @@ vfs:
         - name: page
           default: index.html
           source: tests/page
-    - name: proxy
-      source: https://raw.githubusercontent.com/nodejs/node/master/README.md
     - name: for-admins
       perm:
         admin: r

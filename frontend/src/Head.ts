@@ -28,7 +28,8 @@ function FolderStats() {
         }
         return { files, folders, size }
     }, [list])
-    const { filteredEntries, stoppedSearch } = useSnapState()
+    const { filteredEntries, selected, stoppedSearch } = useSnapState()
+    const sel = Object.keys(selected).length
     return h('div', { id:'folder-stats' },
         stoppedSearch ? hIcon('interrupted', { title:'Search was interrupted' })
             : list?.length>0 && loading && h(Spinner),
@@ -36,6 +37,7 @@ function FolderStats() {
             prefix('', stats.files,' file(s)'),
             prefix('', stats.folders, ' folder(s)'),
             stats.size ? formatBytes(stats.size) : '',
+            sel && sel+' selected',
             filteredEntries >= 0 && filteredEntries+' displayed',
         ].filter(Boolean).join(', ')
     )

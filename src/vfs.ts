@@ -40,9 +40,9 @@ export class Vfs {
         this.root = { ...EMPTY }
     }
 
-    async urlToNode(url: string, ctx: Koa.Context) : Promise<VfsNode | undefined> {
+    async urlToNode(url: string, ctx: Koa.Context, root?: VfsNode) : Promise<VfsNode | undefined> {
         const users = await getCurrentUsernameExpanded(ctx)
-        let run = this.root
+        let run = root || this.root
         const rest = url.split('/').filter(Boolean).map(decodeURIComponent)
         if (forbidden(run, users)) return
         while (rest.length) {

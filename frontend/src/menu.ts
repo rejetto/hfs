@@ -7,12 +7,18 @@ import { login } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
 import { useNavigate } from 'react-router-dom'
+import _ from 'lodash'
 
 export function MenuPanel() {
-    const { remoteSearch, stopSearch, stoppedSearch, listFilter } = useSnapState()
+    const { remoteSearch, stopSearch, stoppedSearch, listFilter, selected } = useSnapState()
     const [showFilter, setShowFilter] = useState(listFilter > '')
     const [filter, setFilter] = useState(listFilter)
     ;[state.listFilter] = useDebounce(showFilter ? filter : '', 300)
+    state.showFilter = showFilter
+    useEffect(() => {
+        if (!showFilter)
+            state.selected = {}
+    }, [showFilter])
 
     const [started1secAgo, setStarted1secAgo] = useState(false)
     useEffect(() => {
@@ -20,6 +26,9 @@ export function MenuPanel() {
         setStarted1secAgo(false)
         setTimeout(() => setStarted1secAgo(true), 1000)
     }, [stopSearch])
+
+    //TODO do something for list > 63KB (1kb reserved for the rest for the url)
+    const list = Object.keys(selected).map(s => s.endsWith('/') ? s.slice(0,-1) : s).join('*')
     return h('div', { id: 'menu-panel' },
         h('div', { id: 'menu-bar' },
             h(LoginButton),
@@ -40,8 +49,12 @@ export function MenuPanel() {
             h(MenuLink, {
                 icon: 'archive',
                 label: 'Archive',
-                href: '?get=zip' + prefix('&search=', remoteSearch),
-                confirm: remoteSearch ? 'Download results of this search as ZIP archive?' : 'Download whole folder as ZIP archive?',
+                href: '?'+String(new URLSearchParams(_.pickBy({
+                    get: 'zip',
+                    search: remoteSearch,
+                    list
+                }))),
+                confirm: list ? undefined : remoteSearch ? 'Download results of this search as ZIP archive?' : 'Download whole folder as ZIP archive?',
             })
         ),
         remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),

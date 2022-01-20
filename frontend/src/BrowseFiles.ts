@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { createContext, createElement as h, Fragment, useContext, useEffect, useMemo, useState, memo } from 'react'
 import { formatBytes, hError, hIcon, hfsEvent } from './misc'
-import { Html, Spinner } from './components'
+import { Checkbox, Html, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import _ from 'lodash'
@@ -63,17 +63,25 @@ function isMobile() {
 }
 
 const Entry = memo(function(entry: DirEntry & { hidden:boolean, midnight: Date }) {
-    let { n, hidden, isFolder } = entry
+    let { n: relativePath, hidden, isFolder } = entry
     const base = usePath()
-    const href = fixUrl(n)
-    const containerDir = isFolder ? '' : n.substring(0, n.lastIndexOf('/')+1)
-    if (containerDir)
-        n = n.substring(containerDir.length)
+    const { showFilter, selected } = useSnapState()
+    const href = fixUrl(relativePath)
+    const containerDir = isFolder ? '' : relativePath.substring(0, relativePath.lastIndexOf('/')+1)
+    const name = relativePath.substring(containerDir.length)
     return h('li', { className:isFolder ? 'folder' : 'file', style:hidden ? { display:'none' } : null },
-        isFolder ? h(Link, { to: base+href }, hIcon('folder'), n)
+        showFilter && h(Checkbox, {
+            value: selected[relativePath],
+            onChange(v){
+                if (v)
+                    return state.selected[relativePath] = true
+                delete state.selected[relativePath]
+            },
+        }),
+        isFolder ? h(Link, { to: base+href }, hIcon('folder'), relativePath)
             : h(Fragment, {},
                 containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
-                h('a', { href }, !containerDir && hIcon('file'),  n)
+                h('a', { href }, !containerDir && hIcon('file'),  name)
             ),
         h(EntryProps, entry),
         h('div', { style:{ clear:'both' } })

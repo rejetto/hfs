@@ -8,6 +8,8 @@ export const state = proxy<{
     iconsClass: string,
     username: string,
     listFilter: string,
+    showFilter: boolean,
+    selected: Record<string,true>, // optimization: by using an object instead of an array, components are not rendered when the array changes, but only when their specific property change
     remoteSearch: string,
     filteredEntries: number,
     sortBy: string,
@@ -18,6 +20,8 @@ export const state = proxy<{
     iconsClass: '',
     username: '',
     listFilter: '',
+    showFilter: false,
+    selected: {},
     remoteSearch: '',
     filteredEntries: -1,
     sortBy: 'name',
