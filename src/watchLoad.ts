@@ -9,23 +9,25 @@ interface Options { failOnFirstAttempt?: ()=>void }
 
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failOnFirstAttempt }:Options={}): WatchLoadCanceller {
     let doing = false
-    let first = true
     let watcher: FSWatcher
     const debounced = _.debounce(load, 500)
-    debounced()
-    const timer = setInterval(()=>{
-        try {
-            watcher = watch(path, debounced)
-            debounced()
-        }
-        catch {}
-    }, 1000)
-    let running = true
+    let initDone = false
+    init()
     return () => {
-        if (!running) return
-        running = false
-        clearInterval(timer)
+        initDone = true // stop trying
         watcher?.close()
+    }
+
+    function init() {
+        try {
+            debounced()
+            watcher = watch(path, debounced)
+            initDone = true
+        }
+        catch {
+            if (initDone)
+                setTimeout(init, 1000)
+        }
     }
 
     async function load(){
@@ -38,14 +40,12 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             if (path.endsWith('.yaml'))
                 data = yaml.parse(data)
         } catch (e) {
-            if (first)
+            if (initDone)
                 failOnFirstAttempt?.()
             doing = false
             console.debug('cannot read', path, String(e))
             return
         }
-        first = false
-        clearInterval(timer)
         await parser(data)
         doing = false
     }
