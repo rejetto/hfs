@@ -46,7 +46,9 @@ input, select {
     color: var(--good-contrast);
 }
 input[type=checkbox] {
-    margin-right: 0.5em;
+    margin: 0 1.3em 0 0.8em;
+    transform: scale(1.7);
+    accent-color: var(--button-bg);
 }
 
 .icon {

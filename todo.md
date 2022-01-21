@@ -1,9 +1,9 @@
 # To do
-- bigger checkbox (usability)
 - filter: add button to invert selection
 - filter: add button to select all
 - log filter option
 - log filter plugin
+- publish to npm (so people can "npm install hfs")
 - frontend search supporting masks
 - remove seconds from time
 - update tests to SRP login
