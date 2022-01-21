@@ -57,10 +57,12 @@ export function MenuPanel() {
                 confirm: list ? undefined : remoteSearch ? 'Download results of this search as ZIP archive?' : 'Download whole folder as ZIP archive?',
             })
         ),
-        remoteSearch && h('div', { id: 'searched' }, (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),
+        remoteSearch && h('div', { id: 'searched' },
+            (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),
         showFilter && h('input', {
             id: 'filter',
             placeholder: 'Filter',
+            autocomplete: 'off',
             value: filter,
             autoFocus: true,
             onChange(ev) {
