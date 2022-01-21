@@ -4,6 +4,7 @@ import open from 'open'
 import { app } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
+import { networkInterfaces } from 'os';
 
 let firstTime = true
 let httpSrv: http.Server
@@ -69,6 +70,17 @@ function startServer(srv: http.Server, port: number, secure:string='') {
                     return reject('type of socket not supported')
                 port = ad.port
                 console.log(proto, `serving on port`, port)
+
+                const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*)$/i // avoid giving too much information
+                for (const [name, nets] of Object.entries(networkInterfaces()))
+                    if (nets && !ignore.test(name)) {
+                        console.log('network', name)
+                        for (const net of nets) {
+                            if (net.internal) continue
+                            const appendPort = port === (secure ? 443 : 80) ? '' : ':' + port
+                            console.log('-', proto + '://' + net.address + appendPort)
+                        }
+                    }
 
                 if (firstTime && getConfig('open_browser_at_start') !== false) {
                     open(proto + '://localhost:' + port).then()
