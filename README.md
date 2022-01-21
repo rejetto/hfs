@@ -11,7 +11,7 @@ This project is in an early stage and distribution will be made easier.
 This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 You won't find all previous features here (yet), but still we got:
 
-# Features
+## Features
 - https
 - unicode
 - virtual file system
@@ -25,12 +25,24 @@ You won't find all previous features here (yet), but still we got:
 - log file
 - speed throttler
 
+# Installation
+
+## Windows
+
+1. go on https://github.com/rejetto/hfs/releases
+2. pick your version
+3. among the zip files, we suggest the one with "exe" in the name
+4. download and unzip somewhere on your computer
+5. first time you should rename `config-example` to `config`. 
+   Future upgrades you may probably want to keep your existing config, and possibly use the example as an inspiration.
+   You should edit config to suite your needs. Surely you want at least to change what files and folders are accessible 
+   by the browser, and you'll find that under the `vfs` entry. For further details please check the `Configuration` section below. 
+
+We suggest the other distribution, without the "exe" in the name.
+
 # Configuration
 
-At the moment there's no administration UI. You must edit configuration files.
-
-## Config
-
+At the moment there's no administration UI. You must edit the configuration file, that basically a structured text file.
 General configuration is read by default from file `config.yaml`.
 When not specified, default values will be used.
 Supported entries are:
@@ -51,7 +63,7 @@ Supported entries are:
 - `https_port` listen on a specific port. Default is 443.
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none. 
 - `private_key` use this file for https private key. Default is none.
-- `plugins_config` 
+- `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration. 
  
 ## Virtual File System (VFS)
 

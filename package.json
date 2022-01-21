@@ -13,8 +13,8 @@
     "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts",
     "start-frontend": "cd frontend && npm run start",
     "start": "node dist",
-    "build": "npm install && tsc --target es2018 && cp -v -r package*.json config.yaml accounts.yaml READ* plugins tests dist && cd dist && npm ci --production && cd .. && node afterbuild",
-    "build-all": "rm -rf dist && npm run build && cd frontend && npm install && npm run build && echo COMPLETED",
+    "build": "npm install && tsc --target es2018 && cp -v -r package*.json accounts.yaml READ* plugins tests dist && cp config.yaml dist/config-example.yaml && cd dist && npm ci --production && cd .. && node afterbuild",
+    "build-all": "rm -rf dist && npm run build && cd frontend && npm install && npm run build && npm audit --production && echo COMPLETED",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "zip-dist": "cd dist && zip hfs.zip -r * -x *.zip *.exe",
     "make-exe-after-build": "pkg . -C brotli && cd dist && zip hfs.exe.zip  -r * -x src src/** *.zip run.bat"
