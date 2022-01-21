@@ -1,5 +1,5 @@
-# BEWARE all lines starting with # are disabled, just placeholders. If you need to set the option remove the initial #
-#port: 80
+# BEWARE all lines starting with # are ignored, just placeholders. Default values are used for such lines. If you need to set the option then remove the initial #
+port: 80    # 0 is a special value that will let the system pick a random available port. Use -1 to disable http, if you want https-only for example.
 #max_kbps: 1000
 #max_kbps_per_ip: 500
 #log:

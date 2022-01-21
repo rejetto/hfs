@@ -62,7 +62,14 @@ function startServer(srv: http.Server, port: number, secure:string='') {
                 return resolve(null)
             srv.listen(port, () => {
                 const proto = 'http' + secure
-                console.log(proto + ` serving on port`, port)
+                const ad = srv.address()
+                if (!ad)
+                    return reject('no address')
+                if (typeof ad === 'string')
+                    return reject('type of socket not supported')
+                port = ad.port
+                console.log(proto, `serving on port`, port)
+
                 if (firstTime && getConfig('open_browser_at_start') !== false) {
                     open(proto + '://localhost:' + port).then()
                     firstTime = false

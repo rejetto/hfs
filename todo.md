@@ -1,4 +1,5 @@
 # To do
+- bigger checkbox (usability)
 - filter: add button to invert selection
 - filter: add button to select all
 - log filter option
