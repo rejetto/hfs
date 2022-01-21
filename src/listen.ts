@@ -47,20 +47,22 @@ subscribeConfig({ k:'private_key' }, async (v: string) => {
 })
 
 const CFG_HTTPS_PORT = 'https_port'
-subscribeConfig({ k:CFG_HTTPS_PORT, defaultValue: 443 }, considerHttps)
+subscribeConfig({ k:CFG_HTTPS_PORT }, considerHttps)
 
 async function considerHttps() {
-    if (!cert || !key)
-        return stopServer(httpsSrv)
+    await stopServer(httpsSrv)
+    const port = getConfig('https_port') ?? 443
     httpsSrv = https.createServer({ key, cert }, app.callback());
-    return await startServer(httpsSrv, getConfig('https_port'), 's')
+    return await startServer(httpsSrv, !cert || !key ? -1 : port, 's')
 }
 
 function startServer(srv: http.Server, port: number, secure:string='') {
     return new Promise((resolve, reject) => {
         try {
-            if (port < 0)
+            if (port < 0) {
+                console.log('http'+secure+' off')
                 return resolve(null)
+            }
             srv.listen(port, () => {
                 const proto = 'http' + secure
                 const ad = srv.address()
