@@ -71,8 +71,6 @@ export interface DirEntry { n:string, s?:number, m?:Date, c?:Date }
 async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
     try {
         let { name, source, default:def } = node
-        if (source?.includes('//'))
-            return { n: name || source }
         if (source) {
             if (!name)
                 name = basename(source)

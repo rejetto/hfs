@@ -1,4 +1,3 @@
-import proxy from 'koa-better-http-proxy'
 import Koa from 'koa'
 import fs from 'fs/promises'
 import { FRONTEND_URI, METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI } from './const'
@@ -10,16 +9,22 @@ import { ApiError } from './apis'
 const proxyPort = process.env.FRONTEND_PROXY
 export const serveFrontend = proxyPort ? serveProxyFrontend() : serveStaticFrontend()
 
-function serveProxyFrontend() {
+function serveProxyFrontend() { // used for development
     console.debug('fronted: proxied')
-    return proxy('localhost:'+proxyPort, {
-        filter: ctx => ctx.method === 'GET' || (ctx.status = METHOD_NOT_ALLOWED) && false,
-        proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
-        userResDecorator(res, data, ctx) {
-            return ctx.url.endsWith('/') ? treatIndex(ctx, data.toString('utf8'))
-                : data
-        }
-    })
+    let proxy: Koa.Middleware
+    import('koa-better-http-proxy').then(lib =>
+        proxy = lib.default('localhost:'+proxyPort, {
+            filter: ctx => ctx.method === 'GET' || (ctx.status = METHOD_NOT_ALLOWED) && false,
+            proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
+            userResDecorator(res, data, ctx) {
+                return ctx.url.endsWith('/') ? treatIndex(ctx, data.toString('utf8'))
+                    : data
+            }
+        })
+    )
+    return function() { //@ts-ignore
+        return proxy.apply(this,arguments)
+    }
 }
 
 function serveStaticFrontend() : Koa.Middleware {

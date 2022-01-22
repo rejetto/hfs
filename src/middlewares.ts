@@ -10,7 +10,6 @@ import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
 import { serveFrontend } from './serveFrontend'
 import mount from 'koa-mount'
-import proxy from 'koa-better-http-proxy'
 import { Readable } from 'stream'
 
 export const gzipper = compress({
@@ -76,7 +75,6 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return serveFrontend(ctx, next)
     }
     if (source)
-        return source.includes('//') ? mount(path,proxy(source,{}))(ctx,next)
-            : serveFileNode(node)(ctx,next)
+        return serveFileNode(node)(ctx,next)
     return next()
 }

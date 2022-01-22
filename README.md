@@ -87,7 +87,7 @@ The virtual file system is a tree of files and folders, collectively called *nod
 By default a node is folder, unless you provide for it a source that's a file.
 Valid keys in a node are: 
 - `name`: how to display it. If not provided HFS will infer it from the source.  
-- `source`: where to get its content from. Absolute or relative file path, or even http url.
+- `source`: absolute or relative path of where to get the content
 - `children`: just for folders, specify its virtual children.
      Value is a list and its entries are nodes.  
 - `hidden`: this must not be listed, but it's still downloadable.
