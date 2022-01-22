@@ -1,45 +1,38 @@
 import { Link, useLocation } from 'react-router-dom'
-import { createContext, createElement as h, Fragment, useContext, useEffect, useMemo, useState, memo } from 'react'
-import { formatBytes, hError, hIcon, hfsEvent } from './misc'
+import { createElement as h, Fragment, memo, useEffect, useMemo, useState } from 'react'
+import { formatBytes, hError, hfsEvent, hIcon } from './misc'
 import { Checkbox, Html, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
-import _ from 'lodash'
-import useFetchList from './useFetchList'
 import { alertDialog } from './dialog'
+import useFetchList from './useFetchList'
 
 export function usePath() {
     return decodeURI(useLocation().pathname)
 }
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string,
-    ext:string, isFolder:boolean, t?:Date } // we memoize these value for speed
+    ext:string, isFolder:boolean, t?:Date, hidden?:boolean } // we memoize these value for speed
 export type DirList = DirEntry[]
-interface ListRes { list:DirList, loading?:boolean, err?:Error, reload?:()=>void }
-
-export const ListContext = createContext<ListRes>({ list:[], loading: false })
 
 export function BrowseFiles() {
-    const { list, loading, error, reload } = useFetchList()
-    return h(ListContext.Provider, { value:{ list, loading, reload } },
+    useFetchList()
+    const { error, list } = useSnapState()
+    return h(Fragment, {},
         h(Head),
-        hError(error && 'Failed to retrieve list') || h(list ? FilesList : Spinner))
+        hError(error && 'Failed to retrieve list')
+        || h(list ? FilesList : Spinner))
 }
 
 function FilesList() {
-    const { list, loading } = useContext(ListContext)
     const snap = useSnapState()
+    const { list, loading } = snap
     const midnight = useMidnight() // as an optimization we calculate this only once per list
-    if (!list) return null
-    const filter = snap.listFilter > '' && new RegExp(_.escapeRegExp(snap.listFilter),'i')
-    let n = 0 // if I try to use directly the state as counter I get a "too many re-renders" error
-    const ret = h('ul', { className: 'dir' },
+    return h('ul', { className: 'dir' },
         !list.length ? (!loading && (snap.stoppedSearch ? 'Stopped before finding anything' : 'Nothing here'))
             : list.map((entry: DirEntry) =>
-                h(Entry, { key: entry.n, midnight, hidden: filter && !filter.test(entry.n) || !++n, ...entry })),
+                h(Entry, { key: entry.n, midnight, ...entry })),
         loading && h(Spinner))
-    state.filteredEntries = filter ? n : -1
-    return ret
 }
 
 function useMidnight() {
@@ -62,14 +55,14 @@ function isMobile() {
     return window.innerWidth < 800
 }
 
-const Entry = memo(function(entry: DirEntry & { hidden:boolean, midnight: Date }) {
+const Entry = memo(function(entry: DirEntry & { midnight: Date }) {
     let { n: relativePath, hidden, isFolder } = entry
     const base = usePath()
     const { showFilter, selected } = useSnapState()
     const href = fixUrl(relativePath)
     const containerDir = isFolder ? '' : relativePath.substring(0, relativePath.lastIndexOf('/')+1)
     const name = relativePath.substring(containerDir.length)
-    return h('li', { className:isFolder ? 'folder' : 'file', style:hidden ? { display:'none' } : null },
+    return h('li', { className: (isFolder ? 'folder' : 'file') + (hidden ? ' hidden' : '') },
         showFilter && h(Checkbox, {
             value: selected[relativePath],
             onChange(v){

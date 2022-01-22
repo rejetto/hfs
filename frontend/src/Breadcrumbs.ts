@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
-import { createElement as h, Fragment, ReactElement, useContext } from 'react'
-import { ListContext } from './BrowseFiles'
+import { createElement as h, Fragment, ReactElement } from 'react'
 import { confirmDialog } from './dialog'
 import { hIcon } from './misc'
+import { state } from './state'
+import { reloadList } from './useFetchList'
 
 export function Breadcrumbs() {
     const currentPath = useLocation().pathname.slice(1,-1)
@@ -26,13 +27,15 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path?: string,
     const PAD = '\u00A0\u00A0' // make small elements easier to tap. Don't use min-width 'cause it requires display-inline that breaks word-wrapping
     if (typeof label === 'string' && label.length < 3)
         label = PAD+label+PAD
-    const { reload } = useContext(ListContext)
     return h(Link, {
         className: 'breadcrumb',
         to: path || '/',
         async onClick() {
-            if (current && await confirmDialog('Reload?'))
-                reload?.()
+            if (current && await confirmDialog('Reload?')) {
+                state.remoteSearch = ''
+                state.stopSearch?.()
+                reloadList()
+            }
         }
     }, label)
 }

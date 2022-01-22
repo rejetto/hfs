@@ -1,24 +1,15 @@
 import { state, useSnapState } from './state'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { apiEvents } from './api'
 import { DirEntry, DirList, usePath } from './BrowseFiles'
-import { useForceUpdate } from './misc'
+import _ from 'lodash'
+import { subscribeKey } from 'valtio/utils'
 
 export default function useFetchList() {
     const snap = useSnapState()
     const desiredPath = usePath()
     const search = snap.remoteSearch || undefined
-    const [list, setList] = useState<DirList>([])
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<Error>()
     const lastPath = useRef('')
-    const [reload, forcer] = useForceUpdate()
-
-    // reorder in case sort criteria change
-    const { sortBy, invertOrder, foldersFirst } = snap
-    useEffect(()=>{
-        setList(sort(list))
-    }, [sortBy, invertOrder, foldersFirst]) //eslint-disable-line
 
     useEffect(()=>{
         if (!desiredPath.endsWith('/')) { // useful only in dev, while accessing the frontend directly without passing by the main server
@@ -27,39 +18,39 @@ export default function useFetchList() {
         }
         const previous = lastPath.current
         lastPath.current = desiredPath
-        if (previous !== desiredPath)
+        if (previous !== desiredPath) {
+            state.showFilter = false
             state.stopSearch?.()
+        }
         state.stoppedSearch = false
         if (previous !== desiredPath && search) {
             state.remoteSearch = ''
-            state.stopSearch?.()
             return
         }
 
         const API = 'file_list'
         const baseParams = { path:desiredPath, search, sse:true, omit:'c' }
-        let list: DirList = []
-        setList(list)
-        setLoading(true)
+        state.list = []
+        state.selected = {}
+        state.loading = true
+        state.error = null
         // buffering entries is necessary against burst of events that will hang the browser
-
-        setError(undefined)
         const buffer: DirList = []
         const flush = () => {
             const chunk = buffer.splice(0, Infinity)
             if (chunk.length)
-                setList(list = sort([...list, ...chunk.map(precalculate)]))
+                state.list = sort([...state.list, ...chunk.map(precalculate)])
         }
         const timer = setInterval(flush, 1000)
         const src = apiEvents(API, baseParams, (type, data) => {
             switch (type) {
                 case 'error':
                     state.stopSearch?.()
-                    return setError(Error(JSON.stringify(data)))
+                    return state.error = Error(JSON.stringify(data))
                 case 'closed':
                     flush()
                     state.stopSearch?.()
-                    return setLoading(false)
+                    return state.loading = false
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()
@@ -69,19 +60,15 @@ export default function useFetchList() {
         state.stopSearch = ()=>{
             state.stopSearch = undefined
             buffer.length = 0
-            setLoading(false)
+            state.loading = false
             clearInterval(timer)
             src.close()
         }
-    }, [desiredPath, search, snap.username, forcer])
-    return {
-        list, loading, error,
-        reload() {
-            state.remoteSearch = ''
-            state.stopSearch?.()
-            reload()
-        }
-    }
+    }, [desiredPath, search, snap.username, snap.listReloader])
+}
+
+export function reloadList() {
+    state.listReloader = Date.now()
 }
 
 const { compare:localCompare } = new Intl.Collator(navigator.language)
@@ -118,3 +105,20 @@ function precalculate(rec:DirEntry) {
 function compare(a:any, b:any) {
     return a < b ? -1 : a > b ? 1 : 0
 }
+
+// update list on sorting criteria
+const sortAgain = _.debounce(()=> state.list = sort(state.list), 100)
+subscribeKey(state, 'sortBy', sortAgain)
+subscribeKey(state, 'invertOrder', sortAgain)
+subscribeKey(state, 'foldersFirst', sortAgain)
+
+subscribeKey(state, 'patternFilter', v => {
+    const filter = v > '' && new RegExp(_.escapeRegExp(v),'i')
+    let n = 0
+    for (const entry of state.list) {
+        entry.hidden = filter && !filter.test(entry.n)
+        if (!entry.hidden)
+            ++n
+    }
+    state.filteredEntries = filter ? n : -1
+})

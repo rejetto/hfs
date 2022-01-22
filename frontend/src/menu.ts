@@ -10,11 +10,9 @@ import { useNavigate } from 'react-router-dom'
 import _ from 'lodash'
 
 export function MenuPanel() {
-    const { remoteSearch, stopSearch, stoppedSearch, listFilter, selected } = useSnapState()
-    const [showFilter, setShowFilter] = useState(listFilter > '')
-    const [filter, setFilter] = useState(listFilter)
-    ;[state.listFilter] = useDebounce(showFilter ? filter : '', 300)
-    state.showFilter = showFilter
+    const { showFilter, remoteSearch, stopSearch, stoppedSearch, patternFilter, selected } = useSnapState()
+    const [filter, setFilter] = useState(patternFilter)
+    ;[state.patternFilter] = useDebounce(showFilter ? filter : '', 300)
     useEffect(() => {
         if (!showFilter)
             state.selected = {}
@@ -37,7 +35,7 @@ export function MenuPanel() {
                 label: 'Filter',
                 toggled: showFilter,
                 onClick() {
-                    setShowFilter(!showFilter)
+                    state.showFilter = !showFilter
                 }
             }),
             h(MenuButton, getSearchProps()),
@@ -59,16 +57,31 @@ export function MenuPanel() {
         ),
         remoteSearch && h('div', { id: 'searched' },
             (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),
-        showFilter && h('input', {
-            id: 'filter',
-            placeholder: 'Filter',
-            autocomplete: 'off',
-            value: filter,
-            autoFocus: true,
-            onChange(ev) {
-                setFilter(ev.target.value)
-            }
-        }),
+        showFilter && h('div', { id: 'filter-bar' },
+            h('input', {
+                id: 'filter',
+                placeholder: 'Filter',
+                autoComplete: 'off',
+                value: filter,
+                autoFocus: true,
+                onChange(ev) {
+                    setFilter(ev.target.value)
+                }
+            }),
+            h(MenuButton, {
+                icon: 'invert',
+                label: 'Invert selection',
+                onClick() {
+                    const sel = state.selected
+                    for (const { hidden, n } of state.list)
+                        if (!hidden)
+                            if (sel[n])
+                                delete sel[n]
+                            else
+                                sel[n] = true
+                }
+            })
+        )
     )
 
 

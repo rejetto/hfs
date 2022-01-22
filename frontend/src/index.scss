@@ -51,6 +51,8 @@ input[type=checkbox] {
     accent-color: var(--button-bg);
 }
 
+.hidden { display: none !important }
+
 .icon {
     font-size: 1.2em;
 }
@@ -132,6 +134,14 @@ header input {
     margin: 0.2em auto;
     box-sizing: border-box;
 }
+#filter-bar {
+    display: flex;
+    gap: .3em;
+    & input { flex: 1 }
+    & button {
+        padding: 0 0.5em;
+    }
+}
 
 ul.dir {
     padding: 0;
@@ -203,6 +213,11 @@ button label {
         justify-content: space-between;
         align-content: stretch;
         & button label { display: none } /* icons only */
+    }
+    #filter-bar label { display:none }
+    #filter-bar button { /* make it same size of top bar */
+        width: 17.6vw;
+        height: 2.3em;
     }
     .breadcrumb {
         word-break: break-all; /* solves with very long names without spaces. 'break-word' is nicer but doesn't handle worst

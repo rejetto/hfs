@@ -18,6 +18,7 @@ const SYS_ICONS = {
     spinner: 'spin6 spinner:🎲',
     password: 'key:🗝️',
     download: ':📥',
+    invert: 'retweet:🙃',
 }
 
 document.fonts.ready.then(async ()=> {

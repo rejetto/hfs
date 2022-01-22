@@ -1,5 +1,4 @@
-import { createElement as h, useContext, useMemo} from 'react'
-import { ListContext } from './BrowseFiles'
+import { createElement as h, useMemo} from 'react'
 import { formatBytes, hIcon, prefix } from './misc'
 import { Spinner } from './components'
 import { useSnapState } from './state'
@@ -16,7 +15,7 @@ export function Head() {
 }
 
 function FolderStats() {
-    const { list, loading } = useContext(ListContext)
+    const { list, loading, filteredEntries, selected, stoppedSearch } = useSnapState()
     const stats = useMemo(() =>{
         let files = 0, folders = 0, size = 0
         for (const x of list) {
@@ -28,7 +27,6 @@ function FolderStats() {
         }
         return { files, folders, size }
     }, [list])
-    const { filteredEntries, selected, stoppedSearch } = useSnapState()
     const sel = Object.keys(selected).length
     return h('div', { id:'folder-stats' },
         stoppedSearch ? hIcon('interrupted', { title:'Search was interrupted' })

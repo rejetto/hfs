@@ -1,13 +1,18 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
+import { DirList } from './BrowseFiles'
 
 export const state = proxy<{
     stopSearch?: ()=>void,
     stoppedSearch?: boolean,
     iconsClass: string,
     username: string,
-    listFilter: string,
+    list: DirList,
+    loading: boolean,
+    error: Error | null,
+    listReloader: number,
+    patternFilter: string,
     showFilter: boolean,
     selected: Record<string,true>, // optimization: by using an object instead of an array, components are not rendered when the array changes, but only when their specific property change
     remoteSearch: string,
@@ -19,7 +24,11 @@ export const state = proxy<{
 }>({
     iconsClass: '',
     username: '',
-    listFilter: '',
+    list: [],
+    loading: false,
+    error: null,
+    listReloader: 0,
+    patternFilter: '',
     showFilter: false,
     selected: {},
     remoteSearch: '',
