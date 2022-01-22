@@ -2,7 +2,6 @@ import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
 import { complySlashes, enforceFinal, isDirectory, prefix, wantArray } from './misc'
-import { getCurrentUsernameExpanded } from './perm'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
@@ -21,6 +20,7 @@ export interface VfsNode {
     hide?: string | string[],
     remove?: string | string[],
     hidden?: boolean,
+    forbid?: boolean,
     rename?: Record<string,string>,
     perm?: Record<string, SinglePerm>,
     default?: string,
@@ -41,16 +41,15 @@ export class Vfs {
     }
 
     async urlToNode(url: string, ctx: Koa.Context, root?: VfsNode) : Promise<VfsNode | undefined> {
-        const users = await getCurrentUsernameExpanded(ctx)
         let run = root || this.root
         const rest = url.split('/').filter(Boolean).map(decodeURIComponent)
-        if (forbidden(run, users)) return
+        if (!hasPermission(run, ctx)) return
         while (rest.length) {
             let piece = rest.shift() as string
             const child = findChildByName(piece, run)
             if (child) {
                 run = child
-                if (forbidden(run, users)) return
+                if (!hasPermission(run, ctx)) return
                 continue
             }
             if (!run.source)
@@ -93,22 +92,20 @@ function findChildByName(name:string, node:VfsNode) {
     return node?.children?.find(x => x.name === name)
 }
 
-export function forbidden(node:VfsNode, users:string[]) {
+export function hasPermission(node:VfsNode, ctx: Koa.Context) {
     const { perm } = node
-    return perm && !users.some(u => perm[u])
+    return !perm || ctx.state.usernames.some((u:string) => perm[u])
 }
-
 
 export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
-    ctx._who = ctx._who || await getCurrentUsernameExpanded(ctx) // cache value
     if (children)
-        for (const c of children) {
-            if (c.hidden || forbidden(c, ctx._who))
+        for (const node of children) {
+            if (node.hidden || !hasPermission(node, ctx))
                 continue
-            yield prefixPath ? { ...c, name: prefixPath+c.name } : c
-            if (depth > 0 && c && (c.children || c.source && await isDirectory(c.source)))
-                yield* walkNode(c, ctx, depth - 1, prefixPath+c.name+'/')
+            yield prefixPath ? { ...node, name: prefixPath+node.name } : node
+            if (depth > 0 && node && (node.children || node.source && await isDirectory(node.source)))
+                yield* walkNode(node, ctx, depth - 1, prefixPath+node.name+'/')
         }
     if (!source)
         return

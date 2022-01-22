@@ -7,21 +7,21 @@ import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { getAccount, getCurrentUsername } from './perm'
+import { getAccount, getCurrentUsername, getCurrentUsernameExpanded } from './perm'
 import { headRequests, gzipper, sessions, frontendAndSharedFiles } from './middlewares'
 import './listen'
 
 export const BUILD_TIMESTAMP = "-"
 export const SESSION_DURATION = 30*60_000
 
-console.log('started', new Date().toLocaleString())
-console.log('build', BUILD_TIMESTAMP, DEV)
+console.log('started', new Date().toLocaleString(), 'build', BUILD_TIMESTAMP, DEV)
 console.debug('cwd', process.cwd())
-export const app = new Koa()
-app.keys = ['hfs-keys-test']
+export const app = new Koa({ keys: ['hfs-keys-test'] })
+
 app.use(sessions(app))
 app.use(async (ctx, next) => {
-    ctx.account = getAccount(getCurrentUsername(ctx))
+    ctx.state.usernames = getCurrentUsernameExpanded(ctx) // accounts chained via .belongs for permissions check
+    ctx.state.account = getAccount(getCurrentUsername(ctx))
     await next()
 })
 app.use(headRequests)

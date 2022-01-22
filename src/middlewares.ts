@@ -3,7 +3,7 @@ import Koa from 'koa'
 import session from 'koa-session'
 import { BUILD_TIMESTAMP, SESSION_DURATION } from './index'
 import Application from 'koa'
-import { FRONTEND_URI } from './const'
+import { FORBIDDEN, FRONTEND_URI } from './const'
 import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import { zipStreamFromFolder } from './zip'
@@ -59,6 +59,8 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (!node)
         return next()
     const { source } = node
+    if (node.forbid)
+        return ctx.status = FORBIDDEN
     if (!source || await isDirectory(source)) {
         const { get } = ctx.query
         if (get === 'zip')

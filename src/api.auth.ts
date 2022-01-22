@@ -106,9 +106,9 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
 export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
     if (!newPassword) // clear text version
         return Error('missing parameters')
-    if (!ctx.account)
+    if (!ctx.state.account)
         return new ApiError(401)
-    await updateAccount(ctx.account, account => {
+    await updateAccount(ctx.state.account, account => {
         account.password = newPassword
     })
     return {}
@@ -119,9 +119,9 @@ export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
         return new ApiError(406)
     if (!salt || !verifier)
         return Error('missing parameters')
-    if (!ctx.account)
+    if (!ctx.state.account)
         return new ApiError(401)
-    await updateAccount(ctx.account, account => {
+    await updateAccount(ctx.state.account, account => {
         saveSrpInfo(account, salt, verifier)
         delete account.hashed_password // remove leftovers
     })

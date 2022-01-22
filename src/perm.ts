@@ -10,7 +10,7 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 
 let path = ''
 
-interface Account {
+export interface Account {
     username: string, // we'll have username in it, so we don't need to pass it separately
     password?: string
     hashed_password?: string
@@ -28,7 +28,7 @@ export function getCurrentUsername(ctx: Koa.Context): string {
 }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
-export async function getCurrentUsernameExpanded(ctx: Koa.Context) {
+export function getCurrentUsernameExpanded(ctx: Koa.Context) {
     const who = getCurrentUsername(ctx)
     if (!who)
         return []

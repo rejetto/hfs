@@ -91,8 +91,9 @@ Valid keys in a node are:
 - `children`: just for folders, specify its virtual children.
      Value is a list and its entries are nodes.  
 - `hidden`: this must not be listed, but it's still downloadable.
+- `forbid`: set `true` to forbid listing for this folder
 - `hide`: similar to hidden, but it's from the parent node point of view.
-     Use this to hide entries that are read from the source, not listed in the VFS.
+     Use this to hide children read from the source, not listed in the VFS.
      Value can be just a file name, a mask, or a list of names/masks. 
 - `rename`: similar to name, but it's  from the parent node point.
      Use this to change the name of  entries that are read from the source, not listed in the VFS.

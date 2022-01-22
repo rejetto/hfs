@@ -5,11 +5,14 @@ import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { pattern2filter } from './misc'
+import { FORBIDDEN } from './const'
 
 export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await vfs.urlToNode(path || '/', ctx)
     if (!node)
         return
+    if (node.forbid)
+        return new ApiError(FORBIDDEN)
     if (search?.includes('..'))
         return new ApiError(400)
     if (node.default)
