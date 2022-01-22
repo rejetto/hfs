@@ -8,6 +8,7 @@
     display: flex;
     justify-Content: center;
     align-Items: center;
+    z-index: 1000;
 }
 .dialog {
     background: #fff; /*fallback*/

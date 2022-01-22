@@ -84,6 +84,7 @@ header {
     top: 0;
     background: var(--bg);
     padding: .2em;
+    z-index: 1; /* necessary to not be covered by checkboxes */
 }
 
 .ani-working { animation:1s blink infinite }
