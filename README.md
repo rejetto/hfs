@@ -31,14 +31,13 @@ You won't find all previous features here (yet), but still we got:
 
 1. go on https://github.com/rejetto/hfs/releases
 2. pick your version
-3. among the zip files, we suggest the one with "exe" in the name
-4. download and unzip somewhere on your computer
-5. first time you should rename `config-example` to `config`. 
+3. among the zip files, we suggest the one with "exe" in the name. Download ti and unzip somewhere on your computer
+4. first time you should rename `config-example` to `config`, and `accounts-example` to `accounts`. Preserve the `yaml` extension.
+ 
    Future upgrades you may probably want to keep your existing config, and possibly use the example as an inspiration.
    You should edit config to suite your needs. Surely you want at least to change what files and folders are accessible 
    by the browser, and you'll find that under the `vfs` entry. For further details please check the `Configuration` section below. 
-
-We suggest the other distribution, without the "exe" in the name.
+5. launch the `hfs.exe` file
 
 # Configuration
 
