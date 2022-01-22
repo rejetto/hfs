@@ -25,6 +25,23 @@ You won't find all previous features here (yet), but still we got:
 - log file
 - speed throttler
 
+### Why you should upgrade from HFS 2.x to 3
+
+As you can see from the list above, we already have some goods that you can't find in HFS 2
+
+- https
+- fully supports unicode
+- more robust
+- plugins system
+- ZIP format for archives instead of TAR
+
+### Why you should still stay with HFS 2.x (so far)
+
+- easier to configure
+- smaller
+- more tested
+- real-time monitoring
+
 # Installation
 
 ## Windows
