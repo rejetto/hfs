@@ -24,6 +24,9 @@ describe('basics', () => {
     it('partial download', req('/f1/f2/alfa.txt', s => s.includes('a') && !s.includes('d'), {
         headers: { Range: 'bytes=0-2' }
     }))
+    it('bad range', req('/f1/f2/alfa.txt', 416, {
+        headers: { Range: 'bytes=7-' }
+    }))
     it('website', req('/f1/page/', s => s.includes('This is a test')))
     it('missing perm', req('/for-admins/', 404))
     it('zip+head', req('/f1/?get=zip',
