@@ -84,7 +84,7 @@ Supported entries are:
 ## Virtual File System (VFS)
 
 The virtual file system is a tree of files and folders, collectively called *nodes*.
-By default a node is folder, unless you provide for it a source that's a file.
+By default, a node is a folder, unless you provide for it a source that's a file.
 Valid keys in a node are: 
 - `name`: how to display it. If not provided HFS will infer it from the source.  
 - `source`: absolute or relative path of where to get the content

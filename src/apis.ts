@@ -11,7 +11,7 @@ export type ApiHandler = (params:any, ctx:Koa.Context) => ApiHandlerResult | Pro
 export type ApiHandlers = Record<string, ApiHandler>
 
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
-    return async (ctx, next) => {
+    return async (ctx) => {
         const params = ctx.method === 'POST' ? await getJsonFromReq(ctx.req) : ctx.request.query
         console.debug('API', ctx.method, ctx.path, { ...params })
         if (!apis.hasOwnProperty(ctx.path)) {
@@ -29,18 +29,17 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         catch(e) {
             ctx.throw(500, String(e))
         }
-        if (res)
-            if (res instanceof ApiError) {
-                ctx.body = res.message
-                ctx.status = res.status
-            }
-            else if (res instanceof Error) {
-                ctx.body = String(res)
-                ctx.status = 400
-            }
-            else
-                ctx.body = res
-        await next()
+        if (!res) // this should happen only in case of SSE
+            return
+        if (res instanceof ApiError) {
+            ctx.body = res.message
+            return ctx.status = res.status
+        }
+        if (res instanceof Error) {
+            ctx.body = String(res)
+            return ctx.status = 400
+        }
+        ctx.body = res
     }
 }
 

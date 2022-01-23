@@ -30,6 +30,6 @@ vfs:
           source: tests/page
     - name: for-admins
       perm:
-        admin: r
+        admins: r
       children:
         - source: tests/alfa.txt
