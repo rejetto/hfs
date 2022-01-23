@@ -1,12 +1,15 @@
 :root {
     --bg: #fff;
     --text: #555;
+    --faint-contrast: #0002;
     --mild-contrast: #0005;
+    --good-contrast: #000a;
     --button-bg: #a4bac9;
     --button-text: #444;
     .theme-dark {
         --bg: #000;
         --text: #999;
+        --faint-contrast: #fff2;
         --mild-contrast: #fff5;
         --good-contrast: #fffa;
         --button-bg: #345;
@@ -31,6 +34,9 @@ body, button, select, input { font-size: 12pt; }
 #root {
     max-width: 50em;
     margin: auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 body, input {
     color: var(--text);
@@ -144,6 +150,7 @@ header input {
 }
 
 ul.dir {
+    flex: 1;
     padding: 0;
     margin: 0;
     clear: both;
@@ -204,6 +211,39 @@ button label {
 .dialog-backdrop.working {
     font-size: 5em;
     animation: 1s fade-in;
+}
+
+#paging {
+    display: flex;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    gap: .5em;
+    overflow-x: auto;
+    &>button {
+        flex: 1;
+        background: var(--button-bg);
+        text-align: center;
+    }
+}
+
+/* Works on Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--button-bg) var(--faint-contrast);
+}
+
+/* Works on Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+    width: 12px;
+}
+*::-webkit-scrollbar-track {
+    background: var(--faint-contrast);
+}
+*::-webkit-scrollbar-thumb {
+    background-color: var(--button-bg);
+    border-radius: 20px;
+    border: 1px solid var(--faint-contrast)
 }
 
 @media (max-width: 40em) {

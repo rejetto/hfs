@@ -15,7 +15,7 @@ export function Head() {
 }
 
 function FolderStats() {
-    const { list, loading, filteredEntries, selected, stoppedSearch } = useSnapState()
+    const { list, loading, filteredList, selected, stoppedSearch } = useSnapState()
     const stats = useMemo(() =>{
         let files = 0, folders = 0, size = 0
         for (const x of list) {
@@ -28,15 +28,16 @@ function FolderStats() {
         return { files, folders, size }
     }, [list])
     const sel = Object.keys(selected).length
+    const fil = filteredList?.length
     return h('div', { id:'folder-stats' },
         stoppedSearch ? hIcon('interrupted', { title:'Search was interrupted' })
-            : list?.length>0 && loading && h(Spinner),
+            : list.length>0 && loading && h(Spinner),
         [
             prefix('', stats.files,' file(s)'),
             prefix('', stats.folders, ' folder(s)'),
             stats.size ? formatBytes(stats.size) : '',
             sel && sel+' selected',
-            filteredEntries >= 0 && filteredEntries+' displayed',
+            fil !== undefined && fil < list.length && fil+' displayed',
         ].filter(Boolean).join(', ')
     )
 }

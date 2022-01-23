@@ -12,7 +12,7 @@ export function usePath() {
 }
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string,
-    ext:string, isFolder:boolean, t?:Date, hidden?:boolean } // we memoize these value for speed
+    ext:string, isFolder:boolean, t?:Date } // we memoize these value for speed
 export type DirList = DirEntry[]
 
 export function BrowseFiles() {
@@ -25,14 +25,46 @@ export function BrowseFiles() {
 }
 
 function FilesList() {
-    const snap = useSnapState()
-    const { list, loading } = snap
+    const { filteredList, list, loading, stoppedSearch } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list
-    return h('ul', { className: 'dir' },
-        !list.length ? (!loading && (snap.stoppedSearch ? 'Stopped before finding anything' : 'Nothing here'))
-            : list.map((entry: DirEntry) =>
-                h(Entry, { key: entry.n, midnight, ...entry })),
-        loading && h(Spinner))
+    const pageSize = 100
+    const [page, setPage] = useState(0)
+    const offset = page * pageSize
+    const theList = filteredList || list
+    const total = theList.length
+
+    useEffect(() => setPage(0), [theList])
+    useEffect(() => document.scrollingElement?.scrollTo(0,0), [page])
+
+    return h(Fragment, {},
+        h('ul', { className: 'dir' },
+            !list.length ? (!loading && (stoppedSearch ? 'Stopped before finding anything' : 'Nothing here'))
+                : filteredList && !filteredList.length ? 'No match for this filter'
+                    : theList.slice(offset, offset + pageSize).map((entry: DirEntry) =>
+                        h(Entry, { key: entry.n, midnight, ...entry })),
+            loading && h(Spinner),
+        ),
+        total > pageSize && h(Paging, { total, current:page, pageSize, pageChange:setPage })
+    )
+}
+
+interface PagingProps {
+    total: number
+    current: number
+    pageSize: number
+    pageChange:(newPage:number) => void
+}
+function Paging({ total, current, pageSize, pageChange }: PagingProps) {
+    const nPages = Math.ceil(total / pageSize)
+    const pages = []
+    for (let i=0; i<nPages; i++)
+        pages.push(h('button', {
+            ...i===current && { className:'toggled' },
+            onClick(){
+                pageChange(i)
+            }
+        }, i*pageSize || 1))
+    return h('div', { id:'paging' }, ...pages)
 }
 
 function useMidnight() {
@@ -56,13 +88,13 @@ function isMobile() {
 }
 
 const Entry = memo(function(entry: DirEntry & { midnight: Date }) {
-    let { n: relativePath, hidden, isFolder } = entry
+    let { n: relativePath, isFolder } = entry
     const base = usePath()
     const { showFilter, selected } = useSnapState()
     const href = fixUrl(relativePath)
     const containerDir = isFolder ? '' : relativePath.substring(0, relativePath.lastIndexOf('/')+1)
     const name = relativePath.substring(containerDir.length)
-    return h('li', { className: (isFolder ? 'folder' : 'file') + (hidden ? ' hidden' : '') },
+    return h('li', { className: isFolder ? 'folder' : 'file' },
         showFilter && h(Checkbox, {
             value: selected[relativePath],
             onChange(v){

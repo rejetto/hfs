@@ -31,6 +31,7 @@ export default function useFetchList() {
         const API = 'file_list'
         const baseParams = { path:desiredPath, search, sse:true, omit:'c' }
         state.list = []
+        state.filteredList = undefined
         state.selected = {}
         state.loading = true
         state.error = null
@@ -113,12 +114,12 @@ subscribeKey(state, 'invertOrder', sortAgain)
 subscribeKey(state, 'foldersFirst', sortAgain)
 
 subscribeKey(state, 'patternFilter', v => {
-    const filter = v > '' && new RegExp(_.escapeRegExp(v),'i')
-    let n = 0
-    for (const entry of state.list) {
-        entry.hidden = filter && !filter.test(entry.n)
-        if (!entry.hidden)
-            ++n
-    }
-    state.filteredEntries = filter ? n : -1
+    if (!v)
+        return state.filteredList = undefined
+    const filter = new RegExp(_.escapeRegExp(v),'i')
+    const newList = []
+    for (const entry of state.list)
+        if (filter.test(entry.n))
+            newList.push(entry)
+    state.filteredList = newList
 })
