@@ -75,7 +75,8 @@ export class Vfs {
 export const vfs = new Vfs()
 subscribeConfig({ k: 'vfs' }, data => {
     // we should validate content now
-    recur(data)
+    if (data)
+        recur(data)
     vfs.root = data
 
     function recur(node:VfsNode) {
