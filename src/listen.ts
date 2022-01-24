@@ -80,7 +80,10 @@ function startServer(srv: http.Server, port: number, secure:string='') {
                         for (const net of nets) {
                             if (net.internal) continue
                             const appendPort = port === (secure ? 443 : 80) ? '' : ':' + port
-                            console.log('-', proto + '://' + net.address + appendPort)
+                            let { address } = net
+                            if (address.includes(':'))
+                                address = '['+address+']'
+                            console.log('-', proto + '://' + address + appendPort)
                         }
                     }
 
