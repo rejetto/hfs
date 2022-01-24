@@ -73,7 +73,7 @@ export function MenuPanel() {
                 label: 'Invert selection',
                 onClick() {
                     const sel = state.selected
-                    for (const { n } of state.list)
+                    for (const { n } of state.filteredList || state.list)
                         if (sel[n])
                             delete sel[n]
                         else
