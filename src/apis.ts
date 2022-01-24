@@ -1,3 +1,4 @@
+import { IncomingMessage } from 'http'
 import Koa from 'koa'
 
 export class ApiError extends Error {
@@ -11,7 +12,7 @@ export type ApiHandlers = Record<string, ApiHandler>
 
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx, next) => {
-        const params = ctx.method === 'POST' ? ctx.request.body : ctx.request.query
+        const params = ctx.method === 'POST' ? await getJsonFromReq(ctx.req) : ctx.request.query
         console.debug('API', ctx.method, ctx.path, { ...params })
         if (!apis.hasOwnProperty(ctx.path)) {
             ctx.body = 'invalid api'
@@ -43,3 +44,19 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     }
 }
 
+async function getJsonFromReq(req: IncomingMessage): Promise<any> {
+    return new Promise((resolve, reject) => {
+        let data = ''
+        req.on('data', chunk =>
+            data += chunk)
+        req.on('error', reject)
+        req.on('end', () => {
+            try {
+                resolve(JSON.parse(data))
+            }
+            catch(e) {
+                reject(e)
+            }
+        })
+    })
+}

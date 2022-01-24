@@ -1,6 +1,5 @@
 import Koa from 'koa'
 import mount from 'koa-mount'
-import bodyParser from 'koa-bodyparser'
 import { apiMiddleware } from './apis'
 import { API_URI, DEV} from './const'
 import { frontEndApis } from './frontEndApis'
@@ -31,18 +30,15 @@ app.use(throttler())
 app.use(gzipper)
 
 // serve apis
-app.use(mount(API_URI, new Koa()
-    .use(bodyParser())
-    .use(apiMiddleware(frontEndApis))
-))
-
+app.use(mount(API_URI, apiMiddleware(frontEndApis)))
 app.use(frontendAndSharedFiles)
+app.on('error', errorHandler)
 
-app.on('error', err => {
+function errorHandler(err:Error & { code:string, path:string }) {
     if (DEV && err.code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out
     if (err.code === 'ECONNRESET' || err.code === 'ECONNABORTED') return // someone interrupted, don't care
     console.error('server error', err)
-})
+}
 
 process.on('uncaughtException', err => {
     console.error(err)
