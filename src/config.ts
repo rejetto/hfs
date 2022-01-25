@@ -45,7 +45,7 @@ export function subscribeConfig({ k, ...definition }:{ k:string } & ConfigProps,
 }
 
 export function getConfig(k:string) {
-    return state[k]
+    return k in state ? state[k] : configProps[k]?.defaultValue
 }
 
 export function setConfig(newCfg: Record<string,any>) {
