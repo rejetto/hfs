@@ -44,7 +44,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         catch {}
     })
     const zip = new QuickZipStream(mappedWalker)
-    const time = 1000 * (getConfig('zip-calculate-size-for-seconds') ?? 1)
+    const time = 1000 * (getConfig('zip_calculate_size_for_seconds') ?? 1)
     ctx.response.length = await zip.calculateSize(time)
     ctx.body = zip
     ctx.req.on('close', ()=> zip.destroy())
