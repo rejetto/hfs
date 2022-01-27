@@ -1,4 +1,6 @@
 # To do
+- allowed referer
+- log rotation
 - log filter option
 - log filter plugin
 - publish to npm (so people can "npm install hfs")
@@ -11,7 +13,7 @@
 - delete
 - updater (stop,unzip,start)
 - node.comment
-- config: max connections (total/per-ip)
+- config: max connections/downloads (total/per-ip)
 - config: bans
 - config: min disk space
 - thumbnails support
