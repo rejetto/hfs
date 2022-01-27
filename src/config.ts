@@ -9,6 +9,7 @@ const PATH = 'config.yaml'
 let started = false
 let state:Record<string,any> = {}
 const emitter = new EventEmitter()
+emitter.setMaxListeners(10_000)
 const path = argv.config || process.env.HFS_CONFIG || PATH
 watchLoad(path,  data => {
     started = true
@@ -35,13 +36,17 @@ export function subscribeConfig({ k, ...definition }:{ k:string } & ConfigProps,
     const a = argv[k]
     if (a !== undefined)
         return cb(caster ? caster(a) : a)
-    emitter.on('new.'+k, cb)
+    const eventName = 'new.'+k
+    emitter.on(eventName, cb)
     if (!started) return
     let v = state[k]
     if (v === undefined)
         v = defaultValue
     if (v !== undefined)
         cb(v)
+    return () => {
+        emitter.off(eventName, cb)
+    }
 }
 
 export function getConfig(k:string) {

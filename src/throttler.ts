@@ -6,10 +6,10 @@ import { getOrSet } from './misc'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
-subscribeConfig({ k:'max_kbps', defaultValue:Infinity }, v =>
-    mainThrottleGroup.updateLimit(v))
+subscribeConfig({ k:'max_kbps', defaultValue:null }, v =>
+    mainThrottleGroup.updateLimit(v ?? Infinity))
 
-interface GroupThrottler { count:number, throttler:ThrottledStream }
+interface GroupThrottler { count:number, throttler:ThrottledStream, destroy:()=>void }
 const ip2group: Record<string,GroupThrottler> = {}
 
 export function throttler(): Koa.Middleware {
@@ -20,14 +20,16 @@ export function throttler(): Koa.Middleware {
             return
         const ipGroup = getOrSet(ip2group, ctx.ip, ()=> {
             const tg = new ThrottleGroup(Infinity, mainThrottleGroup)
-            subscribeConfig({ k:'max_kbps_per_ip', defaultValue:Infinity }, v =>
-                tg.updateLimit(v))
-            return { tg, count:0 }
+            const unsub = subscribeConfig({ k:'max_kbps_per_ip', defaultValue:null }, v =>
+                tg.updateLimit(v ?? Infinity))
+            return { tg, count:0, destroy: unsub }
         })
         const ts = new ThrottledStream(ipGroup.tg)
+        ++ipGroup.count
         ts.on('close', ()=> {
-            if (!--ipGroup.count) // any left?
-                delete ip2group[ctx.ip]
+            if (--ipGroup.count) return // any left?
+            ipGroup.destroy?.()
+            delete ip2group[ctx.ip]
         })
         const bak = ctx.response.length // preserve
         ctx.body = ctx.body.pipe(ts)
