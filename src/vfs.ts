@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { complySlashes, enforceFinal, isDirectory, prefix, wantArray } from './misc'
+import { enforceFinal, isDirectory, prefix } from './misc'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
@@ -17,8 +17,8 @@ export interface VfsNode {
     name: string,
     source?: string,
     children?: VfsNode[],
-    hide?: string | string[],
-    remove?: string | string[],
+    hide?: string,
+    remove?: string,
     hidden?: boolean,
     forbid?: boolean,
     rename?: Record<string,string>,
@@ -57,7 +57,7 @@ export class Vfs {
             const relativeSource = piece + prefix('/', rest.join('/'))
             const baseSource = run.source+ '/'
             const source = baseSource + relativeSource
-            if (isMatch(source, wantArray(run.remove).map(x => baseSource + x)))
+            if (run.remove && isMatch(source, run.remove.split('|').map(x => baseSource + x)))
                 return
             try { await fs.stat(source) } // check existence
             catch { return }
@@ -110,26 +110,24 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
         }
     if (!source)
         return
-    const base = enforceFinal('/', complySlashes(source)) // fast-glob lib wants forward-slashes
-    const baseForGlob = glob.escapePath(base)
-    const ignore = [parent.hide, parent.remove].flat().filter(Boolean).map(x => baseForGlob+x)
     const depthPath = depth === Infinity ? '**/' : _.repeat('*/',depth)
     try {
-        const dirStream = glob.stream(baseForGlob + depthPath + '*', {
+        const dirStream = glob.stream(depthPath + '*', {
             dot: true,
             onlyFiles: false,
-            ignore,
+            cwd: source,
+            ignore: [parent.hide, parent.remove].filter(Boolean) as string[],
         })
+        const base = enforceFinal('/', source)
         for await (let path of dirStream) {
             if (ctx.req.aborted)
                 return
             if (path instanceof Buffer)
                 path = path.toString('utf8')
-            const name = path.slice(base.length)
             yield {
                 type: VfsNodeType.temp,
-                source: path,
-                name: prefixPath + (parent!.rename?.[name] || name)
+                source: base + path,
+                name: prefixPath + (parent!.rename?.[path] || path)
             }
         }
     }

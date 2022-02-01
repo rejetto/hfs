@@ -94,7 +94,8 @@ Valid keys in a node are:
 - `forbid`: set `true` to forbid listing for this folder
 - `hide`: similar to hidden, but it's from the parent node point of view.
      Use this to hide children read from the source, not listed in the VFS.
-     Value can be just a file name, a mask, or a list of names/masks. 
+     Value is a file mask.
+- `remove`: use this to not only hide files but also prevent downloads in a folder with a source. Value is a file mask.  
 - `rename`: similar to name, but it's  from the parent node point.
      Use this to change the name of  entries that are read from the source, not listed in the VFS.
      Value is a dictionary, where the key is the original name.   
