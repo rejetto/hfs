@@ -35,8 +35,9 @@ app.use(frontendAndSharedFiles)
 app.on('error', errorHandler)
 
 function errorHandler(err:Error & { code:string, path:string }) {
-    if (DEV && err.code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out
-    if (err.code === 'ECONNRESET' || err.code === 'ECONNABORTED') return // someone interrupted, don't care
+    const { code } = err
+    if (DEV && code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out dev stuff
+    if (code === 'ECANCELED' || code === 'ECONNRESET' || code === 'ECONNABORTED') return // someone interrupted, don't care
     console.error('server error', err)
 }
 
