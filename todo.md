@@ -1,4 +1,5 @@
 # To do
+- start without config file
 - allowed referer
 - log rotation
 - log filter option

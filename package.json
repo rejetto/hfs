@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -17,7 +17,8 @@
     "build-all": "rm -rf dist && npm run build && cd frontend && npm install && npm run build && npm audit --production && echo COMPLETED",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "zip-dist": "cd dist && zip hfs.zip -r * -x *.zip *.exe",
-    "exe-dist": "pkg . -C brotli && cd dist && rm -rf src node_modules && zip hfs.exe.zip  -r * -x *.zip run.bat"
+    "exe-dist": "pkg . -C brotli && cd dist && rm -rf src node_modules && zip hfs.exe.zip  -r * -x *.zip run.bat",
+    "new-dist": "npm run build-all && npm run zip-dist && npm run exe-dist"
   },
   "bin": "dist/src/index.js",
   "pkg": {
