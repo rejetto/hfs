@@ -104,3 +104,7 @@ export function pattern2filter(pattern: string){
     return (s?:string) =>
         !s || !pattern || re.test(basename(s))
 }
+
+export function isWindows() {
+    return process.platform === 'win32'
+}

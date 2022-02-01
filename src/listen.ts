@@ -68,8 +68,10 @@ function startServer(srv: http.Server, port: number, secure:string='') {
                 const ad = srv.address()
                 if (!ad)
                     return reject('no address')
-                if (typeof ad === 'string')
+                if (typeof ad === 'string') {
+                    srv.close()
                     return reject('type of socket not supported')
+                }
                 port = ad.port
                 console.log(proto, `serving on port`, port)
 

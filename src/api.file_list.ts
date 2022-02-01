@@ -1,6 +1,5 @@
-import { vfs, VfsNode, walkNode } from './vfs'
+import { getNodeName, vfs, VfsNode, walkNode } from './vfs'
 import createSSE from './sse'
-import { basename } from 'path'
 import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
@@ -30,7 +29,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
         const list = []
         for await (const sub of walker) {
             if (sseSrv?.stopped || ctx.aborted) break
-            if (!filter(sub.name))
+            if (!filter(getNodeName(sub)))
                 continue
             const entry = await nodeToDirEntry(sub)
             if (!entry)
@@ -69,27 +68,24 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date }
 
 async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
-    try {
-        let { name, source, default:def } = node
-        if (source) {
-            if (!name)
-                name = basename(source)
-            if (def)
-                return { n: name }
-            const st = await stat(source)
-            const folder = st.isDirectory()
-            const { ctime, mtime } = st
-            return {
-                n: name + (folder ? '/' : ''),
-                c: ctime,
-                m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
-                s: folder ? undefined : st.size,
-            }
-        }
+    let { source, default:def } = node
+    const name = getNodeName(node)
+    if (!source)
         return name ? { n: name + '/' } : null
+    if (def)
+        return { n: name }
+    try {
+        const st = await stat(source)
+        const folder = st.isDirectory()
+        const { ctime, mtime } = st
+        return {
+            n: name + (folder ? '/' : ''),
+            c: ctime,
+            m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
+            s: folder ? undefined : st.size,
+        }
     }
-    catch (err:any) {
-        console.error(String(err))
+    catch {
         return null
     }
 }

@@ -14,7 +14,7 @@ export enum VfsNodeType {
 
 export interface VfsNode {
     type?: VfsNodeType,
-    name: string,
+    name?: string,
     source?: string,
     children?: VfsNode[],
     hide?: string,
@@ -29,7 +29,7 @@ export interface VfsNode {
 
 type SinglePerm = 'r' | 'w'
 
-const EMPTY = { name:'', type: VfsNodeType.root }
+const EMPTY = { type: VfsNodeType.root }
 
 export const MIME_AUTO = 'auto'
 
@@ -40,16 +40,16 @@ export class Vfs {
         this.root = { ...EMPTY }
     }
 
-    async urlToNode(url: string, ctx: Koa.Context, root?: VfsNode) : Promise<VfsNode | undefined> {
+    async urlToNode(url: string, ctx?: Koa.Context, root?: VfsNode) : Promise<VfsNode | undefined> {
         let run = root || this.root
         const rest = url.split('/').filter(Boolean).map(decodeURIComponent)
-        if (!hasPermission(run, ctx)) return
+        if (ctx && !hasPermission(run, ctx)) return
         while (rest.length) {
             let piece = rest.shift() as string
             const child = findChildByName(piece, run)
             if (child) {
                 run = child
-                if (!hasPermission(run, ctx)) return
+                if (ctx && !hasPermission(run, ctx)) return
                 continue
             }
             if (!run.source)
@@ -62,8 +62,8 @@ export class Vfs {
             try { await fs.stat(source) } // check existence
             catch { return }
             return {
+                type: VfsNodeType.temp,
                 source,
-                name: basename(source),
                 mime: run.mime || (run.default && MIME_AUTO)
             }
         }
@@ -73,24 +73,24 @@ export class Vfs {
 }
 
 export const vfs = new Vfs()
-subscribeConfig({ k: 'vfs' }, data => {
-    // we should validate content now
-    if (data)
-        recur(data)
-    vfs.root = data
-
-    function recur(node:VfsNode) {
-        if (node.type !== VfsNodeType.root && !node.name && node.source)
-            node.name = basename(node.source)
-        node.children?.forEach(recur)
-    }
-})
+subscribeConfig({ k: 'vfs' }, data =>
+    vfs.root = data)
 
 function findChildByName(name:string, node:VfsNode) {
     const { rename } = node
     if (rename) // @ts-ignore
         name = Object.entries(rename).find(([,v]) => name === v)[0] || name
-    return node?.children?.find(x => x.name === name)
+    return node?.children?.find(x => getNodeName(x) === name)
+}
+
+export function getNodeName(node: VfsNode) {
+    return node.name
+        || node.source && /^[a-zA-Z]:$/.test(node.source) && node.source
+        || basename(node.source||'')
+}
+
+export async function nodeIsDirectory(node: VfsNode) {
+    return Boolean(!node.source || await isDirectory(node.source))
 }
 
 export function hasPermission(node:VfsNode, ctx: Koa.Context) {
@@ -104,9 +104,12 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
         for (const node of children) {
             if (node.hidden || !hasPermission(node, ctx))
                 continue
-            yield prefixPath ? { ...node, name: prefixPath+node.name } : node
-            if (depth > 0 && node && (node.children || node.source && await isDirectory(node.source)))
-                yield* walkNode(node, ctx, depth - 1, prefixPath+node.name+'/')
+            yield prefixPath ? { ...node, name: prefixPath+getNodeName(node) } : node
+            try {
+                if (depth > 0 && node && await nodeIsDirectory(node))
+                    yield* walkNode(node, ctx, depth - 1, prefixPath+getNodeName(node)+'/')
+            }
+            catch{} // stat failed in nodeIsDirectory, ignore
         }
     if (!source)
         return
@@ -116,6 +119,7 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
             dot: true,
             onlyFiles: false,
             cwd: source,
+            suppressErrors: true,
             caseSensitiveMatch: !isWindows(),
             ignore: [parent.hide, parent.remove].filter(Boolean) as string[],
         })
@@ -133,7 +137,6 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
         }
     }
     catch(e) {
-        if ((e as any).code !== 'ENOTDIR')
-            throw e
+        console.debug('glob', source, e) // ENOTDIR, or lacking permissions
     }
 }
