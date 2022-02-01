@@ -23,6 +23,10 @@ interface Accounts { [username:string]: Account }
 
 let accounts: Accounts = {}
 
+export function getAccounts() {
+    return accounts as Readonly<typeof accounts>
+}
+
 export function getCurrentUsername(ctx: Koa.Context): string {
     return ctx.session?.username || ''
 }

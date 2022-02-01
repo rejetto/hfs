@@ -118,3 +118,10 @@ function stopServer(srv: http.Server) {
         })
     })
 }
+
+export function getStatus() {
+    return {
+        httpSrv,
+        httpsSrv,
+    }
+}

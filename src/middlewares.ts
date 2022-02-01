@@ -8,7 +8,7 @@ import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
-import { serveFrontend } from './serveFrontend'
+import { serveAdminFiles, serveFrontend } from './serveFrontend'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
 
@@ -45,6 +45,7 @@ export const sessions = (app: Application) => session({
 
 // serve shared files and front-end files
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
+
 export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
     if (path.includes('..'))
@@ -76,5 +77,16 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     }
     if (source)
         return serveFileNode(node)(ctx,next)
+    return next()
+}
+
+export const admin: Koa.Middleware = async (ctx, next) => {
+    const { path } = ctx
+    if (path.includes('..'))
+        ctx.throw(500)
+    if (ctx.body)
+        return next()
+    if (path === '/')
+        serveAdminFiles(ctx, next)
     return next()
 }

@@ -1,12 +1,15 @@
 import EventEmitter from 'events'
 import { argv } from './const'
 import { watchLoad } from './watchLoad'
+import fs from 'fs/promises'
+import yaml from 'yaml'
+import _ from 'lodash'
 
 export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow clear text login'
 
 const PATH = 'config.yaml'
 
-let started = false
+let started = false // this will tell the difference for subscribeConfig()s that are called before or after config is loaded
 let state:Record<string,any> = {}
 const emitter = new EventEmitter()
 emitter.setMaxListeners(10_000)
@@ -53,11 +56,20 @@ export function getConfig(k:string) {
     return k in state ? state[k] : configProps[k]?.defaultValue
 }
 
-export function setConfig(newCfg: Record<string,any>) {
+export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:string[] }) {
+    let copy = _.omit(state, omit)
+    if (only.length)
+       copy = _.pick(copy, only)
+    return _.cloneDeep(copy)
+}
+
+export function setConfig(newCfg: Record<string,any>, partial=false) {
     for (const k in newCfg)
         check(k)
     const oldKeys = Object.keys(state)
     oldKeys.push(...Object.keys(configProps))
+    if (partial)
+        return saveConfigAsap()
     for (const k of oldKeys)
         if (!newCfg.hasOwnProperty(k))
             check(k)
@@ -74,3 +86,8 @@ export function setConfig(newCfg: Record<string,any>) {
         emitter.emit('new.'+k, v, oldV)
     }
 }
+
+export const saveConfigAsap = _.debounce(async () => {
+    fs.writeFile(path, yaml.stringify(state))
+        .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
+})

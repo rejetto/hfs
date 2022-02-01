@@ -5,8 +5,8 @@ export const DEV = process.env.DEV ? 'DEV' : ''
 if (DEV)
     console.clear()
 
-const SPECIAL_URI = '/~/'
-export const FRONTEND_URI = SPECIAL_URI + 'front/'
+export const SPECIAL_URI = '/~/'
+export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
 export const API_URI = SPECIAL_URI + 'api/'
 export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
 
