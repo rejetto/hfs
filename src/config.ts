@@ -91,3 +91,13 @@ export const saveConfigAsap = _.debounce(async () => {
     fs.writeFile(path, yaml.stringify(state))
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
+
+// async version of getConfig, allowing you to wait for onfig to be ready
+export async function getConfigReady(k: string, definition?: object) {
+    return new Promise(resolve => {
+        const off = subscribeConfig({ k, ...definition }, v => {
+            off?.()
+            resolve(v)
+        })
+    })
+}

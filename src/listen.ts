@@ -1,12 +1,10 @@
 import * as http from 'http'
 import { getConfig, subscribeConfig } from './config'
-import open from 'open'
 import { app } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 
-let firstTime = true
 let httpSrv: http.Server
 let httpsSrv: http.Server
 let cert:string, key: string
@@ -89,10 +87,6 @@ function startServer(srv: http.Server, port: number, secure:string='') {
                         }
                     }
 
-                if (firstTime && getConfig('open_browser_at_start') !== false) {
-                    open(proto + '://localhost:' + port).then()
-                    firstTime = false
-                }
                 resolve(null)
             }).on('error', e => {
                 const { code } = e as any
