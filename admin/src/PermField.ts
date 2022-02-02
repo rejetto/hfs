@@ -1,12 +1,12 @@
-import { Dict } from './misc'
-import { createElement as h, Fragment, isValidElement, useState } from 'react'
+import { Dict, useStateMounted } from './misc'
+import { createElement as h, Fragment, isValidElement } from 'react'
 import { Button, Grid } from '@mui/material'
 import { Field, FieldProps, SelectField } from './Form'
 import _ from 'lodash'
 import { useApiComp } from './api'
 
 export default function PermField({ label, value, onChange }: FieldProps<Dict<string> | null> & { keyLabel:string }) {
-    const [temp, setTemp] = useState<string|undefined>()
+    const [temp, setTemp] = useStateMounted<string|undefined>(undefined)
     const [res] = useApiComp('get_usernames')
     const usernames = res.list
 

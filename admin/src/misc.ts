@@ -1,4 +1,4 @@
-import { createElement as h, useRef } from 'react'
+import { createElement as h, useCallback, useEffect, useRef, useState } from 'react'
 import { CircularProgress } from '@mui/material'
 
 export type Dict<T = any> = Record<string, T>
@@ -63,4 +63,22 @@ export function enforceFinal(sub:string, s:string) {
 
 export function isWindowsDrive(s?: string) {
     return s && /^[a-zA-Z]:$/.test(s)
+}
+
+export function useIsMounted() {
+    const mountRef = useRef(true)
+    useEffect(() => () => {
+        mountRef.current = false
+    }, [])
+    return useCallback(()=> mountRef.current, [mountRef])
+}
+
+export function useStateMounted<T>(init: T) {
+    const isMounted = useIsMounted()
+    const [v, set] = useState(init)
+    const setIfMounted = useCallback((x:T) => {
+        if (isMounted())
+            set(x)
+    }, [isMounted, set])
+    return [v, setIfMounted, isMounted] as [T, typeof setIfMounted, typeof isMounted]
 }
