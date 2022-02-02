@@ -1,5 +1,16 @@
 import { createElement as h, isValidElement, ReactElement, useEffect, useState } from 'react'
-import { Box, Button, FormControlLabel, Grid, MenuItem, Switch, TextField } from '@mui/material'
+import {
+    Box,
+    Button,
+    FormControl,
+    FormControlLabel,
+    FormLabel,
+    Grid,
+    MenuItem, Radio,
+    RadioGroup,
+    Switch,
+    TextField
+} from '@mui/material'
 import { Dict } from './misc'
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
@@ -14,14 +25,18 @@ interface FormProps {
     save?: Dict
     sticky?: boolean
     addToBar?: ReactElement[]
+    barSx?: Dict
     [rest:string]: any,
 }
-export function Form({ fields, values, set, defaults, save, sticky, addToBar=[], ...rest }: FormProps) {
+export function Form({ fields, values, set, defaults, save, sticky, addToBar=[], barSx, ...rest }: FormProps) {
     return h(Box, rest,
         save && h(Box, {
             display: 'flex',
             gap: 2,
-            sx: Object.assign({ mb: 4 }, sticky && { zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', top: 0 })
+            alignItems: 'center',
+            sx: Object.assign({ mb: 3, width: 'fit-content' },
+                sticky && { zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', top: 0 },
+                barSx)
         },
             h(Button, {
                 variant: 'contained',
@@ -31,22 +46,26 @@ export function Form({ fields, values, set, defaults, save, sticky, addToBar=[],
             ...addToBar,
         ),
         h(Grid, { container:true, rowSpacing:3, columnSpacing:1 },
-            fields.map(row => {
-                if (!row || isValidElement(row))
-                    return row
+            fields.map((row, idx) => {
+                if (!row)
+                    return
+                if (isValidElement(row))
+                    return h(Grid, { key: idx, item: true, xs: 12 }, row)
                 let field = row
                 const { k } = field
-                field = {
-                    value: values?.[k],
-                    onChange(v:any) { set(v, field) },
-                    ...field,
+                if (k) {
+                    field = {
+                        value: values?.[k],
+                        onChange(v:any) { set(v, field) },
+                        ...field,
+                    }
+                    if (!field.label)
+                        field.label = _.capitalize(k.replaceAll('_', ' '))
+                    Object.assign(field, defaults?.(field))
                 }
-                if (!field.label)
-                    field.label = _.capitalize(k.replaceAll('_', ' '))
-                Object.assign(field, defaults?.(field))
                 const { xs=12, sm, md, lg, xl, comp=StringField, ...rest } = field
                 return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
-                    h(comp, rest) )
+                    isValidElement(comp) ? comp : h(comp, rest) )
             })
         )
     )
@@ -101,12 +120,15 @@ export function DisplayField({ map, value, empty='-', ...props }: any) {
 }
 
 interface SelectPair<T> { label: string, value:T }
-export function SelectField<T>({ value, onChange, options, ...props }: FieldProps<T> & { options:SelectPair<T>[] }) {
-    return h(TextField, { // using TextField because Select is not display label correctly
+export function SelectField<T>({ value, onChange, options, multiple, ...props }: FieldProps<T> & { options:SelectPair<T>[] }) {
+    return h(TextField, { // using TextField because Select is not displaying label correctly
         ...props,
         select: true,
         fullWidth: true,
-        value: value === undefined ? '' : JSON.stringify(value),
+        disabled: !options?.length || props.disabled,
+        SelectProps: multiple && { multiple: true },
+        value: multiple ? (!Array.isArray(value) ? [] : value.map(x => JSON.stringify(x)))
+            : value === undefined ? '' : JSON.stringify(value),
         children: options.map((o,i) => {
             const obj = o && typeof o === 'object'
             const value = obj && 'value' in o ? o.value : o
@@ -115,7 +137,9 @@ export function SelectField<T>({ value, onChange, options, ...props }: FieldProp
         }),
         onChange(event) {
             try {
-                onChange(JSON.parse(event.target.value as string) as T, { was: value, event })
+                let newVal: any = event.target.value
+                newVal = multiple && Array.isArray(newVal) ? newVal.map(x => JSON.parse(x)) : JSON.parse(newVal) as T
+                onChange(newVal, { was: value, event })
             }
             catch {}
         }
@@ -147,6 +171,23 @@ export function BoolField({ label, value, onChange, ...props }: FieldProps<boole
     })
     return label ? h(FormControlLabel, { label, control, labelPlacement: 'top' })
         : control
+}
+
+export function RadioField<T>({ label, options, value, onChange }: FieldProps<T> & { options:SelectPair<T>[] }) {
+    return h(FormControl, {},
+        label && h(FormLabel, {}, label),
+        h(RadioGroup, {
+            row: true,
+            name: '',
+            value: JSON.stringify(value),
+            onChange(event, v){
+                onChange(JSON.parse(v), { was: value, event })
+            }
+        },
+            options.map(({ value, label }, idx) =>
+                h(FormControlLabel, { key: idx, value, control: h(Radio), label }) )
+        )
+    )
 }
 
 export function ServerPort({ label, value, onChange }: FieldProps<number | null>) {

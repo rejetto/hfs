@@ -12,7 +12,7 @@ import {
     RemoveRedEye
 } from '@mui/icons-material'
 import { Node } from './VfsPage'
-import { isWindowsDrive } from './misc'
+import { isWindowsDrive, onlyTruthy } from './misc'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
@@ -42,7 +42,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, Node> }) {
         multiSelect: true,
         onNodeSelect(ev, ids) {
             setSelected(ids)
-            state.selectedFiles = ids.map(id => id2node.get(id)).filter(Boolean) as Node[] // ts doesn't understand that filter(Boolean) removes undefined-s
+            state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
         }
     }, recur(vfs as Readonly<Node>))
 

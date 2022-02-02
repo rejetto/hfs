@@ -1,11 +1,11 @@
-import { getAccount, getCurrentUsername, saveSrpInfo, updateAccount } from './perm'
+import { getAccount, getCurrentUsername } from './perm'
 import { verifyPassword } from './crypt'
-import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig } from './config'
 import { ApiError, ApiHandler } from './apis'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
 import { SESSION_DURATION } from './index'
 import { randomId } from './misc'
 import Koa from 'koa'
+import { changeSrpHelper, changePasswordHelper } from './api.helpers'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 const srpSession = new SRPServerSession(srp6aNimbusRoutines)
@@ -104,27 +104,9 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
 }
 
 export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
-    if (!newPassword) // clear text version
-        return Error('missing parameters')
-    if (!ctx.state.account)
-        return new ApiError(401)
-    await updateAccount(ctx.state.account, account => {
-        account.password = newPassword
-    })
-    return {}
+    return changePasswordHelper(ctx.state.account, newPassword)
 }
 
 export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
-    if (getConfig(CFG_ALLOW_CLEAR_TEXT_LOGIN))
-        return new ApiError(406)
-    if (!salt || !verifier)
-        return Error('missing parameters')
-    if (!ctx.state.account)
-        return new ApiError(401)
-    await updateAccount(ctx.state.account, account => {
-        saveSrpInfo(account, salt, verifier)
-        delete account.hashed_password // remove leftovers
-    })
-    return {}
+    return changeSrpHelper(ctx.state.account, salt, verifier)
 }
-

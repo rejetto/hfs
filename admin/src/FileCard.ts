@@ -4,7 +4,7 @@ import { Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
 import { BoolField, DisplayField, Form } from './Form'
 import _ from 'lodash'
 import { apiCall } from './api'
-import { formatBytes, objSameKeys } from './misc'
+import { formatBytes, isEqualLax, objSameKeys } from './misc'
 import { reloadVfs } from './VfsPage'
 import { alertDialog } from './dialog'
 import PermField from './PermField'
@@ -66,10 +66,4 @@ function FileForm({ file }:any) {
             realFolder && { k: 'default', lg: 6, label:"File to serve instead of file list" },
         ]
     })
-}
-
-function isEqualLax(a: any,b: any): boolean {
-    return a == b //eslint-disable-line
-        || (a && b && typeof a === 'object' && typeof b === 'object'
-            && Object.entries(a).every(([k,v]) => isEqualLax(v, b[k])) )
 }

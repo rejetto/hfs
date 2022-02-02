@@ -108,3 +108,13 @@ export function pattern2filter(pattern: string){
 export function isWindows() {
     return process.platform === 'win32'
 }
+
+type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
+
+export function truthy<T>(value: T): value is Truthy<T> {
+    return Boolean(value)
+}
+
+export function onlyTruthy<T>(arr: T[]) {
+    return arr.filter(truthy)
+}

@@ -5,6 +5,7 @@ import { state, useSnapState } from './state'
 import FileCard from './FileCard'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree from './VfsTree'
+import { onlyTruthy } from './misc'
 
 export default function VfsPage() {
     const [id2node] = useState(() => new Map<string, Node>())
@@ -22,8 +23,8 @@ export default function VfsPage() {
         state.vfs = root
         // refresh objects of selectedFiles
         const ids = state.selectedFiles.map(x => x.id)
-        state.selectedFiles = ids.map(id =>
-            id2node.get(id)).filter(Boolean) as Node[] // ts doesn't understand that filter(Boolean) removes undefined-s
+        state.selectedFiles = onlyTruthy(ids.map(id =>
+            id2node.get(id)))
 
         // calculate id and parent fields, and builds the map id2node
         function recur(node: Node, prefix='', parent: Node|undefined=undefined) {

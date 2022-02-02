@@ -7,6 +7,7 @@ import { watchLoad } from './watchLoad'
 import Koa from 'koa'
 import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig, subscribeConfig } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
+import { vfs, VfsNode } from './vfs'
 
 let path = ''
 
@@ -104,7 +105,7 @@ subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
     })
 })
 
-async function applyAccounts(newAccounts:Accounts) {
+async function applyAccounts(newAccounts: Accounts) {
     // we should validate content here
     accounts = newAccounts
     await Promise.all(_.map(accounts, async (rec,k) => {
@@ -119,4 +120,52 @@ async function applyAccounts(newAccounts:Accounts) {
         setHidden(rec, { username: k })
         await updateAccount(rec)
     }))
+}
+
+export function renameAccount(from: string, to: string) {
+    if (!to || !accounts[from] || accounts[to])
+        return false
+    if (to === from)
+        return true
+    accounts[to] = accounts[from]
+    delete accounts[from]
+    recur(vfs.root)
+    return true
+
+    function recur(n: VfsNode) {
+        const p = n.perm
+        if (p?.[from]) {
+            p[to] = p[from]
+            delete p[from]
+        }
+        if (n.children)
+            for (const c of n.children)
+                recur(c)
+    }
+}
+
+const assignableProps = ['redirect','ignore_limits','belongs']
+
+export function addAccount(username: string, props: Partial<Account>) {
+    if (!username || accounts[username])
+        return
+    const copy = { username, ..._.pick(props, assignableProps) }
+    setHidden(copy, { username })
+    accounts[username] = copy
+    return copy
+}
+
+export function setAccount(username: string, changes: Partial<Account>) {
+    const { username: newU, ...rest } = changes
+    if (newU)
+        renameAccount(username, newU)
+    Object.assign(getAccount(newU || username), _.pick(rest, assignableProps))
+    return true
+}
+
+export function delAccount(username: string) {
+    if (!getAccount(username))
+        return false
+    delete accounts[username]
+    return true
 }

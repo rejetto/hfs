@@ -4,11 +4,12 @@ import { getStatus } from './listen'
 import { HFS_STARTED } from './index'
 import { Server } from 'http'
 import vfsApis from './api.vfs'
-import { getAccounts } from './perm'
+import accountsApis from './api.accounts'
 
 export const adminApis: ApiHandlers = {
 
     ...vfsApis,
+    ...accountsApis,
 
     async set_config({ values }) {
         if (values)
@@ -18,10 +19,6 @@ export const adminApis: ApiHandlers = {
 
     get_config(params) {
         return getWholeConfig(params)
-    },
-
-    get_usernames() {
-        return { list: Object.keys(getAccounts()) }
     },
 
     async get_status() {

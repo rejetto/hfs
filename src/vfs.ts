@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { enforceFinal, isDirectory, isWindows, prefix } from './misc'
+import { enforceFinal, isDirectory, isWindows, onlyTruthy, prefix } from './misc'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
@@ -121,7 +121,7 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
             cwd: source,
             suppressErrors: true,
             caseSensitiveMatch: !isWindows(),
-            ignore: [parent.hide, parent.remove].filter(Boolean) as string[],
+            ignore: onlyTruthy([parent.hide, parent.remove]),
         })
         const base = enforceFinal('/', source)
         for await (let path of dirStream) {

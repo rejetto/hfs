@@ -21,17 +21,21 @@
     "@testing-library/jest-dom": "^5.16.1",
     "@testing-library/react": "^12.1.2",
     "@testing-library/user-event": "^13.5.0",
+    "js-sha512": "^0.8.0",
+    "tssrp6a": "^3.0.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-router-dom": "^6.2.1",
+    "typescript": "^4.5.5",
+    "valtio": "^1.2.9",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
     "@types/jest": "^27.4.0",
     "@types/node": "^16.11.21",
     "@types/react": "^17.0.38",
     "@types/react-dom": "^17.0.11",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-router-dom": "^6.2.1",
-    "react-scripts": "5.0.0",
-    "typescript": "^4.5.5",
-    "valtio": "^1.2.9",
-    "web-vitals": "^2.1.4"
+    "react-scripts": "5.0.0"
   },
   "eslintConfig": {
     "extends": [

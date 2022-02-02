@@ -5,6 +5,7 @@ import { Node, reloadVfs } from './VfsPage'
 import { state } from './state'
 import { apiCall } from './api'
 import FilePicker from './FilePicker'
+import { onlyTruthy } from './misc'
 
 export default function addFiles() {
     const close = newDialog({
@@ -24,7 +25,7 @@ export default function addFiles() {
                 async onSelect(sel) {
                     let failed = await Promise.all(sel.map(source =>
                         apiCall('add_vfs', { under, source }).then(() => '', () => source) ))
-                    failed = failed.filter(Boolean)
+                    failed = onlyTruthy(failed)
                     if (failed.length)
                         await alertDialog('Some elements have been rejected: '+failed.join(', '), 'error')
                     reloadVfs()

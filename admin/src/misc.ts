@@ -82,3 +82,19 @@ export function useStateMounted<T>(init: T) {
     }, [isMounted, set])
     return [v, setIfMounted, isMounted] as [T, typeof setIfMounted, typeof isMounted]
 }
+
+export function isEqualLax(a: any,b: any): boolean {
+    return a == b //eslint-disable-line
+        || (a && b && typeof a === 'object' && typeof b === 'object'
+            && Object.entries(a).every(([k,v]) => isEqualLax(v, b[k])) )
+}
+
+type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
+
+export function truthy<T>(value: T): value is Truthy<T> {
+    return Boolean(value)
+}
+
+export function onlyTruthy<T>(arr: T[]) {
+    return arr.filter(truthy)
+}
