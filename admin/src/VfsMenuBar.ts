@@ -18,6 +18,7 @@ export default function VfsMenuBar() {
             top: 0,
             zIndex: 2,
             backgroundColor: 'background.paper',
+            width: 'fit-content',
         },
     },
         h(Button, { variant:'contained', onClick: addFiles, startIcon: h(Add) }, 'Add'),

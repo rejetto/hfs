@@ -1,15 +1,24 @@
 import { createElement as h, FunctionComponent } from 'react';
 import { List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
-import { AccountTree, ManageAccounts, Monitor, Settings, SvgIconComponent } from '@mui/icons-material'
+import { AccountTree, ManageAccounts, Monitor, Public, Settings, SvgIconComponent } from '@mui/icons-material'
 import _ from 'lodash'
 import { Link } from 'react-router-dom'
 import MonitorPage from './MonitorPage'
 import ConfigPage from './ConfigPage';
 import VfsPage from './VfsPage';
 import AccountsPage from './AccountsPage';
+import HomePage from './HomePage'
 
-interface MenuEntry { path:string, icon:SvgIconComponent, label?: string, comp?: FunctionComponent }
+interface MenuEntry {
+    path: string
+    icon: SvgIconComponent
+    label?: string
+    title?: string
+    comp?: FunctionComponent
+}
+
 export const mainMenu: MenuEntry[] = [
+    { path: '', icon: Public, label: 'Home', title: 'Admin interface', comp: HomePage },
     { path: 'monitor', icon: Monitor, comp: MonitorPage },
     { path: 'configuration', icon: Settings, comp: ConfigPage },
     { path: 'vfs', icon: AccountTree, label: 'File System', comp: VfsPage },

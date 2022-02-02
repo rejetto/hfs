@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu';
 import { Box, Typography } from '@mui/material'
 import { Dialogs } from './dialog'
+import logo from './logo.svg'
 
 function App() {
     return h(BrowserRouter, {}, h(Routed))
@@ -11,7 +12,7 @@ function App() {
 function Routed() {
     const loc = useLocation().pathname.slice(1)
     const current = mainMenu.find(x => x.path === loc)
-    const title = current && getMenuLabel(current)
+    const title = current && (current.title || getMenuLabel(current))
     return h(Box, { display: 'flex' },
         h(MainMenu, { current }),
         h(Box, {
@@ -22,6 +23,11 @@ function Routed() {
                 overflow: 'auto',
                 px: 3,
                 pb: '1em',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'url('+logo+') no-repeat center',
+                backgroundSize: 'contain',
             }
         },
             title && h(Typography, { variant:'h1', mb:2 }, title),
