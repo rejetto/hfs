@@ -69,7 +69,7 @@ export function closeDialog(v?:any) {
         if (d.reserveClosing)
             continue
         dialogs.splice(i,1)
-        d.onClose?.(v)
+        return d.onClose?.(v)
     }
 }
 
