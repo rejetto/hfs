@@ -5,7 +5,7 @@ import fs from 'fs/promises'
 import yaml from 'yaml'
 import _ from 'lodash'
 
-export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow clear text login'
+export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow_clear_text_login'
 
 const PATH = 'config.yaml'
 
