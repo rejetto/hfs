@@ -1,5 +1,5 @@
-import { createElement as h, useEffect, useMemo, useState } from 'react'
-import { Dict, Falsy, getCookie, spinner } from './misc'
+import { createElement as h, useEffect, useMemo } from 'react'
+import { Dict, Falsy, getCookie, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
 
 export function useApiComp(...args: any[]): ReturnType<typeof useApi> {
@@ -41,9 +41,9 @@ export class ApiError extends Error {
 }
 
 export function useApi(cmd: string | Falsy, params?: object) : [any, ()=>void] {
-    const [ret, setRet] = useState()
-    const [forcer, setForcer] = useState(0)
-    const [state] = useState({ loading: false })
+    const [ret, setRet] = useStateMounted(undefined)
+    const [forcer, setForcer] = useStateMounted(0)
+    const [state] = useStateMounted({ loading: false })
     useEffect(()=>{
         setRet(undefined)
         if (!cmd) return
@@ -86,9 +86,9 @@ function addCsrf(params?: Dict) {
 }
 
 export function useApiEvents<Record>(cmd:string|Falsy, params: Dict={}) {
-    const [list, setList] = useState<Record[]>([])
-    const [error, setError] = useState<any>()
-    const [loading, setLoading] = useState(false)
+    const [list, setList] = useStateMounted<Record[]>([])
+    const [error, setError] = useStateMounted<any>(undefined)
+    const [loading, setLoading] = useStateMounted(false)
     useEffect(() => {
         if (!cmd) return
         const buffer: Record[] = []

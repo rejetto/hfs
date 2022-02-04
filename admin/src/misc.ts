@@ -76,9 +76,9 @@ export function useIsMounted() {
 export function useStateMounted<T>(init: T) {
     const isMounted = useIsMounted()
     const [v, set] = useState(init)
-    const setIfMounted = useCallback((x:T) => {
+    const setIfMounted = useCallback((newValue:T | ((previous:T)=>T)) => {
         if (isMounted())
-            set(x)
+            set(newValue)
     }, [isMounted, set])
     return [v, setIfMounted, isMounted] as [T, typeof setIfMounted, typeof isMounted]
 }
