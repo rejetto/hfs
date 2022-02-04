@@ -1,27 +1,41 @@
 import _ from "lodash"
-import { isValidElement, createElement as h } from "react"
-import { useApiComp } from "./api"
-import { Lock, Refresh } from '@mui/icons-material'
-import { Button, Grid } from '@mui/material'
+import { isValidElement, createElement as h, useMemo, Fragment } from "react"
+import { apiCall, useApiComp, useApiList } from "./api"
+import { Delete, Lock, Refresh } from '@mui/icons-material'
+import { Box, Grid, Tooltip, Typography } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
+import { Alert } from '@mui/material'
+import { formatBytes, IconBtn } from "./misc"
+import { alertDialog } from "./dialog"
 
 export default function MonitorPage() {
-    const [res, reload] = useApiComp('get_status')
-    if (isValidElement(res))
-        return res
-    return h('div', { flex: 1, display: 'flex', flexDirection: 'column' },
-        h('div', {},
-            h(Button, { onClick: reload, startIcon:h(Refresh) }, 'Reload') ),
+    return h(Box, { flex: 1, display: 'flex', flexDirection: 'column' },
         h(Grid, { container: true, flex: 1 },
-            h(Grid, { item: true, md: 6 },
-                h('ul', {},
-                    pair('started'),
-                    pair('http', 'HTTP', v => v.active ? 'port '+v.port : 'off'),
-                    pair('https', 'HTTPS', v => v.active ? 'port '+v.port : 'off'),
-                ) ),
-            h(Grid, { item: true, md: 6 },
+            h(Grid, { item: true, md: 3, lg: 4, xl: 6 },
+                h(MoreInfo) ),
+            h(Grid, { item: true, md: 9, lg: 8, xl: 6, width: '100%', display: 'flex', flexDirection: 'column' },
+                h(SectionTitle, {}, "Active connections"),
                 h(Connections))
         )
+    )
+}
+
+const isoDateRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+
+function SectionTitle(props: object) {
+    return h(Typography, { variant: 'h4', px: 2, ...props })
+}
+
+function MoreInfo() {
+    const [res, reload] = useApiComp('get_status')
+    return h(Box, {},
+        h(SectionTitle, {}, "Status", h(IconBtn, { sx: { ml: 2 }, icon: Refresh, onClick: reload })),
+        isValidElement(res) ? res :
+            h('ul', {},
+                pair('started'),
+                pair('http', 'HTTP', v => v.active ? 'port '+v.port : 'off'),
+                pair('https', 'HTTPS', v => v.active ? 'port '+v.port : 'off'),
+            )
     )
 
     function pair(k: string, label: string='', render?:(v:any) => string) {
@@ -38,32 +52,58 @@ export default function MonitorPage() {
     }
 }
 
-const isoDateRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
-
 function Connections() {
-    const [res] = useApiComp('get_connections')
-    if (isValidElement(res))
-        return res
-    const { list } = res
-    const rows = list.map((x:any,id:number) => ({ id, ...x }))
+    const { list, error } = useApiList ('get_connections')
+    const rows = useMemo(()=> list?.map((x:any,id:number) => ({ id, ...x })), [list])
+    if (error)
+        return h(Alert, { severity: 'error' }, error)
     return h(DataGrid, {
         pageSize: 25,
         columns: [
             {
                 field: 'ip',
-                headerName: 'IP',
+                headerName: 'Address',
                 flex: 1,
                 valueGetter: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port
             },
             {
                 field: 'v',
                 headerName: 'Protocol',
-                renderCell: ({ value, row }) => h('span', {}, 'IPv' + value, row.secure && h(Lock))
+                align: 'center',
+                renderCell: ({ value, row }) => h(Fragment, {},
+                    'IPv' + value,
+                    row.secure && h(Tooltip, { title:"HTTPS", children: h(Lock, { sx:{ opacity:.5 } }) })
+                )
+            },
+            {
+                field: 'outSpeed',
+                headerName: 'Speed',
+                valueGetter: ({ value }) => formatBytes(value*1000, 'B/s', 1000)
+            },
+            {
+                field: 'sent',
+                headerName: 'Total',
+                valueGetter: ({ value }) => formatBytes(value)
             },
             {
                 field: 'started',
+                headerName: 'Started',
                 valueGetter: ({ value }) => new Date(value).toLocaleTimeString()
             },
+            {
+                field: 'Actions ',
+                width: 80,
+                align: 'center',
+                renderCell({ row }) {
+                    return h(IconBtn, {
+                        icon: Delete,
+                        title: 'Disconnect',
+                        onClick() {
+                            apiCall('disconnect', _.pick(row, ['ip', 'port'])).catch(alertDialog)
+                        }
+                    })
+                }
+            }
         ],
         rows,
     })

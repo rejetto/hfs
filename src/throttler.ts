@@ -3,6 +3,8 @@ import Koa from 'koa'
 import { ThrottledStream, ThrottleGroup } from './ThrottledStream'
 import { subscribeConfig } from './config'
 import { getOrSet } from './misc'
+import { socket2connection, updateConnection } from './connections'
+import _ from 'lodash'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
@@ -31,8 +33,15 @@ export function throttler(): Koa.Middleware {
             ipGroup.destroy?.()
             delete ip2group[ctx.ip]
         })
+
+        const conn = socket2connection(ctx.socket)
+        if (conn)
+            ts.on('sent', _.debounce(() =>
+                updateConnection(conn, { sent: ts.getBytesSent(), outSpeed: Math.round(ts.getSpeed()) }), 1000, { maxWait:1000 }))
+
         const bak = ctx.response.length // preserve
         ctx.body = ctx.body.pipe(ts)
+
         if (bak)
             ctx.response.length = bak
     }

@@ -4,6 +4,8 @@ import { basename, dirname } from 'path'
 import { watch } from 'fs'
 import _ from 'lodash'
 
+export type Callback<IN=void, OUT=void> = (x:IN) => OUT
+
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
 }
@@ -16,10 +18,6 @@ export async function isDirectory(path: string) {
 export async function isFile(path: string) {
     try { return (await fs.stat(path)).isFile() }
     catch { return false }
-}
-
-export function complySlashes(path: string) {
-    return path.replace(/\\/g,'/')
 }
 
 export function prefix(pre:string, v:string|number, post:string='') {
@@ -117,4 +115,23 @@ export function truthy<T>(value: T): value is Truthy<T> {
 
 export function onlyTruthy<T>(arr: T[]) {
     return arr.filter(truthy)
+}
+
+type PendingPromise<T> = Promise<T> & { resolve: (value: T) => void, reject: (reason?: any) => void }
+export function pendingPromise<T>() {
+    // @ts-ignore
+    const ret: PendingPromise<T> = new Promise<T>((resolve, reject) =>
+        Object.assign(ret, { resolve, reject }))
+    return ret
+}
+
+// returns an 'uninstall' callback for the handlers you just installed. Pass a map {event:handler}
+export function onOffMap(em: EventEmitter, events: Record<string, (...args: any[]) => void>) {
+    events = { ...events } // avoid later modifications
+    for (const k in events)
+        em.on(k, events[k])
+    return () => {
+        for (const k in events)
+            em.off(k, events[k])
+    }
 }

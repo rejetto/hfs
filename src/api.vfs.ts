@@ -98,9 +98,8 @@ const apis: ApiHandlers = {
         try {
             if (!path && isWindows()) {
                 try {
-                    const { stdout } = await promisify(exec)('wmic logicaldisk get name')
-                    for (const drive of stdout.split('\n').slice(1).map(x => x.trim()).filter(Boolean))
-                        send({ entry: { n: drive } })
+                    for (const n of await getDrives())
+                        send({ add: { n } })
                 }
                 catch(error) {
                     console.debug(error)
@@ -120,14 +119,15 @@ const apis: ApiHandlers = {
                     path = path.toString('utf8')
                 try {
                     const stats = await stat(base + path)
-                    const entry = {
-                        n: path,
-                        s: stats.size,
-                        c: stats.ctime,
-                        m: stats.mtime,
-                        k: stats.isDirectory() ? 'd' : undefined,
-                    }
-                    send({ entry })
+                    send({
+                        add: {
+                            n: path,
+                            s: stats.size,
+                            c: stats.ctime,
+                            m: stats.mtime,
+                            k: stats.isDirectory() ? 'd' : undefined,
+                        }
+                    })
                 }
                 catch {
                     console.debug('ls: failed stat for ', path)
@@ -153,4 +153,9 @@ function pickProps(o: any, keys: string[]) {
             if (k in o)
                 ret[k] = o[k] === null && o[k] === '' ? undefined : o[k]
     return ret
+}
+
+async function getDrives() {
+    const { stdout } = await promisify(exec)('wmic logicaldisk get name')
+    return stdout.split('\n').slice(1).map(x => x.trim()).filter(Boolean)
 }

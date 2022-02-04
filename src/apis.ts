@@ -2,6 +2,7 @@ import { IncomingMessage } from 'http'
 import Koa from 'koa'
 import EventEmitter from 'events'
 import createSSE from './sse'
+import { Callback, wait } from './misc'
 
 export class ApiError extends Error {
     constructor(public status:number, message?:string | Error) {
@@ -12,19 +13,22 @@ type ApiHandlerResult = Record<string,any> | ApiError | EventEmitter
 export type ApiHandler = (params:any, ctx:Koa.Context) => ApiHandlerResult | Promise<ApiHandlerResult>
 export type ApiHandlers = Record<string, ApiHandler>
 
-type ApiEmitter = (args:{ send: DataEmitter, end: EndEmitter, params:any, ctx: Koa.Context }) => void
+type ApiEmitter = (args:{ send: DataEmitter, end: Callback, onClose: Callback<Callback>, params:any, ctx: Koa.Context }) => void
 type DataEmitter = (data:any) => void
-type EndEmitter = () => void
 
 export function apiEmitter(cb: ApiEmitter) {
     return (params:any, ctx: Koa.Context) => {
         const em = new EventEmitter()
+        let ready = wait(0) // wait for the sse to be created
         cb({
             send(data) {
-                em.emit('data', data)
+                ready.then(() => em.emit('data', data))
             },
             end() {
-                em.emit('end')
+                ready.then(() => em.emit('end'))
+            },
+            onClose(cb) {
+                ctx.res.once('close', cb)
             },
             params,
             ctx
@@ -80,7 +84,7 @@ async function getJsonFromReq(req: IncomingMessage): Promise<any> {
         req.on('error', reject)
         req.on('end', () => {
             try {
-                resolve(JSON.parse(data))
+                resolve(data && JSON.parse(data))
             }
             catch(e) {
                 reject(e)

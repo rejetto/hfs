@@ -7,6 +7,7 @@ export class ThrottledStream extends Transform {
     private sent: number = 0
     private lastSpeed: number = 0
     private lastSpeedTime = Date.now()
+    private totalSent: number = 0
 
     constructor(private group: ThrottleGroup) {
         super()
@@ -24,7 +25,9 @@ export class ThrottledStream extends Transform {
                 await this.group.consume(n)
                 this.push(slice)
                 this.sent += n
+                this.totalSent += n
                 pos += n
+                this.emit('sent')
             } catch (e) {
                 done(e as Error)
                 return
@@ -42,6 +45,10 @@ export class ThrottledStream extends Transform {
             this.sent = 0
         }
         return this.lastSpeed
+    }
+
+    getBytesSent() {
+        return this.totalSent
     }
 }
 

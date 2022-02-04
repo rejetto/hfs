@@ -1,6 +1,7 @@
 import { createElement as h, useEffect, useMemo } from 'react'
 import { Dict, Falsy, getCookie, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
+import _ from 'lodash'
 
 export function useApiComp(...args: any[]): ReturnType<typeof useApi> {
     // @ts-ignore
@@ -64,6 +65,7 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
         if (v === undefined) continue
         processed[k] = v === true ? '1' : v
     }
+    console.debug('API EVENTS', cmd, params)
     const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(addCsrf(processed)))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
@@ -82,10 +84,11 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
 }
 
 function addCsrf(params?: Dict) {
-    return { csrf: getCookie('csrf'), ...params }
+    const csrf = getCookie('csrf')
+    return csrf ? { csrf, ...params } : params
 }
 
-export function useApiEvents<Record>(cmd:string|Falsy, params: Dict={}) {
+export function useApiList<Record>(cmd:string|Falsy, params: Dict={}) {
     const [list, setList] = useStateMounted<Record[]>([])
     const [error, setError] = useStateMounted<any>(undefined)
     const [loading, setLoading] = useStateMounted(false)
@@ -111,9 +114,46 @@ export function useApiEvents<Record>(cmd:string|Falsy, params: Dict={}) {
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return stop()
-                    buffer.push(data.entry)
+                    if (data.add)
+                        return buffer.push(data.add)
+                    if (data.remove) {
+                        const matchOnList: ReturnType<typeof _.matches>[] = []
+                        // first remove from the buffer
+                        for (const key of data.remove) {
+                            const match1 = _.matches(key)
+                            if (_.isEmpty(_.remove(buffer, match1)))
+                                matchOnList.push(match1)
+                        }
+                        // then work the hooked state
+                        if (_.isEmpty(matchOnList))
+                            return
+                        setList(list => {
+                            const filtered = list.filter(rec => !matchOnList.some(match1 => match1(rec)))
+                            return filtered.length < list.length ? filtered : list // avoid unnecessary changes
+                        })
+                        return
+                    }
+                    if (data.update) {
+                        flush() // avoid treating buffer
+                        setList(list => {
+                            const modified = [...list]
+                            for (const { search, change } of data.update) {
+                                const idx = modified.findIndex(_.matches(search))
+                                if (idx >= 0)
+                                    modified[idx] = { ...modified[idx], ...change }
+                            }
+                            return modified
+                        })
+                        return
+                    }
+                    console.debug('unknown api event', type, data)
             }
         })
+
+        return () => {
+            src.close()
+            stop()
+        }
 
         function stop() {
             setLoading(false)

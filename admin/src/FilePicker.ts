@@ -1,5 +1,5 @@
 import { createElement as h, useEffect, useMemo, useState } from 'react'
-import { useApi, useApiEvents } from './api'
+import { useApi, useApiList } from './api'
 import _ from 'lodash'
 import {
     Alert,
@@ -30,7 +30,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
             setReady(true)
         }
     }, [gotCwd])
-    const { list, error, loading } = useApiEvents<DirEntry>(ready && 'ls', { path: cwd })
+    const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd })
     useEffect(() => {
         setSel([])
         setFilter('')

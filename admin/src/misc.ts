@@ -1,5 +1,5 @@
-import { createElement as h, useCallback, useEffect, useRef, useState } from 'react'
-import { CircularProgress } from '@mui/material'
+import { createElement as h, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react'
+import { CircularProgress, IconButton, Tooltip } from '@mui/material'
 
 export type Dict<T = any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -32,16 +32,16 @@ export function getOrSet<T>(o:any, k:string, creator:()=>T): T {
         : (o[k] = creator())
 }
 
-export function formatBytes(n: number, post: string = 'B') {
+export function formatBytes(n: number, post: string = 'B', k=1024) {
     if (isNaN(Number(n)) || n < 0)
         return ''
     let x = ['', 'K', 'M', 'G', 'T']
     let prevMul = 1
-    let mul = 1024
+    let mul = k
     let i = 0
     while (i < x.length && n > mul) {
         prevMul = mul
-        mul *= 1024
+        mul *= k
         ++i
     }
     n /= prevMul
@@ -66,9 +66,12 @@ export function isWindowsDrive(s?: string) {
 }
 
 export function useIsMounted() {
-    const mountRef = useRef(true)
-    useEffect(() => () => {
-        mountRef.current = false
+    const mountRef = useRef(false)
+    useEffect(() => {
+        mountRef.current = true
+        return () => {
+            mountRef.current = false
+        }
     }, [])
     return useCallback(()=> mountRef.current, [mountRef])
 }
@@ -98,3 +101,9 @@ export function truthy<T>(value: T): value is Truthy<T> {
 export function onlyTruthy<T>(arr: T[]) {
     return arr.filter(truthy)
 }
+
+export function IconBtn({ title, icon, ...rest }: { title?: string, icon:FunctionComponent, [rest:string]:any }) {
+    const ret = h(IconButton, { ...rest }, h(icon))
+    return title ? h(Tooltip, { title, children: ret }) : ret
+}
+

@@ -42,10 +42,10 @@ export default function VfsPage() {
         return res
     }
     return h(Grid, { container:true },
-        h(Grid, { item:true, lg: 7 },
+        h(Grid, { item:true, sm: 6, lg: 7 },
             h(VfsMenuBar),
             snap.vfs && h(VfsTree, { id2node })),
-        h(Grid, { item:true, lg: 5 },
+        h(Grid, { item:true, sm: 6, lg: 5 },
             h(FileCard)))
 }
 
