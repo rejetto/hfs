@@ -1,10 +1,10 @@
 import { getNodeName, vfs, VfsNode, walkNode } from './vfs'
-import createSSE from './sse'
 import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { pattern2filter } from './misc'
 import { FORBIDDEN } from './const'
+import EventEmitter from 'events'
 
 export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await vfs.urlToNode(path || '/', ctx)
@@ -20,15 +20,15 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
     limit = Number(limit)
     const filter = pattern2filter(search)
     const walker = walkNode(node, ctx, search ? Infinity : 0)
-    const sseSrv = sse ? createSSE(ctx) : null
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
+    const emitter = sse && new EventEmitter()
     const res = produceEntries()
-    return !sseSrv && { list: await res }
+    return emitter || { list: await res }
 
     async function produceEntries() {
         const list = []
         for await (const sub of walker) {
-            if (sseSrv?.stopped || ctx.aborted) break
+            if (ctx.aborted) break
             if (!filter(getNodeName(sub)))
                 continue
             const entry = await nodeToDirEntry(sub)
@@ -53,14 +53,14 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
                     entry.m = entry.c
                 delete entry.c
             }
-            if (sseSrv)
-                sseSrv.send({ entry })
+            if (emitter)
+                emitter.emit('data', { entry })
             else
                 list.push(entry)
             if (limit && !--limit)
                 break
         }
-        sseSrv?.close()
+        emitter.emit('end')
         return list
     }
 }

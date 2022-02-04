@@ -1,14 +1,37 @@
 import { IncomingMessage } from 'http'
 import Koa from 'koa'
+import EventEmitter from 'events'
+import createSSE from './sse'
 
 export class ApiError extends Error {
     constructor(public status:number, message?:string | Error) {
         super(typeof message === 'string' ? message : message?.message)
     }
 }
-type ApiHandlerResult = Record<string,any> | ApiError
+type ApiHandlerResult = Record<string,any> | ApiError | EventEmitter
 export type ApiHandler = (params:any, ctx:Koa.Context) => ApiHandlerResult | Promise<ApiHandlerResult>
 export type ApiHandlers = Record<string, ApiHandler>
+
+type ApiEmitter = (args:{ send: DataEmitter, end: EndEmitter, params:any, ctx: Koa.Context }) => void
+type DataEmitter = (data:any) => void
+type EndEmitter = () => void
+
+export function apiEmitter(cb: ApiEmitter) {
+    return (params:any, ctx: Koa.Context) => {
+        const em = new EventEmitter()
+        cb({
+            send(data) {
+                em.emit('data', data)
+            },
+            end() {
+                em.emit('end')
+            },
+            params,
+            ctx
+        })
+        return em
+    }
+}
 
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
@@ -28,6 +51,12 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         catch(e) {
             ctx.throw(500, String(e))
+        }
+        if (res && res instanceof EventEmitter) {
+            const sse = createSSE(ctx)
+            res.on('data', data => sse.send(data))
+            res.on('end', () => sse.close())
+            return
         }
         if (!res) // this should happen only in case of SSE
             return

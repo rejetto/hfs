@@ -1,10 +1,9 @@
 import { getNodeName, nodeIsDirectory, vfs, VfsNode, VfsNodeType } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
-import { ApiError, ApiHandlers } from './apis'
+import { apiEmitter, ApiError, ApiHandlers } from './apis'
 import { dirname } from 'path'
 import { saveConfigAsap } from './config'
-import createSSE from './sse'
 import glob from 'fast-glob'
 import { enforceFinal, isWindows } from './misc'
 import { exec } from 'child_process'
@@ -95,56 +94,52 @@ const apis: ApiHandlers = {
         return { path: process.cwd() }
     },
 
-    async ls({ path }, ctx) {
-        (async () => {
-            const sseSrv = createSSE(ctx)
-            try {
-                if (!path && isWindows()) {
-                    try {
-                        const { stdout } = await promisify(exec)('wmic logicaldisk get name')
-                        for (const drive of stdout.split('\n').slice(1).map(x => x.trim()).filter(Boolean))
-                            sseSrv.send({ entry: { n: drive } })
-                    }
-                    catch(error) {
-                        console.debug(error)
-                    }
-                    return
+    ls: apiEmitter(async ({ send, end, ctx, params:{ path } }) => {
+        try {
+            if (!path && isWindows()) {
+                try {
+                    const { stdout } = await promisify(exec)('wmic logicaldisk get name')
+                    for (const drive of stdout.split('\n').slice(1).map(x => x.trim()).filter(Boolean))
+                        send({ entry: { n: drive } })
                 }
-                const dirStream = glob.stream('*', {
-                    cwd: path,
-                    dot: true,
-                    onlyFiles: false,
-                })
-                const base = enforceFinal('/', path)
-                for await (let path of dirStream) {
-                    if (ctx.req.aborted)
-                        return
-                    if (path instanceof Buffer)
-                        path = path.toString('utf8')
-                    try {
-                        const stats = await stat(base + path)
-                        const entry = {
-                            n: path,
-                            s: stats.size,
-                            c: stats.ctime,
-                            m: stats.mtime,
-                            k: stats.isDirectory() ? 'd' : undefined,
-                        }
-                        sseSrv.send({ entry })
-                    }
-                    catch {
-                        console.debug('ls: failed stat for ', path)
-                    }
+                catch(error) {
+                    console.debug(error)
                 }
-            } catch (e) {
-                if ((e as any).code !== 'ENOTDIR')
-                    throw e
-            } finally {
-                sseSrv.close()
+                return
             }
-        })().then()
-        return false
-    }
+            const dirStream = glob.stream('*', {
+                cwd: path,
+                dot: true,
+                onlyFiles: false,
+            })
+            const base = enforceFinal('/', path)
+            for await (let path of dirStream) {
+                if (ctx.req.aborted)
+                    return
+                if (path instanceof Buffer)
+                    path = path.toString('utf8')
+                try {
+                    const stats = await stat(base + path)
+                    const entry = {
+                        n: path,
+                        s: stats.size,
+                        c: stats.ctime,
+                        m: stats.mtime,
+                        k: stats.isDirectory() ? 'd' : undefined,
+                    }
+                    send({ entry })
+                }
+                catch {
+                    console.debug('ls: failed stat for ', path)
+                }
+            }
+        } catch (e) {
+            if ((e as any).code !== 'ENOTDIR')
+                throw e
+        } finally {
+            end()
+        }
+    })
 
 }
 
