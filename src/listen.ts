@@ -4,6 +4,7 @@ import { app } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
+import { newConnection } from './connections'
 
 let httpSrv: http.Server
 let httpsSrv: http.Server
@@ -93,6 +94,9 @@ function startServer(srv: http.Server, port: number, secure:string='') {
                 console.error(code === 'EADDRINUSE' ? `couldn't listen on busy port ${port}` : e)
                 reject(e)
             })
+
+            srv.on('connection', socket =>
+                newConnection(socket, Boolean(secure)))
         }
         catch(e) {
             console.error("couldn't listen on port", port, String(e))
