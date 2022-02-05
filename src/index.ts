@@ -11,8 +11,6 @@ import { headRequests, gzipper, sessions, frontendAndSharedFiles } from './middl
 import './listen'
 import { serveAdminFiles } from './serveFrontend'
 import { adminApis } from './adminApis'
-import { getConfigReady } from './config'
-import open from 'open'
 
 export const BUILD_TIMESTAMP = "-"
 export const SESSION_DURATION = 30*60_000
@@ -21,18 +19,10 @@ export const HFS_STARTED = new Date()
 console.log('started', HFS_STARTED.toLocaleString(), 'build', BUILD_TIMESTAMP, DEV)
 console.debug('cwd', process.cwd())
 
-getConfigReady('open_browser_at_start', { defaultValue: true }).then(config => {
-    const ADMIN_PORT = 63636
-    new Koa()
-        .use(mount(API_URI, apiMiddleware(adminApis)))
-        .use(serveAdminFiles)
-        .on('error', errorHandler)
-        .listen(ADMIN_PORT, '127.0.0.1', () => {
-            if (config !== false)
-                open('http://localhost:' + ADMIN_PORT).then()
-            console.log('admin interface on http://localhost:' + ADMIN_PORT)
-        })
-})
+export const adminApp = new Koa()
+    .use(mount(API_URI, apiMiddleware(adminApis)))
+    .use(serveAdminFiles)
+    .on('error', errorHandler)
 
 export const app = new Koa({ keys: ['hfs-keys-test'] })
 app.use(sessions(app))

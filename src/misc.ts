@@ -119,10 +119,10 @@ export function onlyTruthy<T>(arr: T[]) {
 
 type PendingPromise<T> = Promise<T> & { resolve: (value: T) => void, reject: (reason?: any) => void }
 export function pendingPromise<T>() {
-    // @ts-ignore
-    const ret: PendingPromise<T> = new Promise<T>((resolve, reject) =>
-        Object.assign(ret, { resolve, reject }))
-    return ret
+    let takeOut
+    const ret = new Promise<T>((resolve, reject) =>
+        takeOut = { resolve, reject })
+    return Object.assign(ret, takeOut) as PendingPromise<T>
 }
 
 // returns an 'uninstall' callback for the handlers you just installed. Pass a map {event:handler}
@@ -133,5 +133,18 @@ export function onOffMap(em: EventEmitter, events: Record<string, (...args: any[
     return () => {
         for (const k in events)
             em.off(k, events[k])
+    }
+}
+
+// avoid for an async function to be overlapped with another execution while awaiting
+export function debounceAsync(cb: any, ms: number=100, ...args:any[]) {
+    const debounced = _.debounce(cb, ms, ...args)
+    let busy = false
+    return async () => {
+        while (busy)
+            await wait(ms)
+        busy = true
+        try { return await debounced() }
+        finally { busy = false }
     }
 }

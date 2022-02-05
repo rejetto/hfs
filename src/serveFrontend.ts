@@ -63,7 +63,7 @@ function serveAdminProxy(port?: string) { // used for development
 }
 
 const serveAdminStatic : Koa.Middleware  = async (ctx, next) => {
-    const fullPath = 'admin' + (ctx.path.includes('.') ? ctx.path : 'index.html');
+    const fullPath = 'admin' + (ctx.path.includes('.') ? ctx.path : '/index.html');
     return serveFile(fullPath, 'auto')(ctx, next)
 }
 

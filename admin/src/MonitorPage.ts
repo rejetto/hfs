@@ -53,7 +53,7 @@ function MoreInfo() {
 }
 
 function Connections() {
-    const { list, error } = useApiList ('get_connections')
+    const { list, error } = useApiList('get_connections')
     const rows = useMemo(()=> list?.map((x:any,id:number) => ({ id, ...x })), [list])
     if (error)
         return h(Alert, { severity: 'error' }, error)

@@ -73,7 +73,7 @@ export class Vfs {
 }
 
 export const vfs = new Vfs()
-subscribeConfig({ k: 'vfs' }, data =>
+subscribeConfig<VfsNode>({ k: 'vfs' }, data =>
     vfs.root = data)
 
 function findChildByName(name:string, node:VfsNode) {

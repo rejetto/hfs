@@ -5,7 +5,7 @@ import { state, useSnapState } from './state'
 import { Refresh } from '@mui/icons-material'
 import { Dict } from './misc'
 import { subscribeKey } from 'valtio/utils'
-import { Form, ServerPort, BoolField, NumberField, StringField } from './Form';
+import { Form, ServerPort, BoolField, NumberField, StringField, SelectField } from './Form';
 import StringStringField from './StringStringField'
 
 let loaded: Dict | undefined
@@ -50,6 +50,13 @@ export default function ConfigPage() {
             return { md: shortField ? 3 : 6 }
         },
         fields: [
+            { k: 'admin_port', comp: ServerPort, label: 'Admin port' },
+            { k: 'admin_network', comp: SelectField, label: 'Admin access',
+                options:[
+                    { value: '127.0.0.1', label: 'localhost only' },
+                    { value: '0.0.0.0', label: 'any network' }
+                ]
+            },
             { k: 'port', comp: ServerPort, label:'HTTP port' },
             { k: 'https_port', comp: ServerPort, label: 'HTTPS port' },
             { k: 'cert', comp: StringField, label: 'HTTPS certificate file' },

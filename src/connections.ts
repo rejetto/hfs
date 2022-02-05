@@ -12,7 +12,7 @@ export interface Connection {
 
 const all: Connection[] = []
 
-export function newConnection(socket: Socket, secure:boolean) {
+export function newConnection(socket: Socket, secure:boolean=false) {
     const conn: Connection = { socket, secure, got: 0, sent: 0, started: new Date() }
     all.push(conn)
     app.emit('connection', conn) // we'll use these events for SSE

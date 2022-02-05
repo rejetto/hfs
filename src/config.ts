@@ -20,20 +20,21 @@ watchLoad(path,  data => {
     setConfig(data)
 }, { failOnFirstAttempt:()=> setConfig({}) })
 
-const configProps:Record<string, ConfigProps> = {}
+const configProps:Record<string, ConfigProps<any>> = {}
 
-interface ConfigProps {
-    defaultValue?:any,
-    caster?:(argV:string)=>any
+interface ConfigProps<T> {
+    defaultValue?: T,
+    caster?:(argV:string)=> T
 }
-export function defineConfig(k:string, definition:ConfigProps) {
+export function defineConfig<T>(k: string, definition: ConfigProps<T>) {
     configProps[k] = definition
     if (!definition.caster)
         if (typeof definition.defaultValue === 'number')
+            // @ts-ignore
             definition.caster = Number
 }
 
-export function subscribeConfig({ k, ...definition }:{ k:string } & ConfigProps, cb:(v:any, was?:any)=>void) {
+export function subscribeConfig<T>({ k, ...definition }:{ k:string } & ConfigProps<T>, cb:(v:T, was?:T)=>void) {
     if (definition)
         defineConfig(k, definition)
     const { caster, defaultValue } = configProps[k] ?? {}
@@ -91,12 +92,12 @@ export const saveConfigAsap = _.debounce(async () => {
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
 
-// async version of getConfig, allowing you to wait for onfig to be ready
-export async function getConfigReady(k: string, definition?: object) {
-    return new Promise(resolve => {
+// async version of getConfig, allowing you to wait for config to be ready
+export async function getConfigReady<T>(k: string, definition?: object) {
+    return new Promise<T>(resolve => {
         const off = subscribeConfig({ k, ...definition }, v => {
             off?.()
-            resolve(v)
+            resolve(v as T)
         })
     })
 }

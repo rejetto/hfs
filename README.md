@@ -64,6 +64,8 @@ When not specified, default values will be used.
 Supported entries are:
 - `port` where to accept http connections. Default is 80.
 - `vfs` the files and folders you want to expose. For details see the dedicated following section.
+- `admin_port` the port where to reach admin interface. Default is 63636.
+- `admin_network` the network address where to reach admin interface. Default is 127.0.0.1 . 
 - `log` path of the log file. Default is `access.log`.
 - `error_log` path of the log file for errors. Default is `error.log`.
 - `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
