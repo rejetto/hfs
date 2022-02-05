@@ -1,5 +1,5 @@
-import { createElement as h } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { createElement as h } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
 import { Box, ThemeProvider, Typography } from '@mui/material'
 import { Dialogs } from './dialog'
