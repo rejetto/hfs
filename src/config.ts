@@ -4,6 +4,7 @@ import { watchLoad } from './watchLoad'
 import fs from 'fs/promises'
 import yaml from 'yaml'
 import _ from 'lodash'
+import { onOffMap } from './misc'
 
 export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow_clear_text_login'
 
@@ -40,16 +41,14 @@ export function subscribeConfig({ k, ...definition }:{ k:string } & ConfigProps,
     if (a !== undefined)
         return cb(caster ? caster(a) : a)
     const eventName = 'new.'+k
-    emitter.on(eventName, cb)
-    if (!started) return
-    let v = state[k]
-    if (v === undefined)
-        v = defaultValue
-    if (v !== undefined)
-        cb(v)
-    return () => {
-        emitter.off(eventName, cb)
+    if (started) {
+        let v = state[k]
+        if (v === undefined)
+            v = defaultValue
+        if (v !== undefined)
+            cb(v)
     }
+    return onOffMap(emitter, { [eventName]: cb })
 }
 
 export function getConfig(k:string) {
