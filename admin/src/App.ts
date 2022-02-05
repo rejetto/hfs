@@ -1,19 +1,21 @@
 import { createElement as h } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import MainMenu, { getMenuLabel, mainMenu } from './MainMenu';
-import { Box, Typography } from '@mui/material'
+import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
+import { Box, ThemeProvider, Typography } from '@mui/material'
 import { Dialogs } from './dialog'
 import logo from './logo.svg'
+import { useMyTheme } from './theme'
 
 function App() {
-    return h(BrowserRouter, {}, h(Routed))
+    return h(ThemeProvider, { theme: useMyTheme() },
+        h(BrowserRouter, {}, h(Routed)) )
 }
 
 function Routed() {
     const loc = useLocation().pathname.slice(1)
     const current = mainMenu.find(x => x.path === loc)
     const title = current && (current.title || getMenuLabel(current))
-    return h(Box, { display: 'flex' },
+    return h(Box, { display: 'flex', sx: { bgcolor:'background.default', color: 'text.primary' } },
         h(MainMenu, { current }),
         h(Box, {
             component: 'main',
