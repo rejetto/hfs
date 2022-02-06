@@ -7,6 +7,7 @@ import { Dict } from './misc'
 import { subscribeKey } from 'valtio/utils'
 import { Form, ServerPort, BoolField, NumberField, StringField, SelectField } from './Form';
 import StringStringField from './StringStringField'
+import { alertDialog } from './dialog'
 
 let loaded: Dict | undefined
 
@@ -72,6 +73,7 @@ export default function ConfigPage() {
         Object.assign(loaded, state.changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         console.debug('saved')
+        await alertDialog("Changes applied")
     }
 }
 
