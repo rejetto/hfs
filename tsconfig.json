@@ -1,5 +1,5 @@
 {
-  "exclude": ["frontend","admin","tests"],
+  "exclude": ["frontend","admin","tests","dist"],
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 
