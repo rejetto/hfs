@@ -10,15 +10,7 @@ import StringStringField from './StringStringField'
 
 let loaded: Dict | undefined
 
-subscribeKey(state, 'config', () => {
-    const changes: Dict = {}
-    if (state.config)
-        for (const [k, v] of Object.entries(state.config))
-            if (JSON.stringify(v) !== JSON.stringify(loaded?.[k]))
-                changes[k] = v
-    state.changes = changes
-    console.debug('changes', Object.keys(changes))
-})
+subscribeKey(state, 'config', recalculateChanges)
 
 export default function ConfigPage() {
     const [res, reload] = useApiComp('get_config', {
@@ -77,8 +69,18 @@ export default function ConfigPage() {
 
     async function save() {
         await apiCall('set_config', { values: state.changes })
-        Object.assign(state.config, state.changes)
-        Object.assign(loaded, state.config)
+        Object.assign(loaded, state.changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
+        recalculateChanges()
         console.debug('saved')
     }
+}
+
+function recalculateChanges() {
+    const changes: Dict = {}
+    if (state.config)
+        for (const [k, v] of Object.entries(state.config))
+            if (JSON.stringify(v) !== JSON.stringify(loaded?.[k]))
+                changes[k] = v
+    state.changes = changes
+    console.debug('changes', Object.keys(changes))
 }
