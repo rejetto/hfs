@@ -7,7 +7,7 @@ import { log } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
 import { getAccount, getCurrentUsername, getCurrentUsernameExpanded } from './perm'
-import { headRequests, gzipper, sessions, frontendAndSharedFiles } from './middlewares'
+import { headRequests, gzipper, sessions, frontendAndSharedFiles, someSecurity } from './middlewares'
 import './listen'
 import { serveAdminFiles } from './serveFrontend'
 import { adminApis } from './adminApis'
@@ -20,11 +20,13 @@ console.log('started', HFS_STARTED.toLocaleString(), 'build', BUILD_TIMESTAMP, D
 console.debug('cwd', process.cwd())
 
 export const adminApp = new Koa()
+    .use(someSecurity)
     .use(mount(API_URI, apiMiddleware(adminApis)))
     .use(serveAdminFiles)
     .on('error', errorHandler)
 
 export const app = new Koa({ keys: ['hfs-keys-test'] })
+app.use(someSecurity)
 app.use(sessions(app))
 app.use(async (ctx, next) => {
     ctx.state.usernames = getCurrentUsernameExpanded(ctx) // accounts chained via .belongs for permissions check

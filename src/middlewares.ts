@@ -8,7 +8,7 @@ import { vfs } from './vfs'
 import { isDirectory } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
-import { serveAdminFiles, serveFrontend } from './serveFrontend'
+import { serveFrontend } from './serveFrontend'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
 
@@ -25,7 +25,7 @@ export const gzipper = compress({
 export const headRequests: Koa.Middleware = async (ctx, next) => {
     const head = ctx.method === 'HEAD'
     if (head)
-        ctx.method = 'GET' // let's other middleware work so we can collect the size at the end
+        ctx.method = 'GET' // let other middlewares work, so we can collect the size at the end
     await next()
     if (!head || ctx.body === undefined) return
     const { length, status } = ctx.response
@@ -48,14 +48,11 @@ const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
 
 export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
-    if (path.includes('..'))
-        ctx.throw(500)
     if (ctx.body)
         return next()
     if (path.startsWith(FRONTEND_URI))
         return serveFrontendPrefixed(ctx,next)
-    const decoded = decodeURI(path)
-    const node = await vfs.urlToNode(decoded, ctx)
+    const node = await vfs.urlToNode(path, ctx)
     if (!node)
         return next()
     const { source } = node
@@ -68,7 +65,7 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         if (!path.endsWith('/')) // this folder was requested without the trailing /
             return ctx.redirect(path + '/')
         if (node.default) {
-            const def = await vfs.urlToNode(decoded + node.default, ctx)
+            const def = await vfs.urlToNode(path + node.default, ctx)
             if (def)
                 return serveFileNode(def)(ctx, next)
         }
@@ -80,13 +77,8 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     return next()
 }
 
-export const admin: Koa.Middleware = async (ctx, next) => {
-    const { path } = ctx
-    if (path.includes('..'))
-        ctx.throw(500)
-    if (ctx.body)
-        return next()
-    if (path === '/')
-        serveAdminFiles(ctx, next)
+export const someSecurity: Koa.Middleware = async (ctx, next) => {
+    if (decodeURI(ctx.path).includes('..'))
+        return ctx.status = 418
     return next()
 }

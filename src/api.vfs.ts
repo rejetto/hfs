@@ -18,7 +18,7 @@ function saveVfs() {
 const apis: ApiHandlers = {
 
     async get_vfs() {
-        return { root:vfs.root && await recur(vfs.root) }
+        return { root: vfs.root && await recur(vfs.root) }
 
         async function recur(n: VfsNode): Promise<VfsAdmin> {
             const dir = await nodeIsDirectory(n)

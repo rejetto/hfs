@@ -42,7 +42,13 @@ export class Vfs {
 
     async urlToNode(url: string, ctx?: Koa.Context, root?: VfsNode) : Promise<VfsNode | undefined> {
         let run = root || this.root
-        const rest = url.split('/').filter(Boolean).map(decodeURIComponent)
+        const decoded = decodeURI(url)
+        if (decoded.includes('..')) {
+            if (ctx)
+                ctx.status = 418
+            return
+        }
+        const rest = decoded.split('/').filter(Boolean)
         if (ctx && !hasPermission(run, ctx)) return
         while (rest.length) {
             let piece = rest.shift() as string
@@ -55,6 +61,10 @@ export class Vfs {
             if (!run.source)
                 return
             const relativeSource = piece + prefix('/', rest.join('/'))
+            if (relativeSource.includes('..')) {
+                ctx?.throw(418)
+                return
+            }
             const baseSource = run.source+ '/'
             const source = baseSource + relativeSource
             if (run.remove && isMatch(source, run.remove.split('|').map(x => baseSource + x)))
