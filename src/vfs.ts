@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { enforceFinal, isDirectory, isWindows, onlyTruthy, prefix } from './misc'
+import { enforceFinal, isDirectory, isWindows, onlyTruthy } from './misc'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
@@ -51,20 +51,16 @@ export class Vfs {
         const rest = decoded.split('/').filter(Boolean)
         if (ctx && !hasPermission(run, ctx)) return
         while (rest.length) {
-            let piece = rest.shift() as string
-            const child = findChildByName(piece, run)
-            if (child) {
-                run = child
+            const child = findChildByName(rest[0], run) // does the tree node have a child that goes by this name?
+            if (child) { // yes
+                rest.shift() // consume
+                run = child // move cursor
                 if (ctx && !hasPermission(run, ctx)) return
-                continue
+                continue // go on
             }
-            if (!run.source)
-                return
-            const relativeSource = piece + prefix('/', rest.join('/'))
-            if (relativeSource.includes('..')) {
-                ctx?.throw(418)
-                return
-            }
+            // not in the tree, we can see consider continuing on the disk
+            if (!run.source) return // but then we need the current node to be linked to the disk, otherwise, we give up
+            const relativeSource = rest.join('/')
             const baseSource = run.source+ '/'
             const source = baseSource + relativeSource
             if (run.remove && isMatch(source, run.remove.split('|').map(x => baseSource + x)))
