@@ -1,5 +1,4 @@
 # To do
-- start without config file
 - allowed referer
 - admin/plugins
 - log rotation

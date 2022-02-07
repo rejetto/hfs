@@ -40,7 +40,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             if (path.endsWith('.yaml'))
                 data = yaml.parse(data)
         } catch (e) {
-            if (initDone)
+            if (!initDone)
                 failOnFirstAttempt?.()
             doing = false
             console.debug('cannot read', path, String(e))
