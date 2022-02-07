@@ -1,6 +1,7 @@
 # To do
 - start without config file
 - allowed referer
+- admin/plugins
 - log rotation
 - log filter option
 - log filter plugin

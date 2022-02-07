@@ -159,11 +159,17 @@ more reassuring, like "found 0 vulnerabilities", hopefully.
 
 One way of working on sources here is to `npm run watch-server`.
 This will give you auto-restarting of the server on back-end changes.
-A good idea is to first clone/create your working config file, and set an env to point to it `HFS_CONFIG=/tmp/config.yaml`, so that your gitted config file is not changed.
+Set an env `DEV=1` to let the code know we are in a dev environment. 
 
-If you want to work on the front-end too, you should *first*
+If you want to work on the frontend and admin too, you should *first*
 1. set an env `FRONTEND_PROXY=3000`
 2. `npm run start-frontend`
+1. set an env `ADMIN_PROXY=3001`
+2. `npm run start-admin`
+
+Having this env-s will make the server get all related stuff from the other dev servers.
+Otherwise, you should be sure that frontend and admin have been built, and its files are ready to be used in `dist` folder.
+In this latter case, the `DEV=1` you set before will make the server get the files from inside the `dist` folder.
 
 # Plug-ins
 
