@@ -13,21 +13,21 @@ const password = 'password'
 
 describe('basics', () => {
     //before(async () => appStarted)
-    it('frontend', req('/', s => s.includes('<body>')))
+    it('frontend', req('/', s => s?.includes('<body>')))
     it('api.list', req('/~/api/file_list', data => inList(data, 'f2/') && inList(data, 'page'), {
         data: { path:'/f1/' }
     }))
     it('api.search', req('/~/api/file_list', data => inList(data, 'f2/') && !inList(data, 'page'), {
         data: { path:'f1', search:'2' }
     }))
-    it('download', req('/f1/f2/alfa.txt', s => s.includes('abcd')))
-    it('partial download', req('/f1/f2/alfa.txt', s => s.includes('a') && !s.includes('d'), {
+    it('download', req('/f1/f2/alfa.txt', s => s?.includes('abcd')))
+    it('partial download', req('/f1/f2/alfa.txt', s => s?.includes('a') && !s?.includes('d'), {
         headers: { Range: 'bytes=0-2' }
     }))
     it('bad range', req('/f1/f2/alfa.txt', 416, {
         headers: { Range: 'bytes=7-' }
     }))
-    it('website', req('/f1/page/', s => s.includes('This is a test')))
+    it('website', req('/f1/page/', s => s?.includes('This is a test')))
     it('missing perm', req('/for-admins/', 404))
     it('zip+head', req('/f1/?get=zip',
         (data, res) => !data && res.headers['content-length'] === '13074',
