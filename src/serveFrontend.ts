@@ -26,8 +26,11 @@ function serveProxyFrontend(port?: string) { // used for development
     }
 }
 
+// in case of dev env we have our static files within the 'dist' folder'
+const DEV_STATIC = process.env.DEV ? 'dist/' : ''
+
 const serveStaticFrontend : Koa.Middleware =  async (ctx, next) => {
-    const BASE = 'frontend/'
+    const BASE = DEV_STATIC + 'frontend/'
     let { path, method } = ctx
     if (method === 'OPTIONS') {
         ctx.status = NO_CONTENT
@@ -64,7 +67,7 @@ function serveAdminProxy(port?: string) { // used for development
 
 const serveAdminStatic : Koa.Middleware  = async (ctx, next) => {
     const fullPath = 'admin' + (ctx.path.includes('.') ? ctx.path : '/index.html');
-    return serveFile(fullPath, 'auto')(ctx, next)
+    return serveFile(DEV_STATIC + fullPath, 'auto')(ctx, next)
 }
 
 async function treatIndex(ctx: Koa.Context, body: string) {
