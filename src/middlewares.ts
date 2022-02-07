@@ -5,7 +5,7 @@ import { BUILD_TIMESTAMP, SESSION_DURATION } from './index'
 import Application from 'koa'
 import { FORBIDDEN, FRONTEND_URI } from './const'
 import { vfs } from './vfs'
-import { isDirectory } from './misc'
+import { dirTraversal, isDirectory } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
 import { serveFrontend } from './serveFrontend'
@@ -79,7 +79,7 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
 
 export const someSecurity: Koa.Middleware = async (ctx, next) => {
     try {
-        if (decodeURI(ctx.path).includes('..'))
+        if (dirTraversal(decodeURI(ctx.path)))
             return ctx.status = 418
     }
     catch {
@@ -87,3 +87,4 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     }
     return next()
 }
+

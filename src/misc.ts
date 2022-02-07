@@ -148,3 +148,7 @@ export function debounceAsync(cb: any, ms: number=100, ...args:any[]) {
         finally { busy = false }
     }
 }
+
+export function dirTraversal(s?: string) {
+    return s && /(^|[/\\])\.\.($|[/\\])/.test(s)
+}

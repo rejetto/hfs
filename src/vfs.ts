@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { enforceFinal, isDirectory, isWindows, onlyTruthy } from './misc'
+import { dirTraversal, enforceFinal, isDirectory, isWindows, onlyTruthy } from './misc'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
@@ -43,7 +43,7 @@ export class Vfs {
     async urlToNode(url: string, ctx?: Koa.Context, root?: VfsNode) : Promise<VfsNode | undefined> {
         let run = root || this.root
         const decoded = decodeURI(url)
-        if (decoded.includes('..')) {
+        if (dirTraversal(decoded)) {
             if (ctx)
                 ctx.status = 418
             return

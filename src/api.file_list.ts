@@ -2,7 +2,7 @@ import { getNodeName, vfs, VfsNode, walkNode } from './vfs'
 import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
-import { pattern2filter } from './misc'
+import { dirTraversal, pattern2filter } from './misc'
 import { FORBIDDEN } from './const'
 import EventEmitter from 'events'
 
@@ -12,8 +12,8 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
         return
     if (node.forbid)
         return new ApiError(FORBIDDEN)
-    if (search?.includes('..'))
-        return new ApiError(400)
+    if (dirTraversal(search))
+        return new ApiError(418)
     if (node.default)
         return { redirect: path }
     offset = Number(offset)
