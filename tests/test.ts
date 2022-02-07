@@ -28,6 +28,7 @@ describe('basics', () => {
         headers: { Range: 'bytes=7-' }
     }))
     it('website', req('/f1/page/', s => s?.includes('This is a test')))
+    it('traversal', req('/f1/page/.%2e/.%2e/README.md', 418))
     it('missing perm', req('/for-admins/', 404))
     it('zip+head', req('/f1/?get=zip',
         (data, res) => !data && res.headers['content-length'] === '13074',
