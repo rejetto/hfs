@@ -45,17 +45,10 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             ctx.body = 'invalid api'
             return ctx.status = 404
         }
-        let res
-        try {
-            const csrf = ctx.cookies.get('csrf')
-            if (csrf && csrf !== params.csrf)  // we don't rely on SameSite cookie option because it's https-only
-                res = new ApiError(401, 'csrf')
-            else
-                res = await apis[ctx.path](params || {}, ctx)
-        }
-        catch(e) {
-            ctx.throw(500, String(e))
-        }
+        const csrf = ctx.cookies.get('csrf')
+        // we don't rely on SameSite cookie option because it's https-only
+        const res = csrf && csrf !== params.csrf ? new ApiError(401, 'csrf')
+            : await apis[ctx.path](params || {}, ctx)
         if (res && res instanceof EventEmitter) {
             const sse = createSSE(ctx)
             res.on('data', data => sse.send(data))
