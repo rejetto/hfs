@@ -24,6 +24,7 @@ You won't find all previous features here (yet), but still we got:
 - plug-ins
 - log file
 - speed throttler
+- admin web interface
 
 ### Why you should upgrade from HFS 2.x to 3
 
@@ -40,7 +41,6 @@ As you can see from the list above, we already have some goods that you can't fi
 - easier to configure
 - smaller
 - more tested
-- real-time monitoring
 
 # Installation
 
@@ -54,7 +54,17 @@ As you can see from the list above, we already have some goods that you can't fi
    Future upgrades you may probably want to keep your existing config, and possibly use the example as an inspiration.
    You should edit config to suite your needs. Surely you want at least to change what files and folders are accessible 
    by the browser, and you'll find that under the `vfs` entry. For further details please check the `Configuration` section below. 
-5. launch the `hfs.exe` file
+
+you are now ready to launch the `hfs.exe` file
+
+## Linux
+
+1. install node.js version 16+ from https://nodejs.org/
+2. download and unzip the latest package from https://github.com/rejetto/hfs/releases/
+3. first time you should rename `config-example` to `config`, and `accounts-example` to `accounts`. Preserve the `yaml` extension.
+4. chmod +x run.bat
+
+you are now ready to launch `run.bat`
 
 # Configuration
 
