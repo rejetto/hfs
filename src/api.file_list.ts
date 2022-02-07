@@ -60,7 +60,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
             if (limit && !--limit)
                 break
         }
-        emitter.emit('end')
+        emitter?.emit('end')
         return list
     }
 }
