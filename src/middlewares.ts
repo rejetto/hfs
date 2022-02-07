@@ -78,7 +78,12 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
 }
 
 export const someSecurity: Koa.Middleware = async (ctx, next) => {
-    if (decodeURI(ctx.path).includes('..'))
+    try {
+        if (decodeURI(ctx.path).includes('..'))
+            return ctx.status = 418
+    }
+    catch {
         return ctx.status = 418
+    }
     return next()
 }
