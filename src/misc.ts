@@ -58,6 +58,31 @@ export async function* filterMapGenerator<IN,OUT>(generator: AsyncIterableIterat
     }
 }
 
+export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Promise<T[]> {
+    const ret: T[] = []
+    for await(const x of generator)
+        ret.push(x)
+    return ret
+}
+
+// let you use work with a callback when a generator is required
+export function generatorAsCallback<T>(caller: Callback<{ callback:Callback<T> }>) {
+    let p = pendingPromise()
+    const ref = { callback: p.resolve }
+    caller(ref)
+    return {
+        [Symbol.asyncIterator]: () =>
+            ({
+                async next() {
+                    const value = await p
+                    p = pendingPromise()
+                    ref.callback = p.resolve
+                    return { value }
+                }
+            })
+    }
+}
+
 export function getOrSet<T>(o:any, k:string, creator:()=>T): T {
     return k in o ? o[k]
         : (o[k] = creator())
@@ -125,9 +150,9 @@ export function pendingPromise<T>() {
     return Object.assign(ret, takeOut) as PendingPromise<T>
 }
 
-// returns an 'uninstall' callback for the handlers you just installed. Pass a map {event:handler}
-export function onOffMap(em: EventEmitter, events: Record<string, (...args: any[]) => void>) {
-    events = { ...events } // avoid later modifications
+// install multiple handlers and returns a handy 'uninstall' function which requires no parameter. Pass a map {event:handler}
+export function onOffMap(em: EventEmitter, events: { [eventName:string]: (...args: any[]) => void }) {
+    events = { ...events } // avoid later modifications, as we need this later for uninstallation
     for (const k in events)
         em.on(k, events[k])
     return () => {

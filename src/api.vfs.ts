@@ -1,7 +1,7 @@
 import { getNodeName, nodeIsDirectory, vfs, VfsNode, VfsNodeType } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
-import { apiEmitter, ApiError, ApiHandlers } from './apis'
+import { ApiError, ApiHandlers } from './apis'
 import { dirname } from 'path'
 import { saveConfigAsap } from './config'
 import glob from 'fast-glob'
@@ -94,18 +94,18 @@ const apis: ApiHandlers = {
         return { path: process.cwd() }
     },
 
-    ls: apiEmitter(async ({ send, end, ctx, params:{ path } }) => {
-        try {
-            if (!path && isWindows()) {
-                try {
-                    for (const n of await getDrives())
-                        send({ add: { n } })
-                }
-                catch(error) {
-                    console.debug(error)
-                }
-                return
+    async *ls({ path }, ctx) {
+        if (!path && isWindows()) {
+            try {
+                for (const n of await getDrives())
+                    yield { add: { n } }
             }
+            catch(error) {
+                console.debug(error)
+            }
+            return
+        }
+        try {
             const dirStream = glob.stream('*', {
                 cwd: path,
                 dot: true,
@@ -119,7 +119,7 @@ const apis: ApiHandlers = {
                     path = path.toString('utf8')
                 try {
                     const stats = await stat(base + path)
-                    send({
+                    yield {
                         add: {
                             n: path,
                             s: stats.size,
@@ -127,7 +127,7 @@ const apis: ApiHandlers = {
                             m: stats.mtime,
                             k: stats.isDirectory() ? 'd' : undefined,
                         }
-                    })
+                    }
                 }
                 catch {
                     console.debug('ls: failed stat for ', path)
@@ -136,10 +136,8 @@ const apis: ApiHandlers = {
         } catch (e) {
             if ((e as any).code !== 'ENOTDIR')
                 throw e
-        } finally {
-            end()
         }
-    })
+    }
 
 }
 

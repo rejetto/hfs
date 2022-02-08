@@ -2,9 +2,8 @@ import { getNodeName, vfs, VfsNode, walkNode } from './vfs'
 import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
-import { dirTraversal, pattern2filter } from './misc'
+import { asyncGeneratorToArray, dirTraversal, filterMapGenerator, pattern2filter } from './misc'
 import { FORBIDDEN } from './const'
-import EventEmitter from 'events'
 
 export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await vfs.urlToNode(path || '/', ctx)
@@ -21,12 +20,10 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
     const filter = pattern2filter(search)
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
-    const emitter = sse && new EventEmitter()
-    const res = produceEntries()
-    return emitter || { list: await res }
+    return sse ? filterMapGenerator(produceEntries(), async (entry) => ({ entry })) // wrap entry in an object
+        : { list: await asyncGeneratorToArray(produceEntries()) }
 
-    async function produceEntries() {
-        const list = []
+    async function* produceEntries() {
         for await (const sub of walker) {
             if (ctx.aborted) break
             if (!filter(getNodeName(sub)))
@@ -53,15 +50,10 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
                     entry.m = entry.c
                 delete entry.c
             }
-            if (emitter)
-                emitter.emit('data', { entry })
-            else
-                list.push(entry)
+            yield entry
             if (limit && !--limit)
                 break
         }
-        emitter?.emit('end')
-        return list
     }
 }
 

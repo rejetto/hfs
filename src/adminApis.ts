@@ -1,4 +1,4 @@
-import { apiEmitter, ApiHandlers } from './apis'
+import { ApiHandlers } from './apis'
 import { getWholeConfig, setConfig } from './config'
 import { getStatus } from './listen'
 import { app, HFS_STARTED } from './index'
@@ -6,7 +6,7 @@ import { Server } from 'http'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
-import { onOffMap, pendingPromise } from './misc'
+import { generatorAsCallback, onOffMap, pendingPromise } from './misc'
 
 export const adminApis: ApiHandlers = {
 
@@ -49,23 +49,21 @@ export const adminApis: ApiHandlers = {
         return { result: Boolean(c) }
     },
 
-    get_connections: apiEmitter(async ({ send, onClose }) => {
-        getConnections().forEach(add)
-        onClose(
-            onOffMap(app, {
-                connection: add,
-                connectionClosed(conn: Connection) {
-                    send({ remove: [ serializeConnection(conn, true) ] })
-                },
-                connectionUpdated(conn: Connection, change: Partial<Connection>) {
-                    send({ update: [{ search: serializeConnection(conn, true), change }] })
-                },
-            })
-        )
-
-        function add(conn: Connection) {
-            send({ add: serializeConnection(conn) })
-        }
+    async *get_connections({}, ctx) {
+        for (const conn of getConnections())
+            yield { add: serializeConnection(conn) }
+        yield* generatorAsCallback(wrapper =>
+            ctx.res.once('close', // as connection is closed, call the callback returned by onOffMap that uninstalls the listener
+                onOffMap(app, {
+                    connection: conn => wrapper.callback({ add: serializeConnection(conn) }),
+                    connectionClosed(conn: Connection) {
+                        wrapper.callback({ remove: [ serializeConnection(conn, true) ] })
+                    },
+                    connectionUpdated(conn: Connection, change: Partial<Connection>) {
+                        wrapper.callback({ update: [{ search: serializeConnection(conn, true), change }] })
+                    },
+                })
+            ) )
 
         function serializeConnection(conn: Connection, minimal?:true) {
             const { socket, started, secure, got } = conn
@@ -79,7 +77,6 @@ export const adminApis: ApiHandlers = {
             }
 
         }
-
-    })
+    }
 
 }
