@@ -91,8 +91,12 @@ function findChildByName(name:string, node:VfsNode) {
 
 export function getNodeName(node: VfsNode) {
     return node.name
-        || node.source && /^[a-zA-Z]:$/.test(node.source) && node.source
-        || basename(node.source||'')
+        || node.source && (
+            /^[a-zA-Z]:\\?$/.test(node.source) && node.source.slice(0, 2)
+            || basename(node.source)
+            || node.source
+        )
+        || '(invalid)'
 }
 
 export async function nodeIsDirectory(node: VfsNode) {
