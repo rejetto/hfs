@@ -23,7 +23,19 @@
     "exe-dist": "pkg . -C brotli && cd dist && rm -rf src node_modules && zip hfs.exe.zip  -r * -x *.zip run.bat",
     "new-dist": "npm run build-all && npm run zip-dist && npm run exe-dist"
   },
-  "bin": "dist/src/index.js",
+  "bin": {
+    "hfs": "./dist/src/index.js"
+  },
+  "engines": {
+    "node": ">=16.13.0"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rejetto/hfs/"
+  },
   "pkg": {
     "scripts": "dist/src/**/*.js",
     "assets": "",
