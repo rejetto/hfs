@@ -11,7 +11,10 @@ import path from 'path'
 
 export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const { source, mime } = node
-    return serveFile(source||'', mime)
+    return (ctx, next) => {
+        ctx.vfsNode = node // useful to tell service files from files shared by the user
+        return serveFile(source||'', mime)(ctx, next)
+    }
 }
 
 export function serveFile(source:string, mime?:string, modifier?:(s:string)=>string) : Koa.Middleware {

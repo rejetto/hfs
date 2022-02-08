@@ -23,7 +23,7 @@ exports.init = api => {
         unload: () => save.flush(), // we may have pending savings
         middleware: (ctx) =>
             () => { // execute after other middlewares are done
-                if (ctx.status >= 300 || !ctx.fileSource) return
+                if (ctx.status >= 300 || !ctx.vfsNode) return
                 const { path } = ctx
                 counters[path] = counters[path] + 1 || 1
                 save()
