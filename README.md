@@ -187,7 +187,19 @@ but nothing is preventing a single plug-in from doing both tasks.
 You should find some examples within your installation.
 
 A plug-in must have a `plugin.js` file in its own folder.
-This file is javascript module that is supposed to expose one or more of the supported keys:
+This file is javascript module that exports an `init` function like this:
+```js
+exports.init = api => ({
+    frontend_css: 'mystyle.css'
+})
+```
+
+The init function is called when the module is loaded and should return an object with things to customize.
+In this example we are asking a css file to be loaded in the frontend.
+The parameter `api` object contains some useful things we'll see later.
+Let's first look at the things you can return:
+
+### Things a plugin can return
 
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
@@ -201,14 +213,13 @@ This file is javascript module that is supposed to expose one or more of the sup
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
 - `onDirEntry: ({ entry: DirEntry, listPath: string }) => void | false` by providing this callback you can manipulate the record
   that is sent to the frontend (`entry`), or you can return false to exclude this entry from the results.
-- `init: function` called when the plugin is initialized.
-  If you need to use the `api` object immediately after the plugin is loaded, be sure to put your code in this callback.
-- `api: object` if your plugin exports an empty object with name `api`, it will be filled with useful functions.
-  You'll just need this line
-  ```js
-  exports.api = {}
-  ```
-  Now let's have a look at what you'll find inside.
+
+### api object
+
+The `api` object you get as parameter of the `init` contains the following:
+
+  - `require: function` use this instead of standard `require` function to access modules already loaded by HFS.
+
   - `getConfig(key: string): any` this is the way to go if you need some configuration to do your job.
     
     Eg: you want a `message` text. This should be put by the user in the main config file, under the `plugins_config` property.
@@ -219,11 +230,11 @@ This file is javascript module that is supposed to expose one or more of the sup
         message: Hi there!
     ```
     Now you can use `api.getConfig('message')` to read it.
+   
   - `srcDir: string` this can be useful if you need to import some extra function not available in `api`.
     ```js
-    exports.api = {}
-    exports.init = function() {
-        const { BUILD_TIMESTAMP } = require(exports.api.srcDir + '/index')
+    exports.init = api => {
+        const { BUILD_TIMESTAMP } = api.require(api.srcDir + '/index')
         console.log(BUILD_TIMESTAMP)
     }
     ```
@@ -232,7 +243,6 @@ This file is javascript module that is supposed to expose one or more of the sup
     but you should then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin. 
     
 Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`.
-
 
 ### Front-end specific
 

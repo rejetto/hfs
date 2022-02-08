@@ -134,15 +134,14 @@ async function rescan() {
                 console.log(plugins[k] ? 'reloading plugin' : 'loading plugin', k)
                 const data = await import(f)
                 deleteModule(require.resolve(f)) // avoid caching
-                new Plugin(k, data, unwatch)
-                const { api } = data
-                if (!api) return
-                Object.assign(api, {
+                const res = await data.init?.call(null, {
                     srcDir: __dirname,
+                    require,
                     getConfig: (cfgKey: string) =>
                         getConfig('plugins_config')?.[k]?.[cfgKey]
                 })
-                await data.init?.call(api)
+                Object.assign(data, res)
+                new Plugin(k, data, unwatch)
             } catch (e) {
                 console.log('plugin error:', e)
             }

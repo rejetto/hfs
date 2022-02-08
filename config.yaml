@@ -11,7 +11,7 @@ port: 80    # 0 is a special value that will let the system pick a random availa
 #private_key: filepath
 mime:
   "*.jpg|*.png|*.mp3|*.txt": auto
-disable_plugins: [ 'theme-example', 'download-counter' ]
+disable_plugins: [ 'theme-example', 'download-counter^' ]
 plugins_config:
   middleware-example:
     message: ciao
