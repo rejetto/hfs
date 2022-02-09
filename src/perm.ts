@@ -81,21 +81,25 @@ export async function updateAccount(account: Account, changer?:Changer) {
 }
 
 let saving = false
+let justSaved = false
 const saveAccountsAsap = _.debounce(() => {
     saving = true
     fs.writeFile(path, yaml.stringify({ accounts }, { lineWidth:1000 })) // we don't want big numbers to be folded
-        .catch(err => console.error('Failed at saving accounts file, please ensure it is writable.', String(err)))
+        .then(() => justSaved = true,
+            err => console.error('Failed at saving accounts file, please ensure it is writable.', String(err)))
         .finally(()=> saving = false)
-})
+}, 200) // group burst of requests
 
 let watcher: undefined | (()=>void)
 subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
     watcher?.()
     if (!v)
         return applyAccounts({})
-    if (typeof v !== 'string')
-        return console.error('bad type for accounts')
     watcher = watchLoad(path = v, async data => {
+        if (justSaved) {
+            justSaved = false
+            return
+        }
         if (saving) return
         const a = data?.accounts
         if (!a)
