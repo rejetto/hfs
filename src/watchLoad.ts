@@ -5,28 +5,28 @@ import { readFileBusy } from './misc'
 
 export type WatchLoadCanceller = () => void
 
-interface Options { failOnFirstAttempt?: ()=>void }
+interface Options { failedOnFirstAttempt?: ()=>void }
 
-export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failOnFirstAttempt }:Options={}): WatchLoadCanceller {
+export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt }:Options={}): WatchLoadCanceller {
     let doing = false
-    let watcher: FSWatcher
+    let watcher: FSWatcher | undefined
     const debounced = _.debounce(load, 500)
-    let initDone = false
+    let retry: NodeJS.Timeout
     init()
+    if (!watcher)
+        failedOnFirstAttempt?.()
     return () => {
-        initDone = true // stop trying
         watcher?.close()
+        clearTimeout(retry)
     }
 
     function init() {
         try {
-            debounced()
             watcher = watch(path, debounced)
-            initDone = true
+            debounced() // if file is not accessible watch will throw and we won't get here
         }
         catch {
-            if (initDone)
-                setTimeout(init, 1000)
+            retry = setTimeout(init, 1000) // manual watching until watch is successful
         }
     }
 
@@ -40,10 +40,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             if (path.endsWith('.yaml'))
                 data = yaml.parse(data)
         } catch (e) {
-            if (!initDone)
-                failOnFirstAttempt?.()
             doing = false
-            console.debug('cannot read', path, String(e))
             return
         }
         await parser(data)

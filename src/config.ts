@@ -10,17 +10,19 @@ export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow_clear_text_login'
 
 const PATH = 'config.yaml'
 
+const configProps:Record<string, ConfigProps<any>> = {}
+
 let started = false // this will tell the difference for subscribeConfig()s that are called before or after config is loaded
-let state:Record<string,any> = {}
+let state: Record<string, any> = {}
 const emitter = new EventEmitter()
 emitter.setMaxListeners(10_000)
 const path = argv.config || process.env.HFS_CONFIG || PATH
-watchLoad(path,  data => {
-    started = true
-    setConfig(data)
-}, { failOnFirstAttempt:()=> setConfig({}) })
-
-const configProps:Record<string, ConfigProps<any>> = {}
+watchLoad(path,  setConfig, {
+    failedOnFirstAttempt(){
+        console.log("No config file, using defaults")
+        setConfig({})
+    }
+})
 
 interface ConfigProps<T> {
     defaultValue?: T,
@@ -64,6 +66,7 @@ export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:strin
 }
 
 export function setConfig(newCfg: Record<string,any>, partial=false) {
+    started = true
     for (const k in newCfg)
         check(k)
     const oldKeys = Object.keys(state)
