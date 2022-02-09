@@ -4,8 +4,8 @@ import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apis'
 import { dirname } from 'path'
 import { saveConfigAsap } from './config'
-import glob from 'fast-glob'
-import { enforceFinal, isWindows } from './misc'
+import glob, { Entry } from 'fast-glob'
+import { enforceFinal, isWindows, isWindowsDrive } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 
@@ -106,31 +106,27 @@ const apis: ApiHandlers = {
             return
         }
         try {
+            if (isWindowsDrive(path))
+                path = enforceFinal('/', path)
             const dirStream = glob.stream('*', {
                 cwd: path,
                 dot: true,
                 onlyFiles: false,
+                stats: true,
             })
-            const base = enforceFinal('/', path)
-            for await (let path of dirStream) {
+            for await (const entry of dirStream) {
                 if (ctx.req.aborted)
                     return
-                if (path instanceof Buffer)
-                    path = path.toString('utf8')
-                try {
-                    const stats = await stat(base + path)
-                    yield {
-                        add: {
-                            n: path,
-                            s: stats.size,
-                            c: stats.ctime,
-                            m: stats.mtime,
-                            k: stats.isDirectory() ? 'd' : undefined,
-                        }
+                let { name, stats } = entry as any as Entry
+                if (!stats) continue
+                yield {
+                    add: {
+                        n: name,
+                        s: stats.size,
+                        c: stats.ctime,
+                        m: stats.mtime,
+                        k: stats.isDirectory() ? 'd' : undefined,
                     }
-                }
-                catch {
-                    console.debug('ls: failed stat for ', path)
                 }
             }
         } catch (e) {

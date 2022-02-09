@@ -178,3 +178,7 @@ export function debounceAsync(cb: any, ms: number=100, ...args:any[]) {
 export function dirTraversal(s?: string) {
     return s && /(^|[/\\])\.\.($|[/\\])/.test(s)
 }
+
+export function isWindowsDrive(s?: string) {
+    return s && /^[a-zA-Z]:$/.test(s)
+}

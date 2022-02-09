@@ -1,4 +1,5 @@
 # To do
+- password protect admin
 - allowed referer
 - admin/plugins
 - download-counter: expose results on admin
