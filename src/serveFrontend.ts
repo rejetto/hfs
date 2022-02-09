@@ -5,6 +5,7 @@ import { serveFile } from './serveFile'
 import { mapPlugins } from './plugins'
 import { refresh_session } from './api.auth'
 import { ApiError } from './apis'
+import path from 'path'
 
 function serveProxyFrontend(port?: string) { // used for development
     if (!port)
@@ -30,26 +31,25 @@ function serveProxyFrontend(port?: string) { // used for development
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
 
 const serveStaticFrontend : Koa.Middleware =  async (ctx, next) => {
-    const BASE = DEV_STATIC + 'frontend/'
-    let { path, method } = ctx
-    if (method === 'OPTIONS') {
+    const isDir = ctx.path.endsWith('/')
+    const fullPath = path.join(__dirname, '..', DEV_STATIC, 'frontend', isDir ? '/index.html' : ctx.path)
+    if (ctx.method === 'OPTIONS') {
         ctx.status = NO_CONTENT
         ctx.set({ Allow: 'OPTIONS, GET' })
         return
     }
-    if (method !== 'GET')
+    if (ctx.method !== 'GET')
         return ctx.status = METHOD_NOT_ALLOWED
-    if (path.endsWith('/')) { // we don't cache the index as it's small and may prevent plugins change to apply
-        ctx.body = await treatIndex(ctx, String(await fs.readFile(BASE + 'index.html')))
-        ctx.type = 'html'
-        ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
-    } else {
-        const fullPath = BASE + path.slice(1)
-        const modifier = path.includes('static/js') ? // webpack
+    if (!isDir) {
+        const modifier = fullPath.includes('static/js') ? // webpack
             (s:string) => s.replace(/(return")(static\/)/g, '$1' + FRONTEND_URI.substring(1) + '$2')
             : undefined
         return serveFile(fullPath, 'auto', modifier)(ctx, next)
     }
+    // we don't cache the index as it's small and may prevent plugins change to apply
+    ctx.body = await treatIndex(ctx, String(await fs.readFile(fullPath)))
+    ctx.type = 'html'
+    ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     await next()
 }
 
@@ -66,8 +66,8 @@ function serveAdminProxy(port?: string) { // used for development
 }
 
 const serveAdminStatic : Koa.Middleware  = async (ctx, next) => {
-    const fullPath = 'admin' + (ctx.path.includes('.') ? ctx.path : '/index.html');
-    return serveFile(DEV_STATIC + fullPath, 'auto')(ctx, next)
+    const fullPath = path.join(__dirname, '..', DEV_STATIC, 'admin', ctx.path.includes('.') ? ctx.path : '/index.html')
+    return serveFile(fullPath, 'auto')(ctx, next)
 }
 
 async function treatIndex(ctx: Koa.Context, body: string) {

@@ -1,5 +1,5 @@
 import Koa from 'koa'
-import { createReadStream } from 'fs'
+import { createReadStream, stat } from 'fs'
 import fs from 'fs/promises'
 import { METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
 import { MIME_AUTO, VfsNode } from './vfs'
@@ -8,6 +8,7 @@ import { getConfig } from './config'
 import mm from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
+import { promisify } from 'util'
 
 export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const { source, mime } = node
@@ -37,7 +38,7 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
         }
         if (ctx.method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
-        const stats = await fs.stat(source)
+        const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
         ctx.set('Last-Modified', stats.mtime.toUTCString())
         ctx.fileSource = source
         ctx.status = 200
