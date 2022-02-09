@@ -66,7 +66,6 @@ export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:strin
 }
 
 export function setConfig(newCfg: Record<string,any>, partial=false) {
-    started = true
     for (const k in newCfg)
         check(k)
     const oldKeys = Object.keys(state)
@@ -76,9 +75,10 @@ export function setConfig(newCfg: Record<string,any>, partial=false) {
     for (const k of oldKeys)
         if (!newCfg.hasOwnProperty(k))
             check(k)
+    started = true
 
     function check(k: string) {
-        const oldV = state[k]
+        const oldV = started ? getConfig(k) : state[k] // from second time consider also defaultValue
         const newV = newCfg[k]
         const { caster, defaultValue } = configProps[k] ?? {}
         let v = newV === undefined ? defaultValue : newV
