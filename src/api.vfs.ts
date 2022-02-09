@@ -1,4 +1,4 @@
-import { getNodeName, nodeIsDirectory, vfs, VfsNode, VfsNodeType } from './vfs'
+import { getNodeName, nodeIsDirectory, vfs, VfsNode } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apis'
@@ -9,7 +9,13 @@ import { enforceFinal, isWindows, isWindowsDrive } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 
-type VfsAdmin = { type?: string, size?: number, ctime?: Date, mtime?: Date, children?: VfsAdmin[] } & Omit<VfsNode,'type' | 'children'>
+type VfsAdmin = {
+    type?: string,
+    size?: number,
+    ctime?: Date,
+    mtime?: Date,
+    children?: VfsAdmin[]
+} & Omit<VfsNode, 'type' | 'children'>
 
 function saveVfs() {
     saveConfigAsap()
@@ -20,7 +26,7 @@ const apis: ApiHandlers = {
     async get_vfs() {
         return { root: vfs.root && await recur(vfs.root) }
 
-        async function recur(n: VfsNode): Promise<VfsAdmin> {
+        async function recur(n: typeof vfs.root): Promise<VfsAdmin> {
             const dir = await nodeIsDirectory(n)
             const stats: Pick<VfsAdmin, 'size' | 'ctime' | 'mtime'> = {}
             try {
@@ -57,7 +63,7 @@ const apis: ApiHandlers = {
         const n = under ? await vfs.urlToNode(under) : vfs.root
         if (!n)
             return new ApiError(404, 'invalid under')
-        if (n.type === VfsNodeType.temp || !await nodeIsDirectory(n))
+        if (n.isTemp || !await nodeIsDirectory(n))
             return new ApiError(403, 'invalid under')
         const a = n.children || (n.children = [])
         a.unshift({ source, name })
@@ -73,7 +79,7 @@ const apis: ApiHandlers = {
                 if (typeof uri !== 'string')
                     return 400
                 const node = await vfs.urlToNode(uri)
-                if (!node || node.type === VfsNodeType.temp)
+                if (!node || node.isTemp)
                     return 404
                 const parent = dirname(uri)
                 const parentNode = await vfs.urlToNode(parent)

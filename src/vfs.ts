@@ -7,13 +7,8 @@ import glob from 'fast-glob'
 import _ from 'lodash'
 import { subscribeConfig } from './config'
 
-export enum VfsNodeType {
-    root,
-    temp,
-}
-
 export interface VfsNode {
-    type?: VfsNodeType,
+    isTemp?: true, // this node was spawned by a source-d node and is not part of the vfs tree
     name?: string,
     source?: string,
     children?: VfsNode[],
@@ -24,20 +19,18 @@ export interface VfsNode {
     rename?: Record<string,string>,
     perm?: Record<string, SinglePerm>,
     default?: string,
-    mime?: string
+    mime?: string,
 }
 
 type SinglePerm = 'r' | 'w'
 
-const EMPTY = { type: VfsNodeType.root }
-
 export const MIME_AUTO = 'auto'
 
 export class Vfs {
-    root: VfsNode = { ...EMPTY }
+    root: VfsNode = {}
 
     reset(){
-        this.root = { ...EMPTY }
+        this.root = {}
     }
 
     async urlToNode(url: string, ctx?: Koa.Context, root?: VfsNode) : Promise<VfsNode | undefined> {
@@ -68,7 +61,7 @@ export class Vfs {
             try { await fs.stat(source) } // check existence
             catch { return }
             return {
-                type: VfsNodeType.temp,
+                isTemp: true,
                 source,
                 mime: run.mime || (run.default && MIME_AUTO)
             }
@@ -96,7 +89,7 @@ export function getNodeName(node: VfsNode) {
             || basename(node.source)
             || node.source
         )
-        || '(invalid)'
+        || '' // should happen only for root
 }
 
 export async function nodeIsDirectory(node: VfsNode) {
@@ -140,7 +133,7 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
             if (path instanceof Buffer)
                 path = path.toString('utf8')
             yield {
-                type: VfsNodeType.temp,
+                isTemp: true,
                 source: base + path,
                 name: prefixPath + (parent!.rename?.[path] || path)
             }
