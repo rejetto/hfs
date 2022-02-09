@@ -37,7 +37,7 @@ export function throttler(): Koa.Middleware {
         const conn = socket2connection(ctx.socket)
         if (conn)
             ts.on('sent', _.debounce(() =>
-                updateConnection(conn, { sent: ts.getBytesSent(), outSpeed: Math.round(ts.getSpeed()) }), 1000, { maxWait:1000 }))
+                updateConnection(conn, { sent: ts.getBytesSent(), outSpeed: _.round(ts.getSpeed(),1) }), 1000, { maxWait:1000 }))
 
         const bak = ctx.response.length // preserve
         ctx.body = ctx.body.pipe(ts)
