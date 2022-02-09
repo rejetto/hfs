@@ -164,13 +164,14 @@ export function onOffMap(em: EventEmitter, events: { [eventName:string]: (...arg
 // avoid for an async function to be overlapped with another execution while awaiting
 export function debounceAsync(cb: any, ms: number=100, ...args:any[]) {
     const debounced = _.debounce(cb, ms, ...args)
-    let busy = false
+    let running: false | number = false
     return async () => {
-        while (busy)
+        if (running && Date.now() - running < ms) return
+        while (running)
             await wait(ms)
-        busy = true
+        running = Date.now()
         try { return await debounced() }
-        finally { busy = false }
+        finally { running = false }
     }
 }
 

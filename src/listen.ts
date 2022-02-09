@@ -17,6 +17,7 @@ subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
     await stopServer(httpSrv)
     httpSrv = http.createServer(app.callback())
     port = await startServer(httpSrv, { port, name:'http' })
+    if (!port) return
     httpSrv.on('connection', newConnection)
     printUrls(port, 'http')
 })
@@ -82,6 +83,7 @@ async function considerHttps() {
         port: !cert || !key ? -1 : getConfig('https_port'),
         name: 'https'
     })
+    if (!port) return
     httpsSrv.on('connection', socket =>
         newConnection(socket, true))
     printUrls(port, 'https')
@@ -105,13 +107,13 @@ function startServer(srv: http.Server, { port, name, net='0.0.0.0' }: StartServe
                 resolve(ad.port)
             }).on('error', e => {
                 const { code } = e as any
-                console.error(code === 'EADDRINUSE' ? `couldn't listen on port ${port}` : e)
-                reject(e)
+                console.error(code === 'EADDRINUSE' ? `couldn't listen on busy port ${port}` : String(e))
+                resolve(0)
             })
         }
         catch(e) {
             console.error("couldn't listen on port", port, String(e))
-            reject(e)
+            resolve(0)
         }
     })
 }
