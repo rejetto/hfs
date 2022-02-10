@@ -4,7 +4,7 @@ import _ from 'lodash'
 import { resolve } from 'path'
 import { PLUGINS_PUB_URI } from './const'
 import Koa from 'koa'
-import { getOrSet, onProcessExit, wantArray, watchDir } from './misc'
+import { debounceAsync, getOrSet, onProcessExit, wantArray, watchDir } from './misc'
 import { getConfig, subscribeConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
@@ -58,7 +58,7 @@ export function pluginsMiddleware(): Koa.Middleware {
 }
 
 subscribeConfig({ k:'disable_plugins', defaultValue:[] }, () => {
-    try { watchDir(PATH, _.debounce(rescan, 1000)) }
+    try { watchDir(PATH, debounceAsync(rescan, 1000)) }
     catch {
         console.debug('plugins not found')
     }

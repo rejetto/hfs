@@ -4,7 +4,7 @@ import { watchLoad } from './watchLoad'
 import fs from 'fs/promises'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { objSameKeys, onOffMap } from './misc'
+import { debounceAsync, objSameKeys, onOffMap } from './misc'
 import { exists } from 'fs'
 import { promisify } from 'util'
 
@@ -99,7 +99,7 @@ export function setConfig(newCfg: Record<string,any>, partial=false) {
     }
 }
 
-export const saveConfigAsap = _.debounce(async () => {
+export const saveConfigAsap = debounceAsync(async () => {
     let txt = yaml.stringify(state)
     if (txt.trim() === '{}')  // most users wouldn't understand
         if (await promisify(exists)(path)) // if a file exists then empty it, else don't bother creating it
@@ -108,7 +108,7 @@ export const saveConfigAsap = _.debounce(async () => {
             return
     fs.writeFile(path, txt)
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
-}, 100)
+})
 
 // async version of getConfig, allowing you to wait for config to be ready
 export async function getConfigReady<T>(k: string, definition?: object) {
