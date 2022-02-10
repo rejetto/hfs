@@ -46,6 +46,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
     if (loading)
         return spinner()
     const pathDelimiter = /[:\\]/.test(cwd) ? '\\' : '/'
+    const cwdPostfixed = enforceFinal(pathDelimiter, cwd)
     return h(Box, { display: 'flex', flexDirection: 'column', gap: 2 },
         h(Box, { display:'flex', gap: 1 },
             h(Button, {
@@ -53,7 +54,6 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
                 disabled: !sel.length,
                 sx: { minWidth: 'max-content' },
                 onClick() {
-                    const cwdPostfixed = enforceFinal(pathDelimiter, cwd)
                     onSelect(sel.map(x => cwdPostfixed + x))
                 }
             }, `Select (${sel.length})`),
@@ -95,7 +95,10 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
                             setSel(removed.length < sel.length ? removed : [...sel, id])
                         },
                         onDoubleClick(){
-                            setCwd( enforceFinal(pathDelimiter, cwd) + it.n )
+                            if (it.k === 'd')
+                                setCwd( cwdPostfixed + it.n )
+                            else
+                                onSelect([ cwdPostfixed + it.n ])
                         }
                     },
                         h(Checkbox, { checked: sel.includes(it.n) }),
