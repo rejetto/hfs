@@ -122,15 +122,15 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
         return
     const depthPath = depth === Infinity ? '**/' : _.repeat('*/',depth)
     try {
+        const base = enforceFinal('/', source)
         const dirStream = glob.stream(depthPath + '*', {
             dot: true,
             onlyFiles: false,
-            cwd: source,
+            cwd: base,
             suppressErrors: true,
             caseSensitiveMatch: !isWindows(),
             ignore: onlyTruthy([parent.hide, parent.remove]),
         })
-        const base = enforceFinal('/', source)
         for await (let path of dirStream) {
             if (ctx.req.aborted)
                 return
