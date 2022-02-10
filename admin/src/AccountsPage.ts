@@ -61,7 +61,7 @@ export default function AccountsPage() {
                     disabled: !sel.length,
                     startIcon: h(Delete),
                     async onClick(){
-                        if (!await confirmDialog(`You are going to delete ${sel.length} accounts`))
+                        if (!await confirmDialog(`You are going to delete ${sel.length} account(s)`))
                             return
                         const errors = onlyTruthy(await Promise.all(sel.map(username =>
                             apiCall('del_account', { username }).then(() => null, () => username) )))
@@ -77,6 +77,7 @@ export default function AccountsPage() {
             h(TreeView, {
                 multiSelect: true,
                 sx: { pr: 4, minWidth: '15em' },
+                selected: sel,
                 onNodeSelect(ev, ids) {
                     setAdd(false)
                     setSel(ids)
