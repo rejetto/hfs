@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
 import { MIME_AUTO, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
-import { getConfig } from './config'
+import { defineConfig, getConfig } from './config'
 import mm from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
@@ -17,6 +17,8 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
         return serveFile(source||'', mime)(ctx, next)
     }
 }
+
+defineConfig('mime', { defaultValue:{ '*.jpg|*.png|*.mp3|*.txt': 'auto' } })
 
 export function serveFile(source:string, mime?:string, modifier?:(s:string)=>string) : Koa.Middleware {
     return async (ctx) => {

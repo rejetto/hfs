@@ -1,5 +1,5 @@
 import * as http from 'http'
-import { getConfig, subscribeConfig } from './config'
+import { defineConfig, getConfig, subscribeConfig } from './config'
 import { adminApp, app } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
@@ -7,6 +7,7 @@ import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
 import { debounceAsync } from './misc'
+import { DEV } from './const'
 
 let httpSrv: http.Server
 let httpsSrv: http.Server
@@ -37,10 +38,12 @@ const considerAdmin = debounceAsync(async () => {
     })
     if (!resultPort)
         return
-    if (getConfig('open_browser_at_start') !== false)
+    if (getConfig('open_browser_at_start'))
         open('http://localhost:' + resultPort).then()
     console.log('admin interface on http://localhost:' + resultPort)
 })
+
+defineConfig('open_browser_at_start', { defaultValue: !DEV })
 
 subscribeConfig<string>({ k:'admin_network', defaultValue: '127.0.0.1' }, considerAdmin)
 subscribeConfig<number>({ k:'admin_port', defaultValue: 63636 }, considerAdmin)

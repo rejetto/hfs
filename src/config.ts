@@ -4,7 +4,7 @@ import { watchLoad } from './watchLoad'
 import fs from 'fs/promises'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { onOffMap } from './misc'
+import { objSameKeys, onOffMap } from './misc'
 
 export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow_clear_text_login'
 
@@ -59,7 +59,8 @@ export function getConfig(k:string) {
 }
 
 export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:string[] }) {
-    let copy = _.omit(state, omit)
+    let copy = Object.assign( objSameKeys(configProps, x => x.defaultValue), state )
+    copy = _.omit(copy, omit)
     if (only.length)
        copy = _.pick(copy, only)
     return _.cloneDeep(copy)
@@ -84,14 +85,21 @@ export function setConfig(newCfg: Record<string,any>, partial=false) {
         let v = newV === undefined ? defaultValue : newV
         if (caster)
             v = caster(v)
-        if (JSON.stringify(v) === JSON.stringify(oldV)) return
-        state[k] = v
+        const j = JSON.stringify(v)
+        if (j === JSON.stringify(oldV)) return // no change
+        if (j === JSON.stringify(defaultValue)) // if we move away from the default value and then come back, we restore the initial state (undefined)
+            delete state[k]
+        else
+            state[k] = v
         emitter.emit('new.'+k, v, oldV)
     }
 }
 
 export const saveConfigAsap = _.debounce(async () => {
-    fs.writeFile(path, yaml.stringify(state))
+    let txt = yaml.stringify(state)
+    if (txt.trim() === '{}') // users wouldn't understand
+       txt = ''
+    fs.writeFile(path, txt)
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 }, 100)
 
