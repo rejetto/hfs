@@ -101,7 +101,7 @@ const apis: ApiHandlers = {
         if (!path && isWindows()) {
             try {
                 for (const n of await getDrives())
-                    yield { add: { n } }
+                    yield { add: { n, k: 'd' } }
             }
             catch(error) {
                 console.debug(error)
