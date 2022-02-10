@@ -61,6 +61,8 @@ const apis: ApiHandlers = {
         if (n.isTemp || !await nodeIsDirectory(n))
             return new ApiError(403, 'invalid under')
         const a = n.children || (n.children = [])
+        if (a.find(x => x.source === source))
+            return new ApiError(409, 'already present')
         a.unshift({ source, name })
         await saveVfs()
         return {}
