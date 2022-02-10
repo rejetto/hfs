@@ -5,6 +5,8 @@ import fs from 'fs/promises'
 import yaml from 'yaml'
 import _ from 'lodash'
 import { objSameKeys, onOffMap } from './misc'
+import { exists } from 'fs'
+import { promisify } from 'util'
 
 export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow_clear_text_login'
 
@@ -67,6 +69,8 @@ export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:strin
 }
 
 export function setConfig(newCfg: Record<string,any>, partial=false) {
+    if (!newCfg)
+        newCfg = {}
     for (const k in newCfg)
         check(k)
     const oldKeys = Object.keys(state)
@@ -97,8 +101,11 @@ export function setConfig(newCfg: Record<string,any>, partial=false) {
 
 export const saveConfigAsap = _.debounce(async () => {
     let txt = yaml.stringify(state)
-    if (txt.trim() === '{}') // users wouldn't understand
-       txt = ''
+    if (txt.trim() === '{}')  // most users wouldn't understand
+        if (await promisify(exists)(path)) // if a file exists then empty it, else don't bother creating it
+            txt = ''
+        else
+            return
     fs.writeFile(path, txt)
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 }, 100)

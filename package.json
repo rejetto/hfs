@@ -14,7 +14,7 @@
     "start-frontend": "cd frontend && npm run start",
     "start-admin": "cd admin && npm run start",
     "start": "node dist",
-    "build": "npm install && rm -rf dist/src && tsc --target es2018 && cp -v -r package*.json READ* plugins tests dist && cp config.yaml dist/config-example.yaml && cp accounts.yaml dist/accounts-example.yaml && cd dist && npm ci --production && cd .. && node afterbuild",
+    "build": "npm install && rm -rf dist/src && tsc --target es2018 && cp -v -r package*.json READ* plugins dist && cd dist && npm ci --production && cd .. && node afterbuild",
     "build-all": "rm -rf dist && npm run build && npm run build-frontend && npm run build-admin && npm audit --production && echo COMPLETED",
     "build-frontend": "cd frontend && npm install && npm run build",
     "build-admin": "cd admin && npm install && npm run build",
