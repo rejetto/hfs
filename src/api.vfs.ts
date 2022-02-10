@@ -2,8 +2,8 @@ import { getNodeName, nodeIsDirectory, saveVfs, vfs, VfsNode } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apis'
-import { dirname } from 'path'
-import glob, { Entry } from 'fast-glob'
+import { dirname, join } from 'path'
+import glob  from 'fast-glob'
 import { enforceFinal, isWindows, isWindowsDrive } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
@@ -113,22 +113,27 @@ const apis: ApiHandlers = {
                 cwd: path,
                 dot: true,
                 onlyFiles: false,
-                stats: true,
+                suppressErrors: true,
             })
-            for await (const entry of dirStream) {
+            for await (let name of dirStream) {
                 if (ctx.req.aborted)
                     return
-                let { name, stats } = entry as any as Entry
-                if (!stats) continue
-                yield {
-                    add: {
-                        n: name,
-                        s: stats.size,
-                        c: stats.ctime,
-                        m: stats.mtime,
-                        k: stats.isDirectory() ? 'd' : undefined,
+                if (name instanceof Buffer)
+                    name = name.toString('utf8')
+                try {
+                    const full = join(path, name)
+                    const stats = await stat(full)
+                    yield {
+                        add: {
+                            n: name,
+                            s: stats.size,
+                            c: stats.ctime,
+                            m: stats.mtime,
+                            k: stats.isDirectory() ? 'd' : undefined,
+                        }
                     }
                 }
+                catch {} // just ignore entries we can't stat
             }
         } catch (e) {
             if ((e as any).code !== 'ENOTDIR')
