@@ -29,44 +29,46 @@ interface FormProps {
     [rest:string]: any,
 }
 export function Form({ fields, values, set, defaults, save, sticky, addToBar=[], barSx, ...rest }: FormProps) {
-    return h(Box, rest,
-        save && h(Box, {
-            display: 'flex',
-            gap: 2,
-            alignItems: 'center',
-            sx: Object.assign({ mb: 3, width: 'fit-content' },
-                sticky && { zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', top: 0 },
-                barSx)
-        },
-            h(Button, {
-                variant: 'contained',
-                startIcon: h(Save),
-                ...save,
-            }, 'Save'),
-            ...addToBar,
-        ),
-        h(Grid, { container:true, rowSpacing:3, columnSpacing:1 },
-            fields.map((row, idx) => {
-                if (!row)
-                    return
-                if (isValidElement(row))
-                    return h(Grid, { key: idx, item: true, xs: 12 }, row)
-                let field = row
-                const { k } = field
-                if (k) {
-                    field = {
-                        value: values?.[k],
-                        onChange(v:any) { set(v, field) },
-                        ...field,
+    return h('form', { onSubmit(ev){ ev.preventDefault() } },
+        h(Box, rest,
+            save && h(Box, {
+                display: 'flex',
+                gap: 2,
+                alignItems: 'center',
+                sx: Object.assign({ mb: 3, width: 'fit-content' },
+                    sticky && { zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', top: 0 },
+                    barSx)
+            },
+                h(Button, {
+                    variant: 'contained',
+                    startIcon: h(Save),
+                    ...save,
+                }, 'Save'),
+                ...addToBar,
+            ),
+            h(Grid, { container:true, rowSpacing:3, columnSpacing:1 },
+                fields.map((row, idx) => {
+                    if (!row)
+                        return
+                    if (isValidElement(row))
+                        return h(Grid, { key: idx, item: true, xs: 12 }, row)
+                    let field = row
+                    const { k } = field
+                    if (k) {
+                        field = {
+                            value: values?.[k],
+                            onChange(v:any) { set(v, field) },
+                            ...field,
+                        }
+                        if (!field.label)
+                            field.label = _.capitalize(k.replaceAll('_', ' '))
+                        Object.assign(field, defaults?.(field))
                     }
-                    if (!field.label)
-                        field.label = _.capitalize(k.replaceAll('_', ' '))
-                    Object.assign(field, defaults?.(field))
-                }
-                const { xs=12, sm, md, lg, xl, comp=StringField, ...rest } = field
-                return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
-                    isValidElement(comp) ? comp : h(comp, rest) )
-            })
+                    const { xs=12, sm, md, lg, xl, comp=StringField, ...rest } = field
+                    return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
+                        isValidElement(comp) ? comp : h(comp, rest) )
+                })
+            )
         )
     )
 }
