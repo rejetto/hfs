@@ -5,7 +5,7 @@ import { dirTraversal, enforceFinal, isDirectory, isWindows, onlyTruthy } from '
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
-import { subscribeConfig } from './config'
+import { setConfig, subscribeConfig } from './config'
 
 export interface VfsNode {
     isTemp?: true, // this node was spawned by a source-d node and is not part of the vfs tree
@@ -72,8 +72,12 @@ export class Vfs {
 }
 
 export const vfs = new Vfs()
-subscribeConfig<VfsNode>({ k: 'vfs', defaultValue: {} }, data =>
+subscribeConfig<VfsNode>({ k: 'vfs', defaultValue: vfs.root }, data =>
     vfs.root = data)
+
+export function saveVfs() {
+    return setConfig({ vfs: _.cloneDeep(vfs.root) }, true)
+}
 
 function findChildByName(name:string, node:VfsNode) {
     const { rename } = node

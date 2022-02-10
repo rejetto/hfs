@@ -15,7 +15,7 @@ export const adminApis: ApiHandlers = {
 
     async set_config({ values }) {
         if (values)
-            setConfig(values, true)
+            await setConfig(values)
         return {}
     },
 

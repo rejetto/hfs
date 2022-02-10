@@ -19,10 +19,10 @@ let state: Record<string, any> = {}
 const emitter = new EventEmitter()
 emitter.setMaxListeners(10_000)
 const path = argv.config || process.env.HFS_CONFIG || PATH
-watchLoad(path,  setConfig, {
+watchLoad(path,  values => setConfig(values, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
-        setConfig({})
+        setConfig({}, false)
     }
 })
 
@@ -31,6 +31,8 @@ interface ConfigProps<T> {
     caster?:(argV:string)=> T
 }
 export function defineConfig<T>(k: string, definition: ConfigProps<T>) {
+    if (definition.defaultValue !== undefined)
+        definition.defaultValue = _.cloneDeep(definition.defaultValue)
     configProps[k] = definition
     if (!definition.caster)
         if (typeof definition.defaultValue === 'number')
@@ -49,7 +51,7 @@ export function subscribeConfig<T>({ k, ...definition }:{ k:string } & ConfigPro
     if (started) {
         let v = state[k]
         if (v === undefined)
-            v = defaultValue
+            v = _.cloneDeep(defaultValue)
         if (v !== undefined)
             cb(v)
     }
@@ -68,15 +70,18 @@ export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:strin
     return _.cloneDeep(copy)
 }
 
-export function setConfig(newCfg: Record<string,any>, partial=false) {
+// pass a value to `save` to force saving decision, or leave undefined for auto
+export function setConfig(newCfg: Record<string,any>, save?: boolean) {
     if (!newCfg)
         newCfg = {}
     for (const k in newCfg)
         check(k)
     const oldKeys = Object.keys(state)
     oldKeys.push(...Object.keys(configProps))
-    if (partial)
-        return saveConfigAsap()
+    if (save) {
+        saveConfigAsap().then()
+        return
+    }
     for (const k of oldKeys)
         if (!newCfg.hasOwnProperty(k))
             check(k)
@@ -86,16 +91,19 @@ export function setConfig(newCfg: Record<string,any>, partial=false) {
         const oldV = started ? getConfig(k) : state[k] // from second time consider also defaultValue
         const newV = newCfg[k]
         const { caster, defaultValue } = configProps[k] ?? {}
-        let v = newV === undefined ? defaultValue : newV
+        let v = newV ?? _.cloneDeep(defaultValue) // if we have an object we may get into troubles letting others change ours
         if (caster)
             v = caster(v)
         const j = JSON.stringify(v)
         if (j === JSON.stringify(oldV)) return // no change
-        if (j === JSON.stringify(defaultValue)) // if we move away from the default value and then come back, we restore the initial state (undefined)
+        if (newV === undefined // optimization: we know in this case it's equal to the default
+            || j === JSON.stringify(defaultValue)) // if we move away from the default value and then come back, we restore the initial state (undefined)
             delete state[k]
         else
             state[k] = v
         emitter.emit('new.'+k, v, oldV)
+        if (save === undefined)
+            saveConfigAsap().then()
     }
 }
 

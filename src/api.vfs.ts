@@ -1,9 +1,8 @@
-import { getNodeName, nodeIsDirectory, vfs, VfsNode } from './vfs'
+import { getNodeName, nodeIsDirectory, saveVfs, vfs, VfsNode } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apis'
 import { dirname } from 'path'
-import { saveConfigAsap } from './config'
 import glob, { Entry } from 'fast-glob'
 import { enforceFinal, isWindows, isWindowsDrive } from './misc'
 import { exec } from 'child_process'
@@ -16,10 +15,6 @@ type VfsAdmin = {
     mtime?: Date,
     children?: VfsAdmin[]
 } & Omit<VfsNode, 'type' | 'children'>
-
-function saveVfs() {
-    saveConfigAsap()
-}
 
 const apis: ApiHandlers = {
 
@@ -55,7 +50,7 @@ const apis: ApiHandlers = {
         Object.assign(n, pickProps(props, ['name','source','hidden','forbid','perm','hide','remove']))
         if (getNodeName(_.omit(n, ['name'])) === n.name)  // name only if necessary
             delete n.name
-        saveVfs()
+        await saveVfs()
         return n
     },
 
@@ -67,7 +62,7 @@ const apis: ApiHandlers = {
             return new ApiError(403, 'invalid under')
         const a = n.children || (n.children = [])
         a.unshift({ source, name })
-        saveVfs()
+        await saveVfs()
         return {}
     },
 
