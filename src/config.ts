@@ -93,7 +93,7 @@ export function setConfig(newCfg: Record<string,any>, partial=false) {
 export const saveConfigAsap = _.debounce(async () => {
     fs.writeFile(path, yaml.stringify(state))
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
-})
+}, 100)
 
 // async version of getConfig, allowing you to wait for config to be ready
 export async function getConfigReady<T>(k: string, definition?: object) {

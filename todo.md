@@ -1,5 +1,6 @@
 # To do
 - password protect admin
+- explain fields in admin
 - allowed referer
 - admin/plugins
 - download-counter: expose results on admin
