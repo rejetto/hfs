@@ -1,4 +1,3 @@
-import fs from 'fs/promises'
 import _ from 'lodash'
 import yaml from 'yaml'
 import { hashPassword } from './crypt'
@@ -81,25 +80,19 @@ export async function updateAccount(account: Account, changer?:Changer) {
 }
 
 let saving = false
-let justSaved = false
+let watchResult: ReturnType<typeof watchLoad>
 const saveAccountsAsap = _.debounce(() => {
     saving = true
-    fs.writeFile(path, yaml.stringify({ accounts }, { lineWidth:1000 })) // we don't want big numbers to be folded
-        .then(() => justSaved = true,
-            err => console.error('Failed at saving accounts file, please ensure it is writable.', String(err)))
+    watchResult.save(path, yaml.stringify({ accounts }, { lineWidth:1000 })) // we don't want big numbers to be folded
+        .catch(err => console.error('Failed at saving accounts file, please ensure it is writable.', String(err)))
         .finally(()=> saving = false)
 }, 200) // group burst of requests
 
-let watcher: undefined | (()=>void)
 subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
-    watcher?.()
+    watchResult?.unwatch()
     if (!v)
         return applyAccounts({})
-    watcher = watchLoad(path = v, async data => {
-        if (justSaved) {
-            justSaved = false
-            return
-        }
+    watchResult = watchLoad(path = v, async data => {
         if (saving) return
         const a = data?.accounts
         if (!a)

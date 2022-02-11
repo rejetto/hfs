@@ -1,7 +1,6 @@
 import EventEmitter from 'events'
 import { argv } from './const'
 import { watchLoad } from './watchLoad'
-import fs from 'fs/promises'
 import yaml from 'yaml'
 import _ from 'lodash'
 import { debounceAsync, objSameKeys, onOffMap } from './misc'
@@ -19,7 +18,7 @@ let state: Record<string, any> = {}
 const emitter = new EventEmitter()
 emitter.setMaxListeners(10_000)
 const path = argv.config || process.env.HFS_CONFIG || PATH
-watchLoad(path,  values => setConfig(values, false), {
+const { save } = watchLoad(path,  values => setConfig(values, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
         setConfig({}, false)
@@ -114,7 +113,7 @@ export const saveConfigAsap = debounceAsync(async () => {
             txt = ''
         else
             return
-    fs.writeFile(path, txt)
+    save(path, txt)
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
 

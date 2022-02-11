@@ -129,7 +129,7 @@ async function rescan() {
         if (plugins[k]) // already loaded
             continue
         f = resolve(f) // without this, import won't work
-        const unwatch = watchLoad(f, async () => {
+        const { unwatch } = watchLoad(f, async () => {
             try {
                 console.log(plugins[k] ? 'reloading plugin' : 'loading plugin', k)
                 const data = await import(f)
