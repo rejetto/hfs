@@ -20,18 +20,6 @@ export function getCookie(name: string) {
     return ''
 }
 
-export function usePrevious(value: any) {
-    const ref = useRef(value)
-    const ret = ref.current
-    ref.current = value
-    return ret
-}
-
-export function getOrSet<T>(o:any, k:string, creator:()=>T): T {
-    return k in o ? o[k]
-        : (o[k] = creator())
-}
-
 export function formatBytes(n: number, post: string = 'B', k=1024) {
     if (isNaN(Number(n)) || n < 0)
         return ''
