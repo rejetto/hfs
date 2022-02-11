@@ -1,6 +1,5 @@
 # To do
 - admin: warn in case of items with same name
-- admin: ctrl+enter to submit form
 - password protect admin
 - explain fields in admin
 - allowed referer

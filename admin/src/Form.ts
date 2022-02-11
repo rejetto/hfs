@@ -29,7 +29,15 @@ interface FormProps {
     [rest:string]: any,
 }
 export function Form({ fields, values, set, defaults, save, sticky, addToBar=[], barSx, ...rest }: FormProps) {
-    return h('form', { onSubmit(ev){ ev.preventDefault() } },
+    return h('form', {
+        onSubmit(ev) {
+            ev.preventDefault()
+        },
+        onKeyDown(ev) {
+            if (!save?.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
+                save?.onClick?.()
+        }
+    },
         h(Box, rest,
             save && h(Box, {
                 display: 'flex',
@@ -49,7 +57,7 @@ export function Form({ fields, values, set, defaults, save, sticky, addToBar=[],
             h(Grid, { container:true, rowSpacing:3, columnSpacing:1 },
                 fields.map((row, idx) => {
                     if (!row)
-                        return
+                        return null
                     if (isValidElement(row))
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
                     let field = row

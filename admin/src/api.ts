@@ -1,4 +1,4 @@
-import { createElement as h, useEffect, useMemo } from 'react'
+import { createElement as h, useCallback, useEffect, useMemo } from 'react'
 import { Dict, Falsy, getCookie, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
@@ -10,7 +10,7 @@ export function useApiComp(...args: any[]): ReturnType<typeof useApi> {
         res === undefined ? [spinner(), reload]
             : res && res instanceof Error ? [h(Alert, { severity: 'error' }, String(res)), reload]
                 : [res, reload],
-        [res])
+        [res, reload])
 }
 
 const PREFIX = '/~/api/'
@@ -53,7 +53,8 @@ export function useApi(cmd: string | Falsy, params?: object) : [any, ()=>void] {
             .then(setRet, setRet)
             .finally(()=> state.loading = false)
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line
-    return [ret, ()=> state.loading || setForcer(v => v+1)]
+    const reload = useCallback(()=> state.loading || setForcer(v => v+1), [])
+    return [ret, reload]
 }
 
 type EventHandler = (type:string, data?:any) => void
@@ -159,6 +160,6 @@ export function useApiList<Record>(cmd:string|Falsy, params: Dict={}) {
             setLoading(false)
             clearInterval(timer)
         }
-    }, [cmd, JSON.stringify(params)])
+    }, [cmd, JSON.stringify(params)]) //eslint-disable-line
     return { list, loading, error }
 }

@@ -63,7 +63,7 @@ function FileForm({ file }:any) {
             { k: 'forbid', comp: BoolField, md: 6 },
             { k: 'perm', comp: PermField, label: values.perm ? 'Access restricted' : 'Access not restricted' },
             { k: 'mime', lg: 6, label:"MIME type" },
-            realFolder && { k: 'default', lg: 6, label:"File to serve instead of file list" },
+            realFolder && { k: 'default', lg: 6, label:"Serve file instead of list" },
         ]
     })
 }
