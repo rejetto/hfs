@@ -15,7 +15,7 @@ import { Dict } from './misc'
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 
-interface FieldDescriptor { k:string, comp?: any, label?: string, [extraProp:string]:any }
+interface FieldDescriptor { k:string, comp?: any, label?: string | ReactElement, [extraProp:string]:any }
 
 interface FormProps {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
@@ -68,7 +68,7 @@ export function Form({ fields, values, set, defaults, save, sticky, addToBar=[],
                             onChange(v:any) { set(v, field) },
                             ...field,
                         }
-                        if (!field.label)
+                        if (field.label === undefined)
                             field.label = _.capitalize(k.replaceAll('_', ' '))
                         Object.assign(field, defaults?.(field))
                     }
@@ -82,7 +82,7 @@ export function Form({ fields, values, set, defaults, save, sticky, addToBar=[],
 }
 
 export interface FieldProps<T> {
-    label?: string
+    label?: string | ReactElement
     value?: T
     onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
     [rest: string]: any

@@ -1,6 +1,6 @@
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
-import { Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
+import { Box, Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
 import { BoolField, DisplayField, Form } from './Form'
 import _ from 'lodash'
 import { apiCall } from './api'
@@ -8,6 +8,7 @@ import { formatBytes, isEqualLax, objSameKeys } from './misc'
 import { reloadVfs } from './VfsPage'
 import { alertDialog } from './dialog'
 import PermField from './PermField'
+import { Lock, LockOpen } from '@mui/icons-material'
 
 export default function FileCard() {
     const { selectedFiles: files } = useSnapState()
@@ -61,7 +62,9 @@ function FileForm({ file }:any) {
             { k: 'mtime', comp: DisplayField, md: 6, label: 'Modified', map: (x:string) => x && new Date(x).toLocaleString() },
             { k: 'hidden', comp: BoolField, md: 6 },
             { k: 'forbid', comp: BoolField, md: 6 },
-            { k: 'perm', comp: PermField, label: values.perm ? 'Access restricted' : 'Access not restricted' },
+            { k: 'perm', comp: PermField,
+                label: h(Box, { display:'flex', gap:1 }, ...values.perm ? [h(Lock), 'Access restricted'] : [h(LockOpen), 'Access not restricted'])
+            },
             { k: 'mime', lg: 6, label:"MIME type" },
             realFolder && { k: 'default', lg: 6, label:"Serve file instead of list" },
         ]
