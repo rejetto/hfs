@@ -126,7 +126,9 @@ export function renameAccount(from: string, to: string) {
         return true
     accounts[to] = accounts[from]
     delete accounts[from]
+    setHidden(accounts[to], { username: to })
     recur(vfs.root)
+    saveAccountsAsap()
     return true
 
     function recur(n: VfsNode) {
