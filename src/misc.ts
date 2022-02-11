@@ -5,6 +5,7 @@ import { watch } from 'fs'
 import _ from 'lodash'
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
+export type Dict<T = any> = Record<string, T>
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
@@ -185,4 +186,11 @@ export function dirTraversal(s?: string) {
 
 export function isWindowsDrive(s?: string) {
     return s && /^[a-zA-Z]:$/.test(s)
+}
+
+export function objRenameKey(o: Dict | undefined, from: string, to: string) {
+    if (!o || !o.hasOwnProperty(from) || from === to) return
+    o[to] = o[from]
+    delete o[from]
+    return true
 }

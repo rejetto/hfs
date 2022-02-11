@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import yaml from 'yaml'
 import { hashPassword } from './crypt'
-import { setHidden, wantArray } from './misc'
+import { objRenameKey, setHidden, wantArray } from './misc'
 import { watchLoad } from './watchLoad'
 import Koa from 'koa'
 import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig, subscribeConfig } from './config'
@@ -106,37 +106,44 @@ async function applyAccounts(newAccounts: Accounts) {
     // we should validate content here
     accounts = newAccounts
     await Promise.all(_.map(accounts, async (rec,k) => {
-        const lc = k.toLocaleLowerCase()
+        const norm = normalizeUsername(k)
         if (!rec) // an empty object in yaml is stored as null
-            rec = accounts[lc] = { username: lc, srp:'' }
-        else if (lc !== k) {
-            accounts[lc] = rec
-            delete accounts[k]
-            k = lc
-        }
-        setHidden(rec, { username: k })
+            rec = accounts[norm] = { username: norm, srp:'' }
+        else
+            objRenameKey(accounts, k, norm)
+        setHidden(rec, { username: norm })
         await updateAccount(rec)
     }))
 }
 
+function normalizeUsername(username: string) {
+    return username.toLocaleLowerCase()
+}
+
 export function renameAccount(from: string, to: string) {
+    from = normalizeUsername(from)
+    to = normalizeUsername(to)
     if (!to || !accounts[from] || accounts[to])
         return false
     if (to === from)
         return true
-    accounts[to] = accounts[from]
-    delete accounts[from]
-    setHidden(accounts[to], { username: to })
-    recur(vfs.root)
+    objRenameKey(accounts, from, to)
+    updateReferences()
     saveAccountsAsap()
     return true
 
-    function recur(n: VfsNode) {
-        const p = n.perm
-        if (p?.[from]) {
-            p[to] = p[from]
-            delete p[from]
+    function updateReferences() {
+        setHidden(accounts[to], { username: to })
+        recur(vfs.root)
+        for (const a of Object.values(accounts)) {
+            const idx = a.belongs?.indexOf(from)
+            if (idx !== undefined && idx >= 0)
+                a.belongs![idx] = to
         }
+    }
+
+    function recur(n: VfsNode) {
+        objRenameKey(n.perm, from, to)
         if (n.children)
             for (const c of n.children)
                 recur(c)
