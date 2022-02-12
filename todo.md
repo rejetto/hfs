@@ -1,5 +1,4 @@
 # To do
-- admin: add virtual folders
 - admin: warn in case of items with same name
 - password protect admin
 - allowed referer

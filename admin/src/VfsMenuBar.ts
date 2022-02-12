@@ -5,7 +5,8 @@ import { Add, Delete, Refresh } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { apiCall } from './api'
 import { reloadVfs } from './VfsPage'
-import addFiles from './addFiles'
+import addFiles, { addVirtual } from './addFiles'
+import MenuButton from './MenuButton'
 
 export default function VfsMenuBar() {
     const { selectedFiles } = useSnapState()
@@ -21,9 +22,16 @@ export default function VfsMenuBar() {
             width: 'fit-content',
         },
     },
-        h(Button, { variant:'contained', onClick: addFiles, startIcon: h(Add) }, 'Add'),
+        h(MenuButton, {
+            variant: 'contained',
+            startIcon: h(Add),
+            items: [
+                { children: 'from disk', onClick: addFiles },
+                { children: 'virtual folder', onClick: addVirtual  }
+            ]
+        }, 'Add'),
         h(Button, { onClick: removeFiles, disabled: !selectedFiles.length, startIcon: h(Delete) }, 'Remove'),
-        h(Button, { onClick: reloadVfs, startIcon: h(Refresh) }, 'Reload'),
+        h(Button, { onClick(){ reloadVfs() }, startIcon: h(Refresh) }, 'Reload'),
     )
 }
 

@@ -7,6 +7,8 @@ import VfsMenuBar from './VfsMenuBar'
 import VfsTree from './VfsTree'
 import { onlyTruthy } from './misc'
 
+let selectOnReload: string[] | undefined
+
 export default function VfsPage() {
     const [id2node] = useState(() => new Map<string, Node>())
     const snap = useSnapState()
@@ -22,18 +24,19 @@ export default function VfsPage() {
         recur(root) // this must be done before state change that would cause Tree to render and expecting id2node
         state.vfs = root
         // refresh objects of selectedFiles
-        const ids = state.selectedFiles.map(x => x.id)
+        const ids = selectOnReload || state.selectedFiles.map(x => x.id)
+        selectOnReload = undefined
         state.selectedFiles = onlyTruthy(ids.map(id =>
             id2node.get(id)))
 
         // calculate id and parent fields, and builds the map id2node
-        function recur(node: Node, prefix='', parent: Node|undefined=undefined) {
+        function recur(node: Node, pre='', parent: Node|undefined=undefined) {
             node.parent = parent
-            node.id = prefix + node.name || '/' // root
+            node.id = (pre + node.name) || '/' // root
             id2node.set(node.id, node)
             if (!node.children) return
             for (const n of node.children)
-                recur(n, (prefix && node.id) + '/', node)
+                recur(n, (pre && node.id) + '/', node)
         }
 
     }, [res, id2node])
@@ -49,7 +52,8 @@ export default function VfsPage() {
             h(FileCard)))
 }
 
-export function reloadVfs() {
+export function reloadVfs(pleaseSelect?: string[]) {
+    selectOnReload = pleaseSelect
     state.vfs = undefined
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "admin",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "proxy": "http://localhost:63636",
   "scripts": {
@@ -40,6 +40,14 @@
     "extends": [
       "react-app",
       "react-app/jest"
+    ],
+    "overrides": [
+      {
+        "files": ["*.ts"],
+        "rules": {
+          "no-mixed-operators": "off"
+        }
+      }
     ]
   },
   "browserslist": {
