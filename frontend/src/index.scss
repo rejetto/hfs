@@ -6,6 +6,7 @@
     --good-contrast: #000a;
     --button-bg: #a4bac9;
     --button-text: #444;
+    --focus-color: #55A;
     .theme-dark {
         --bg: #000;
         --text: #999;
@@ -80,6 +81,11 @@ button {
 }
 button.toggled {
     opacity: .6;
+}
+button, .breadcrumb { /* consistent focus color */
+    &:focus-visible {
+        outline: 3px solid var(--focus-color);
+    }
 }
 
 .error-msg {
