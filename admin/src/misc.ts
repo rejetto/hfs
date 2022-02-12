@@ -1,5 +1,7 @@
-import { createElement as h, FunctionComponent, useCallback, useEffect, useRef, useState } from 'react'
-import { CircularProgress, IconButton, Tooltip } from '@mui/material'
+import { createElement as h, Fragment, FunctionComponent, ReactElement,
+    ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
+import { Link as RouterLink } from 'react-router-dom'
 
 export type Dict<T = any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -95,3 +97,29 @@ export function IconBtn({ title, icon, ...rest }: { title?: string, icon:Functio
     return title ? h(Tooltip, { title, children: ret }) : ret
 }
 
+export function prefix(pre:string, v:string|number, post:string='') {
+    return v ? pre+v+post : ''
+}
+
+export function reactFilter(elements: any[]) {
+    return elements.filter(x=> x===0 || x && (!Array.isArray(x) || x.length))
+}
+
+export function reactJoin(joiner: string | ReactElement, elements: Parameters<typeof reactFilter>[0]) {
+    const ret = []
+    for (const x of reactFilter(elements))
+        ret.push(x, joiner)
+    ret.splice(-1,1)
+    return dontBotherWithKeys(ret)
+}
+
+export function dontBotherWithKeys(elements: ReactNode[]): (ReactNode|string)[] {
+    return elements.map((e,i)=>
+        !e || typeof e === 'string' ? e
+            : Array.isArray(e) ? dontBotherWithKeys(e)
+                : h(Fragment, { key:i, children:e }) )
+}
+
+export function InLink(props:any) {
+    return h(Link, { component: RouterLink, ...props })
+}

@@ -1,12 +1,12 @@
 import { ApiHandlers } from './apis'
-import { getWholeConfig, setConfig } from './config'
+import { getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus } from './listen'
 import { app, HFS_STARTED } from './index'
-import { Server } from 'http'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
 import { generatorAsCallback, onOffMap, pendingPromise } from './misc'
+import _ from 'lodash'
 
 export const adminApis: ApiHandlers = {
 
@@ -27,14 +27,14 @@ export const adminApis: ApiHandlers = {
         const st = getStatus()
         return {
             started: HFS_STARTED,
-            http: serverStatus(st.httpSrv),
-            https: serverStatus(st.httpsSrv),
+            http: serverStatus(st.httpSrv, getConfig('port')),
+            https: serverStatus(st.httpsSrv, getConfig('https_port')),
         }
 
-        function serverStatus(h: Server) {
+        function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
             return {
-                active: h.listening,
-                port: (h.address() as any)?.port,
+                ..._.pick(h, ['listening', 'busy', 'error']),
+                port: (h.address() as any)?.port || configuredPort,
             }
         }
     },

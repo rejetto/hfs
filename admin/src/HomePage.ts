@@ -1,31 +1,59 @@
 import { createElement as h } from 'react'
 import { Alert, Box, Link } from '@mui/material'
 import { useApi } from './api'
-import { spinner } from './misc'
+import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, spinner } from './misc'
 import { Launch } from '@mui/icons-material'
-import { Link as RouterLink } from 'react-router-dom'
+import md from './md'
+
+interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
 export default function HomePage() {
-    const [status] = useApi('get_status')
+    const [status] = useApi<Dict<ServerStatus>>('get_status')
     const [vfs] = useApi('get_vfs')
-    const { http, https } = status || {}
-    const secure = !http?.active && https?.active ? 's' : ''
-    const srv = secure ? https : (http?.active && http)
-    const href = srv && `http${secure}://`+window.location.hostname + (srv.port === (secure ? 443 : 80) ? '' : ':'+srv.port)
-    return !status ? spinner() :
-        h(Box, { display:'flex', gap: 2, flexDirection:'column' },
-            href ? h(Box, {},
-                h(Alert, { severity: 'success' }, "Server is working"),
-                h(Box, { mt:2, fontSize:'200%' },
-                    h(Link, { target:'frontend', href }, "Open frontend interface",
-                        h(Launch, { sx: { ml:1, mt:1 } }),
-                    )
-                ),
-                h(Box, { color:'text.secondary' },
-                    `Inside frontend your users can see the files and folders you decide in the File System.`)
-            ) : h(Alert, { severity: 'warning' }, "Frontend switched off"),
+    const [cfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key'] })
+    if (!status)
+        return spinner()
+    const { http, https } = status
+    const goSecure = !http?.listening && https?.listening ? 's' : ''
+    const srv = goSecure ? https : (http?.listening && http)
+    const href = srv && `http${goSecure}://`+window.location.hostname + (srv.port === (goSecure ? 443 : 80) ? '' : ':'+srv.port)
+    const errorMap = objSameKeys(status, v =>
+        v.busy ? [`port ${v.port} already used by ${v.busy} - choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
+            : v.error )
+    if (!errorMap.https && cfg?.https_port >= 0 && !status.https.listening)
+        errorMap.https = !cfg.cert ? 'missing certificate' : !cfg.private_key ? 'missing private key' : ''
+    const errors = errorMap && onlyTruthy(Object.entries(errorMap).map(([k,v]) =>
+        v && [md(`Protocol _${k}_ cannot work: `), v, typeof v === 'string' && /certificate|key/.test(v) && [' - ', cfgLink("provide adequate files")]]))
+    return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
+        !cfg ? spinner() :
+            errors.length ? errors.map((msg, i) => h(Alert, { key: i, severity: 'error' }, dontBotherWithKeys(msg)))
+                : href && h(Alert, { severity: 'success' }, "Server is working"),
+        href ? h(Box, { my:1, ml:1 },
+            h(Box, { fontSize:'200%' },
+                h(Link, { target:'frontend', href }, "Open frontend interface",
+                    h(Launch, { sx: { ml:1, mt:1 } }),
+                )
+            ),
+            h(Box, { color:'text.secondary' },
+                `Inside frontend your users can see the files and folders you decide in the File System.`)
+        ) : h(Alert, { severity: 'warning' }, "Frontend unreachable: ",
+            !cfg ? '...'
+                : errors.length === 2 ? "both http and https are in error"
+                    : [
+                        ['http','https'].map(k => k + " " + (errorMap[k] ? "is in error" : "is off")).join(', '),
+                        !errors.length && [' - ', cfgLink("switch http or https on")]
+                    ]
+        ),
 
-            vfs?.root && !vfs.root.children?.length && !vfs.root.source &&
-                h(Alert, { severity: 'warning', sx:{ mt:2 } }, "You have no files shared. Go add some in the ", h(RouterLink, { to:'fs' }, h(Link, {}, `File System page.`)))
-        )
+        vfs?.root && !vfs.root.children?.length && !vfs.root.source &&
+            h(Alert, { severity: 'warning' }, "You have no files shares - ", fsLink("add some files"))
+    )
+}
+
+function fsLink(text=`File System page`) {
+    return h(InLink, { to:'fs' }, text)
+}
+
+function cfgLink(text=`Configuration page`) {
+    return h(InLink, { to:'configuration' }, text)
 }

@@ -7,6 +7,7 @@ import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
 import { formatBytes, IconBtn } from "./misc"
 import { alertDialog } from "./dialog"
+import { prefix } from './misc'
 
 export default function MonitorPage() {
     return h(Box, { flex: 1, display: 'flex', flexDirection: 'column' },
@@ -33,8 +34,8 @@ function MoreInfo() {
         isValidElement(res) ? res :
             h('ul', {},
                 pair('started'),
-                pair('http', 'HTTP', v => v.active ? 'port '+v.port : 'off'),
-                pair('https', 'HTTPS', v => v.active ? 'port '+v.port : 'off'),
+                pair('http', 'HTTP', v => v.listening ? 'port '+v.port : ('off' + prefix(': configured port is used by ',v.busy))),
+                pair('https', 'HTTPS', v => v.listening ? 'port '+v.port : ('off' + prefix(': configured port is used by ',v.busy))),
             )
     )
 

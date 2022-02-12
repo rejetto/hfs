@@ -1,11 +1,10 @@
-import { createElement as h, useCallback, useEffect, useMemo, useRef } from 'react'
+import { createElement as h, ReactElement, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Dict, Falsy, getCookie, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 
-export function useApiComp(...args: any[]): ReturnType<typeof useApi> {
-    // @ts-ignore
-    const [res, reload] = useApi(...args)
+export function useApiComp<T=any>(...args: Parameters<typeof useApi>): [T | ReactElement, ()=>void] {
+    const [res, reload] = useApi<T>(...args)
     return useMemo(() =>
         res === undefined ? [spinner(), reload]
             : res && res instanceof Error ? [h(Alert, { severity: 'error' }, String(res)), reload]
@@ -41,8 +40,8 @@ export class ApiError extends Error {
     }
 }
 
-export function useApi(cmd: string | Falsy, params?: object) : [any, ()=>void] {
-    const [ret, setRet] = useStateMounted(undefined)
+export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undefined, ()=>void] {
+    const [ret, setRet] = useStateMounted<T | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef(false)
     useEffect(()=>{
