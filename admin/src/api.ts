@@ -1,4 +1,4 @@
-import { createElement as h, useCallback, useEffect, useMemo } from 'react'
+import { createElement as h, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Dict, Falsy, getCookie, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
@@ -44,16 +44,16 @@ export class ApiError extends Error {
 export function useApi(cmd: string | Falsy, params?: object) : [any, ()=>void] {
     const [ret, setRet] = useStateMounted(undefined)
     const [forcer, setForcer] = useStateMounted(0)
-    const [state] = useStateMounted({ loading: false })
+    const loadingRef = useRef(false)
     useEffect(()=>{
         setRet(undefined)
         if (!cmd) return
-        state.loading = true
+        loadingRef.current = true
         apiCall(cmd, params)
             .then(setRet, setRet)
-            .finally(()=> state.loading = false)
-    }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line
-    const reload = useCallback(()=> state.loading || setForcer(v => v+1), [])
+            .finally(()=> loadingRef.current = false)
+    }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
+    const reload = useCallback(()=> loadingRef.current || setForcer(v => v+1), [setForcer])
     return [ret, reload]
 }
 

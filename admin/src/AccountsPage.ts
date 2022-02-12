@@ -30,10 +30,10 @@ export default function AccountsPage() {
     const [sel, setSel] = useState<string[]>([])
     const [add, setAdd] = useState(false)
     const styles = useStyles()
-    useEffect(() => {
+    useEffect(() => { // if accounts are reloaded, review the selection to remove elements that don't exist anymore
         if (isValidElement(res) || !Array.isArray(res?.list)) return
         setSel( sel.filter(u => res.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
-    }, [res])
+    }, [res]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
     if (isValidElement(res))
         return res
     const { list }: { list: Account[] } = res
