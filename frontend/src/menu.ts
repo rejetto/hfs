@@ -125,6 +125,7 @@ export function MenuButton({ icon, label, toggled, onClick, className = '' }: Me
 
 export function MenuLink({ href, confirm, ...rest }: MenuButtonProps & { href: string, confirm?: string }) {
     return h('a', {
+        tabIndex: -1,
         href,
         async onClick(ev) {
             if (!confirm) return
