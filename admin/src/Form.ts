@@ -199,20 +199,3 @@ export function RadioField<T>({ label, options, value, onChange }: FieldProps<T>
         )
     )
 }
-
-export function ServerPort({ label, value, onChange }: FieldProps<number | null>) {
-    return h(Box, { display:'flex' },
-        h(SelectField as Field<number>, {
-            sx: { flexGrow: 1 },
-            label,
-            value: Math.min(1, value || 0),
-            options: [
-                { label: 'off', value: -1 },
-                { label: 'automatic port', value: 0 },
-                { label: 'choose port', value: 1 },
-            ],
-            onChange,
-        }),
-        value! > 0 && h(NumberField, { fullWidth: false, value, onChange }),
-    )
-}

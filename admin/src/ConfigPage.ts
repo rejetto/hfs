@@ -1,11 +1,11 @@
-import { Button } from '@mui/material';
-import { createElement as h, isValidElement } from 'react';
+import { Box, Button } from '@mui/material';
+import { createElement as h, isValidElement, useRef } from 'react';
 import { apiCall, useApiComp } from './api'
 import { state, useSnapState } from './state'
 import { Refresh } from '@mui/icons-material'
 import { Dict } from './misc'
 import { subscribeKey } from 'valtio/utils'
-import { Form, ServerPort, BoolField, NumberField, StringField, SelectField } from './Form';
+import { Form, BoolField, NumberField, StringField, SelectField, FieldProps, Field } from './Form';
 import StringStringField from './StringStringField'
 import { alertDialog } from './dialog'
 
@@ -43,6 +43,10 @@ export default function ConfigPage() {
             return { md: shortField ? 3 : 6 }
         },
         fields: [
+            { k: 'port', comp: ServerPort, label:'HTTP port' },
+            { k: 'https_port', comp: ServerPort, label: 'HTTPS port' },
+            config.https_port >= 0 && { k: 'cert', comp: StringField, label: 'HTTPS certificate file' },
+            config.https_port >= 0 && { k: 'private_key', comp: StringField, label: 'HTTPS private key file' },
             { k: 'admin_port', comp: ServerPort, label: 'Admin port' },
             { k: 'admin_network', comp: SelectField, label: 'Admin access',
                 options:[
@@ -50,10 +54,6 @@ export default function ConfigPage() {
                     { value: '0.0.0.0', label: 'any network' }
                 ]
             },
-            { k: 'port', comp: ServerPort, label:'HTTP port' },
-            { k: 'https_port', comp: ServerPort, label: 'HTTPS port' },
-            config.https_port >= 0 && { k: 'cert', comp: StringField, label: 'HTTPS certificate file' },
-            config.https_port >= 0 && { k: 'private_key', comp: StringField, label: 'HTTPS private key file' },
             { k: 'max_kbps', comp: NumberField, label: 'Max KB/s' },
             { k: 'max_kbps_per_ip', comp: NumberField, label: 'Max KB/s per-ip' },
             { k: 'log', comp: StringField, label: 'Main log file' },
@@ -85,4 +85,25 @@ function recalculateChanges() {
                 changes[k] = v
     state.changes = changes
     console.debug('changes', Object.keys(changes))
+}
+
+function ServerPort({ label, value, onChange }: FieldProps<number | null>) {
+    const lastCustom = useRef(1)
+    if (value! > 0)
+        lastCustom.current = value!
+    const selectValue = Number(value! > 0 ? lastCustom.current : value) || 0
+    return h(Box, { display:'flex' },
+        h(SelectField as Field<number>, {
+            sx: { flexGrow: 1 },
+            label,
+            value: selectValue,
+            options: [
+                { label: 'off', value: -1 },
+                { label: 'automatic port', value: 0 },
+                { label: 'choose port number', value: lastCustom.current },
+            ],
+            onChange,
+        }),
+        value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange }),
+    )
 }
