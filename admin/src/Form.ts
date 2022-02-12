@@ -3,7 +3,7 @@ import {
     Box,
     Button,
     FormControl,
-    FormControlLabel,
+    FormControlLabel, FormHelperText,
     FormLabel,
     Grid,
     MenuItem, Radio,
@@ -168,7 +168,7 @@ export function NumberField({ value, onChange, ...props }: FieldProps<number | n
     })
 }
 
-export function BoolField({ label, value, onChange, ...props }: FieldProps<boolean>) {
+export function BoolField({ label='', value, onChange, helperText, ...props }: FieldProps<boolean>) {
     const [state, setState] = useState(() => value ?? false)
     useEffect(() => setState(() => value ?? false),
         [value])
@@ -179,8 +179,10 @@ export function BoolField({ label, value, onChange, ...props }: FieldProps<boole
             onChange(event.target.checked, { event, was: value })
         }
     })
-    return label ? h(FormControlLabel, { label, control, labelPlacement: 'top' })
-        : control
+    return h(Box, { ml: 1 },
+        h(FormControlLabel, { label, control, labelPlacement: 'end' }),
+        helperText && h(FormHelperText,{},helperText)
+    )
 }
 
 export function RadioField<T>({ label, options, value, onChange }: FieldProps<T> & { options:SelectPair<T>[] }) {

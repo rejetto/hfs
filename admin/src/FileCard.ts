@@ -9,6 +9,7 @@ import { reloadVfs } from './VfsPage'
 import { alertDialog } from './dialog'
 import PermField from './PermField'
 import { Lock, LockOpen } from '@mui/icons-material'
+import md from './md'
 
 export default function FileCard() {
     const { selectedFiles: files } = useSnapState()
@@ -27,9 +28,11 @@ export default function FileCard() {
 
 function FileForm({ file }:any) {
     file = _.omit(file, ['parent', 'children'])
+    const { source } = file
     useEffect(() => setValues(file), [JSON.stringify(file)]) //eslint-disable-line
     const [values, setValues] = useState(file)
-    const realFolder = file.source && file.type === 'folder'
+    const isDir = file.type === 'folder'
+    const realFolder = source && isDir
     return h(Form, {
         values,
         set(v, { k }) {
@@ -53,20 +56,23 @@ function FileForm({ file }:any) {
             }
         },
         fields: [
-            { k: 'name' },
-            { k: 'source', comp: DisplayField },
-            realFolder && { k: 'hide', xl: values.hide ? 12: 6, label: "Hide elements read from the source" },
-            realFolder && { k: 'remove', xl: values.hide ? 12: 6, label: "Remove/skip elements read from the source" },
-            { k: 'size', comp: DisplayField, map: formatBytes },
-            { k: 'ctime', comp: DisplayField, md: 6, label: 'Created', map: (x:string) => x && new Date(x).toLocaleString() },
-            { k: 'mtime', comp: DisplayField, md: 6, label: 'Modified', map: (x:string) => x && new Date(x).toLocaleString() },
-            { k: 'hidden', comp: BoolField, md: 6 },
-            { k: 'forbid', comp: BoolField, md: 6 },
+            { k: 'name', helperText: source && "You can decide a name that's different from the one on your disk" },
+            source && { k: 'source', comp: DisplayField },
+            realFolder && { k: 'hide', xl: values.hide ? 12: 6, label: "Hide elements read from the source",
+                helperText: "Entering a file mask you can decide that people won't see some elements in this list, but still can download if they have a direct link to them" },
+            realFolder && { k: 'remove', xl: values.hide ? 12: 6, label: "Remove/skip elements read from the source",
+                helperText: "Elements matching the specified file mask won't be neither listed nor downloadable, like they don't exist" },
+            source && !realFolder && { k: 'size', comp: DisplayField, map: formatBytes },
+            source && { k: 'ctime', comp: DisplayField, md: 6, label: 'Created', map: (x:string) => x && new Date(x).toLocaleString() },
+            source &&   { k: 'mtime', comp: DisplayField, md: 6, label: 'Modified', map: (x:string) => x && new Date(x).toLocaleString() },
+            { k: 'hidden', comp: BoolField, md: 6, helperText: "If you hide this element will not be listed, but will still be accessible if you have a direct link" },
+            isDir && { k: 'forbid', comp: BoolField, md: 6, helperText: "Forbid listing the content of this folder, but elements inside will still be accessible if you have a direct link" },
             { k: 'perm', comp: PermField,
                 label: h(Box, { display:'flex', gap:1 }, ...values.perm ? [h(Lock), 'Access restricted'] : [h(LockOpen), 'Access not restricted'])
             },
-            { k: 'mime', lg: 6, label:"MIME type" },
-            realFolder && { k: 'default', lg: 6, label:"Serve file instead of list" },
+            { k: 'mime', lg: 6, label:"MIME type", helperText: isDir && "Will be applied for all files in this folder" },
+            realFolder && { k: 'default', lg: 6, label:"Serve file instead of list",
+                helperText: md("If you have a website that you want to serve in this folder, specify `index.html`") },
         ]
     })
 }

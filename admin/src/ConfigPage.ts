@@ -54,13 +54,14 @@ export default function ConfigPage() {
                     { value: '0.0.0.0', label: 'any network' }
                 ]
             },
-            { k: 'max_kbps', comp: NumberField, label: 'Max KB/s' },
+            { k: 'max_kbps', comp: NumberField, label: 'Max KB/s', helperText: "Limit output bandwidth" },
             { k: 'max_kbps_per_ip', comp: NumberField, label: 'Max KB/s per-ip' },
             { k: 'log', comp: StringField, label: 'Main log file' },
             { k: 'error_log', comp: StringField, label: 'Error log file' },
             { k: 'accounts', comp: StringField, label: 'Accounts file' },
             { k: 'open_browser_at_start', comp: BoolField },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, label: 'Calculate ZIP size for seconds' },
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, label: 'Calculate ZIP size for seconds',
+                helperText: "If time is not enough the browser will not show download percentage" },
             { k: 'mime', comp: StringStringField,
                 keyLabel: 'Files', keyWidth: 7,
                 valueLabel: 'Mime type', valueWidth: 4

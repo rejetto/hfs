@@ -1,7 +1,7 @@
 # To do
+- admin: add virtual folders
 - admin: warn in case of items with same name
 - password protect admin
-- explain fields in admin
 - allowed referer
 - admin/plugins
 - download-counter: expose results on admin

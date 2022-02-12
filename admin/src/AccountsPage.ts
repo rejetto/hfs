@@ -145,9 +145,12 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
             { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off' },
             !group && { k: 'password', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: add ? 'Password' : 'Change password' },
             !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'off', label: 'Repeat password' },
-            { k: 'ignore_limits', comp: BoolField },
-            { k: 'redirect', comp: StringField },
-            { k: 'belongs', comp: SelectField, multiple: true, label: "Inherits from", options: belongsOptions }
+            { k: 'ignore_limits', comp: BoolField,
+                helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
+            { k: 'redirect', comp: StringField, helperText: "If you want this account to be redirected to a specific folder/address at login time" },
+            { k: 'belongs', comp: SelectField, multiple: true, label: "Inherits from", options: belongsOptions,
+                helperText: "Options and permissions of the selected groups will be applied to this account. "
+                    + (belongsOptions.length ? '' : "There are no groups available, create one first.") }
         ],
         save: {
             disabled: isEqualLax(values, account),
