@@ -1,9 +1,14 @@
 import minimist from 'minimist'
+import * as fs from 'fs'
+import _ from 'lodash'
 
 export const DEV = process.env.DEV ? 'DEV' : ''
-
-if (DEV)
-    console.clear()
+console.debug(process.cwd())
+export const HFS_STARTED = new Date()
+export const BUILD_TIMESTAMP = ''
+export const VERSION = ''
+    || DEV && String(_.attempt(() => JSON.parse(fs.readFileSync('package.json','utf8')).version)) // this should happen only in dev, build fills this value
+export const SESSION_DURATION = 30*60_000
 
 export const SPECIAL_URI = '/~/'
 export const FRONTEND_URI = SPECIAL_URI + 'frontend/'

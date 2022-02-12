@@ -1,7 +1,8 @@
 import { ApiHandlers } from './apis'
 import { getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus } from './listen'
-import { app, HFS_STARTED } from './index'
+import { app } from './index'
+import { BUILD_TIMESTAMP, HFS_STARTED, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
@@ -27,6 +28,8 @@ export const adminApis: ApiHandlers = {
         const st = getStatus()
         return {
             started: HFS_STARTED,
+            build: BUILD_TIMESTAMP,
+            version: VERSION,
             http: serverStatus(st.httpSrv, getConfig('port')),
             https: serverStatus(st.httpsSrv, getConfig('https_port')),
         }

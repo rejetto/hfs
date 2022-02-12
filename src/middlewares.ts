@@ -1,7 +1,7 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import session from 'koa-session'
-import { BUILD_TIMESTAMP, SESSION_DURATION } from './index'
+import { BUILD_TIMESTAMP, SESSION_DURATION } from './const'
 import Application from 'koa'
 import { FORBIDDEN, FRONTEND_URI } from './const'
 import { vfs } from './vfs'

@@ -34,6 +34,8 @@ function MoreInfo() {
         isValidElement(res) ? res :
             h('ul', {},
                 pair('started'),
+                pair('version'),
+                pair('build'),
                 pair('http', 'HTTP', v => v.listening ? 'port '+v.port : ('off' + prefix(': configured port is used by ',v.busy))),
                 pair('https', 'HTTPS', v => v.listening ? 'port '+v.port : ('off' + prefix(': configured port is used by ',v.busy))),
             )

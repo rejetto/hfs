@@ -1,6 +1,4 @@
 # To do
-- admin/home: report HFS version
-- admin/home: report busy port(s) with process name
 - admin: warn in case of items with same name
 - password protect admin
 - explain fields in admin

@@ -1,7 +1,7 @@
 import Koa from 'koa'
 import mount from 'koa-mount'
 import { apiMiddleware } from './apis'
-import { API_URI, DEV} from './const'
+import { API_URI, BUILD_TIMESTAMP, DEV, HFS_STARTED, VERSION} from './const'
 import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
@@ -12,11 +12,8 @@ import './listen'
 import { serveAdminFiles } from './serveFrontend'
 import { adminApis } from './adminApis'
 
-export const BUILD_TIMESTAMP = "-"
-export const SESSION_DURATION = 30*60_000
-export const HFS_STARTED = new Date()
-
-console.log('started', HFS_STARTED.toLocaleString(), 'build', BUILD_TIMESTAMP, DEV)
+if (DEV) console.clear()
+console.log('started', HFS_STARTED.toLocaleString(), 'version', VERSION||'-', 'build', BUILD_TIMESTAMP||'-', DEV)
 console.debug('cwd', process.cwd())
 
 export const adminApp = new Koa()

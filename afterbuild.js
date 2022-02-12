@@ -2,11 +2,15 @@ const fs = require('fs')
 const glob = require('fast-glob')
 const { execSync } = require('child_process')
 const dist = 'dist/'
-console.log('updating timestamp', process.cwd())
-const FN = dist+'src/index.js'
+
+console.log('updating build timestamp and version')
+const pkg = JSON.parse(fs.readFileSync('package.json','utf8'))
+const FN = dist+'src/const.js'
 fs.writeFileSync(FN,
     fs.readFileSync(FN,'utf8')
-        .replace(/(BUILD_TIMESTAMP = ")(.*)"/, '$1'+new Date().toISOString()+'"'))
+        .replace(/(BUILD_TIMESTAMP *= *')(.*)'/, '$1'+new Date().toISOString()+"'")
+        .replace(/(VERSION *= *')(.*)'/, '$1'+(pkg.version||'$2')+"'")
+)
 for (const fn of glob.sync(dist+'node_modules/**/*.map'))
     fs.unlinkSync(fn)
 
@@ -34,4 +38,4 @@ fs.unlinkSync(dist+'package-lock.json')
     fs.chmodSync(fn, 0o755)
 }
 
-console.log('afterbuild done')
+console.log('afterbuild done, version', pkg.version)
