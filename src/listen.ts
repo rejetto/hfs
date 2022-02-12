@@ -8,10 +8,12 @@ import { newConnection } from './connections'
 import open from 'open'
 import { debounceAsync } from './misc'
 import { DEV } from './const'
+import findProcess from 'find-process'
 
-let httpSrv: http.Server
-let httpsSrv: http.Server
-let adminSrv: http.Server
+interface ServerExtra { error?: string, busy?: string }
+let httpSrv: http.Server & ServerExtra
+let httpsSrv: http.Server & ServerExtra
+let adminSrv: http.Server & ServerExtra
 let cert:string, key: string
 
 subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
@@ -77,7 +79,7 @@ subscribeConfig({ k:'private_key' }, async (v: string) => {
 })
 
 const CFG_HTTPS_PORT = 'https_port'
-subscribeConfig({ k:CFG_HTTPS_PORT, defaultValue: 443 }, considerHttps)
+subscribeConfig({ k:CFG_HTTPS_PORT, defaultValue: -1 }, considerHttps)
 
 async function considerHttps() {
     await stopServer(httpsSrv)
@@ -93,7 +95,7 @@ async function considerHttps() {
 }
 
 interface StartServer { port: number, name:string, net?:string }
-function startServer(srv: http.Server, { port, name, net='0.0.0.0' }: StartServer) {
+function startServer(srv: typeof httpSrv, { port, name, net='0.0.0.0' }: StartServer) {
     return new Promise<number>((resolve, reject) => {
         try {
             if (port < 0)
@@ -108,14 +110,21 @@ function startServer(srv: http.Server, { port, name, net='0.0.0.0' }: StartServe
                 }
                 console.log(name, "serving on", net, ':', ad.port)
                 resolve(ad.port)
-            }).on('error', e => {
+            }).on('error', async e => {
+                srv.error = String(e)
                 const { code } = e as any
-                console.error(code === 'EADDRINUSE' ? `couldn't listen on busy port ${port}` : String(e))
+                if (code === 'EADDRINUSE') {
+                    const res = await findProcess('port', port)
+                    srv.busy = res[0]?.name
+                    srv.error = `couldn't listen on port ${port} used by ${srv.busy}`
+                }
+                console.error(name, srv.error)
                 resolve(0)
             })
         }
         catch(e) {
-            console.error("couldn't listen on port", port, String(e))
+            srv.error = String(e)
+            console.error(name, "couldn't listen on port", port, srv.error)
             resolve(0)
         }
     })
