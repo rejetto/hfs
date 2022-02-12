@@ -2,22 +2,25 @@ import { createTheme, useMediaQuery } from '@mui/material'
 import { useMemo } from 'react'
 
 export function useMyTheme() {
-    const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
-    return useMemo(() => createTheme(!prefersDarkMode ? {} : {
-        palette: {
+    const lightMode = useMediaQuery('(prefers-color-scheme: dark)') ? null : {}
+    return useMemo(() => createTheme({
+        palette: lightMode || {
             mode: 'dark',
-            text: { primary:'#aaa' },
+            text: { primary: '#aaa' },
             primary: { main: '#357' },
         },
         components: {
-            MuiButton: {
+            MuiTextField: {
+                defaultProps: { variant: 'filled' }
+            },
+            MuiButton: lightMode || {
                 styleOverrides: {
-                    root: ({ ownerState }) =>
+                    root: ({ ownerState }: { ownerState:any }) =>
                         ownerState.color === 'primary' && {
                             color: ownerState.variant === 'contained' ? '#ddd' : '#68c'
                         }
                 }
             }
         }
-    }), [prefersDarkMode])
+    }), [lightMode])
 }

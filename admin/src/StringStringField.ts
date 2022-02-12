@@ -82,7 +82,9 @@ export default function StringStringField({ value, onChange, keyLabel='key', val
                 }
             })),
         h(Grid, { item: true, xs: valueWidth, },
-            h(TextField, {
+            h(StringField, {
+                value: '',
+                onChange(){},
                 onFocus() { //@ts-ignore
                     setTimeout(()=> refNew.current.focus()) // without setTimeout TextField component is in an inconsistent focus-state
                 }
