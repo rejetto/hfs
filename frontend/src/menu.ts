@@ -46,7 +46,7 @@ export function MenuPanel() {
             }),
             h(MenuLink, {
                 icon: 'archive',
-                label: 'Archive',
+                label: 'Download zip',
                 href: '?'+String(new URLSearchParams(_.pickBy({
                     get: 'zip',
                     search: remoteSearch,
