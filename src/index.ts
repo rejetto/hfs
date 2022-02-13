@@ -13,7 +13,9 @@ import { serveAdminFiles } from './serveFrontend'
 import { adminApis } from './adminApis'
 
 if (DEV) console.clear()
-console.log('started', HFS_STARTED.toLocaleString(), 'version', VERSION||'-', 'build', BUILD_TIMESTAMP||'-', DEV)
+console.log('started', HFS_STARTED.toLocaleString(), DEV)
+console.log('version', VERSION||'-')
+console.log('build', BUILD_TIMESTAMP||'-')
 console.debug('cwd', process.cwd())
 
 export const adminApp = new Koa()
