@@ -37,7 +37,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                 if (!saving)
                     debounced().then()
             })
-            debounced().then() // if file is not accessible watch will throw and we won't get here
+            debounced().then() // if file is not accessible watch will throw, and we won't get here
         }
         catch {
             retry = setTimeout(init, 1000) // manual watching until watch is successful
@@ -49,16 +49,18 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         doing = true
         let data: any
         try {
-            data = await readFileBusy(path)
-            console.debug('loaded', path)
-            if (path.endsWith('.yaml'))
-                data = yaml.parse(data)
-        } catch (e) {
-            doing = false
-            return
+            try {
+                data = await readFileBusy(path)
+                console.debug('loaded', path)
+                if (path.endsWith('.yaml'))
+                    data = yaml.parse(data)
+            }
+            catch (e) { return } // silently ignore read errors
+            await parser(data)
         }
-        await parser(data)
-        doing = false
+        finally {
+            doing = false
+        }
     }
 }
 
