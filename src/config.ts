@@ -18,7 +18,7 @@ let state: Record<string, any> = {}
 const emitter = new EventEmitter()
 emitter.setMaxListeners(10_000)
 const path = argv.config || process.env.HFS_CONFIG || PATH
-const { save } = watchLoad(path,  values => setConfig(values, false), {
+const { save } = watchLoad(path,  values => setConfig(values||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
         setConfig({}, false)
@@ -71,17 +71,15 @@ export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:strin
 
 // pass a value to `save` to force saving decision, or leave undefined for auto
 export function setConfig(newCfg: Record<string,any>, save?: boolean) {
-    if (!newCfg)
-        newCfg = {}
     for (const k in newCfg)
         check(k)
-    const oldKeys = Object.keys(state)
-    oldKeys.push(...Object.keys(configProps))
     if (save) {
         saveConfigAsap().then()
         return
     }
-    for (const k of oldKeys)
+    if (started) return
+    // first time we emit also for the default values
+    for (const k of Object.keys(configProps))
         if (!newCfg.hasOwnProperty(k))
             check(k)
     started = true
