@@ -73,8 +73,7 @@ export default function ConfigPage() {
         await apiCall('set_config', { values: state.changes })
         Object.assign(loaded, state.changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
-        console.debug('saved')
-        await alertDialog("Changes applied")
+        await alertDialog("Changes applied", 'success')
     }
 }
 
@@ -85,7 +84,6 @@ function recalculateChanges() {
             if (JSON.stringify(v) !== JSON.stringify(loaded?.[k]))
                 changes[k] = v
     state.changes = changes
-    console.debug('changes', Object.keys(changes))
 }
 
 function ServerPort({ label, value, onChange }: FieldProps<number | null>) {

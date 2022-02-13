@@ -1,6 +1,16 @@
-import { Button, Dialog as MuiDialog, DialogContent, DialogTitle } from '@mui/material'
-import { createElement as h, Fragment, FunctionComponent, ReactElement, ReactNode, useEffect, useRef } from 'react'
+import { Box, Button, Dialog as MuiDialog, DialogContent, DialogTitle } from '@mui/material'
+import {
+    createElement as h,
+    Fragment,
+    FunctionComponent,
+    isValidElement,
+    ReactElement,
+    ReactNode,
+    useEffect,
+    useRef
+} from 'react'
 import { proxy, useSnapshot } from 'valtio'
+import { Check, Error as ErrorIcon, Info, Warning } from '@mui/icons-material'
 
 interface DialogOptions {
     Content: FunctionComponent,
@@ -73,9 +83,16 @@ export function closeDialog(v?:any) {
     }
 }
 
-type AlertType = 'error' | 'warning' | 'info'
+type AlertType = 'error' | 'warning' | 'info' | 'success'
 
-export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info') {
+const type2ico = {
+    error: ErrorIcon,
+    warning: Warning,
+    info: Info,
+    success: Check,
+}
+
+export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', icon?: ReactElement) {
     if (msg instanceof Error) {
         msg = String(msg)
         type = 'error'
@@ -88,9 +105,10 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
     }))
 
     function Content(){
-        if (typeof msg === 'string' || msg instanceof Error)
-            msg = h('div', {}, String(msg))
-        return msg
+        return h(Box, { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
+            icon ?? h(type2ico[type], { color:type }),
+            isValidElement(msg) ? msg : h('div', {}, String(msg))
+        )
     }
 }
 

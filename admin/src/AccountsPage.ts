@@ -173,7 +173,7 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
                                 throw e
                             }
                         done(username)
-                        return alertDialog("Account created")
+                        return alertDialog("Account created", 'success')
                     }
                     await apiCall('set_account', {
                         username: account.username,
@@ -182,7 +182,7 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
                     if (password)
                         await apiNewPassword(username, password)
                     done(username)
-                    return alertDialog("Account modified")
+                    return alertDialog("Account modified", 'success')
                 }
                 catch (e) {
                     return alertDialog(e as Error)
