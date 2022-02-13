@@ -1,6 +1,6 @@
-import { Box, Button } from '@mui/material';
-import { createElement as h, isValidElement, useRef } from 'react';
-import { apiCall, useApiComp } from './api'
+import { Box, Button, FormHelperText } from '@mui/material';
+import { createElement as h, isValidElement, useEffect, useRef } from 'react';
+import { apiCall, useApi, useApiComp } from './api'
 import { state, useSnapState } from './state'
 import { Refresh } from '@mui/icons-material'
 import { Dict } from './misc'
@@ -14,10 +14,12 @@ let loaded: Dict | undefined
 subscribeKey(state, 'config', recalculateChanges)
 
 export default function ConfigPage() {
-    const [res, reload] = useApiComp('get_config', {
+    const [res, reloadConfig] = useApiComp('get_config', {
         omit: ['vfs', 'accounts']
     })
     let snap = useSnapState()
+    const [status, reloadStatus] = useApi(res && 'get_status')
+    useEffect(reloadStatus, [res])
     if (isValidElement(res))
         return res
     const { changes } = snap
@@ -35,7 +37,10 @@ export default function ConfigPage() {
             disabled: !Object.keys(changes).length,
         },
         addToBar: [h(Button, {
-            onClick: reload,
+            onClick() {
+                reloadConfig()
+                reloadStatus()
+            },
             startIcon: h(Refresh),
         }, 'Reload')],
         defaults({ comp }) {
@@ -43,8 +48,8 @@ export default function ConfigPage() {
             return { md: shortField ? 3 : 6 }
         },
         fields: [
-            { k: 'port', comp: ServerPort, label:'HTTP port' },
-            { k: 'https_port', comp: ServerPort, label: 'HTTPS port' },
+            { k: 'port', comp: ServerPort, label:'HTTP port', status: status?.http||true },
+            { k: 'https_port', comp: ServerPort, label: 'HTTPS port', status: status?.https||true },
             config.https_port >= 0 && { k: 'cert', comp: StringField, label: 'HTTPS certificate file' },
             config.https_port >= 0 && { k: 'private_key', comp: StringField, label: 'HTTPS private key file' },
             { k: 'admin_port', comp: ServerPort, label: 'Admin port' },
@@ -71,6 +76,7 @@ export default function ConfigPage() {
 
     async function save() {
         await apiCall('set_config', { values: state.changes })
+        setTimeout(reloadStatus, 1000)
         Object.assign(loaded, state.changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         await alertDialog("Changes applied", 'success')
@@ -86,23 +92,29 @@ function recalculateChanges() {
     state.changes = changes
 }
 
-function ServerPort({ label, value, onChange }: FieldProps<number | null>) {
+function ServerPort({ label, value, onChange, status }: FieldProps<number | null>) {
     const lastCustom = useRef(1)
     if (value! > 0)
         lastCustom.current = value!
     const selectValue = Number(value! > 0 ? lastCustom.current : value) || 0
-    return h(Box, { display:'flex' },
-        h(SelectField as Field<number>, {
-            sx: { flexGrow: 1 },
-            label,
-            value: selectValue,
-            options: [
-                { label: 'off', value: -1 },
-                { label: 'automatic port', value: 0 },
-                { label: 'choose port number', value: lastCustom.current },
-            ],
-            onChange,
-        }),
-        value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange }),
+    const error = status?.error
+    return h(Box, {},
+        h(Box, { display:'flex' },
+            h(SelectField as Field<number>, {
+                sx: { flexGrow: 1 },
+                label,
+                value: selectValue,
+                options: [
+                    { label: 'off', value: -1 },
+                    { label: 'automatic port', value: 0 },
+                    { label: 'choose port number', value: lastCustom.current },
+                ],
+                onChange,
+            }),
+            value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange }),
+        ),
+        status && h(FormHelperText, { error: Boolean(error) },
+            status === true ? '...'
+                : error ?? (status?.listening && 'working on port '+ status.port) )
     )
 }

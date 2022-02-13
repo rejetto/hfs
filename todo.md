@@ -1,4 +1,5 @@
 # To do
+- admin/config: use filepicker for https files
 - admin: warn in case of items with same name
 - password protect admin
 - allowed referer

@@ -20,8 +20,6 @@ export default function HomePage() {
     const errorMap = objSameKeys(status, v =>
         v.busy ? [`port ${v.port} already used by ${v.busy} - choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
             : v.error )
-    if (!errorMap.https && cfg?.https_port >= 0 && !status.https.listening)
-        errorMap.https = !cfg.cert ? 'missing certificate' : !cfg.private_key ? 'missing private key' : ''
     const errors = errorMap && onlyTruthy(Object.entries(errorMap).map(([k,v]) =>
         v && [md(`Protocol _${k}_ cannot work: `), v, typeof v === 'string' && /certificate|key/.test(v) && [' - ', cfgLink("provide adequate files")]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column' },

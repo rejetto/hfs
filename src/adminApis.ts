@@ -37,7 +37,7 @@ export const adminApis: ApiHandlers = {
         function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
             return {
                 ..._.pick(h, ['listening', 'busy', 'error']),
-                port: (h.address() as any)?.port || configuredPort,
+                port: (h?.address() as any)?.port || configuredPort,
             }
         }
     },

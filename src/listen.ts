@@ -6,15 +6,15 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync } from './misc'
+import { debounceAsync, prefix } from './misc'
 import { DEV } from './const'
 import findProcess from 'find-process'
+import _ from 'lodash'
 
 interface ServerExtra { error?: string, busy?: string }
 let httpSrv: http.Server & ServerExtra
 let httpsSrv: http.Server & ServerExtra
 let adminSrv: http.Server & ServerExtra
-let cert:string, key: string
 
 subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
     await stopServer(httpSrv)
@@ -50,50 +50,46 @@ defineConfig('open_browser_at_start', { defaultValue: !DEV })
 subscribeConfig<string>({ k:'admin_network', defaultValue: '127.0.0.1' }, considerAdmin)
 subscribeConfig<number>({ k:'admin_port', defaultValue: 63636 }, considerAdmin)
 
-subscribeConfig({ k:'cert' }, async (v: string) => {
-    await stopServer(httpsSrv)
-    cert = v
-    if (!cert) return
-    if (cert.includes('\n'))
-        return considerHttps()
-    // it's a path
-    watchLoad(cert, data => {
-        cert = data
-        considerHttps()
+const httpsNeeds = { cert:'', private_key:'' }
+const httpsNeedsNames = { cert: 'certificate', private_key: 'private key' }
+for (const k of Object.keys(httpsNeeds) as (keyof typeof httpsNeeds)[]) { // please be smarter typescript
+    let unwatch: ReturnType<typeof watchLoad>['unwatch']
+    subscribeConfig({ k }, async (v: string) => {
+        unwatch?.()
+        httpsNeeds[k] = v
+        if (!v || v.includes('\n'))
+            return considerHttps()
+        // it's a path
+        httpsNeeds[k] = ''
+        unwatch = watchLoad(v, data => {
+            httpsNeeds[k] = data
+            considerHttps()
+        }).unwatch
+        await considerHttps()
     })
-    cert = ''
-})
-
-subscribeConfig({ k:'private_key' }, async (v: string) => {
-    await stopServer(httpsSrv)
-    key = v
-    if (!key) return
-    if (key.includes('\n'))
-        return considerHttps()
-    // it's a path
-    watchLoad(key, data => {
-        key = data
-        considerHttps()
-    })
-    key = ''
-})
+}
 
 const CFG_HTTPS_PORT = 'https_port'
 subscribeConfig({ k:CFG_HTTPS_PORT, defaultValue: -1 }, considerHttps)
 
 async function considerHttps() {
     await stopServer(httpsSrv)
+    let port = getConfig('https_port')
     try {
-        httpsSrv = https.createServer({ key, cert }, app.callback())
-        httpsSrv.error = undefined
+        httpsSrv = https.createServer({ key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback())
+        const missingKey = _.findKey(httpsNeeds, v => !v) as keyof typeof httpsNeeds
+        httpsSrv.error = port < 0 ? undefined
+            : missingKey && prefix(getConfig(missingKey) ? "cannot read file for " : "missing ", httpsNeedsNames[missingKey])
+        if (httpsSrv.error)
+            return
     }
     catch(e) {
         httpsSrv.error = "bad private key or certificate"
         console.log("failed to create https server: check your private key and certificate", String(e))
         return
     }
-    const port = await startServer(httpsSrv, {
-        port: !cert || !key ? -1 : getConfig('https_port'),
+    port = await startServer(httpsSrv, {
+        port: getConfig('https_port'),
         name: 'https'
     })
     if (!port) return
