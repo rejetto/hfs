@@ -48,8 +48,8 @@ export default function ConfigPage() {
             return { md: shortField ? 3 : 6 }
         },
         fields: [
-            { k: 'port', comp: ServerPort, label:'HTTP port', status: status?.http||true },
-            { k: 'https_port', comp: ServerPort, label: 'HTTPS port', status: status?.https||true },
+            { k: 'port', comp: ServerPort, label:'HTTP port', status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: ServerPort, label: 'HTTPS port', status: status?.https||true, suggestedPort: 443 },
             config.https_port >= 0 && { k: 'cert', comp: StringField, label: 'HTTPS certificate file' },
             config.https_port >= 0 && { k: 'private_key', comp: StringField, label: 'HTTPS private key file' },
             { k: 'admin_port', comp: ServerPort, label: 'Admin port' },
@@ -92,8 +92,8 @@ function recalculateChanges() {
     state.changes = changes
 }
 
-function ServerPort({ label, value, onChange, status }: FieldProps<number | null>) {
-    const lastCustom = useRef(1)
+function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldProps<number | null>) {
+    const lastCustom = useRef(suggestedPort)
     if (value! > 0)
         lastCustom.current = value!
     const selectValue = Number(value! > 0 ? lastCustom.current : value) || 0
