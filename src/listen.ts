@@ -83,7 +83,15 @@ subscribeConfig({ k:CFG_HTTPS_PORT, defaultValue: -1 }, considerHttps)
 
 async function considerHttps() {
     await stopServer(httpsSrv)
-    httpsSrv = https.createServer({ key, cert }, app.callback())
+    try {
+        httpsSrv = https.createServer({ key, cert }, app.callback())
+        httpsSrv.error = undefined
+    }
+    catch(e) {
+        httpsSrv.error = "bad private key or certificate"
+        console.log("failed to create https server: check your private key and certificate", String(e))
+        return
+    }
     const port = await startServer(httpsSrv, {
         port: !cert || !key ? -1 : getConfig('https_port'),
         name: 'https'
