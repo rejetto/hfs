@@ -1,7 +1,7 @@
 import { makeStyles } from '@mui/styles'
 import { Dict } from './misc'
 import { createElement as h, useEffect, useRef } from 'react'
-import { Grid, IconButton, TextField } from '@mui/material'
+import { Grid, IconButton } from '@mui/material'
 import { Add, Delete } from '@mui/icons-material'
 import { FieldProps, StringField } from './Form'
 

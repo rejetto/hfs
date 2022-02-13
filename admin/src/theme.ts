@@ -1,13 +1,14 @@
 import { createTheme, useMediaQuery } from '@mui/material'
 import { useMemo } from 'react'
 
+const EMPTY = {}
 export function useMyTheme() {
-    const lightMode = useMediaQuery('(prefers-color-scheme: dark)') ? null : {}
+    const lightMode = useMediaQuery('(prefers-color-scheme: dark)') ? null : EMPTY
     return useMemo(() => createTheme({
         palette: lightMode || {
             mode: 'dark',
-            text: { primary: '#aaa' },
-            primary: { main: '#357' },
+            text: { primary: '#bbb' },
+            primary: { main: '#469' },
         },
         components: {
             MuiTextField: {
