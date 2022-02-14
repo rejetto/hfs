@@ -1,12 +1,13 @@
-import { getNodeName, nodeIsDirectory, saveVfs, vfs, VfsNode } from './vfs'
+import { getNodeName, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apis'
 import { dirname, join } from 'path'
 import glob  from 'fast-glob'
-import { enforceFinal, isWindows, isWindowsDrive } from './misc'
+import { enforceFinal, isWindowsDrive, objSameKeys } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { IS_WINDOWS } from './const'
 
 type VfsAdmin = {
     type?: string,
@@ -16,17 +17,23 @@ type VfsAdmin = {
     children?: VfsAdmin[]
 } & Omit<VfsNode, 'type' | 'children'>
 
+// to manipulate the tree we need the original node
+async function urlToNodeOriginal(uri: string) {
+    const n = await urlToNode(uri)
+    return n?.isTemp ? n.original : n
+}
+
 const apis: ApiHandlers = {
 
     async get_vfs() {
-        return { root: vfs.root && await recur(vfs.root) }
+        return { root: vfs && await recur(vfs) }
 
-        async function recur(n: typeof vfs.root): Promise<VfsAdmin> {
-            const dir = await nodeIsDirectory(n)
+        async function recur(node: VfsNode): Promise<VfsAdmin> {
+            const dir = await nodeIsDirectory(node)
             const stats: Pick<VfsAdmin, 'size' | 'ctime' | 'mtime'> = {}
             try {
-                if (n.source && !dir)
-                    Object.assign(stats, _.pick(await stat(n.source), ['size', 'ctime', 'mtime']))
+                if (node.source && !dir)
+                    Object.assign(stats, _.pick(await stat(node.source), ['size', 'ctime', 'mtime']))
             }
             catch {
                 stats.size = -1
@@ -35,27 +42,31 @@ const apis: ApiHandlers = {
                 delete stats.mtime
             return {
                 ...stats,
-                ...n,
-                name: getNodeName(n),
+                ...node,
+                name: getNodeName(node),
                 type: dir ? 'folder' : undefined,
-                children: n.children && await Promise.all(n.children.map(recur)),
+                children: node.children && await Promise.all(node.children.map(recur)),
             }
         }
     },
 
     async set_vfs({ uri, props }) {
-        const n = await vfs.urlToNode(uri)
+        const n = await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(404, 'path not found')
-        Object.assign(n, pickProps(props, ['name','source','hidden','forbid','perm','hide','remove']))
+        props = pickProps(props, ['name','source','can_see','can_read','masks','default'])
+        props = objSameKeys(props, v => v === null ? undefined : v) // null is a way to serialize undefined, that will restore default values
+        if (props.masks && typeof props.masks !== 'object')
+            delete props.masks
+        Object.assign(n, props)
         if (getNodeName(_.omit(n, ['name'])) === n.name)  // name only if necessary
-            delete n.name
+            n.name = undefined
         await saveVfs()
         return n
     },
 
     async add_vfs({ under, source, name }) {
-        const n = under ? await vfs.urlToNode(under) : vfs.root
+        const n = under ? await urlToNodeOriginal(under) : vfs
         if (!n)
             return new ApiError(404, 'invalid under')
         if (n.isTemp || !await nodeIsDirectory(n))
@@ -75,11 +86,11 @@ const apis: ApiHandlers = {
             errors: await Promise.all(uris.map(async uri => {
                 if (typeof uri !== 'string')
                     return 400
-                const node = await vfs.urlToNode(uri)
-                if (!node || node.isTemp)
+                const node = await urlToNodeOriginal(uri)
+                if (!node)
                     return 404
                 const parent = dirname(uri)
-                const parentNode = await vfs.urlToNode(parent)
+                const parentNode = await urlToNodeOriginal(parent)
                 if (!parentNode)
                     return 403
                 const { children } = parentNode
@@ -98,7 +109,7 @@ const apis: ApiHandlers = {
     },
 
     async *ls({ path }, ctx) {
-        if (!path && isWindows()) {
+        if (!path && IS_WINDOWS) {
             try {
                 for (const n of await getDrives())
                     yield { add: { n, k: 'd' } }

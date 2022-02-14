@@ -10,7 +10,7 @@ import { onlyTruthy } from './misc'
 let selectOnReload: string[] | undefined
 
 export default function VfsPage() {
-    const [id2node] = useState(() => new Map<string, Node>())
+    const [id2node] = useState(() => new Map<string, VfsNode>())
     const snap = useSnapState()
     const [res, reload] = useApiComp('get_vfs')
     useMemo(() => snap.vfs || reload(), [snap.vfs, reload])
@@ -30,7 +30,7 @@ export default function VfsPage() {
             id2node.get(id)))
 
         // calculate id and parent fields, and builds the map id2node
-        function recur(node: Node, pre='', parent: Node|undefined=undefined) {
+        function recur(node: VfsNode, pre='', parent: VfsNode|undefined=undefined) {
             node.parent = parent
             node.id = (pre + node.name) || '/' // root
             id2node.set(node.id, node)
@@ -57,7 +57,7 @@ export function reloadVfs(pleaseSelect?: string[]) {
     state.vfs = undefined
 }
 
-export type Node = {
+export type VfsNode = {
     id: string
     name: string
     type?: 'folder'
@@ -65,8 +65,18 @@ export type Node = {
     size?: number
     ctime?: string
     mtime?: string
-    children?: Node[]
-    parent?: Node
-    hidden?: boolean
-    perm?: any
+    children?: VfsNode[]
+    parent?: VfsNode
+    can_see: Who
+    can_read: Who
+    masks?: any
 }
+
+const WHO_ANYONE = true
+const WHO_NO_ONE = false
+const WHO_ANY_ACCOUNT = '*'
+type AccountList = string[]
+export type Who = typeof WHO_ANYONE
+    | typeof WHO_NO_ONE
+    | typeof WHO_ANY_ACCOUNT
+    | AccountList

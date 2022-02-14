@@ -3,8 +3,8 @@ import Koa from 'koa'
 import session from 'koa-session'
 import { BUILD_TIMESTAMP, SESSION_DURATION } from './const'
 import Application from 'koa'
-import { FORBIDDEN, FRONTEND_URI } from './const'
-import { vfs } from './vfs'
+import { FRONTEND_URI } from './const'
+import { cantReadStatusCode, hasPermission, urlToNode } from './vfs'
 import { dirTraversal, isDirectory } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
@@ -52,12 +52,12 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return next()
     if (path.startsWith(FRONTEND_URI))
         return serveFrontendPrefixed(ctx,next)
-    const node = await vfs.urlToNode(path, ctx)
+    const node = await urlToNode(path, ctx)
     if (!node)
         return next()
+    if (!hasPermission(node, 'can_read', ctx))
+        return ctx.status = cantReadStatusCode(node)
     const { source } = node
-    if (node.forbid)
-        return ctx.status = FORBIDDEN
     if (!source || await isDirectory(source)) {
         const { get } = ctx.query
         if (get === 'zip')
@@ -65,9 +65,10 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         if (!path.endsWith('/')) // this folder was requested without the trailing /
             return ctx.redirect(path + '/')
         if (node.default) {
-            const def = await vfs.urlToNode(path + node.default, ctx)
-            if (def)
-                return serveFileNode(def)(ctx, next)
+            const def = await urlToNode(path + node.default, ctx)
+            return !def ? next()
+                : hasPermission(def, 'can_read', ctx) ? serveFileNode(def)(ctx, next)
+                : ctx.status = cantReadStatusCode(def)
         }
         ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
         return serveFrontend(ctx, next)

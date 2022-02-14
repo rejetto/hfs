@@ -1,13 +1,13 @@
 import { proxy, useSnapshot } from 'valtio'
 import { Dict } from './misc'
-import { Node } from './VfsPage'
+import { VfsNode } from './VfsPage'
 
 export const state = proxy<{
     title: string
     config: Dict
     changes: Dict
-    vfs: Node | undefined
-    selectedFiles: Node[]
+    vfs: VfsNode | undefined
+    selectedFiles: VfsNode[]
 }>({
     title: '',
     config: {},

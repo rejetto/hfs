@@ -1,15 +1,15 @@
 import { state, useSnapState } from './state'
-import { createElement as h, useEffect, useState } from 'react'
-import { Box, Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
-import { BoolField, DisplayField, Form } from './Form'
-import _ from 'lodash'
-import { apiCall } from './api'
-import { formatBytes, isEqualLax, objSameKeys } from './misc'
-import { reloadVfs } from './VfsPage'
+import { createElement as h, useEffect, useMemo, useState } from 'react'
+import { Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
+import { BoolField, DisplayField, FieldComponent, FieldProps, Form, MultiSelectField, SelectField } from './Form'
+import { apiCall, useApi } from './api'
+import { formatBytes, isEqualLax, onlyTruthy } from './misc'
+import { reloadVfs, Who } from './VfsPage'
 import { alertDialog } from './dialog'
-import PermField from './PermField'
-import { Lock, LockOpen } from '@mui/icons-material'
 import md from './md'
+import _ from 'lodash'
+
+interface Account { username: string }
 
 export default function FileCard() {
     const { selectedFiles: files } = useSnapState()
@@ -26,13 +26,35 @@ export default function FileCard() {
         ))
 }
 
-function FileForm({ file }:any) {
-    file = _.omit(file, ['parent', 'children'])
+function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFiles']['0'] }) {
+    const { parent, children, ...rest } = file
+    const [values, setValues] = useState(rest)
+    useEffect(() => {
+        setValues(Object.assign({ can_see: null, can_read: null }, rest))
+    }, [file]) //eslint-disable-line
+
+    const accounts = useApi('get_accounts')[0]?.list
+
     const { source } = file
-    useEffect(() => setValues(file), [JSON.stringify(file)]) //eslint-disable-line
-    const [values, setValues] = useState(file)
     const isDir = file.type === 'folder'
-    const realFolder = source && isDir
+    const hasSource = source !== undefined // we need a boolean
+    const realFolder = hasSource && isDir
+    const inheritedPerms = useMemo(() => {
+        const ret = { can_read: true, can_see: true }
+        // reconstruct parents backward
+        const parents = []
+        let run = parent
+        while (run) {
+            parents.unshift(run)
+            run = run.parent
+        }
+        for (const node of parents)
+            Object.assign(ret, node)
+        return ret
+    }, [parent])
+    const showCanSee = (values.can_read ?? inheritedPerms.can_read) === true
+    const showTimestamps = hasSource && Boolean(values.ctime)
+
     return h(Form, {
         values,
         set(v, { k }) {
@@ -43,8 +65,10 @@ function FileForm({ file }:any) {
             async onClick() {
                 if (!values.name)
                     return alertDialog(`Name cannot be empty`, 'warning')
-                const props = objSameKeys(values, (v,k) =>
-                    v === file[k] ? undefined : v)
+                const props = _.pickBy(values, (v,k) =>
+                    v !== file[k as keyof typeof values])
+                if (!props.masks)
+                    props.masks = null // undefined cannot be serialized
                 delete props.source
                 await apiCall('set_vfs', {
                     uri: values.id,
@@ -57,22 +81,65 @@ function FileForm({ file }:any) {
         },
         fields: [
             { k: 'name', helperText: source && "You can decide a name that's different from the one on your disk" },
-            source && { k: 'source', comp: DisplayField },
-            realFolder && { k: 'hide', xl: values.hide ? 12: 6, label: "Hide elements read from the source",
-                helperText: "Entering a file mask you can decide that people won't see some elements in this list, but still can download if they have a direct link to them" },
-            realFolder && { k: 'remove', xl: values.hide ? 12: 6, label: "Remove/skip elements read from the source",
-                helperText: "Elements matching the specified file mask won't be neither listed nor downloadable, like they don't exist" },
-            source && !realFolder && { k: 'size', comp: DisplayField, map: formatBytes },
-            source && { k: 'ctime', comp: DisplayField, md: 6, label: 'Created', map: (x:string) => x && new Date(x).toLocaleString() },
-            source &&   { k: 'mtime', comp: DisplayField, md: 6, label: 'Modified', map: (x:string) => x && new Date(x).toLocaleString() },
-            { k: 'hidden', comp: BoolField, md: 6, helperText: "If you hide this element will not be listed, but will still be accessible if you have a direct link" },
-            isDir && { k: 'forbid', comp: BoolField, md: 6, helperText: "Forbid listing the content of this folder, but elements inside will still be accessible if you have a direct link" },
-            { k: 'perm', comp: PermField,
-                label: h(Box, { display:'flex', gap:1 }, ...values.perm ? [h(Lock), 'Access restricted'] : [h(LockOpen), 'Access not restricted'])
+            hasSource && { k: 'source', comp: DisplayField },
+            { k: 'can_read', label:"Who can download", md: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
+                helperText: "Who cannot download also cannot see in list"
             },
-            { k: 'mime', lg: 6, label:"MIME type", helperText: isDir && "Will be applied for all files in this folder" },
-            realFolder && { k: 'default', lg: 6, label:"Serve file instead of list",
-                helperText: md("If you have a website that you want to serve in this folder, specify `index.html`") },
+            showCanSee && { k: 'can_see', label:"Who can see", md: 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_see,
+                helperText: "If you hide this element it will not be listed, but will still be accessible if you have a direct link"
+            },
+            hasSource && !realFolder && { k: 'size', comp: DisplayField, toField: formatBytes },
+            showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, label: 'Created', toField: formatTimestamp },
+            showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, label: 'Modified', toField: formatTimestamp },
+            realFolder && { k: 'default', md: 6, comp: BoolField, label:"Act as website",
+                toField: Boolean, fromField: (v:boolean) => v ? 'index.html' : null,
+                helperText: md("If you want this folder to work like a website and load `index.html`") },
+            isDir && { k: 'masks', multiline: true, md: 6, toField: JSON.stringify, fromField: JSON.parse,
+                helperText: "This is a special field. Leave it empty unless you know what you are doing." }
         ]
     })
+}
+
+function formatTimestamp(x: string) {
+    return x ? new Date(x).toLocaleString() : '-'
+}
+
+interface WhoFieldProps extends FieldProps<Who> { accounts: Account[] }
+function WhoField({ value, onChange, parent, inherit, accounts, ...rest }: WhoFieldProps) {
+    const options = useMemo(() =>
+        onlyTruthy([
+            { value: null, label: (parent ? "Same as parent: " : "Default: " ) + who2desc(inherit === 0 ? true : inherit) },
+            { value: true },
+            { value: false },
+            { value: '*' },
+            { value: [], label: "Select accounts" },
+        ].map(x => x && x.value !== inherit // don't offer inherited value twice
+            && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
+    [inherit, parent])
+
+    const arrayMode = Array.isArray(value)
+    return h('div', {},
+        h(SelectField as FieldComponent<Who>, {
+            ...rest,
+            value: arrayMode ? [] : value,
+            onChange(v, { was, event }) {
+                onChange(v, { was , event })
+            },
+            options
+        }),
+        arrayMode && h(MultiSelectField as FieldComponent<string[]>, {
+            label: "Choose accounts for " + rest.label,
+            value,
+            onChange,
+            options: accounts?.map(a => ({ value: a.username, label: a.username })) || [],
+        })
+    )
+}
+
+function who2desc(who: any) {
+    return who === false ? "no one"
+        : who === true ? "anyone"
+            : who === '*' ? "any account (login required)"
+                : Array.isArray(who) ? who.join(', ')
+                    : "*UNKNOWN*" + JSON.stringify(who)
 }

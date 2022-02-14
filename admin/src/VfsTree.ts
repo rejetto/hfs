@@ -11,7 +11,7 @@ import {
     Lock,
     RemoveRedEye
 } from '@mui/icons-material'
-import { Node } from './VfsPage'
+import { VfsNode, Who } from './VfsPage'
 import { isWindowsDrive, onlyTruthy } from './misc'
 
 export const FolderIcon = Folder
@@ -29,7 +29,7 @@ const useStyles = makeStyles({
     }
 })
 
-export default function VfsTree({ id2node }:{ id2node: Map<string, Node> }) {
+export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
     const { vfs, selectedFiles } = useSnapState()
     const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
@@ -44,9 +44,13 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, Node> }) {
             setSelected(ids)
             state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
         }
-    }, recur(vfs as Readonly<Node>))
+    }, recur(vfs as Readonly<VfsNode>))
 
-    function recur(node: Readonly<Node>): ReactElement {
+    function isRestricted(who: Who) {
+        return who === false || Array.isArray(who)
+    }
+
+    function recur(node: Readonly<VfsNode>): ReactElement {
         let { id, name, source } = node
         if (!id)
             debugger
@@ -57,8 +61,8 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, Node> }) {
             label: !name ? h(Home)
                 : h('div', { className: styles.label },
                     h(folder ? FolderIcon : FileIcon),
-                    node.hidden && h(RemoveRedEye),
-                    node.perm && h(Lock),
+                    isRestricted(node.can_see) && h(RemoveRedEye),
+                    isRestricted(node.can_read) && h(Lock),
                     !source?.endsWith(name) ? name
                         : h('span', {},
                             h('span', { className:styles.path }, source.slice(0,-name.length)),

@@ -133,10 +133,6 @@ export function pattern2filter(pattern: string){
         !s || !pattern || re.test(basename(s))
 }
 
-export function isWindows() {
-    return process.platform === 'win32'
-}
-
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
 
 export function truthy<T>(value: T): value is Truthy<T> {
@@ -193,4 +189,8 @@ export function objRenameKey(o: Dict | undefined, from: string, to: string) {
     o[to] = o[from]
     delete o[from]
     return true
+}
+
+export function typedKeys<T>(o: T) {
+    return Object.keys(o) as (keyof T)[]
 }

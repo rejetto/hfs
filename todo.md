@@ -1,4 +1,15 @@
+NO: provare ad usare il name invece del rename: è complesso invertire, e bisogna comunque impedire di usarlo con le mask. Non vale la pena
+OK verificare che walknode/file_list non produca entries con search
+OK migliorare codice
+aggiornare admin gui
+counters: non contare richieste fallite
+consider having mime as ext,ext instead of *.ext|*.ext
 # To do
+- admin: improve masks editor
+- if specified config is a folder, check for file config.yaml inside
+- merge accounts in config
+- frontend: ok button to inputDialogs
+- admin: in a group, show linked accounts
 - admin/config: use filepicker for https files
 - admin: warn in case of items with same name
 - password protect admin
@@ -23,7 +34,5 @@
 - config: min disk space
 - thumbnails support
 - webdav?
-- vfs: ability to remove/hide/rename files deep in a source
-- administration interface
 - log: ip2name
 - apis in separated log file with parameters?

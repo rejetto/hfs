@@ -6,7 +6,7 @@ import { watchLoad } from './watchLoad'
 import Koa from 'koa'
 import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig, subscribeConfig } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
-import { vfs, VfsNode } from './vfs'
+import events from './events'
 
 let path = ''
 
@@ -134,19 +134,12 @@ export function renameAccount(from: string, to: string) {
 
     function updateReferences() {
         setHidden(accounts[to], { username: to })
-        recur(vfs.root)
         for (const a of Object.values(accounts)) {
             const idx = a.belongs?.indexOf(from)
             if (idx !== undefined && idx >= 0)
                 a.belongs![idx] = to
         }
-    }
-
-    function recur(n: VfsNode) {
-        objRenameKey(n.perm, from, to)
-        if (n.children)
-            for (const c of n.children)
-                recur(c)
+        events.emit('accountRenamed', from, to) // everybody, take care of your stuff
     }
 }
 

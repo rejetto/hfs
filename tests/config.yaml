@@ -1,22 +1,19 @@
-# BEWARE all lines starting with # are ignored, just placeholders. Default values are used for such lines. If you need to set the option then remove the initial #
-port: 80    # 0 is a special value that will let the system pick a random available port. Use -1 to disable http, if you want https-only for example.
-#max_kbps: 1000
-#max_kbps_per_ip: 500
-#log:
-#error_log:
-#zip_calculate_size_for_seconds: 1
-#open_browser_at_start: false
-#https_port: 443  # https will work only if you give a valid certificate and private key
-#cert: filepath
-#private_key: filepath
-mime:
-  "*.jpg|*.png|*.mp3|*.txt": auto
-disable_plugins: [ 'theme-example', 'download-counter' ]
-plugins_config:
-  middleware-example:
-    message: ciao
 vfs:
+  mime:
+    "*.jpg|*.png|*.mp3|*.txt": auto
+  masks:
+    tests/page/*.html:
+      mime: text/plain
+    protectFromAbove/child/*.txt:
+      can_read: false
   children:
+    - name: protectFromAbove
+      children:
+        - name: child
+          children:
+            - source: tests/alfa.txt
+            - name: renamed
+              source: tests/alfa.txt
     - name: f1
       children:
         - name: f2
@@ -29,7 +26,48 @@ vfs:
           default: index.html
           source: tests/page
     - name: for-admins
-      perm:
-        admins: r
+      can_read: [ admins ]
       children:
+        - name: asd
         - source: tests/alfa.txt
+    - source: tests
+    - name: renameChild
+      children:
+        - source: tests
+          rename:
+            alfa.txt: renamed1
+            page/gpl.png: renamed2
+    - name: cantReadPage
+      source: tests
+      masks:
+        page:
+          can_read: false
+        page/*:
+          can_read: true
+    - name: cantReadPageAlt
+      source: tests
+      masks:
+        page:
+          can_read: false
+          masks:
+            "**/*":
+              can_read: true
+    - name: cantReadPageRecursive
+      source: tests
+      masks:
+        page:
+          can_read: false
+    - name: cantReadRealFolder
+      source: tests
+      can_read: false
+    - name: cantSeeThis
+      can_see: false
+      children:
+        - name: hi
+    - name: cantSeeThisButChildren
+      can_see: false
+      masks:
+        "*":
+          can_see: true
+      children:
+        - name: hi

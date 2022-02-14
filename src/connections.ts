@@ -1,5 +1,5 @@
 import { Socket } from 'net'
-import { app } from './index'
+import events from './events'
 
 export interface Connection {
     socket: Socket
@@ -15,12 +15,12 @@ const all: Connection[] = []
 export function newConnection(socket: Socket, secure:boolean=false) {
     const conn: Connection = { socket, secure, got: 0, sent: 0, started: new Date() }
     all.push(conn)
-    app.emit('connection', conn) // we'll use these events for SSE
+    events.emit('connection', conn) // we'll use these events for SSE
     socket.on('data', data =>
         conn.got += data.length )
     socket.on('close', () => {
         all.splice(all.indexOf(conn), 1)
-        app.emit('connectionClosed', conn)
+        events.emit('connectionClosed', conn)
     })
 }
 
@@ -36,5 +36,5 @@ export function socket2connection(socket: Socket) {
 
 export function updateConnection(conn: Connection, change: Partial<Connection>) {
     Object.assign(conn, change)
-    app.emit('connectionUpdated', conn, change)
+    events.emit('connectionUpdated', conn, change)
 }

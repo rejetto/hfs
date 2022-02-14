@@ -1,13 +1,13 @@
 import { ApiHandlers } from './apis'
 import { getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus } from './listen'
-import { app } from './index'
 import { BUILD_TIMESTAMP, HFS_STARTED, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
 import { generatorAsCallback, onOffMap, pendingPromise } from './misc'
 import _ from 'lodash'
+import events from './events'
 
 export const adminApis: ApiHandlers = {
 
@@ -57,7 +57,7 @@ export const adminApis: ApiHandlers = {
             yield { add: serializeConnection(conn) }
         yield* generatorAsCallback(wrapper =>
             ctx.res.once('close', // as connection is closed, call the callback returned by onOffMap that uninstalls the listener
-                onOffMap(app, {
+                onOffMap(events, {
                     connection: conn => wrapper.callback({ add: serializeConnection(conn) }),
                     connectionClosed(conn: Connection) {
                         wrapper.callback({ remove: [ serializeConnection(conn, true) ] })

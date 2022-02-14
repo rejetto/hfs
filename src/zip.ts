@@ -1,4 +1,4 @@
-import { getNodeName, nodeIsDirectory, vfs, VfsNode, walkNode } from './vfs'
+import { getNodeName, hasPermission, nodeIsDirectory, urlToNode, VfsNode, walkNode } from './vfs'
 import Koa from 'koa'
 import { filterMapGenerator, pattern2filter, prefix } from './misc'
 import { QuickZipStream } from './QuickZipStream'
@@ -16,9 +16,9 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const { list } = ctx.query
     const walker = !list ? walkNode(node, ctx, Infinity)
         : (async function*(): AsyncIterableIterator<VfsNode> {
-            for (const el of String(list).split('*')) { // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
-                const subNode = await vfs.urlToNode(el, ctx, node)
-                if (!subNode)
+            for await (const el of String(list).split('*')) { // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
+                const subNode = await urlToNode(el, ctx, node)
+                if (!subNode || !hasPermission(subNode,'can_read',ctx))
                     continue
                 if (await nodeIsDirectory(subNode)) // a directory needs to walked
                     yield* walkNode(subNode, ctx, Infinity, el+'/')

@@ -214,24 +214,30 @@ Supported entries are:
 The virtual file system is a tree of files and folders, collectively called *nodes*.
 By default, a node is a folder, unless you provide for it a source that's a file.
 Valid keys in a node are:
-- `name`: how to display it. If not provided HFS will infer it from the source.
+- `name`: this is the name we'll use to display this file/folder. If not provided, HFS will infer it from the source. At least `name` or `source` must be provided.
 - `source`: absolute or relative path of where to get the content
 - `children`: just for folders, specify its virtual children.
   Value is a list and its entries are nodes.
-- `hidden`: this must not be listed, but it's still downloadable.
-- `forbid`: set `true` to forbid listing for this folder
-- `hide`: similar to hidden, but it's from the parent node point of view.
-  Use this to hide children read from the source, not listed in the VFS.
-  Value is a file mask.
-- `remove`: use this to not only hide files but also prevent downloads in a folder with a source. Value is a file mask.
 - `rename`: similar to name, but it's  from the parent node point.
   Use this to change the name of  entries that are read from the source, not listed in the VFS.
   Value is a dictionary, where the key is the original name.
-- `perm`: specify who can see this.
-  Use this to limit access to this node.
-  Value is a dictionary, where the key is the username, and the value is `r`.
 - `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
 - `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".
+- `can_read`: specify who can download this entry. Value is a `WhoCan` descriptor, which is one of these values
+  - `true`: anyone can, even people who didn't log in. This is normally the default value.
+  - `false`: no one can.
+  - `"*"`: any account can, i.e. anyone who logged in.
+  - `[ frank, peter ]`: the list of accounts who can. 
+- `can_see`: specify who can see this entry. Even if a user can download you can still make the file not appear in the list. 
+  Remember that to see in the list you must also be able to download, or else you won't see it anyway. Value is a `WhoCan` descriptor, refer above.
+- `masks`: maps a file mask to a set of properties as the one documented in this section. E.g. 
+  ```
+  masks:
+    "**/*.mp3":
+      can_read: false
+    "*.jpg|*.png": 
+      mime: auto
+  ```  
 
 # Accounts
 

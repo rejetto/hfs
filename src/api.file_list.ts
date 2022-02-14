@@ -1,16 +1,15 @@
-import { getNodeName, vfs, VfsNode, walkNode } from './vfs'
+import { cantReadStatusCode, getNodeName, hasPermission, urlToNode, VfsNode, walkNode } from './vfs'
 import { ApiError, ApiHandler } from './apis'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, filterMapGenerator, pattern2filter } from './misc'
-import { FORBIDDEN } from './const'
 
 export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
-    let node = await vfs.urlToNode(path || '/', ctx)
+    let node = await urlToNode(path || '/', ctx)
     if (!node)
-        return
-    if (node.forbid)
-        return new ApiError(FORBIDDEN)
+        return new ApiError(404)
+    if (!hasPermission(node,'can_read',ctx))
+        return new ApiError(cantReadStatusCode(node))
     if (dirTraversal(search))
         return new ApiError(418)
     if (node.default)

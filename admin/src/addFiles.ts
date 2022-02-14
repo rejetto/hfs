@@ -1,7 +1,7 @@
 import { alertDialog, newDialog } from './dialog'
 import { createElement as h } from 'react'
 import { Box } from '@mui/material'
-import { Node, reloadVfs } from './VfsPage'
+import { VfsNode, reloadVfs } from './VfsPage'
 import { state } from './state'
 import { apiCall } from './api'
 import FilePicker from './FilePicker'
@@ -48,7 +48,7 @@ export async function addVirtual() {
 }
 
 function getUnder() {
-    let f: Node | undefined = state.selectedFiles[0]
+    let f: VfsNode | undefined = state.selectedFiles[0]
     if (f && f.type !== 'folder')
         f = f.parent
     return f?.id

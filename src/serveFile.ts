@@ -2,19 +2,22 @@ import Koa from 'koa'
 import { createReadStream, stat } from 'fs'
 import fs from 'fs/promises'
 import { METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
-import { MIME_AUTO, VfsNode } from './vfs'
+import { getNodeName, MIME_AUTO, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig, getConfig } from './config'
-import mm from 'micromatch'
+import mm, { isMatch } from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
 
 export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const { source, mime } = node
+    const name = getNodeName(node)
+    const mimeString = typeof mime === 'string' ? mime
+        : _.find(mime, (val,mask) => isMatch(name, mask))
     return (ctx, next) => {
         ctx.vfsNode = node // useful to tell service files from files shared by the user
-        return serveFile(source||'', mime)(ctx, next)
+        return serveFile(source||'', mimeString)(ctx, next)
     }
 }
 
@@ -28,7 +31,7 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
         ctx.set('Accept-Ranges', 'bytes')
         const mimeCfg = getConfig('mime')
         const fn = path.basename(source)
-        mime = mime ?? _.find(mimeCfg, (v,k) => mm.isMatch(fn, k))
+        mime = mime ?? _.find(mimeCfg, (v,k) => k && mm.isMatch(fn, k))
         if (mime === MIME_AUTO)
             mime = mimetypes.lookup(source) || ''
         if (mime)
