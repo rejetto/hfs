@@ -19,7 +19,7 @@ export default function ConfigPage() {
     })
     let snap = useSnapState()
     const [status, reloadStatus] = useApi(res && 'get_status')
-    useEffect(reloadStatus, [res])
+    useEffect(reloadStatus, [res, reloadStatus])
     if (isValidElement(res))
         return res
     const { changes } = snap

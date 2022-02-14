@@ -47,103 +47,17 @@ As you can see from the list above, we already have some goods that you can't fi
 ## Windows
 
 1. go on https://github.com/rejetto/hfs/releases
-2. pick your version
-3. among the zip files, we suggest the one with "exe" in the name. Download ti and unzip somewhere on your computer
-4. first time you should rename `config-example` to `config`, and `accounts-example` to `accounts`. Preserve the `yaml` extension.
- 
-   Future upgrades you may probably want to keep your existing config, and possibly use the example as an inspiration.
-   You should edit config to suite your needs. Surely you want at least to change what files and folders are accessible 
-   by the browser, and you'll find that under the `vfs` entry. For further details please check the `Configuration` section below. 
-
-you are now ready to launch the `hfs.exe` file
+2. **download** the latest version zip with "exe" in the name  
+3. **unzip** somewhere on your computer. You actually need only the exe, the plugins folder is optional.
+4. **double click** on `hfs.exe`
 
 ## Linux
 
 1. install node.js version 16+ from https://nodejs.org/
 2. download and unzip the latest package from https://github.com/rejetto/hfs/releases/
-3. first time you should rename `config-example` to `config`, and `accounts-example` to `accounts`. Preserve the `yaml` extension.
-4. chmod +x run.bat
+3. chmod +x run.bat
 
 you are now ready to launch `run.bat`
-
-# Configuration
-
-At the moment there's no administration UI. You must edit the configuration file, that basically a structured text file.
-General configuration is read by default from file `config.yaml`.
-When not specified, default values will be used.
-Supported entries are:
-- `port` where to accept http connections. Default is 80.
-- `vfs` the files and folders you want to expose. For details see the dedicated following section.
-- `admin_port` the port where to reach admin interface. Default is 63636.
-- `admin_network` the network address where to reach admin interface. Default is 127.0.0.1 . 
-- `log` path of the log file. Default is `access.log`.
-- `error_log` path of the log file for errors. Default is `error.log`.
-- `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
-- `accounts` path of the accounts file. Default is `accounts.yaml`.
-- `mime` command what mime-type to be returned with some files. 
-    E.g.: `"*.jpg": image/jpeg`
-    You can specify multiple entries, or separate multiple file masks with a p|pe.
-    You can use the special value `auto` to attempt automatic detection.
-- `max_kbps` throttle output speed. Default is Infinity.
-- `max_kbps_per_ip` throttle output speed on a per-ip basis. Default is Infinity.
-- `zip-calculate-size-for-seconds` how long should we wait before the zip archive starts streaming, trying to understand its finale size. Default is 1.
-- `open_browser_at_start` should HFS open browser on localhost on start? Default is true.
-- `https_port` listen on a specific port. Default is 443.
-- `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none. 
-- `private_key` use this file for https private key. Default is none.
-- `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration. 
- 
-## Virtual File System (VFS)
-
-The virtual file system is a tree of files and folders, collectively called *nodes*.
-By default, a node is a folder, unless you provide for it a source that's a file.
-Valid keys in a node are: 
-- `name`: how to display it. If not provided HFS will infer it from the source.  
-- `source`: absolute or relative path of where to get the content
-- `children`: just for folders, specify its virtual children.
-     Value is a list and its entries are nodes.  
-- `hidden`: this must not be listed, but it's still downloadable.
-- `forbid`: set `true` to forbid listing for this folder
-- `hide`: similar to hidden, but it's from the parent node point of view.
-     Use this to hide children read from the source, not listed in the VFS.
-     Value is a file mask.
-- `remove`: use this to not only hide files but also prevent downloads in a folder with a source. Value is a file mask.  
-- `rename`: similar to name, but it's  from the parent node point.
-     Use this to change the name of  entries that are read from the source, not listed in the VFS.
-     Value is a dictionary, where the key is the original name.   
-- `perm`: specify who can see this.
-     Use this to limit access to this node.
-     Value is a dictionary, where the key is the username, and the value is `r`.    
-- `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
-- `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".  
-
-# Accounts
-
-Accounts are kept in `accounts.yaml` if any, or you can decide another file by passing parameter `--accounts`.
-Inside the file, all accounts should go under `accounts:` key, as a dictionary where the key is the username.
-E.g.
-```
-accounts:
-    admin:
-        password: hello123
-        belongs: group1
-    guest:
-        password: guest
-    group1:
-```
-
-As soon as the file is read HFS will encrypt passwords in a non-reversible way. It means that `password` property is replaced with an encrypted property: `srp`.
-For this reason HFS needs that your accounts file is writable.
-
-As you can see in the example, `group1` has no password. This implies that you cannot log in as `group1`, but still `group1` exists and its purpose is to
-gather multiple accounts and refer to them collectively as `group1`, so you can quickly share powers among several accounts.
-
-## Account options
-
-Other options you can define as properties of an account:
-
-- `ignore_limits` to ignore speed limits. Default is `false`.
-- `redirect` provide a URL if you want the user to be redirected upon login. Default is none. 
 
 # Building instructions
 
@@ -203,7 +117,7 @@ Let's first look at the things you can return:
 
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
-- `middleware: (Context) => void | true` a function that will be used as a middleware: it can interfere with http activity.
+- `middleware: (Context) => void | true | function` a function that will be used as a middleware: it can interfere with http activity.
 
   To know what the Context object contains please refer to [Koa's documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
   You don't get the `next` parameter as in standard Koa's middlewares because this is different, but we are now explaining how to achieve the same results.
@@ -234,7 +148,7 @@ The `api` object you get as parameter of the `init` contains the following:
   - `srcDir: string` this can be useful if you need to import some extra function not available in `api`.
     ```js
     exports.init = api => {
-        const { BUILD_TIMESTAMP } = api.require(api.srcDir + '/index')
+        const { BUILD_TIMESTAMP } = api.require(api.srcDir + '/const')
         console.log(BUILD_TIMESTAMP)
     }
     ```
@@ -258,6 +172,7 @@ Depending on the event you'll have an object with parameters in it, and may retu
 This is a list of available frontend events, with respective parameters and output.
 
 - `additionalEntryProps` 
+  - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-props` container.
   - parameters `{ entry: Entry }`
   
     The `Entry` type is an object with the following properties:
@@ -267,4 +182,82 @@ This is a list of available frontend events, with respective parameters and outp
     - `c?: Date` creation-time.
     - `m?: Date` modified-time.
   - output `string | void`
-  - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-props` container.  
+
+# File formats
+
+General configuration is read by default from file `config.yaml`.
+When not specified, default values will be used.
+Supported entries are:
+- `port` where to accept http connections. Default is 80.
+- `vfs` the files and folders you want to expose. For details see the dedicated following section.
+- `admin_port` the port where to reach admin interface. Default is 63636.
+- `admin_network` the network address where to reach admin interface. Default is 127.0.0.1 .
+- `log` path of the log file. Default is `access.log`.
+- `error_log` path of the log file for errors. Default is `error.log`.
+- `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
+- `accounts` path of the accounts file. Default is `accounts.yaml`.
+- `mime` command what mime-type to be returned with some files.
+  E.g.: `"*.jpg": image/jpeg`
+  You can specify multiple entries, or separate multiple file masks with a p|pe.
+  You can use the special value `auto` to attempt automatic detection.
+- `max_kbps` throttle output speed. Default is Infinity.
+- `max_kbps_per_ip` throttle output speed on a per-ip basis. Default is Infinity.
+- `zip-calculate-size-for-seconds` how long should we wait before the zip archive starts streaming, trying to understand its finale size. Default is 1.
+- `open_browser_at_start` should HFS open browser on localhost on start? Default is true.
+- `https_port` listen on a specific port. Default is 443.
+- `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
+- `private_key` use this file for https private key. Default is none.
+- `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration.
+
+## Virtual File System (VFS)
+
+The virtual file system is a tree of files and folders, collectively called *nodes*.
+By default, a node is a folder, unless you provide for it a source that's a file.
+Valid keys in a node are:
+- `name`: how to display it. If not provided HFS will infer it from the source.
+- `source`: absolute or relative path of where to get the content
+- `children`: just for folders, specify its virtual children.
+  Value is a list and its entries are nodes.
+- `hidden`: this must not be listed, but it's still downloadable.
+- `forbid`: set `true` to forbid listing for this folder
+- `hide`: similar to hidden, but it's from the parent node point of view.
+  Use this to hide children read from the source, not listed in the VFS.
+  Value is a file mask.
+- `remove`: use this to not only hide files but also prevent downloads in a folder with a source. Value is a file mask.
+- `rename`: similar to name, but it's  from the parent node point.
+  Use this to change the name of  entries that are read from the source, not listed in the VFS.
+  Value is a dictionary, where the key is the original name.
+- `perm`: specify who can see this.
+  Use this to limit access to this node.
+  Value is a dictionary, where the key is the username, and the value is `r`.
+- `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
+- `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".
+
+# Accounts
+
+Accounts are kept in `accounts.yaml` if any, or you can decide another file by passing parameter `--accounts`.
+Inside the file, all accounts should go under `accounts:` key, as a dictionary where the key is the username.
+E.g.
+```
+accounts:
+    admin:
+        password: hello123
+        belongs: group1
+    guest:
+        password: guest
+    group1:
+```
+
+As soon as the file is read HFS will encrypt passwords in a non-reversible way. It means that `password` property is replaced with an encrypted property: `srp`.
+For this reason HFS needs that your accounts file is writable.
+
+As you can see in the example, `group1` has no password. This implies that you cannot log in as `group1`, but still `group1` exists and its purpose is to
+gather multiple accounts and refer to them collectively as `group1`, so you can quickly share powers among several accounts.
+
+## Account options
+
+Other options you can define as properties of an account:
+
+- `ignore_limits` to ignore speed limits. Default is `false`.
+- `redirect` provide a URL if you want the user to be redirected upon login. Default is none. 
+
