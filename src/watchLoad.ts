@@ -52,10 +52,10 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             try {
                 data = await readFileBusy(path)
                 console.debug('loaded', path)
-                if (path.endsWith('.yaml'))
-                    data = yaml.parse(data)
             }
             catch (e) { return } // silently ignore read errors
+            if (path.endsWith('.yaml'))
+                data = yaml.parse(data)
             await parser(data)
         }
         finally {
