@@ -4,9 +4,9 @@ import { Button, Menu, MenuItem } from '@mui/material'
 interface Props { items: any[], [rest:string]:any }
 
 export default function MenuButton({ items, ...rest }: Props) {
-    const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
+    const [anchorEl, setAnchorEl] = React.useState<HTMLElement>()
     const open = Boolean(anchorEl)
-    const onClose = useCallback(() => setAnchorEl(null), [])
+    const onClose = useCallback(() => setAnchorEl(undefined), [])
     return h(React.Fragment, {},
         h(Button, {
             'aria-controls': open ? 'basic-menu' : undefined,
@@ -22,8 +22,7 @@ export default function MenuButton({ items, ...rest }: Props) {
             open,
             onClose,
             MenuListProps: { 'aria-labelledby': 'basic-button' },
-        },
-            items.map((it,idx) =>
+            children: items.map((it,idx) =>
                 h(MenuItem, {
                     key: idx,
                     ...it,
@@ -32,6 +31,6 @@ export default function MenuButton({ items, ...rest }: Props) {
                         it.onClick?.apply(this, arguments)
                     }
                 }) )
-        )
+        })
     )
 }

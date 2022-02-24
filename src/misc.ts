@@ -33,8 +33,8 @@ export function setHidden(dest: object, src:object) {
     })))
 }
 
-export function objSameKeys<T,R>(src: Record<string,T>, newValue:(value:T,key:string)=>R) {
-    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k)]))
+export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:any, key:keyof S)=>any) {
+    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
 }
 
 export function wait(ms: number) {
@@ -88,7 +88,7 @@ export function generatorAsCallback<T>(caller: Callback<{ callback:Callback<T> }
     }
 }
 
-export function getOrSet<T>(o:any, k:string, creator:()=>T): T {
+export function getOrSet<T>(o: Record<string,T>, k:string, creator:()=>T): T {
     return k in o ? o[k]
         : (o[k] = creator())
 }

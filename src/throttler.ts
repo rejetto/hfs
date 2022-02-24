@@ -11,8 +11,11 @@ const mainThrottleGroup = new ThrottleGroup(Infinity)
 subscribeConfig({ k:'max_kbps', defaultValue:null }, v =>
     mainThrottleGroup.updateLimit(v ?? Infinity))
 
-interface GroupThrottler { count:number, throttler:ThrottledStream, destroy:()=>void }
-const ip2group: Record<string,GroupThrottler> = {}
+const ip2group: Record<string, {
+    count: number
+    group: ThrottleGroup
+    destroy: () => void
+}> = {}
 
 export function throttler(): Koa.Middleware {
     return async (ctx, next) => {
@@ -24,9 +27,9 @@ export function throttler(): Koa.Middleware {
             const tg = new ThrottleGroup(Infinity, mainThrottleGroup)
             const unsub = subscribeConfig({ k:'max_kbps_per_ip', defaultValue:null }, v =>
                 tg.updateLimit(v ?? Infinity))
-            return { tg, count:0, destroy: unsub }
+            return { group:tg, count:0, destroy: unsub }
         })
-        const ts = new ThrottledStream(ipGroup.tg)
+        const ts = new ThrottledStream(ipGroup.group)
         ++ipGroup.count
         ts.on('close', ()=> {
             if (--ipGroup.count) return // any left?

@@ -25,7 +25,7 @@ export function MenuPanel() {
         setTimeout(() => setStarted1secAgo(true), 1000)
     }, [stopSearch])
 
-    //TODO do something for list > 63KB (1kb reserved for the rest for the url)
+    //TODO do something for list > 63KB as it hit the url limit (1kb reserved for the rest for the url)
     const list = Object.keys(selected).map(s => s.endsWith('/') ? s.slice(0,-1) : s).join('*')
     return h('div', { id: 'menu-panel' },
         h('div', { id: 'menu-bar' },
@@ -60,7 +60,7 @@ export function MenuPanel() {
         showFilter && h('div', { id: 'filter-bar' },
             h('input', {
                 id: 'filter',
-                placeholder: 'Filter',
+                placeholder: 'Filter list',
                 autoComplete: 'off',
                 value: filter,
                 autoFocus: true,
