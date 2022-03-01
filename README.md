@@ -261,3 +261,6 @@ Other options you can define as properties of an account:
 - `ignore_limits` to ignore speed limits. Default is `false`.
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none. 
 
+## License
+
+[GPLv3](https://github.com/rejetto/hfs/blob/master/LICENSE.txt).
