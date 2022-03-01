@@ -17,6 +17,9 @@ import _ from 'lodash'
 
 interface FieldDescriptor { k:string, comp?: any, label?: string | ReactElement, [extraProp:string]:any }
 
+// it seems necessary to cast (Multi)SelectField sometimes
+export type FieldComponent<T> = (props:FieldProps<T>) => ReactElement
+
 interface FormProps {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
     defaults?: (f:FieldDescriptor) => Dict | void
@@ -130,30 +133,57 @@ export function DisplayField({ map, value, empty='-', ...props }: any) {
 }
 
 interface SelectPair<T> { label: string, value:T }
-export function SelectField<T>({ value, onChange, options, multiple, ...props }: FieldProps<T> & { options:SelectPair<T>[] }) {
+export function SelectField<T>(props: FieldProps<T> & { options:SelectPair<T>[] }) {
+    const { value, onChange, options, ...rest } = props
+    const jsonValue = JSON.stringify(value)
+    const currentOption = options.find(x => JSON.stringify(x.value) === jsonValue)
     return h(TextField, { // using TextField because Select is not displaying label correctly
-        ...props,
-        select: true,
-        fullWidth: true,
-        disabled: !options?.length || props.disabled,
-        SelectProps: multiple && { multiple: true },
-        value: multiple ? (!Array.isArray(value) ? [] : value.map(x => JSON.stringify(x)))
-            : value === undefined ? '' : JSON.stringify(value),
-        children: options.map((o,i) => {
-            const obj = o && typeof o === 'object'
-            const value = obj && 'value' in o ? o.value : o
-            const label = obj && 'label' in o ? o.label : o
-            return h(MenuItem, { key: i, value: JSON.stringify(value), children: label })
-        }),
+        ...rest,
+        ...commonSelectProps(props),
+        // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
+        value: currentOption ? jsonValue : '',
         onChange(event) {
             try {
                 let newVal: any = event.target.value
-                newVal = multiple && Array.isArray(newVal) ? newVal.map(x => JSON.parse(x)) : JSON.parse(newVal) as T
+                newVal = JSON.parse(newVal) as T
                 onChange(newVal, { was: value, event })
             }
             catch {}
         }
     })
+}
+
+export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectPair<T>[] }) {
+    const { value, onChange, options, ...rest } = props
+    return h(TextField, {
+        ...rest,
+        ...commonSelectProps(props),
+        SelectProps: { multiple: true },
+        value: !Array.isArray(value) ? [] : value.map(x => JSON.stringify(x)),
+        onChange(event) {
+            try {
+                let v: any = event.target.value
+                v = Array.isArray(v) ? v.map(x => JSON.parse(x)) : []
+                onChange(v as T[], { was: value, event })
+            }
+            catch {}
+        }
+    })
+}
+
+function commonSelectProps<T>(props: { disabled?: boolean, options:SelectPair<T>[] }) {
+    const { options, disabled } = props
+    return {
+        select: true,
+        fullWidth: true,
+        disabled: !options?.length || disabled,
+        children: options.map((o, i) => {
+            const obj = o && typeof o === 'object'
+            const value = obj && 'value' in o ? o.value : o
+            const label = obj && 'label' in o ? o.label : o
+            return h(MenuItem, { key: i, value: JSON.stringify(value), children: label })
+        })
+    }
 }
 
 export function NumberField({ value, onChange, ...props }: FieldProps<number | null>) {

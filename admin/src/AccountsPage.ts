@@ -2,7 +2,7 @@ import { isValidElement, createElement as h, useState, useEffect, Fragment } fro
 import { apiCall, useApiComp } from './api'
 import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Delete, Group, Person, PersonAdd, Refresh } from '@mui/icons-material'
-import { BoolField, Form, SelectField, StringField } from './Form'
+import { BoolField, Form, MultiSelectField, SelectField, StringField } from './Form'
 import { alertDialog, confirmDialog } from './dialog'
 import { isEqualLax, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
@@ -148,7 +148,7 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
             { k: 'ignore_limits', comp: BoolField,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
             { k: 'redirect', comp: StringField, helperText: "If you want this account to be redirected to a specific folder/address at login time" },
-            { k: 'belongs', comp: SelectField, multiple: true, label: "Inherits from", options: belongsOptions,
+            { k: 'belongs', comp: MultiSelectField, label: "Inherits from", options: belongsOptions,
                 helperText: "Options and permissions of the selected groups will be applied to this account. "
                     + (belongsOptions.length ? '' : "There are no groups available, create one first.") }
         ],
