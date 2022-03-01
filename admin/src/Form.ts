@@ -1,4 +1,4 @@
-import { createElement as h, isValidElement, ReactElement, useEffect, useState } from 'react'
+import { createElement as h, Fragment, isValidElement, ReactElement, useEffect, useState } from 'react'
 import {
     Box,
     Button,
@@ -88,15 +88,27 @@ export interface FieldProps<T> {
     label?: string | ReactElement
     value?: T
     onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
+    toField?: (v: any) => T,
+    fromField?: (v: T) => any
     [rest: string]: any
 }
 
 export type Field<T> = (props:FieldProps<T>) => ReactElement
 
-export function StringField({ value, onChange, ...props }: FieldProps<string>) {
-    const [state, setState] = useState(() => value ?? '')
-    useEffect(() => setState(() => value ?? ''),
-        [value])
+export function StringField({ value, onChange, fromField=_.identity, toField=_.identity, ...props }: FieldProps<string>) {
+    if (fromField === JSON.parse)
+        fromField = v => v ? JSON.parse(v) : undefined
+    const [state, setState] = useState(() => toField(value) ?? '')
+    const [err, setErr] = useState('')
+    if (err) {
+        props.error = true
+        props.helperText = h(Fragment, {}, err, props.helperText && h('br'), props.helperText ) // keep existing helperText, if any
+    }
+
+    useEffect(() => {
+        setState(() => toField(value) ?? '')
+        setErr('')
+    }, [value])
     return h(TextField, {
         fullWidth: true,
         ...props,
@@ -113,8 +125,15 @@ export function StringField({ value, onChange, ...props }: FieldProps<string>) {
     })
 
     function go(event: any) {
-        if (state !== value)
-            onChange(state, {
+        let newV
+        try { // catch parsing exceptions
+            newV = fromField(state)
+        }
+        catch (e) {
+            return setErr(String(e))
+        }
+        if (newV !== value)
+            onChange(newV, {
                 was: value,
                 event,
                 cancel() {
@@ -124,10 +143,8 @@ export function StringField({ value, onChange, ...props }: FieldProps<string>) {
     }
 }
 
-export function DisplayField({ map, value, empty='-', ...props }: any) {
-    if (map)
-        value = map(value)
-    if (empty !== undefined && value !== 0 && !value)
+export function DisplayField({ value, empty='-', ...props }: any) {
+    if (!props.toField && empty !== undefined && value !== 0 && !value)
         value = empty
     return h(StringField, {  ...props, value, disabled: true })
 }
@@ -198,15 +215,16 @@ export function NumberField({ value, onChange, ...props }: FieldProps<number | n
     })
 }
 
-export function BoolField({ label='', value, onChange, helperText, ...props }: FieldProps<boolean>) {
-    const [state, setState] = useState(() => value ?? false)
-    useEffect(() => setState(() => value ?? false),
+export function BoolField({ label='', value, onChange, helperText, fromField=_.identity, toField=_.identity, ...props }: FieldProps<boolean>) {
+    const setter = () => toField(value) ?? false
+    const [state, setState] = useState(setter)
+    useEffect(() => setState(setter),
         [value])
     const control = h(Switch, {
         checked: state,
         ...props,
         onChange(event) {
-            onChange(event.target.checked, { event, was: value })
+            onChange(fromField(event.target.checked), { event, was: value })
         }
     })
     return h(Box, { ml: 1 },
