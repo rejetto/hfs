@@ -18,6 +18,7 @@ const ip2group: Record<string, {
 }> = {}
 
 const SymThrStr = Symbol('stream')
+const SymTimeout = Symbol('timeout')
 
 export function throttler(): Koa.Middleware {
     return async (ctx, next) => {
@@ -38,12 +39,13 @@ export function throttler(): Koa.Middleware {
 
         const DELAY = 1000
         const update = _.debounce(() => {
-                updateConnection(conn, {
-                    sent: ts.getBytesSent(),
-                    outSpeed: _.round(ts.getSpeed(), 1)
-                })
-            },
-            DELAY, { maxWait:DELAY })
+            const ts = conn[SymThrStr]
+            const outSpeed = _.round(ts.getSpeed(), 1)
+            updateConnection(conn, { outSpeed, sent: ts.getBytesSent() })
+            clearTimeout(conn[SymTimeout])
+            if (outSpeed || !(ts.finished || ts.ended))
+                conn[SymTimeout] = setTimeout(update, DELAY)
+        }, DELAY, { maxWait:DELAY })
         ts.on('sent', update)
 
         ++ipGroup.count

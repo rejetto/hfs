@@ -36,6 +36,7 @@ export function socket2connection(socket: Socket) {
 }
 
 export function updateConnection(conn: Connection, change: Partial<Connection>) {
+    if (Object.entries(change).every(([k,v]) => JSON.stringify(v) === JSON.stringify(conn[k as keyof Connection]) )) return // any change?
     Object.assign(conn, change)
     events.emit('connectionUpdated', conn, change)
 }
