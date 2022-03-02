@@ -25,6 +25,7 @@ interface Account {
     hasPassword?: boolean
     ignore_limits?: boolean
     redirect?: string
+    belongs?: string[]
 }
 
 export default function AccountsPage() {
@@ -89,7 +90,12 @@ export default function AccountsPage() {
                     h(TreeItem, {
                         key: ac.username,
                         nodeId: ac.username,
-                        label: h('div', { className: styles.label }, account2icon(ac), ac.username ),
+                        label: h('div', { className: styles.label },
+                            account2icon(ac),
+                            ac.username,
+                            Boolean(ac.belongs?.length) && h(Box, { sx: { color: 'text.secondary', fontSize: 'small' } },
+                                '(', ac.belongs?.join(', '), ')')
+                        ),
                     })
                 )
             )

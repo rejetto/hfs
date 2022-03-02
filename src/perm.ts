@@ -74,9 +74,10 @@ export async function updateAccount(account: Account, changer?:Changer) {
         console.log('please reset password for account', username)
         process.exit(1)
     }
-    account.belongs = wantArray(account.belongs).filter(b =>
-        b in accounts // at this stage the group record may still be null if specified later in the file
-        || console.error(`account ${username} belongs to non-existing ${b}`) )
+    if (account.belongs)
+        account.belongs = wantArray(account.belongs).filter(b =>
+            b in accounts // at this stage the group record may still be null if specified later in the file
+            || console.error(`account ${username} belongs to non-existing ${b}`) )
     if (was !== JSON.stringify(account))
         saveAccountsAsap()
 }
