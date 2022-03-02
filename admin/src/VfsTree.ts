@@ -49,7 +49,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
     }, recur(vfs as Readonly<VfsNode>))
 
     function isRestricted(who: Who) {
-        return who === false || Array.isArray(who)
+        return who !== undefined && who !== true
     }
 
     function recur(node: Readonly<VfsNode>): ReactElement {

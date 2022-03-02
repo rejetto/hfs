@@ -61,7 +61,7 @@ vfs:
       source: tests
       can_read: false
     - name: cantSeeThis
-      can_see: false
+      can_see: "*"
       children:
         - name: hi
     - name: cantSeeThisButChildren
