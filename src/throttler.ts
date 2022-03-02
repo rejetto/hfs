@@ -17,6 +17,8 @@ const ip2group: Record<string, {
     destroy: () => void
 }> = {}
 
+const SymThrStr = Symbol('stream')
+
 export function throttler(): Koa.Middleware {
     return async (ctx, next) => {
         await next()
@@ -29,18 +31,28 @@ export function throttler(): Koa.Middleware {
                 tg.updateLimit(v ?? Infinity))
             return { group:tg, count:0, destroy: unsub }
         })
-        const ts = new ThrottledStream(ipGroup.group)
+        const conn = socket2connection(ctx.socket)
+        if (!conn) throw 'assert throttler connection'
+
+        const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr])
+
+        const DELAY = 1000
+        const update = _.debounce(() => {
+                updateConnection(conn, {
+                    sent: ts.getBytesSent(),
+                    outSpeed: _.round(ts.getSpeed(), 1)
+                })
+            },
+            DELAY, { maxWait:DELAY })
+        ts.on('sent', update)
+
         ++ipGroup.count
         ts.on('close', ()=> {
+            update.flush()
             if (--ipGroup.count) return // any left?
             ipGroup.destroy?.()
             delete ip2group[ctx.ip]
         })
-
-        const conn = socket2connection(ctx.socket)
-        if (conn)
-            ts.on('sent', _.debounce(() =>
-                updateConnection(conn, { sent: ts.getBytesSent(), outSpeed: _.round(ts.getSpeed(),1) }), 1000, { maxWait:1000 }))
 
         const bak = ctx.response.length // preserve
         ctx.body = ctx.body.pipe(ts)

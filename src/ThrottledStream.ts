@@ -9,8 +9,13 @@ export class ThrottledStream extends Transform {
     private lastSpeedTime = Date.now()
     private totalSent: number = 0
 
-    constructor(private group: ThrottleGroup) {
+    constructor(private group: ThrottleGroup, copyStats?: ThrottledStream) {
         super()
+        if (!copyStats) return
+        this.sent = copyStats.sent
+        this.totalSent = copyStats.totalSent
+        this.lastSpeedTime = copyStats.lastSpeedTime
+        this.lastSpeed = copyStats.lastSpeed
     }
 
     async _transform(chunk: any, encoding: BufferEncoding, done: TransformCallback) {
