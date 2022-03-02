@@ -2,11 +2,12 @@
 
 import { makeStyles } from '@mui/styles'
 import { state, useSnapState } from './state'
-import { createElement as h, ReactElement, useState } from 'react'
+import { createElement as h, Fragment, ReactElement, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/lab'
 import {
     ChevronRight,
     ExpandMore,
+    Face,
     Folder,
     Home,
     InsertDriveFileOutlined,
@@ -60,17 +61,17 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
         if (folder && !isWindowsDrive(source) && source === name) // we need a way to show that the name we are displaying is a source in this ambiguous case, so we add a redundant ./
             source = './' + source
         return h(TreeItem, {
-            label: !name ? h(Home)
-                : h('div', { className: styles.label },
-                    h(folder ? FolderIcon : FileIcon),
-                    isRestricted(node.can_see) && h(RemoveRedEye),
-                    isRestricted(node.can_read) && h(Lock),
-                    !source?.endsWith(name) ? name
-                        : h('span', {},
-                            h('span', { className:styles.path }, source.slice(0,-name.length)),
-                            h('span', {}, source.slice(-name.length)),
-                        )
-                ),
+            label: h('div', { className: styles.label },
+                h(!name ? Home : folder ? FolderIcon : FileIcon),
+                isRestricted(node.can_see) && h(RemoveRedEye),
+                isRestricted(node.can_read) && h(Lock),
+                node.masks && h(Face),
+                !source?.endsWith(name) ? name
+                    : h('span', {},
+                        h('span', { className:styles.path }, source.slice(0,-name.length)),
+                        h('span', {}, source.slice(-name.length)),
+                    )
+            ),
             key: name,
             collapseIcon: h(ExpandMore, {
                 onClick(ev) {
