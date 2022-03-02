@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { makeStyles } from '@mui/styles'
 import { Dict } from './misc'
 import { createElement as h, useEffect, useRef } from 'react'

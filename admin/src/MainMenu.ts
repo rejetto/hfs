@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { createElement as h, FunctionComponent } from 'react';
 import { List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
 import { AccountTree, ManageAccounts, Monitor, Public, Settings, SvgIconComponent } from '@mui/icons-material'

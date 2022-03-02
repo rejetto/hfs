@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { Dict, useStateMounted } from './misc'
 import { createElement as h, Fragment, isValidElement } from 'react'
 import { Button, Grid } from '@mui/material'

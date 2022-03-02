@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
 import { useApiComp } from './api'
 import { Grid } from '@mui/material'

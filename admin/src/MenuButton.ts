@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import React, { createElement as h, useCallback } from 'react'
 import { Button, Menu, MenuItem } from '@mui/material'
 

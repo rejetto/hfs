@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { createElement as h, Fragment } from 'react'
 import { BrowseFiles } from "./BrowseFiles"
