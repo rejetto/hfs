@@ -29,7 +29,7 @@ export default function FileCard() {
 }
 
 function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFiles']['0'] }) {
-    const { parent, children, ...rest } = file
+    const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
         setValues(Object.assign({ can_see: null, can_read: null }, rest))
@@ -82,7 +82,7 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
             }
         },
         fields: [
-            { k: 'name', helperText: source && "You can decide a name that's different from the one on your disk" },
+            !isRoot && { k: 'name', helperText: source && "You can decide a name that's different from the one on your disk" },
             hasSource && { k: 'source', comp: DisplayField },
             { k: 'can_read', label:"Who can download", md: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
                 helperText: "Who cannot download also cannot see in list"

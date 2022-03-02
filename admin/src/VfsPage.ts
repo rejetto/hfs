@@ -24,6 +24,7 @@ export default function VfsPage() {
         const { root } = res
         if (!root) return
         recur(root) // this must be done before state change that would cause Tree to render and expecting id2node
+        root.isRoot = true
         state.vfs = root
         // refresh objects of selectedFiles
         const ids = selectOnReload || state.selectedFiles.map(x => x.id)
@@ -72,6 +73,8 @@ export type VfsNode = {
     can_see: Who
     can_read: Who
     masks?: any
+
+    isRoot?: true
 }
 
 const WHO_ANYONE = true
