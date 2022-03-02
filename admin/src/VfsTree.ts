@@ -2,7 +2,7 @@
 
 import { makeStyles } from '@mui/styles'
 import { state, useSnapState } from './state'
-import { createElement as h, Fragment, ReactElement, useState } from 'react'
+import { createElement as h, ReactElement, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/lab'
 import {
     ChevronRight,
@@ -15,7 +15,7 @@ import {
     RemoveRedEye
 } from '@mui/icons-material'
 import { VfsNode, Who } from './VfsPage'
-import { isWindowsDrive, onlyTruthy } from './misc'
+import { iconTooltip, isWindowsDrive, onlyTruthy } from './misc'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
@@ -63,9 +63,9 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
         return h(TreeItem, {
             label: h('div', { className: styles.label },
                 h(!name ? Home : folder ? FolderIcon : FileIcon),
-                isRestricted(node.can_see) && h(RemoveRedEye),
-                isRestricted(node.can_read) && h(Lock),
-                node.masks && h(Face),
+                isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
+                isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
+                node.masks && iconTooltip(Face, "Masks"),
                 !source?.endsWith(name) ? name
                     : h('span', {},
                         h('span', { className:styles.path }, source.slice(0,-name.length)),

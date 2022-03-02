@@ -1,9 +1,11 @@
 // This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, FunctionComponent, ReactElement,
+import { createElement as h, Fragment, ReactElement,
     ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
+import { SxProps } from '@mui/system'
+import { SvgIconComponent } from '@mui/icons-material'
 
 export type Dict<T = any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -94,9 +96,13 @@ export function onlyTruthy<T>(arr: T[]) {
     return arr.filter(truthy)
 }
 
-export function IconBtn({ title, icon, ...rest }: { title?: string, icon:FunctionComponent, [rest:string]:any }) {
+export function IconBtn({ title, icon, ...rest }: { title?: string, icon: SvgIconComponent, [rest:string]:any }) {
     const ret = h(IconButton, { ...rest }, h(icon))
     return title ? h(Tooltip, { title, children: ret }) : ret
+}
+
+export function iconTooltip(icon: SvgIconComponent, tooltip: string, sx?: SxProps) {
+    return h(Tooltip, { title: tooltip, children: h(icon, { sx }) })
 }
 
 export function prefix(pre:string, v:string|number, post:string='') {

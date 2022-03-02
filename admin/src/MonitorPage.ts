@@ -4,10 +4,10 @@ import _ from "lodash"
 import { isValidElement, createElement as h, useMemo, Fragment } from "react"
 import { apiCall, useApiComp, useApiList } from "./api"
 import { Delete, Lock, Refresh } from '@mui/icons-material'
-import { Box, Grid, Tooltip, Typography } from '@mui/material'
+import { Box, Grid, Typography } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
-import { formatBytes, IconBtn } from "./misc"
+import { formatBytes, IconBtn, iconTooltip } from "./misc"
 import { alertDialog } from "./dialog"
 import { prefix } from './misc'
 
@@ -77,7 +77,7 @@ function Connections() {
                 align: 'center',
                 renderCell: ({ value, row }) => h(Fragment, {},
                     'IPv' + value,
-                    row.secure && h(Tooltip, { title:"HTTPS", children: h(Lock, { sx:{ opacity:.5 } }) })
+                    row.secure && iconTooltip(Lock, "HTTPS", { opacity:.5 })
                 )
             },
             {
