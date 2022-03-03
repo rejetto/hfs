@@ -87,6 +87,12 @@ button, .breadcrumb { /* consistent focus color */
         outline: 3px solid var(--focus-color);
     }
 }
+input, select {
+    &:focus-visible {
+        outline: 1px solid var(--focus-color);
+        border: 2px solid var(--focus-color);
+    }
+}
 
 .error-msg {
     background-color: #faa;
@@ -217,6 +223,9 @@ button label {
 .dialog-backdrop.working {
     font-size: 5em;
     animation: 1s fade-in;
+}
+.dialog-content {
+    padding: .2em; /* give space for focus outline */
 }
 
 #paging {
