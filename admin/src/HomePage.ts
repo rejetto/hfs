@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h } from 'react'
+import { createElement as h, Fragment } from 'react'
 import { Alert, Box, Link } from '@mui/material'
 import { useApi } from './api'
 import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, spinner } from './misc'
@@ -39,10 +39,10 @@ export default function HomePage() {
         ) : h(Alert, { severity: 'warning' }, "Frontend unreachable: ",
             !cfg ? '...'
                 : errors.length === 2 ? "both http and https are in error"
-                    : [
+                    : h(Fragment, {},
                         ['http','https'].map(k => k + " " + (errorMap[k] ? "is in error" : "is off")).join(', '),
-                        !errors.length && [' - ', cfgLink("switch http or https on")]
-                    ]
+                        !errors.length && h(Fragment, {}, ' - ', cfgLink("switch http or https on"))
+                    )
         ),
 
         vfs?.root && !vfs.root.children?.length && !vfs.root.source &&
