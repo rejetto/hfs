@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { isValidElement, createElement as h, useState, useEffect, Fragment } from "react"
-import { apiCall, useApiComp } from './api'
+import { apiCall, useApi, useApiComp } from './api'
 import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Delete, Group, Person, PersonAdd, Refresh } from '@mui/icons-material'
 import { BoolField, Form, MultiSelectField, SelectField, StringField } from './Form'
@@ -32,6 +32,7 @@ export default function AccountsPage() {
     const [res, reload] = useApiComp('get_accounts')
     const [sel, setSel] = useState<string[]>([])
     const [add, setAdd] = useState(false)
+    const [config] = useApi('get_config', { only: ['admin_login'] }) // load values here and pass to AccountForm, to avoid unnecessary reloads
     const styles = useStyles()
     useEffect(() => { // if accounts are reloaded, review the selection to remove elements that don't exist anymore
         if (isValidElement(res) || !Array.isArray(res?.list)) return
@@ -105,6 +106,7 @@ export default function AccountsPage() {
                 h(CardContent, {},
                     account ? h(AccountForm, {
                         account,
+                        config,
                         groups: list.filter(x => !x.hasPassword).map( x => x.username ),
                         done(username) {
                             setAdd(false)
@@ -132,7 +134,7 @@ function hList(heading: string, list: any[]) {
     )
 }
 
-function AccountForm({ account, done, groups }: { account: Account, groups: string[], done: (username: string)=>void }) {
+function AccountForm({ account, done, groups, config }: { account: Account, groups: string[], done: (username: string)=>void, config: any }) {
     const [values, setValues] = useState<Account & { password?: string, password2?: string }>(account)
     const [belongsOptions, setBelongOptions] = useState<string[]>([])
     useEffect(() => {
@@ -155,6 +157,10 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
             !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'off', label: 'Repeat password' },
             { k: 'ignore_limits', comp: BoolField,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
+            { k: 'admin', comp: BoolField, label: "Permission to access Admin interface",
+                helperText: "It's THIS interface you are using right now."
+                    + (config.admin_login ? '' : " You are currently giving free access without login. You can force login in Configuration page.")
+            },
             { k: 'redirect', comp: StringField, helperText: "If you want this account to be redirected to a specific folder/address at login time" },
             { k: 'belongs', comp: MultiSelectField, label: "Inherits from", options: belongsOptions,
                 helperText: "Options and permissions of the selected groups will be applied to this account. "

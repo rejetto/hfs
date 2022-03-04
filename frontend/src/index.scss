@@ -213,6 +213,9 @@ ul.dir {
     display:flex;
     flex-direction: column;
     gap: 1em;
+    & a>button {
+        width: 100%;
+    }
 }
 
 button label {

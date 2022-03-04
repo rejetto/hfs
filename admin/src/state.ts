@@ -10,12 +10,16 @@ export const state = proxy<{
     changes: Dict
     vfs: VfsNode | undefined
     selectedFiles: VfsNode[]
+    loginRequired: boolean
+    username: string
 }>({
     title: '',
     config: {},
     changes: {},
     selectedFiles: [],
     vfs: undefined,
+    loginRequired: false,
+    username: '',
 })
 
 export function useSnapState() {

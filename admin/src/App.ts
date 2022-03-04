@@ -7,17 +7,30 @@ import { Box, ThemeProvider, Typography } from '@mui/material'
 import { Dialogs } from './dialog'
 import logo from './logo.svg'
 import { useMyTheme } from './theme'
+import { LoginRequired } from './LoginRequired'
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
-        h(BrowserRouter, {}, h(Routed)) )
+        h(ApplyTheme, {},
+            h(LoginRequired, {},
+                h(BrowserRouter, {}, h(Routed)) ) ) )
+}
+
+function ApplyTheme(props:any) {
+    return h(Box, {
+        sx: {
+            bgcolor:'background.default', color: 'text.primary',
+            position:'absolute', top:0, left:0, bottom:0, right:0,
+        },
+        ...props
+    })
 }
 
 function Routed() {
     const loc = useLocation().pathname.slice(1)
     const current = mainMenu.find(x => x.path === loc)
     const title = current && (current.title || getMenuLabel(current))
-    return h(Box, { display: 'flex', sx: { bgcolor:'background.default', color: 'text.primary' } },
+    return h(Box, { display: 'flex' },
         h(MainMenu, { current }),
         h(Box, {
             component: 'main',

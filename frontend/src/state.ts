@@ -23,6 +23,7 @@ export const state = proxy<{
     invertOrder: boolean,
     foldersFirst: boolean,
     theme: string,
+    admin_port?: number,
 }>({
     iconsClass: '',
     username: '',

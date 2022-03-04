@@ -61,6 +61,11 @@ export default function ConfigPage() {
                     { value: '0.0.0.0', label: 'any network' }
                 ]
             },
+            { k: 'admin_login', md: 6, comp: BoolField, label: 'Admin requires login',
+                disabled: !status?.any_admin_account,
+                helperText: (config.admin_network === '127.0.0.1' ? '' : "You should enable this because access is not restricted to localhost.")
+                    + (status?.any_admin_account ? '' : " Before this, you must go to Accounts and give Admin access to some account.")
+            },
             { k: 'max_kbps', comp: NumberField, label: 'Max KB/s', helperText: "Limit output bandwidth" },
             { k: 'max_kbps_per_ip', comp: NumberField, label: 'Max KB/s per-ip' },
             { k: 'log', comp: StringField, label: 'Main log file' },

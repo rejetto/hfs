@@ -2,7 +2,7 @@
 
 import { createElement as h, FunctionComponent } from 'react';
 import { List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
-import { AccountTree, ManageAccounts, Monitor, Public, Settings, SvgIconComponent } from '@mui/icons-material'
+import { AccountTree, Logout, ManageAccounts, Monitor, Public, Settings, SvgIconComponent } from '@mui/icons-material'
 import _ from 'lodash'
 import { Link } from 'react-router-dom'
 import MonitorPage from './MonitorPage'
@@ -10,6 +10,7 @@ import ConfigPage from './ConfigPage';
 import VfsPage from './VfsPage';
 import AccountsPage from './AccountsPage';
 import HomePage from './HomePage'
+import LogoutPage from './LogoutPage';
 
 interface MenuEntry {
     path: string
@@ -25,6 +26,7 @@ export const mainMenu: MenuEntry[] = [
     { path: 'configuration', icon: Settings, comp: ConfigPage },
     { path: 'fs', icon: AccountTree, label: 'File System', comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
+    { path: 'Logout', icon: Logout, comp: LogoutPage }
 ]
 
 interface MenuProps { current?:MenuEntry }

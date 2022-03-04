@@ -26,13 +26,12 @@ export async function login(username:string, password:string) {
         catch(e){
             console.debug(String(e))
             stopWorking()
-            await alertDialog("Server identity cannot be trusted. Login aborted.", 'error')
+            await alertDialog("Login aborted: server identity cannot be trusted", 'error')
             return
         }
 
         // login was successful, update state
-        sessionRefresher({ username, exp:res.exp })
-        state.username = username
+        sessionRefresher(res)
         return res
     }
     catch(err) {
@@ -50,8 +49,9 @@ sessionRefresher(window.SESSION)
 
 function sessionRefresher(response: any) {
     if (!response) return
-    const { exp, username } = response
+    const { exp, username, admin_port } = response
     state.username = username
+    state.admin_port = admin_port
     if (!username || !exp) return
     const delta = new Date(exp).getTime() - Date.now()
     const t = Math.min(delta - 30_000, 600_000)

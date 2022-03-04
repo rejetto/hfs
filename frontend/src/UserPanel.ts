@@ -6,7 +6,7 @@ import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from './api'
 import { logout } from './login'
-import { MenuButton } from './menu'
+import { MenuButton, MenuLink } from './menu'
 
 export default function showUserPanel() {
     newDialog({ Content })
@@ -15,17 +15,23 @@ export default function showUserPanel() {
 function Content() {
     const snap = useSnapState()
     return h('div', { id: 'user-panel' },
-        h('div', {}, 'User: ' + snap.username),
+        h('div', {}, "User: " + snap.username),
+        snap.admin_port && h(MenuLink, {
+            icon: 'admin',
+            label: "Admin interface",
+            href: 'http://' + window.location.hostname + ':' + snap.admin_port,
+            target: 'admin',
+        }),
         h(MenuButton, {
             icon: 'password',
-            label: 'Change password',
+            label: "Change password",
             async onClick() {
-                const pwd = await promptDialog('Enter new password', { type: 'password' })
+                const pwd = await promptDialog("Enter new password", { type: 'password' })
                 if (!pwd) return
-                const check = await promptDialog('RE-enter new password', { type: 'password' })
+                const check = await promptDialog("RE-enter new password", { type: 'password' })
                 if (!check) return
                 if (check !== pwd)
-                    return alertDialog('The second password you entered did not match the first. Procedure aborted.', 'warning')
+                    return alertDialog("The second password you entered did not match the first. Procedure aborted.", 'warning')
                 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
                 const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
                 await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }).catch(e => {
@@ -33,12 +39,12 @@ function Content() {
                         throw e
                     return apiCall('change_password', { newPassword: pwd }) // unencrypted version
                 })
-                return alertDialog('Password changed')
+                return alertDialog("Password changed")
             }
         }),
         h(MenuButton, {
             icon: 'logout',
-            label: 'Logout',
+            label: "Logout",
             onClick() {
                 logout().then(closeDialog)
             }

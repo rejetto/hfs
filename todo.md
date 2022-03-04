@@ -5,14 +5,17 @@ aggiornare admin gui
 counters: non contare richieste fallite
 consider having mime as ext,ext instead of *.ext|*.ext
 # To do
+- monorepo + share code between apps
+- admin/accounts: show icon for accounts with (possibly inherited) admin access
+- expose admin at same port of frontend
 - admin: improve masks editor
 - if specified config is a folder, check for file config.yaml inside
 - merge accounts in config
 - frontend: ok button to inputDialogs
 - admin: in a group, show linked accounts
+- admin/monitor: show file currently downloaded
 - admin/config: use filepicker for https files
 - admin: warn in case of items with same name
-- password protect admin
 - allowed referer
 - admin/plugins
 - download-counter: expose results on admin

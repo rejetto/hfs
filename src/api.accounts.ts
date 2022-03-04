@@ -2,7 +2,18 @@
 
 import { changePasswordHelper, changeSrpHelper } from './api.helpers'
 import { ApiError, ApiHandlers } from './apis'
-import { addAccount, delAccount, getAccount, getAccounts, setAccount } from './perm'
+import {
+    accountCanLogin,
+    accountHasPassword,
+    addAccount,
+    delAccount,
+    getAccount,
+    getAccounts,
+    getFromAccount,
+    setAccount
+} from './perm'
+import _ from 'lodash'
+import { getConfig } from './config'
 
 const apis: ApiHandlers = {
 
@@ -15,7 +26,7 @@ const apis: ApiHandlers = {
             list: Object.values(getAccounts()).map(ac => ({
                 ...ac,
                 username: ac.username, // it's hidden and won't be copied by the spread operator
-                hasPassword: Boolean(ac.password || ac.hashed_password || ac.srp),
+                hasPassword: accountHasPassword(ac),
                 password: undefined,
                 hashed_password: undefined,
                 srp: undefined,
@@ -24,7 +35,18 @@ const apis: ApiHandlers = {
     },
 
     set_account({ username, changes }) {
+        const { admin } = changes
+        if (typeof admin !== 'boolean' && typeof admin !== 'undefined')
+            return new ApiError(400, "admin must be boolean")
+        if (getConfig('admin_login') && admin === false && !anyOtherAccessibleAccountWithAdmin())
+            return new ApiError(403, "you can't disable admin because this is the last account with such permission")
         return setAccount(username, changes) ? {} : new ApiError(400)
+
+        function anyOtherAccessibleAccountWithAdmin() {
+            return _.some(getAccounts(), a => accountCanLogin(a)
+                // with undefined we invite search to continue to its groups, because disabling admin on an account will still leave its inheritance on
+                && Boolean(getFromAccount(a, a => a.username === username ? undefined : a.admin)))
+        }
     },
 
     add_account({ username, ...rest }) {

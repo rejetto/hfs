@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getAccount, getCurrentUsername } from './perm'
+import { getAccount, getCurrentUsername, getFromAccount } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apis'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
@@ -8,6 +8,7 @@ import { SESSION_DURATION } from './const'
 import { randomId } from './misc'
 import Koa from 'koa'
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
+import { getListeningAdminPort } from './listen'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 const srpSession = new SRPServerSession(srp6aNimbusRoutines)
@@ -61,6 +62,8 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
         return new ApiError(401)
     if (!account.srp)
         return new ApiError(406) // unacceptable
+    if (ctx.state.admin && !getFromAccount(account, a => a.admin))
+        return new ApiError(403)
 
     const [salt, verifier] = account.srp.split('|')
     const step1 = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
@@ -81,7 +84,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
         loggedIn(ctx, username)
         const acc = getAccount(username)
-        return { proof: String(M2), redirect: acc?.redirect, ...makeExp() }
+        return { proof: String(M2), redirect: acc?.redirect, ...await refresh_session({},ctx) }
     }
     catch(e) {
         return new ApiError(401, String(e))
@@ -100,9 +103,11 @@ export const logout: ApiHandler = async ({}, ctx) => {
 }
 
 export const refresh_session: ApiHandler = async ({}, ctx) => {
-    if (!ctx.session)
-        return new ApiError(500)
-    return { username: getCurrentUsername(ctx), ...makeExp() }
+    return !ctx.session ? new ApiError(500) : {
+        username: getCurrentUsername(ctx),
+        ...makeExp(),
+        admin_port: ctx.state.admin ? undefined : getListeningAdminPort()
+    }
 }
 
 export const change_password: ApiHandler = async ({ newPassword }, ctx) => {

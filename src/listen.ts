@@ -2,7 +2,7 @@
 
 import * as http from 'http'
 import { defineConfig, getConfig, subscribeConfig } from './config'
-import { adminApp, app } from './index'
+import { adminApp, frontendApp } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
@@ -20,7 +20,7 @@ let adminSrv: http.Server & ServerExtra
 
 subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
     await stopServer(httpSrv)
-    httpSrv = http.createServer(app.callback())
+    httpSrv = http.createServer(frontendApp.callback())
     port = await startServer(httpSrv, { port, name:'http' })
     if (!port) return
     httpSrv.on('connection', newConnection)
@@ -78,7 +78,7 @@ async function considerHttps() {
     await stopServer(httpsSrv)
     let port = getConfig('https_port')
     try {
-        httpsSrv = https.createServer({ key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback())
+        httpsSrv = https.createServer({ key: httpsNeeds.private_key, cert: httpsNeeds.cert }, frontendApp.callback())
         const missingKey = _.findKey(httpsNeeds, v => !v) as keyof typeof httpsNeeds
         httpsSrv.error = port < 0 ? undefined
             : missingKey && prefix(getConfig(missingKey) ? "cannot read file for " : "missing ", httpsNeedsNames[missingKey])
@@ -175,3 +175,6 @@ function printUrls(port: number, proto: string) {
     }
 }
 
+export function getListeningAdminPort() {
+    return (adminSrv.address() as any)?.port as number | undefined
+}

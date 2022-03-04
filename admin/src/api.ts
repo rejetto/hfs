@@ -4,6 +4,7 @@ import { createElement as h, ReactElement, useCallback, useEffect, useMemo, useR
 import { Dict, Falsy, getCookie, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
+import { state } from './state'
 
 export function useApiComp<T=any>(...args: Parameters<typeof useApi>): [T | ReactElement, ()=>void] {
     const [res, reload] = useApi<T>(...args)
@@ -30,6 +31,8 @@ export function apiCall(cmd: string, params?: Dict) : Promise<any> {
             })
         const msg = 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
+        if (res.status === 401)
+            state.loginRequired = true
         throw new ApiError(res.status, msg)
     }, err => {
         throw err

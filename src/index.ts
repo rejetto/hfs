@@ -8,8 +8,7 @@ import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { getAccount, getCurrentUsername, getCurrentUsernameExpanded } from './perm'
-import { headRequests, gzipper, sessions, frontendAndSharedFiles, someSecurity } from './middlewares'
+import { headRequests, gzipper, sessions, frontendAndSharedFiles, someSecurity, prepareState } from './middlewares'
 import './listen'
 import { serveAdminFiles } from './serveFrontend'
 import { adminApis } from './adminApis'
@@ -20,30 +19,28 @@ console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
 console.debug('cwd', process.cwd())
 
-export const adminApp = new Koa()
-    .use(someSecurity)
+const keys = ['hfs-keys-test']
+
+export const adminApp = new Koa({ keys })
+adminApp.use(someSecurity)
+    .use(sessions(adminApp))
+    .use(prepareState(true))
     .use(mount(API_URI, apiMiddleware(adminApis)))
     .use(serveAdminFiles)
     .on('error', errorHandler)
 
-export const app = new Koa({ keys: ['hfs-keys-test'] })
-app.use(someSecurity)
-app.use(sessions(app))
-app.use(async (ctx, next) => {
-    ctx.state.usernames = getCurrentUsernameExpanded(ctx) // accounts chained via .belongs for permissions check
-    ctx.state.account = getAccount(getCurrentUsername(ctx))
-    await next()
-})
-app.use(headRequests)
-app.use(log())
-app.use(pluginsMiddleware())
-app.use(throttler())
-app.use(gzipper)
-
-// serve apis
-app.use(mount(API_URI, apiMiddleware(frontEndApis)))
-app.use(frontendAndSharedFiles)
-app.on('error', errorHandler)
+export const frontendApp = new Koa({ keys })
+frontendApp.use(someSecurity)
+    .use(sessions(frontendApp))
+    .use(prepareState())
+    .use(headRequests)
+    .use(log())
+    .use(pluginsMiddleware())
+    .use(throttler())
+    .use(gzipper)
+    .use(mount(API_URI, apiMiddleware(frontEndApis)))
+    .use(frontendAndSharedFiles)
+    .on('error', errorHandler)
 
 function errorHandler(err:Error & { code:string, path:string }) {
     const { code } = err

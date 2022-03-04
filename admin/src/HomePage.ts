@@ -6,13 +6,15 @@ import { useApi } from './api'
 import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, spinner } from './misc'
 import { Launch } from '@mui/icons-material'
 import md from './md'
+import { useSnapState } from './state'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
 export default function HomePage() {
+    const { username } = useSnapState()
     const [status] = useApi<Dict<ServerStatus>>('get_status')
     const [vfs] = useApi('get_vfs')
-    const [cfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key'] })
+    const [cfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key', 'admin_network'] })
     if (!status)
         return spinner()
     const { http, https } = status
@@ -25,6 +27,7 @@ export default function HomePage() {
     const errors = errorMap && onlyTruthy(Object.entries(errorMap).map(([k,v]) =>
         v && [md(`Protocol _${k}_ cannot work: `), v, typeof v === 'string' && /certificate|key/.test(v) && [' - ', cfgLink("provide adequate files")]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
+        username && h(Alert, { severity: 'info' }, "Welcome "+username),
         !cfg ? spinner() :
             errors.length ? errors.map((msg, i) => h(Alert, { key: i, severity: 'error' }, dontBotherWithKeys(msg)))
                 : href && h(Alert, { severity: 'success' }, "Server is working"),
@@ -44,6 +47,7 @@ export default function HomePage() {
                         !errors.length && h(Fragment, {}, ' - ', cfgLink("switch http or https on"))
                     )
         ),
+        !username && cfg?.admin_network !== '127.0.0.1' && h(Alert, { severity: 'warning' }, "Admin interface is not limited to localhost - ", cfgLink("restrict access with login")),
 
         vfs?.root && !vfs.root.children?.length && !vfs.root.source &&
             h(Alert, { severity: 'warning' }, "You have no files shares - ", fsLink("add some files"))

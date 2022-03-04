@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, ReactElement,
     ReactNode, useCallback, useEffect, useRef, useState } from 'react'
-import { CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
+import { Box, CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { SxProps } from '@mui/system'
 import { SvgIconComponent } from '@mui/icons-material'
@@ -131,3 +131,8 @@ export function dontBotherWithKeys(elements: ReactNode[]): (ReactNode|string)[] 
 export function InLink(props:any) {
     return h(Link, { component: RouterLink, ...props })
 }
+
+export function Center(props: any) {
+    return h(Box, { display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center', ...props })
+}
+

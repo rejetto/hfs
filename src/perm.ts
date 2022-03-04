@@ -19,6 +19,7 @@ export interface Account {
     srp?: string
     belongs?: string[]
     ignore_limits?: boolean
+    admin?: boolean
     redirect?: string
 }
 interface Accounts { [username:string]: Account }
@@ -146,7 +147,7 @@ export function renameAccount(from: string, to: string) {
     }
 }
 
-const assignableProps = ['redirect','ignore_limits','belongs']
+const assignableProps = ['redirect','ignore_limits','belongs','admin']
 
 export function addAccount(username: string, props: Partial<Account>) {
     if (!username || accounts[username])
@@ -154,6 +155,7 @@ export function addAccount(username: string, props: Partial<Account>) {
     const copy = { username, ..._.pick(props, assignableProps) }
     setHidden(copy, { username })
     accounts[username] = copy
+    saveAccountsAsap()
     return copy
 }
 
@@ -162,6 +164,7 @@ export function setAccount(username: string, changes: Partial<Account>) {
     if (newU)
         renameAccount(username, newU)
     Object.assign(getAccount(newU || username), _.pick(rest, assignableProps))
+    saveAccountsAsap()
     return true
 }
 
@@ -169,5 +172,28 @@ export function delAccount(username: string) {
     if (!getAccount(username))
         return false
     delete accounts[username]
+    saveAccountsAsap()
     return true
+}
+
+// get some property from account, searching in its groups if necessary. Search is breadth-first, and this determines priority of inheritance.
+export function getFromAccount<T=any>(account: Account | string, getter:(a:Account) => T) {
+    const search = [account]
+    for (const accountOrUsername of search) {
+        const a = typeof accountOrUsername === 'string' ? getAccount(accountOrUsername) : accountOrUsername
+        if (!a) continue
+        const res = getter(a)
+        if (res !== undefined)
+            return res
+        if (a.belongs)
+            search.push(...a.belongs)
+    }
+}
+
+export function accountHasPassword(account: Account) {
+    return Boolean(account.password || account.hashed_password || account.srp)
+}
+
+export function accountCanLogin(account: Account) {
+    return accountHasPassword(account)
 }

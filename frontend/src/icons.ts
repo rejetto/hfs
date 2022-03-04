@@ -21,6 +21,7 @@ const SYS_ICONS = {
     password: 'key:🗝️',
     download: ':📥',
     invert: 'retweet:🙃',
+    admin: 'crown:👑',
 }
 
 document.fonts.ready.then(async ()=> {

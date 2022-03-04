@@ -13,6 +13,7 @@ import { serveFileNode } from './serveFile'
 import { serveFrontend } from './serveFrontend'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
+import { getAccount, getCurrentUsername, getCurrentUsernameExpanded } from './perm'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -91,3 +92,13 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     return next()
 }
 
+export function prepareState(admin=false): Koa.Middleware {
+    return async (ctx, next) => {
+        ctx.state.usernames = getCurrentUsernameExpanded(ctx) // accounts chained via .belongs for permissions check
+        ctx.state.account = getAccount(getCurrentUsername(ctx))
+        ctx.state.admin = admin
+        if (admin)
+            ctx.state.accountIsAdmin = ctx.state.usernames.some((u:string) => getAccount(u)?.admin)
+        await next()
+    }
+}

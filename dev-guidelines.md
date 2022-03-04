@@ -9,3 +9,6 @@
   - it's easier to keep the frontend smaller for faster load
 
   Of course this comes with a price to pay on the programmer's side, more work to do.  
+
+# Syntax
+- For strings, I'm trying to use double-quotes or backticks for text that's read by the user, and single-quotes elsewhere.  
