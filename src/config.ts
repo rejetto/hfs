@@ -71,7 +71,7 @@ export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:strin
     return _.cloneDeep(copy)
 }
 
-// pass a value to `save` to force saving decision, or leave undefined for auto
+// pass a value to `save` to force saving decision, or leave undefined for auto. Passing false will also reset previously loaded configs.
 export function setConfig(newCfg: Record<string,any>, save?: boolean) {
     for (const k in newCfg)
         check(k)
@@ -79,7 +79,13 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
         saveConfigAsap().then()
         return
     }
-    if (started) return
+    if (started) {
+        if (save === false) // false is used when loading whole config, and in such case we should not leave previous values untreated. Also, we need this only after we already `started`.
+            for (const k of Object.keys(state))
+                if (!newCfg.hasOwnProperty(k))
+                    check(k)
+        return
+    }
     // first time we emit also for the default values
     for (const k of Object.keys(configProps))
         if (!newCfg.hasOwnProperty(k))
