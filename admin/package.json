@@ -1,6 +1,5 @@
 {
   "name": "admin",
-  "version": "0.12.0",
   "private": true,
   "proxy": "http://localhost:63636",
   "scripts": {

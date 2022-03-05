@@ -1,6 +1,5 @@
 {
   "name": "frontend",
-  "version": "0.12.0",
   "private": true,
   "proxy": "http://localhost",
   "scripts": {
@@ -19,15 +18,15 @@
     "tssrp6a": "^3.0.0",
     "use-debounce": "^7.0.1",
     "valtio": "^1.2.7",
-    "web-vitals": "^1.0.1"
+    "web-vitals": "^2.1.4"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.11.4",
-    "@testing-library/react": "^11.1.0",
-    "@testing-library/user-event": "^12.1.10",
-    "@types/jest": "^26.0.15",
+    "@testing-library/jest-dom": "^5.16.1",
+    "@testing-library/react": "^12.1.2",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.4.0",
     "@types/lodash": "^4.14.178",
-    "@types/node": "^12.0.0",
+    "@types/node": "^16.11.21",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
     "cross-env": "^7.0.3",

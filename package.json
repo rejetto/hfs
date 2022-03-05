@@ -9,6 +9,7 @@
   "homepage": "https://rejetto.com/hfs",
   "license": "GPL-3.0",
   "author": "Massimo Melina <a@rejetto.com>",
+  "workspaces": [ "admin", "frontend" ],
   "scripts": {
     "watch-server": "nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src/index.ts",
     "start-frontend": "cd frontend && npm run start",
