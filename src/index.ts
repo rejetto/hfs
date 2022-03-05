@@ -14,6 +14,8 @@ import { serveAdminFiles } from './serveFrontend'
 import { adminApis } from './adminApis'
 
 if (DEV) console.clear()
+console.log(`HFS ~ HTTP File Server - Copyright 2020-2021, Massimo Melina <a@rejetto.com>`)
+console.log(`License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
