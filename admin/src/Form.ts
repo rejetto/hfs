@@ -75,7 +75,7 @@ export function Form({ fields, values, set, defaults, save, sticky, addToBar=[],
                         }
                         if (field.label === undefined)
                             field.label = _.capitalize(k.replaceAll('_', ' '))
-                        Object.assign(field, defaults?.(field))
+                        _.defaults(field, defaults?.(field))
                     }
                     const { xs=12, sm, md, lg, xl, comp=StringField, ...rest } = field
                     return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
