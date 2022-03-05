@@ -23,13 +23,13 @@ export function apiCall(cmd: string, params?: Dict) : Promise<any> {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: params && JSON.stringify(params),
-    }).then(res => {
+    }).then(async res => {
         if (res.ok)
             return res.json().then(json => {
                 console.debug('API', cmd, params, '>>', json)
                 return json
             })
-        const msg = 'Failed API ' + cmd
+        const msg = await res.text() || 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
         if (res.status === 401)
             state.loginRequired = true
