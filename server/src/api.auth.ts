@@ -117,3 +117,10 @@ export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
 export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
     return changeSrpHelper(ctx.state.account, salt, verifier)
 }
+
+/*
+export const admin_port: ApiHandler = async ({}, ctx) => {
+    return ctx.state.admin ? { admin_port: getListeningAdminPort() }
+        : new ApiError(403)
+}
+*/
