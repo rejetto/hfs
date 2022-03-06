@@ -6,3 +6,4 @@ counters.yaml
 *.log
 config.yaml
 accounts.yaml
+shared/lib

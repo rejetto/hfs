@@ -1,0 +1,42 @@
+import { createElement as h, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+
+export function useIsMounted() {
+    const mountRef = useRef(false)
+    useEffect(() => {
+        mountRef.current = true
+        return () => {
+            mountRef.current = false
+        }
+    }, [])
+    return useCallback(()=> mountRef.current, [mountRef])
+}
+
+export function useStateMounted<T>(init: T) {
+    const isMounted = useIsMounted()
+    const [v, set] = useState(init)
+    const setIfMounted = useCallback((newValue:T | ((previous:T)=>T)) => {
+        if (isMounted())
+            set(newValue)
+    }, [isMounted, set])
+    return [v, setIfMounted, isMounted] as [T, typeof setIfMounted, typeof isMounted]
+}
+
+export function reactFilter(elements: any[]) {
+    return elements.filter(x=> x===0 || x && (!Array.isArray(x) || x.length))
+}
+
+export function reactJoin(joiner: string | ReactElement, elements: Parameters<typeof reactFilter>[0]) {
+    const ret = []
+    for (const x of reactFilter(elements))
+        ret.push(x, joiner)
+    ret.splice(-1,1)
+    return dontBotherWithKeys(ret)
+}
+
+export function dontBotherWithKeys(elements: ReactNode[]): (ReactNode|string)[] {
+    return elements.map((e,i)=>
+        !e || typeof e === 'string' ? e
+            : Array.isArray(e) ? dontBotherWithKeys(e)
+                : h(Fragment, { key:i, children:e }) )
+}
+

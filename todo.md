@@ -5,7 +5,6 @@ aggiornare admin gui
 counters: non contare richieste fallite
 consider having mime as ext,ext instead of *.ext|*.ext
 # To do
-- monorepo + share code between apps
 - admin/accounts: show icon for accounts with (possibly inherited) admin access
 - expose admin at same port of frontend
 - admin: improve masks editor

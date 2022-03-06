@@ -1,0 +1,16 @@
+{
+  "name": "shared",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "test": "test",
+    "build": "tsc && yarn sass src/:lib/"
+  },
+  "devDependencies": {
+    "react": "*",
+    "react-dom": "*",
+    "react-scripts": "*",
+    "typescript": "*",
+    "sass": "*"
+  }
+}
