@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
-import { BoolField, DisplayField, FieldComponent, FieldProps, Form, MultiSelectField, SelectField } from './Form'
+import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from './Form'
 import { apiCall, useApi } from './api'
 import { formatBytes, isEqualLax, onlyTruthy } from './misc'
 import { reloadVfs, Who } from './VfsPage'
@@ -121,7 +121,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, ...rest }: WhoFi
 
     const arrayMode = Array.isArray(value)
     return h('div', {},
-        h(SelectField as FieldComponent<Who>, {
+        h(SelectField as Field<Who>, {
             ...rest,
             value: arrayMode ? [] : value,
             onChange(v, { was, event }) {
@@ -129,7 +129,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, ...rest }: WhoFi
             },
             options
         }),
-        arrayMode && h(MultiSelectField as FieldComponent<string[]>, {
+        arrayMode && h(MultiSelectField as Field<string[]>, {
             label: "Choose accounts for " + rest.label,
             value,
             onChange,

@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, isValidElement, ReactElement, useEffect, useState } from 'react'
+import { createElement as h, FC, Fragment, isValidElement, ReactElement, useEffect, useState } from 'react'
 import {
     Box,
     Button,
@@ -20,7 +20,7 @@ import _ from 'lodash'
 interface FieldDescriptor { k:string, comp?: any, label?: string | ReactElement, [extraProp:string]:any }
 
 // it seems necessary to cast (Multi)SelectField sometimes
-export type FieldComponent<T> = (props:FieldProps<T>) => ReactElement
+export type Field<T> = FC<FieldProps<T>>
 
 interface FormProps {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
@@ -94,8 +94,6 @@ export interface FieldProps<T> {
     fromField?: (v: T) => any
     [rest: string]: any
 }
-
-export type Field<T> = (props:FieldProps<T>) => ReactElement
 
 export function StringField({ value, onChange, fromField=_.identity, toField=_.identity, ...props }: FieldProps<string>) {
     if (fromField === JSON.parse)
