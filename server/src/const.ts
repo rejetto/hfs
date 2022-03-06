@@ -5,7 +5,6 @@ import * as fs from 'fs'
 import _ from 'lodash'
 
 export const DEV = process.env.DEV ? 'DEV' : ''
-console.debug(process.cwd())
 export const HFS_STARTED = new Date()
 export const BUILD_TIMESTAMP = ''
 export const VERSION = ''

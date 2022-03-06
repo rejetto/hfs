@@ -108,7 +108,7 @@ export function StringField({ value, onChange, fromField=_.identity, toField=_.i
     useEffect(() => {
         setState(() => toField(value) ?? '')
         setErr('')
-    }, [value])
+    }, [value, toField])
     return h(TextField, {
         fullWidth: true,
         ...props,
@@ -219,7 +219,7 @@ export function BoolField({ label='', value, onChange, helperText, fromField=_.i
     const setter = () => toField(value) ?? false
     const [state, setState] = useState(setter)
     useEffect(() => setState(setter),
-        [value])
+        [value]) //eslint-disable-line
     const control = h(Switch, {
         checked: state,
         ...props,
