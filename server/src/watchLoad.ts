@@ -34,12 +34,15 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     }
 
     function init() {
+        let triggered = false
         try {
             watcher = watch(path, ()=> {
+                triggered = true
                 if (!saving)
                     debounced().then()
             })
-            debounced().then() // if file is not accessible watch will throw, and we won't get here
+            if (!triggered)
+                debounced().then() // if file is not accessible watch will throw, and we won't get here
         }
         catch {
             retry = setTimeout(init, 1000) // manual watching until watch is successful
@@ -65,4 +68,3 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         }
     }
 }
-
