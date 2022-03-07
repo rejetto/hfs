@@ -227,7 +227,7 @@ export function BoolField({ label='', value, onChange, helperText, fromField=_.i
             onChange(fromField(event.target.checked), { event, was: value })
         }
     })
-    return h(Box, { ml: 1 },
+    return h(Box, { ml: 1, mt: 1 },
         h(FormControlLabel, { label, control, labelPlacement: 'end' }),
         helperText && h(FormHelperText,{},helperText)
     )
