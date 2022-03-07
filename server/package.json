@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "@hfs/server",
   "engines": {
     "node": ">=16.13.0"
   },

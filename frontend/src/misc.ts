@@ -4,8 +4,8 @@ import { createElement as h } from 'react'
 import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
-import { Dict } from 'shared'
-export * from 'shared'
+import { Dict } from '@hfs/shared'
+export * from '@hfs/shared'
 
 export function hIcon(name: string, props?:any) {
     return h(Icon, { name, ...props })

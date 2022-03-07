@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "@hfs/frontend",
   "private": true,
   "proxy": "http://localhost",
   "scripts": {

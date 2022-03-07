@@ -1,5 +1,5 @@
 {
-  "name": "shared",
+  "name": "@hfs/shared",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "scripts": {

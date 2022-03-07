@@ -9,9 +9,8 @@ import {
     useRef
 } from 'react'
 import { Check, Error as ErrorIcon, Info, Warning } from '@mui/icons-material'
-import { newDialog, closeDialog, dialogsDefaults, DialogOptions, Dialogs } from 'shared/lib/dialogs'
-export { Dialogs }
-export * from 'shared/lib/dialogs'
+import { newDialog, closeDialog, dialogsDefaults, DialogOptions, Dialogs } from '@hfs/shared/lib/dialogs'
+export * from '@hfs/shared/lib/dialogs'
 
 dialogsDefaults.Container = Container
 function Container(d:DialogOptions) {

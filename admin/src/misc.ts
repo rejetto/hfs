@@ -5,7 +5,7 @@ import { Box, CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { SxProps } from '@mui/system'
 import { SvgIconComponent } from '@mui/icons-material'
-export * from 'shared'
+export * from '@hfs/shared'
 
 export function spinner() {
     return h(CircularProgress)

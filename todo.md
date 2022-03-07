@@ -1,9 +1,3 @@
-NO: provare ad usare il name invece del rename: è complesso invertire, e bisogna comunque impedire di usarlo con le mask. Non vale la pena
-OK verificare che walknode/file_list non produca entries con search
-OK migliorare codice
-aggiornare admin gui
-counters: non contare richieste fallite
-consider having mime as ext,ext instead of *.ext|*.ext
 # To do
 - admin/accounts: show icon for accounts with (possibly inherited) admin access
 - expose admin at same port of frontend

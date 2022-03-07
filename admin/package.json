@@ -1,5 +1,5 @@
 {
-  "name": "admin",
+  "name": "@hfs/admin",
   "private": true,
   "proxy": "http://localhost:63636",
   "scripts": {
