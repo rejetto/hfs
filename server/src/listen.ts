@@ -176,5 +176,5 @@ function printUrls(port: number, proto: string) {
 }
 
 export function getListeningAdminPort() {
-    return (adminSrv.address() as any)?.port as number | undefined
+    return (adminSrv?.address() as any)?.port as number | undefined
 }
