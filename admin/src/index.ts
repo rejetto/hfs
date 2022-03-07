@@ -3,7 +3,7 @@
 import { createElement as h, StrictMode } from 'react'
 import ReactDOM from 'react-dom';
 import './index.css';
-import './min-crypto-polyfill'
+import '@hfs/shared/src/min-crypto-polyfill'
 import App from './App';
 //import reportWebVitals from './reportWebVitals';
 
