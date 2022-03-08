@@ -3,10 +3,10 @@
 import { isValidElement, createElement as h, useState, useEffect, Fragment } from "react"
 import { apiCall, useApi, useApiComp } from './api'
 import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Delete, Group, Person, PersonAdd, Refresh } from '@mui/icons-material'
+import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
 import { BoolField, Form, MultiSelectField, SelectField, StringField } from './Form'
 import { alertDialog, confirmDialog } from './dialog'
-import { isEqualLax, onlyTruthy } from './misc'
+import { iconTooltip, isEqualLax, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import { makeStyles } from '@mui/styles'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
@@ -23,6 +23,7 @@ const useStyles = makeStyles({
 interface Account {
     username: string
     hasPassword?: boolean
+    adminActualAccess?: boolean
     ignore_limits?: boolean
     redirect?: string
     belongs?: string[]
@@ -93,6 +94,7 @@ export default function AccountsPage() {
                         nodeId: ac.username,
                         label: h('div', { className: styles.label },
                             account2icon(ac),
+                            ac.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin"),
                             ac.username,
                             Boolean(ac.belongs?.length) && h(Box, { sx: { color: 'text.secondary', fontSize: 'small' } },
                                 '(', ac.belongs?.join(', '), ')')
@@ -157,7 +159,7 @@ function AccountForm({ account, done, groups, config }: { account: Account, grou
             !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'off', label: 'Repeat password' },
             { k: 'ignore_limits', comp: BoolField,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
-            { k: 'admin', comp: BoolField, label: "Permission to access Admin interface",
+            { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Permission to access Admin interface",
                 helperText: "It's THIS interface you are using right now."
                     + (config.admin_login ? '' : " You are currently giving free access without login. You can force login in Configuration page.")
             },

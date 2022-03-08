@@ -36,8 +36,10 @@ const apis: ApiHandlers = {
 
     set_account({ username, changes }) {
         const { admin } = changes
-        if (typeof admin !== 'boolean' && typeof admin !== 'undefined')
-            return new ApiError(400, "admin must be boolean")
+        if (admin === null)
+            changes.admin = undefined
+        else if (typeof admin !== 'boolean')
+            return new ApiError(400, "invalid admin")
         if (getConfig('admin_login') && admin === false && !anyOtherAccessibleAccountWithAdmin())
             return new ApiError(403, "you can't disable admin because this is the last account with such permission")
         return setAccount(username, changes) ? {} : new ApiError(400)
