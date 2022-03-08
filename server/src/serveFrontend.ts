@@ -30,7 +30,7 @@ function serveProxyFrontend(port?: string) { // used for development
 }
 
 // in case of dev env we have our static files within the 'dist' folder'
-const DEV_STATIC = process.env.DEV ? 'dist/' : ''
+const DEV_STATIC = process.env.DEV ? '../dist/' : ''
 
 const serveStaticFrontend : Koa.Middleware =  async (ctx, next) => {
     const isDir = ctx.path.endsWith('/')
