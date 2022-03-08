@@ -11,7 +11,6 @@
 - allowed referer
 - admin/plugins
 - download-counter: expose results on admin
-- log rotation
 - log filter option
 - log filter plugin
 - publish to npm (so people can "npm install hfs")

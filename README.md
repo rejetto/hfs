@@ -76,9 +76,9 @@ This will give you auto-restarting of the server on back-end changes.
 Set an env `DEV=1` to let the code know we are in a dev environment. 
 
 If you want to work on the frontend and admin too, you should *first*
-1. set an env `FRONTEND_PROXY=3000`
+1. set an env `FRONTEND_PROXY=3005`
 2. `npm run start-frontend`
-1. set an env `ADMIN_PROXY=3001`
+1. set an env `ADMIN_PROXY=3006`
 2. `npm run start-admin`
 
 Having this env-s will make the server get all related stuff from the other dev servers.
@@ -193,6 +193,7 @@ Supported entries are:
 - `admin_port` the port where to reach admin interface. Default is 63636.
 - `admin_network` the network address where to reach admin interface. Default is 127.0.0.1 .
 - `log` path of the log file. Default is `access.log`.
+- `log_rotation` frequency of log rotation. Accepted values are `daily`, `weekly`, `monthly`, or empty string to disable. Default is `weekly`.  
 - `error_log` path of the log file for errors. Default is `error.log`.
 - `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
 - `accounts` path of the accounts file. Default is `accounts.yaml`.
@@ -202,7 +203,7 @@ Supported entries are:
   You can use the special value `auto` to attempt automatic detection.
 - `max_kbps` throttle output speed. Default is Infinity.
 - `max_kbps_per_ip` throttle output speed on a per-ip basis. Default is Infinity.
-- `zip-calculate-size-for-seconds` how long should we wait before the zip archive starts streaming, trying to understand its finale size. Default is 1.
+- `zip_calculate_size_for_seconds` how long should we wait before the zip archive starts streaming, trying to understand its finale size. Default is 1.
 - `open_browser_at_start` should HFS open browser on localhost on start? Default is true.
 - `https_port` listen on a specific port. Default is 443.
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
@@ -265,7 +266,9 @@ gather multiple accounts and refer to them collectively as `group1`, so you can 
 Other options you can define as properties of an account:
 
 - `ignore_limits` to ignore speed limits. Default is `false`.
-- `redirect` provide a URL if you want the user to be redirected upon login. Default is none. 
+- `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
+- `admin` set `true` if you want to give access to the Admin interface when it's configured to require login.
+- `belongs` an array of usernames of other accounts from which to inherit their permissions. 
 
 ## License
 

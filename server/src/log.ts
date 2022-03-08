@@ -2,18 +2,32 @@
 
 import Koa from 'koa'
 import { Writable } from 'stream'
-import { getConfig, subscribeConfig } from './config'
+import { defineConfig, getConfig, subscribeConfig } from './config'
 import { createWriteStream } from 'fs'
 import * as util from 'util'
+import { rename, stat } from 'fs/promises'
 
 class Logger {
     stream?: Writable
+    last?: Date
+    path: string = ''
 
-    setPath(path: string) {
+    async setPath(path: string) {
+        this.path = path
         this.stream?.end()
+        this.last = undefined
         if (!path)
             return this.stream = undefined
-        this.stream = createWriteStream(path, { flags: 'a' })
+        try {
+            const stats = await stat(path)
+            this.last = stats.mtime || stats.ctime
+        }
+        catch {}
+        this.reopen()
+    }
+
+    reopen() {
+        this.stream = createWriteStream(this.path, { flags: 'a' })
     }
 }
 
@@ -30,16 +44,36 @@ subscribeConfig({ k: 'error_log', defaultValue: 'error.log' }, path => {
     errorLogger.setPath(path)
 })
 
+function getMidnight(date: Date=new Date) {
+    date.setHours(0,0,0,0)
+    return date
+}
+
+defineConfig('log_rotation', { defaultValue: 'weekly' })
+
 export function log(): Koa.Middleware {
     return async (ctx, next) => {  // wrapping in a function will make it use current 'mw' value
         await next()
         const isError = ctx.status >= 400
-        let st = isError && !getConfig('errors_in_main_log') && errorLogger.stream || accessLogger.stream
-        if (!st) return
+        const logger = isError && !getConfig('errors_in_main_log') && errorLogger || accessLogger
+        const freq = getConfig('log_rotation')
+        const { stream, last, path } = logger
+        if (!stream) return
+        const now = new Date()
+        const a = now.toString().split(' ')
+        if (freq && last) {
+            const method = freq[0] === 'w' ? 'getDay' : freq[0] === 'm' ? 'getDate' : 'getTime'
+            if (getMidnight(now)[method]() !== getMidnight(last)[method]()) {
+                stream.end()
+                const postfix = last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
+                await rename(path, path + '-' + postfix)
+                logger.reopen()
+            }
+        }
+        logger.last = now
         const format = '%s - - [%s] "%s %s HTTP/%s" %d %s\n';
-        const a = new Date().toString().split(' ')
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5].slice(3)
-        st.write(util.format( format,
+        logger.stream!.write(util.format( format,
             ctx.ip,
             date,
             ctx.method,
@@ -49,4 +83,8 @@ export function log(): Koa.Middleware {
             ctx.length ? ctx.length.toString() : '-',
         ))
     }
+}
+
+function doubleDigit(n: number) {
+    return n > 9 ? n : '0'+n
 }

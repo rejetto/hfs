@@ -70,6 +70,9 @@ export default function ConfigPage() {
             { k: 'max_kbps_per_ip', comp: NumberField, label: 'Max KB/s per-ip' },
             { k: 'log', comp: StringField, label: 'Main log file' },
             { k: 'error_log', comp: StringField, label: 'Error log file' },
+            { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
+                helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
+            },
             { k: 'accounts', comp: StringField, label: 'Accounts file' },
             { k: 'open_browser_at_start', comp: BoolField },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, label: 'Calculate ZIP size for seconds',

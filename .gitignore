@@ -3,7 +3,7 @@ node_modules
 dist
 #produced by running
 counters.yaml
-*.log
+*.log*
 config.yaml
 accounts.yaml
 shared/lib
