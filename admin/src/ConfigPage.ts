@@ -27,7 +27,7 @@ export default function ConfigPage() {
     const { changes } = snap
     const config = (loaded !== res) ? (state.config = loaded = res) : snap.config
     return h(Form, {
-        sx: { maxWidth:'80em' },
+        sx: { maxWidth:'90em' },
         values: config,
         set(v, { k }) {
             if (v || config[k])
@@ -46,8 +46,11 @@ export default function ConfigPage() {
             startIcon: h(Refresh),
         }, 'Reload')],
         defaults({ comp }) {
-            const shortField = comp === NumberField || comp === BoolField
-            return { md: shortField ? 3 : 6 }
+            if (comp === ServerPort)
+                return { md: 6, xl: 4 }
+            if (comp === NumberField)
+                return { md:3, xl: 2 }
+            return { md: 6, xl: 4 }
         },
         fields: [
             { k: 'port', comp: ServerPort, label:'HTTP port', status: status?.http||true, suggestedPort: 80 },
@@ -61,22 +64,22 @@ export default function ConfigPage() {
                     { value: '0.0.0.0', label: 'any network' }
                 ]
             },
-            { k: 'admin_login', md: 6, comp: BoolField, label: 'Admin requires login',
+            { k: 'admin_login', comp: BoolField, label: 'Admin requires login',
                 disabled: !status?.any_admin_account,
                 helperText: (config.admin_network === '127.0.0.1' ? '' : "You should enable this because access is not restricted to localhost.")
                     + (status?.any_admin_account ? '' : " Before this, you must go to Accounts and give Admin access to some account.")
             },
             { k: 'max_kbps', comp: NumberField, label: 'Max KB/s', helperText: "Limit output bandwidth" },
             { k: 'max_kbps_per_ip', comp: NumberField, label: 'Max KB/s per-ip' },
-            { k: 'log', comp: StringField, label: 'Main log file' },
-            { k: 'error_log', comp: StringField, label: 'Error log file' },
-            { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
+            { k: 'log', xl: 4, comp: StringField, label: 'Main log file' },
+            { k: 'error_log', xl: 4, comp: StringField, label: 'Error log file' },
+            { k: 'log_rotation', xl: 4, comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },
             { k: 'accounts', comp: StringField, label: 'Accounts file' },
             { k: 'open_browser_at_start', comp: BoolField },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, label: 'Calculate ZIP size for seconds',
-                helperText: "If time is not enough the browser will not show download percentage" },
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, md: 6, xl:4, label: 'Calculate ZIP size for seconds',
+                helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'mime', comp: StringStringField,
                 keyLabel: 'Files', keyWidth: 7,
                 valueLabel: 'Mime type', valueWidth: 4
