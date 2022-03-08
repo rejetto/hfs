@@ -149,16 +149,15 @@ export function DisplayField({ value, empty='-', ...props }: any) {
     return h(StringField, {  ...props, value, disabled: true })
 }
 
+type SelectOptions<T> = { [label:string]:T } | SelectOption<T>[]
+type SelectOption<T> = SelectPair<T> | (T extends string | number ? T : never)
 interface SelectPair<T> { label: string, value:T }
-export function SelectField<T>(props: FieldProps<T> & { options:SelectPair<T>[] }) {
+
+export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T> }) {
     const { value, onChange, options, ...rest } = props
-    const jsonValue = JSON.stringify(value)
-    const currentOption = options.find(x => JSON.stringify(x.value) === jsonValue)
     return h(TextField, { // using TextField because Select is not displaying label correctly
         ...rest,
         ...commonSelectProps(props),
-        // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
-        value: currentOption ? jsonValue : '',
         onChange(event) {
             try {
                 let newVal: any = event.target.value
@@ -170,36 +169,41 @@ export function SelectField<T>(props: FieldProps<T> & { options:SelectPair<T>[] 
     })
 }
 
-export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectPair<T>[] }) {
-    const { value, onChange, options, ...rest } = props
+export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectOptions<T> }) {
+    const { value, options, ...rest } = props
     return h(TextField, {
         ...rest,
-        ...commonSelectProps(props),
+        ...commonSelectProps({ ...props, value:undefined }),
         SelectProps: { multiple: true },
         value: !Array.isArray(value) ? [] : value.map(x => JSON.stringify(x)),
         onChange(event) {
             try {
                 let v: any = event.target.value
                 v = Array.isArray(v) ? v.map(x => JSON.parse(x)) : []
-                onChange(v as T[], { was: value, event })
+                props.onChange(v as T[], { was: value, event })
             }
             catch {}
         }
     })
 }
 
-function commonSelectProps<T>(props: { disabled?: boolean, options:SelectPair<T>[] }) {
+function commonSelectProps<T>(props: { value?: T, disabled?: boolean, options:SelectOptions<T> }) {
     const { options, disabled } = props
+    const normalizedOptions = !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label }))
+        : options.map(o => typeof o === 'string' || typeof o === 'number' ? { value: o, label: String(o) } : o as SelectPair<T>)
+    const jsonValue = JSON.stringify(props.value)
+    const currentOption = normalizedOptions.find(x => JSON.stringify(x.value) === jsonValue)
     return {
         select: true,
         fullWidth: true,
-        disabled: !options?.length || disabled,
-        children: options.map((o, i) => {
-            const obj = o && typeof o === 'object'
-            const value = obj && 'value' in o ? o.value : o
-            const label = obj && 'label' in o ? o.label : o
-            return h(MenuItem, { key: i, value: JSON.stringify(value), children: label })
-        })
+        // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
+        value: currentOption ? jsonValue : '',
+        disabled: !normalizedOptions?.length || disabled,
+        children: normalizedOptions.map((o, i) => h(MenuItem, {
+            key: i,
+            value: JSON.stringify(o?.value),
+            children: o?.label
+        }))
     }
 }
 
