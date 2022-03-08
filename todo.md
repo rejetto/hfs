@@ -1,5 +1,4 @@
 # To do
-- admin/accounts: show icon for accounts with (possibly inherited) admin access
 - expose admin at same port of frontend
 - admin: improve masks editor
 - if specified config is a folder, check for file config.yaml inside

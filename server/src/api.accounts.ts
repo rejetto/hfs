@@ -24,12 +24,9 @@ const apis: ApiHandlers = {
     get_accounts() {
         return {
             list: Object.values(getAccounts()).map(ac => ({
-                ...ac,
-                username: ac.username, // it's hidden and won't be copied by the spread operator
+                ..._.pick(ac, ['username','ignore_limits','redirects','belongs','admin']),
                 hasPassword: accountHasPassword(ac),
-                password: undefined,
-                hashed_password: undefined,
-                srp: undefined,
+                adminActualAccess: accountCanLogin(ac) && getFromAccount(ac, a => a.admin),
             }))
         }
     },

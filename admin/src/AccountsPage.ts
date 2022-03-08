@@ -161,7 +161,8 @@ function AccountForm({ account, done, groups, config }: { account: Account, grou
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
             { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Permission to access Admin interface",
                 helperText: "It's THIS interface you are using right now."
-                    + (config.admin_login ? '' : " You are currently giving free access without login. You can force login in Configuration page.")
+                    + (config?.admin_login ? '' : " You are currently giving free access without login. You can require login in Configuration page."),
+                ...account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited" },
             },
             { k: 'redirect', comp: StringField, helperText: "If you want this account to be redirected to a specific folder/address at login time" },
             { k: 'belongs', comp: MultiSelectField, label: "Inherits from", options: belongsOptions,
