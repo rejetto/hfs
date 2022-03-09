@@ -1,5 +1,5 @@
 # To do
-- expose admin at same port of frontend
+- expose admin on frontend's same port
 - admin: improve masks editor
 - if specified config is a folder, check for file config.yaml inside
 - merge accounts in config

@@ -50,7 +50,7 @@ export default function HomePage() {
         !username && cfg?.admin_network !== '127.0.0.1' && h(Alert, { severity: 'warning' }, "Admin interface is not limited to localhost - ", cfgLink("restrict access with login")),
 
         vfs?.root && !vfs.root.children?.length && !vfs.root.source &&
-            h(Alert, { severity: 'warning' }, "You have no files shares - ", fsLink("add some files"))
+            h(Alert, { severity: 'warning' }, "You have no files shared - ", fsLink("add some"))
     )
 }
 
