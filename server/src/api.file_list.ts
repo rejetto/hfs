@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { cantReadStatusCode, getNodeName, hasPermission, urlToNode, VfsNode, walkNode } from './vfs'
-import { ApiError, ApiHandler } from './apis'
+import { ApiError, ApiHandler } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, filterMapGenerator, pattern2filter } from './misc'

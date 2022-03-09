@@ -6,7 +6,7 @@ import { FRONTEND_URI, METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI } from '.
 import { serveFile } from './serveFile'
 import { mapPlugins } from './plugins'
 import { refresh_session } from './api.auth'
-import { ApiError } from './apis'
+import { ApiError } from './apiMiddleware'
 import path from 'path'
 
 function serveProxyFrontend(port?: string) { // used for development

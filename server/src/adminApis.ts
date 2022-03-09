@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2020-2021, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { ApiError, ApiHandlers } from './apis'
+import { ApiError, ApiHandlers } from './apiMiddleware'
 import { getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus } from './listen'
 import { BUILD_TIMESTAMP, HFS_STARTED, VERSION } from './const'

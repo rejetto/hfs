@@ -2,7 +2,7 @@
 
 import Koa from 'koa'
 import mount from 'koa-mount'
-import { apiMiddleware } from './apis'
+import { apiMiddleware } from './apiMiddleware'
 import { API_URI, BUILD_TIMESTAMP, DEV, HFS_STARTED, VERSION} from './const'
 import { frontEndApis } from './frontEndApis'
 import { log } from './log'

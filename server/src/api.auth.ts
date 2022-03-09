@@ -2,7 +2,7 @@
 
 import { getAccount, getCurrentUsername, getFromAccount } from './perm'
 import { verifyPassword } from './crypt'
-import { ApiError, ApiHandler } from './apis'
+import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
 import { SESSION_DURATION } from './const'
 import { randomId } from './misc'

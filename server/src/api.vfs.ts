@@ -3,7 +3,7 @@
 import { getNodeName, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
-import { ApiError, ApiHandlers } from './apis'
+import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, join } from 'path'
 import glob  from 'fast-glob'
 import { enforceFinal, isWindowsDrive, objSameKeys } from './misc'
