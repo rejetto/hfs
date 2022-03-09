@@ -74,16 +74,18 @@ export const adminApis: ApiHandlers = {
             ) )
 
         function serializeConnection(conn: Connection, minimal?:true) {
-            const { socket, started, secure, got } = conn
+            const { socket, started, secure, got, path } = conn
             return {
-                v: minimal ? undefined : (socket.remoteFamily?.endsWith('6') ? 6 : 4),
                 port: socket.remotePort,
                 ip: socket.remoteAddress,
-                got: minimal ? undefined : got,
-                started: minimal ? undefined : started,
-                secure: minimal ? undefined : (secure || undefined), // undefined will save some space once json-ed
+                ...!minimal && {
+                    v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
+                    got,
+                    started,
+                    path,
+                    secure: (secure || undefined), // undefined will save some space once json-ed
+                }
             }
-
         }
     }
 

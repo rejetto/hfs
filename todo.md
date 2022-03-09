@@ -5,7 +5,6 @@
 - merge accounts in config
 - frontend: ok button to inputDialogs
 - admin: in a group, show linked accounts
-- admin/monitor: show file currently downloaded
 - admin/config: use filepicker for https files
 - admin: warn in case of items with same name
 - allowed referer

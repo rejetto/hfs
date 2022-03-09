@@ -10,7 +10,8 @@ export interface Connection {
     got: number
     sent: number
     outSpeed?: number
-    [rest:symbol]: any, // let other modules add extra data, but using symbols to avoid name collision
+    path?: string
+    [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 }
 
 const all: Connection[] = []

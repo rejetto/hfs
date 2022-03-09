@@ -11,6 +11,7 @@ import mm, { isMatch } from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
+import { socket2connection, updateConnection } from './connections'
 
 export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const { source, mime } = node
@@ -52,6 +53,9 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
         if (ctx.fresh)
             return ctx.status = 304
 
+        const conn = socket2connection(ctx.socket)
+        if (conn)
+            updateConnection(conn, { path: ctx.path })
         if (modifier)
             return ctx.body = modifier(String(await fs.readFile(source)))
         if (!range) {

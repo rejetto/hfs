@@ -3,8 +3,8 @@
 import _ from "lodash"
 import { isValidElement, createElement as h, useMemo, Fragment } from "react"
 import { apiCall, useApiComp, useApiList } from "./api"
-import { Delete, Lock, Refresh } from '@mui/icons-material'
-import { Box, Grid, Typography } from '@mui/material'
+import { Delete, Lock } from '@mui/icons-material'
+import { Box, Chip, Typography } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
 import { formatBytes, IconBtn, iconTooltip } from "./misc"
@@ -12,14 +12,10 @@ import { alertDialog } from "./dialog"
 import { prefix } from './misc'
 
 export default function MonitorPage() {
-    return h(Box, { flex: 1, display: 'flex', flexDirection: 'column' },
-        h(Grid, { container: true, flex: 1 },
-            h(Grid, { item: true, md: 3, lg: 4, xl: 6 },
-                h(MoreInfo) ),
-            h(Grid, { item: true, md: 9, lg: 8, xl: 6, width: '100%', display: 'flex', flexDirection: 'column' },
-                h(SectionTitle, {}, "Active connections"),
-                h(Connections))
-        )
+    return h(Fragment, {},
+        h(MoreInfo),
+        h(SectionTitle, {}, "Active connections"),
+        h(Connections),
     )
 }
 
@@ -30,11 +26,10 @@ function SectionTitle(props: object) {
 }
 
 function MoreInfo() {
-    const [res, reload] = useApiComp('get_status')
-    return h(Box, {},
-        h(SectionTitle, {}, "Status", h(IconBtn, { sx: { ml: 2 }, icon: Refresh, onClick: reload })),
+    const [res] = useApiComp('get_status')
+    return h(Fragment, {},
         isValidElement(res) ? res :
-            h('ul', {},
+            h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 1 },
                 pair('started'),
                 pair('version'),
                 pair('build'),
@@ -53,7 +48,10 @@ function MoreInfo() {
             v = render(v)
         if (!label)
             label = _.capitalize(k.replaceAll('_', ' '))
-        return h('li', {}, label + ': ' + v)
+        return h(Chip, {
+            variant: 'filled',
+            label: h(Fragment, {}, h('b',{},label), ': ', v),
+        })
     }
 }
 
@@ -64,6 +62,7 @@ function Connections() {
         return h(Alert, { severity: 'error' }, error)
     return h(DataGrid, {
         pageSize: 25,
+        rows,
         columns: [
             {
                 field: 'ip',
@@ -75,15 +74,16 @@ function Connections() {
                 field: 'v',
                 headerName: 'Protocol',
                 align: 'center',
+                hide: true,
                 renderCell: ({ value, row }) => h(Fragment, {},
                     'IPv' + value,
-                    row.secure && iconTooltip(Lock, "HTTPS", { opacity:.5 })
+                    row.secure && iconTooltip(Lock, "HTTPS", { opacity: .5 })
                 )
             },
             {
                 field: 'outSpeed',
                 headerName: 'Speed',
-                valueGetter: ({ value }) => formatBytes(value*1000, 'B/s', 1000)
+                valueGetter: ({ value }) => formatBytes(value * 1000, 'B/s', 1000)
             },
             {
                 field: 'sent',
@@ -94,6 +94,17 @@ function Connections() {
                 field: 'started',
                 headerName: 'Started',
                 valueGetter: ({ value }) => new Date(value).toLocaleTimeString()
+            },
+            {
+                field: 'path',
+                headerName: 'Path',
+                flex: 1,
+                renderCell: ({ value }) => {
+                    if (!value) return
+                    const i = value?.lastIndexOf('/')
+                    return h(Fragment, {}, value.slice(i + 1),
+                        i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i)))
+                }
             },
             {
                 field: 'Actions ',
@@ -109,7 +120,6 @@ function Connections() {
                     })
                 }
             }
-        ],
-        rows,
+        ]
     })
 }
