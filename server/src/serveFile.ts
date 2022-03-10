@@ -46,41 +46,46 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
         }
         if (ctx.method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
-        const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
-        ctx.set('Last-Modified', stats.mtime.toUTCString())
-        ctx.fileSource = source
-        ctx.status = 200
-        if (ctx.fresh)
-            return ctx.status = 304
+        try {
+            const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
+            ctx.set('Last-Modified', stats.mtime.toUTCString())
+            ctx.fileSource = source
+            ctx.status = 200
+            if (ctx.fresh)
+                return ctx.status = 304
 
-        const conn = socket2connection(ctx.socket)
-        if (conn)
-            updateConnection(conn, { path: ctx.path })
-        if (modifier)
-            return ctx.body = modifier(String(await fs.readFile(source)))
-        if (!range) {
-            ctx.body = createReadStream(source)
-            ctx.response.length = stats.size
-            return
+            const conn = socket2connection(ctx.socket)
+            if (conn)
+                updateConnection(conn, { path: ctx.path })
+            if (modifier)
+                return ctx.body = modifier(String(await fs.readFile(source)))
+            if (!range) {
+                ctx.body = createReadStream(source)
+                ctx.response.length = stats.size
+                return
+            }
+            const ranges = range.split('=')[1]
+            if (ranges.includes(','))
+                return ctx.throw(400, 'multi-range not supported')
+            let bytes = ranges?.split('-')
+            if (!bytes?.length)
+                return ctx.throw(400, 'bad range')
+            const max = stats.size - 1
+            let start = Number(bytes[0]) || 0
+            let end = Number(bytes[1]) || max
+            if (end > max || start > max) {
+                ctx.status = 416
+                ctx.set('Content-Range', `bytes ${stats.size}`)
+                ctx.body = 'Requested Range Not Satisfiable'
+                return
+            }
+            ctx.status = 206
+            ctx.set('Content-Range', `bytes ${start}-${end}/${stats.size}`)
+            ctx.body = createReadStream(source, { start, end })
+            ctx.response.length = end - start + 1
         }
-        const ranges = range.split('=')[1]
-        if (ranges.includes(','))
-            return ctx.throw(400, 'multi-range not supported')
-        let bytes = ranges?.split('-')
-        if (!bytes?.length)
-            return ctx.throw(400, 'bad range')
-        const max = stats.size - 1
-        let start = Number(bytes[0]) || 0
-        let end = Number(bytes[1]) || max
-        if (end > max || start > max) {
-            ctx.status = 416
-            ctx.set('Content-Range', `bytes ${stats.size}`)
-            ctx.body = 'Requested Range Not Satisfiable'
-            return
+        catch {
+            return ctx.status = 404
         }
-        ctx.status = 206
-        ctx.set('Content-Range', `bytes ${start}-${end}/${stats.size}`)
-        ctx.body = createReadStream(source, { start, end })
-        ctx.response.length = end - start + 1
     }
 }

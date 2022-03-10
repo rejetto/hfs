@@ -19,7 +19,7 @@ console.log(`License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
-console.debug('cwd', process.cwd())
+console.log('cwd', process.cwd())
 
 const keys = ['hfs-keys-test']
 
