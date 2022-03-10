@@ -53,36 +53,36 @@ export default function ConfigPage() {
             return { md: 6, xl: 4 }
         },
         fields: [
-            { k: 'port', comp: ServerPort, label:'HTTP port', status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: ServerPort, label: 'HTTPS port', status: status?.https||true, suggestedPort: 443 },
-            config.https_port >= 0 && { k: 'cert', comp: StringField, label: 'HTTPS certificate file' },
-            config.https_port >= 0 && { k: 'private_key', comp: StringField, label: 'HTTPS private key file' },
-            { k: 'admin_port', comp: ServerPort, label: 'Admin port' },
-            { k: 'admin_network', comp: SelectField, label: 'Admin access',
+            { k: 'port', comp: ServerPort, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443 },
+            config.https_port >= 0 && { k: 'cert', comp: StringField, label: "HTTPS certificate file" },
+            config.https_port >= 0 && { k: 'private_key', comp: StringField, label: "HTTPS private key file" },
+            { k: 'admin_port', comp: ServerPort, label: "Admin port" },
+            { k: 'admin_network', comp: SelectField, label: "Admin access",
                 options:[
-                    { value: '127.0.0.1', label: 'localhost only' },
-                    { value: '0.0.0.0', label: 'any network' }
+                    { value: '127.0.0.1', label: "localhost only" },
+                    { value: '0.0.0.0', label: "any network" }
                 ]
             },
-            { k: 'admin_login', comp: BoolField, label: 'Admin requires login',
+            { k: 'admin_login', comp: BoolField, label: "Admin requires login",
                 disabled: !status?.any_admin_account,
                 helperText: (config.admin_network === '127.0.0.1' ? '' : "You should enable this because access is not restricted to localhost.")
                     + (status?.any_admin_account ? '' : " Before this, you must go to Accounts and give Admin access to some account.")
             },
             { k: 'max_kbps', comp: NumberField, label: 'Max KB/s', helperText: "Limit output bandwidth" },
-            { k: 'max_kbps_per_ip', comp: NumberField, label: 'Max KB/s per-ip' },
-            { k: 'log', xl: 4, comp: StringField, label: 'Main log file' },
-            { k: 'error_log', xl: 4, comp: StringField, label: 'Error log file' },
+            { k: 'max_kbps_per_ip', comp: NumberField, label: "Max KB/s per-ip" },
+            { k: 'log', xl: 4, comp: StringField, label: "Main log file" },
+            { k: 'error_log', xl: 4, comp: StringField, label: "Error log file" },
             { k: 'log_rotation', xl: 4, comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },
-            { k: 'accounts', comp: StringField, label: 'Accounts file' },
+            { k: 'accounts', comp: StringField, label: "Accounts file" },
             { k: 'open_browser_at_start', comp: BoolField },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, md: 6, xl:4, label: 'Calculate ZIP size for seconds',
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, md: 6, xl:4, label: "Calculate ZIP size for seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'mime', comp: StringStringField,
-                keyLabel: 'Files', keyWidth: 7,
-                valueLabel: 'Mime type', valueWidth: 4
+                keyLabel: "Files", keyWidth: 7,
+                valueLabel: "Mime type", valueWidth: 4
             },
         ]
     })
