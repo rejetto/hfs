@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import mount from 'koa-mount'
 import { apiMiddleware } from './apiMiddleware'
-import { API_URI, BUILD_TIMESTAMP, DEV, HFS_STARTED, VERSION} from './const'
+import { API_URI, DEV } from './const'
 import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
@@ -12,14 +12,6 @@ import { headRequests, gzipper, sessions, frontendAndSharedFiles, someSecurity, 
 import './listen'
 import { serveAdminFiles } from './serveFrontend'
 import { adminApis } from './adminApis'
-
-if (DEV) console.clear()
-console.log(`HFS ~ HTTP File Server - Copyright 2020-2021, Massimo Melina <a@rejetto.com>`)
-console.log(`License https://www.gnu.org/licenses/gpl-3.0.txt`)
-console.log('started', HFS_STARTED.toLocaleString(), DEV)
-console.log('version', VERSION||'-')
-console.log('build', BUILD_TIMESTAMP||'-')
-console.log('cwd', process.cwd())
 
 const keys = ['hfs-keys-test']
 
