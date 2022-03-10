@@ -14,6 +14,9 @@ import { serveFrontend } from './serveFrontend'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
 import { getAccount, getCurrentUsername, getCurrentUsernameExpanded } from './perm'
+import { getConfig, subscribeConfig } from './config'
+import { getConnections } from './connections'
+import { Socket } from 'net'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -85,11 +88,23 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     try {
         if (dirTraversal(decodeURI(ctx.path)))
             return ctx.status = 418
+        if (applyBlock(ctx.socket))
+            return
     }
     catch {
         return ctx.status = 418
     }
     return next()
+}
+
+subscribeConfig({ k: 'block', defaultValue: [] }, () => {
+    for (const { socket } of getConnections())
+        applyBlock(socket)
+})
+
+function applyBlock(socket: Socket) {
+    if (getConfig('block').find((rule:any) => rule.ip === socket.remoteAddress))
+        return socket.destroy()
 }
 
 export function prepareState(admin=false): Koa.Middleware {

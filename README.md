@@ -208,6 +208,11 @@ Supported entries are:
 - `https_port` listen on a specific port. Default is 443.
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
 - `private_key` use this file for https private key. Default is none.
+- `block` a list of rules that will block connections. At the moment only `ip` rules are supported. E.g.: 
+    ```
+    block:
+      - ip: 192.168.0.90
+    ```
 - `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration.
 
 ## Virtual File System (VFS)

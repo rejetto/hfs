@@ -80,6 +80,10 @@ export default function ConfigPage() {
             { k: 'open_browser_at_start', comp: BoolField },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, md: 6, xl:4, label: "Calculate ZIP size for seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'block', label: "Blocked IPs", comp: StringField, multiline: true, minRows:3, helperText: "Enter an IP for each line",
+                fromField: (all:string) => all.split('\n').map(s => s.trim()).filter(Boolean).map(ip => ({ ip })),
+                toField: (all: any) => !Array.isArray(all) ? '' : all.map(x => x?.ip).filter(Boolean).join('\n')
+            },
             { k: 'mime', comp: StringStringField,
                 keyLabel: "Files", keyWidth: 7,
                 valueLabel: "Mime type", valueWidth: 4

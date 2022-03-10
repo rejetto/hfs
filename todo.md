@@ -9,7 +9,13 @@
 - admin: warn in case of items with same name
 - allowed referer
 - admin/plugins
+  - show list of available plugins (skip -disabled)
+  - enable/disable (disable_plugins, no dir rename)
+  - show some properties, which ones are loaded
+  - plugin config: plugin must expose gui producing object or form configuration 
 - download-counter: expose results on admin
+- plugin to show country by ip in admin/monitor
+- config.proxies:number (will enable koa.proxy:true + maxIpsCount, default 0)
 - log filter option
 - log filter plugin
 - publish to npm (so people can "npm install hfs")
@@ -23,7 +29,6 @@
 - updater (stop,unzip,start)
 - node.comment
 - config: max connections/downloads (total/per-ip)
-- config: bans
 - config: min disk space
 - thumbnails support
 - webdav?

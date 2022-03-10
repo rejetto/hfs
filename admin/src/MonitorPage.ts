@@ -3,13 +3,11 @@
 import _ from "lodash"
 import { isValidElement, createElement as h, useMemo, Fragment } from "react"
 import { apiCall, useApiComp, useApiList } from "./api"
-import { Delete, Lock } from '@mui/icons-material'
+import { Delete, Lock, Block } from '@mui/icons-material'
 import { Box, Chip, Typography } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
-import { formatBytes, IconBtn, iconTooltip } from "./misc"
-import { alertDialog } from "./dialog"
-import { prefix } from './misc'
+import { prefix, formatBytes, IconBtn, iconTooltip, manipulateConfig } from "./misc"
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -111,15 +109,24 @@ function Connections() {
                 width: 80,
                 align: 'center',
                 renderCell({ row }) {
-                    return h(IconBtn, {
-                        icon: Delete,
-                        title: 'Disconnect',
-                        onClick() {
-                            apiCall('disconnect', _.pick(row, ['ip', 'port'])).catch(alertDialog)
-                        }
-                    })
+                    return h('div', {},
+                        h(IconBtn, {
+                            icon: Delete,
+                            title: 'Disconnect',
+                            onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])),
+                        }),
+                        h(IconBtn, {
+                            icon: Block,
+                            title: 'Block IP',
+                            onClick: () => blockIp(row.ip),
+                        }),
+                    )
                 }
             }
         ]
     })
+}
+
+function blockIp(ip: string) {
+    return manipulateConfig('block', data => [...data, { ip }])
 }
