@@ -4,11 +4,12 @@ import { getAccount, getCurrentUsername, getFromAccount } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
-import { SESSION_DURATION } from './const'
+import { ADMIN_URI, SESSION_DURATION } from './const'
 import { randomId } from './misc'
 import Koa from 'koa'
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
-import { getListeningAdminPort } from './listen'
+import { ctxAdminAccess } from './adminApis'
+import { prepareState } from './middlewares'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 const srpSession = new SRPServerSession(srp6aNimbusRoutines)
@@ -25,6 +26,7 @@ function loggedIn(ctx:Koa.Context, username: string | false) {
         return
     }
     s.username = username
+    prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
     ctx.cookies.set('csrf', randomId(), { signed:false, httpOnly: false })
 }
 
@@ -62,7 +64,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
         return new ApiError(401)
     if (!account.srp)
         return new ApiError(406) // unacceptable
-    if (ctx.state.admin && !getFromAccount(account, a => a.admin))
+    if (!getFromAccount(account, a => a.admin))
         return new ApiError(403)
 
     const [salt, verifier] = account.srp.split('|')
@@ -105,8 +107,8 @@ export const logout: ApiHandler = async ({}, ctx) => {
 export const refresh_session: ApiHandler = async ({}, ctx) => {
     return !ctx.session ? new ApiError(500) : {
         username: getCurrentUsername(ctx),
+        adminUrl: ctxAdminAccess(ctx) ? ADMIN_URI : undefined,
         ...makeExp(),
-        admin_port: ctx.state.admin ? undefined : getListeningAdminPort()
     }
 }
 
@@ -117,10 +119,3 @@ export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
 export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
     return changeSrpHelper(ctx.state.account, salt, verifier)
 }
-
-/*
-export const admin_port: ApiHandler = async ({}, ctx) => {
-    return ctx.state.admin ? { admin_port: getListeningAdminPort() }
-        : new ApiError(403)
-}
-*/

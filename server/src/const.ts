@@ -13,6 +13,7 @@ export const SESSION_DURATION = 30*60_000
 
 export const SPECIAL_URI = '/~/'
 export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
+export const ADMIN_URI = SPECIAL_URI + 'admin/'
 export const API_URI = SPECIAL_URI + 'api/'
 export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
 

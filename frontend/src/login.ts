@@ -49,9 +49,9 @@ sessionRefresher(window.SESSION)
 
 function sessionRefresher(response: any) {
     if (!response) return
-    const { exp, username, admin_port } = response
+    const { exp, username, adminUrl } = response
     state.username = username
-    state.admin_port = admin_port
+    state.adminUrl = adminUrl
     if (!username || !exp) return
     const delta = new Date(exp).getTime() - Date.now()
     const t = Math.min(delta - 30_000, 600_000)

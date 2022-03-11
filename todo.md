@@ -1,6 +1,4 @@
 # To do
-- expose admin on frontend's same port
-- admin: improve masks editor
 - if specified config is a folder, check for file config.yaml inside
 - merge accounts in config
 - frontend: ok button to inputDialogs
@@ -18,6 +16,7 @@
 - config.proxies:number (will enable koa.proxy:true + maxIpsCount, default 0)
 - log filter option
 - log filter plugin
+- admin: improve masks editor
 - publish to npm (so people can "npm install hfs")
 - frontend search supporting masks
 - remove seconds from time

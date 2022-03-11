@@ -10,8 +10,8 @@ import { Connection, getConnections } from './connections'
 import { generatorAsCallback, onOffMap, pendingPromise } from './misc'
 import _ from 'lodash'
 import events from './events'
-import * as authApis from './api.auth'
-import { getAccounts } from './perm'
+import { getAccounts, getFromAccount } from './perm'
+import Koa from 'koa'
 
 export const adminApis: ApiHandlers = {
 
@@ -36,7 +36,6 @@ export const adminApis: ApiHandlers = {
             version: VERSION,
             http: serverStatus(st.httpSrv, getConfig('port')),
             https: serverStatus(st.httpsSrv, getConfig('https_port')),
-            any_admin_account: _.some(getAccounts(), a => a.admin || false),
         }
 
         function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
@@ -91,12 +90,14 @@ export const adminApis: ApiHandlers = {
 
 }
 
-// protect most apis...
 for (const k in adminApis) {
     const was = adminApis[k]
     adminApis[k] = (params, ctx) =>
-        getConfig('admin_login') && !ctx.state.accountIsAdmin ? new ApiError(401)
-            : was(params, ctx)
+        ctxAdminAccess(ctx) ? was(params, ctx)
+            : new ApiError(401)
 }
-// exception made for auth apis
-Object.assign(adminApis, authApis)
+
+export function ctxAdminAccess(ctx: Koa.Context) {
+    return ctx.ip === '127.0.0.1'
+        || getFromAccount(ctx.state.account, a => a.admin)
+}

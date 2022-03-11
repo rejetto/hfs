@@ -38,9 +38,9 @@ As you can see from the list above, we already have some goods that you can't fi
 
 ### Why you should still stay with HFS 2.x (so far)
 
-- easier to configure
 - smaller
 - more tested
+- easier to configure (not sure about this anymore)
 
 # Installation
 
@@ -190,8 +190,6 @@ When not specified, default values will be used.
 Supported entries are:
 - `port` where to accept http connections. Default is 80.
 - `vfs` the files and folders you want to expose. For details see the dedicated following section.
-- `admin_port` the port where to reach admin interface. Default is 63636.
-- `admin_network` the network address where to reach admin interface. Default is 127.0.0.1 .
 - `log` path of the log file. Default is `access.log`.
 - `log_rotation` frequency of log rotation. Accepted values are `daily`, `weekly`, `monthly`, or empty string to disable. Default is `weekly`.  
 - `error_log` path of the log file for errors. Default is `error.log`.
@@ -272,7 +270,7 @@ Other options you can define as properties of an account:
 
 - `ignore_limits` to ignore speed limits. Default is `false`.
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
-- `admin` set `true` if you want to give access to the Admin interface when it's configured to require login.
+- `admin` set `true` if you want to let this account log in to the Admin interface.
 - `belongs` an array of usernames of other accounts from which to inherit their permissions. 
 
 ## License

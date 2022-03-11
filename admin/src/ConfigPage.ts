@@ -57,18 +57,6 @@ export default function ConfigPage() {
             { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443 },
             config.https_port >= 0 && { k: 'cert', comp: StringField, label: "HTTPS certificate file" },
             config.https_port >= 0 && { k: 'private_key', comp: StringField, label: "HTTPS private key file" },
-            { k: 'admin_port', comp: ServerPort, label: "Admin port" },
-            { k: 'admin_network', comp: SelectField, label: "Admin access",
-                options:[
-                    { value: '127.0.0.1', label: "localhost only" },
-                    { value: '0.0.0.0', label: "any network" }
-                ]
-            },
-            { k: 'admin_login', comp: BoolField, label: "Admin requires login",
-                disabled: !status?.any_admin_account,
-                helperText: (config.admin_network === '127.0.0.1' ? '' : "You should enable this because access is not restricted to localhost.")
-                    + (status?.any_admin_account ? '' : " Before this, you must go to Accounts and give Admin access to some account.")
-            },
             { k: 'max_kbps', comp: NumberField, label: 'Max KB/s', helperText: "Limit output bandwidth" },
             { k: 'max_kbps_per_ip', comp: NumberField, label: "Max KB/s per-ip" },
             { k: 'log', xl: 4, comp: StringField, label: "Main log file" },

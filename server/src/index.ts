@@ -8,33 +8,22 @@ import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { headRequests, gzipper, sessions, frontendAndSharedFiles, someSecurity, prepareState } from './middlewares'
+import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, prepareState } from './middlewares'
 import './listen'
-import { serveAdminFiles } from './serveFrontend'
 import { adminApis } from './adminApis'
 
 const keys = ['hfs-keys-test']
-
-export const adminApp = new Koa({ keys })
-adminApp.use(someSecurity)
-    .use(sessions(adminApp))
-    .use(prepareState(true))
-    .use(gzipper)
-    .use(mount(API_URI, apiMiddleware(adminApis)))
-    .use(serveAdminFiles)
-    .on('error', errorHandler)
-
-export const frontendApp = new Koa({ keys })
-frontendApp.use(someSecurity)
-    .use(sessions(frontendApp))
-    .use(prepareState())
+export const app = new Koa({ keys })
+app.use(someSecurity)
+    .use(sessions(app))
+    .use(prepareState)
     .use(headRequests)
     .use(log())
     .use(pluginsMiddleware())
     .use(throttler())
     .use(gzipper)
-    .use(mount(API_URI, apiMiddleware(frontEndApis)))
-    .use(frontendAndSharedFiles)
+    .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
+    .use(serveGuiAndSharedFiles)
     .on('error', errorHandler)
 
 function errorHandler(err:Error & { code:string, path:string }) {

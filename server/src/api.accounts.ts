@@ -37,15 +37,7 @@ const apis: ApiHandlers = {
             changes.admin = undefined
         else if (typeof admin !== 'boolean')
             return new ApiError(400, "invalid admin")
-        if (getConfig('admin_login') && admin === false && !anyOtherAccessibleAccountWithAdmin())
-            return new ApiError(403, "you can't disable admin because this is the last account with such permission")
         return setAccount(username, changes) ? {} : new ApiError(400)
-
-        function anyOtherAccessibleAccountWithAdmin() {
-            return _.some(getAccounts(), a => accountCanLogin(a)
-                // with undefined we invite search to continue to its groups, because disabling admin on an account will still leave its inheritance on
-                && Boolean(getFromAccount(a, a => a.username === username ? undefined : a.admin)))
-        }
     },
 
     add_account({ username, ...rest }) {

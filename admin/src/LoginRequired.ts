@@ -25,7 +25,7 @@ function LoginForm() {
                 setValues({ ...values, [k]: v })
             },
             fields: [
-                { k: 'username' },
+                { k: 'username', autoComplete: 'username' },
                 { k: 'password', type: 'password', autoComplete: 'current-password' },
             ]
         }),
@@ -69,6 +69,8 @@ async function login(username: string, password: string) {
         .catch(() => { throw WRONG })
     await resStep2.step3(BigInt(res.proof))
         .catch(() => { throw "Login aborted: server identity cannot be trusted" })
+    if (!res.adminUrl)
+        throw "This account has no Admin access"
 
     // login was successful, update state
     sessionRefresher({ username, exp:res.exp })

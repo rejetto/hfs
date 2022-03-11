@@ -6,7 +6,7 @@ import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from './api'
 import { logout } from './login'
-import { MenuButton, MenuLink } from './menu'
+import { MenuButton } from './menu'
 
 export default function showUserPanel() {
     newDialog({ Content })
@@ -16,12 +16,6 @@ function Content() {
     const snap = useSnapState()
     return h('div', { id: 'user-panel' },
         h('div', {}, "User: " + snap.username),
-        snap.admin_port && h(MenuLink, {
-            icon: 'admin',
-            label: "Admin interface",
-            href: 'http://' + window.location.hostname + ':' + snap.admin_port,
-            target: 'admin',
-        }),
         h(MenuButton, {
             icon: 'password',
             label: "Change password",

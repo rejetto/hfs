@@ -2,55 +2,33 @@
 
 import * as http from 'http'
 import { defineConfig, getConfig, subscribeConfig } from './config'
-import { adminApp, frontendApp } from './index'
+import { app } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, prefix } from './misc'
-import { DEV } from './const'
+import { prefix } from './misc'
+import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
 import _ from 'lodash'
 
 interface ServerExtra { error?: string, busy?: string }
 let httpSrv: http.Server & ServerExtra
 let httpsSrv: http.Server & ServerExtra
-let adminSrv: http.Server & ServerExtra
 
 subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
     await stopServer(httpSrv)
-    httpSrv = http.createServer(frontendApp.callback())
+    httpSrv = http.createServer(app.callback())
     port = await startServer(httpSrv, { port, name:'http' })
     if (!port) return
     httpSrv.on('connection', newConnection)
     printUrls(port, 'http')
-})
-
-const considerAdmin = debounceAsync(async () => {
-    const port = getConfig('admin_port')
-    const net = getConfig('admin_network')
-    const ad = adminSrv?.address()
-    if (ad && typeof ad !== 'string'
-        && ad.port === port && ad.address === net) return
-    await stopServer(adminSrv)
-    adminSrv = http.createServer(adminApp.callback())
-    const resultPort = await startServer(adminSrv, {
-        port ,
-        name: 'admin',
-        net,
-    })
-    if (!resultPort)
-        return
     if (getConfig('open_browser_at_start'))
-        open('http://localhost:' + resultPort).then()
-    console.log('admin interface on http://localhost:' + resultPort)
+        open('http://localhost' + (port === 80 ? '' : ':' + port) + ADMIN_URI).then()
 })
 
 defineConfig('open_browser_at_start', { defaultValue: !DEV })
-
-subscribeConfig<string>({ k:'admin_network', defaultValue: '127.0.0.1' }, considerAdmin)
-subscribeConfig<number>({ k:'admin_port', defaultValue: 63636 }, considerAdmin)
 
 const httpsNeeds = { cert:'', private_key:'' }
 const httpsNeedsNames = { cert: 'certificate', private_key: 'private key' }
@@ -78,7 +56,7 @@ async function considerHttps() {
     await stopServer(httpsSrv)
     let port = getConfig('https_port')
     try {
-        httpsSrv = https.createServer({ key: httpsNeeds.private_key, cert: httpsNeeds.cert }, frontendApp.callback())
+        httpsSrv = https.createServer({ key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback())
         const missingKey = _.findKey(httpsNeeds, v => !v) as keyof typeof httpsNeeds
         httpsSrv.error = port < 0 ? undefined
             : missingKey && prefix(getConfig(missingKey) ? "cannot read file for " : "missing ", httpsNeedsNames[missingKey])
@@ -173,8 +151,4 @@ function printUrls(port: number, proto: string) {
             console.log('-', proto + '://' + address + appendPort)
         }
     }
-}
-
-export function getListeningAdminPort() {
-    return (adminSrv?.address() as any)?.port as number | undefined
 }

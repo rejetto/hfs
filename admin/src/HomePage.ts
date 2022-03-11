@@ -14,7 +14,7 @@ export default function HomePage() {
     const { username } = useSnapState()
     const [status] = useApi<Dict<ServerStatus>>('get_status')
     const [vfs] = useApi('get_vfs')
-    const [cfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key', 'admin_network'] })
+    const [cfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key'] })
     if (!status)
         return spinner()
     const { http, https } = status
@@ -47,7 +47,7 @@ export default function HomePage() {
                         !errors.length && h(Fragment, {}, ' - ', cfgLink("switch http or https on"))
                     )
         ),
-        !username && cfg?.admin_network !== '127.0.0.1' && h(Alert, { severity: 'warning' }, "Admin interface is not limited to localhost - ", cfgLink("restrict access with login")),
+        !username && h(Alert, { severity: 'info' }, "You are accessing on localhost without an account - ", h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers")),
 
         vfs?.root && !vfs.root.children?.length && !vfs.root.source &&
             h(Alert, { severity: 'warning' }, "You have no files shared - ", fsLink("add some"))

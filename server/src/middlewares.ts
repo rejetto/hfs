@@ -3,14 +3,14 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import session from 'koa-session'
-import { BUILD_TIMESTAMP, SESSION_DURATION } from './const'
+import { ADMIN_URI, BUILD_TIMESTAMP, SESSION_DURATION } from './const'
 import Application from 'koa'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, urlToNode } from './vfs'
 import { dirTraversal, isDirectory } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
-import { serveFrontend } from './serveFrontend'
+import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
 import { getAccount, getCurrentUsername, getCurrentUsernameExpanded } from './perm'
@@ -49,15 +49,20 @@ export const sessions = (app: Application) => session({
     maxAge: SESSION_DURATION,
 }, app)
 
-// serve shared files and front-end files
-const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontend)
+const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
+const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
+const serveAdminPrefixed = mount(ADMIN_URI.slice(0,-1), serveGuiFiles(process.env.ADMIN_PROXY, ADMIN_URI))
 
-export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
+export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
     if (ctx.body)
         return next()
     if (path.startsWith(FRONTEND_URI))
         return serveFrontendPrefixed(ctx,next)
+    if (path+'/' === ADMIN_URI)
+        return ctx.redirect(ADMIN_URI)
+    if (path.startsWith(ADMIN_URI))
+        return serveAdminPrefixed(ctx,next)
     const node = await urlToNode(path, ctx)
     if (!node)
         return next()
@@ -77,7 +82,7 @@ export const frontendAndSharedFiles: Koa.Middleware = async (ctx, next) => {
                 : ctx.status = cantReadStatusCode(def)
         }
         ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
-        return serveFrontend(ctx, next)
+        return serveFrontendFiles(ctx, next)
     }
     if (source)
         return serveFileNode(node)(ctx,next)
@@ -107,13 +112,8 @@ function applyBlock(socket: Socket) {
         return socket.destroy()
 }
 
-export function prepareState(admin=false): Koa.Middleware {
-    return async (ctx, next) => {
-        ctx.state.usernames = getCurrentUsernameExpanded(ctx) // accounts chained via .belongs for permissions check
-        ctx.state.account = getAccount(getCurrentUsername(ctx))
-        ctx.state.admin = admin
-        if (admin)
-            ctx.state.accountIsAdmin = ctx.state.usernames.some((u:string) => getAccount(u)?.admin)
-        await next()
-    }
+export const prepareState: Koa.Middleware = async (ctx, next) => {
+    ctx.state.usernames = getCurrentUsernameExpanded(ctx) // accounts chained via .belongs for permissions check
+    ctx.state.account = getAccount(getCurrentUsername(ctx))
+    await next()
 }

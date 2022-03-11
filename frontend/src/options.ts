@@ -5,6 +5,7 @@ import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 import { Checkbox, FlexV, Select } from './components'
 import { hIcon } from './misc'
+import { MenuLink } from './menu'
 
 export function showOptions (){
     const options = ['name','extension','size','time']
@@ -13,6 +14,12 @@ export function showOptions (){
     function Content(){
         const snap = useSnapState()
         return h(FlexV, {},
+            snap.adminUrl && h(MenuLink, {
+                icon: 'admin',
+                label: "Admin interface",
+                href: snap.adminUrl,
+                target: 'admin',
+            }),
             h('div', {}, 'Sort by'),
             options.map(x => h('button',{
                 key: x,

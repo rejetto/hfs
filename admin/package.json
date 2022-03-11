@@ -1,7 +1,7 @@
 {
   "name": "@hfs/admin",
   "private": true,
-  "proxy": "http://localhost:63636",
+  "proxy": "http://localhost",
   "scripts": {
     "start": "react-scripts start",
     "build": "cross-env GENERATE_SOURCEMAP=false BUILD_PATH='../dist/admin' react-scripts build",

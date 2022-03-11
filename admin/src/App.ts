@@ -1,11 +1,10 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
 import { Box, ThemeProvider, Typography } from '@mui/material'
 import { Dialogs } from './dialog'
-import logo from './logo.svg'
 import { useMyTheme } from './theme'
 import { LoginRequired } from './LoginRequired'
 
@@ -13,7 +12,7 @@ function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
             h(LoginRequired, {},
-                h(BrowserRouter, {}, h(Routed)) ) ) )
+                h(HashRouter, {}, h(Routed)) ) ) )
 }
 
 function ApplyTheme(props:any) {
@@ -43,7 +42,7 @@ function Routed() {
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                background: 'url('+logo+') no-repeat center',
+                background: 'url(logo.svg) no-repeat center',
                 backgroundSize: 'contain',
             }
         },
