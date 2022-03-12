@@ -185,8 +185,8 @@ interface SelectPair<T> { label: string, value:T }
 export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T> }) {
     const { value, onChange, options, ...rest } = props
     return h(TextField, { // using TextField because Select is not displaying label correctly
-        ...rest,
         ...commonSelectProps(props),
+        ...rest,
         onChange(event) {
             try {
                 let newVal: any = event.target.value
@@ -201,8 +201,8 @@ export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T>
 export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectOptions<T> }) {
     const { value, options, ...rest } = props
     return h(TextField, {
-        ...rest,
         ...commonSelectProps({ ...props, value:undefined }),
+        ...rest,
         SelectProps: { multiple: true },
         value: !Array.isArray(value) ? [] : value.map(x => JSON.stringify(x)),
         onChange(event) {

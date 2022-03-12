@@ -17,8 +17,8 @@ const configProps:Record<string, ConfigProps<any>> = {}
 
 let started = false // this will tell the difference for subscribeConfig()s that are called before or after config is loaded
 let state: Record<string, any> = {}
-const emitter = new EventEmitter()
-emitter.setMaxListeners(10_000)
+const cfgEvents = new EventEmitter()
+cfgEvents.setMaxListeners(10_000)
 const path = argv.config || process.env.HFS_CONFIG || PATH
 const { save } = watchLoad(path,  values => setConfig(values||{}, false), {
     failedOnFirstAttempt(){
@@ -56,7 +56,7 @@ export function subscribeConfig<T>({ k, ...definition }:{ k:string } & ConfigPro
         if (v !== undefined)
             cb(v)
     }
-    return onOffMap(emitter, { [eventName]: cb })
+    return onOffMap(cfgEvents, { [eventName]: cb })
 }
 
 export function getConfig(k:string) {
@@ -106,7 +106,7 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
             delete state[k]
         else
             state[k] = v
-        emitter.emit('new.'+k, v, oldV)
+        cfgEvents.emit('new.'+k, v, oldV)
         if (save === undefined)
             saveConfigAsap().then()
     }

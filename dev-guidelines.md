@@ -12,3 +12,6 @@
 
 # Syntax
 - For strings, I'm trying to use double-quotes or backticks for text that's read by the user, and single-quotes elsewhere.  
+
+# Known problems
+- react-scripts server doesn't seem to play nicely with SSE, like sockets are left open
