@@ -10,7 +10,7 @@ import { Connection, getConnections } from './connections'
 import { generatorAsCallback, onOffMap, pendingPromise } from './misc'
 import _ from 'lodash'
 import events from './events'
-import { getAccounts, getFromAccount } from './perm'
+import { getFromAccount } from './perm'
 import Koa from 'koa'
 
 export const adminApis: ApiHandlers = {

@@ -16,9 +16,7 @@ let loaded: Dict | undefined
 subscribeKey(state, 'config', recalculateChanges)
 
 export default function ConfigPage() {
-    const [res, reloadConfig] = useApiComp('get_config', {
-        omit: ['vfs', 'accounts']
-    })
+    const [res, reloadConfig] = useApiComp('get_config', { omit: ['vfs'] })
     let snap = useSnapState()
     const [status, reloadStatus] = useApi(res && 'get_status')
     useEffect(reloadStatus, [res, reloadStatus])
