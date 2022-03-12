@@ -56,7 +56,7 @@ async function considerHttps() {
     await stopServer(httpsSrv)
     let port = getConfig('https_port')
     try {
-        httpsSrv = https.createServer({ key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback())
+        httpsSrv = https.createServer(port < 0 ? {} : { key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback())
         const missingKey = _.findKey(httpsNeeds, v => !v) as keyof typeof httpsNeeds
         httpsSrv.error = port < 0 ? undefined
             : missingKey && prefix(getConfig(missingKey) ? "cannot read file for " : "missing ", httpsNeedsNames[missingKey])
