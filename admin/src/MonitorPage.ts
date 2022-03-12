@@ -81,7 +81,7 @@ function Connections() {
             {
                 field: 'outSpeed',
                 headerName: 'Speed',
-                valueGetter: ({ value }) => formatBytes(value * 1000, 'B/s', 1000)
+                valueGetter: ({ value }) => value ? formatBytes(value * 1000, 'B/s', 1000) : ''
             },
             {
                 field: 'sent',
