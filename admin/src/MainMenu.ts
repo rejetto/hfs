@@ -4,7 +4,7 @@ import { createElement as h, FunctionComponent } from 'react';
 import { List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
 import { AccountTree, Logout, ManageAccounts, Monitor, Public, Settings, SvgIconComponent } from '@mui/icons-material'
 import _ from 'lodash'
-import { Link } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import MonitorPage from './MonitorPage'
 import ConfigPage from './ConfigPage';
 import VfsPage from './VfsPage';
@@ -29,16 +29,17 @@ export const mainMenu: MenuEntry[] = [
     { path: 'Logout', icon: Logout, comp: LogoutPage }
 ]
 
-interface MenuProps { current?:MenuEntry }
-export default function Menu({ current }: MenuProps) {
+export default function Menu() {
     return h(List, { sx:{ pr:1, bgcolor: 'primary.main', color:'primary.contrastText'  } },
         h(Typography, { variant:'h4', sx:{ p:2 } }, 'HFS'),
         mainMenu.map(it =>
             h(ListItemButton, {
                 key: it.path,
-                sx: current===it ? { textDecoration: 'underline' } : undefined,
-                //@ts-ignore
-                component: Link, to: it.path,
+                to: it.path,
+                component: NavLink,
+                // @ts-ignore
+                style: ({ isActive }) => isActive ? { textDecoration: 'underline' } : {},
+                children: undefined, // shut up ts
             },
                 it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText' } }, h(it.icon)),
                 h(ListItemText, { primary: getMenuLabel(it) })

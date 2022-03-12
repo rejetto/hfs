@@ -30,7 +30,7 @@ function Routed() {
     const current = mainMenu.find(x => x.path === loc)
     const title = current && (current.title || getMenuLabel(current))
     return h(Box, { display: 'flex' },
-        h(MainMenu, { current }),
+        h(MainMenu),
         h(Box, {
             component: 'main',
             sx: {
