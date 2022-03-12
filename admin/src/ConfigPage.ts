@@ -45,7 +45,7 @@ export default function ConfigPage() {
         }, "Reload")],
         defaults({ comp }) {
             if (comp === ServerPort)
-                return { md: 6, xl: 4 }
+                return { md: 6, lg: 3, xl: 2 }
             if (comp === NumberField)
                 return { md:3, xl: 2 }
             return { md: 6, xl: 4 }
@@ -109,8 +109,8 @@ function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldPr
                 value: selectValue,
                 options: [
                     { label: "off", value: -1 },
-                    { label: "automatic port", value: 0 },
-                    { label: "choose a port", value: lastCustom.current },
+                    { label: "automatic", value: 0 },
+                    { label: "choose", value: lastCustom.current },
                 ],
                 onChange,
             }),
