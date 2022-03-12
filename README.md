@@ -51,7 +51,7 @@ As you can see from the list above, we already have some goods that you can't fi
 3. **unzip** somewhere on your computer. You actually need only the exe, the plugins folder is optional.
 4. **double click** on `hfs.exe`
 
-## Linux
+## Linux / Mac
 
 1. install node.js version 16+ from https://nodejs.org/
 2. download and unzip the latest package from https://github.com/rejetto/hfs/releases/
