@@ -16,13 +16,13 @@
     "start-frontend": "cd frontend && npm run start",
     "start-admin": "cd admin && npm run start",
     "start": "node dist",
-    "build": "npm install && rm -rf dist/src && tsc --target es2018 && cp -v -r package-lock.json server/package.json READ* plugins dist && cd dist && npm ci --production && cd .. && node afterbuild",
+    "build": "npm install && rm -rf dist/src && tsc --target es2018 && cp -v -r package-lock.json server/package.json READ* LICENSE* plugins dist && cd dist && npm ci --production && cd .. && node afterbuild",
     "build-all": "rm -rf dist && npm run build && npm run build-frontend && npm run build-admin && npm audit --production && echo COMPLETED",
     "build-frontend": "cd frontend && npm run build",
     "build-admin": "cd admin && npm run build",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "zip-dist": "cd dist && zip hfs.zip -r * -x *.zip *.exe",
-    "exe-dist": "pkg . -C brotli && cd dist && zip hfs.exe.zip hfs.exe -r plugins",
+    "exe-dist": "pkg . -C brotli && cd dist && zip hfs.exe.zip hfs.exe LICENSE.txt -r plugins",
     "new-dist": "npm run build-all && npm run zip-dist && npm run exe-dist"
   },
   "engines": {
