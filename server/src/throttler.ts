@@ -42,7 +42,8 @@ export function throttler(): Koa.Middleware {
         const DELAY = 1000
         const update = _.debounce(() => {
             const ts = conn[SymThrStr]
-            const outSpeed = _.round(ts.getSpeed(), 1)
+            const speed = ts.getSpeed()
+            const outSpeed = _.round(speed, 1) || _.round(speed, 3) // further precision if necessary
             updateConnection(conn, { outSpeed, sent: ts.getBytesSent() })
             clearTimeout(conn[SymTimeout])
             if (outSpeed || !(ts.finished || ts.ended))
