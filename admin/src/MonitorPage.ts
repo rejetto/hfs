@@ -7,7 +7,7 @@ import { Delete, Lock, Block } from '@mui/icons-material'
 import { Box, Chip, Typography } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
-import { prefix, formatBytes, IconBtn, iconTooltip, manipulateConfig } from "./misc"
+import { formatBytes, IconBtn, iconTooltip, manipulateConfig } from "./misc"
 import { Field, SelectField } from './Form'
 
 export default function MonitorPage() {
@@ -31,26 +31,38 @@ function MoreInfo() {
                 pair('started'),
                 pair('version'),
                 pair('build'),
-                pair('http', 'HTTP', v => v.listening ? 'port '+v.port : ('off' + prefix(': configured port is used by ',v.busy))),
-                pair('https', 'HTTPS', v => v.listening ? 'port '+v.port : ('off' + prefix(': configured port is used by ',v.busy))),
+                pair('http', "HTTP", port),
+                pair('https', "HTTPS", port),
             )
     )
 
-    function pair(k: string, label: string='', render?:(v:any) => string) {
+    type Color = Parameters<typeof Chip>[0]['color']
+    type Render = (v:any) => [string, Color?]
+
+    function pair(k: string, label: string='', render?:Render) {
         let v = _.get(res, k)
         if (v === undefined)
             return null
         if (typeof v === 'string' && isoDateRe.test(v))
             v = new Date(v).toLocaleString()
+        let color: Color = undefined
         if (render)
-            v = render(v)
+            [v, color] = render(v)
         if (!label)
             label = _.capitalize(k.replaceAll('_', ' '))
         return h(Chip, {
             variant: 'filled',
+            color,
             label: h(Fragment, {}, h('b',{},label), ': ', v),
         })
     }
+
+    function port(v: any): ReturnType<Render> {
+        return v.listening ? ["port " + v.port, 'success']
+            : v.error ? [v.error, 'error']
+                : ["off"]
+    }
+
 }
 
 function Connections() {
