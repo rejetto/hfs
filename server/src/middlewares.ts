@@ -113,7 +113,6 @@ function applyBlock(socket: Socket) {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
-    ctx.state.usernames = getCurrentUsernameExpanded(ctx) // accounts chained via .belongs for permissions check
     ctx.state.account = getAccount(getCurrentUsername(ctx))
     await next()
 }

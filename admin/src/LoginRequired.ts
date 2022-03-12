@@ -4,7 +4,6 @@ import { Center } from './misc'
 import { Form } from './Form'
 import { apiCall } from './api'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
-import { LoadingButton } from '@mui/lab'
 import { Alert } from '@mui/material'
 
 export function LoginRequired({ children }: any) {
@@ -16,41 +15,36 @@ export function LoginRequired({ children }: any) {
 
 function LoginForm() {
     const [values, setValues] = useState({ username: '', password: '' })
-    const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    return h(Center, { flexDirection: 'column', gap: 2 },
+    return h(Center, {},
         h(Form, {
             values: {},
             set(v, { k }) {
                 setValues({ ...values, [k]: v })
             },
             fields: [
-                { k: 'username', autoComplete: 'username' },
+                { k: 'username', autoComplete: 'username', autoFocus: true },
                 { k: 'password', type: 'password', autoComplete: 'current-password' },
-            ]
-        }),
-        h(LoadingButton, {
-            variant: 'contained',
-            loading,
-            async onClick() {
-                const { username, password } = values
-                if (!username || !password) return
-                setLoading(true)
-                try {
-                    await login(username, password)
-                    setError('')
-                    state.loginRequired = false
-                    state.username = username
-                }
-                catch(e) {
-                    setError(String(e))
-                }
-                finally {
-                    setLoading(false)
+            ],
+            addToBar: [ error && h(Alert, { severity: 'error', sx: { flex: 1 } }, error) ],
+            save: {
+                children: "Enter",
+                startIcon: null,
+                async onClick() {
+                    const { username, password } = values
+                    if (!username || !password) return
+                    try {
+                        setError('')
+                        await login(username, password)
+                        state.loginRequired = false
+                        state.username = username
+                    }
+                    catch(e) {
+                        setError(String(e))
+                    }
                 }
             }
-        }, "Enter"),
-        h(Alert, { sx: { visibility: error ? '' : 'hidden' }, severity: 'error' }, error)
+        })
     )
 }
 

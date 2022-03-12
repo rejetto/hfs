@@ -1,9 +1,8 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, FC, Fragment, isValidElement, ReactElement, useEffect, useState } from 'react'
+import { createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState } from 'react'
 import {
     Box,
-    Button,
     FormControl,
     FormControlLabel, FormHelperText,
     FormLabel,
@@ -13,8 +12,9 @@ import {
     Switch,
     TextField
 } from '@mui/material'
-import { Dict } from './misc'
+import { Dict, useStateMounted } from './misc'
 import { Save } from '@mui/icons-material'
+import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 
 interface FieldDescriptor { k:string, comp?: any, label?: string | ReactElement, [extraProp:string]:any }
@@ -28,37 +28,61 @@ interface FormProps {
     values: Dict
     set: (v: any, field: FieldDescriptor) => void
     save?: Dict
-    sticky?: boolean
-    addToBar?: ReactElement[]
+    stickyBar?: boolean
+    addToBar?: ReactNode[]
     barSx?: Dict
-    [rest:string]: any,
+    [rest:string]: any
 }
-export function Form({ fields, values, set, defaults, save, sticky, addToBar=[], barSx, ...rest }: FormProps) {
+export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, ...rest }: FormProps) {
+    const [loading, setLoading] = useStateMounted(false)
+    const onClick = save?.onClick
+    if (onClick)
+        save.onClick = async function () {
+            setLoading(true)
+            try { return await onClick(this, arguments) }
+            finally { setLoading(false) }
+        }
+
+    const [pendingSubmit, setPendingSubmit] = useStateMounted(false)
+    useEffect(() => {
+        if (!pendingSubmit) return
+        setTimeout(save?.onClick)
+        setPendingSubmit(false)
+    }, [pendingSubmit]) //eslint-disable-line
+
+    const bar = save && h(Box, {
+            display: 'flex',
+            alignItems: 'center',
+            sx: Object.assign({},
+                stickyBar && { width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', top: 0 },
+                barSx)
+        },
+        h(LoadingButton, {
+            variant: 'contained',
+            startIcon: h(Save),
+            children: "Save",
+            loading,
+            ...save,
+        }),
+        ...addToBar,
+    )
+
     return h('form', {
         onSubmit(ev) {
             ev.preventDefault()
         },
         onKeyDown(ev) {
             if (!save?.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
-                save?.onClick?.()
+                setPendingSubmit(true) // we need to let outer component perform its state changes
         }
     },
-        h(Box, rest,
-            save && h(Box, {
-                display: 'flex',
-                gap: 2,
-                alignItems: 'center',
-                sx: Object.assign({ mb: 3, width: 'fit-content' },
-                    sticky && { zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', top: 0 },
-                    barSx)
-            },
-                h(Button, {
-                    variant: 'contained',
-                    startIcon: h(Save),
-                    ...save,
-                }, 'Save'),
-                ...addToBar,
-            ),
+        h(Box, {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            ...rest
+        },
+            stickyBar && bar,
             h(Grid, { container:true, rowSpacing:3, columnSpacing:1 },
                 fields.map((row, idx) => {
                     if (!row)
@@ -81,7 +105,8 @@ export function Form({ fields, values, set, defaults, save, sticky, addToBar=[],
                     return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
                         isValidElement(comp) ? comp : h(comp, rest) )
                 })
-            )
+            ),
+            !stickyBar && bar,
         )
     )
 }

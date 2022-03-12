@@ -13,7 +13,7 @@ import { prepareState } from './middlewares'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 const srpSession = new SRPServerSession(srp6aNimbusRoutines)
-const ongoingLogins:Record<string,SRPServerSessionStep1> = {}
+const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 
 // centralized log-in state
 function loggedIn(ctx:Koa.Context, username: string | false) {
@@ -27,6 +27,7 @@ function loggedIn(ctx:Koa.Context, username: string | false) {
     }
     s.username = username
     prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
+    delete s.login
     ctx.cookies.set('csrf', randomId(), { signed:false, httpOnly: false })
 }
 
@@ -85,15 +86,17 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
         loggedIn(ctx, username)
-        const acc = getAccount(username)
-        return { proof: String(M2), redirect: acc?.redirect, ...await refresh_session({},ctx) }
+        return {
+            proof: String(M2),
+            redirect: ctx.state.account?.redirect,
+            ...await refresh_session({},ctx)
+        }
     }
     catch(e) {
         return new ApiError(401, String(e))
     }
     finally {
         delete ongoingLogins[sid]
-        delete ctx.session.login
     }
 }
 

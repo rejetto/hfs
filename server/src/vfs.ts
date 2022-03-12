@@ -3,13 +3,14 @@
 import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { dirTraversal, enforceFinal, isDirectory, typedKeys } from './misc'
+import { dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
 import { setConfig, subscribeConfig } from './config'
 import { FORBIDDEN, IS_WINDOWS } from './const'
 import events from './events'
+import { getCurrentUsernameExpanded } from './perm'
 
 const WHO_ANYONE = true
 const WHO_NO_ONE = false
@@ -233,7 +234,9 @@ function renameUnderPath(rename:undefined | Record<string,string>, path: string)
 function matchWho(who: Who, ctx: Koa.Context) {
     return who === WHO_ANYONE
         || who === WHO_ANY_ACCOUNT && Boolean(ctx.state.account)
-        || Array.isArray(who) && who.some(u => ctx.state.usernames.includes(u) )
+        || Array.isArray(who) && (() => // check if I or any ancestor match `who`, but cache ancestors' usernames inside context state
+            getOrSet(ctx.state, 'usernames', () => getCurrentUsernameExpanded(ctx)).some((u:string) =>
+                who.includes(u) ))()
 }
 
 export function cantReadStatusCode(node: VfsNode) {

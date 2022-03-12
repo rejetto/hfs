@@ -31,7 +31,7 @@ export default function ConfigPage() {
             if (v || config[k])
                 state.config[k] = v
         },
-        sticky: true,
+        stickyBar: true,
         save: {
             onClick: save,
             disabled: !Object.keys(changes).length,
