@@ -90,12 +90,16 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
                     if (isValidElement(row))
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
                     let field = row
-                    const { k } = field
+                    const { k, onChange } = field
                     if (k) {
                         field = {
                             value: values?.[k],
-                            onChange(v:any) { set(v, field) },
                             ...field,
+                            onChange(v:any) {
+                                if (onChange)
+                                    v = onChange(v)
+                                set(v, field)
+                            },
                         }
                         if (field.label === undefined)
                             field.label = _.capitalize(k.replaceAll('_', ' '))
@@ -136,9 +140,9 @@ export function StringField({ value, onChange, fromField=_.identity, toField=_.i
     }, [value, toField])
     return h(TextField, {
         fullWidth: true,
+        InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
         ...props,
         value: state,
-        InputLabelProps: state ? { shrink: true } : undefined,
         onChange(event) {
             setState(event.target.value)
         },

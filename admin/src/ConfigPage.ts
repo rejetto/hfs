@@ -24,6 +24,12 @@ export default function ConfigPage() {
         return res
     const { changes } = snap
     const config = (loaded !== res) ? (state.config = loaded = res) : snap.config
+    const maxSpeedDefaults = {
+        comp: NumberField,
+        min: 1,
+        placeholder: "no limit",
+        onChange: (v: any) => v < 1 ? '' : v
+    }
     return h(Form, {
         sx: { maxWidth: '90em' },
         values: config,
@@ -55,8 +61,8 @@ export default function ConfigPage() {
             { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443 },
             config.https_port >= 0 && { k: 'cert', comp: StringField, label: "HTTPS certificate file" },
             config.https_port >= 0 && { k: 'private_key', comp: StringField, label: "HTTPS private key file" },
-            { k: 'max_kbps', comp: NumberField, label: 'Max KB/s', helperText: "Limit output bandwidth" },
-            { k: 'max_kbps_per_ip', comp: NumberField, label: "Max KB/s per-ip" },
+            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s" },
+            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
             { k: 'log', xl: 4, comp: StringField, label: "Main log file" },
             { k: 'error_log', xl: 4, comp: StringField, label: "Error log file" },
             { k: 'log_rotation', xl: 4, comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
