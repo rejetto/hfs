@@ -25,7 +25,7 @@ export default function ConfigPage() {
     const { changes } = snap
     const config = (loaded !== res) ? (state.config = loaded = res) : snap.config
     return h(Form, {
-        sx: { maxWidth:'90em' },
+        sx: { maxWidth: '90em' },
         values: config,
         set(v, { k }) {
             if (v || config[k])
@@ -42,7 +42,7 @@ export default function ConfigPage() {
                 reloadStatus()
             },
             startIcon: h(Refresh),
-        }, 'Reload')],
+        }, "Reload")],
         defaults({ comp }) {
             if (comp === ServerPort)
                 return { md: 6, xl: 4 }
@@ -102,15 +102,15 @@ function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldPr
     const selectValue = Number(value! > 0 ? lastCustom.current : value) || 0
     const error = status?.error
     return h(Box, {},
-        h(Box, { display:'flex' },
+        h(Box, { display: 'flex' },
             h(SelectField as Field<number>, {
                 sx: { flexGrow: 1 },
                 label,
                 value: selectValue,
                 options: [
-                    { label: 'off', value: -1 },
-                    { label: 'automatic port', value: 0 },
-                    { label: 'choose port number', value: lastCustom.current },
+                    { label: "off", value: -1 },
+                    { label: "automatic port", value: 0 },
+                    { label: "choose a port", value: lastCustom.current },
                 ],
                 onChange,
             }),
@@ -118,6 +118,6 @@ function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldPr
         ),
         status && h(FormHelperText, { error: Boolean(error) },
             status === true ? '...'
-                : error ?? (status?.listening && 'working on port '+ status.port) )
+                : error ?? (status?.listening && "Correctly working on port "+ status.port) )
     )
 }

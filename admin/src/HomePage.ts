@@ -38,7 +38,7 @@ export default function HomePage() {
                 )
             ),
             h(Box, { color:'text.secondary' },
-                `Inside frontend your users can see the files and folders you decide in the File System.`)
+                `Inside the frontend your users can see files and folders you share in the File System.`)
         ) : h(Alert, { severity: 'warning' }, "Frontend unreachable: ",
             !cfg ? '...'
                 : errors.length === 2 ? "both http and https are in error"
