@@ -22,47 +22,45 @@ const ip2group: Record<string, {
 const SymThrStr = Symbol('stream')
 const SymTimeout = Symbol('timeout')
 
-export function throttler(): Koa.Middleware {
-    return async (ctx, next) => {
-        await next()
-        const { body } = ctx
-        if (!body || !(body instanceof Readable) || ctx.state.account?.ignore_limits)
-            return
-        const ipGroup = getOrSet(ip2group, ctx.ip, ()=> {
-            const tg = new ThrottleGroup(Infinity, mainThrottleGroup)
-            const unsub = subscribeConfig({ k:'max_kbps_per_ip', defaultValue:null }, v =>
-                tg.updateLimit(v ?? Infinity))
-            return { group:tg, count:0, destroy: unsub }
-        })
-        const conn = socket2connection(ctx.socket)
-        if (!conn) throw 'assert throttler connection'
+export const throttler: Koa.Middleware = async (ctx, next) => {
+    await next()
+    const { body } = ctx
+    if (!body || !(body instanceof Readable) || ctx.state.account?.ignore_limits)
+        return
+    const ipGroup = getOrSet(ip2group, ctx.ip, ()=> {
+        const tg = new ThrottleGroup(Infinity, mainThrottleGroup)
+        const unsub = subscribeConfig({ k:'max_kbps_per_ip', defaultValue:null }, v =>
+            tg.updateLimit(v ?? Infinity))
+        return { group:tg, count:0, destroy: unsub }
+    })
+    const conn = ctx.state.connection
+    if (!conn) throw 'assert throttler connection'
 
-        const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr])
+    const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr])
 
-        const DELAY = 1000
-        const update = _.debounce(() => {
-            const ts = conn[SymThrStr]
-            const speed = ts.getSpeed()
-            const outSpeed = _.round(speed, 1) || _.round(speed, 3) // further precision if necessary
-            updateConnection(conn, { outSpeed, sent: ts.getBytesSent() })
-            clearTimeout(conn[SymTimeout])
-            if (outSpeed || !(ts.finished || ts.ended))
-                conn[SymTimeout] = setTimeout(update, DELAY)
-        }, DELAY, { maxWait:DELAY })
-        ts.on('sent', update)
+    const DELAY = 1000
+    const update = _.debounce(() => {
+        const ts = conn[SymThrStr]
+        const speed = ts.getSpeed()
+        const outSpeed = _.round(speed, 1) || _.round(speed, 3) // further precision if necessary
+        updateConnection(conn, { outSpeed, sent: ts.getBytesSent() })
+        clearTimeout(conn[SymTimeout])
+        if (outSpeed || !(ts.finished || ts.ended))
+            conn[SymTimeout] = setTimeout(update, DELAY)
+    }, DELAY, { maxWait:DELAY })
+    ts.on('sent', update)
 
-        ++ipGroup.count
-        ts.on('close', ()=> {
-            update.flush()
-            if (--ipGroup.count) return // any left?
-            ipGroup.destroy?.()
-            delete ip2group[ctx.ip]
-        })
+    ++ipGroup.count
+    ts.on('close', ()=> {
+        update.flush()
+        if (--ipGroup.count) return // any left?
+        ipGroup.destroy?.()
+        delete ip2group[ctx.ip]
+    })
 
-        const bak = ctx.response.length // preserve
-        ctx.body = ctx.body.pipe(ts)
+    const bak = ctx.response.length // preserve
+    ctx.body = ctx.body.pipe(ts)
 
-        if (bak)
-            ctx.response.length = bak
-    }
+    if (bak)
+        ctx.response.length = bak
 }

@@ -54,7 +54,7 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
             if (ctx.fresh)
                 return ctx.status = 304
 
-            const conn = socket2connection(ctx.socket)
+            const conn = ctx.state.connection
             if (conn)
                 updateConnection(conn, { path: ctx.path })
             if (modifier)

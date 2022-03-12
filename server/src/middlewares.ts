@@ -13,9 +13,9 @@ import { serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
-import { getAccount, getCurrentUsername, getCurrentUsernameExpanded } from './perm'
+import { getAccount, getCurrentUsername } from './perm'
 import { getConfig, subscribeConfig } from './config'
-import { getConnections } from './connections'
+import { getConnections, socket2connection, updateConnection } from './connections'
 import { Socket } from 'net'
 
 export const gzipper = compress({
@@ -113,6 +113,10 @@ function applyBlock(socket: Socket) {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
+    // calculate these once and for all
     ctx.state.account = getAccount(getCurrentUsername(ctx))
+    const conn = ctx.state.connection = socket2connection(ctx.socket)
+    if (conn?.path) // leftover of connection reused for a new request
+        updateConnection(conn, { path: '' })
     await next()
 }
