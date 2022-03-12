@@ -1,15 +1,17 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { isValidElement, createElement as h, useState, useEffect, Fragment } from "react"
+import { isValidElement, createElement as h, useState, useEffect, Fragment, useRef } from "react"
 import { apiCall, useApiComp } from './api'
 import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
+import { Add, Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
 import { BoolField, Form, MultiSelectField, SelectField, StringField } from './Form'
 import { alertDialog, confirmDialog } from './dialog'
 import { iconTooltip, isEqualLax, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import { makeStyles } from '@mui/styles'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
+import MenuButton from './MenuButton'
+import addFiles, { addVirtual } from './addFiles'
 
 const useStyles = makeStyles({
     label: {
@@ -32,7 +34,7 @@ interface Account {
 export default function AccountsPage() {
     const [res, reload] = useApiComp('get_accounts')
     const [sel, setSel] = useState<string[]>([])
-    const [add, setAdd] = useState(false)
+    const [addGroup, setAddGroup] = useState<boolean|null>(null)
     const styles = useStyles()
     useEffect(() => { // if accounts are reloaded, review the selection to remove elements that don't exist anymore
         if (isValidElement(res) || !Array.isArray(res?.list)) return
@@ -41,7 +43,8 @@ export default function AccountsPage() {
     if (isValidElement(res))
         return res
     const { list }: { list: Account[] } = res
-    const account = add ? { username: '', hasPassword:true } : sel.length === 1 && list.find(x => x.username === sel[0])
+    const account = addGroup !== null ? { username: '', hasPassword: !addGroup }
+        : sel.length === 1 && list.find(x => x.username === sel[0])
     return h(Grid, { container: true, maxWidth: '50em' },
         h(Grid, { item: true, xs: 12 },
             h(Box, {
@@ -56,11 +59,14 @@ export default function AccountsPage() {
                     width: 'fit-content',
                 },
             },
-                h(Button, {
+                h(MenuButton, {
                     variant: 'contained',
                     startIcon: h(PersonAdd),
-                    onClick(){ setAdd(true) }
-                }, "Add"),
+                    items: [
+                        { children: "user", onClick: () => switchTo(false) },
+                        { children: "group", onClick: () => switchTo(true) }
+                    ]
+                }, 'Add'),
                 h(Button, {
                     disabled: !sel.length,
                     startIcon: h(Delete),
@@ -83,8 +89,7 @@ export default function AccountsPage() {
                 sx: { pr: 4, minWidth: '15em' },
                 selected: sel,
                 onNodeSelect(ev, ids) {
-                    setAdd(false)
-                    setSel(ids)
+                    switchTo(ids)
                 }
             },
                 list.map((ac: Account) =>
@@ -102,14 +107,13 @@ export default function AccountsPage() {
                 )
             )
         ),
-        (add || sel.length > 0) && h(Grid, { item: true, md: 6 },
+        (addGroup !== null || sel.length > 0) && h(Grid, { item: true, md: 6 },
             h(Card, {},
                 h(CardContent, {},
                     account ? h(AccountForm, {
                         account,
                         groups: list.filter(x => !x.hasPassword).map( x => x.username ),
                         done(username) {
-                            setAdd(false)
                             setSel([username])
                             reload()
                         }
@@ -122,6 +126,17 @@ export default function AccountsPage() {
                     )
                 )))
     )
+
+    function switchTo(what: boolean | string[]) {
+        if (Array.isArray(what)) {
+            setAddGroup(null)
+            setSel(what)
+        }
+        else {
+            setSel([])
+            setAddGroup(what)
+        }
+    }
 }
 
 function hList(heading: string, list: any[]) {
@@ -140,10 +155,14 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
     useEffect(() => {
         setValues(account)
         setBelongOptions(groups.filter(x => x !== account.username ))
+        //@ts-ignore
+        ref.current?.querySelector('input')?.focus()
     }, [JSON.stringify(account)]) //eslint-disable-line
     const add = !account.username
     const group = !values.hasPassword
+    const ref = useRef()
     return h(Form, {
+        formRef:  ref,
         values,
         set(v, { k }) {
             setValues({ ...values, [k]: v })
@@ -151,7 +170,6 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
         barSx: { width: 'initial', justifyContent: 'space-between' },
         addToBar: [ account2icon(values, { fontSize: 'large', sx: { p: 1 }}) ],
         fields: [
-            add && { k: 'hasPassword', comp: SelectField, label: 'Account type', options: [{ value: true, label: 'Simple' }, { value: false, label: 'Group' }] },
             { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off' },
             !group && { k: 'password', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: add ? 'Password' : 'Change password' },
             !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'off', label: 'Repeat password' },

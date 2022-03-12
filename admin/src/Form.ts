@@ -33,7 +33,7 @@ interface FormProps {
     barSx?: Dict
     [rest:string]: any
 }
-export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, ...rest }: FormProps) {
+export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, ...rest }: FormProps) {
     const [loading, setLoading] = useStateMounted(false)
     const onClick = save?.onClick
     if (onClick)
@@ -68,6 +68,7 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
     )
 
     return h('form', {
+        ref: formRef,
         onSubmit(ev) {
             ev.preventDefault()
         },
