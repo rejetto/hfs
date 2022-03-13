@@ -9,7 +9,7 @@ import { Dict } from './misc'
 import { subscribeKey } from 'valtio/utils'
 import { Form, BoolField, NumberField, StringField, SelectField, FieldProps, Field } from './Form';
 import StringStringField from './StringStringField'
-import { alertDialog } from './dialog'
+import { alertDialog, confirmDialog } from './dialog'
 
 let loaded: Dict | undefined
 
@@ -86,9 +86,20 @@ export default function ConfigPage() {
     })
 
     async function save() {
-        await apiCall('set_config', { values: state.changes })
+        const values = state.changes
+        const loc = window.location
+        const newPort = loc.protocol === 'http:' ? values.port : values.https_port
+        if (newPort <= 0 && !await confirmDialog("You are switching off the server port and you will be disconnected"))
+            return
+        else if (newPort > 0 && !await confirmDialog("You are changing the port and you may be disconnected"))
+            return
+        await apiCall('set_config', { values })
+        if (newPort > 0) {
+            await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
+            return window.location.href = loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
+        }
         setTimeout(reloadStatus, 1000)
-        Object.assign(loaded, state.changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
+        Object.assign(loaded, values) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         await alertDialog("Changes applied", 'success')
     }
