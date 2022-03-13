@@ -31,15 +31,17 @@ interface FormProps {
     stickyBar?: boolean
     addToBar?: ReactNode[]
     barSx?: Dict
+    onError?: (err: any) => void
     [rest:string]: any
 }
-export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, ...rest }: FormProps) {
+export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, ...rest }: FormProps) {
     const [loading, setLoading] = useStateMounted(false)
     const onClick = save?.onClick
     if (onClick)
         save.onClick = async function (ev) {
             setLoading(true)
             try { return await onClick(ev) }
+            catch(e) { onError?.(e) }
             finally { setLoading(false) }
         }
 

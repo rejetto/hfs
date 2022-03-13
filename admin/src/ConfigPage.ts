@@ -38,6 +38,7 @@ export default function ConfigPage() {
                 state.config[k] = v
         },
         stickyBar: true,
+        onError: alertDialog,
         save: {
             onClick: save,
             disabled: !Object.keys(changes).length,
