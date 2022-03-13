@@ -72,6 +72,7 @@ export default function ConfigPage() {
             },
             { k: 'accounts', comp: StringField, label: "Accounts file" },
             { k: 'open_browser_at_start', comp: BoolField },
+            { k: 'allowed_referer', placeholder: "any", helperText: "Leave empty to allow any", },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, md: 6, label: "Calculate ZIP size for seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'mime', comp: StringStringField,

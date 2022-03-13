@@ -3,7 +3,7 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import session from 'koa-session'
-import { ADMIN_URI, BUILD_TIMESTAMP, SESSION_DURATION } from './const'
+import { ADMIN_URI, BUILD_TIMESTAMP, FORBIDDEN, SESSION_DURATION } from './const'
 import Application from 'koa'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, urlToNode } from './vfs'
@@ -17,6 +17,7 @@ import { getAccount, getCurrentUsername } from './perm'
 import { getConfig, subscribeConfig } from './config'
 import { getConnections, socket2connection, updateConnection } from './connections'
 import { Socket } from 'net'
+import { isMatch } from 'micromatch'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -57,6 +58,13 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
     if (ctx.body)
         return next()
+    const allowedRef = getConfig('allowed_referer')
+    if (allowedRef) {
+        const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
+        if (ref && ref !== ctx.get('host')?.split(':')[0] // automatic accept if referer is basically the hosting domain
+            && !isMatch(ref, allowedRef))
+            return ctx.status = FORBIDDEN
+    }
     if (path.startsWith(FRONTEND_URI))
         return serveFrontendPrefixed(ctx,next)
     if (path+'/' === ADMIN_URI)
