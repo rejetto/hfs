@@ -2,7 +2,7 @@
 
 import { createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState } from 'react'
 import {
-    Box,
+    Box, Button,
     FormControl,
     FormControlLabel, FormHelperText,
     FormLabel,
@@ -27,7 +27,7 @@ interface FormProps {
     defaults?: (f:FieldDescriptor) => Dict | void
     values: Dict
     set: (v: any, field: FieldDescriptor) => void
-    save?: Dict
+    save?: Partial<Parameters<typeof Button>[0]>
     stickyBar?: boolean
     addToBar?: ReactNode[]
     barSx?: Dict
@@ -37,16 +37,16 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
     const [loading, setLoading] = useStateMounted(false)
     const onClick = save?.onClick
     if (onClick)
-        save.onClick = async function () {
+        save.onClick = async function (ev) {
             setLoading(true)
-            try { return await onClick(this, arguments) }
+            try { return await onClick(ev) }
             finally { setLoading(false) }
         }
 
     const [pendingSubmit, setPendingSubmit] = useStateMounted(false)
     useEffect(() => {
         if (!pendingSubmit) return
-        setTimeout(save?.onClick)
+        setTimeout(save?.onClick!)
         setPendingSubmit(false)
     }, [pendingSubmit]) //eslint-disable-line
 

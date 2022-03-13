@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { alertDialog, newDialog } from './dialog'
+import { alertDialog, newDialog, promptDialog } from './dialog'
 import { createElement as h } from 'react'
 import { Box } from '@mui/material'
 import { VfsNode, reloadVfs } from './VfsPage'
@@ -38,7 +38,8 @@ export default function addFiles() {
 
 export async function addVirtual() {
     try {
-        const name = "Folder"+String(Date.now()).slice(8)
+        const name = await promptDialog("Enter folder name")
+        if (!name) return
         const under = getUnder()
         await apiCall('add_vfs', { under, name })
         reloadVfs([ (under||'') + '/' + name ])

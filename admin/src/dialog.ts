@@ -6,14 +6,15 @@ import {
     isValidElement,
     ReactElement,
     useEffect,
-    useRef
+    useRef,
+    useState
 } from 'react'
-import { Check, Error as ErrorIcon, Info, Warning } from '@mui/icons-material'
-import { newDialog, closeDialog, dialogsDefaults, DialogOptions, Dialogs } from '@hfs/shared/lib/dialogs'
+import { Check, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
+import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared/lib/dialogs'
+import { Form } from './Form'
 export * from '@hfs/shared/lib/dialogs'
 
-dialogsDefaults.Container = Container
-function Container(d:DialogOptions) {
+dialogsDefaults.Container = function Container(d:DialogOptions) {
     useEffect(()=>{
         ref.current?.focus()
     }, [])
@@ -83,3 +84,49 @@ export async function confirmDialog(msg: string, { href }: ConfirmOptions={}) : 
     }
 }
 
+type FormProps = Parameters<typeof Form>[0]
+export async function formDialog(props: FormProps) : Promise<FormProps['values']> {
+    return new Promise(resolve => newDialog({
+        className: 'dialog-confirm',
+        icon: '?',
+        onClose: resolve,
+        Content
+    }) )
+
+    function Content() {
+        const [values, setValues] = useState<any>(props.values||{})
+        return h(Form, {
+            ...props,
+            values,
+            set(v, { k }) {
+                setValues({ ...values, [k]: v })
+            },
+            save: {
+                ...props.save,
+                onClick() {
+                    closeDialog(values)
+                }
+            }
+        })
+    }
+}
+
+export async function promptDialog(msg: string, props:any={}) : Promise<string | undefined> {
+    return formDialog({
+        ...props,
+        fields: [
+            h(Box, {}, msg),
+            { k: 'text', label: null, autoFocus: true, },
+        ],
+        save: {
+            children: "Continue",
+            startIcon: h(Forward),
+            ...props.save,
+        },
+        barSx: { gap: 2 },
+        addToBar: [
+            h(Button, { onClick: closeDialog }, "Cancel"),
+            ...props.addToBar||[],
+        ]
+    }).then(values => values?.text)
+}

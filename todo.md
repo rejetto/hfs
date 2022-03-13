@@ -1,5 +1,6 @@
 # To do
 - mac/linux binary
+- admin/fs: support insert/delete key
 - if specified config is a folder, check for file config.yaml inside
 - merge accounts in config
 - frontend: ok button to inputDialogs
