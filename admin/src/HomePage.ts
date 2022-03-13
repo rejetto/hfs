@@ -1,10 +1,10 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment } from 'react'
-import { Alert, Box, Link } from '@mui/material'
+import { Box, Link } from '@mui/material'
 import { useApi } from './api'
 import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, spinner } from './misc'
-import { Launch } from '@mui/icons-material'
+import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { useSnapState } from './state'
 
@@ -22,36 +22,43 @@ export default function HomePage() {
     const srv = goSecure ? https : (http?.listening && http)
     const href = srv && `http${goSecure}://`+window.location.hostname + (srv.port === (goSecure ? 443 : 80) ? '' : ':'+srv.port)
     const errorMap = objSameKeys(status, v =>
-        v.busy ? [`port ${v.port} already used by ${v.busy} - choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
+        v.busy ? [`port ${v.port} already used by ${v.busy} — choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
             : v.error )
     const errors = errorMap && onlyTruthy(Object.entries(errorMap).map(([k,v]) =>
-        v && [md(`Protocol _${k}_ cannot work: `), v, typeof v === 'string' && /certificate|key/.test(v) && [' - ', cfgLink("provide adequate files")]]))
+        v && [md(`Protocol _${k}_ cannot work: `), v, typeof v === 'string' && /certificate|key/.test(v) && [' — ', cfgLink("provide adequate files")]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
-        username && h(Alert, { severity: 'info' }, "Welcome "+username),
+        username && entry('', "Welcome "+username),
         !cfg ? spinner() :
-            errors.length ? errors.map((msg, i) => h(Alert, { key: i, severity: 'error' }, dontBotherWithKeys(msg)))
-                : href && h(Alert, { severity: 'success' }, "Server is working"),
-        href ? h(Box, { my:1, ml:1 },
-            h(Box, { fontSize:'200%' },
-                h(Link, { target:'frontend', href }, "Open frontend interface",
-                    h(Launch, { sx: { ml:1, mt:1 } }),
-                )
-            ),
-            h(Box, { color:'text.secondary' },
-                `Inside the frontend your users can see files and folders you share in the File System.`)
-        ) : h(Alert, { severity: 'warning' }, "Frontend unreachable: ",
+            errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
+                : entry('success', "Server is working"),
+        entry('', "Here you manage your server. Access your shared files in the ",
+            h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
+        ! href && entry('warning', "Frontend unreachable: ",
             !cfg ? '...'
                 : errors.length === 2 ? "both http and https are in error"
                     : h(Fragment, {},
                         ['http','https'].map(k => k + " " + (errorMap[k] ? "is in error" : "is off")).join(', '),
-                        !errors.length && h(Fragment, {}, ' - ', cfgLink("switch http or https on"))
+                        !errors.length && h(Fragment, {}, ' — ', cfgLink("switch http or https on"))
                     )
         ),
-        !username && h(Alert, { severity: 'info' }, "You are accessing on localhost without an account - ", h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers")),
+        !username && entry('', "You are accessing on localhost without an account — ", h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers")),
 
         vfs?.root && !vfs.root.children?.length && !vfs.root.source &&
-            h(Alert, { severity: 'warning' }, "You have no files shared - ", fsLink("add some"))
+            entry('warning', "You have no files shared — ", fsLink("add some"))
     )
+}
+
+type Color = '' | 'success' | 'warning' | 'error'
+
+function entry(color: Color, ...content: any[]) {
+    return h(Box, {
+            fontSize: 'x-large',
+            color: th => color && th.palette[color]?.main,
+        },
+        h(({ success: CheckCircle, info: Info, '': Info, warning: Warning, error: Error })[color], {
+            sx: { mb: '-3px', mr: 1 }
+        }),
+        ...content)
 }
 
 function fsLink(text=`File System page`) {
