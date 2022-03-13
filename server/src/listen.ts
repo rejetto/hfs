@@ -18,7 +18,7 @@ let httpSrv: http.Server & ServerExtra
 let httpsSrv: http.Server & ServerExtra
 
 subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
-    await stopServer(httpSrv)
+    stopServer(httpSrv).then()
     httpSrv = http.createServer(app.callback())
     port = await startServer(httpSrv, { port, name:'http' })
     if (!port) return
@@ -53,7 +53,7 @@ const CFG_HTTPS_PORT = 'https_port'
 subscribeConfig({ k:CFG_HTTPS_PORT, defaultValue: -1 }, considerHttps)
 
 async function considerHttps() {
-    await stopServer(httpsSrv)
+    stopServer(httpsSrv).then()
     let port = getConfig('https_port')
     try {
         httpsSrv = https.createServer(port < 0 ? {} : { key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback())
