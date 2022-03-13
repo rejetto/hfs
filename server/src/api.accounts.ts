@@ -13,7 +13,7 @@ import {
     setAccount
 } from './perm'
 import _ from 'lodash'
-import { getConfig } from './config'
+import { FORBIDDEN } from './const'
 
 const apis: ApiHandlers = {
 
@@ -42,7 +42,7 @@ const apis: ApiHandlers = {
 
     add_account({ username, ...rest }) {
         if (getAccount(username))
-            return new ApiError(403)
+            return new ApiError(FORBIDDEN)
         if (!addAccount(username, rest))
             return new ApiError(400)
         return {}

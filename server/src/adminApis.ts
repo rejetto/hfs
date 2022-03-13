@@ -3,7 +3,7 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus } from './listen'
-import { BUILD_TIMESTAMP, HFS_STARTED, VERSION } from './const'
+import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
@@ -24,7 +24,7 @@ export const adminApis: ApiHandlers = {
             const noHttp = (v.port ?? getConfig('port')) < 0 || !st.httpSrv.listening
             const noHttps = (v.https_port ?? getConfig('https_port')) < 0 || !st.httpsSrv.listening
             if (noHttp && noHttps)
-                return new ApiError(403, "You cannot switch off both http and https ports")
+                return new ApiError(FORBIDDEN, "You cannot switch off both http and https ports")
             await setConfig(v)
         }
         return {}

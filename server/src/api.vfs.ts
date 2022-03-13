@@ -9,7 +9,7 @@ import glob  from 'fast-glob'
 import { enforceFinal, isWindowsDrive, objSameKeys } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { IS_WINDOWS } from './const'
+import { FORBIDDEN, IS_WINDOWS } from './const'
 
 type VfsAdmin = {
     type?: string,
@@ -72,7 +72,7 @@ const apis: ApiHandlers = {
         if (!n)
             return new ApiError(404, 'invalid under')
         if (n.isTemp || !await nodeIsDirectory(n))
-            return new ApiError(403, 'invalid under')
+            return new ApiError(FORBIDDEN, 'invalid under')
         const a = n.children || (n.children = [])
         if (source && a.find(x => x.source === source))
             return new ApiError(409, 'already present')
@@ -94,7 +94,7 @@ const apis: ApiHandlers = {
                 const parent = dirname(uri)
                 const parentNode = await urlToNodeOriginal(parent)
                 if (!parentNode)
-                    return 403
+                    return FORBIDDEN
                 const { children } = parentNode
                 if (!children) // shouldn't happen
                     return 500

@@ -4,7 +4,7 @@ import { getAccount, getCurrentUsername, getFromAccount } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
-import { ADMIN_URI, SESSION_DURATION } from './const'
+import { ADMIN_URI, FORBIDDEN, SESSION_DURATION } from './const'
 import { randomId } from './misc'
 import Koa from 'koa'
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
@@ -66,7 +66,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     if (!account.srp)
         return new ApiError(406) // unacceptable
     if (!getFromAccount(account, a => a.admin))
-        return new ApiError(403)
+        return new ApiError(FORBIDDEN)
 
     const [salt, verifier] = account.srp.split('|')
     const step1 = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
