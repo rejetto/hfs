@@ -18,9 +18,15 @@ export const adminApis: ApiHandlers = {
     ...vfsApis,
     ...accountsApis,
 
-    async set_config({ values }) {
-        if (values)
-            await setConfig(values)
+    async set_config({ values: v }) {
+        if (v) {
+            const st = getStatus()
+            const noHttp = (v.port ?? getConfig('port')) < 0 || !st.httpSrv.listening
+            const noHttps = (v.https_port ?? getConfig('https_port')) < 0 || !st.httpsSrv.listening
+            if (noHttp && noHttps)
+                return new ApiError(403, "You cannot switch off both http and https ports")
+            await setConfig(v)
+        }
         return {}
     },
 
