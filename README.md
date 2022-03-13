@@ -44,20 +44,18 @@ As you can see from the list above, we already have some goods that you can't fi
 
 # Installation
 
-## Windows
-
 1. go on https://github.com/rejetto/hfs/releases
-2. **download** the latest version zip with "exe" in the name  
-3. **unzip** somewhere on your computer. You actually need only the exe, the plugins folder is optional.
-4. **double click** on `hfs.exe`
+2. **download** the latest version in a folder you choose
+   * if you have Windows, download `exe` version
+   * else download release for your system, if available  
+3. run the file
 
-## Linux / Mac
+If your system is not covered, you can try this alternative version:
 
 1. install node.js version 16+ from https://nodejs.org/
-2. download and unzip the latest package from https://github.com/rejetto/hfs/releases/
-3. chmod +x run.bat
-
-you are now ready to launch `run.bat`
+2. download and unzip the latest package named `hfsVERSION.zip` from https://github.com/rejetto/hfs/releases/
+3. chmod +x run
+4. launch `./run`
 
 # Building instructions
 

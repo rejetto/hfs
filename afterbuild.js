@@ -32,7 +32,7 @@ fs.unlinkSync(dist+'package.json')
 fs.unlinkSync(dist+'package-lock.json')
 
 {
-    const fn = dist+'run.bat'
+    const fn = dist+'run'
     console.log(fn)
     fs.writeFileSync(fn, 'node src')
     fs.chmodSync(fn, 0o755)

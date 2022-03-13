@@ -22,7 +22,7 @@
     "build-admin": "cd admin && npm run build",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "zip-dist": "cd dist && zip hfs.zip -r * -x *.zip *.exe",
-    "exe-dist": "pkg . -C brotli && cd dist && zip hfs.exe.zip hfs.exe LICENSE.txt -r plugins",
+    "exe-dist": "pkg . -C brotli && cd dist && mv -f hfs-win.exe hfs.exe && zip plugins.zip -r plugins",
     "new-dist": "npm run build-all && npm run zip-dist && npm run exe-dist"
   },
   "engines": {
@@ -44,7 +44,9 @@
       "dist/frontend/**/*"
     ],
     "targets": [
-      "node16-win"
+      "node16-win",
+      "node16-mac",
+      "node16-linux"
     ],
     "outputPath": "dist"
   }
