@@ -3,8 +3,8 @@
 import _ from "lodash"
 import { isValidElement, createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiComp, useApiList } from "./api"
-import { Delete, Lock, Block } from '@mui/icons-material'
-import { Box, Chip, Typography } from '@mui/material'
+import { PauseCircle, PlayCircle, Delete, Lock, Block } from '@mui/icons-material'
+import { Box, Chip } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
 import { formatBytes, IconBtn, iconTooltip, manipulateConfig } from "./misc"
@@ -64,15 +64,27 @@ function MoreInfo() {
 function Connections() {
     const { list, error } = useApiList('get_connections')
     const [filtered, setFiltered] = useState(true)
-    const rows = useMemo(()=> list?.filter((x:any) => !filtered || x.path).map((x:any,id:number) => ({ id, ...x })), [list, filtered])
+    const [paused, setPaused] = useState(false)
+    const rows = useMemo(()=>
+        list?.filter((x:any) => !filtered || x.path).map((x:any,id:number) => ({ id, ...x })),
+        [!paused && list, filtered]) //eslint-disable-line
     return h(Fragment, {},
-        h(Box, { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-            h(Box, { fontSize: { xs:'1em', md:'2em' }, px: 2 }, "Active connections"),
+        h(Box, { display: 'flex', alignItems: 'center' },
             h(SelectField as Field<boolean>, {
                 fullWidth: false,
                 value: filtered,
                 onChange: setFiltered,
-                options: { "only downloads": true, "all connections": false }
+                options: { "Downloads connections": true, "All connections": false }
+            }),
+
+            h(Box, { flex: 1 }),
+            h(IconBtn, {
+                title: "Pause",
+                icon: paused ? PlayCircle : PauseCircle,
+                sx: { mr: 1 },
+                onClick() {
+                    setPaused(!paused)
+                }
             }),
         ),
         error ? h(Alert, { severity: 'error' }, error) :
