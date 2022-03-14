@@ -159,7 +159,7 @@ export function StringField({ value, onChange, fromField=_.identity, toField=_.i
     function go(event: any) {
         let newV
         try { // catch parsing exceptions
-            newV = fromField(state)
+            newV = fromField(state.trim())
         }
         catch (e) {
             return setErr(String(e))
