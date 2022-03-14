@@ -68,6 +68,7 @@ export type VfsNode = {
     size?: number
     ctime?: string
     mtime?: string
+    default?: string
     children?: VfsNode[]
     parent?: VfsNode
     can_see: Who

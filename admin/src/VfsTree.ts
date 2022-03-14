@@ -12,7 +12,8 @@ import {
     Home,
     InsertDriveFileOutlined,
     Lock,
-    RemoveRedEye
+    RemoveRedEye,
+    Web
 } from '@mui/icons-material'
 import { VfsNode, Who } from './VfsPage'
 import { iconTooltip, isWindowsDrive, onlyTruthy } from './misc'
@@ -65,6 +66,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 h(!name ? Home : folder ? FolderIcon : FileIcon),
                 isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
                 isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
+                node.default && iconTooltip(Web, "Act as website"),
                 node.masks && iconTooltip(Face, "Masks"),
                 !source?.endsWith(name) ? name
                     : h('span', {},
