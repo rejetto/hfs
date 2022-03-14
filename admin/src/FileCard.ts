@@ -65,7 +65,7 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
         save: {
             disabled: isEqualLax(values, file),
             async onClick() {
-                if (!values.name)
+                if (file.id !== '/' && !values.name)
                     return alertDialog(`Name cannot be empty`, 'warning')
                 const props = _.pickBy(values, (v,k) =>
                     v !== file[k as keyof typeof values])
