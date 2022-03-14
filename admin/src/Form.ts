@@ -52,23 +52,6 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
         setPendingSubmit(false)
     }, [pendingSubmit]) //eslint-disable-line
 
-    const bar = save && h(Box, {
-            display: 'flex',
-            alignItems: 'center',
-            sx: Object.assign({},
-                stickyBar && { width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', top: 0 },
-                barSx)
-        },
-        h(LoadingButton, {
-            variant: 'contained',
-            startIcon: h(Save),
-            children: "Save",
-            loading,
-            ...save,
-        }),
-        ...addToBar,
-    )
-
     return h('form', {
         ref: formRef,
         onSubmit(ev) {
@@ -85,7 +68,6 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
             gap: 3,
             ...rest
         },
-            stickyBar && bar,
             h(Grid, { container:true, rowSpacing:3, columnSpacing:1 },
                 fields.map((row, idx) => {
                     if (!row)
@@ -113,7 +95,22 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
                         isValidElement(comp) ? comp : h(comp, rest) )
                 })
             ),
-            !stickyBar && bar,
+            save && h(Box, {
+                    display: 'flex',
+                    alignItems: 'center',
+                    sx: Object.assign({},
+                        stickyBar && { width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', bottom: 0, p: 1, m: -1 },
+                        barSx)
+                },
+                h(LoadingButton, {
+                    variant: 'contained',
+                    startIcon: h(Save),
+                    children: "Save",
+                    loading,
+                    ...save,
+                }),
+                ...addToBar,
+            )
         )
     )
 }
