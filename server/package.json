@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@types/archiver": "^5.1.1",
-    "@types/axios": "^0.14.0",
     "@types/koa": "^2.13.4",
     "@types/koa__router": "^8.0.11",
     "@types/koa-compress": "^4.0.3",

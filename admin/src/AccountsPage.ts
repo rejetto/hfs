@@ -3,15 +3,14 @@
 import { isValidElement, createElement as h, useState, useEffect, Fragment, useRef } from "react"
 import { apiCall, useApiComp } from './api'
 import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Add, Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
-import { BoolField, Form, MultiSelectField, SelectField, StringField } from './Form'
+import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
+import { BoolField, Form, MultiSelectField, StringField } from './Form'
 import { alertDialog, confirmDialog } from './dialog'
 import { iconTooltip, isEqualLax, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import { makeStyles } from '@mui/styles'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import MenuButton from './MenuButton'
-import addFiles, { addVirtual } from './addFiles'
 
 const useStyles = makeStyles({
     label: {
