@@ -44,11 +44,10 @@ As you can see from the list above, we already have some goods that you can't fi
 
 # Installation
 
-1. go on https://github.com/rejetto/hfs/releases
-2. **download** the latest version in a folder you choose
-   * if you have Windows, download `exe` version
-   * else download release for your system, if available  
-3. run the file
+1. go to https://github.com/rejetto/hfs/releases
+2. click on `Assets`
+3. **download** the right version for your computer
+4. run the file
 
 If your system is not covered, you can try this alternative version:
 
