@@ -51,7 +51,7 @@ export default function VfsPage() {
         h(Grid, { item:true, sm: 6, lg: 7 },
             h(VfsMenuBar),
             snap.vfs && h(VfsTree, { id2node })),
-        h(Grid, { item:true, sm: 6, lg: 5 },
+        h(Grid, { item:true, sm: 6, lg: 5, maxWidth:'100%' },
             h(FileCard)))
 }
 

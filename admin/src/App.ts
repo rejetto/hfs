@@ -53,6 +53,7 @@ function Routed() {
                     display: 'flex',
                     flexDirection: 'column',
                     width: '100%',
+                    overflowX: 'auto',
                 }
             },
                 title && h(Hidden, { mdDown: true }, h(Typography, { variant:'h1', mb:2 }, title) ),
