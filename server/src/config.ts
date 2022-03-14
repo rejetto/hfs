@@ -23,7 +23,8 @@ const path = argv.config || process.env.HFS_CONFIG || PATH
 const { save } = watchLoad(path,  values => setConfig(values||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
-        setConfig({}, false)
+        setTimeout(() => // for consistency with asynchronous success callback (without this http server is started before the koa app is ready)
+            setConfig({}, false) )
     }
 })
 
