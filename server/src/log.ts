@@ -6,6 +6,7 @@ import { defineConfig, getConfig, subscribeConfig } from './config'
 import { createWriteStream } from 'fs'
 import * as util from 'util'
 import { rename, stat } from 'fs/promises'
+import { DAY } from './const'
 
 class Logger {
     stream?: Writable
@@ -56,14 +57,17 @@ export function log(): Koa.Middleware {
         await next()
         const isError = ctx.status >= 400
         const logger = isError && !getConfig('errors_in_main_log') && errorLogger || accessLogger
-        const freq = getConfig('log_rotation')
+        const freq = getConfig('log_rotation')?.[0]
         const { stream, last, path } = logger
         if (!stream) return
         const now = new Date()
         const a = now.toString().split(' ')
         if (freq && last) {
-            const method = freq[0] === 'w' ? 'getDay' : freq[0] === 'm' ? 'getDate' : 'getTime'
-            if (getMidnight(now)[method]() !== getMidnight(last)[method]()) {
+            const passed = Number(now) - Number(last)
+                - 3600_000 // be pessimistic and count a possible DST change
+            if (freq === 'm' && (passed >= 31*DAY || now.getMonth() !== last.getMonth())
+            || freq === 'd' && (passed >= DAY || now.getDate() !== last.getDate())
+            || freq === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
                 stream.end()
                 const postfix = last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
                 await rename(path, path + '-' + postfix)
