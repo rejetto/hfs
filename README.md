@@ -53,7 +53,7 @@ As you can see from the list above, we already have some goods that you can't fi
 If your system is not covered, you can try this alternative version:
 
 1. install node.js version 16+ from https://nodejs.org/
-2. download and unzip the latest package named `hfsVERSION.zip` from https://github.com/rejetto/hfs/releases/
+2. download and unzip `hfs-node.zip`
 3. chmod +x run
 4. launch `./run`
 
