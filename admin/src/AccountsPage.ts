@@ -48,6 +48,7 @@ export default function AccountsPage() {
         h(Grid, { item: true, xs: 12 },
             h(Box, {
                 display: 'flex',
+                flexWrap: 'wrap',
                 gap: 2,
                 mb: 2,
                 sx: {
@@ -85,7 +86,7 @@ export default function AccountsPage() {
         h(Grid, { item: true, md: 6 },
             h(TreeView, {
                 multiSelect: true,
-                sx: { pr: 4, minWidth: '15em' },
+                sx: { pr: 4, pb: 2, minWidth: '15em' },
                 selected: sel,
                 onNodeSelect(ev, ids) {
                     switchTo(ids)

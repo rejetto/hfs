@@ -52,11 +52,9 @@ export default function ConfigPage() {
             startIcon: h(Refresh),
         }, "Reload")],
         defaults({ comp }) {
-            if (comp === ServerPort)
-                return { md: 6, lg: 3 }
-            if (comp === NumberField)
-                return { md:3 }
-            return { md: 6 }
+            return comp === ServerPort ? { sm:  6, lg: 3 }
+                : comp === NumberField ? { sm: 3 }
+                    : { sm:  6 }
         },
         fields: [
             { k: 'port', comp: ServerPort, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
@@ -73,7 +71,7 @@ export default function ConfigPage() {
             { k: 'accounts', comp: StringField, label: "Accounts file" },
             { k: 'open_browser_at_start', comp: BoolField },
             { k: 'allowed_referer', placeholder: "any", helperText: "Leave empty to allow any", },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, md: 6, label: "Calculate ZIP size for seconds",
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm:  6, label: "Calculate ZIP size for seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'mime', comp: StringStringField,
                 keyLabel: "Files", keyWidth: 7,

@@ -19,10 +19,6 @@ export default function MonitorPage() {
 
 const isoDateRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 
-function SectionTitle(props: object) {
-    return h(Typography, { variant: 'h4', px: 2, ...props })
-}
-
 function MoreInfo() {
     const [res] = useApiComp('get_status')
     return h(Fragment, {},
@@ -70,8 +66,8 @@ function Connections() {
     const [filtered, setFiltered] = useState(true)
     const rows = useMemo(()=> list?.filter((x:any) => !filtered || x.path).map((x:any,id:number) => ({ id, ...x })), [list, filtered])
     return h(Fragment, {},
-        h(Box, { display: 'flex', justifyContent: 'space-between' },
-            h(SectionTitle, {}, "Active connections"),
+        h(Box, { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+            h(Box, { fontSize: { xs:'1em', md:'2em' }, px: 2 }, "Active connections"),
             h(SelectField as Field<boolean>, {
                 fullWidth: false,
                 value: filtered,

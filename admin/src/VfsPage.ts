@@ -47,7 +47,7 @@ export default function VfsPage() {
         id2node.clear()
         return res
     }
-    return h(Grid, { container:true },
+    return h(Grid, { container:true, rowSpacing: 1 },
         h(Grid, { item:true, sm: 6, lg: 7 },
             h(VfsMenuBar),
             snap.vfs && h(VfsTree, { id2node })),
