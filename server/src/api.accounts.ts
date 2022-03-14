@@ -35,7 +35,7 @@ const apis: ApiHandlers = {
         const { admin } = changes
         if (admin === null)
             changes.admin = undefined
-        else if (typeof admin !== 'boolean')
+        else if (admin !== undefined && typeof admin !== 'boolean')
             return new ApiError(400, "invalid admin")
         return setAccount(username, changes) ? {} : new ApiError(400)
     },
