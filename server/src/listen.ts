@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { prefix } from './misc'
+import { prefix, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
 import _ from 'lodash'
@@ -18,6 +18,8 @@ let httpSrv: http.Server & ServerExtra
 let httpsSrv: http.Server & ServerExtra
 
 subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
+    while (!app)
+        await wait(100)
     stopServer(httpSrv).then()
     httpSrv = http.createServer(app.callback())
     port = await startServer(httpSrv, { port, name:'http' })
