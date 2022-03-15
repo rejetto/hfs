@@ -47,12 +47,12 @@ export default function VfsPage() {
         id2node.clear()
         return res
     }
-    return h(Grid, { container:true, rowSpacing: 1 },
-        h(Grid, { item:true, sm: 6, lg: 7 },
+    return h(Grid, { container:true, rowSpacing: 1, maxWidth: '80em' },
+        h(Grid, { item:true, sm: 6, lg: 5 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(VfsMenuBar),
             snap.vfs && h(VfsTree, { id2node })),
-        h(Grid, { item:true, sm: 6, lg: 5, maxWidth:'100%' },
+        h(Grid, { item:true, sm: 6, lg: 7, maxWidth:'100%' },
             h(FileCard)))
 }
 

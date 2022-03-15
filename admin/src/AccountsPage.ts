@@ -44,7 +44,7 @@ export default function AccountsPage() {
     const { list }: { list: Account[] } = res
     const account = addGroup !== null ? { username: '', hasPassword: !addGroup }
         : sel.length === 1 && list.find(x => x.username === sel[0])
-    return h(Grid, { container: true, maxWidth: '50em' },
+    return h(Grid, { container: true, maxWidth: '60em' },
         h(Grid, { item: true, xs: 12 },
             h(Box, {
                 display: 'flex',
