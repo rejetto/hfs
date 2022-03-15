@@ -49,16 +49,8 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
         return spinner()
     const pathDelimiter = /[:\\]/.test(cwd) ? '\\' : '/'
     const cwdPostfixed = enforceFinal(pathDelimiter, cwd)
-    return h(Box, { display: 'flex', flexDirection: 'column', gap: 2 },
+    return h(Box, { display: 'flex', flexDirection: 'column' },
         h(Box, { display:'flex', gap: 1 },
-            h(Button, {
-                variant: 'contained',
-                disabled: !sel.length,
-                sx: { minWidth: 'max-content' },
-                onClick() {
-                    onSelect(sel.map(x => cwdPostfixed + x))
-                }
-            }, `Select (${sel.length})`),
             h(Button, {
                 onClick() {
                     setCwd( isWindowsDrive(cwd) ? '' : cwd.slice(0, cwd.lastIndexOf(pathDelimiter)) )
@@ -69,46 +61,61 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
                     setCwd('')
                 }
             }, h(Home)),
-            h(TextField, {
-                value: filter,
-                label: 'Filter results',
-                onChange(ev) {
-                    setFilterBounced(ev.target.value)
-                },
-                sx: { minWidth: '20em' },
-                fullWidth: true,
+            h(StringField, {
+                label: 'Current path',
+                value: cwd,
+                onChange: setCwd
             }),
         ),
-        h(StringField, {
-            label: 'Current path',
-            value: cwd,
-            onChange: setCwd
-        }),
         error ? h(Alert, { severity:'error' }, String(error))
             : !list.length ? h(Typography, { p:1 }, 'No elements in this folder')
-            : h(MenuList, { sx:{ maxHeight: 'calc(100vh - 24em)', overflow:'auto' } },
-                list.map((it:DirEntry) =>
-                    h(MenuItem, {
-                        key: it.n,
-                        sx: { display: filterMatch(it.n) ? undefined : 'none' },
-                        onClick(){
-                            const id = it.n
-                            const removed = sel.filter(x => x !== id)
-                            setSel(removed.length < sel.length ? removed : [...sel, id])
+            : h(Box, {},
+                h(MenuList, { sx:{ maxHeight: 'calc(100vh - 24em)', overflow:'auto' } },
+                    list.map((it:DirEntry) =>
+                        h(MenuItem, {
+                            key: it.n,
+                            sx: { display: filterMatch(it.n) ? undefined : 'none' },
+                            onClick(){
+                                if (it.k === 'd')
+                                    setCwd( cwdPostfixed + it.n )
+                                else
+                                    onSelect([ cwdPostfixed + it.n ])
+                            }
                         },
-                        onDoubleClick(){
-                            if (it.k === 'd')
-                                setCwd( cwdPostfixed + it.n )
-                            else
-                                onSelect([ cwdPostfixed + it.n ])
-                        }
-                    },
-                        h(Checkbox, { checked: sel.includes(it.n) }),
-                        h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
-                        h(ListItemText, {}, it.n),
-                        it.k !== 'd' && it.s !== undefined && h(Typography, { variant:'body2', color:'text.secondary', ml:4 }, formatBytes(it.s) )
+                            h(Checkbox, {
+                                checked: sel.includes(it.n),
+                                onClick(ev){
+                                    const id = it.n
+                                    const removed = sel.filter(x => x !== id)
+                                    setSel(removed.length < sel.length ? removed : [...sel, id])
+                                    ev.stopPropagation()
+                                },
+                            }),
+                            h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
+                            h(ListItemText, {}, it.n),
+                            it.k !== 'd' && it.s !== undefined && h(Typography, { variant:'body2', color:'text.secondary', ml:4 }, formatBytes(it.s) )
+                        )
                     )
-                )
+                ),
+                h(Box, { display:'flex', gap: 1 },
+                    h(Button, {
+                        variant: 'contained',
+                        disabled: !sel.length,
+                        sx: { minWidth: 'max-content' },
+                        onClick() {
+                            onSelect(sel.map(x => cwdPostfixed + x))
+                        }
+                    }, `Select (${sel.length})`),
+                    h(TextField, {
+                        value: filter,
+                        label: 'Filter results',
+                        onChange(ev) {
+                            setFilterBounced(ev.target.value)
+                        },
+                        sx: { minWidth: '20em' },
+                        fullWidth: true,
+                    }),
+                ),
             )
     )
 }
