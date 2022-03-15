@@ -174,7 +174,7 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
             !group && { k: 'password', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: add ? "Password" : "Change password",
                 validate: x => x>'' || !add || "Please provide a password"
             },
-            !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'off', label: 'Repeat password',
+            !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 validate: (x, { values }) => x === values.password || "Enter same password" },
             { k: 'ignore_limits', comp: BoolField,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
