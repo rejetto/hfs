@@ -83,10 +83,10 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
                 helperText: source && "You can decide a name that's different from the one on your disk",
             },
             hasSource && { k: 'source', comp: DisplayField },
-            { k: 'can_read', label:"Who can download", md: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
+            { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
                 helperText: "Who cannot download also cannot see in list"
             },
-            showCanSee && { k: 'can_see', label:"Who can see", md: 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_see,
+            showCanSee && { k: 'can_see', label:"Who can see", xl: 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_see,
                 helperText: "If you hide this element it will not be listed, but will still be accessible if you have a direct link"
             },
             hasSource && !realFolder && { k: 'size', comp: DisplayField, toField: formatBytes },
