@@ -31,8 +31,10 @@ export default function HomePage() {
         !cfg ? spinner() :
             errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
                 : entry('success', "Server is working"),
-        entry('', "Here you manage your server. Access your shared files in the ",
-            h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
+        !vfs?.root?.children?.length && !vfs?.root?.source
+            ? entry('warning', "You have no files shared — ", fsLink("add some"))
+            : entry('', "Here you manage your server. There is a SEPARATED interface to access your shared files: ",
+                h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
         ! href && entry('warning', "Frontend unreachable: ",
             !cfg ? '...'
                 : errors.length === 2 ? "both http and https are in error"
@@ -42,9 +44,6 @@ export default function HomePage() {
                     )
         ),
         !username && entry('', "You are accessing on localhost without an account — ", h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers")),
-
-        vfs?.root && !vfs.root.children?.length && !vfs.root.source &&
-            entry('warning', "You have no files shared — ", fsLink("add some"))
     )
 }
 

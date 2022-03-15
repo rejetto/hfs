@@ -63,7 +63,9 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
             source = './' + source
         return h(TreeItem, {
             label: h('div', { className: styles.label },
-                h(!name ? Home : folder ? FolderIcon : FileIcon),
+                !name ? iconTooltip(Home, "home, or root if you like")
+                    : folder ? iconTooltip(FolderIcon, "Folder")
+                        : iconTooltip(FileIcon, "File"),
                 isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
                 isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
                 node.default && iconTooltip(Web, "Act as website"),

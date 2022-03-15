@@ -56,7 +56,7 @@ function Routed() {
                     overflowX: 'auto',
                 }
             },
-                title && h(Hidden, { mdDown: true }, h(Typography, { variant:'h1', mb:2 }, title) ),
+                title && h(Hidden, { mdDown: true }, h(Typography, { variant:'h2', mb:2 }, title) ),
                 h(Routes, {}, mainMenu.map((it,idx) =>
                     h(Route, { key: idx, path: it.path, element: h(it.comp) })) )
             ),

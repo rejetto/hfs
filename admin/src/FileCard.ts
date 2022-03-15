@@ -84,18 +84,19 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
             },
             hasSource && { k: 'source', comp: DisplayField },
             { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
-                helperText: "Who cannot download also cannot see in list"
+                helperText: "Note: who cannot download also cannot see in list"
             },
             showCanSee && { k: 'can_see', label:"Who can see", xl: 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_see,
                 helperText: "If you hide this element it will not be listed, but will still be accessible if you have a direct link"
             },
             hasSource && !realFolder && { k: 'size', comp: DisplayField, toField: formatBytes },
-            showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, label: 'Created', toField: formatTimestamp },
-            showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, label: 'Modified', toField: formatTimestamp },
-            realFolder && { k: 'default', md: 6, comp: BoolField, label:"Act as website",
+            showTimestamps && { k: 'ctime', comp: DisplayField, lg: 6, label: 'Created', toField: formatTimestamp },
+            showTimestamps && { k: 'mtime', comp: DisplayField, lg: 6, label: 'Modified', toField: formatTimestamp },
+            file.website && { k: 'default', comp: BoolField, label:"Serve index.html",
                 toField: Boolean, fromField: (v:boolean) => v ? 'index.html' : null,
-                helperText: md("If you want this folder to work like a website and load `index.html`") },
-            isDir && { k: 'masks', multiline: true, md: 6, toField: JSON.stringify, fromField: JSON.parse,
+                helperText: md("This folder may be a website because contains `index.html`. Enabling this will show the website instead of the list of files.")
+            },
+            isDir && { k: 'masks', multiline: true, xl: 6, toField: JSON.stringify, fromField: JSON.parse,
                 helperText: "This is a special field. Leave it empty unless you know what you are doing." }
         ]
     })
@@ -106,7 +107,7 @@ function formatTimestamp(x: string) {
 }
 
 interface WhoFieldProps extends FieldProps<Who> { accounts: Account[] }
-function WhoField({ value, onChange, parent, inherit, accounts, ...rest }: WhoFieldProps) {
+function WhoField({ value, onChange, parent, inherit, accounts, helperText, ...rest }: WhoFieldProps) {
     const options = useMemo(() =>
         onlyTruthy([
             { value: null, label: (parent ? "Same as parent: " : "Default: " ) + who2desc(inherit === 0 ? true : inherit) },
@@ -122,6 +123,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, ...rest }: WhoFi
     return h('div', {},
         h(SelectField as Field<Who>, {
             ...rest,
+            helperText: !arrayMode && helperText,
             value: arrayMode ? [] : value,
             onChange(v, { was, event }) {
                 onChange(v, { was , event })
@@ -129,9 +131,10 @@ function WhoField({ value, onChange, parent, inherit, accounts, ...rest }: WhoFi
             options
         }),
         arrayMode && h(MultiSelectField as Field<string[]>, {
-            label: "Choose accounts for " + rest.label,
+            label: accounts?.length ? "Choose accounts for " + rest.label : "You didn't create any account yet",
             value,
             onChange,
+            helperText,
             options: accounts?.map(a => ({ value: a.username, label: a.username })) || [],
         })
     )

@@ -21,10 +21,10 @@ interface MenuEntry {
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '', icon: Public, label: 'Home', title: 'Admin interface', comp: HomePage },
+    { path: '', icon: Public, label: 'Home', title: "Admin interface", comp: HomePage },
     { path: 'monitor', icon: Monitor, comp: MonitorPage },
     { path: 'configuration', icon: Settings, comp: ConfigPage },
-    { path: 'fs', icon: AccountTree, label: 'File System', comp: VfsPage },
+    { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
     { path: 'Logout', icon: Logout, comp: LogoutPage }
 ]

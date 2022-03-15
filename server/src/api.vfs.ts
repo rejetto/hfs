@@ -16,6 +16,7 @@ type VfsAdmin = {
     size?: number,
     ctime?: Date,
     mtime?: Date,
+    website?: true,
     children?: VfsAdmin[]
 } & Omit<VfsNode, 'type' | 'children'>
 
@@ -45,6 +46,8 @@ const apis: ApiHandlers = {
             return {
                 ...stats,
                 ...node,
+                website: dir && node.source && await stat(join(node.source, 'index.html')).then(() => true, () => undefined)
+                    || undefined,
                 name: getNodeName(node),
                 type: dir ? 'folder' : undefined,
                 children: node.children && await Promise.all(node.children.map(recur)),

@@ -2,7 +2,7 @@
 
 import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
 import { useApiComp } from './api'
-import { Grid } from '@mui/material'
+import { Grid, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import FileCard from './FileCard'
 import VfsMenuBar from './VfsMenuBar'
@@ -49,6 +49,7 @@ export default function VfsPage() {
     }
     return h(Grid, { container:true, rowSpacing: 1 },
         h(Grid, { item:true, sm: 6, lg: 7 },
+            h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(VfsMenuBar),
             snap.vfs && h(VfsTree, { id2node })),
         h(Grid, { item:true, sm: 6, lg: 5, maxWidth:'100%' },
@@ -73,6 +74,7 @@ export type VfsNode = {
     parent?: VfsNode
     can_see: Who
     can_read: Who
+    website?: true
     masks?: any
 
     isRoot?: true
