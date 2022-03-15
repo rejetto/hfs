@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { alertDialog, newDialog, promptDialog } from './dialog'
-import { createElement as h } from 'react'
+import { createElement as h, Fragment } from 'react'
 import { Box } from '@mui/material'
 import { VfsNode, reloadVfs } from './VfsPage'
 import { state } from './state'
@@ -12,13 +12,13 @@ import { onlyTruthy } from './misc'
 export default function addFiles() {
     const close = newDialog({
         title: 'Add files or folders',
-        dialogProps: { sx:{ minWidth:'min(90vw, 40em)', minHeight: '70vh' } },
+        dialogProps: { sx:{ minWidth:'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content,
     })
 
     function Content() {
         const under = getUnder()
-        return h('div', {},
+        return h(Fragment, {},
             h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } }, "Selected elements will be added to " + (under || '(home)')),
             h(FilePicker, {
                 async onSelect(sel) {

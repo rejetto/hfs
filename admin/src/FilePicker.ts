@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useEffect, useMemo, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { useApi, useApiList } from './api'
 import _ from 'lodash'
 import {
@@ -49,7 +49,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
         return spinner()
     const pathDelimiter = /[:\\]/.test(cwd) ? '\\' : '/'
     const cwdPostfixed = enforceFinal(pathDelimiter, cwd)
-    return h(Box, { display: 'flex', flexDirection: 'column' },
+    return h(Fragment, {},
         h(Box, { display:'flex', gap: 1 },
             h(Button, {
                 onClick() {
@@ -69,8 +69,8 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
         ),
         error ? h(Alert, { severity:'error' }, String(error))
             : !list.length ? h(Typography, { p:1 }, 'No elements in this folder')
-            : h(Box, {},
-                h(MenuList, { sx:{ maxHeight: 'calc(100vh - 24em)', overflow:'auto' } },
+            : h(Fragment, {},
+                h(MenuList, { sx:{ overflow:'auto', flex: 1 } },
                     list.map((it:DirEntry) =>
                         h(MenuItem, {
                             key: it.n,

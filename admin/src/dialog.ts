@@ -30,7 +30,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
         h(DialogContent, {
             ref,
             ...d.dialogProps,
-            sx:{ ...d.dialogProps?.sx, px: p, pb: p }
+            sx:{ ...d.dialogProps?.sx, px: p, pb: p, display: 'flex', flexDirection: 'column', }
         }, h(d.Content) )
     )
 }
