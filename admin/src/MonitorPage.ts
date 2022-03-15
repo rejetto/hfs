@@ -79,7 +79,7 @@ function Connections() {
 
             h(Box, { flex: 1 }),
             h(IconBtn, {
-                title: "Pause",
+                title: paused ? "Resume" : "Pause",
                 icon: paused ? PlayCircle : PauseCircle,
                 sx: { mr: 1 },
                 onClick() {
@@ -102,6 +102,7 @@ function Connections() {
                     {
                         field: 'started',
                         headerName: "Started",
+                        width: 130,
                         valueGetter: ({ value }) => new Date(value).toLocaleTimeString()
                     },
                     {
