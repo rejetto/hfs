@@ -7,7 +7,6 @@ import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, Sel
 import { apiCall, useApi } from './api'
 import { formatBytes, isEqualLax, onlyTruthy } from './misc'
 import { reloadVfs, Who } from './VfsPage'
-import { alertDialog } from './dialog'
 import md from './md'
 import _ from 'lodash'
 
@@ -65,8 +64,6 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
         save: {
             disabled: isEqualLax(values, file),
             async onClick() {
-                if (file.id !== '/' && !values.name)
-                    return alertDialog(`Name cannot be empty`, 'warning')
                 const props = _.pickBy(values, (v,k) =>
                     v !== file[k as keyof typeof values])
                 if (!props.masks)
@@ -82,7 +79,9 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
             }
         },
         fields: [
-            !isRoot && { k: 'name', helperText: source && "You can decide a name that's different from the one on your disk" },
+            !isRoot && { k: 'name', validate: x => x>'' || `Required`,
+                helperText: source && "You can decide a name that's different from the one on your disk",
+            },
             hasSource && { k: 'source', comp: DisplayField },
             { k: 'can_read', label:"Who can download", md: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
                 helperText: "Who cannot download also cannot see in list"

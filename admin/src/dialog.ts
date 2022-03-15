@@ -46,7 +46,7 @@ const type2ico = {
 
 export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', icon?: ReactElement) {
     if (msg instanceof Error) {
-        msg = String(msg)
+        msg = msg.message || String(msg)
         type = 'error'
     }
     return new Promise(resolve => newDialog({

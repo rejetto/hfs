@@ -170,9 +170,12 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
         barSx: { width: 'initial', justifyContent: 'space-between' },
         addToBar: [ account2icon(values, { fontSize: 'large', sx: { p: 1 }}) ],
         fields: [
-            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off' },
-            !group && { k: 'password', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: add ? 'Password' : 'Change password' },
-            !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'off', label: 'Repeat password' },
+            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', validate: x => x>'' || "Required" },
+            !group && { k: 'password', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: add ? "Password" : "Change password",
+                validate: x => x>'' || !add || "Please provide a password"
+            },
+            !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'off', label: 'Repeat password',
+                validate: (x, { values }) => x === values.password || "Enter same password" },
             { k: 'ignore_limits', comp: BoolField,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
             { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Permission to access Admin interface",
@@ -184,41 +187,31 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
                 helperText: "Options and permissions of the selected groups will be applied to this account. "
                     + (belongsOptions.length ? '' : "There are no groups available, create one first.") }
         ],
+        onError: alertDialog,
         save: {
             disabled: isEqualLax(values, account),
             async onClick() {
+                const { password='', password2, ...withoutPassword } = values
                 const { username } = values
-                if (!username)
-                    return alertDialog(`Username cannot be empty`, 'warning')
-                const { hasPassword, password, password2, ...withoutPassword } = values
-                if (password !== password2)
-                    return alertDialog("You entered 2 different passwords, please fix", 'error')
-                try {
-                    if (add) {
-                        if (hasPassword && !password)
-                            return alertDialog("Please provide a password", 'warning')
-                        await apiCall('add_account', withoutPassword)
-                        if (password)
-                            try { await apiNewPassword(username, password) }
-                            catch(e) {
-                                apiCall('del_account', { username }).then() // best effort, don't wait
-                                throw e
-                            }
-                        done(username)
-                        return alertDialog("Account created", 'success')
-                    }
-                    await apiCall('set_account', {
-                        username: account.username,
-                        changes: withoutPassword,
-                    })
+                if (add) {
+                    await apiCall('add_account', withoutPassword)
                     if (password)
-                        await apiNewPassword(username, password)
+                        try { await apiNewPassword(username, password) }
+                        catch(e) {
+                            apiCall('del_account', { username }).then() // best effort, don't wait
+                            throw e
+                        }
                     done(username)
-                    return alertDialog("Account modified", 'success')
+                    return alertDialog("Account created", 'success')
                 }
-                catch (e) {
-                    return alertDialog(e as Error)
-                }
+                await apiCall('set_account', {
+                    username: account.username,
+                    changes: withoutPassword,
+                })
+                if (password)
+                    await apiNewPassword(username, password)
+                done(username)
+                return alertDialog("Account modified", 'success')
             }
         }
     })

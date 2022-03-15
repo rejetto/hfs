@@ -17,14 +17,20 @@ import { Save } from '@mui/icons-material'
 import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 
-interface FieldDescriptor { k:string, comp?: any, label?: string | ReactElement, [extraProp:string]:any }
+interface FieldDescriptor {
+    k:string
+    comp?: any
+    label?: string | ReactElement
+    validate?: (v: any, extra:any) => string | boolean
+    [extraProp:string]:any
+}
 
 // it seems necessary to cast (Multi)SelectField sometimes
 export type Field<T> = FC<FieldProps<T>>
 
 interface FormProps {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
-    defaults?: (f:FieldDescriptor) => Dict | void
+    defaults?: (f:FieldDescriptor) => Dict | any
     values: Dict
     set: (v: any, field: FieldDescriptor) => void
     save?: Partial<Parameters<typeof Button>[0]>
@@ -36,11 +42,21 @@ interface FormProps {
 }
 export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, ...rest }: FormProps) {
     const [loading, setLoading] = useStateMounted(false)
+    const [errors, setErrors] = useStateMounted<Dict>({})
     const onClick = save?.onClick
     if (onClick)
         save.onClick = async function (ev) {
             setLoading(true)
-            try { return await onClick(ev) }
+            try {
+                for (const f of fields) {
+                    if (!f || isValidElement(f) || !f.k || !f.validate) continue
+                    const res = await f.validate(values?.[f.k], { values, fields })
+                    if (res !== true)
+                        return setErrors({ [f.k]: res || true })
+                }
+                setErrors({})
+                return await onClick(ev)
+            }
             catch(e) { onError?.(e) }
             finally { setLoading(false) }
         }
@@ -76,21 +92,30 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
                     let field = row
                     const { k, onChange } = field
+                    let error = errors[k]
+                    if (error === true)
+                        error = "Not valid"
                     if (k) {
                         field = {
                             value: values?.[k],
                             ...field,
+                            error: field.error || Boolean(error) || undefined,
                             onChange(v:any) {
                                 if (onChange)
                                     v = onChange(v)
                                 set(v, field)
                             },
                         }
+                        if (error)
+                            field.helperText = field.helperText ? h(Fragment, {}, error, h('br'), field.helperText)
+                                : error
                         if (field.label === undefined)
                             field.label = _.capitalize(k.replaceAll('_', ' '))
                         _.defaults(field, defaults?.(field))
                     }
-                    const { xs=12, sm, md, lg, xl, comp=StringField, ...rest } = field
+                    const { xs=12, sm, md, lg, xl, comp=StringField,
+                        validate, // don't propagate
+                        ...rest } = field
                     return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
                         isValidElement(comp) ? comp : h(comp, rest) )
                 })
@@ -119,8 +144,9 @@ export interface FieldProps<T> {
     label?: string | ReactElement
     value?: T
     onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
-    toField?: (v: any) => T,
+    toField?: (v: any) => T
     fromField?: (v: T) => any
+    error?: true
     [rest: string]: any
 }
 
