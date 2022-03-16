@@ -171,7 +171,10 @@ export function StringField({ value, onChange, fromField=_.identity, toField=_.i
         value: state,
         onChange(ev) {
             props.onChange?.(ev)
-            setState(ev.target.value)
+            const val = ev.target.value
+            setState(val)
+            if (document.activeElement !== ev.target) // autofill ongoing, don't wait onBlur event, just go
+                go(ev, val)
         },
         onKeyDown(ev) {
             props.onKeyDown?.(ev)
@@ -184,10 +187,10 @@ export function StringField({ value, onChange, fromField=_.identity, toField=_.i
         }
     })
 
-    function go(event: any) {
+    function go(event: any, val: string=state) {
         let newV
         try { // catch parsing exceptions
-            newV = fromField(state.trim())
+            newV = fromField(val.trim())
         }
         catch (e) {
             return setErr(String(e))
