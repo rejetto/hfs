@@ -105,6 +105,7 @@ function startServer(srv: typeof httpSrv, { port, name, net='0.0.0.0' }: StartSe
                     srv.error = `couldn't listen on port ${port} used by ${srv.busy}`
                 }
                 console.error(name, srv.error)
+                console.log(" >> try specifying a different port like: --port 8011")
                 resolve(0)
             })
         }
