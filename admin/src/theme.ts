@@ -16,8 +16,9 @@ export function useMyTheme() {
             MuiTextField: {
                 defaultProps: { variant: 'filled' }
             },
-            MuiButton: lightMode || {
-                styleOverrides: {
+            MuiButton: {
+                defaultProps: { variant: 'outlined' },
+                styleOverrides: lightMode || {
                     root({ ownerState }) {
                         return ownerState.color === 'primary' && {
                             color: ownerState.variant === 'contained' ? '#ddd' : '#68c'
