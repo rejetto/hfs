@@ -47,13 +47,12 @@ function Routed() {
                 sx: {
                     background: 'url(logo.svg) no-repeat right fixed',
                     backgroundSize: 'contain',
-                    px: 3,
+                    px: { xs: 2, md: 3 },
                     pb: '1em',
                     position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     width: '100%',
-                    overflowX: 'auto',
                 }
             },
                 title && h(Hidden, { mdDown: true }, h(Typography, { variant:'h2', mb:2 }, title) ),
