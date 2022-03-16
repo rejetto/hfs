@@ -6,7 +6,7 @@
 - admin: in a group, show linked accounts
 - admin/config: use filepicker for https files
 - admin: warn in case of items with same name
-- allowed referer
+- command line help --help
 - admin/plugins
   - show list of available plugins (skip -disabled)
   - enable/disable (disable_plugins, no dir rename)
@@ -20,6 +20,7 @@
 - admin: improve masks editor
 - publish to npm (so people can "npm install hfs")
 - frontend search supporting masks
+- use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - remove seconds from time
 - update tests to SRP login
 - upload

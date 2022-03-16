@@ -68,6 +68,76 @@ function Connections() {
     const rows = useMemo(()=>
         list?.filter((x:any) => !filtered || x.path).map((x:any,id:number) => ({ id, ...x })),
         [!paused && list, filtered]) //eslint-disable-line
+    // memoizing the table will work around a little DataGrid's bug https://github.com/mui/mui-x/issues/4139
+    const table = useMemo(() => h(DataGrid, {
+        pageSize: 25,
+        rows,
+        columns: [
+            {
+                field: 'ip',
+                headerName: "Address",
+                flex: 1,
+                maxWidth: 400,
+                valueGetter: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port
+            },
+            {
+                field: 'started',
+                headerName: "Started",
+                width: 130,
+                valueGetter: ({ value }) => new Date(value).toLocaleTimeString()
+            },
+            {
+                field: 'path',
+                headerName: "File",
+                flex: 1,
+                renderCell: ({ value }) => {
+                    if (!value) return
+                    const i = value?.lastIndexOf('/')
+                    return h(Fragment, {}, value.slice(i + 1),
+                        i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i)))
+                }
+            },
+            {
+                field: 'v',
+                headerName: "Protocol",
+                align: 'center',
+                hide: true,
+                renderCell: ({ value, row }) => h(Fragment, {},
+                    "IPv" + value,
+                    row.secure && iconTooltip(Lock, "HTTPS", { opacity: .5 })
+                )
+            },
+            {
+                field: 'outSpeed',
+                headerName: "Speed",
+                valueGetter: ({ value }) => value ? formatBytes(value * 1000, "B/s", 1000) : ''
+            },
+            {
+                field: 'sent',
+                headerName: "Total",
+                valueGetter: ({ value }) => formatBytes(value)
+            },
+            {
+                field: "Actions ",
+                width: 80,
+                align: 'center',
+                renderCell({ row }) {
+                    return h('div', {},
+                        h(IconBtn, {
+                            icon: Delete,
+                            title: "Disconnect",
+                            onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])),
+                        }),
+                        h(IconBtn, {
+                            icon: Block,
+                            title: "Block IP",
+                            onClick: () => blockIp(row.ip),
+                        }),
+                    )
+                }
+            }
+        ]
+    }), [rows])
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center' },
             h(SelectField as Field<boolean>, {
@@ -87,76 +157,7 @@ function Connections() {
                 }
             }),
         ),
-        error ? h(Alert, { severity: 'error' }, error) :
-            h(DataGrid, {
-                pageSize: 25,
-                rows,
-                columns: [
-                    {
-                        field: 'ip',
-                        headerName: "Address",
-                        flex: 1,
-                        maxWidth: 400,
-                        valueGetter: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port
-                    },
-                    {
-                        field: 'started',
-                        headerName: "Started",
-                        width: 130,
-                        valueGetter: ({ value }) => new Date(value).toLocaleTimeString()
-                    },
-                    {
-                        field: 'path',
-                        headerName: "File",
-                        flex: 1,
-                        renderCell: ({ value }) => {
-                            if (!value) return
-                            const i = value?.lastIndexOf('/')
-                            return h(Fragment, {}, value.slice(i + 1),
-                                i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i)))
-                        }
-                    },
-                    {
-                        field: 'v',
-                        headerName: "Protocol",
-                        align: 'center',
-                        hide: true,
-                        renderCell: ({ value, row }) => h(Fragment, {},
-                            "IPv" + value,
-                            row.secure && iconTooltip(Lock, "HTTPS", { opacity: .5 })
-                        )
-                    },
-                    {
-                        field: 'outSpeed',
-                        headerName: "Speed",
-                        valueGetter: ({ value }) => value ? formatBytes(value * 1000, "B/s", 1000) : ''
-                    },
-                    {
-                        field: 'sent',
-                        headerName: "Total",
-                        valueGetter: ({ value }) => formatBytes(value)
-                    },
-                    {
-                        field: "Actions ",
-                        width: 80,
-                        align: 'center',
-                        renderCell({ row }) {
-                            return h('div', {},
-                                h(IconBtn, {
-                                    icon: Delete,
-                                    title: "Disconnect",
-                                    onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])),
-                                }),
-                                h(IconBtn, {
-                                    icon: Block,
-                                    title: "Block IP",
-                                    onClick: () => blockIp(row.ip),
-                                }),
-                            )
-                        }
-                    }
-                ]
-            })
+        error ? h(Alert, { severity: 'error' }, error) : table
     )
 }
 
