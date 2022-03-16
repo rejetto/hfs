@@ -19,7 +19,7 @@ function LoginForm() {
     return h(Center, {},
         h(Form, {
             values: {},
-            set(v, { k }) {
+            set(v, k) {
                 setValues({ ...values, [k]: v })
             },
             fields: [

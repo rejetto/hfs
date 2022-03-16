@@ -58,7 +58,7 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
 
     return h(Form, {
         values,
-        set(v, { k }) {
+        set(v, k) {
             setValues({ ...values, [k]: v })
         },
         save: {

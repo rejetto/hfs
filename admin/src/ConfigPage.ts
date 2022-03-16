@@ -33,7 +33,7 @@ export default function ConfigPage() {
     return h(Form, {
         sx: { maxWidth: '60em' },
         values: config,
-        set(v, { k }) {
+        set(v, k) {
             if (v || config[k])
                 state.config[k] = v
         },

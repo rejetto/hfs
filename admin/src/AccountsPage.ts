@@ -164,7 +164,7 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
     return h(Form, {
         formRef:  ref,
         values,
-        set(v, { k }) {
+        set(v, k) {
             setValues({ ...values, [k]: v })
         },
         barSx: { width: 'initial', justifyContent: 'space-between' },

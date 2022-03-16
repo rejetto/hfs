@@ -32,7 +32,7 @@ interface FormProps {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
     defaults?: (f:FieldDescriptor) => Dict | any
     values: Dict
-    set: (v: any, field: FieldDescriptor) => void
+    set: (v: any, fieldK: string) => void
     save?: Partial<Parameters<typeof Button>[0]>
     stickyBar?: boolean
     addToBar?: ReactNode[]
@@ -103,7 +103,7 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
                             onChange(v:any) {
                                 if (onChange)
                                     v = onChange(v)
-                                set(v, field)
+                                set(v, field.k)
                             },
                         }
                         if (error)

@@ -98,7 +98,7 @@ export async function formDialog(props: FormProps) : Promise<FormProps['values']
         return h(Form, {
             ...props,
             values,
-            set(v, { k }) {
+            set(v, k) {
                 setValues({ ...values, [k]: v })
             },
             save: {

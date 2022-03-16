@@ -18,10 +18,11 @@ export function useMyTheme() {
             },
             MuiButton: lightMode || {
                 styleOverrides: {
-                    root: ({ ownerState }: { ownerState:any }) =>
-                        ownerState.color === 'primary' && {
+                    root({ ownerState }) {
+                        return ownerState.color === 'primary' && {
                             color: ownerState.variant === 'contained' ? '#ddd' : '#68c'
                         }
+                    }
                 }
             }
         }
