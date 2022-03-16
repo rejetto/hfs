@@ -10,7 +10,7 @@ export const BUILD_TIMESTAMP = ''
 export const VERSION = ''
     || DEV && String(_.attempt(() => JSON.parse(fs.readFileSync('package.json','utf8')).version)) // this should happen only in dev, build fills this value
 export const SESSION_DURATION = 30*60_000
-export const DAY = 86_400_00
+export const DAY = 86_400_000
 
 export const SPECIAL_URI = '/~/'
 export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
