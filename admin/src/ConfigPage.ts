@@ -23,7 +23,7 @@ export default function ConfigPage() {
     if (isValidElement(res))
         return res
     const { changes } = snap
-    const config = (loaded !== res) ? (state.config = loaded = res) : snap.config
+    const values = (loaded !== res) ? (state.config = loaded = res) : snap.config
     const maxSpeedDefaults = {
         comp: NumberField,
         min: 1,
@@ -32,9 +32,9 @@ export default function ConfigPage() {
     }
     return h(Form, {
         sx: { maxWidth: '60em' },
-        values: config,
+        values,
         set(v, k) {
-            if (v || config[k])
+            if (v || values[k])
                 state.config[k] = v
         },
         stickyBar: true,
@@ -59,25 +59,25 @@ export default function ConfigPage() {
         fields: [
             { k: 'port', comp: ServerPort, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
             { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443 },
-            config.https_port >= 0 && { k: 'cert', comp: StringField, label: "HTTPS certificate file" },
-            config.https_port >= 0 && { k: 'private_key', comp: StringField, label: "HTTPS private key file" },
+            values.https_port >= 0 && { k: 'cert', label: "HTTPS certificate file" },
+            values.https_port >= 0 && { k: 'private_key', label: "HTTPS private key file" },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
-            { k: 'log', comp: StringField, label: "Main log file" },
-            { k: 'error_log', comp: StringField, label: "Error log file" },
+            { k: 'log', label: "Main log file" },
+            { k: 'error_log', label: "Error log file" },
             { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },
-            { k: 'accounts', comp: StringField, label: "Accounts file" },
+            { k: 'accounts', label: "Accounts file" },
             { k: 'open_browser_at_start', comp: BoolField },
-            { k: 'allowed_referer', placeholder: "any", helperText: "Leave empty to allow any", },
+            { k: 'allowed_referer', placeholder: "any", helperText: values.allowed_referer && "Leave empty to allow any", },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm:  6, label: "Calculate ZIP size for seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'mime', comp: StringStringField,
                 keyLabel: "Files", keyWidth: 7,
                 valueLabel: "Mime type", valueWidth: 4
             },
-            { k: 'block', label: "Blocked IPs", comp: StringField, multiline: true, minRows:3, helperText: "Enter an IP for each line",
+            { k: 'block', label: "Blocked IPs", multiline: true, minRows:3, helperText: "Enter an IP address for each line",
                 fromField: (all:string) => all.split('\n').map(s => s.trim()).filter(Boolean).map(ip => ({ ip })),
                 toField: (all: any) => !Array.isArray(all) ? '' : all.map(x => x?.ip).filter(Boolean).join('\n')
             },
