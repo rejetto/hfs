@@ -56,7 +56,7 @@ export function log(): Koa.Middleware {
     return async (ctx, next) => {  // wrapping in a function will make it use current 'mw' value
         await next()
         const isError = ctx.status >= 400
-        const logger = isError && !getConfig('errors_in_main_log') && errorLogger || accessLogger
+        const logger = isError && errorLogger || accessLogger
         const freq = getConfig('log_rotation')?.[0]
         const { stream, last, path } = logger
         if (!stream) return
