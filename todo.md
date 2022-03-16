@@ -24,6 +24,10 @@
 - frontend search supporting masks
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - remove seconds from time
+- plugin to download latest release
+  - https://api.github.com/repos/rejetto/hfs/releases/latest
+  - check if 'created_at' is after exe's timestamp
+  - if positive search 'assets' array for 'name' matching exe, and download 'browser_download_url', and replace exe
 - update tests to SRP login
 - upload
 - upload unzipping (while streaming?)

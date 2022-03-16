@@ -191,7 +191,7 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
         save: {
             sx: modifiedSx( !isEqualLax(values, account)),
             async onClick() {
-                const { password='', password2, ...withoutPassword } = values
+                const { password='', password2, adminActualAccess, ...withoutPassword } = values
                 const { username } = values
                 if (add) {
                     await apiCall('add_account', withoutPassword)
