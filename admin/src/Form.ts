@@ -33,7 +33,7 @@ interface FormProps {
     defaults?: (f:FieldDescriptor) => Dict | any
     values: Dict
     set: (v: any, fieldK: string) => void
-    save?: Partial<Parameters<typeof Button>[0]>
+    save: Partial<Parameters<typeof Button>[0]> | (()=>any)
     stickyBar?: boolean
     addToBar?: ReactNode[]
     barSx?: Dict
@@ -43,28 +43,28 @@ interface FormProps {
 export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, ...rest }: FormProps) {
     const [loading, setLoading] = useStateMounted(false)
     const [errors, setErrors] = useStateMounted<Dict>({})
-    const onClick = save?.onClick
-    if (onClick)
-        save.onClick = async function (ev) {
-            setLoading(true)
-            try {
-                for (const f of fields) {
-                    if (!f || isValidElement(f) || !f.k || !f.validate) continue
-                    const res = await f.validate(values?.[f.k], { values, fields })
-                    if (res !== true)
-                        return setErrors({ [f.k]: res || true })
-                }
-                setErrors({})
-                return await onClick(ev)
+    const saveBtn = typeof save === 'function' ? { onClick: save } : save
+    const { onClick } = saveBtn
+    saveBtn.onClick = onClick && async function (ev) {
+        setLoading(true)
+        try {
+            for (const f of fields) {
+                if (!f || isValidElement(f) || !f.k || !f.validate) continue
+                const res = await f.validate(values?.[f.k], { values, fields })
+                if (res !== true)
+                    return setErrors({ [f.k]: res || true })
             }
-            catch(e) { onError?.(e) }
-            finally { setLoading(false) }
+            setErrors({})
+            return await onClick(ev)
         }
+        catch(e) { onError?.(e) }
+        finally { setLoading(false) }
+    }
 
     const [pendingSubmit, setPendingSubmit] = useStateMounted(false)
     useEffect(() => {
         if (!pendingSubmit) return
-        setTimeout(save?.onClick!)
+        setTimeout(saveBtn.onClick!)
         setPendingSubmit(false)
     }, [pendingSubmit]) //eslint-disable-line
 
@@ -74,7 +74,7 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
             ev.preventDefault()
         },
         onKeyDown(ev) {
-            if (!save?.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
+            if (!saveBtn.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
                 setPendingSubmit(true) // we need to let outer component perform its state changes
         }
     },
@@ -169,14 +169,19 @@ export function StringField({ value, onChange, fromField=_.identity, toField=_.i
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
         ...props,
         value: state,
-        onChange(event) {
-            setState(event.target.value)
+        onChange(ev) {
+            props.onChange?.(ev)
+            setState(ev.target.value)
         },
         onKeyDown(ev) {
+            props.onKeyDown?.(ev)
             if (ev.key === 'Enter')
                 go(ev)
         },
-        onBlur: go
+        onBlur(ev) {
+            props.onBlur?.(ev)
+            go(ev)
+        }
     })
 
     function go(event: any) {
