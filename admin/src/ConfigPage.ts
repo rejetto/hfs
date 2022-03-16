@@ -28,7 +28,7 @@ export default function ConfigPage() {
         comp: NumberField,
         min: 1,
         placeholder: "no limit",
-        onChange: (v: any) => v < 1 ? '' : v
+        onChange: (v: any) => v < 1 ? null : v,
     }
     return h(Form, {
         sx: { maxWidth: '60em' },
