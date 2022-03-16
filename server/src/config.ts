@@ -30,25 +30,25 @@ const { save } = watchLoad(path,  values => setConfig(values||{}, false), {
 
 interface ConfigProps<T> {
     defaultValue?: T,
-    caster?:(argV:string)=> T
+    arg?: T,
+    caster: (argV:string)=> T
 }
-export function defineConfig<T>(k: string, definition: ConfigProps<T>) {
-    if (definition.defaultValue !== undefined)
-        definition.defaultValue = _.cloneDeep(definition.defaultValue)
-    configProps[k] = definition
-    if (!definition.caster)
-        if (typeof definition.defaultValue === 'number')
-            // @ts-ignore
-            definition.caster = Number
+export function defineConfig<T>(k: string, definition: Partial<ConfigProps<T>>) {
+    const { caster = _.identity } = definition
+    configProps[k] = {
+        caster,
+        arg: caster(argv[k]),
+        ...definition,
+        defaultValue: _.cloneDeep(definition.defaultValue),
+    }
 }
 
-export function subscribeConfig<T>({ k, ...definition }:{ k:string } & ConfigProps<T>, cb:(v:T, was?:T)=>void) {
+export function subscribeConfig<T>({ k, ...definition }:{ k:string } & Partial<ConfigProps<T>>, cb:(v:T, was?:T)=>void) {
     if (definition)
         defineConfig(k, definition)
-    const { caster, defaultValue } = configProps[k] ?? {}
-    const a = argv[k]
-    if (a !== undefined)
-        return cb(caster ? caster(a) : a)
+    const { defaultValue, arg } = configProps[k] ?? {}
+    if (arg !== undefined) // it was passed at command line, and it will never change
+        return cb(arg)
     const eventName = 'new.'+k
     if (started) {
         let v = state[k]
@@ -65,7 +65,11 @@ export function getConfig(k:string) {
 }
 
 export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:string[] }) {
-    let copy = Object.assign( objSameKeys(configProps, x => x.defaultValue), state )
+    let copy = Object.assign(
+        objSameKeys(configProps, x => x.defaultValue),
+        state,
+        _.pickBy(objSameKeys(configProps, x => x.arg), x => x !== undefined),
+    )
     copy = _.omit(copy, omit)
     if (only.length)
        copy = _.pick(copy, only)
