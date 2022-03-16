@@ -5,7 +5,7 @@ import { createElement as h, isValidElement, useEffect, useRef } from 'react';
 import { apiCall, useApi, useApiComp } from './api'
 import { state, useSnapState } from './state'
 import { Refresh } from '@mui/icons-material'
-import { Dict } from './misc'
+import { Dict, modifiedSx } from './misc'
 import { subscribeKey } from 'valtio/utils'
 import { Form, BoolField, NumberField, StringField, SelectField, FieldProps, Field } from './Form';
 import StringStringField from './StringStringField'
@@ -41,7 +41,7 @@ export default function ConfigPage() {
         onError: alertDialog,
         save: {
             onClick: save,
-            disabled: !Object.keys(changes).length,
+            sx: modifiedSx( Object.keys(changes).length>0),
         },
         barSx: { gap: 2 },
         addToBar: [h(Button, {

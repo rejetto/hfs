@@ -6,7 +6,7 @@ import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typ
 import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
 import { BoolField, Form, MultiSelectField, StringField } from './Form'
 import { alertDialog, confirmDialog } from './dialog'
-import { iconTooltip, isEqualLax, onlyTruthy } from './misc'
+import { iconTooltip, isEqualLax, modifiedSx, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import { makeStyles } from '@mui/styles'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
@@ -189,7 +189,7 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
         ],
         onError: alertDialog,
         save: {
-            disabled: isEqualLax(values, account),
+            sx: modifiedSx( !isEqualLax(values, account)),
             async onClick() {
                 const { password='', password2, ...withoutPassword } = values
                 const { username } = values

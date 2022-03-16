@@ -24,6 +24,10 @@ export function isEqualLax(a: any,b: any): boolean {
             && Object.entries(a).every(([k,v]) => isEqualLax(v, b[k])) )
 }
 
+export function modifiedSx(is: boolean) {
+    return is ? { outline: '2px solid' } : undefined
+}
+
 export function IconBtn({ title, icon, onClick, ...rest }: { title?: string, icon: SvgIconComponent, [rest:string]:any }) {
     const [loading, setLoading] = useStateMounted(false)
     const ret = h(IconButton, {

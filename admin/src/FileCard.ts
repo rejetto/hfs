@@ -5,7 +5,7 @@ import { createElement as h, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from './Form'
 import { apiCall, useApi } from './api'
-import { formatBytes, isEqualLax, onlyTruthy } from './misc'
+import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
 import { reloadVfs, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -62,7 +62,7 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
             setValues({ ...values, [k]: v })
         },
         save: {
-            disabled: isEqualLax(values, file),
+            sx: modifiedSx(!isEqualLax(values, file)),
             async onClick() {
                 const props = _.pickBy(values, (v,k) =>
                     v !== file[k as keyof typeof values])
