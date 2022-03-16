@@ -44,6 +44,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
         expanded,
         selected,
         multiSelect: true,
+        sx: { overflowX: 'auto' },
         onNodeSelect(ev, ids) {
             setSelected(ids)
             state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))

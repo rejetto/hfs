@@ -13,3 +13,7 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.MuiTreeItem-content {
+  box-sizing: border-box; /* avoid unwanted scrolling caused by its width:100% + padding */
+}

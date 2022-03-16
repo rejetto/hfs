@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
-import { Box, Button } from '@mui/material'
+import { Box, Button, Hidden } from '@mui/material'
 import { Add, Delete, Refresh } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { apiCall } from './api'
@@ -33,7 +33,7 @@ export default function VfsMenuBar() {
             ]
         }, 'Add'),
         h(Button, { onClick: removeFiles, disabled: !selectedFiles.length, startIcon: h(Delete) }, 'Remove'),
-        h(Button, { onClick(){ reloadVfs() }, startIcon: h(Refresh) }, 'Reload'),
+        h(Button, { onClick(){ reloadVfs() }, startIcon: h(Refresh) }, h(Hidden, { smDown:true }, 'Reload')),
     )
 }
 
