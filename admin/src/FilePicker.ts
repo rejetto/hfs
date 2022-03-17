@@ -53,7 +53,8 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
         h(Box, { display:'flex', gap: 1 },
             h(Button, {
                 onClick() {
-                    setCwd( isWindowsDrive(cwd) ? '' : cwd.slice(0, cwd.lastIndexOf(pathDelimiter)) )
+                    const s = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
+                    setCwd( isWindowsDrive(s) ? '' : s.slice(0, s.lastIndexOf(pathDelimiter)) )
                 }
             }, h(ArrowUpward)),
             h(Button, {
