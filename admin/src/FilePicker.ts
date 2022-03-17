@@ -49,6 +49,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
         return spinner()
     const pathDelimiter = /[:\\]/.test(cwd) ? '\\' : '/'
     const cwdPostfixed = enforceFinal(pathDelimiter, cwd)
+    let displayed = 0
     return h(Fragment, {},
         h(Box, { display:'flex', gap: 1 },
             h(Button, {
@@ -75,7 +76,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
                     list.map((it:DirEntry) =>
                         h(MenuItem, {
                             key: it.n,
-                            sx: { display: filterMatch(it.n) ? undefined : 'none' },
+                            sx: { display: filterMatch(it.n) ? (displayed++,undefined) : 'none' },
                             onClick(){
                                 if (it.k === 'd')
                                     setCwd( cwdPostfixed + it.n )
@@ -109,7 +110,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
                     }, `Select (${sel.length})`),
                     h(TextField, {
                         value: filter,
-                        label: 'Filter results',
+                        label: `Filter results (${displayed}${displayed < list.length ? '/'+list.length : ''})`,
                         onChange(ev) {
                             setFilterBounced(ev.target.value)
                         },
