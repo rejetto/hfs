@@ -72,8 +72,10 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (path.startsWith(ADMIN_URI))
         return serveAdminPrefixed(ctx,next)
     const node = await urlToNode(path, ctx)
-    if (!node)
+    if (!node) {
+        ctx.body = "Not found. Sometimes you need to login first."
         return next()
+    }
     if (!hasPermission(node, 'can_read', ctx))
         return ctx.status = cantReadStatusCode(node)
     const { source } = node

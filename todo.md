@@ -16,6 +16,7 @@
   - show some properties, which ones are loaded
   - plugin config: plugin must expose gui producing object or form configuration 
 - download-counter: expose results on admin
+- frontend: make a "login" route, and link it in side the 404's suggest-login message  
 - plugin to show country by ip in admin/monitor
 - config.proxies:number (will enable koa.proxy:true + maxIpsCount, default 0)
 - log filter option
