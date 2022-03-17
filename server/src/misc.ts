@@ -5,6 +5,7 @@ import fs from 'fs/promises'
 import { basename, dirname } from 'path'
 import { watch } from 'fs'
 import _ from 'lodash'
+import { Readable } from 'stream'
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Dict<T = any> = Record<string, T>
@@ -72,22 +73,15 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
     return ret
 }
 
-// let you use work with a callback when a generator is required
-export function generatorAsCallback<T>(caller: Callback<{ callback:Callback<T> }>) {
-    let p = pendingPromise()
-    const ref = { callback: p.resolve }
-    caller(ref)
-    return {
-        [Symbol.asyncIterator]: () =>
-            ({
-                async next() {
-                    const value = await p
-                    p = pendingPromise()
-                    ref.callback = p.resolve
-                    return { value }
-                }
-            })
-    }
+export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
+    const iterator = generator[Symbol.asyncIterator]()
+    return new Readable({
+        objectMode: true,
+        read() {
+            iterator.next().then(it =>
+                this.push(it.done ? null : it.value))
+        }
+    })
 }
 
 export function getOrSet<T>(o: Record<string,T>, k:string, creator:()=>T): T {

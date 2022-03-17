@@ -7,11 +7,12 @@ import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
-import { generatorAsCallback, onOffMap, pendingPromise } from './misc'
+import { onOffMap, pendingPromise } from './misc'
 import _ from 'lodash'
 import events from './events'
 import { getFromAccount } from './perm'
 import Koa from 'koa'
+import { Readable } from 'stream'
 
 export const adminApis: ApiHandlers = {
 
@@ -62,21 +63,24 @@ export const adminApis: ApiHandlers = {
         return { result: Boolean(c) }
     },
 
-    async *get_connections({}, ctx) {
+    get_connections({}, ctx) {
+        const ret = new Readable({ objectMode: true, read(){} }) // we don't care what you ask/read, we just push and hope for the best
+        // start with existing connections
         for (const conn of getConnections())
-            yield { add: serializeConnection(conn) }
-        yield* generatorAsCallback(wrapper =>
-            ctx.res.once('close', // as connection is closed, call the callback returned by onOffMap that uninstalls the listener
-                onOffMap(events, {
-                    connection: conn => wrapper.callback({ add: serializeConnection(conn) }),
-                    connectionClosed(conn: Connection) {
-                        wrapper.callback({ remove: [ serializeConnection(conn, true) ] })
-                    },
-                    connectionUpdated(conn: Connection, change: Partial<Connection>) {
-                        wrapper.callback({ update: [{ search: serializeConnection(conn, true), change }] })
-                    },
-                })
-            ) )
+            ret.push({ add: serializeConnection(conn) })
+        // then send updates
+        const off = onOffMap(events, {
+            connection: conn => ret.push({ add: serializeConnection(conn) }),
+            connectionClosed(conn: Connection) {
+                ret.push({ remove: [ serializeConnection(conn, true) ] })
+            },
+            connectionUpdated(conn: Connection, change: Partial<Connection>) {
+                ret.push({ update: [{ search: serializeConnection(conn, true), change }] })
+            },
+        })
+        // we never close this stream ourselves, just when connection is closed we have to take care of listeners
+        ctx.res.once('close', off)
+        return ret
 
         function serializeConnection(conn: Connection, minimal?:true) {
             const { socket, started, secure, got, path } = conn

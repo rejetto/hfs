@@ -4,7 +4,7 @@ import { cantReadStatusCode, getNodeName, hasPermission, urlToNode, VfsNode, wal
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
-import { asyncGeneratorToArray, dirTraversal, filterMapGenerator, pattern2filter } from './misc'
+import { asyncGeneratorToArray, asyncGeneratorToReadable, dirTraversal, filterMapGenerator, pattern2filter } from './misc'
 
 export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await urlToNode(path || '/', ctx)
@@ -21,7 +21,9 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
     const filter = pattern2filter(search)
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
-    return sse ? filterMapGenerator(produceEntries(), async (entry) => ({ entry })) // wrap entry in an object
+    return sse ? asyncGeneratorToReadable(
+            filterMapGenerator(produceEntries(), async (entry) => ({ entry })) // wrap entry in an object
+        )
         : { list: await asyncGeneratorToArray(produceEntries()) }
 
     async function* produceEntries() {

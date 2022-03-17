@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import Koa from 'koa'
-import { PassThrough } from 'stream'
+import { Transform } from 'stream'
 
 export default function createSSE(ctx: Koa.Context) {
     const { socket } = ctx.req
@@ -15,18 +15,15 @@ export default function createSSE(ctx: Koa.Context) {
         'X-Accel-Buffering': 'no', // avoid buffering when reverse-proxied through nginx
     })
     ctx.status = 200
-    const stream = ctx.body = new PassThrough()
-    const ret = {
-        stream,
-        stopped: false,
-        send(data:any){
-            stream.write(`data: ${JSON.stringify(data)}\n\n`)
+    return ctx.body = new Transform({
+        objectMode: true,
+        transform(chunk, encoding, cb) {
+            this.push(`data: ${JSON.stringify(chunk)}\n\n`)
+            cb()
         },
-        close() {
-            stream.end('data:\n\n')
+        flush(cb) {
+            this.push('data:\n\n')
+            cb()
         }
-    }
-    stream.on('close', ()=>
-        ret.stopped = true)
-    return ret
+    })
 }
