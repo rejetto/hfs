@@ -11,7 +11,6 @@ import {
     ListItemIcon,
     ListItemText,
     MenuItem,
-    MenuList,
     TextField,
     Typography
 } from '@mui/material'
@@ -19,6 +18,8 @@ import { enforceFinal, formatBytes, isWindowsDrive, spinner } from './misc'
 import { ArrowUpward, Home } from '@mui/icons-material'
 import { StringField } from './Form'
 import { FileIcon, FolderIcon } from './VfsTree'
+import { FixedSizeList } from 'react-window'
+import AutoSizer from "react-virtualized-auto-sizer"
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 
@@ -45,11 +46,12 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
         const re = new RegExp(_.escapeRegExp(filter), 'i')
         return (v:string) => re.test(v)
     }, [filter])
+
+    const filteredList = useMemo(() => list.filter(it => filterMatch(it.n)), [list,filterMatch])
     if (loading)
         return spinner()
     const pathDelimiter = /[:\\]/.test(cwd) ? '\\' : '/'
     const cwdPostfixed = enforceFinal(pathDelimiter, cwd)
-    let displayed = 0
     return h(Fragment, {},
         h(Box, { display:'flex', gap: 1 },
             h(Button, {
@@ -72,32 +74,44 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
         error ? h(Alert, { severity:'error' }, String(error))
             : !list.length ? h(Typography, { p:1 }, 'No elements in this folder')
             : h(Fragment, {},
-                h(MenuList, { sx:{ overflow:'auto', flex: 1 } },
-                    list.map((it:DirEntry) =>
-                        h(MenuItem, {
-                            key: it.n,
-                            sx: { display: filterMatch(it.n) ? (displayed++,undefined) : 'none' },
-                            onClick(){
-                                if (it.k === 'd')
-                                    setCwd( cwdPostfixed + it.n )
-                                else
-                                    onSelect([ cwdPostfixed + it.n ])
-                            }
-                        },
-                            h(Checkbox, {
-                                checked: sel.includes(it.n),
-                                onClick(ev){
-                                    const id = it.n
-                                    const removed = sel.filter(x => x !== id)
-                                    setSel(removed.length < sel.length ? removed : [...sel, id])
-                                    ev.stopPropagation()
-                                },
-                            }),
-                            h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
-                            h(ListItemText, {}, it.n),
-                            it.k !== 'd' && it.s !== undefined && h(Typography, { variant:'body2', color:'text.secondary', ml:4 }, formatBytes(it.s) )
-                        )
-                    )
+                h(Box, { sx: { flex: 1 } },
+                    h(AutoSizer, {
+                        children: size =>
+                            h(FixedSizeList, {
+                                ...size, itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
+                                /*sx:{ overflow:'auto', flex: 1 }*/
+                                children({ index, style }) {
+                                    const it: DirEntry = filteredList[index]
+                                    return h(MenuItem, {
+                                            style,
+                                            key: it.n,
+                                            onClick() {
+                                                if (it.k === 'd')
+                                                    setCwd(cwdPostfixed + it.n)
+                                                else
+                                                    onSelect([cwdPostfixed + it.n])
+                                            }
+                                        },
+                                        h(Checkbox, {
+                                            checked: sel.includes(it.n),
+                                            onClick(ev) {
+                                                const id = it.n
+                                                const removed = sel.filter(x => x !== id)
+                                                setSel(removed.length < sel.length ? removed : [...sel, id])
+                                                ev.stopPropagation()
+                                            },
+                                        }),
+                                        h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
+                                        h(ListItemText, { sx: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }, it.n),
+                                        it.k !== 'd' && it.s !== undefined && h(Typography, {
+                                            variant: 'body2',
+                                            color: 'text.secondary',
+                                            ml: 4
+                                        }, formatBytes(it.s))
+                                    )
+                                }
+                            })
+                    }),
                 ),
                 h(Box, { display:'flex', gap: 1 },
                     h(Button, {
@@ -110,7 +124,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
                     }, `Select (${sel.length})`),
                     h(TextField, {
                         value: filter,
-                        label: `Filter results (${displayed}${displayed < list.length ? '/'+list.length : ''})`,
+                        label: `Filter results (${filteredList.length}${filteredList.length < list.length ? '/'+list.length : ''})`,
                         onChange(ev) {
                             setFilterBounced(ev.target.value)
                         },
