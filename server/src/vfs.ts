@@ -11,6 +11,7 @@ import { setConfig, subscribeConfig } from './config'
 import { FORBIDDEN, IS_WINDOWS } from './const'
 import events from './events'
 import { getCurrentUsernameExpanded } from './perm'
+import { with_ } from './misc'
 
 const WHO_ANYONE = true
 const WHO_NO_ONE = false
@@ -85,7 +86,10 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     inheritMasks(ret, parent, name)
     applyMasks(ret, parent, name)
     // does the tree node have a child that goes by this name?
-    const child = parent.children?.find(x => getNodeName(x) === name)
+    const sameName = !IS_WINDOWS ? (x:string) => x === name // easy
+        : with_(name.toLowerCase(), lc =>
+            (x: string) => x.toLowerCase() === lc)
+    const child = parent.children?.find(x => sameName(getNodeName(x)))
     if (child)  // yes
         return urlToNode(rest, ctx, Object.assign(ret, child, { original: child }))
     // not in the tree, we can see consider continuing on the disk

@@ -190,3 +190,7 @@ export function objRenameKey(o: Dict | undefined, from: string, to: string) {
 export function typedKeys<T>(o: T) {
     return Object.keys(o) as (keyof T)[]
 }
+
+export function with_<T,RT>(par:T, cb: (par:T) => RT) {
+    return cb(par)
+}
