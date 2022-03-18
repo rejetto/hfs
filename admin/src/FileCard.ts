@@ -90,7 +90,7 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
             !isRoot && { k: 'name', validate: x => x>'' || `Required`,
                 helperText: source && "You can decide a name that's different from the one on your disk",
             },
-            hasSource && { k: 'source', comp: DisplayField },
+            hasSource && { k: 'source', comp: DisplayField, multiline: true },
             { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
                 helperText: "Note: who cannot download also cannot see in list"
             },
