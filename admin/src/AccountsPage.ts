@@ -113,6 +113,7 @@ export default function AccountsPage() {
                     account ? h(AccountForm, {
                         account,
                         groups: list.filter(x => !x.hasPassword).map( x => x.username ),
+                        close(){ setSel([]) },
                         done(username) {
                             setSel([username])
                             reload()
@@ -149,7 +150,8 @@ function hList(heading: string, list: any[]) {
     )
 }
 
-function AccountForm({ account, done, groups }: { account: Account, groups: string[], done: (username: string)=>void }) {
+interface FormProps { account: Account, groups: string[], done: (username: string)=>void, close: ()=>void }
+function AccountForm({ account, done, groups, close }: FormProps) {
     const [values, setValues] = useState<Account & { password?: string, password2?: string }>(account)
     const [belongsOptions, setBelongOptions] = useState<string[]>([])
     useEffect(() => {
@@ -167,8 +169,11 @@ function AccountForm({ account, done, groups }: { account: Account, groups: stri
         set(v, k) {
             setValues({ ...values, [k]: v })
         },
-        barSx: { width: 'initial', justifyContent: 'space-between' },
-        addToBar: [ account2icon(values, { fontSize: 'large', sx: { p: 1 }}) ],
+        addToBar: [
+            h(Button, { onClick: close, sx: { ml: 2 } }, "Close"),
+            h(Box, { flex:1 }),
+            account2icon(values, { fontSize: 'large', sx: { p: 1 }})
+        ],
         fields: [
             { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', validate: x => x>'' || "Required" },
             !group && { k: 'password', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: add ? "Password" : "Change password",

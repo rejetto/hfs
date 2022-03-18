@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useMemo, useState } from 'react'
-import { Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
+import { Button, Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from './Form'
 import { apiCall, useApi } from './api'
 import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
@@ -61,6 +61,14 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
         set(v, k) {
             setValues({ ...values, [k]: v })
         },
+        addToBar: [
+            h(Button, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
+                sx: { ml: 2 },
+                onClick(){
+                    state.selectedFiles = []
+                }
+            }, "Close")
+        ],
         save: {
             sx: modifiedSx(!isEqualLax(values, file)),
             async onClick() {
