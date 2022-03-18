@@ -65,7 +65,7 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
 
 export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=vfs) : Promise<VfsNode | undefined> {
     let i = url.indexOf('/', 1)
-    const name = decodeURI(url.slice(url[0]==='/' ? 1 : 0, i < 0 ? undefined : i))
+    const name = decodeURIComponent(url.slice(url[0]==='/' ? 1 : 0, i < 0 ? undefined : i))
     if (!name)
         return parent
     const rest = i < 0 ? '' : url.slice(i+1, url.endsWith('/') ? -1 : undefined)
