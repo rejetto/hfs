@@ -81,7 +81,7 @@ async function considerHttps() {
 }
 
 interface StartServer { port: number, net?:string }
-function startServer(srv: typeof httpSrv, { port, net='0.0.0.0' }: StartServer) {
+function startServer(srv: typeof httpSrv, { port, net }: StartServer) {
     return new Promise<number>((resolve, reject) => {
         try {
             if (port < 0)
@@ -94,7 +94,7 @@ function startServer(srv: typeof httpSrv, { port, net='0.0.0.0' }: StartServer) 
                     srv.close()
                     return reject('type of socket not supported')
                 }
-                console.log(srv.name, "serving on", net, ':', ad.port)
+                console.log(srv.name, "serving on", net||"anything", ':', ad.port)
                 resolve(ad.port)
             }).on('error', async e => {
                 srv.error = String(e)

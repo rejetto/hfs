@@ -109,6 +109,10 @@ for (const k in adminApis) {
 }
 
 export function ctxAdminAccess(ctx: Koa.Context) {
-    return ctx.ip === '127.0.0.1'
+    return isLocalHost(ctx.ip)
         || getFromAccount(ctx.state.account, a => a.admin)
+}
+
+function isLocalHost(s: string) {
+    return s === '127.0.0.1' || s == '::1'
 }

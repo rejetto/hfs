@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import { createReadStream, stat } from 'fs'
 import fs from 'fs/promises'
-import { METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
+import { FORBIDDEN, METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
 import { getNodeName, MIME_AUTO, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig, getConfig } from './config'
@@ -11,7 +11,7 @@ import mm, { isMatch } from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
-import { socket2connection, updateConnection } from './connections'
+import { updateConnection } from './connections'
 
 export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const { source, mime } = node
@@ -19,6 +19,19 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const mimeString = typeof mime === 'string' ? mime
         : _.find(mime, (val,mask) => isMatch(name, mask))
     return (ctx, next) => {
+       const allowedRef = getConfig('allowed_referer')
+        if (allowedRef) {
+            const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
+            if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
+            && !isMatch(ref, allowedRef))
+                return ctx.status = FORBIDDEN
+
+            function host() {
+                const s = ctx.get('host')
+                return s[0] === '[' ? s.slice(1, s.indexOf(']')) : s?.split(':')[0]
+            }
+        }
+
         ctx.vfsNode = node // useful to tell service files from files shared by the user
         return serveFile(source||'', mimeString)(ctx, next)
     }

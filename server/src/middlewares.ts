@@ -58,13 +58,6 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
     if (ctx.body)
         return next()
-    const allowedRef = getConfig('allowed_referer')
-    if (allowedRef) {
-        const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
-        if (ref && ref !== ctx.get('host')?.split(':')[0] // automatic accept if referer is basically the hosting domain
-            && !isMatch(ref, allowedRef))
-            return ctx.status = FORBIDDEN
-    }
     if (path.startsWith(FRONTEND_URI))
         return serveFrontendPrefixed(ctx,next)
     if (path+'/' === ADMIN_URI)
