@@ -25,9 +25,10 @@ const SYS_ICONS = {
 }
 
 document.fonts.ready.then(async ()=> {
-    const fontName = 'fontello'
-    await document.fonts.load(`9px "${fontName}"`) // force font to be loaded even if we didn't display anything with it yet
-    state.iconsClass = ' ' // with fontello we don't need an additional class (unlike google material icons), but the empty space will cause reload
+    const fontTester = '9px "fontello"'
+    await document.fonts.load(fontTester) // force font to be loaded even if we didn't display anything with it yet
+    if (document.fonts.check(fontTester))
+        state.iconsClass = ' ' // with fontello we don't need an additional class (unlike google material icons), but the empty space will cause reload
 })
 
 export const Icon = memo(({ name, alt, className='', ...props }: { name:string, className?:string, alt?:string, style?:any }) => {
