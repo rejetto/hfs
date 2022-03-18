@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { getConfig, getWholeConfig, setConfig } from './config'
-import { getStatus } from './listen'
+import { getStatus, getUrls } from './listen'
 import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
@@ -43,6 +43,7 @@ export const adminApis: ApiHandlers = {
             version: VERSION,
             http: serverStatus(st.httpSrv, getConfig('port')),
             https: serverStatus(st.httpsSrv, getConfig('https_port')),
+            urls: getUrls(),
         }
 
         function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {

@@ -43,8 +43,8 @@ export function getCookie(name: string) {
     return ''
 }
 
-export function objSameKeys<T,R>(src: Record<string,T>, newValue:(value:T,key:string)=>R) {
-    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k)]))
+export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>any) {
+    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
 }
 
 export function enforceFinal(sub:string, s:string) {

@@ -8,12 +8,12 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { prefix, wait } from './misc'
+import { onlyTruthy, prefix, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
 import _ from 'lodash'
 
-interface ServerExtra { error?: string, busy?: string }
+interface ServerExtra { name: string, error?: string, busy?: string }
 let httpSrv: http.Server & ServerExtra
 let httpsSrv: http.Server & ServerExtra
 
@@ -21,8 +21,8 @@ subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
     while (!app)
         await wait(100)
     stopServer(httpSrv).then()
-    httpSrv = http.createServer(app.callback())
-    port = await startServer(httpSrv, { port, name:'http' })
+    httpSrv = Object.assign(http.createServer(app.callback()), { name: 'http' })
+    port = await startServer(httpSrv, { port })
     if (!port) return
     httpSrv.on('connection', newConnection)
     printUrls(port, 'http')
@@ -58,7 +58,10 @@ async function considerHttps() {
     stopServer(httpsSrv).then()
     let port = getConfig('https_port')
     try {
-        httpsSrv = https.createServer(port < 0 ? {} : { key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback())
+        httpsSrv = Object.assign(
+            https.createServer(port < 0 ? {} : { key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback()),
+            { name: 'https' }
+        )
         const missingKey = _.findKey(httpsNeeds, v => !v) as keyof typeof httpsNeeds
         httpsSrv.error = port < 0 ? undefined
             : missingKey && prefix(getConfig(missingKey) ? "cannot read file for " : "missing ", httpsNeedsNames[missingKey])
@@ -70,18 +73,15 @@ async function considerHttps() {
         console.log("failed to create https server: check your private key and certificate", String(e))
         return
     }
-    port = await startServer(httpsSrv, {
-        port: getConfig('https_port'),
-        name: 'https'
-    })
+    port = await startServer(httpsSrv, { port: getConfig('https_port') })
     if (!port) return
     httpsSrv.on('connection', socket =>
         newConnection(socket, true))
     printUrls(port, 'https')
 }
 
-interface StartServer { port: number, name:string, net?:string }
-function startServer(srv: typeof httpSrv, { port, name, net='0.0.0.0' }: StartServer) {
+interface StartServer { port: number, net?:string }
+function startServer(srv: typeof httpSrv, { port, net='0.0.0.0' }: StartServer) {
     return new Promise<number>((resolve, reject) => {
         try {
             if (port < 0)
@@ -94,7 +94,7 @@ function startServer(srv: typeof httpSrv, { port, name, net='0.0.0.0' }: StartSe
                     srv.close()
                     return reject('type of socket not supported')
                 }
-                console.log(name, "serving on", net, ':', ad.port)
+                console.log(srv.name, "serving on", net, ':', ad.port)
                 resolve(ad.port)
             }).on('error', async e => {
                 srv.error = String(e)
@@ -104,14 +104,14 @@ function startServer(srv: typeof httpSrv, { port, name, net='0.0.0.0' }: StartSe
                     srv.busy = res[0]?.name
                     srv.error = `couldn't listen on port ${port} used by ${srv.busy}`
                 }
-                console.error(name, srv.error)
+                console.error(srv.name, srv.error)
                 console.log(" >> try specifying a different port like: --port 8011")
                 resolve(0)
             })
         }
         catch(e) {
             srv.error = String(e)
-            console.error(name, "couldn't listen on port", port, srv.error)
+            console.error(srv.name, "couldn't listen on port", port, srv.error)
             resolve(0)
         }
     })
@@ -139,9 +139,29 @@ export function getStatus() {
     }
 }
 
+const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*)$/i // avoid giving too much information
+
+export function getUrls() {
+    return Object.fromEntries(onlyTruthy([httpSrv, httpsSrv].map(srv => {
+        if (!srv.listening)
+            return false
+        const port = (srv?.address() as any)?.port
+        const appendPort = port === (srv.name === 'https' ? 443 : 80) ? '' : ':' + port
+        const urls = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
+                nets && !ignore.test(name) && nets.map(net => {
+                    if (net.internal) return
+                    let { address } = net
+                    if (address.includes(':'))
+                        address = '[' + address + ']'
+                    return srv.name + '://' + address + appendPort
+                })
+        ).flat())
+        return urls.length && [srv.name, urls]
+    })))
+}
+
 function printUrls(port: number, proto: string) {
     if (!port) return
-    const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*)$/i // avoid giving too much information
     for (const [name, nets] of Object.entries(networkInterfaces())) {
         if (!nets || ignore.test(name)) continue
         console.log('network', name)

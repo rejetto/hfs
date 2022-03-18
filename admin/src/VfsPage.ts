@@ -1,13 +1,16 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
-import { useApiComp } from './api'
-import { Grid, Typography } from '@mui/material'
+import { useApi, useApiComp } from './api'
+import { Alert, Grid, Link, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import FileCard from './FileCard'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree from './VfsTree'
 import { onlyTruthy } from './misc'
+import { reactJoin } from '@hfs/shared'
+import _ from 'lodash'
+import { AlertProps } from '@mui/material/Alert/Alert'
 
 let selectOnReload: string[] | undefined
 
@@ -43,17 +46,38 @@ export default function VfsPage() {
         }
 
     }, [res, id2node])
+    const [status] = useApi(window.location.host === 'localhost' && 'get_status')
+    const urls = useMemo(() =>
+        typeof status === 'object'
+            && _.sortBy(
+                onlyTruthy(Object.values(status.urls?.https || status.urls?.http || {}).map(u => typeof u === 'string' && u)),
+                url => url.includes('[')
+            ),
+        [status])
     if (isValidElement(res)) {
         id2node.clear()
         return res
     }
+    const anythingShared = !res?.root?.children?.length && !res?.root?.source
+    const alert: AlertProps | false = anythingShared ? {
+        severity: 'warning',
+        children: "Add something to your shared files — click Add"
+    } : urls && {
+        severity: 'info',
+        children: [
+            "Your shared files can be browsed from ",
+            reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href }, href)))
+        ]
+    }
     return h(Grid, { container:true, rowSpacing: 1, maxWidth: '80em' },
+        alert && h(Grid, { item: true, mb: 2, xs: 12 }, h(Alert, alert)),
         h(Grid, { item:true, sm: 6, lg: 5 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(VfsMenuBar),
             snap.vfs && h(VfsTree, { id2node })),
         h(Grid, { item:true, sm: 6, lg: 7, maxWidth:'100%' },
-            h(FileCard)))
+            h(FileCard))
+    )
 }
 
 export function reloadVfs(pleaseSelect?: string[]) {

@@ -36,7 +36,7 @@ export function setHidden(dest: object, src:object) {
     })))
 }
 
-export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:any, key:keyof S)=>any) {
+export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>any) {
     return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
 }
 
