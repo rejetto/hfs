@@ -5,6 +5,7 @@ import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
 import { Dict } from '@hfs/shared'
+import {} from '@hfs/shared' // without this we get weird warnings by webpack
 export * from '@hfs/shared'
 
 export function hIcon(name: string, props?:any) {
