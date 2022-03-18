@@ -7,7 +7,7 @@ import { state, useSnapState } from './state'
 import { Refresh } from '@mui/icons-material'
 import { Dict, modifiedSx } from './misc'
 import { subscribeKey } from 'valtio/utils'
-import { Form, BoolField, NumberField, StringField, SelectField, FieldProps, Field } from './Form';
+import { Form, BoolField, NumberField, SelectField, FieldProps, Field } from './Form';
 import StringStringField from './StringStringField'
 import { alertDialog, confirmDialog } from './dialog'
 
@@ -70,7 +70,8 @@ export default function ConfigPage() {
             },
             { k: 'accounts', label: "Accounts file" },
             { k: 'open_browser_at_start', comp: BoolField },
-            { k: 'allowed_referer', placeholder: "any", helperText: values.allowed_referer && "Leave empty to allow any", },
+            { k: 'allowed_referer', placeholder: "any",
+                helperText: values.allowed_referer ? "Leave empty to allow any" : "Use this to avoid direct links from other websites", },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm:  6, label: "Calculate ZIP size for seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'mime', comp: StringStringField,

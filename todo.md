@@ -3,6 +3,8 @@
 - admin/config: hide advanced settings
 - admin/fs: drag&drop to move items around
 - admin/fs: support insert/delete key
+- admin/fs: button "copy url to clipboard"
+- admin/monitor: show some info on what folder is browsing
 - if specified config is a folder, check for file config.yaml inside
 - merge accounts in config
 - frontend: ok button to inputDialogs
@@ -17,6 +19,8 @@
   - plugin config: plugin must expose gui producing object or form configuration 
 - download-counter: expose results on admin
 - frontend: make a "login" route, and link it in side the 404's suggest-login message  
+- block to support masks and CIDR
+- whitelist di ip
 - plugin to show country by ip in admin/monitor
 - config.proxies:number (will enable koa.proxy:true + maxIpsCount, default 0)
 - log filter option
@@ -43,3 +47,4 @@
 - webdav?
 - log: ip2name
 - apis in separated log file with parameters?
+- search operators (size, type?)
