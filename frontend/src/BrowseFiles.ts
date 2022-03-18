@@ -2,7 +2,7 @@
 
 import { Link, useLocation } from 'react-router-dom'
 import { createElement as h, Fragment, memo, useEffect, useMemo, useState } from 'react'
-import { formatBytes, hError, hfsEvent, hIcon } from './misc'
+import { formatBytes, hError, hfsEvent, hIcon, isMobile } from './misc'
 import { Checkbox, Html, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
@@ -83,10 +83,6 @@ function useMidnight() {
         midnight.setHours(0,0,0,0)
         return recent < midnight ? recent : midnight
     }
-}
-
-function isMobile() {
-    return window.innerWidth < 800
 }
 
 const Entry = memo(function(entry: DirEntry & { midnight: Date }) {

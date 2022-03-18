@@ -16,6 +16,10 @@ export function hError(err: Error | string | null) {
     return err && h('div', { className:'error-msg' }, typeof err === 'string' ? err : err.message)
 }
 
+export function isMobile() {
+    return window.innerWidth < 800
+}
+
 let isWorking = false // we want the 'working' thing to be singleton
 export function working() {
     if (isWorking)

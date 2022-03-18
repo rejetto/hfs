@@ -4,7 +4,7 @@ import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'use-debounce'
 import { confirmDialog, promptDialog } from './dialog'
-import { hIcon, prefix } from './misc'
+import { hIcon, isMobile, prefix } from './misc'
 import { login } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -34,7 +34,7 @@ export function MenuPanel() {
             h(LoginButton),
             h(MenuButton, {
                 icon: 'filter',
-                label: 'Filter',
+                label: "Filter list",
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
@@ -62,7 +62,7 @@ export function MenuPanel() {
         showFilter && h('div', { id: 'filter-bar' },
             h('input', {
                 id: 'filter',
-                placeholder: 'Filter list',
+                placeholder: "Type here to filter the list below",
                 autoComplete: 'off',
                 value: filter,
                 autoFocus: true,
@@ -70,21 +70,30 @@ export function MenuPanel() {
                     setFilter(ev.target.value)
                 }
             }),
+            !isMobile() && h(MenuButton, {
+                icon: 'check',
+                label: "Select all",
+                onClick() { workSel(() => true) }
+            }),
             h(MenuButton, {
                 icon: 'invert',
                 label: 'Invert selection',
-                onClick() {
-                    const sel = state.selected
-                    for (const { n } of state.filteredList || state.list)
-                        if (sel[n])
-                            delete sel[n]
-                        else
-                            sel[n] = true
-                }
-            })
+                onClick() { workSel(x => !x) }
+            }),
         )
     )
 
+    function workSel(cb: (b:boolean) => boolean) {
+        const sel = state.selected
+        for (const { n } of state.filteredList || state.list) {
+            const was = sel[n]
+            if (was !== cb(was))
+                if (was)
+                    delete sel[n]
+                else
+                    sel[n] = true
+        }
+    }
 
     function getSearchProps() {
         return stopSearch && started1secAgo ? {
@@ -103,7 +112,7 @@ export function MenuPanel() {
             }
         } : {
             icon: 'search',
-            label: 'Search',
+            label: "Search deep",
             async onClick() {
                 state.remoteSearch = await promptDialog('Search for...') || ''
             }

@@ -155,6 +155,7 @@ header input {
 #filter-bar {
     display: flex;
     gap: .3em;
+    margin: 0.5em 0;
     & input { flex: 1 }
     & button {
         padding: 0 0.5em;
@@ -205,6 +206,11 @@ ul.dir {
     & button {
         margin: 0.1em;
     }
+}
+#menu-bar {
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
 }
 #searched {
     margin: .2em;
@@ -264,13 +270,13 @@ button label {
     border: 1px solid var(--faint-contrast)
 }
 
-@media (max-width: 40em) {
+@media (max-width: 42em) {
     body, button, select { font-size: 14pt; }
     #menu-bar {
-        display: flex;
-        justify-content: space-between;
-        align-content: stretch;
         & button label { display: none } /* icons only */
+    }
+    #filter-bar {
+        margin: 0.2em 0;
     }
     #filter-bar label { display:none }
     #filter-bar button { /* make it same size of top bar */

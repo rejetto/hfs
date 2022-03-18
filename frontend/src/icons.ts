@@ -22,6 +22,7 @@ const SYS_ICONS = {
     download: ':📥',
     invert: 'retweet:🙃',
     admin: 'crown:👑',
+    check: ':✔️',
 }
 
 document.fonts.ready.then(async ()=> {
