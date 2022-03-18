@@ -56,7 +56,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
     }
 
     function recur(node: Readonly<VfsNode>): ReactElement {
-        let { id, name, source } = node
+        let { id, name, source, isRoot } = node
         if (!id)
             debugger
         const folder = node.type === 'folder'
@@ -71,7 +71,8 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
                 node.default && iconTooltip(Web, "Act as website"),
                 node.masks && iconTooltip(Face, "Masks"),
-                !source?.endsWith(name) ? name
+                isRoot ? "Home"
+                    : !source?.endsWith(name) ? name
                     : h('span', {},
                         h('span', { className:styles.path }, source.slice(0,-name.length)),
                         h('span', {}, source.slice(-name.length)),
@@ -93,7 +94,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 }
             }),
             nodeId: id
-        }, node.children?.map(recur))
+        }, isRoot && !node.children?.length ? "nothing here" : node.children?.map(recur))
     }
 
 }

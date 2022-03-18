@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useMemo, useState } from 'react'
-import { Button, Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
+import { Alert, Button, Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from './Form'
 import { apiCall, useApi } from './api'
 import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
@@ -87,7 +87,8 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
             }
         },
         fields: [
-            !isRoot && { k: 'name', validate: x => x>'' || `Required`,
+            isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.") : {
+                k: 'name', validate: x => x>'' || `Required`,
                 helperText: source && "You can decide a name that's different from the one on your disk",
             },
             hasSource && { k: 'source', comp: DisplayField, multiline: true },
