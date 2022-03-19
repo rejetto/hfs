@@ -72,11 +72,12 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 node.default && iconTooltip(Web, "Act as website"),
                 node.masks && iconTooltip(Face, "Masks"),
                 isRoot ? "Home"
-                    : !source?.endsWith(name) ? name
-                    : h('span', {},
+                    // special rendering if the whole source is not too long, and the name was not customized
+                    : source?.length! < 45 && source?.endsWith(name) ? h('span', {},
                         h('span', { className:styles.path }, source.slice(0,-name.length)),
                         h('span', {}, source.slice(-name.length)),
                     )
+                    : name
             ),
             key: name,
             collapseIcon: h(ExpandMore, {
