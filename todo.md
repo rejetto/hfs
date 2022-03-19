@@ -1,4 +1,5 @@
 # To do
+- admin/fs: render virtual folders differently
 - admin/logs
 - admin/config: hide advanced settings
 - admin/fs: drag&drop to move items around

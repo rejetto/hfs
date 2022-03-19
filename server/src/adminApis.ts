@@ -114,5 +114,5 @@ export function ctxAdminAccess(ctx: Koa.Context) {
 }
 
 function isLocalHost(s: string) {
-    return s === '127.0.0.1' || s == '::1'
+    return s === '127.0.0.1' || s === '::1' || s === '::ffff:127.0.0.1'
 }
