@@ -1,6 +1,5 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
-
-import { createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState } from 'react'
+import { createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState, useRef, Ref } from 'react'
 import {
     Box, Button,
     FormControl,
@@ -12,7 +11,6 @@ import {
     Switch,
     TextField
 } from '@mui/material'
-import { Dict, useStateMounted } from './misc'
 import { Save } from '@mui/icons-material'
 import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
@@ -20,7 +18,7 @@ import _ from 'lodash'
 interface FieldDescriptor {
     k:string
     comp?: any
-    label?: string | ReactElement
+    label?: ReactNode
     validate?: (v: any, extra:any) => string | boolean
     [extraProp:string]:any
 }
@@ -28,9 +26,11 @@ interface FieldDescriptor {
 // it seems necessary to cast (Multi)SelectField sometimes
 export type Field<T> = FC<FieldProps<T>>
 
-interface FormProps {
+type Dict<T=any> = Record<string,T>
+
+export interface FormProps {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
-    defaults?: (f:FieldDescriptor) => Dict | any
+    defaults?: (f:FieldDescriptor) => any
     values: Dict
     set: (v: any, fieldK: string) => void
     save: Partial<Parameters<typeof Button>[0]> | (()=>any)
@@ -38,11 +38,19 @@ interface FormProps {
     addToBar?: ReactNode[]
     barSx?: Dict
     onError?: (err: any) => void
-    [rest:string]: any
+    formRef?: Ref<HTMLFormElement>
 }
 export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, ...rest }: FormProps) {
-    const [loading, setLoading] = useStateMounted(false)
-    const [errors, setErrors] = useStateMounted<Dict>({})
+    const mounted = useRef(false)
+    useEffect(() => {
+        mounted.current = true
+        return () => {
+            mounted.current = false
+        }
+    }, [])
+
+    const [loading, setLoading] = useState(false)
+    const [errors, setErrors] = useState<Dict>({})
     const saveBtn = typeof save === 'function' ? { onClick: save } : save
     const { onClick } = saveBtn
     saveBtn.onClick = onClick && async function (ev) {
@@ -51,6 +59,7 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
             for (const f of fields) {
                 if (!f || isValidElement(f) || !f.k || !f.validate) continue
                 const res = await f.validate(values?.[f.k], { values, fields })
+                if (!mounted.current) return
                 if (res !== true)
                     return setErrors({ [f.k]: res || true })
             }
@@ -58,10 +67,13 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
             return await onClick(ev)
         }
         catch(e) { onError?.(e) }
-        finally { setLoading(false) }
+        finally {
+            if (mounted.current)
+                setLoading(false)
+        }
     }
 
-    const [pendingSubmit, setPendingSubmit] = useStateMounted(false)
+    const [pendingSubmit, setPendingSubmit] = useState(false)
     useEffect(() => {
         if (!pendingSubmit) return
         setTimeout(saveBtn.onClick!)
@@ -110,7 +122,7 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
                             field.helperText = field.helperText ? h(Fragment, {}, error, h('br'), field.helperText)
                                 : error
                         if (field.label === undefined)
-                            field.label = _.capitalize(k.replaceAll('_', ' '))
+                            field.label = _.capitalize(k.replace(/_/g, ' '))
                         _.defaults(field, defaults?.(field))
                     }
                     const { xs=12, sm, md, lg, xl, comp=StringField,
