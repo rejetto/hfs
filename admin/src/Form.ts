@@ -2,8 +2,9 @@
 import { createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState, useRef, Ref } from 'react'
 import {
     Box, Button,
+    Checkbox,
     FormControl,
-    FormControlLabel, FormHelperText,
+    FormControlLabel, FormGroup, FormHelperText,
     FormLabel,
     Grid,
     MenuItem, Radio,
@@ -331,5 +332,26 @@ export function RadioField<T>({ label, options, value, onChange }: FieldProps<T>
             options.map(({ value, label }, idx) =>
                 h(FormControlLabel, { key: idx, value, control: h(Radio), label }) )
         )
+    )
+}
+
+export function CheckboxesField({ label, options, value, onChange }: FieldProps<string[]> & { options: string[] }) {
+    console.log({ value })
+    return h(FormControl, {},
+        label && h(FormLabel, {}, label),
+        h(FormGroup, {},
+            options.map(o => {
+                const checked = value?.includes(o)
+                return h(FormControlLabel, {
+                    key: o,
+                    checked,
+                    control: h(Checkbox),
+                    label: o,
+                    onClick(event) {
+                        const newValue = checked ? value!.filter(x => x !== o) : [...value||[], o]
+                        onChange(newValue, { was: value, event })
+                    }
+                })
+            }))
     )
 }
