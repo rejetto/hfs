@@ -15,6 +15,7 @@ import {
 import { Save } from '@mui/icons-material'
 import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
+import { SxProps } from '@mui/system'
 
 interface FieldDescriptor {
     k:string
@@ -235,7 +236,7 @@ type SelectOption<T> = SelectPair<T> | (T extends string | number ? T : never)
 interface SelectPair<T> { label: string, value:T }
 
 export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T> }) {
-    const { value, onChange, options, ...rest } = props
+    const { value, onChange, options, sx, ...rest } = props
     return h(TextField, { // using TextField because Select is not displaying label correctly
         ...commonSelectProps(props),
         ...rest,
@@ -251,9 +252,9 @@ export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T>
 }
 
 export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectOptions<T> }) {
-    const { value, options, ...rest } = props
+    const { value, options, sx, ...rest } = props
     return h(TextField, {
-        ...commonSelectProps({ ...props, value:undefined }),
+        ...commonSelectProps({ ...props, value: undefined }),
         ...rest,
         SelectProps: { multiple: true },
         value: !Array.isArray(value) ? [] : value.map(x => JSON.stringify(x)),
@@ -268,7 +269,7 @@ export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectOpt
     })
 }
 
-function commonSelectProps<T>(props: { value?: T, disabled?: boolean, options:SelectOptions<T> }) {
+function commonSelectProps<T>(props: { sx?:SxProps, label?: FieldProps<T>['label'], value?: T, disabled?: boolean, options:SelectOptions<T> }) {
     const { options, disabled } = props
     const normalizedOptions = !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label }))
         : options.map(o => typeof o === 'string' || typeof o === 'number' ? { value: o, label: String(o) } : o as SelectPair<T>)
@@ -277,6 +278,7 @@ function commonSelectProps<T>(props: { value?: T, disabled?: boolean, options:Se
     return {
         select: true,
         fullWidth: true,
+        sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1 } }, props.sx),
         // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
         value: currentOption ? jsonValue : '',
         disabled: !normalizedOptions?.length || disabled,
