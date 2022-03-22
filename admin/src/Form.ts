@@ -19,7 +19,7 @@ interface FieldDescriptor {
     k:string
     comp?: any
     label?: ReactNode
-    validate?: (v: any, extra:any) => string | boolean
+    validate?: RegExp | ((v: any, extra:any) => string | boolean)
     [extraProp:string]:any
 }
 
@@ -28,10 +28,10 @@ export type Field<T> = FC<FieldProps<T>>
 
 type Dict<T=any> = Record<string,T>
 
-export interface FormProps {
+export interface FormProps<Values> {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
     defaults?: (f:FieldDescriptor) => any
-    values: Dict
+    values: Values
     set: (v: any, fieldK: string) => void
     save: Partial<Parameters<typeof Button>[0]> | (()=>any)
     stickyBar?: boolean
@@ -40,7 +40,7 @@ export interface FormProps {
     onError?: (err: any) => void
     formRef?: Ref<HTMLFormElement>
 }
-export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, ...rest }: FormProps) {
+export function Form<Values extends Dict>({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, ...rest }: FormProps<Values>) {
     const mounted = useRef(false)
     useEffect(() => {
         mounted.current = true
@@ -53,12 +53,17 @@ export function Form({ fields, values, set, defaults, save, stickyBar, addToBar=
     const [errors, setErrors] = useState<Dict>({})
     const saveBtn = typeof save === 'function' ? { onClick: save } : save
     const { onClick } = saveBtn
-    saveBtn.onClick = onClick && async function (ev) {
+    saveBtn.onClick = onClick && async function (ev: Parameters<NonNullable<typeof saveBtn.onClick>>[0]) {
         setLoading(true)
         try {
             for (const f of fields) {
                 if (!f || isValidElement(f) || !f.k || !f.validate) continue
-                const res = await f.validate(values?.[f.k], { values, fields })
+                let fv = f.validate
+                if (fv instanceof RegExp) {
+                    const re = fv
+                    fv = x => re.test(x)
+                }
+                const res = await fv(values?.[f.k], { values, fields })
                 if (!mounted.current) return
                 if (res !== true)
                     return setErrors({ [f.k]: res || true })
