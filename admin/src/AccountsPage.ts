@@ -157,12 +157,11 @@ function AccountForm({ account, done, groups, close }: FormProps) {
     useEffect(() => {
         setValues(account)
         setBelongOptions(groups.filter(x => x !== account.username ))
-        //@ts-ignore
         ref.current?.querySelector('input')?.focus()
     }, [JSON.stringify(account)]) //eslint-disable-line
     const add = !account.username
     const group = !values.hasPassword
-    const ref = useRef()
+    const ref = useRef<HTMLFormElement>()
     return h(Form, {
         formRef:  ref,
         values,
