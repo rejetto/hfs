@@ -7,7 +7,7 @@ import { TreeItem, TreeView } from '@mui/lab'
 import {
     ChevronRight,
     ExpandMore,
-    Face,
+    TheaterComedy,
     Folder,
     Home,
     InsertDriveFileOutlined,
@@ -70,7 +70,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
                 isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
                 node.default && iconTooltip(Web, "Act as website"),
-                node.masks && iconTooltip(Face, "Masks"),
+                node.masks && iconTooltip(TheaterComedy, "Masks"),
                 isRoot ? "Home"
                     // special rendering if the whole source is not too long, and the name was not customized
                     : source?.length! < 45 && source?.endsWith(name) ? h('span', {},

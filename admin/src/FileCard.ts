@@ -93,7 +93,7 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
             },
             hasSource && { k: 'source', comp: DisplayField, multiline: true },
             { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
-                helperText: "Note: who cannot download also cannot see in list"
+                helperText: "Note: who can't download won't see it in the list"
             },
             showCanSee && { k: 'can_see', label:"Who can see", xl: 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_see,
                 helperText: "If you hide this element it will not be listed, but will still be accessible if you have a direct link"
