@@ -17,7 +17,6 @@ import { getAccount, getCurrentUsername } from './perm'
 import { getConfig, subscribeConfig } from './config'
 import { getConnections, socket2connection, updateConnection } from './connections'
 import { Socket } from 'net'
-import { isMatch } from 'micromatch'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -67,7 +66,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const node = await urlToNode(path, ctx)
     if (!node) {
         ctx.body = "Not found. Sometimes you need to login first."
-        return next()
+        return ctx.status = 404
     }
     if (!hasPermission(node, 'can_read', ctx))
         return ctx.status = cantReadStatusCode(node)
