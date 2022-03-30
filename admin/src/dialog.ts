@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { Check, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared/lib/dialogs'
-import { Form } from './Form'
+import { Form, FormProps } from './Form'
 export * from '@hfs/shared/lib/dialogs'
 
 dialogsDefaults.Container = function Container(d:DialogOptions) {
@@ -20,17 +20,18 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
     }, [])
     const ref = useRef<HTMLElement>()
     d = { ...dialogsDefaults, ...d }
+    const { sx, ...rest } = d.dialogProps||{}
     const p = d.padding ? 2 : 0
     return h(MuiDialog, {
         open: true,
         maxWidth: 'lg',
+        ...rest,
         onClose: ()=> closeDialog(),
     },
         d.title && h(DialogTitle, {}, d.title),
         h(DialogContent, {
             ref,
-            ...d.dialogProps,
-            sx:{ ...d.dialogProps?.sx, px: p, pb: p, display: 'flex', flexDirection: 'column', }
+            sx: { ...sx, px: p, pb: p, display: 'flex', flexDirection: 'column', }
         }, h(d.Content) )
     )
 }
@@ -84,8 +85,8 @@ export async function confirmDialog(msg: string, { href }: ConfirmOptions={}) : 
     }
 }
 
-type FormProps = Parameters<typeof Form>[0]
-export async function formDialog(props: FormProps) : Promise<FormProps['values']> {
+type FormDialog<T> = Omit<FormProps<T>, 'save' | 'set'> & Partial<Pick<FormProps<T>, 'save'>>;
+export async function formDialog<T>(props: FormDialog<T>) : Promise<T> {
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
         icon: '?',
@@ -112,11 +113,11 @@ export async function formDialog(props: FormProps) : Promise<FormProps['values']
 }
 
 export async function promptDialog(msg: string, props:any={}) : Promise<string | undefined> {
-    return formDialog({
+    return formDialog<{ text: string }>({
         ...props,
         fields: [
             h(Box, {}, msg),
-            { k: 'text', label: null, autoFocus: true, },
+            { k: 'text', label: null, autoFocus: true, ...props.field },
         ],
         save: {
             children: "Continue",

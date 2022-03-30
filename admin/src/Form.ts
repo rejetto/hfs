@@ -1,7 +1,18 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
-import { createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState, useRef, Ref } from 'react'
 import {
-    Box, Button,
+    createElement as h,
+    FC,
+    Fragment,
+    isValidElement,
+    ReactElement,
+    ReactNode,
+    useEffect,
+    useState,
+    useRef,
+    MutableRefObject
+} from 'react'
+import {
+    Box, BoxProps, Button,
     Checkbox,
     FormControl,
     FormControlLabel, FormGroup, FormHelperText,
@@ -30,7 +41,7 @@ export type Field<T> = FC<FieldProps<T>>
 
 type Dict<T=any> = Record<string,T>
 
-export interface FormProps<Values> {
+export interface FormProps<Values> extends Partial<BoxProps> {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
     defaults?: (f:FieldDescriptor) => any
     values: Values
@@ -40,7 +51,7 @@ export interface FormProps<Values> {
     addToBar?: ReactNode[]
     barSx?: Dict
     onError?: (err: any) => void
-    formRef?: Ref<HTMLFormElement>
+    formRef?: MutableRefObject<HTMLFormElement | undefined>
 }
 export function Form<Values extends Dict>({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, ...rest }: FormProps<Values>) {
     const mounted = useRef(false)
@@ -88,7 +99,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
     }, [pendingSubmit]) //eslint-disable-line
 
     return h('form', {
-        ref: formRef,
+        ref: formRef && (x => formRef.current = x ? x as HTMLFormElement : undefined),
         onSubmit(ev) {
             ev.preventDefault()
         },
