@@ -36,8 +36,6 @@ function LoginForm() {
                     try {
                         setError('')
                         await login(username, password)
-                        state.loginRequired = false
-                        state.username = username
                     }
                     catch(e) {
                         setError(String(e))
@@ -67,7 +65,8 @@ async function login(username: string, password: string) {
         throw "This account has no Admin access"
 
     // login was successful, update state
-    sessionRefresher({ username, exp:res.exp })
+    state.loginRequired = false
+    sessionRefresher(res)
 }
 
 // @ts-ignore

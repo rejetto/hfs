@@ -3,17 +3,27 @@
 import { changePasswordHelper, changeSrpHelper } from './api.helpers'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
+    Account,
     accountCanLogin,
     accountHasPassword,
     addAccount,
     delAccount,
     getAccount,
-    getAccounts,
+    getAccounts, getCurrentUsername,
     getFromAccount,
     setAccount
 } from './perm'
 import _ from 'lodash'
 import { FORBIDDEN } from './const'
+
+function prepareAccount(ac: Account | undefined) {
+    return ac && {
+        ..._.omit(ac, ['password','hashed_password','srp']),
+        username: ac.username, // omit won't copy it because it's a hidden prop
+        hasPassword: accountHasPassword(ac),
+        adminActualAccess: accountCanLogin(ac) && getFromAccount(ac, a => a.admin),
+    }
+}
 
 const apis: ApiHandlers = {
 
@@ -21,15 +31,13 @@ const apis: ApiHandlers = {
         return { list: Object.keys(getAccounts()) }
     },
 
+    get_account({ username }, ctx) {
+        return prepareAccount(getAccount(username || getCurrentUsername(ctx)))
+            || new ApiError(404)
+    },
+
     get_accounts() {
-        return {
-            list: Object.values(getAccounts()).map(ac => ({
-                ..._.omit(ac, ['password','hashed_password','srp']),
-                username: ac.username, // omit won't copy it because it's a hidden prop
-                hasPassword: accountHasPassword(ac),
-                adminActualAccess: accountCanLogin(ac) && getFromAccount(ac, a => a.admin),
-            }))
-        }
+        return { list: Object.values(getAccounts()).map(prepareAccount) }
     },
 
     set_account({ username, changes }) {
