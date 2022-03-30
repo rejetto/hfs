@@ -24,7 +24,8 @@ const apis: ApiHandlers = {
     get_accounts() {
         return {
             list: Object.values(getAccounts()).map(ac => ({
-                ..._.pick(ac, ['username','ignore_limits','redirects','belongs','admin']),
+                ..._.omit(ac, ['password','hashed_password','srp']),
+                username: ac.username, // omit won't copy it because it's a hidden prop
                 hasPassword: accountHasPassword(ac),
                 adminActualAccess: accountCanLogin(ac) && getFromAccount(ac, a => a.admin),
             }))
