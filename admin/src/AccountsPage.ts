@@ -32,18 +32,16 @@ interface Account {
 
 export default function AccountsPage() {
     const [res, reload] = useApiComp('get_accounts')
-    const [sel, setSel] = useState<string[]>([])
-    const [addGroup, setAddGroup] = useState<boolean|null>(null)
+    const [sel, setSel] = useState<string[] | 'new-group' | 'new-user'>([])
+    const selectionMode = Array.isArray(sel)
     const styles = useStyles()
     useEffect(() => { // if accounts are reloaded, review the selection to remove elements that don't exist anymore
-        if (isValidElement(res) || !Array.isArray(res?.list)) return
-        setSel( sel.filter(u => res.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
+        if (Array.isArray(res?.list) && selectionMode)
+            setSel( sel.filter(u => res.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
     }, [res]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
     if (isValidElement(res))
         return res
     const { list }: { list: Account[] } = res
-    const account = addGroup !== null ? { username: '', hasPassword: !addGroup }
-        : sel.length === 1 && list.find(x => x.username === sel[0])
     return h(Grid, { container: true, maxWidth: '60em' },
         h(Grid, { item: true, xs: 12 },
             h(Box, {
@@ -63,14 +61,15 @@ export default function AccountsPage() {
                     variant: 'contained',
                     startIcon: h(PersonAdd),
                     items: [
-                        { children: "user", onClick: () => switchTo(false) },
-                        { children: "group", onClick: () => switchTo(true) }
+                        { children: "user", onClick: () => setSel('new-user') },
+                        { children: "group", onClick: () => setSel('new-group') }
                     ]
                 }, 'Add'),
                 h(Button, {
-                    disabled: !sel.length,
+                    disabled: !selectionMode,
                     startIcon: h(Delete),
                     async onClick(){
+                        if (!selectionMode) return
                         if (!await confirmDialog(`You are going to delete ${sel.length} account(s)`))
                             return
                         const errors = onlyTruthy(await Promise.all(sel.map(username =>
@@ -87,9 +86,9 @@ export default function AccountsPage() {
             h(TreeView, {
                 multiSelect: true,
                 sx: { pr: 4, pb: 2, minWidth: '15em' },
-                selected: sel,
+                selected: selectionMode ? sel : [],
                 onNodeSelect(ev, ids) {
-                    switchTo(ids)
+                    setSel(ids)
                 }
             },
                 list.map((ac: Account) =>
@@ -107,37 +106,28 @@ export default function AccountsPage() {
                 )
             )
         ),
-        (addGroup !== null || sel.length > 0) && h(Grid, { item: true, md: 6 },
+        sel.length > 0 // this clever test is true both when some accounts are selected and when we are in "new account" modes
+        && h(Grid, { item: true, md: 6 },
             h(Card, {},
                 h(CardContent, {},
-                    account ? h(AccountForm, {
-                        account,
+                    selectionMode && sel.length > 1 ? h(Box, {},
+                        h(Typography, {}, sel.length + " selected"),
+                        h(List, {},
+                            sel.map(username =>
+                                h(ListItem, { key: username },
+                                    h(ListItemText, {}, username))))
+                    ) : h(AccountForm, {
+                        account: selectionMode && list.find(x => x.username === sel[0])
+                            || { username: '', hasPassword: sel === 'new-user' },
                         groups: list.filter(x => !x.hasPassword).map( x => x.username ),
                         close(){ setSel([]) },
                         done(username) {
                             setSel([username])
                             reload()
                         }
-                    }) : h(Box, {},
-                        h(Typography, {}, sel.length + " selected"),
-                        h(List, {},
-                            sel.map(username =>
-                                h(ListItem, { key: username },
-                                    h(ListItemText, {}, username))))
-                    )
+                    })
                 )))
     )
-
-    function switchTo(what: boolean | string[]) {
-        if (Array.isArray(what)) {
-            setAddGroup(null)
-            setSel(what)
-        }
-        else {
-            setSel([])
-            setAddGroup(what)
-        }
-    }
 }
 
 function hList(heading: string, list: any[]) {
