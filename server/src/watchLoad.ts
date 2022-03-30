@@ -17,9 +17,8 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     const debounced = debounceAsync(load, 500, { leading: true })
     let retry: NodeJS.Timeout
     let saving: Promise<unknown> | undefined
-    init()
-    if (!watcher)
-        failedOnFirstAttempt?.()
+    let lastStats: any
+    init().then(ok => ok || failedOnFirstAttempt?.())
     return {
         unwatch(){
             watcher?.close()
@@ -33,19 +32,17 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         }
     }
 
-    function init() {
-        let triggered = false
+    async function init() {
         try {
+            debounced().then()
             watcher = watch(path, ()=> {
-                triggered = true
                 if (!saving)
                     debounced().then()
             })
-            if (!triggered)
-                debounced().then() // if file is not accessible watch will throw, and we won't get here
+            return true // used actually just by the first invocation
         }
-        catch {
-            retry = setTimeout(init, 1000) // manual watching until watch is successful
+        catch(e) {
+            retry = setTimeout(init, 3_000) // manual watching until watch is successful
         }
     }
 
@@ -54,7 +51,11 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         doing = true
         let data: any
         try {
-            try {
+            try { // I've seen watch() firing 'change' without any change, so we'll check if any change is detectable before going on
+                const stats = await fs.stat(path)
+                if (stats.mtimeMs === lastStats?.mtimeMs) return
+                lastStats = stats
+
                 data = await readFileBusy(path)
                 console.debug('loaded', path)
             }
