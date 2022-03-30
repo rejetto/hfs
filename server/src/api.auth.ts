@@ -65,9 +65,6 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
         return new ApiError(401)
     if (!account.srp)
         return new ApiError(406) // unacceptable
-    if (!getFromAccount(account, a => a.admin))
-        return new ApiError(FORBIDDEN)
-
     const [salt, verifier] = account.srp.split('|')
     const step1 = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
     const sid = Math.random()

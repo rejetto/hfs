@@ -1,4 +1,5 @@
 # To do
+- watch certificates for change
 - admin/fs: render virtual folders differently
 - admin/logs
 - admin/config: hide advanced settings
