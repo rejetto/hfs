@@ -158,17 +158,44 @@ export function onOffMap(em: EventEmitter, events: { [eventName:string]: (...arg
     }
 }
 
-// avoid for an async function to be overlapped with another execution while awaiting
-export function debounceAsync(cb: any, ms: number=100, ...args:any[]) {
-    const debounced = _.debounce(cb, ms, ...args)
-    let running: false | number = false
-    return async () => {
-        if (running && Date.now() - running < ms) return
-        while (running)
-            await wait(ms)
-        running = Date.now()
-        try { return await debounced() }
-        finally { running = false }
+// like lodash.debounce, but also avoids async invocations to overlap
+export function debounceAsync<CB extends (...args: any[]) => Promise<R>, R>(
+    callback: CB,
+    wait: number=100,
+    { leading=false, maxWait=Infinity }={}
+) {
+    let started = 0 // latest callback invocation
+    let runningCallback: Promise<R> | undefined // latest callback invocation result
+    let runningDebouncer: Promise<R | undefined> // latest wrapper invocation
+    let waitingSince = 0 // we are delaying invocation since
+    let whoIsWaiting: undefined | any[] // args' array object identifies the pending instance, and incidentally stores args
+    const interceptingWrapper = (...args:any[]) => runningDebouncer = debouncer.apply(null, args)
+    return Object.assign(interceptingWrapper, {
+        cancel: () => whoIsWaiting = undefined,
+        flush() {
+            return whoIsWaiting ? callback.apply(null, whoIsWaiting) : this.cancel()
+        },
+    })
+
+    async function debouncer(...args:any[]) {
+        whoIsWaiting = args
+        waitingSince ||= Date.now()
+        await runningCallback
+        const waitingCap = maxWait - (Date.now() - (waitingSince || started))
+        const waitFor = Math.min(waitingCap, leading ? wait - (Date.now() - started) : wait)
+        if (waitFor > 0)
+            await new Promise(resolve => setTimeout(resolve, waitFor))
+        if (!whoIsWaiting) // canceled
+            return void(waitingSince = 0)
+        if (whoIsWaiting !== args) return // another fresher call is waiting
+        waitingSince = 0
+        whoIsWaiting = undefined
+        started = Date.now()
+        try {
+            runningCallback = callback.apply(null, args)
+            return await runningCallback
+        }
+        finally { runningCallback = undefined }
     }
 }
 

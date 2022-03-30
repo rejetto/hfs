@@ -14,7 +14,7 @@ interface WatchLoadReturn { unwatch:WatchLoadCanceller, save:WriteFile }
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt }:Options={}): WatchLoadReturn {
     let doing = false
     let watcher: FSWatcher | undefined
-    const debounced = debounceAsync(load, 500)
+    const debounced = debounceAsync(load, 500, { leading: true })
     let retry: NodeJS.Timeout
     let saving: Promise<unknown> | undefined
     init()
