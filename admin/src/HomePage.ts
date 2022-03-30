@@ -33,7 +33,8 @@ export default function HomePage() {
         !cfg ? spinner() :
             errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
                 : entry('success', "Server is working"),
-        !vfs?.root?.children?.length && !vfs?.root?.source
+        !vfs ? spinner()
+            : !vfs.root?.children?.length && !vfs.root?.source
             ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
             : entry('', "Here you manage your server. There is a SEPARATED interface to access your shared files: ",
                 h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
