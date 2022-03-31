@@ -21,7 +21,7 @@
     "koa-session": "^6.2.0",
     "limiter": "^2.1.0",
     "lodash": "^4.17.21",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "open": "^8.4.0",
     "tssrp6a": "^3.0.0",
     "yaml": "^2.0.0-10"
