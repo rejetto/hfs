@@ -6,6 +6,7 @@ import { basename, dirname } from 'path'
 import { watch } from 'fs'
 import _ from 'lodash'
 import { Readable } from 'stream'
+import Koa from 'koa'
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Dict<T = any> = Record<string, T>
@@ -220,4 +221,10 @@ export function typedKeys<T>(o: T) {
 
 export function with_<T,RT>(par:T, cb: (par:T) => RT) {
     return cb(par)
+}
+
+export function isLocalHost(s: string | Koa.Context) {
+    if (typeof s !== 'string')
+        s = s.ip
+    return s === '127.0.0.1' || s === '::1' || s === '::ffff:127.0.0.1'
 }

@@ -61,7 +61,7 @@ export default function ConfigPage() {
             { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443 },
             values.https_port >= 0 && { k: 'cert', label: "HTTPS certificate file" },
             values.https_port >= 0 && { k: 'private_key', label: "HTTPS private key file" },
-            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s" },
+            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
             { k: 'log', label: "Main log file" },
             { k: 'error_log', label: "Error log file" },

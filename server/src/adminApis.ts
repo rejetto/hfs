@@ -7,7 +7,7 @@ import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
-import { onOffMap, pendingPromise } from './misc'
+import { isLocalHost, onOffMap, pendingPromise } from './misc'
 import _ from 'lodash'
 import events from './events'
 import { getFromAccount } from './perm'
@@ -109,10 +109,5 @@ for (const k in adminApis) {
 }
 
 export function ctxAdminAccess(ctx: Koa.Context) {
-    return isLocalHost(ctx.ip)
-        || getFromAccount(ctx.state.account, a => a.admin)
-}
-
-function isLocalHost(s: string) {
-    return s === '127.0.0.1' || s === '::1' || s === '::ffff:127.0.0.1'
+    return isLocalHost(ctx) || getFromAccount(ctx.state.account, a => a.admin)
 }

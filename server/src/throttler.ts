@@ -4,8 +4,8 @@ import { Readable } from 'stream'
 import Koa from 'koa'
 import { ThrottledStream, ThrottleGroup } from './ThrottledStream'
 import { subscribeConfig } from './config'
-import { getOrSet } from './misc'
-import { socket2connection, updateConnection } from './connections'
+import { getOrSet, isLocalHost } from './misc'
+import { updateConnection } from './connections'
 import _ from 'lodash'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
@@ -25,7 +25,7 @@ const SymTimeout = Symbol('timeout')
 export const throttler: Koa.Middleware = async (ctx, next) => {
     await next()
     const { body } = ctx
-    if (!body || !(body instanceof Readable) || ctx.state.account?.ignore_limits)
+    if (!body || !(body instanceof Readable) || ctx.state.account?.ignore_limits || isLocalHost(ctx))
         return
     const ipGroup = getOrSet(ip2group, ctx.ip, ()=> {
         const tg = new ThrottleGroup(Infinity, mainThrottleGroup)
