@@ -1,12 +1,13 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment } from 'react'
-import { Box, Link } from '@mui/material'
-import { useApi } from './api'
+import { Box, Button, Link } from '@mui/material'
+import { apiCall, useApi } from './api'
 import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, spinner } from './misc'
 import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { useSnapState } from './state'
+import { confirmDialog } from './dialog'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
@@ -16,7 +17,7 @@ export default function HomePage() {
     const [status] = useApi<Dict<ServerStatus>>('get_status')
     const [vfs] = useApi('get_vfs')
     const [account] = useApi(username && 'get_account')
-    const [cfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key'] })
+    const [cfg, reloadCfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
     if (!status)
         return spinner()
     const { http, https } = status
@@ -48,6 +49,15 @@ export default function HomePage() {
         ),
         !account?.adminActualAccess && entry('', "You are accessing on localhost, therefore permission is not required",
             SOLUTION_SEP, h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers") ),
+        proxyWarning(cfg, status) && entry('warning', "A proxy was detected but none is configured",
+                SOLUTION_SEP, cfgLink("set the number of proxies"),
+                SOLUTION_SEP, "unless you are sure you can ", h(Button, {
+                    async onClick() {
+                        if (await confirmDialog("Go on only if you know what you are doing")
+                        && await apiCall('set_config', { values: { ignore_proxies: true } }))
+                            reloadCfg()
+                    }
+                }, "ignore this warning")),
     )
 }
 
@@ -70,4 +80,8 @@ function fsLink(text=`File System page`) {
 
 function cfgLink(text=`Configuration page`) {
     return h(InLink, { to:'configuration' }, text)
+}
+
+export function proxyWarning(cfg: any, status: any) {
+    return cfg && !cfg.proxies && !cfg.ignore_proxies && status?.proxyDetected
 }

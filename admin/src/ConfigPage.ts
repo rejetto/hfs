@@ -10,6 +10,7 @@ import { subscribeKey } from 'valtio/utils'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field } from './Form';
 import StringStringField from './StringStringField'
 import { alertDialog, confirmDialog } from './dialog'
+import { proxyWarning } from './HomePage'
 
 let loaded: Dict | undefined
 
@@ -54,7 +55,7 @@ export default function ConfigPage() {
         defaults({ comp }) {
             return comp === ServerPort ? { sm:  6, lg: 3 }
                 : comp === NumberField ? { sm: 3 }
-                    : { sm:  6 }
+                    : { sm: 6 }
         },
         fields: [
             { k: 'port', comp: ServerPort, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
@@ -70,6 +71,10 @@ export default function ConfigPage() {
             },
             { k: 'accounts', label: "Accounts file" },
             { k: 'open_browser_at_start', comp: BoolField },
+            { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, lg: 6, label: "How many proxies between this server and users?",
+                error: proxyWarning(values, status),
+                helperText: "Wrong number will prevent detection of users' IP address"
+            },
             { k: 'allowed_referer', placeholder: "any",
                 helperText: values.allowed_referer ? "Leave empty to allow any" : "Use this to avoid direct links from other websites", },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm:  6, label: "Calculate ZIP size for seconds",

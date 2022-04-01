@@ -3,11 +3,11 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import session from 'koa-session'
-import { ADMIN_URI, BUILD_TIMESTAMP, FORBIDDEN, SESSION_DURATION } from './const'
+import { ADMIN_URI, BUILD_TIMESTAMP, DEV, SESSION_DURATION } from './const'
 import Application from 'koa'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, urlToNode } from './vfs'
-import { dirTraversal, isDirectory } from './misc'
+import { dirTraversal, isDirectory, isLocalHost } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -91,17 +91,27 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     return next()
 }
 
+let proxyDetected = false
 export const someSecurity: Koa.Middleware = async (ctx, next) => {
     try {
+        let proxy = ctx.get('X-Forwarded-For')
+        // we have some dev-proxies to ignore
+        if (DEV && proxy && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))
+            proxy = ''
         if (dirTraversal(decodeURI(ctx.path)))
             return ctx.status = 418
         if (applyBlock(ctx.socket))
             return
+        proxyDetected ||= proxy > ''
     }
     catch {
         return ctx.status = 418
     }
     return next()
+}
+
+export function getProxyDetected() {
+    return proxyDetected
 }
 
 subscribeConfig({ k: 'block', defaultValue: [] }, () => {
@@ -118,7 +128,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     // calculate these once and for all
     ctx.state.account = getAccount(getCurrentUsername(ctx))
     const conn = ctx.state.connection = socket2connection(ctx.socket)
-    if (conn?.path) // leftover of connection reused for a new request
-        updateConnection(conn, { path: '' })
+    if (conn)
+        updateConnection(conn, { ctx })
     await next()
 }

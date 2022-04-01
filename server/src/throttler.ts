@@ -25,13 +25,16 @@ const SymTimeout = Symbol('timeout')
 export const throttler: Koa.Middleware = async (ctx, next) => {
     await next()
     const { body } = ctx
-    if (!body || !(body instanceof Readable) || ctx.state.account?.ignore_limits || isLocalHost(ctx))
+    if (!body || !(body instanceof Readable))
         return
+    // we wrap the stream also for unlimited connections to get speed and other features
     const ipGroup = getOrSet(ip2group, ctx.ip, ()=> {
-        const tg = new ThrottleGroup(Infinity, mainThrottleGroup)
-        const unsub = subscribeConfig({ k:'max_kbps_per_ip', defaultValue:null }, v =>
-            tg.updateLimit(v ?? Infinity))
-        return { group:tg, count:0, destroy: unsub }
+        const doLimit = ctx.state.account?.ignore_limits || isLocalHost(ctx) ? undefined : true
+        const group = new ThrottleGroup(Infinity, doLimit && mainThrottleGroup)
+
+        const unsub = doLimit && subscribeConfig({ k:'max_kbps_per_ip', defaultValue:null }, v =>
+            group.updateLimit(v ?? Infinity))
+        return { group, count:0, destroy: unsub }
     })
     const conn = ctx.state.connection
     if (!conn) throw 'assert throttler connection'

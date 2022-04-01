@@ -25,7 +25,6 @@
 - block to support masks and CIDR
 - whitelist di ip
 - plugin to show country by ip in admin/monitor
-- config.proxies:number (will enable koa.proxy:true + maxIpsCount, default 0)
 - log filter option
 - log filter plugin
 - admin: improve masks editor

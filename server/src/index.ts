@@ -11,6 +11,7 @@ import { throttler } from './throttler'
 import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, prepareState } from './middlewares'
 import './listen'
 import { adminApis } from './adminApis'
+import { subscribeConfig } from './config'
 
 const keys = ['hfs-keys-test']
 export const app = new Koa({ keys })
@@ -35,4 +36,9 @@ function errorHandler(err:Error & { code:string, path:string }) {
 
 process.on('uncaughtException', err => {
     console.error(err)
+})
+
+subscribeConfig({ k: 'proxies', defaultValue: 0 }, n => {
+    app.proxy = n > 0
+    app.maxIpsCount = n
 })

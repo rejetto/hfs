@@ -225,6 +225,6 @@ export function with_<T,RT>(par:T, cb: (par:T) => RT) {
 
 export function isLocalHost(s: string | Koa.Context) {
     if (typeof s !== 'string')
-        s = s.ip
+        s = s.socket.remoteAddress || '' // don't use .ip as it is subject to proxied ips
     return s === '127.0.0.1' || s === '::1' || s === '::ffff:127.0.0.1'
 }

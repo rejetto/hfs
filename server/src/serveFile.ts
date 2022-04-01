@@ -69,7 +69,7 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
 
             const conn = ctx.state.connection
             if (conn)
-                updateConnection(conn, { path: ctx.path })
+                updateConnection(conn, { ctx }) // fileSource is affecting connection's outputted data, so we request an update
             if (modifier)
                 return ctx.body = modifier(String(await fs.readFile(source)))
             if (!range) {

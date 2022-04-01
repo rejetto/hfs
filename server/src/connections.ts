@@ -2,6 +2,7 @@
 
 import { Socket } from 'net'
 import events from './events'
+import Koa from 'koa'
 
 export interface Connection {
     socket: Socket
@@ -10,16 +11,16 @@ export interface Connection {
     got: number
     sent: number
     outSpeed?: number
-    path?: string
+    ctx?: Koa.Context
+    alreadyEmitted: boolean // already communicated to
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 }
 
 const all: Connection[] = []
 
 export function newConnection(socket: Socket, secure:boolean=false) {
-    const conn: Connection = { socket, secure, got: 0, sent: 0, started: new Date() }
+    const conn: Connection = { socket, secure, got: 0, sent: 0, alreadyEmitted: false, started: new Date() }
     all.push(conn)
-    events.emit('connection', conn) // we'll use these events for SSE
     socket.on('data', data =>
         conn.got += data.length )
     socket.on('close', () => {
@@ -39,7 +40,14 @@ export function socket2connection(socket: Socket) {
 }
 
 export function updateConnection(conn: Connection, change: Partial<Connection>) {
-    if (Object.entries(change).every(([k,v]) => JSON.stringify(v) === JSON.stringify(conn[k as keyof Connection]) )) return // any change?
+    // if no change is detected, skip update. ctx is a special case
+    if (!change.ctx && Object.entries(change).every(([k,v]) => eq(v, conn[k as keyof Connection]) ))
+        return
     Object.assign(conn, change)
-    events.emit('connectionUpdated', conn, change)
+    events.emit(conn.alreadyEmitted ? 'connectionUpdated' : 'connection', conn, change)
+    conn.alreadyEmitted = true
+
+    function eq(a: any, b: any) {
+        return JSON.stringify(a) === JSON.stringify(b)
+    }
 }

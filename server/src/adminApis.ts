@@ -13,6 +13,7 @@ import events from './events'
 import { getFromAccount } from './perm'
 import Koa from 'koa'
 import { Readable } from 'stream'
+import { getProxyDetected } from './middlewares'
 
 export const adminApis: ApiHandlers = {
 
@@ -44,6 +45,7 @@ export const adminApis: ApiHandlers = {
             http: serverStatus(st.httpSrv, getConfig('port')),
             https: serverStatus(st.httpsSrv, getConfig('https_port')),
             urls: getUrls(),
+            proxyDetected: getProxyDetected(),
         }
 
         function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
@@ -55,8 +57,8 @@ export const adminApis: ApiHandlers = {
     },
 
     async disconnect({ ip, port, wait }) {
-        const c = getConnections().find(({ socket }) =>
-            port === socket.remotePort && ip === socket.remoteAddress )
+        const match = _.matches({ ip, port })
+        const c = getConnections().find(c => match(getConnAddress(c)))
         const waiter = pendingPromise<void>()
         c?.socket.end(waiter.resolve)
         if (wait)
@@ -76,6 +78,10 @@ export const adminApis: ApiHandlers = {
                 ret.push({ remove: [ serializeConnection(conn, true) ] })
             },
             connectionUpdated(conn: Connection, change: Partial<Connection>) {
+                if (change.ctx) {
+                    Object.assign(change, fromCtx(change.ctx))
+                    delete change.ctx
+                }
                 ret.push({ update: [{ search: serializeConnection(conn, true), change }] })
             },
         })
@@ -84,21 +90,28 @@ export const adminApis: ApiHandlers = {
         return ret
 
         function serializeConnection(conn: Connection, minimal?:true) {
-            const { socket, started, secure, got, path } = conn
-            return {
-                port: socket.remotePort,
-                ip: socket.remoteAddress,
-                ...!minimal && {
-                    v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
-                    got,
-                    started,
-                    path,
-                    secure: (secure || undefined), // undefined will save some space once json-ed
-                }
-            }
+            const { socket, started, secure, got } = conn
+            return Object.assign(getConnAddress(conn), !minimal && {
+                v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
+                got,
+                started,
+                secure: (secure || undefined), // undefined will save some space once json-ed
+                ...fromCtx(conn.ctx),
+            })
+        }
+
+        function fromCtx(ctx?: Koa.Context) {
+            return ctx && { path: ctx.fileSource && ctx.path } // only for downloading files
         }
     }
 
+}
+
+function getConnAddress(conn: Connection) {
+    return {
+        ip: conn.ctx?.ip || conn.socket.remoteAddress,
+        port: conn.socket.remotePort,
+    }
 }
 
 for (const k in adminApis) {
