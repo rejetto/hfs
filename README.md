@@ -56,7 +56,20 @@ If your system is not covered, you can try this alternative version:
 3. chmod +x run
 4. launch `./run`
 
-# Building instructions
+# Plug-ins
+
+We are slowly introducing a plug-ins system.
+Each plug-in is a sub-folder of `plugins` folder.
+You can quickly disable a plug-in by appending `-disabled` to the plug-in's folder name.
+Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
+
+Each plug-in has access to the same set of features.
+Normally you'll have a plug-in that's a theme, and another that's a firewall,
+but nothing is preventing a single plug-in from doing both tasks.
+
+# Developers section
+
+## Building instructions
 
 0. Install [Node.js](https://nodejs.org/) 16+ 
 1. Install Typescript: launch `npm -g i typescript`
@@ -66,7 +79,7 @@ You'll see some warnings about vulnerabilities. Fear not, for those are in the d
 If you want to be assured, run `npm audit --production` that will exclude dev stuff, and you should see something
 more reassuring, like "found 0 vulnerabilities", hopefully.
 
-# Dev environment
+## Dev environment
 
 One way of working on sources here is to `npm run watch-server`.
 This will give you auto-restarting of the server on back-end changes.
@@ -81,17 +94,6 @@ If you want to work on the frontend and admin too, you should *first*
 Having this env-s will make the server get all related stuff from the other dev servers.
 Otherwise, you should be sure that frontend and admin have been built, and its files are ready to be used in `dist` folder.
 In this latter case, the `DEV=1` you set before will make the server get the files from inside the `dist` folder.
-
-# Plug-ins
-
-We are slowly introducing a plug-ins system.
-Each plug-in is a sub-folder of `plugins` folder.
-You can quickly disable a plug-in by appending `-disabled` to the plug-in's folder name.
-Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server. 
-
-Each plug-in has access to the same set of features.
-Normally you'll have a plug-in that's a theme, and another that's a firewall,
-but nothing is preventing a single plug-in from doing both tasks.
 
 ## For plug-in makers
 
