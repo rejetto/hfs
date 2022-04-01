@@ -21,7 +21,7 @@ interface MenuEntry {
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '', icon: Public, label: 'Home', title: "Admin interface", comp: HomePage },
+    { path: '', icon: Public, label: 'Home', title: "Admin panel", comp: HomePage },
     { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
     { path: 'monitor', icon: Monitor, comp: MonitorPage },
