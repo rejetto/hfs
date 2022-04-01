@@ -1,16 +1,17 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactElement, useCallback, useEffect, useMemo, useRef } from 'react'
-import { Dict, Falsy, getCookie, spinner, useStateMounted } from './misc'
+import { Dict, Falsy, getCookie, IconBtn, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
+import { Refresh } from '@mui/icons-material'
 
 export function useApiComp<T=any>(...args: Parameters<typeof useApi>): [T | ReactElement, ()=>void] {
     const [res, reload] = useApi<T>(...args)
     return useMemo(() =>
         res === undefined ? [spinner(), reload]
-            : res && res instanceof Error ? [h(Alert, { severity: 'error' }, String(res)), reload]
+            : res && res instanceof Error ? [ h(Alert, { severity: 'error' }, String(res), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } })), reload ]
                 : [res, reload],
         [res, reload])
 }
