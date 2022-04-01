@@ -17,18 +17,18 @@ if exist hfs.exe-new (
 )
 `
 
-const LOG_PREFIX = "UPDATER:"
+const LOG_PREFIX = "UPDATER PLUGIN:"
 
 exports.init = async api => {
     const fs = api.require('fs')
     fs.writeFile(BATCH_NAME, BATCH, err =>
-        err && console.error(LOG_PREFIX, "could'nt write", BATCH_NAME))
+        err && console.error(LOG_PREFIX, "couldn't write", BATCH_NAME))
     if (!process.env.hfs_updater)
         return console.log(LOG_PREFIX, "run", BATCH_NAME, "to have restart-on-update")
 
     console.log(LOG_PREFIX, "ready")
     const timer = setInterval(() => {
-        fs.access(NEW, err => {
+        fs.access(NEW, fs.constants.W_OK, err => {
             if (err) return
             console.log(LOG_PREFIX, "exiting for update")
             process.exit(0)
