@@ -122,5 +122,6 @@ for (const k in adminApis) {
 }
 
 export function ctxAdminAccess(ctx: Koa.Context) {
-    return isLocalHost(ctx) || getFromAccount(ctx.state.account, a => a.admin)
+    return isLocalHost(ctx) && !ctx.get('X-Forwarded-For') // this may detect an http-proxied request on localhost
+        || getFromAccount(ctx.state.account, a => a.admin)
 }
