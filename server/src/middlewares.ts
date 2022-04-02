@@ -103,6 +103,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
         if (applyBlock(ctx.socket))
             return
         proxyDetected ||= proxy > ''
+        ctx.state.proxiedFor = proxy
     }
     catch {
         return ctx.status = 418

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { getConfig, getWholeConfig, setConfig } from './config'
+import { defineConfig, getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus, getUrls } from './listen'
 import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, VERSION } from './const'
 import vfsApis from './api.vfs'
@@ -67,7 +67,7 @@ export const adminApis: ApiHandlers = {
     },
 
     get_connections({}, ctx) {
-        const ret = new Readable({ objectMode: true, read(){} }) // we don't care what you ask/read, we just push and hope for the best
+        const ret = new Readable({ objectMode: true, read(){} }) // this stream pushes uncaring for when you read. Should we do better?
         // start with existing connections
         for (const conn of getConnections())
             ret.push({ add: serializeConnection(conn) })
@@ -121,7 +121,10 @@ for (const k in adminApis) {
             : new ApiError(401)
 }
 
+defineConfig('localhost_admin', { defaultValue: true })
+
 export function ctxAdminAccess(ctx: Koa.Context) {
-    return isLocalHost(ctx) && !ctx.get('X-Forwarded-For') // this may detect an http-proxied request on localhost
+    return isLocalHost(ctx) && getConfig('localhost_admin')
+            && !ctx.state.proxiedFor // this may detect an http-proxied request on localhost
         || getFromAccount(ctx.state.account, a => a.admin)
 }

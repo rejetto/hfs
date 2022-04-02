@@ -71,6 +71,7 @@ export default function ConfigPage() {
             },
             { k: 'accounts', label: "Accounts file" },
             { k: 'open_browser_at_start', comp: BoolField },
+            { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections", helperText: "To access Admin without entering credentials" },
             { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, lg: 6, label: "How many proxies between this server and users?",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
