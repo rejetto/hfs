@@ -37,7 +37,7 @@ export default function HomePage() {
         !vfs ? spinner()
             : !vfs.root?.children?.length && !vfs.root?.source
             ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
-            : entry('', "Here you manage your server. There is a SEPARATED interface to access your shared files: ",
+            : entry('', md("Here you manage your server. There is a _separated_ interface to access your shared files: "),
                 h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
         ! href && entry('warning', "Frontend unreachable: ",
             !cfg ? '...'
@@ -47,7 +47,7 @@ export default function HomePage() {
                         !errors.length && h(Fragment, {}, SOLUTION_SEP, cfgLink("switch http or https on"))
                     )
         ),
-        !account?.adminActualAccess && entry('', "You are accessing on localhost, therefore permission is not required",
+        !account?.adminActualAccess && entry('', md("You are accessing on _localhost_ where permission is not required"),
             SOLUTION_SEP, h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers") ),
         proxyWarning(cfg, status) && entry('warning', "A proxy was detected but none is configured",
                 SOLUTION_SEP, cfgLink("set the number of proxies"),

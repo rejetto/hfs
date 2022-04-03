@@ -94,7 +94,7 @@ function startServer(srv: typeof httpSrv, { port, net }: StartServer) {
                     srv.close()
                     return reject('type of socket not supported')
                 }
-                console.log(srv.name, "serving on", net||"anything", ':', ad.port)
+                console.log(srv.name, "serving on", net||"any network", ':', ad.port)
                 resolve(ad.port)
             }).on('error', async e => {
                 srv.error = String(e)
