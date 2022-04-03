@@ -69,7 +69,6 @@ export default function ConfigPage() {
             { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },
-            { k: 'accounts', label: "Accounts file" },
             { k: 'open_browser_at_start', comp: BoolField },
             { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections", helperText: "To access Admin without entering credentials" },
             { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, lg: 6, label: "How many proxies between this server and users?",

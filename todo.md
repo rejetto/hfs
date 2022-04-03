@@ -9,7 +9,6 @@
 - admin/fs: make possible to bind source to home
 - admin/monitor: show some info on what folder is browsing
 - if specified config is a folder, check for file config.yaml inside
-- merge accounts in config
 - frontend: ok button to inputDialogs
 - admin: in a group, show linked accounts
 - admin/config: use filepicker for https files

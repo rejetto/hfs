@@ -118,7 +118,7 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
 }
 
 export const saveConfigAsap = debounceAsync(async () => {
-    let txt = yaml.stringify(state)
+    let txt = yaml.stringify(state, { lineWidth:1000 })
     if (txt.trim() === '{}')  // most users wouldn't understand
         if (await promisify(exists)(path)) // if a file exists then empty it, else don't bother creating it
             txt = ''

@@ -1,16 +1,14 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import yaml from 'yaml'
 import { hashPassword } from './crypt'
 import { objRenameKey, setHidden, wantArray } from './misc'
-import { watchLoad } from './watchLoad'
 import Koa from 'koa'
-import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig, subscribeConfig } from './config'
+import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig, saveConfigAsap, setConfig, subscribeConfig } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
-
-let path = ''
+import { watchLoad } from './watchLoad'
+import { unlink } from 'fs'
 
 export interface Account {
     username: string, // we'll have username in it, so we don't need to pass it separately
@@ -83,42 +81,28 @@ export async function updateAccount(account: Account, changer?:Changer) {
         saveAccountsAsap()
 }
 
-let saving = false
-let watchResult: ReturnType<typeof watchLoad>
-const saveAccountsAsap = _.debounce(() => {
-    saving = true
-    watchResult.save(path, yaml.stringify({ accounts }, { lineWidth:1000 })) // we don't want big numbers to be folded
-        .catch(err => console.error('Failed at saving accounts file, please ensure it is writable.', String(err)))
-        .finally(()=> saving = false)
-}, 200) // group burst of requests
+const saveAccountsAsap = saveConfigAsap
 
-subscribeConfig({ k:'accounts', defaultValue:'accounts.yaml' }, v => {
-    watchResult?.unwatch()
-    if (!v)
-        return applyAccounts({})
-    watchResult = watchLoad(path = v, async data => {
-        if (saving) return
-        const a = data?.accounts
-        if (!a)
-            return console.error('accounts file must contain "accounts" key')
-        console.debug('#accounts', Object.keys(a).length)
-        await applyAccounts(a)
-    })
+// legacy, remove after May 1
+watchLoad('accounts.yaml', accounts => {
+    if (accounts)
+        setConfig(accounts)
+    unlink('accounts.yaml', () => console.log("accounts file merged"))
 })
 
-async function applyAccounts(newAccounts: Accounts) {
+subscribeConfig<Accounts>({ k:'accounts', defaultValue: {} }, async v => {
     // we should validate content here
-    accounts = newAccounts
+    accounts = v // keep local reference
     await Promise.all(_.map(accounts, async (rec,k) => {
         const norm = normalizeUsername(k)
         if (!rec) // an empty object in yaml is stored as null
-            rec = accounts[norm] = { username: norm, srp:'' }
+            rec = accounts[norm] = { username: norm }
         else
             objRenameKey(accounts, k, norm)
         setHidden(rec, { username: norm })
         await updateAccount(rec)
     }))
-}
+})
 
 function normalizeUsername(username: string) {
     return username.toLocaleLowerCase()
