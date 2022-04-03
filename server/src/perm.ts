@@ -131,23 +131,27 @@ export function renameAccount(from: string, to: string) {
     }
 }
 
-const assignableProps = ['redirect','ignore_limits','belongs','admin']
+// we consider all the following fields, when falsy, as equivalent to be missing. If this changes in the future, please adjust addAccount and setAccount
+const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin']
 
 export function addAccount(username: string, props: Partial<Account>) {
     if (!username || accounts[username])
         return
-    const copy = { username, ..._.pick(props, assignableProps) }
+    const copy = _.pickBy(_.pick(props, assignableProps), Boolean)
     setHidden(copy, { username })
-    accounts[username] = copy
+    accounts[username] = copy as typeof copy & { username: string }
     saveAccountsAsap()
     return copy
 }
 
 export function setAccount(username: string, changes: Partial<Account>) {
-    const { username: newU, ...rest } = changes
-    if (newU)
-        renameAccount(username, newU)
-    Object.assign(getAccount(newU || username), _.pick(rest, assignableProps))
+    const rest = _.pick(changes, assignableProps)
+    for (const [k,v] of Object.entries(rest))
+        if (!v)
+            rest[k as keyof Account] = undefined
+    Object.assign(getAccount(username), rest)
+    if (changes.username)
+        renameAccount(username, changes.username)
     saveAccountsAsap()
     return true
 }
