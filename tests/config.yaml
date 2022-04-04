@@ -72,3 +72,9 @@ vfs:
           can_see: true
       children:
         - name: hi
+accounts:
+  rejetto:
+    belongs:
+      - admins
+  admins:
+    admin: true
