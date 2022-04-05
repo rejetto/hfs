@@ -194,7 +194,7 @@ export async function makeCertAndSave() {
         await apiCall('set_config', { values: saved })
         if (loaded) // when undefined we are outside of this page
             Object.assign(loaded, saved)
-        exposedReloadStatus?.()
+        setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
         Object.assign(state.config, saved)
         await alertDialog("Certificate saved", 'success')
     }
