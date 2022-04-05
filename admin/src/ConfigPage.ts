@@ -1,18 +1,19 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Box, Button, FormHelperText } from '@mui/material';
+import { Box, Button, FormHelperText, Link } from '@mui/material';
 import { createElement as h, isValidElement, useEffect, useRef } from 'react';
 import { apiCall, useApi, useApiComp } from './api'
 import { state, useSnapState } from './state'
-import { Refresh } from '@mui/icons-material'
+import { Info, Refresh } from '@mui/icons-material'
 import { Dict, modifiedSx } from './misc'
 import { subscribeKey } from 'valtio/utils'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field } from './Form';
 import StringStringField from './StringStringField'
-import { alertDialog, confirmDialog } from './dialog'
+import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'
 
 let loaded: Dict | undefined
+let exposedReloadStatus: undefined | (() => void)
 
 subscribeKey(state, 'config', recalculateChanges)
 
@@ -21,6 +22,10 @@ export default function ConfigPage() {
     let snap = useSnapState()
     const [status, reloadStatus] = useApi(res && 'get_status')
     useEffect(reloadStatus, [res, reloadStatus])
+
+    exposedReloadStatus = reloadStatus
+    useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
+
     if (isValidElement(res))
         return res
     const { changes } = snap
@@ -59,7 +64,13 @@ export default function ConfigPage() {
         },
         fields: [
             { k: 'port', comp: ServerPort, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443 },
+            { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+                onChange(v: number) {
+                    if (v >= 0 && values.https_port < 0 && !values.cert)
+                        suggestMakingCert()
+                    return v
+                }
+            },
             values.https_port >= 0 && { k: 'cert', label: "HTTPS certificate file" },
             values.https_port >= 0 && { k: 'private_key', label: "HTTPS private key file" },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
@@ -119,12 +130,18 @@ function recalculateChanges() {
     state.changes = changes
 }
 
+export function isCertError(error: any) {
+    return typeof error === 'string' && /certificate|key/.test(error)
+}
+
 function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldProps<number | null>) {
     const lastCustom = useRef(suggestedPort)
     if (value! > 0)
         lastCustom.current = value!
     const selectValue = Number(value! > 0 ? lastCustom.current : value) || 0
-    const error = status?.error
+    let error = status?.error
+    if (isCertError(error))
+        error = [error, ' - ', h(Link, { key: 'fix', sx: { cursor: 'pointer' }, onClick: makeCertAndSave }, "make one")]
     return h(Box, {},
         h(Box, { display: 'flex' },
             h(SelectField as Field<number>, {
@@ -133,7 +150,7 @@ function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldPr
                 value: selectValue,
                 options: [
                     { label: "off", value: -1 },
-                    { label: "automatic", value: 0 },
+                    { label: "random", value: 0 },
                     { label: "choose", value: lastCustom.current },
                 ],
                 onChange,
@@ -144,4 +161,64 @@ function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldPr
             status === true ? '...'
                 : error ?? (status?.listening && "Correctly working on port "+ status.port) )
     )
+}
+
+function suggestMakingCert() {
+    newDialog({
+        Content: () => h(Box, {},
+            h(Box, { display: 'flex', gap: 1 },
+                h(Info), "You are enabling HTTPs. It needs a valid certificate + private key to work."
+            ),
+            h(Box, { mt: 4, display: 'flex', gap: 1, justifyContent: 'space-around', },
+                h(Button, { variant: 'contained', onClick(){ closeDialog(); makeCertAndSave() } }, "Help me!"),
+                h(Button, { onClick: closeDialog }, "I will handle the matter myself"),
+            ),
+        )
+    })
+}
+
+export async function makeCertAndSave() {
+    if (!window.crypto.subtle)
+        return alertDialog("Retry this procedure on localhost", 'warning')
+    const res = await formDialog<{ commonName: string }>({
+        fields: [
+            h(Box, { display: 'flex', gap: 1 }, h(Info), "We'll generate a basic certificate for you"),
+            { k: 'commonName', label: "Enter a domain, or leave empty" }
+        ],
+        save: { children: "Continue" },
+    })
+    if (!res) return
+    const close = waitDialog()
+    try {
+        const saved = await apiCall('save_pem', await makeCert(res))
+        await apiCall('set_config', { values: saved })
+        if (loaded) // when undefined we are outside of this page
+            Object.assign(loaded, saved)
+        exposedReloadStatus?.()
+        Object.assign(state.config, saved)
+        await alertDialog("Certificate saved", 'success')
+    }
+    finally { close() }
+}
+
+async function makeCert(attributes: Record<string, string>) {
+    // this relies on having loaded node-forge/dist/forge.min.js
+    const { pki } = (window as any).forge
+    const keys = pki.rsa.generateKeyPair(2048);
+    const cert = pki.createCertificate();
+    cert.publicKey = keys.publicKey
+    cert.serialNumber = '01'
+    cert.validity.notBefore = new Date()
+    cert.validity.notAfter = new Date()
+    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1)
+
+    const attrs = Object.entries(attributes).map(x => ({ name: x[0], value: x[1] }))
+    cert.setSubject(attrs)
+    cert.setIssuer(attrs)
+    cert.sign(keys.privateKey)
+
+    return {
+        cert: pki.certificateToPem(cert),
+        private_key: pki.privateKeyToPem(keys.privateKey),
+    }
 }

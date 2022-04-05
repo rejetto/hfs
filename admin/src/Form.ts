@@ -28,12 +28,13 @@ import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 import { SxProps } from '@mui/system'
 
-interface FieldDescriptor {
-    k:string
+interface FieldDescriptor<T=any> {
+    k: string
     comp?: any
     label?: ReactNode
     validate?: RegExp | ((v: any, extra:any) => string | boolean)
-    [extraProp:string]:any
+    onChange?: (v: T) => void
+    [extraProp: string]: any
 }
 
 // it seems necessary to cast (Multi)SelectField sometimes

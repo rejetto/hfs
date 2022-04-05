@@ -14,6 +14,7 @@ import { getFromAccount } from './perm'
 import Koa from 'koa'
 import { Readable } from 'stream'
 import { getProxyDetected } from './middlewares'
+import { writeFile } from 'fs/promises'
 
 export const adminApis: ApiHandlers = {
 
@@ -103,8 +104,16 @@ export const adminApis: ApiHandlers = {
         function fromCtx(ctx?: Koa.Context) {
             return ctx && { path: ctx.fileSource && ctx.path } // only for downloading files
         }
-    }
+    },
 
+    async save_pem({ cert, private_key, name='self' }) {
+        if (!cert || !private_key)
+            return new ApiError(400)
+        const files = { cert: name + '.cert', private_key: name + '.key' }
+        await writeFile(files.private_key, private_key)
+        await writeFile(files.cert, cert)
+        return files
+    }
 }
 
 function getConnAddress(conn: Connection) {

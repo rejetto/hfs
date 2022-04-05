@@ -4,7 +4,7 @@ import { createElement as h, Fragment, FunctionComponent, ReactNode, useEffect, 
 import { proxy, useSnapshot } from 'valtio'
 
 export interface DialogOptions {
-    Content: FunctionComponent,
+    Content: FunctionComponent<any>,
     closable?: boolean,
     onClose?: (v?:any)=> any,
     className?: string,

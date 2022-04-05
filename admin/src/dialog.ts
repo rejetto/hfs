@@ -1,8 +1,16 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Box, Button, Dialog as MuiDialog, DialogContent, DialogTitle } from '@mui/material'
 import {
-    createElement as h,
+    Box,
+    Button,
+    CircularProgress,
+    Dialog as MuiDialog,
+    DialogContent,
+    DialogProps,
+    DialogTitle
+} from '@mui/material'
+import {
+    createElement as h, Fragment,
     isValidElement,
     ReactElement,
     useEffect,
@@ -85,30 +93,43 @@ export async function confirmDialog(msg: string, { href }: ConfirmOptions={}) : 
     }
 }
 
-type FormDialog<T> = Omit<FormProps<T>, 'save' | 'set'> & Partial<Pick<FormProps<T>, 'save'>>;
-export async function formDialog<T>(props: FormDialog<T>) : Promise<T> {
+type FormDialog<T> = Pick<DialogProps, 'fullScreen' | 'title'>
+    & Pick<DialogOptions, 'dialogProps'>
+    & Omit<FormProps<T>, 'values' | 'save' | 'set'>
+    & Partial<Pick<FormProps<T>, 'values' | 'save'>>
+    & {
+    onChange?: (values:Partial<T>, extra: { setValues: React.Dispatch<React.SetStateAction<Partial<T>>> }) => void,
+    before?: any
+}
+export async function formDialog<T>({ fullScreen, title, onChange, before, ...props }: FormDialog<T>) : Promise<T> {
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
         icon: '?',
         onClose: resolve,
+        title,
         Content
     }) )
 
     function Content() {
-        const [values, setValues] = useState<any>(props.values||{})
-        return h(Form, {
-            ...props,
-            values,
-            set(v, k) {
-                setValues({ ...values, [k]: v })
-            },
-            save: {
-                ...props.save,
-                onClick() {
-                    closeDialog(values)
+        const [values, setValues] = useState<Partial<T>>(props.values||{})
+        return h(Fragment, {},
+            before,
+            h(Form, {
+                ...props,
+                values,
+                set(v, k) {
+                    const newV = { ...values, [k]: v }
+                    setValues(newV)
+                    onChange?.(newV, { setValues })
+                },
+                save: {
+                    ...props.save,
+                    onClick() {
+                        closeDialog(values)
+                    }
                 }
-            }
-        })
+            })
+        )
     }
 }
 
@@ -130,4 +151,8 @@ export async function promptDialog(msg: string, props:any={}) : Promise<string |
             ...props.addToBar||[],
         ]
     }).then(values => values?.text)
+}
+
+export function waitDialog() {
+    return newDialog({ Content: CircularProgress, closable: false })
 }

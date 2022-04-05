@@ -8,13 +8,14 @@ import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { useSnapState } from './state'
 import { confirmDialog } from './dialog'
+import { isCertError, makeCertAndSave } from './ConfigPage'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
 export default function HomePage() {
     const SOLUTION_SEP = " — "
     const { username } = useSnapState()
-    const [status] = useApi<Dict<ServerStatus>>('get_status')
+    const [status, reloadStatus] = useApi<Dict<ServerStatus>>('get_status')
     const [vfs] = useApi('get_vfs')
     const [account] = useApi(username && 'get_account')
     const [cfg, reloadCfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
@@ -28,7 +29,12 @@ export default function HomePage() {
         v.busy ? [`port ${v.port} already used by ${v.busy}${SOLUTION_SEP}choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
             : v.error )
     const errors = errorMap && onlyTruthy(Object.entries(errorMap).map(([k,v]) =>
-        v && [md(`Protocol _${k}_ cannot work: `), v, typeof v === 'string' && /certificate|key/.test(v) && [SOLUTION_SEP, cfgLink("provide adequate files")]]))
+        v && [md(`Protocol _${k}_ cannot work: `), v,
+            isCertError(v) && [
+                SOLUTION_SEP, h(Link, { sx: { cursor: 'pointer' }, onClick() { makeCertAndSave().then(reloadCfg).then(reloadStatus) } }, "make one"),
+                " or ",
+                SOLUTION_SEP, cfgLink("provide adequate files")
+            ]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
         username && entry('', "Welcome "+username),
         !cfg ? spinner() :
