@@ -5,7 +5,7 @@ import { argv } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { debounceAsync, objSameKeys, onOffMap } from './misc'
+import { debounceAsync, objSameKeys, onOff } from './misc'
 import { exists } from 'fs'
 import { promisify } from 'util'
 
@@ -57,7 +57,7 @@ export function subscribeConfig<T>({ k, ...definition }:{ k:string } & Partial<C
         if (v !== undefined)
             cb(v)
     }
-    return onOffMap(cfgEvents, { [eventName]: cb })
+    return onOff(cfgEvents, { [eventName]: cb })
 }
 
 export function getConfig(k:string) {

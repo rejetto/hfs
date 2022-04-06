@@ -149,7 +149,7 @@ export function pendingPromise<T>() {
 }
 
 // install multiple handlers and returns a handy 'uninstall' function which requires no parameter. Pass a map {event:handler}
-export function onOffMap(em: EventEmitter, events: { [eventName:string]: (...args: any[]) => void }) {
+export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: any[]) => void }) {
     events = { ...events } // avoid later modifications, as we need this later for uninstallation
     for (const k in events)
         em.on(k, events[k])

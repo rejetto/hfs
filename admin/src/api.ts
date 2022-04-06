@@ -94,13 +94,14 @@ function addCsrf(params?: Dict) {
     return csrf ? { csrf, ...params } : params
 }
 
-export function useApiList<Record>(cmd:string|Falsy, params: Dict={}) {
-    const [list, setList] = useStateMounted<Record[]>([])
+export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=false, map=((x:any)=>x) }={}) {
+    const [list, setList] = useStateMounted<T[]>([])
     const [error, setError] = useStateMounted<any>(undefined)
     const [loading, setLoading] = useStateMounted(false)
+    const idRef = useRef(0)
     useEffect(() => {
         if (!cmd) return
-        const buffer: Record[] = []
+        const buffer: T[] = []
         const flush = () => {
             const chunk = buffer.splice(0, Infinity)
             if (chunk.length)
@@ -120,8 +121,12 @@ export function useApiList<Record>(cmd:string|Falsy, params: Dict={}) {
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return stop()
-                    if (data.add)
-                        return buffer.push(data.add)
+                    if (data.add) {
+                        const rec = map(data.add)
+                        if (addId)
+                            rec.id = ++idRef.current
+                        return buffer.push(rec)
+                    }
                     if (data.remove) {
                         const matchOnList: ReturnType<typeof _.matches>[] = []
                         // first remove from the buffer

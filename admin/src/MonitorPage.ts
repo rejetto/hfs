@@ -83,14 +83,15 @@ function Connections() {
             {
                 field: 'started',
                 headerName: "Started",
+                type: 'dateTime',
                 width: 130,
-                valueGetter: ({ value }) => new Date(value).toLocaleTimeString()
+                valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
             },
             {
                 field: 'path',
                 headerName: "File",
                 flex: 1,
-                renderCell: ({ value }) => {
+                renderCell({ value }) {
                     if (!value) return
                     const i = value?.lastIndexOf('/')
                     return h(Fragment, {}, value.slice(i + 1),
@@ -110,12 +111,14 @@ function Connections() {
             {
                 field: 'outSpeed',
                 headerName: "Speed",
-                valueGetter: ({ value }) => value ? formatBytes(value * 1000, "B/s", 1000) : ''
+                type: 'number',
+                valueFormatter: ({ value }) => value ? formatBytes(value as number * 1000, "B/s", 1000) : ''
             },
             {
                 field: 'sent',
                 headerName: "Total",
-                valueGetter: ({ value }) => formatBytes(value)
+                type: 'number',
+                valueFormatter: ({ value }) => formatBytes(value as number)
             },
             {
                 field: "Actions ",

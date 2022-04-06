@@ -17,6 +17,11 @@ let exposedReloadStatus: undefined | (() => void)
 
 subscribeKey(state, 'config', recalculateChanges)
 
+export const logLabels = {
+    log: "Access log file",
+    error_log: "Error log file"
+}
+
 export default function ConfigPage() {
     const [res, reloadConfig] = useApiComp('get_config', { omit: ['vfs'] })
     let snap = useSnapState()
@@ -75,8 +80,7 @@ export default function ConfigPage() {
             values.https_port >= 0 && { k: 'private_key', label: "HTTPS private key file" },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
-            { k: 'log', label: "Main log file" },
-            { k: 'error_log', label: "Error log file" },
+            ...Object.entries(logLabels).map(a => ({ k: a[0], label: a[1] })),
             { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },

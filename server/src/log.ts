@@ -7,11 +7,16 @@ import { createWriteStream } from 'fs'
 import * as util from 'util'
 import { rename, stat } from 'fs/promises'
 import { DAY } from './const'
+import events from './events'
+import _ from 'lodash'
 
 class Logger {
     stream?: Writable
     last?: Date
     path: string = ''
+
+    constructor(readonly name: string){
+    }
 
     async setPath(path: string) {
         this.path = path
@@ -32,8 +37,10 @@ class Logger {
     }
 }
 
-const accessLogger = new Logger()
-const errorLogger = new Logger()
+// we'll have names same as config keys. These are used also by the get_log api.
+const accessLogger = new Logger('log')
+const errorLogger = new Logger('error_log')
+export const loggers = [accessLogger, errorLogger]
 
 subscribeConfig({ k: 'log', defaultValue: 'access.log' }, path => {
     console.debug('log file: ' + (path || 'disabled'))
@@ -77,6 +84,7 @@ export function log(): Koa.Middleware {
         logger.last = now
         const format = '%s - - [%s] "%s %s HTTP/%s" %d %s\n';
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5].slice(3)
+        events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status','length']), { ts: now, uri: ctx.path }))
         logger.stream!.write(util.format( format,
             ctx.ip,
             date,

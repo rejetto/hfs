@@ -7,7 +7,7 @@ import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
-import { isLocalHost, onOffMap, pendingPromise } from './misc'
+import { isLocalHost, onOff, pendingPromise } from './misc'
 import _ from 'lodash'
 import events from './events'
 import { getFromAccount } from './perm'
@@ -15,6 +15,9 @@ import Koa from 'koa'
 import { Readable } from 'stream'
 import { getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
+import { createReadStream } from 'fs'
+import * as readline from 'readline'
+import { loggers } from './log'
 
 export const adminApis: ApiHandlers = {
 
@@ -73,7 +76,7 @@ export const adminApis: ApiHandlers = {
         for (const conn of getConnections())
             ret.push({ add: serializeConnection(conn) })
         // then send updates
-        const off = onOffMap(events, {
+        const off = onOff(events, {
             connection: conn => ret.push({ add: serializeConnection(conn) }),
             connectionClosed(conn: Connection) {
                 ret.push({ remove: [ serializeConnection(conn, true) ] })
@@ -113,6 +116,38 @@ export const adminApis: ApiHandlers = {
         await writeFile(files.private_key, private_key)
         await writeFile(files.cert, cert)
         return files
+    },
+
+    async get_log({ file }, ctx) {
+        const logger = loggers.find(l => l.name === file)
+        if (!logger)
+            return new ApiError(404)
+        const ret = new Readable({ objectMode: true, read(){} })
+        const input = createReadStream(logger.path)
+        readline.createInterface({ input }).on('line', line => {
+            if (ctx.aborted)
+                return input.close()
+            ret.push({ add: parse(line) })
+        }).on('close', () =>  // file is automatically closed, so we continue by events
+            ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
+                [logger.name](entry) {
+                    ret.push({ add: entry })
+                }
+            })))
+
+        return ret
+
+        function parse(line: string) {
+            const m = /^(.+) - - \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (.+)$/.exec(line)
+            return m && { // keep object format same as events emitted by the log module
+                ip: m[1],
+                ts: new Date(m[2] + ' ' + m[3]),
+                method: m[4],
+                uri: m[5],
+                code: Number(m[6]),
+                size: m[7] === '-' ? undefined : Number(m[7])
+            }
+        }
     }
 }
 

@@ -64,3 +64,7 @@ export async function manipulateConfig(k: string, work:(data:any) => any) {
     if (JSON.stringify(was) !== JSON.stringify(will))
         await apiCall('set_config', { values: { [k]: will } })
 }
+
+export function typedKeys<T>(o: T) {
+    return Object.keys(o) as (keyof T)[]
+}
