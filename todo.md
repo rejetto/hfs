@@ -1,4 +1,5 @@
 # To do
+- log exceptions
 - watch certificates for change
 - admin/fs: render virtual folders differently
 - admin/config: hide advanced settings

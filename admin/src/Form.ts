@@ -302,7 +302,7 @@ function commonSelectProps<T>(props: { sx?:SxProps, label?: FieldProps<T>['label
     }
 }
 
-export function NumberField({ value, onChange, ...props }: FieldProps<number | null>) {
+export function NumberField({ value, onChange, min, max, step, ...props }: FieldProps<number | null>) {
     // @ts-ignore
     return h(StringField, {
         type: 'number',
@@ -310,6 +310,7 @@ export function NumberField({ value, onChange, ...props }: FieldProps<number | n
         onChange(v, { was, ...rest }) {
             onChange(v ? Number(v) : null, { ...rest, was:was ? Number(was) : null })
         },
+        inputProps: { min, max, step, },
         ...props,
     })
 }
