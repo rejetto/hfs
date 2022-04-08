@@ -25,7 +25,7 @@ export const logLabels = {
 export default function ConfigPage() {
     const [res, reloadConfig] = useApiComp('get_config', { omit: ['vfs'] })
     let snap = useSnapState()
-    const [status, reloadStatus] = useApi(res && 'get_status')
+    const [status, reloadStatus] = useApiComp(res && 'get_status')
     useEffect(reloadStatus, [res, reloadStatus])
 
     exposedReloadStatus = reloadStatus
@@ -33,6 +33,8 @@ export default function ConfigPage() {
 
     if (isValidElement(res))
         return res
+    if (isValidElement(status))
+        return status
     const { changes } = snap
     const values = (loaded !== res) ? (state.config = loaded = res) : snap.config
     const maxSpeedDefaults = {

@@ -1,26 +1,28 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment } from 'react'
+import { createElement as h, isValidElement } from 'react'
 import { Box, Button, Link } from '@mui/material'
-import { apiCall, useApi } from './api'
-import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, spinner } from './misc'
+import { apiCall, useApi, useApiComp } from './api'
+import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy } from './misc'
 import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { useSnapState } from './state'
 import { confirmDialog } from './dialog'
 import { isCertError, makeCertAndSave } from './ConfigPage'
+import { VfsNode } from './VfsPage'
+import { Account } from './AccountsPage'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
 export default function HomePage() {
     const SOLUTION_SEP = " — "
     const { username } = useSnapState()
-    const [status, reloadStatus] = useApi<Dict<ServerStatus>>('get_status')
-    const [vfs] = useApi('get_vfs')
-    const [account] = useApi(username && 'get_account')
-    const [cfg, reloadCfg] = useApi('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
-    if (!status)
-        return spinner()
+    const [status, reloadStatus] = useApiComp<Dict<ServerStatus>>('get_status')
+    const [vfs] = useApiComp<{ root?: VfsNode }>('get_vfs')
+    const [account] = useApi<Account>(username && 'get_account')
+    const [cfg, reloadCfg] = useApiComp('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
+    if (!status || isValidElement(status))
+        return status
     const { http, https } = status
     const goSecure = !http?.listening && https?.listening ? 's' : ''
     const srv = goSecure ? https : (http?.listening && http)
@@ -37,21 +39,15 @@ export default function HomePage() {
             ]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
         username && entry('', "Welcome "+username),
-        !cfg ? spinner() :
-            errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
-                : entry('success', "Server is working"),
-        !vfs ? spinner()
-            : !vfs.root?.children?.length && !vfs.root?.source
-            ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
-            : entry('', md("Here you manage your server. There is a _separated_ interface to access your shared files: "),
-                h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
-        ! href && entry('warning', "Frontend unreachable: ",
-            !cfg ? '...'
-                : errors.length === 2 ? "both http and https are in error"
-                    : h(Fragment, {},
-                        ['http','https'].map(k => k + " " + (errorMap[k] ? "is in error" : "is off")).join(', '),
-                        !errors.length && h(Fragment, {}, SOLUTION_SEP, cfgLink("switch http or https on"))
-                    )
+        errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
+            : entry('success', "Server is working"),
+        !vfs || isValidElement(vfs) ? vfs
+            : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
+                : entry('', md("Here you manage your server. There is a _separated_ interface to access your shared files: "),
+                    h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
+        !href && entry('warning', "Frontend unreachable: ",
+            ['http','https'].map(k => k + " " + (errorMap[k] ? "is in error" : "is off")).join(', '),
+            !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
         ),
         !account?.adminActualAccess && entry('', md("You are accessing on _localhost_ where permission is not required"),
             SOLUTION_SEP, h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers") ),

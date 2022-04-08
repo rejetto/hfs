@@ -1,13 +1,14 @@
-import { createElement as h } from "react"
+import { createElement as h, isValidElement } from "react"
 import { Alert, Box, Button } from '@mui/material'
-import { apiCall, useApi } from './api'
+import { apiCall, useApiComp } from './api'
 import { alertDialog } from "./dialog"
 import { useSnapState } from './state'
 
 export default function LogoutPage() {
-    const [cfg] = useApi('get_config', { only: [] })
+    const [cfg] = useApiComp('get_config', { only: [] })
     const { username } = useSnapState()
-    if (!cfg) return null
+    if (isValidElement(cfg))
+        return cfg
     if (!username)
         return h(Alert, { severity: 'info' }, "You are not logged in, because authentication is not required on localhost")
     return h(Box, { display: 'flex', flexDirection:'column', gap: 2 },

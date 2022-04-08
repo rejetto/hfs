@@ -1,10 +1,10 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, useEffect, useMemo, useState } from 'react'
+import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from './Form'
-import { apiCall, useApi } from './api'
+import { apiCall, useApiComp } from './api'
 import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
 import { reloadVfs, Who } from './VfsPage'
 import md from './md'
@@ -34,8 +34,6 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
         setValues(Object.assign({ can_see: null, can_read: null }, rest))
     }, [file]) //eslint-disable-line
 
-    const accounts = useApi('get_accounts')[0]?.list
-
     const { source } = file
     const isDir = file.type === 'folder'
     const hasSource = source !== undefined // we need a boolean
@@ -55,6 +53,11 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
     }, [parent])
     const showCanSee = (values.can_read ?? inheritedPerms.can_read) === true
     const showTimestamps = hasSource && Boolean(values.ctime)
+
+    let [accountsRes] = useApiComp<{ list: Account[] }>('get_accounts')
+    if (isValidElement(accountsRes))
+        return accountsRes
+    const accounts = accountsRes.list
 
     return h(Form, {
         values,

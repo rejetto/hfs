@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactElement, useCallback, useEffect, useMemo, useRef } from 'react'
+import { createElement as h, ReactElement, Fragment, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Dict, Falsy, getCookie, IconBtn, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
@@ -8,11 +8,12 @@ import { state } from './state'
 import { Refresh } from '@mui/icons-material'
 
 export function useApiComp<T=any>(...args: Parameters<typeof useApi>): [T | ReactElement, ()=>void] {
-    const [res, reload] = useApi<T>(...args)
+    const [res, err, reload] = useApi<T>(...args)
     return useMemo(() =>
-        res === undefined ? [spinner(), reload]
-            : res && res instanceof Error ? [ h(Alert, { severity: 'error' }, String(res), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } })), reload ]
-                : [res, reload],
+        !args[0] ? [h(Fragment), reload]
+            : err ? [ h(Alert, { severity: 'error' }, String(err), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } })), reload ]
+                : res === undefined ? [spinner(), reload]
+                    : [res, reload],
         [res, reload])
 }
 
@@ -46,20 +47,22 @@ export class ApiError extends Error {
     }
 }
 
-export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undefined, ()=>void] {
+export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undefined, undefined | Error, ()=>void] {
     const [ret, setRet] = useStateMounted<T | undefined>(undefined)
+    const [err, setErr] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef(false)
     useEffect(()=>{
         setRet(undefined)
+        setErr(undefined)
         if (!cmd) return
         loadingRef.current = true
         apiCall(cmd, params)
-            .then(setRet, setRet)
+            .then(setRet, setErr)
             .finally(()=> loadingRef.current = false)
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
     const reload = useCallback(()=> loadingRef.current || setForcer(v => v+1), [setForcer])
-    return [ret, reload]
+    return [ret, err, reload]
 }
 
 type EventHandler = (type:string, data?:any) => void

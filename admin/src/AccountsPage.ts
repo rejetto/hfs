@@ -21,7 +21,7 @@ const useStyles = makeStyles({
     }
 })
 
-interface Account {
+export interface Account {
     username: string
     hasPassword?: boolean
     adminActualAccess?: boolean
