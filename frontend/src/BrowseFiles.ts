@@ -125,7 +125,7 @@ const EntryProps = memo(function(entry: DirEntry & { midnight: Date }) {
         h(Html, { code, className:'add-props' }),
         s !== undefined && h(Fragment, {},
             h('span', { className:'entry-size' }, formatBytes(s)),
-            hIcon('download'),
+            ' — ',
         ),
         t && h('span', {
             className: 'entry-ts',
