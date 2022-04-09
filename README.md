@@ -35,6 +35,7 @@ As you can see from the list above, we already have some goods that you can't fi
 - more robust
 - plugins system
 - ZIP format for archives instead of TAR
+- more flexible permissions
 
 ### Why you should still stay with HFS 2.x (so far)
 

@@ -21,9 +21,13 @@ const PREFIX = '/~/api/'
 
 export function apiCall(cmd: string, params?: Dict) : Promise<any> {
     params = addCsrf(params)
+
+    const controller = new AbortController()
+    setTimeout(() => controller.abort(), 10_000)
     return fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
+        signal: controller.signal,
         body: params && JSON.stringify(params),
     }).then(async res => {
         if (res.ok)

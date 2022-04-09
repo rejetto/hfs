@@ -4,6 +4,7 @@ dist
 #produced by running
 counters.yaml
 *.log*
+self.*
 config.yaml
 accounts.yaml
 shared/lib

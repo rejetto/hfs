@@ -74,6 +74,7 @@ vfs:
         - name: hi
 accounts:
   rejetto:
+    password: password
     belongs:
       - admins
   admins:
