@@ -78,6 +78,8 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
 export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     if (!ctx.session)
         return new ApiError(500)
+    if (!ctx.session.login)
+        return new ApiError(409)
     const { username, sid } = ctx.session.login
     const step1 = ongoingLogins[sid]
     try {
