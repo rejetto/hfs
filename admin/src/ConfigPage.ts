@@ -115,6 +115,8 @@ export default function ConfigPage() {
             return
         else if (newPort > 0 && !await confirmDialog("You are changing the port and you may be disconnected"))
             return
+        if (loc.protocol === 'https:' && ('cert' in values || 'private_key' in values) && !await confirmDialog("You may disrupt https service, kicking you out"))
+            return
         await apiCall('set_config', { values })
         if (newPort > 0) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
