@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
-import { useApi, useApiList } from './api'
+import { apiCall, useApiList } from './api'
 import _ from 'lodash'
 import {
     Alert,
@@ -14,7 +14,7 @@ import {
     TextField,
     Typography
 } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, spinner } from './misc'
+import { enforceFinal, formatBytes, isWindowsDrive, spinner, pathJoin, dirname, isAbsolutePath } from './misc'
 import { ArrowUpward, Home } from '@mui/icons-material'
 import { StringField } from './Form'
 import { FileIcon, FolderIcon } from './VfsTree'
@@ -23,16 +23,24 @@ import AutoSizer from "react-virtualized-auto-sizer"
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 
-export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }) {
-    const [cwd, setCwd] = useState('')
+interface FilePickerProps {
+    onSelect:(v:string[])=>void
+    multiple?: boolean
+    from?: string
+}
+export default function FilePicker({ onSelect, multiple=true, from }: FilePickerProps) {
+    const passedDir = useMemo(() => from && dirname(from), [from])
+    const [cwd, setCwd] = useState(from && passedDir || '')
     const [ready, setReady] = useState(false)
-    const [gotCwd] = useApi('get_cwd')
     useEffect(() => {
-        if (gotCwd) {
-            setCwd(gotCwd.path)
+        if (passedDir && isAbsolutePath(passedDir))
+            return setReady(true)
+        apiCall('get_cwd').then(res => {
+            if (typeof res.path === 'string')
+                setCwd(pathJoin(res.path, passedDir))
             setReady(true)
-        }
-    }, [gotCwd])
+        })
+    }, [])
     const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd })
     useEffect(() => {
         setSel([])
@@ -92,7 +100,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
                                                     onSelect([cwdPostfixed + it.n])
                                             }
                                         },
-                                        h(Checkbox, {
+                                        multiple && h(Checkbox, {
                                             checked: sel.includes(it.n),
                                             onClick(ev) {
                                                 const id = it.n
@@ -114,7 +122,7 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
                     }),
                 ),
                 h(Box, { display:'flex', gap: 1 },
-                    h(Button, {
+                    multiple && h(Button, {
                         variant: 'contained',
                         disabled: !sel.length,
                         sx: { minWidth: 'max-content' },
@@ -135,4 +143,3 @@ export default function FilePicker({ onSelect }: { onSelect:(v:string[])=>void }
             )
     )
 }
-

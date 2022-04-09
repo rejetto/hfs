@@ -7,7 +7,7 @@ import { SxProps } from '@mui/system'
 import { SvgIconComponent } from '@mui/icons-material'
 import { alertDialog } from './dialog'
 import { apiCall } from './api'
-import { useStateMounted } from '@hfs/shared'
+import { onlyTruthy, useStateMounted } from '@hfs/shared'
 import {} from '@hfs/shared' // without this we get weird warnings by webpack
 export * from '@hfs/shared'
 
@@ -67,4 +67,30 @@ export async function manipulateConfig(k: string, work:(data:any) => any) {
 
 export function typedKeys<T>(o: T) {
     return Object.keys(o) as (keyof T)[]
+}
+
+export function dirname(s: string) {
+    let i = s.lastIndexOf('/')
+    if (i < 0)
+        i = s.lastIndexOf('\\')
+    return i < 0 ? '' : s.slice(0, i)
+}
+
+export function isAbsolutePath(s: string) {
+    return s && (s[0] === '/' || isWindowsDrive(s.slice(0,2)))
+}
+
+export function pathJoin(...args: any[]) {
+    const delimiter = findFirst(args, x => /\\|\//.exec('\\a/b')?.[0])
+    const good = onlyTruthy(args.map(x => x == null ? '' : String(x)))
+    return good.map((x, i) => i === good.length-1 || x.endsWith('\\') || x.endsWith('/') ? x : x + delimiter)
+        .join('')
+}
+
+export function findFirst<I=any, O=any>(a: I[], cb:(v:I)=>O): any {
+    for (const x of a) {
+        const ret = cb(x)
+        if (ret !== undefined)
+            return ret
+    }
 }

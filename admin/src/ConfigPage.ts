@@ -2,13 +2,14 @@
 
 import { Box, Button, FormHelperText, Link } from '@mui/material';
 import { createElement as h, isValidElement, useEffect, useRef } from 'react';
-import { apiCall, useApi, useApiComp } from './api'
+import { apiCall, useApiComp } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh } from '@mui/icons-material'
 import { Dict, modifiedSx } from './misc'
 import { subscribeKey } from 'valtio/utils'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field } from './Form';
 import StringStringField from './StringStringField'
+import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'
 
@@ -78,8 +79,8 @@ export default function ConfigPage() {
                     return v
                 }
             },
-            values.https_port >= 0 && { k: 'cert', label: "HTTPS certificate file" },
-            values.https_port >= 0 && { k: 'private_key', label: "HTTPS private key file" },
+            values.https_port >= 0 && { k: 'cert', comp: FileField, label: "HTTPS certificate file" },
+            values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file" },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
             ...Object.entries(logLabels).map(a => ({ k: a[0], label: a[1] })),
@@ -178,7 +179,10 @@ function suggestMakingCert() {
                 h(Info), "You are enabling HTTPs. It needs a valid certificate + private key to work."
             ),
             h(Box, { mt: 4, display: 'flex', gap: 1, justifyContent: 'space-around', },
-                h(Button, { variant: 'contained', onClick(){ closeDialog(); makeCertAndSave() } }, "Help me!"),
+                h(Button, { variant: 'contained', onClick(){
+                    closeDialog()
+                    makeCertAndSave().then()
+                } }, "Help me!"),
                 h(Button, { onClick: closeDialog }, "I will handle the matter myself"),
             ),
         )
