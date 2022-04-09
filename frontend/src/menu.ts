@@ -163,7 +163,7 @@ function LoginButton() {
             const password = await promptDialog('Password', { type: 'password' })
             if (!password) return
             const res = await login(user, password)
-            if (res.redirect)
+            if (res?.redirect)
                 navigate(res.redirect)
         }
     })
