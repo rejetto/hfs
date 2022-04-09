@@ -39,6 +39,8 @@ export async function login(username:string, password:string) {
         if (err instanceof ApiError)
             if (err.code === 401)
                 err = 'Invalid credentials'
+            else if (err.code === 409)
+                err = 'Cookies not working - login failed'
         await alertDialog(err as Error, 'error')
     }
     finally { stopWorking() }
