@@ -41,6 +41,8 @@ export function apiCall(cmd: string, params?: Dict) : Promise<any> {
             state.loginRequired = true
         throw new ApiError(res.status, msg)
     }, err => {
+        if (err?.message?.includes('fetch'))
+            throw Error("Network error")
         throw err
     })
 }
