@@ -43,12 +43,13 @@ const apis: ApiHandlers = {
             }
             if (stats && Number(stats.mtime) === Number(stats.ctime))
                 delete stats.mtime
+            const isRoot = node === vfs
             return {
                 ...stats,
                 ...node,
                 website: dir && node.source && await stat(join(node.source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
-                name: getNodeName(node),
+                name: isRoot ? undefined : getNodeName(node),
                 type: dir ? 'folder' : undefined,
                 children: node.children && await Promise.all(node.children.map(recur)),
             }

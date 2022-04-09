@@ -6,7 +6,7 @@ import { Alert, Button, Card, CardContent, List, ListItem, ListItemText } from '
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from './Form'
 import { apiCall, useApiComp } from './api'
 import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
-import { reloadVfs, Who } from './VfsPage'
+import { reloadVfs, VfsNode, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
 
@@ -14,7 +14,7 @@ interface Account { username: string }
 
 export default function FileCard() {
     const { selectedFiles: files } = useSnapState()
-    const file = files[0]
+    const file = files[0] as VfsNode // it's actually Snapshot<VfsNode> but it's easier this way
     if (!file)
         return null
     return h(Card, {},
@@ -27,7 +27,7 @@ export default function FileCard() {
         ))
 }
 
-function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFiles']['0'] }) {
+function FileForm({ file }: { file: VfsNode }) {
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -79,7 +79,8 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
                     v !== file[k as keyof typeof values])
                 if (!props.masks)
                     props.masks = null // undefined cannot be serialized
-                delete props.source
+                if (!isRoot)
+                    delete props.source
                 await apiCall('set_vfs', {
                     uri: values.id,
                     props,
@@ -94,7 +95,8 @@ function FileForm({ file }: { file: ReturnType<typeof useSnapState>['selectedFil
                 k: 'name', validate: x => x>'' || `Required`,
                 helperText: source && "You can decide a name that's different from the one on your disk",
             },
-            hasSource && { k: 'source', comp: DisplayField, multiline: true },
+            isRoot ? { k: 'source', helperText: "If you specify a folder here, its files will be listed in the home" }
+                : (hasSource && { k: 'source', comp: DisplayField, multiline: true }),
             { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
                 helperText: "Note: who can't download won't see it in the list"
             },

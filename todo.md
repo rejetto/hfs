@@ -6,7 +6,6 @@
 - admin/fs: drag&drop to move items around
 - admin/fs: support insert/delete key
 - admin/fs: button "copy url to clipboard"
-- admin/fs: make possible to bind source to home
 - admin/monitor: show some info on what folder is browsing
 - if specified config is a folder, check for file config.yaml inside
 - frontend: ok button to inputDialogs
