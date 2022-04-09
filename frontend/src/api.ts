@@ -22,6 +22,8 @@ export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) 
         throw new ApiError(res.status, msg)
     }, err => {
         stop?.()
+        if (err?.message?.includes('fetch'))
+            throw "Network error"
         throw err
     })
 }
