@@ -3,6 +3,7 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
+import { apiCall } from './api'
 import { DirList } from './BrowseFiles'
 
 export const state = proxy<{
@@ -24,6 +25,7 @@ export const state = proxy<{
     foldersFirst: boolean,
     theme: string,
     adminUrl?: string,
+    serverConfig?: any,
 }>({
     iconsClass: '',
     username: '',
@@ -52,6 +54,11 @@ const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy','foldersFirst','them
 loadSettings()
 for (const k of SETTINGS_TO_STORE)
     subscribeKey(state, k, storeSettings)
+
+// load server config
+setTimeout(() =>
+    apiCall('config', {}, { noModal: true }).then(res =>
+        state.serverConfig = res) )
 
 function loadSettings() {
     const json = localStorage.getItem(SETTINGS_KEY)

@@ -97,6 +97,9 @@ export default function ConfigPage() {
                 helperText: values.allowed_referer ? "Leave empty to allow any" : "Use this to avoid direct links from other websites", },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm:  6, label: "Calculate ZIP size for seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'custom_header', multiline: true, sx: { '& textarea': { fontFamily: 'monospace' } },
+                helperText: "Any HTML code here will be used as header for the Frontend"
+            },
             { k: 'mime', comp: StringStringField,
                 keyLabel: "Files", keyWidth: 7,
                 valueLabel: "Mime type", valueWidth: 4

@@ -19,8 +19,9 @@ export type DirList = DirEntry[]
 
 export function BrowseFiles() {
     useFetchList()
-    const { error, list } = useSnapState()
+    const { error, list, serverConfig } = useSnapState()
     return h(Fragment, {},
+        h(Html, { code: serverConfig?.custom_header }),
         h(Head),
         hError(error && 'Failed to retrieve list')
         || h(list ? FilesList : Spinner))

@@ -213,6 +213,9 @@ Supported entries are:
       - ip: 192.168.0.90
     ```
 - `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration.
+- `custom_header` provide HTML code to be put at the top of your Frontend. Default is none.
+- `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
+- `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
 
 ## Virtual File System (VFS)
 
