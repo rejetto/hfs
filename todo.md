@@ -7,7 +7,6 @@
 - admin/fs: support insert/delete key
 - admin/fs: button "copy url to clipboard"
 - admin/monitor: show some info on what folder is browsing
-- anti-brute for logins 
 - admin/stats: total bytes sent
 - admin/stats: list of IPs seen  
 - if specified config is a folder, check for file config.yaml inside
