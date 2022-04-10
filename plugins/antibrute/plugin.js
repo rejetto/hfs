@@ -1,8 +1,9 @@
 const { API_URI } = require('@hfs/server/src/const')
 
 exports.version = 1
-exports.description = `Introduce increasing delays between login attempts.`
+exports.description = "Introduce increasing delays between login attempts."
 
+// these settings will grant 4 attempts in first minute, 2 in second minute, and 1 from the third one on
 const INCREMENT = 5_000
 const CAP = 60_000
 

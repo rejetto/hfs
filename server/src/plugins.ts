@@ -11,6 +11,8 @@ import { getConfig, subscribeConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
+import events from './events'
+import { readFile } from 'fs/promises'
 
 const PATH = 'plugins'
 
@@ -29,9 +31,9 @@ export function pluginsMiddleware(): Koa.Middleware {
     return async (ctx, next) => {
         const after = []
         // run middleware plugins
-        for (const k in plugins)
+        for (const id in plugins)
             try {
-                const pl = plugins[k]
+                const pl = plugins[id]
                 const res = await pl.middleware?.(ctx)
                 if (res === true)
                     ctx.pluginStopped = true
@@ -39,7 +41,7 @@ export function pluginsMiddleware(): Koa.Middleware {
                     after.push(res)
             }
             catch(e){
-                console.log('error middleware plugin', k, String(e))
+                console.log('error middleware plugin', id, String(e))
                 console.debug(e)
             }
         // expose public plugins' files
@@ -70,16 +72,17 @@ subscribeConfig({ k:'disable_plugins', defaultValue:[] }, () => {
 interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
 type OnDirEntry = (params:OnDirEntryParams) => void | false
 
-class Plugin {
-    js: any
-    constructor(readonly k:string, private data:any, private unwatch:()=>void){
+export class Plugin {
+    started = new Date()
+
+    constructor(readonly id:string, private readonly data:any, private unwatch:()=>void){
         if (!data) throw 'invalid data'
         // if a previous instance is present, we are going to overwrite it, but first call its unload callback
-        try { plugins[k]?.data?.unload?.() }
+        try { plugins[id]?.data?.unload?.() }
         catch(e){
-            console.debug('error unloading plugin', k, String(e))
+            console.debug('error unloading plugin', id, String(e))
         }
-        plugins[k] = this // track this
+        plugins[id] = this // track this
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
         // some validation
         for (const k of ['frontend_css', 'frontend_js']) {
@@ -91,6 +94,7 @@ class Plugin {
                 console.warn('invalid', k)
             }
         }
+        events.emit('pluginLoaded', this)
     }
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
@@ -105,14 +109,19 @@ class Plugin {
         return this.data?.onDirEntry
     }
 
+    getData(): any {
+        return { ...this.data }
+    }
+
     unload() {
-        console.log('unloading plugin', this.k)
+        console.log('unloading plugin', this.id)
         try { this.data?.unload?.() }
         catch(e) {
-            console.debug('error unloading plugin', this.k, String(e))
+            console.debug('error unloading plugin', this.id, String(e))
         }
-        delete plugins[this.k]
+        delete plugins[this.id]
         this.unwatch()
+        events.emit('pluginUnloaded', this.id)
     }
 }
 
@@ -120,38 +129,63 @@ type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
 type Stop = true
 type CallMeAfter = ()=>void
 
+let availablePlugins: Record<string, { id: string, description?: string, version?: number }> = {}
+
+export function getAvailablePlugins() {
+    return Object.values(availablePlugins)
+}
+
 async function rescan() {
     console.debug('scanning plugins')
     const found = []
+    const foundDisabled: typeof availablePlugins = {}
     const disable_plugins = wantArray(getConfig('disable_plugins'))
     for (let f of await glob(PATH+'/*/plugin.js')) {
-        const k = f.split('/').slice(-2)[0]
-        if (k.endsWith('-disabled') || disable_plugins.includes(k)) continue
-        found.push(k)
-        if (plugins[k]) // already loaded
+        const id = f.split('/').slice(-2)[0]
+        if (id.endsWith('-disabled')) continue
+        if (disable_plugins.includes(id)) {
+            const pl = foundDisabled[id] = { id } as typeof foundDisabled[0]
+            try {
+                const source = await readFile(f, 'utf8')
+                pl.description = /exports.description *= *"([^"]*)"/.exec(source)?.[1]
+                pl.version = Number(/exports.version *= *(\d+)/.exec(source)?.[1]) || undefined
+            }
+            catch {}
+            continue
+        }
+        found.push(id)
+        if (plugins[id]) // already loaded
             continue
         f = resolve(f) // without this, import won't work
         const { unwatch } = watchLoad(f, async () => {
             try {
-                console.log(plugins[k] ? 'reloading plugin' : 'loading plugin', k)
-                const data = await import(f)
+                console.log(plugins[id] ? 'reloading plugin' : 'loading plugin', id)
+                const { init, ...data } = await import(f)
+                delete data.default
                 deleteModule(require.resolve(f)) // avoid caching
-                const res = await data.init?.call(null, {
+                const res = await init?.call(null, {
                     srcDir: __dirname,
                     require,
                     getConfig: (cfgKey: string) =>
-                        getConfig('plugins_config')?.[k]?.[cfgKey]
+                        getConfig('plugins_config')?.[id]?.[cfgKey]
                 })
                 Object.assign(data, res)
-                new Plugin(k, data, unwatch)
+                new Plugin(id, data, unwatch)
             } catch (e) {
                 console.log('plugin error:', e)
             }
         })
     }
-    for (const k in plugins)
-        if (!found.includes(k))
-            plugins[k].unload()
+    for (const id in plugins)
+        if (!found.includes(id))
+            plugins[id].unload()
+    for (const k in foundDisabled)
+        if (!availablePlugins[k])
+            events.emit('pluginAvailable', foundDisabled[k])
+    for (const k in availablePlugins)
+        if (!foundDisabled[k])
+        events.emit('pluginAvailableNoMore', availablePlugins[k])
+    availablePlugins = foundDisabled
 }
 
 function deleteModule(id: string) {

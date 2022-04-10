@@ -115,6 +115,8 @@ Let's first look at the things you can return:
 
 ### Things a plugin can return
 
+- `description: string` try to explain what this plugin is for
+- `version: number` use progressive numbers to distinguish each release
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
 - `middleware: (Context) => void | true | function` a function that will be used as a middleware: it can interfere with http activity.

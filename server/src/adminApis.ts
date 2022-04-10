@@ -18,6 +18,7 @@ import { writeFile } from 'fs/promises'
 import { createReadStream } from 'fs'
 import * as readline from 'readline'
 import { loggers } from './log'
+import { mapPlugins, getAvailablePlugins, Plugin } from './plugins'
 
 export const adminApis: ApiHandlers = {
 
@@ -71,27 +72,20 @@ export const adminApis: ApiHandlers = {
     },
 
     get_connections({}, ctx) {
-        const ret = new Readable({ objectMode: true, read(){} }) // this stream pushes uncaring for when you read. Should we do better?
-        // start with existing connections
-        for (const conn of getConnections())
-            ret.push({ add: serializeConnection(conn) })
-        // then send updates
-        const off = onOff(events, {
-            connection: conn => ret.push({ add: serializeConnection(conn) }),
+        const list = sendList( getConnections().map(c => serializeConnection(c)) )
+        return list.events(ctx, {
+            connection: conn => list.add(serializeConnection(conn)),
             connectionClosed(conn: Connection) {
-                ret.push({ remove: [ serializeConnection(conn, true) ] })
+                list.remove(serializeConnection(conn, true))
             },
             connectionUpdated(conn: Connection, change: Partial<Connection>) {
                 if (change.ctx) {
                     Object.assign(change, fromCtx(change.ctx))
                     delete change.ctx
                 }
-                ret.push({ update: [{ search: serializeConnection(conn, true), change }] })
+                list.update(serializeConnection(conn, true), change)
             },
         })
-        // we never close this stream ourselves, just when connection is closed we have to take care of listeners
-        ctx.res.once('close', off)
-        return ret
 
         function serializeConnection(conn: Connection, minimal?:true) {
             const { socket, started, secure, got } = conn
@@ -99,7 +93,7 @@ export const adminApis: ApiHandlers = {
                 v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
                 got,
                 started,
-                secure: (secure || undefined), // undefined will save some space once json-ed
+                secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
                 ...fromCtx(conn.ctx),
             })
         }
@@ -148,7 +142,52 @@ export const adminApis: ApiHandlers = {
                 size: m[7] === '-' ? undefined : Number(m[7])
             }
         }
+    },
+
+    get_plugins({}, ctx) {
+        const list = sendList([ ...mapPlugins(serialize), ...getAvailablePlugins() ])
+        return list.events(ctx, {
+            pluginLoaded: p => list.add(serialize(p)),
+            pluginUnloaded: id => list.remove({ id }),
+            pluginAvailableNoMore: p => list.remove({ id: p.id }),
+            pluginAvailable: p => list.add(p),
+        })
+
+        function serialize(p: Readonly<Plugin>) {
+            return Object.assign(p.getData(), _.pick(p, ['id','started']))
+        }
+    },
+
+    async set_plugin({ id, disable }) {
+        if (disable !== undefined) {
+            const cfgK = 'disable_plugins'
+            const a = getConfig(cfgK)
+            if (a.includes(id) !== disable)
+                setConfig({ [cfgK]: disable ? [...a, id] : a.filter((x: string) => x !== id) })
+        }
+        return {}
+    },
+}
+
+// offer an api for a generic dynamic list
+function sendList<T>(addAtStart: T[]=[]) {
+    const stream = new Readable({ objectMode: true, read(){} })
+    const ret = {
+        return: stream,
+        add(rec: T) { stream.push({ add: rec }) },
+        remove(key: Partial<T>) { stream.push({ remove: [ key ] }) },
+        update(search: Partial<T>, change: Partial<T>) {
+            stream.push({ update:[{ search, change }] })
+        },
+        events(ctx: Koa.Context, eventMap: Parameters<typeof onOff>[1]) {
+            const off = onOff(events, eventMap)
+            ctx.res.once('close', off)
+            return stream
+        }
     }
+    for (const x of addAtStart)
+        ret.add(x)
+    return ret
 }
 
 function getConnAddress(conn: Connection) {

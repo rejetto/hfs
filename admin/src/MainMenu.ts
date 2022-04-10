@@ -4,6 +4,7 @@ import { createElement as h, FC } from 'react';
 import { List, ListItemButton, ListItemIcon, ListItemText, Box, Typography } from '@mui/material'
 import {
     AccountTree,
+    Extension,
     History,
     Logout,
     ManageAccounts,
@@ -22,6 +23,7 @@ import HomePage from './HomePage'
 import LogoutPage from './LogoutPage';
 import LogsPage from './LogsPage';
 import { useApi } from './api'
+import PluginsPage from './PluginsPage';
 
 interface MenuEntry {
     path: string
@@ -38,6 +40,7 @@ export const mainMenu: MenuEntry[] = [
     { path: 'monitor', icon: Monitor, comp: MonitorPage },
     { path: 'configuration', icon: Settings, comp: ConfigPage },
     { path: 'logs', icon: History, comp: LogsPage },
+    { path: 'plugins', icon: Extension, comp: PluginsPage },
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
 
