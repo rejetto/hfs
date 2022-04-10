@@ -24,6 +24,7 @@ function LogFile({ file }: { file: string }) {
         loading: !list,
         autoHeight: true,
         rows: list as any,
+        rowHeight: 47,
         pageSize: 10,
         rowsPerPageOptions: [5, 10, 20, 100],
         componentsProps: {
