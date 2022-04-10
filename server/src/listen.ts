@@ -58,6 +58,8 @@ async function considerHttps() {
     stopServer(httpsSrv).then()
     let port = getConfig('https_port')
     try {
+        while (!app)
+            await wait(100)
         httpsSrv = Object.assign(
             https.createServer(port < 0 ? {} : { key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback()),
             { name: 'https' }

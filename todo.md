@@ -1,4 +1,5 @@
 # To do
+- custom text to display on the frontend
 - log exceptions
 - watch certificates for change
 - admin/fs: render virtual folders differently

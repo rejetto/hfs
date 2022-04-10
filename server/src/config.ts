@@ -5,7 +5,7 @@ import { argv } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { debounceAsync, objSameKeys, onOff } from './misc'
+import { debounceAsync, objSameKeys, onOff, wait } from './misc'
 import { exists } from 'fs'
 import { promisify } from 'util'
 
@@ -20,7 +20,7 @@ let state: Record<string, any> = {}
 const cfgEvents = new EventEmitter()
 cfgEvents.setMaxListeners(10_000)
 const path = argv.config || process.env.HFS_CONFIG || PATH
-const { save } = watchLoad(path,  values => setConfig(values||{}, false), {
+const { save } = watchLoad(path, values => setConfig(values||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
         setTimeout(() => // for consistency with asynchronous success callback (without this http server is started before the koa app is ready)
@@ -37,7 +37,6 @@ export function defineConfig<T>(k: string, definition: Partial<ConfigProps<T>>) 
     const { caster = _.identity } = definition
     configProps[k] = {
         caster,
-        arg: caster(argv[k]),
         ...definition,
         defaultValue: _.cloneDeep(definition.defaultValue),
     }
@@ -46,9 +45,7 @@ export function defineConfig<T>(k: string, definition: Partial<ConfigProps<T>>) 
 export function subscribeConfig<T>({ k, ...definition }:{ k:string } & Partial<ConfigProps<T>>, cb:(v:T, was?:T)=>void) {
     if (definition)
         defineConfig(k, definition)
-    const { defaultValue, arg } = configProps[k] ?? {}
-    if (arg !== undefined) // it was passed at command line, and it will never change
-        return cb(arg)
+    const { defaultValue } = configProps[k] ?? {}
     const eventName = 'new.'+k
     if (started) {
         let v = state[k]
@@ -68,7 +65,6 @@ export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:strin
     let copy = Object.assign(
         objSameKeys(configProps, x => x.defaultValue),
         state,
-        _.pickBy(objSameKeys(configProps, x => x.arg), x => x !== undefined),
     )
     copy = _.omit(copy, omit)
     if (only.length)
@@ -78,6 +74,13 @@ export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:strin
 
 // pass a value to `save` to force saving decision, or leave undefined for auto. Passing false will also reset previously loaded configs.
 export function setConfig(newCfg: Record<string,any>, save?: boolean) {
+    if (!started) { // first time we consider also CLI args
+        const argCfg = _.pickBy(objSameKeys(configProps, (x,k) => argv[k]), x => x !== undefined)
+        if (! _.isEmpty(argCfg)) {
+            saveConfigAsap().then() // don't set `save` argument, as it would interfere below at check `save===false`
+            Object.assign(newCfg, argCfg)
+        }
+    }
     for (const k in newCfg)
         check(k)
     if (save) {
@@ -118,6 +121,8 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
 }
 
 export const saveConfigAsap = debounceAsync(async () => {
+    while (!started)
+        await wait(100)
     let txt = yaml.stringify(state, { lineWidth:1000 })
     if (txt.trim() === '{}')  // most users wouldn't understand
         if (await promisify(exists)(path)) // if a file exists then empty it, else don't bother creating it
