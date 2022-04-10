@@ -25,8 +25,6 @@ function MoreInfo() {
         isValidElement(res) ? res :
             h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
                 pair('started'),
-                pair('version'),
-                pair('build'),
                 pair('http', "HTTP", port),
                 pair('https', "HTTPS", port),
             )

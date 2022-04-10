@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, FC } from 'react';
-import { List, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
+import { List, ListItemButton, ListItemIcon, ListItemText, Box, Typography } from '@mui/material'
 import {
     AccountTree,
     History,
@@ -21,6 +21,7 @@ import AccountsPage from './AccountsPage';
 import HomePage from './HomePage'
 import LogoutPage from './LogoutPage';
 import LogsPage from './LogsPage';
+import { useApi } from './api'
 
 interface MenuEntry {
     path: string
@@ -41,8 +42,12 @@ export const mainMenu: MenuEntry[] = [
 ]
 
 export default function Menu({ onSelect }: { onSelect: ()=>void }) {
+    const [status] = useApi('get_status')
     return h(List, { sx:{ pr:1, bgcolor: 'primary.main', color:'primary.contrastText', minHeight: '100%', boxSizing: 'border-box' } },
-        h(Typography, { variant:'h4', sx:{ p:2 } }, 'HFS'),
+        h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'flex-end' },
+            h(Typography, { variant:'h3' }, 'HFS'),
+            h(Box, { pb: 1, fontSize: 'small' }, status?.version?.replace('-', ' ')),
+        ),
         mainMenu.map(it =>
             h(ListItemButton, {
                 key: it.path,
