@@ -40,7 +40,7 @@ export default function FilePicker({ onSelect, multiple=true, from }: FilePicker
                 setCwd(pathJoin(res.path, passedDir))
             setReady(true)
         })
-    }, [])
+    }, [passedDir])
     const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd })
     useEffect(() => {
         setSel([])

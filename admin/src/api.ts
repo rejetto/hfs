@@ -9,12 +9,13 @@ import { Refresh } from '@mui/icons-material'
 
 export function useApiComp<T=any>(...args: Parameters<typeof useApi>): [T | ReactElement, ()=>void] {
     const [res, err, reload] = useApi<T>(...args)
+    const arg0 = args[0]
     return useMemo(() =>
-        !args[0] ? [h(Fragment), reload]
+        !arg0 ? [h(Fragment), reload]
             : err ? [ h(Alert, { severity: 'error' }, String(err), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } })), reload ]
                 : res === undefined ? [spinner(), reload]
                     : [res, reload],
-        [res, reload])
+        [res, err, arg0, reload])
 }
 
 const PREFIX = '/~/api/'
