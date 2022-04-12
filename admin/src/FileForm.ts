@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { state, useSnapState } from './state'
+import { state } from './state'
 import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, CardContent, List, ListItem, ListItemText } from '@mui/material'
+import { Alert, Button } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from './Form'
 import { apiCall, useApiComp } from './api'
 import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
@@ -12,22 +12,7 @@ import _ from 'lodash'
 
 interface Account { username: string }
 
-export default function FileCard() {
-    const { selectedFiles: files } = useSnapState()
-    const file = files[0] as VfsNode // it's actually Snapshot<VfsNode> but it's easier this way
-    if (!file)
-        return null
-    return h(Card, {},
-        h(CardContent, {},
-            files.length === 1 ? h(FileForm, { file })
-                : h(List, {},
-                    files.length + ' selected',
-                    files.map(f => h(ListItem, { key: f.name },
-                        h(ListItemText, { primary: f.name, secondary: f.source }) )))
-        ))
-}
-
-function FileForm({ file }: { file: VfsNode }) {
+export default function FileForm({ file }: { file: VfsNode }) {
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {

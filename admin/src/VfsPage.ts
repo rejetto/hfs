@@ -2,15 +2,15 @@
 
 import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
 import { useApi, useApiComp } from './api'
-import { Alert, Grid, Link, Typography } from '@mui/material'
+import { Alert, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
-import FileCard from './FileCard'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree from './VfsTree'
 import { onlyTruthy } from './misc'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
 import { AlertProps } from '@mui/material/Alert/Alert'
+import FileForm from './FileForm'
 
 let selectOnReload: string[] | undefined
 
@@ -69,15 +69,25 @@ export default function VfsPage() {
             reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href }, href)))
         ]
     }
-    return h(Grid, { container:true, rowSpacing: 1, maxWidth: '80em' },
+    return h(Grid, { container:true, rowSpacing: 1, maxWidth: '80em', columnSpacing: 2 },
         alert && h(Grid, { item: true, mb: 2, xs: 12 }, h(Alert, alert)),
         h(Grid, { item:true, sm: 6, lg: 5 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(VfsMenuBar),
             snap.vfs && h(VfsTree, { id2node })),
         h(Grid, { item:true, sm: 6, lg: 7, maxWidth:'100%' },
-            h(FileCard))
+            h(SidePanel))
     )
+}
+
+function SidePanel() {
+    const { selectedFiles: files } = useSnapState()
+    return files.length === 0 ? null
+        : files.length === 1 ? h(FileForm, { file: files[0] as VfsNode }) // it's actually Snapshot<VfsNode> but it's easier this way
+            : h(List, {},
+                files.length + ' selected',
+                files.map(f => h(ListItem, { key: f.name },
+                    h(ListItemText, { primary: f.name, secondary: f.source }) )))
 }
 
 export function reloadVfs(pleaseSelect?: string[]) {
