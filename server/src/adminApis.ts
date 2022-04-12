@@ -187,6 +187,7 @@ function sendList<T>(addAtStart: T[]=[]) {
     }
     for (const x of addAtStart)
         ret.add(x)
+    stream.push('init')
     return ret
 }
 

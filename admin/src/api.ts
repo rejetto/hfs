@@ -108,6 +108,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
     const [list, setList] = useStateMounted<T[]>([])
     const [error, setError] = useStateMounted<any>(undefined)
     const [loading, setLoading] = useStateMounted(false)
+    const [initializing, setInitializing] = useStateMounted(true)
     const idRef = useRef(0)
     useEffect(() => {
         if (!cmd) return
@@ -131,6 +132,11 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return stop()
+                    if (data === 'init') {
+                        flush()
+                        setInitializing(false)
+                        return
+                    }
                     if (data.add) {
                         const rec = map(data.add)
                         if (addId)
@@ -181,5 +187,5 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
             clearInterval(timer)
         }
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, loading, error }
+    return { list, loading, error, initializing }
 }

@@ -6,11 +6,12 @@ import { IconBtn } from './misc'
 import { PowerSettingsNew } from '@mui/icons-material'
 
 export default function PluginsPage() {
-    const { list, error } = useApiList('get_plugins')
+    const { list, error, initializing } = useApiList('get_plugins')
     if (error)
         return h(Alert, { severity: 'error' }, error)
     return h(DataGrid, {
         rows: list,
+        loading: initializing,
         disableColumnSelector: true,
         disableColumnMenu: true,
         columns: [
