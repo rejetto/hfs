@@ -1,3 +1,6 @@
+exports.description = "Counts downloads for each file, and displays the total in the list"
+exports.version = 1
+
 exports.init = api => {
     const _ = api.require('lodash')
     const yaml = api.require('yaml')

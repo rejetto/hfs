@@ -61,7 +61,7 @@ export function pluginsMiddleware(): Koa.Middleware {
     }
 }
 
-subscribeConfig({ k:'disable_plugins', defaultValue:[] }, () => {
+subscribeConfig({ k:'disable_plugins', defaultValue:['download-counter'] }, () => {
     try { watchDir(PATH, debounceAsync(rescan, 1000)) }
     catch {
         console.debug('plugins not found')
