@@ -50,7 +50,7 @@ export function subscribeConfig<T>({ k, ...definition }:{ k:string } & Partial<C
     if (started) {
         let v = state[k]
         if (v === undefined)
-            v = _.cloneDeep(defaultValue)
+            state[k] = v = _.cloneDeep(defaultValue)
         if (v !== undefined)
             cb(v)
     }
@@ -109,11 +109,7 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
             v = caster(v)
         const j = JSON.stringify(v)
         if (j === JSON.stringify(oldV)) return // no change
-        if (newV === undefined // optimization: we know in this case it's equal to the default
-            || j === JSON.stringify(defaultValue)) // if we move away from the default value and then come back, we restore the initial state (undefined)
-            delete state[k]
-        else
-            state[k] = v
+        state[k] = v
         cfgEvents.emit('new.'+k, v, oldV)
         if (save === undefined)
             saveConfigAsap().then()
@@ -123,7 +119,9 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
 export const saveConfigAsap = debounceAsync(async () => {
     while (!started)
         await wait(100)
-    let txt = yaml.stringify(state, { lineWidth:1000 })
+    const diff = objSameKeys(state, (v,k) =>
+        JSON.stringify(v) === JSON.stringify(configProps[k].defaultValue) ? undefined : v)
+    let txt = yaml.stringify(diff, { lineWidth:1000 })
     if (txt.trim() === '{}')  // most users wouldn't understand
         if (await promisify(exists)(path)) // if a file exists then empty it, else don't bother creating it
             txt = ''
