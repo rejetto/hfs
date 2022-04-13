@@ -17,3 +17,5 @@ code {
 .MuiTreeItem-content {
   box-sizing: border-box; /* avoid unwanted scrolling caused by its width:100% + padding */
 }
+
+ol, ul { margin-top: .2em }

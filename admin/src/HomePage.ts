@@ -60,6 +60,12 @@ export default function HomePage() {
                             reloadCfg()
                     }
                 }, "ignore this warning")),
+        status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
+            h('ol',{},
+                h('li',{}, `configure FRP with type=http (best solution)`),
+                h('li',{}, md(`configure FRP to connect to HFS _not_ with 127.0.0.1 (safe, but you won't see users' IPs)`)),
+                h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
+            ))
     )
 }
 
@@ -85,5 +91,5 @@ function cfgLink(text=`Configuration page`) {
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return cfg && !cfg.proxies && !cfg.ignore_proxies && status?.proxyDetected
+    return cfg && !cfg.proxies && !cfg.ignore_proxies && status.proxyDetected
 }

@@ -3,11 +3,11 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { defineConfig, getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus, getUrls } from './listen'
-import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, VERSION } from './const'
+import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
-import { isLocalHost, onOff, pendingPromise } from './misc'
+import { debounceAsync, isLocalHost, onOff, pendingPromise } from './misc'
 import _ from 'lodash'
 import events from './events'
 import { getFromAccount } from './perm'
@@ -19,6 +19,8 @@ import { createReadStream } from 'fs'
 import * as readline from 'readline'
 import { loggers } from './log'
 import { mapPlugins, getAvailablePlugins, Plugin } from './plugins'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 
 export const adminApis: ApiHandlers = {
 
@@ -51,7 +53,10 @@ export const adminApis: ApiHandlers = {
             https: serverStatus(st.httpsSrv, getConfig('https_port')),
             urls: getUrls(),
             proxyDetected: getProxyDetected(),
-        }
+            frpDetected: getConfig('localhost_admin') && !getProxyDetected()
+                && getConnections().every(c => isLocalHost(c.ctx || c.socket.remoteAddress || ''))
+                && await frpDebounced(),
+    }
 
         function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
             return {
@@ -212,3 +217,9 @@ export function ctxAdminAccess(ctx: Koa.Context) {
             && !ctx.state.proxiedFor // this may detect an http-proxied request on localhost
         || getFromAccount(ctx.state.account, a => a.admin)
 }
+
+const frpDebounced = debounceAsync(async () => {
+    if (!IS_WINDOWS) return false
+    const { stdout } = await promisify(execFile)('tasklist', ['/fi','imagename eq frpc.exe','/nh'])
+    return stdout.includes('frpc')
+})

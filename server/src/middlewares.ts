@@ -111,6 +111,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     return next()
 }
 
+// this is only about http proxies
 export function getProxyDetected() {
     return proxyDetected
 }
