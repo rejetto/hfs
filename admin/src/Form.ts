@@ -315,7 +315,7 @@ export function NumberField({ value, onChange, min, max, step, ...props }: Field
     })
 }
 
-export function BoolField({ label='', value, onChange, helperText, fromField=_.identity, toField=_.identity, ...props }: FieldProps<boolean>) {
+export function BoolField({ label='', value, onChange, helperText, error, fromField=_.identity, toField=_.identity, ...props }: FieldProps<boolean>) {
     const setter = () => toField(value) ?? false
     const [state, setState] = useState(setter)
     useEffect(() => setState(setter),
@@ -327,9 +327,9 @@ export function BoolField({ label='', value, onChange, helperText, fromField=_.i
             onChange(fromField(event.target.checked), { event, was: value })
         }
     })
-    return h(Box, { ml: 1, mt: 1 },
+    return h(Box, { ml: 1, mt: 1, sx: error && { color: 'error.main', outlineOffset: 6, outline: '1px solid' } },
         h(FormControlLabel, { label, control, labelPlacement: 'end' }),
-        helperText && h(FormHelperText,{},helperText)
+        helperText && h(FormHelperText, { error }, helperText)
     )
 }
 

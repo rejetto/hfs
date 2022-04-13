@@ -2,7 +2,7 @@
 
 import { Box, Button, FormHelperText, Link } from '@mui/material';
 import { createElement as h, isValidElement, useEffect, useRef } from 'react';
-import { apiCall, useApiComp } from './api'
+import { apiCall, useApi, useApiComp } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh } from '@mui/icons-material'
 import { Dict, modifiedSx } from './misc'
@@ -31,6 +31,8 @@ export default function ConfigPage() {
 
     exposedReloadStatus = reloadStatus
     useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
+
+    const admins = useApi('get_admins')[0]?.list
 
     if (isValidElement(res))
         return res
@@ -88,8 +90,11 @@ export default function ConfigPage() {
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },
             { k: 'open_browser_at_start', comp: BoolField },
-            { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections", helperText: "To access Admin without entering credentials" },
-            { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, lg: 6, label: "How many proxies between this server and users?",
+            { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections",
+                validate: x => x || admins?.length>0 || "First create at least one admin account",
+                helperText: "To access Admin without entering credentials"
+            },
+            { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, lg: 6, label: "How many HTTP proxies between this server and users?",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
@@ -167,7 +172,7 @@ function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldPr
                 ],
                 onChange,
             }),
-            value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange }),
+            value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange, min: 1, max: 65535 }),
         ),
         status && h(FormHelperText, { error: Boolean(error) },
             status === true ? '...'

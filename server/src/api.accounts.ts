@@ -40,6 +40,10 @@ const apis: ApiHandlers = {
         return { list: Object.values(getAccounts()).map(prepareAccount) }
     },
 
+    get_admins() {
+        return { list: Object.values(getAccounts()).map(prepareAccount).filter(ac => ac?.adminActualAccess).map(ac => ac!.username) }
+    },
+
     set_account({ username, changes }) {
         const { admin } = changes
         if (admin === null)
