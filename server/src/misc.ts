@@ -188,7 +188,8 @@ export function debounceAsync<CB extends (...args: any[]) => Promise<R>, R>(
             await new Promise(resolve => setTimeout(resolve, waitFor))
         if (!whoIsWaiting) // canceled
             return void(waitingSince = 0)
-        if (whoIsWaiting !== args) return // another fresher call is waiting
+        if (whoIsWaiting !== args) // another fresher call is waiting
+            return runningDebouncer
         waitingSince = 0
         whoIsWaiting = undefined
         started = Date.now()
