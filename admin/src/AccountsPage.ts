@@ -4,7 +4,7 @@ import { isValidElement, createElement as h, useState, useEffect, Fragment, useR
 import { apiCall, useApiComp } from './api'
 import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
-import { BoolField, Form, MultiSelectField, StringField } from './Form'
+import { BoolField, Form, MultiSelectField } from './Form'
 import { alertDialog, confirmDialog } from './dialog'
 import { iconTooltip, isEqualLax, modifiedSx, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
@@ -42,7 +42,7 @@ export default function AccountsPage() {
     if (isValidElement(res))
         return res
     const { list }: { list: Account[] } = res
-    return h(Grid, { container: true, maxWidth: '60em' },
+    return h(Grid, { container: true, maxWidth: '80em' },
         h(Grid, { item: true, xs: 12 },
             h(Box, {
                 display: 'flex',
@@ -82,7 +82,7 @@ export default function AccountsPage() {
                 h(Button, { onClick: reload, startIcon: h(Refresh) }, "Reload"),
                 h(Typography, { p: 1 }, `${list.length} account(s)`),
             ) ),
-        h(Grid, { item: true, md: 6 },
+        h(Grid, { item: true, md: 6, xl: 5, },
             h(TreeView, {
                 multiSelect: true,
                 sx: { pr: 4, pb: 2, minWidth: '15em' },
@@ -107,7 +107,7 @@ export default function AccountsPage() {
             )
         ),
         sel.length > 0 // this clever test is true both when some accounts are selected and when we are in "new account" modes
-        && h(Grid, { item: true, md: 6 },
+        && h(Grid, { item: true, md: 6, xl: 7 },
             h(Card, {},
                 h(CardContent, {},
                     selectionMode && sel.length > 1 ? h(Box, {},
@@ -164,22 +164,23 @@ function AccountForm({ account, done, groups, close }: FormProps) {
             account2icon(values, { fontSize: 'large', sx: { p: 1 }})
         ],
         fields: [
-            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', validate: x => x>'' || "Required" },
-            !group && { k: 'password', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: add ? "Password" : "Change password",
+            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', validate: x => x>'' || "Required", xl: 4 },
+            !group && { k: 'password', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', label: add ? "Password" : "Change password",
                 validate: x => x>'' || !add || "Please provide a password"
             },
-            !group && { k: 'password2', comp: StringField, md: 6, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
+            !group && { k: 'password2', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 validate: (x, { values }) => x === values.password || "Enter same password" },
-            { k: 'ignore_limits', comp: BoolField,
+            { k: 'ignore_limits', comp: BoolField, xl: 6,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
-            { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Permission to access Admin interface",
+            { k: 'admin', comp: BoolField, xl: 6, fromField: (v:boolean) => v||null, label: "Permission to access Admin interface",
                 helperText: "It's THIS interface you are using right now.",
                 ...account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited" },
             },
-            { k: 'redirect', comp: StringField, helperText: "If you want this account to be redirected to a specific folder/address at login time" },
             { k: 'belongs', comp: MultiSelectField, label: "Inherits from", options: belongsOptions,
-                helperText: "Options and permissions of the selected groups will be applied to this account. "
-                    + (belongsOptions.length ? '' : "There are no groups available, create one first.") }
+                helperText: "Specify groups to inherit permissions from."
+                    + (belongsOptions.length ? '' : " There are no groups available, create one first.")
+            },
+            { k: 'redirect', helperText: "If you want this account to be redirected to a specific folder/address at login time" },
         ],
         onError: alertDialog,
         save: {
