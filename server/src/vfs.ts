@@ -12,6 +12,7 @@ import { FORBIDDEN, IS_WINDOWS } from './const'
 import events from './events'
 import { getCurrentUsernameExpanded } from './perm'
 import { with_ } from './misc'
+import { execFile } from 'child_process'
 
 const WHO_ANYONE = true
 const WHO_NO_ONE = false
@@ -161,12 +162,13 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
             cwd: base,
             suppressErrors: true,
         })
+        const skip = await getItemsToSkip(base)
         for await (let path of dirStream) {
             if (ctx.req.aborted)
                 return
             if (path instanceof Buffer)
                 path = path.toString('utf8')
-            if (shouldSkipFile(path))
+            if (skip?.includes(path))
                 continue
             let { rename } = parent
             const renamed = rename?.[path]
@@ -202,6 +204,22 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
         }
         catch{} // stat failed in nodeIsDirectory, ignore
     }
+}
+
+async function getItemsToSkip(path: string) {
+    if (!IS_WINDOWS) return
+    const out = await run('dir', ['/ah', '/b', path.replace(/\//g, '\\')])
+    return out.split('\r\n').slice(0,-1)
+}
+
+function run(cmd: string, args: string[] = []): Promise<string> {
+    return new Promise((resolve, reject) =>
+        execFile('cmd', ['/c', cmd, ...args], (err, stdout) => {
+            if (err)
+                reject(err)
+            else
+                resolve(stdout)
+        }))
 }
 
 function applyMasks(item: VfsNode, parent: VfsNode, name: string) {
@@ -268,7 +286,3 @@ events.on('accountRenamed', (from, to) => {
     }
 
 })
-
-function shouldSkipFile(name: string) {
-    return IS_WINDOWS && (name === '$RECYCLE.BIN' || name === 'System Volume Information')
-}
