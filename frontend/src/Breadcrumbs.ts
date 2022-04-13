@@ -33,7 +33,7 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path?: string,
         className: 'breadcrumb',
         to: path || '/',
         async onClick() {
-            if (current && await confirmDialog('Reload?')) {
+            if (current) {
                 state.remoteSearch = ''
                 state.stopSearch?.()
                 reloadList()
