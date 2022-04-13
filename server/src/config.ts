@@ -120,7 +120,7 @@ export const saveConfigAsap = debounceAsync(async () => {
     while (!started)
         await wait(100)
     const diff = objSameKeys(state, (v,k) =>
-        JSON.stringify(v) === JSON.stringify(configProps[k].defaultValue) ? undefined : v)
+        JSON.stringify(v) === JSON.stringify(configProps[k]?.defaultValue) ? undefined : v)
     let txt = yaml.stringify(diff, { lineWidth:1000 })
     if (txt.trim() === '{}')  // most users wouldn't understand
         if (await promisify(exists)(path)) // if a file exists then empty it, else don't bother creating it
