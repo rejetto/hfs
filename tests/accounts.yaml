@@ -1,5 +1,0 @@
-accounts:
-  rejetto:
-    belongs: admins
-    password: password
-  admins:
