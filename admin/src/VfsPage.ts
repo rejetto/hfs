@@ -6,7 +6,7 @@ import { Alert, Grid, Link, List, ListItem, ListItemText, Typography } from '@mu
 import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree from './VfsTree'
-import { onlyTruthy } from './misc'
+import { onlyTruthy, prefix } from './misc'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
 import { AlertProps } from '@mui/material/Alert/Alert'
@@ -38,7 +38,7 @@ export default function VfsPage() {
         // calculate id and parent fields, and builds the map id2node
         function recur(node: VfsNode, pre='', parent: VfsNode|undefined=undefined) {
             node.parent = parent
-            node.id = (pre + node.name) || '/' // root
+            node.id = prefix(pre, node.name) || '/' // root
             id2node.set(node.id, node)
             if (!node.children) return
             for (const n of node.children)
