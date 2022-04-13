@@ -85,7 +85,7 @@ export default function ConfigPage() {
             values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file" },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
-            ...Object.entries(logLabels).map(a => ({ k: a[0], label: a[1] })),
+            ...Object.entries(logLabels).map(a => ({ k: a[0], label: a[1], lg: 3 })),
             { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },
