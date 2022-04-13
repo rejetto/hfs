@@ -7,6 +7,9 @@ import { watch } from 'fs'
 import _ from 'lodash'
 import { Readable } from 'stream'
 import Koa from 'koa'
+import glob from 'fast-glob'
+import { IS_WINDOWS } from './const'
+import { execFile } from 'child_process'
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Dict<T = any> = Record<string, T>
@@ -229,3 +232,37 @@ export function isLocalHost(s: string | Koa.Context) {
         s = s.socket.remoteAddress || '' // don't use .ip as it is subject to proxied ips
     return s === '127.0.0.1' || s === '::1' || s === '::ffff:127.0.0.1'
 }
+
+export async function* dirStream(path: string) {
+    const dirStream = glob.stream('*', {
+        cwd: path,
+        dot: true,
+        onlyFiles: false,
+        suppressErrors: true,
+    })
+    const skip = await getItemsToSkip(path)
+    for await (let path of dirStream) {
+        if (path instanceof Buffer)
+            path = path.toString('utf8')
+        if (skip?.includes(path))
+            continue
+        yield path
+    }
+
+    async function getItemsToSkip(path: string) {
+        if (!IS_WINDOWS) return
+        const out = await run('dir', ['/ah', '/b', path.replace(/\//g, '\\')])
+        return out.split('\r\n').slice(0,-1)
+    }
+}
+
+export function run(cmd: string, args: string[] = []): Promise<string> {
+    return new Promise((resolve, reject) =>
+        execFile('cmd', ['/c', cmd, ...args], (err, stdout) => {
+            if (err)
+                reject(err)
+            else
+                resolve(stdout)
+        }))
+}
+

@@ -5,8 +5,7 @@ import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, join } from 'path'
-import glob  from 'fast-glob'
-import { enforceFinal, isWindowsDrive, objSameKeys } from './misc'
+import { dirStream, enforceFinal, isWindowsDrive, objSameKeys } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { FORBIDDEN, IS_WINDOWS } from './const'
@@ -128,17 +127,9 @@ const apis: ApiHandlers = {
         try {
             if (isWindowsDrive(path))
                 path = enforceFinal('/', path)
-            const dirStream = glob.stream('*', {
-                cwd: path,
-                dot: true,
-                onlyFiles: false,
-                suppressErrors: true,
-            })
-            for await (let name of dirStream) {
+            for await (const name of dirStream(path)) {
                 if (ctx.req.aborted)
                     return
-                if (name instanceof Buffer)
-                    name = name.toString('utf8')
                 try {
                     const full = join(path, name)
                     const stats = await stat(full)

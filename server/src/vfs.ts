@@ -3,7 +3,7 @@
 import fs from 'fs/promises'
 import { basename } from 'path'
 import { isMatch } from 'micromatch'
-import { dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
+import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
@@ -12,7 +12,6 @@ import { FORBIDDEN, IS_WINDOWS } from './const'
 import events from './events'
 import { getCurrentUsernameExpanded } from './perm'
 import { with_ } from './misc'
-import { execFile } from 'child_process'
 
 const WHO_ANYONE = true
 const WHO_NO_ONE = false
@@ -156,20 +155,9 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
         return
     try {
         const base = enforceFinal('/', source)
-        const dirStream = glob.stream('*', {
-            dot: true,
-            onlyFiles: false,
-            cwd: base,
-            suppressErrors: true,
-        })
-        const skip = await getItemsToSkip(base)
-        for await (let path of dirStream) {
+        for await (const path of dirStream(base)) {
             if (ctx.req.aborted)
                 return
-            if (path instanceof Buffer)
-                path = path.toString('utf8')
-            if (skip?.includes(path))
-                continue
             let { rename } = parent
             const renamed = rename?.[path]
             yield* workItem({
@@ -205,23 +193,6 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
         catch{} // stat failed in nodeIsDirectory, ignore
     }
 }
-
-async function getItemsToSkip(path: string) {
-    if (!IS_WINDOWS) return
-    const out = await run('dir', ['/ah', '/b', path.replace(/\//g, '\\')])
-    return out.split('\r\n').slice(0,-1)
-}
-
-function run(cmd: string, args: string[] = []): Promise<string> {
-    return new Promise((resolve, reject) =>
-        execFile('cmd', ['/c', cmd, ...args], (err, stdout) => {
-            if (err)
-                reject(err)
-            else
-                resolve(stdout)
-        }))
-}
-
 function applyMasks(item: VfsNode, parent: VfsNode, name: string) {
     const { masks } = parent
     if (!masks) return
