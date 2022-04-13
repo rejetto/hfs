@@ -14,11 +14,7 @@
 - admin: in a group, show linked accounts
 - admin: warn in case of items with same name
 - command line help --help
-- admin/plugins
-  - show list of available plugins (skip -disabled)
-  - enable/disable (disable_plugins, no dir rename)
-  - show some properties, which ones are loaded
-  - plugin config: plugin must expose gui producing object or form configuration 
+- admin/plugins: gui for config 
 - download-counter: expose results on admin
 - frontend: make a "login" route, and link it in side the 404's suggest-login message  
 - block to support masks and CIDR

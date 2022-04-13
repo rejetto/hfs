@@ -2,7 +2,6 @@
 
 import { Link, useLocation } from 'react-router-dom'
 import { createElement as h, Fragment, ReactElement } from 'react'
-import { confirmDialog } from './dialog'
 import { hIcon } from './misc'
 import { state } from './state'
 import { reloadList } from './useFetchList'
