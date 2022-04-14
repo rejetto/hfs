@@ -35,6 +35,7 @@ export function MenuPanel() {
             h(MenuButton, {
                 icon: 'filter',
                 label: "Filter list",
+                tooltip: "Show only elements matching text you type. Works on list already got from the server. Also enables selection of files, for selective \"Download zip\".",
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
@@ -48,7 +49,8 @@ export function MenuPanel() {
             }),
             h(MenuLink, {
                 icon: 'archive',
-                label: 'Download zip',
+                label: "Download zip",
+                tooltip: "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded.",
                 href: '?'+String(new URLSearchParams(_.pickBy({
                     get: 'zip',
                     search: remoteSearch,
@@ -123,13 +125,14 @@ export function MenuPanel() {
 interface MenuButtonProps {
     icon: string,
     label: string,
+    tooltip?: string,
     toggled?: boolean,
     className?: string,
     onClick?: () => void
 }
 
-export function MenuButton({ icon, label, toggled, onClick, className = '' }: MenuButtonProps) {
-    return h('button', { title: label, onClick, className: className + ' ' + (toggled ? 'toggled' : '') },
+export function MenuButton({ icon, label, tooltip, toggled, onClick, className = '' }: MenuButtonProps) {
+    return h('button', { title: tooltip || label, onClick, className: className + ' ' + (toggled ? 'toggled' : '') },
         hIcon(icon),
         h('label', {}, label))
 }
