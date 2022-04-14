@@ -28,6 +28,7 @@ export const IS_WINDOWS = process.platform === 'win32'
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()
+else console.debug = ()=>{}
 console.log(`HFS ~ HTTP File Server - Copyright 2021-2022, Massimo Melina <a@rejetto.com>`)
 console.log(`License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', HFS_STARTED.toLocaleString(), DEV)
