@@ -252,6 +252,7 @@ export async function* dirStream(path: string) {
     async function getItemsToSkip(path: string) {
         if (!IS_WINDOWS) return
         const out = await run('dir', ['/ah', '/b', path.replace(/\//g, '\\')])
+            .catch(()=>'') // error in case of no matching file
         return out.split('\r\n').slice(0,-1)
     }
 }
