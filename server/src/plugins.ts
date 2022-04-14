@@ -4,7 +4,7 @@ import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import { resolve } from 'path'
-import { PLUGINS_PUB_URI } from './const'
+import { CFG_PLUGINS_CONFIG, PLUGINS_PUB_URI } from './const'
 import Koa from 'koa'
 import { debounceAsync, getOrSet, onProcessExit, wantArray, watchDir } from './misc'
 import { getConfig, subscribeConfig } from './config'
@@ -61,7 +61,7 @@ export function pluginsMiddleware(): Koa.Middleware {
     }
 }
 
-subscribeConfig({ k:'disable_plugins', defaultValue:['download-counter'] }, () => {
+subscribeConfig({ k:'disable_plugins', defaultValue:['download-counter', 'redirect-root'] }, () => {
     try { watchDir(PATH, debounceAsync(rescan, 1000)) }
     catch {
         console.debug('plugins not found')
@@ -168,7 +168,7 @@ async function rescan() {
                     srcDir: __dirname,
                     require,
                     getConfig: (cfgKey: string) =>
-                        getConfig('plugins_config')?.[id]?.[cfgKey]
+                        getConfig(CFG_PLUGINS_CONFIG)?.[id]?.[cfgKey]
                 })
                 Object.assign(data, res)
                 new Plugin(id, data, unwatch)

@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h } from 'react'
+import { createElement as h, FC } from 'react'
 import { Box, CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { SxProps } from '@mui/system'
@@ -31,7 +31,7 @@ export function modifiedSx(is: boolean) {
 
 export function IconBtn({ title, icon, onClick, ...rest }: { title?: string, icon: SvgIconComponent, [rest:string]:any }) {
     const [loading, setLoading] = useStateMounted(false)
-    const ret = h(IconButton, {
+    let ret: ReturnType<FC> = h(IconButton, {
         disabled: loading,
         ...rest,
         onClick() {
@@ -42,7 +42,9 @@ export function IconBtn({ title, icon, onClick, ...rest }: { title?: string, ico
             }
         }
     }, h(icon))
-    return title ? h(Tooltip, { title, children: ret }) : ret
+    if (title)
+        ret = h(Tooltip, { title, children: h('span',{},ret) })
+    return ret
 }
 
 export function iconTooltip(icon: SvgIconComponent, tooltip: string, sx?: SxProps) {

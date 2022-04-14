@@ -1,4 +1,5 @@
 # To do
+- plugin.api.subscribeConfig
 - log exceptions
 - watch certificates for change
 - admin/fs: render virtual folders differently
@@ -14,7 +15,6 @@
 - admin: in a group, show linked accounts
 - admin: warn in case of items with same name
 - command line help --help
-- admin/plugins: gui for config 
 - download-counter: expose results on admin
 - frontend: make a "login" route, and link it in side the 404's suggest-login message  
 - block to support masks and CIDR

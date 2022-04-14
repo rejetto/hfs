@@ -3,7 +3,7 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { defineConfig, getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus, getUrls } from './listen'
-import { BUILD_TIMESTAMP, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
+import { BUILD_TIMESTAMP, CFG_PLUGINS_CONFIG, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
@@ -167,12 +167,16 @@ export const adminApis: ApiHandlers = {
         }
     },
 
-    async set_plugin({ id, disable }) {
+    async set_plugin({ id, disable, config }) {
         if (disable !== undefined) {
             const cfgK = 'disable_plugins'
             const a = getConfig(cfgK)
             if (a.includes(id) !== disable)
                 setConfig({ [cfgK]: disable ? [...a, id] : a.filter((x: string) => x !== id) })
+        }
+        if (config) {
+            const o = { ...getConfig(CFG_PLUGINS_CONFIG), [id]: config }
+            setConfig({ [CFG_PLUGINS_CONFIG]: o })
         }
         return {}
     },

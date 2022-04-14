@@ -59,14 +59,11 @@ If your system is not covered, you can try this alternative version:
 
 # Plug-ins
 
-We are slowly introducing a plug-ins system.
+If a `plugins` folder is present, HFS monitors it.
 Each plug-in is a sub-folder of `plugins` folder.
-You can quickly disable a plug-in by appending `-disabled` to the plug-in's folder name.
-Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
 
-Each plug-in has access to the same set of features.
-Normally you'll have a plug-in that's a theme, and another that's a firewall,
-but nothing is preventing a single plug-in from doing both tasks.
+Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
+HFS will ignore all folders with `-disabled` at the end of the name.
 
 # Developers section
 
@@ -98,10 +95,15 @@ In this latter case, the `DEV=1` you set before will make the server get the fil
 
 ## For plug-in makers
 
-You should find some examples within your installation.
+A plug-in is a folder with a `plugin.js` file in it.
 
-A plug-in must have a `plugin.js` file in its own folder.
-This file is javascript module that exports an `init` function like this:
+Each plug-in has access to the same set of features.
+Normally you'll have a plug-in that's a theme, and another that's a firewall,
+but nothing is preventing a single plug-in from doing both tasks.
+
+You can find some examples distributed as `plugins.zip`.
+
+`plugin.js` is a javascript module that exports an `init` function like this:
 ```js
 exports.init = api => ({
     frontend_css: 'mystyle.css'
@@ -111,12 +113,15 @@ exports.init = api => ({
 The init function is called when the module is loaded and should return an object with things to customize.
 In this example we are asking a css file to be loaded in the frontend.
 The parameter `api` object contains some useful things we'll see later.
+You can decide to return things in the `init` function, or directly in the `exports`. Normally you should use `init`
+if you need to access the api, otherwise you can go directly with `exports`.
+
 Let's first look at the things you can return:
 
-### Things a plugin can return
+### Things a plugin can return or export
 
-- `description: string` try to explain what this plugin is for
-- `version: number` use progressive numbers to distinguish each release
+- `description: string` try to explain what this plugin is for. This must go in `exports` and use "double quotes".
+- `version: number` use progressive numbers to distinguish each release. This must go in `exports`. 
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
 - `middleware: (Context) => void | true | function` a function that will be used as a middleware: it can interfere with http activity.
@@ -129,6 +134,39 @@ Let's first look at the things you can return:
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
 - `onDirEntry: ({ entry: DirEntry, listPath: string }) => void | false` by providing this callback you can manipulate the record
   that is sent to the frontend (`entry`), or you can return false to exclude this entry from the results.
+- `config: { [key]: FieldDescriptor }` declare a set of admin-configurable values owned by the plugin that will be displayed inside Admin panel for change.
+  Each property is identified by its key, and the descriptor is another object with options about the field.
+  A simple empty object `{}` is a text field.  
+
+  Eg: you want a `message` text. You add this to your `plugin.js`: 
+  ```js
+  exports.config = { message: {} }
+  ``` 
+
+  Once the admin has chosen a value for it, the value will be saved in the main config file, under the `plugins_config` property.
+    ```yaml
+    plugins_config:
+      name_of_the_plugin:
+        message: Hi there!
+    ```
+  When necessary your plugin will read its value using `api.getConfig('message')`.
+
+#### FieldDescriptor
+
+Currently, these properties are supported:
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect'` . Default is `string`.
+- `label: string` what name to display next to the field. Default is based on `key`.
+- `helperText: string` extra text printed next to the field. 
+
+Based on `type`, other properties are supported:
+- `string`
+  - `multiline: boolean`. Default is `false`.
+- `number`
+  - `min: number`
+  - `max: number`
+- `select`
+  - `options: { [label]: AnyJsonValue }`
+- `multiselect` it's like `select` but its result is an array of values.
 
 ### api object
 
@@ -136,16 +174,7 @@ The `api` object you get as parameter of the `init` contains the following:
 
   - `require: function` use this instead of standard `require` function to access modules already loaded by HFS.
 
-  - `getConfig(key: string): any` this is the way to go if you need some configuration to do your job.
-    
-    Eg: you want a `message` text. This should be put by the user in the main config file, under the `plugins_config` property.
-    If for example your plugin is called `banner`, in the `config.yaml` you should have
-    ```yaml
-    plugins_config:
-      banner:
-        message: Hi there!
-    ```
-    Now you can use `api.getConfig('message')` to read it.
+  - `getConfig(key: string): any` get config's value set up by using `exports.config`.
    
   - `srcDir: string` this can be useful if you need to import some extra function not available in `api`.
     ```js
