@@ -73,6 +73,8 @@ export default function ConfigPage() {
                     : { sm: 6 }
         },
         fields: [
+            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
+            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
             { k: 'port', comp: ServerPort, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
             { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
@@ -83,16 +85,14 @@ export default function ConfigPage() {
             },
             values.https_port >= 0 && { k: 'cert', comp: FileField, label: "HTTPS certificate file" },
             values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file" },
-            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
-            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
-            ...Object.entries(logLabels).map(a => ({ k: a[0], label: a[1], lg: 3 })),
-            { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
-                helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
-            },
             { k: 'open_browser_at_start', comp: BoolField },
             { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections",
                 validate: x => x || admins?.length>0 || "First create at least one admin account",
                 helperText: "To access Admin without entering credentials"
+            },
+            ...Object.entries(logLabels).map(a => ({ k: a[0], label: a[1], lg: 3 })),
+            { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
+                helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },
             { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, lg: 6, label: "How many HTTP proxies between this server and users?",
                 error: proxyWarning(values, status),
@@ -172,7 +172,7 @@ function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldPr
                 ],
                 onChange,
             }),
-            value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange, min: 1, max: 65535 }),
+            value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange, min: 1, max: 65535, sx: { minWidth:'5.5em' } }),
         ),
         status && h(FormHelperText, { error: Boolean(error) },
             status === true ? '...'
