@@ -78,7 +78,8 @@ export class Plugin {
     constructor(readonly id:string, private readonly data:any, private unwatch:()=>void){
         if (!data) throw 'invalid data'
         // if a previous instance is present, we are going to overwrite it, but first call its unload callback
-        try { plugins[id]?.data?.unload?.() }
+        const old = plugins[id]
+        try { old?.data?.unload?.() } // we don't want all the effects of the Plugin.unload
         catch(e){
             console.debug('error unloading plugin', id, String(e))
         }
@@ -94,7 +95,7 @@ export class Plugin {
                 console.warn('invalid', k)
             }
         }
-        events.emit('pluginLoaded', this)
+        events.emit(old ? 'pluginReloaded' : 'pluginLoaded', this)
     }
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware

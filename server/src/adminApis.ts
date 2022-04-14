@@ -56,7 +56,7 @@ export const adminApis: ApiHandlers = {
             frpDetected: getConfig('localhost_admin') && !getProxyDetected()
                 && getConnections().every(c => isLocalHost(c.ctx || c.socket.remoteAddress || ''))
                 && await frpDebounced(),
-    }
+        }
 
         function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
             return {
@@ -153,6 +153,10 @@ export const adminApis: ApiHandlers = {
         const list = sendList([ ...mapPlugins(serialize), ...getAvailablePlugins() ])
         return list.events(ctx, {
             pluginLoaded: p => list.add(serialize(p)),
+            pluginReloaded: p => {
+                const { id, ...rest } = serialize(p)
+                list.update({ id }, rest)
+            },
             pluginUnloaded: id => list.remove({ id }),
             pluginAvailableNoMore: p => list.remove({ id: p.id }),
             pluginAvailable: p => list.add(p),
