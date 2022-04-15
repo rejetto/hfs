@@ -65,11 +65,11 @@ const apis: ApiHandlers = {
         return delAccount(username) ? {} : new ApiError(400)
     },
 
-    async change_password({ username, newPassword }) {
+    async change_password_others({ username, newPassword }) {
         return changePasswordHelper(getAccount(username), newPassword)
     },
 
-    async change_srp({ username, salt, verifier }) {
+    async change_srp_others({ username, salt, verifier }) {
         return changeSrpHelper(getAccount(username), salt, verifier)
     }
 

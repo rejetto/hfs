@@ -219,9 +219,9 @@ function account2icon(ac: Account, props={}) {
 async function apiNewPassword(username: string, password: string) {
     const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
     const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
-    return apiCall('change_srp', { username, salt: String(res.s), verifier: String(res.v) }).catch(e => {
+    return apiCall('change_srp_others', { username, salt: String(res.s), verifier: String(res.v) }).catch(e => {
         if (e.code !== 406) // 406 = server was configured to support clear text authentication
             throw e
-        return apiCall('change_password', { username, newPassword: password }) // unencrypted version
+        return apiCall('change_password_others', { username, newPassword: password }) // unencrypted version
     })
 }

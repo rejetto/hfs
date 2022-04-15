@@ -12,6 +12,10 @@ import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, 
 import './listen'
 import { adminApis } from './adminApis'
 import { subscribeConfig } from './config'
+import { ok } from 'assert'
+import _ from 'lodash'
+
+ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints
 
 const keys = ['hfs-keys-test']
 export const app = new Koa({ keys })
