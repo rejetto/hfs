@@ -28,12 +28,17 @@ function Content() {
                     return alertDialog("The second password you entered did not match the first. Procedure aborted.", 'warning')
                 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
                 const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
-                await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }).catch(e => {
-                    if (e.code !== 406) // 406 = server was configured to support clear text authentication
-                        throw e
-                    return apiCall('change_password', { newPassword: pwd }) // unencrypted version
-                })
-                return alertDialog("Password changed")
+                try {
+                    await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }).catch(e => {
+                        if (e.code !== 406) // 406 = server was configured to support clear text authentication
+                            throw e
+                        return apiCall('change_password', { newPassword: pwd }) // unencrypted version
+                    })
+                    return alertDialog("Password changed")
+                }
+                catch(e) {
+                    return alertDialog(e as Error)
+                }
             }
         }),
         h(MenuButton, {
