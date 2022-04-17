@@ -14,6 +14,7 @@ import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
 import { readFile } from 'fs/promises'
+import { existsSync, mkdirSync } from 'fs'
 
 const PATH = 'plugins'
 
@@ -61,13 +62,6 @@ export function pluginsMiddleware(): Koa.Middleware {
             await f()
     }
 }
-
-subscribeConfig({ k:'disable_plugins', defaultValue:['download-counter', 'redirect-root'] }, () => {
-    try { watchDir(PATH, debounceAsync(rescan, 1000)) }
-    catch {
-        console.debug('plugins not found')
-    }
-})
 
 // return false to ask to exclude this entry from results
 interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
@@ -136,6 +130,11 @@ let availablePlugins: Record<string, { id: string, description?: string, version
 export function getAvailablePlugins() {
     return Object.values(availablePlugins)
 }
+
+const rescanAsap = debounceAsync(rescan, 1000)
+watchDir(PATH, rescanAsap)
+
+subscribeConfig({ k:'disable_plugins', defaultValue:['download-counter', 'redirect-root'] }, rescanAsap)
 
 async function rescan() {
     console.debug('scanning plugins')

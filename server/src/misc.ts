@@ -117,14 +117,26 @@ export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...arg
 }
 
 export function watchDir(dir: string, cb: ()=>void) {
-    const base = basename(dir)
-    watch(dirname(dir), (event,name) => {
-        if (name === base)
-            cb()
-    })
-    cb()
     try { watch(dir, cb) }
-    catch {}
+    catch {
+        // failing watching the content of the dir, we try to monitor its parent, but filtering events only for our target dir
+        const base = basename(dir)
+        try {
+            const watcher = watch(dirname(dir), (event,name) => {
+                if (name !== base) return
+                try {
+                    watch(dir, cb) // attempt at passing to a more specific watching
+                    watcher.close() // if we succeed, we give up the parent watching
+                }
+                catch {}
+                cb()
+            })
+        }
+        catch (e) {
+            console.debug(String(e))
+            return false
+        }
+    }
 }
 
 export function pattern2filter(pattern: string){
