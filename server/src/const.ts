@@ -12,6 +12,9 @@ export const VERSION = ''
 export const SESSION_DURATION = 30*60_000
 export const DAY = 86_400_000
 
+export const API_VERSION = 1
+export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise is made equal to API_VERSION
+
 export const SPECIAL_URI = '/~/'
 export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
 export const ADMIN_URI = SPECIAL_URI + 'admin/'

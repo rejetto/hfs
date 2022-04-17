@@ -175,12 +175,13 @@ The `api` object you get as parameter of the `init` contains the following:
   - `require: function` use this instead of standard `require` function to access modules already loaded by HFS.
 
   - `getConfig(key: string): any` get config's value set up by using `exports.config`.
+
+  - `const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
    
   - `srcDir: string` this can be useful if you need to import some extra function not available in `api`.
     ```js
     exports.init = api => {
-        const { BUILD_TIMESTAMP } = api.require(api.srcDir + '/const')
-        console.log(BUILD_TIMESTAMP)
+        const { watchLoad } = api.require(api.srcDir + '/watchLoad')
     }
     ```
     You *should* try to keep this kind of behavior at its minimum, as name of sources and of elements in them are subject to change.

@@ -4,7 +4,8 @@ import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import { resolve } from 'path'
-import { CFG_PLUGINS_CONFIG, PLUGINS_PUB_URI } from './const'
+import { API_VERSION, CFG_PLUGINS_CONFIG, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
+import * as Const from './const'
 import Koa from 'koa'
 import { debounceAsync, getOrSet, onProcessExit, wantArray, watchDir } from './misc'
 import { getConfig, subscribeConfig } from './config'
@@ -130,7 +131,7 @@ type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
 type Stop = true
 type CallMeAfter = ()=>void
 
-let availablePlugins: Record<string, { id: string, description?: string, version?: number }> = {}
+let availablePlugins: Record<string, { id: string, description?: string, version?: number, apiRequired?: number }> = {}
 
 export function getAvailablePlugins() {
     return Object.values(availablePlugins)
@@ -150,6 +151,7 @@ async function rescan() {
                 const source = await readFile(f, 'utf8')
                 pl.description = /exports.description *= *"([^"]*)"/.exec(source)?.[1]
                 pl.version = Number(/exports.version *= *(\d+)/.exec(source)?.[1]) || undefined
+                pl.apiRequired = Number(/exports.apiRequired *= *(\d+)/.exec(source)?.[1]) || undefined
             }
             catch {}
             continue
@@ -164,8 +166,13 @@ async function rescan() {
                 const { init, ...data } = await import(f)
                 delete data.default
                 deleteModule(require.resolve(f)) // avoid caching
+                if (data.apiRequired > API_VERSION)
+                    console.log('plugin', id, 'may not work correctly as it is designed for a newer version of HFS')
+                if (data.apiRequired < COMPATIBLE_API_VERSION)
+                    console.log('plugin', id, 'may not work correctly as it is designed for an older version of HFS')
                 const res = await init?.call(null, {
                     srcDir: __dirname,
+                    const: Const,
                     require,
                     getConfig: (cfgKey: string) =>
                         getConfig(CFG_PLUGINS_CONFIG)?.[id]?.[cfgKey]

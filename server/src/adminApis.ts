@@ -3,7 +3,8 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { defineConfig, getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus, getUrls } from './listen'
-import { BUILD_TIMESTAMP, CFG_PLUGINS_CONFIG, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
+import { API_VERSION, BUILD_TIMESTAMP, CFG_PLUGINS_CONFIG,
+    COMPATIBLE_API_VERSION, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
@@ -49,6 +50,8 @@ export const adminApis: ApiHandlers = {
             started: HFS_STARTED,
             build: BUILD_TIMESTAMP,
             version: VERSION,
+            apiVersion: API_VERSION,
+            compatibleApiVersion: COMPATIBLE_API_VERSION,
             http: serverStatus(st.httpSrv, getConfig('port')),
             https: serverStatus(st.httpsSrv, getConfig('https_port')),
             urls: getUrls(),

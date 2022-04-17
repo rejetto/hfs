@@ -1,5 +1,6 @@
 exports.version = 1
 exports.description = "Introduce increasing delays between login attempts."
+exports.apiRequired = 1
 
 // these settings will grant 4 attempts in first minute, 2 in second minute, and 1 from the third one on
 const INCREMENT = 5_000
@@ -8,8 +9,7 @@ const CAP = 60_000
 const byIp = {}
 
 exports.init = api => {
-    const { API_URI } = api.require(api.srcDir + '/const')
-    const LOGIN_URI = API_URI + 'loginSrp1'
+    const LOGIN_URI = api.const.API_URI + 'loginSrp1'
     return ({
         async middleware(ctx) {
             if (ctx.path !== LOGIN_URI) return

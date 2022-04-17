@@ -7,12 +7,10 @@ exports.config = {
 
 exports.init = api => ({
     middleware(ctx) {
-        if (ctx.path === '/') {
-            const url = api.getConfig('url')
-            if (url) {
-                ctx.redirect(url)
-                return true
-            }
+        const url = api.getConfig('url')
+        if (url && ctx.path === '/') {
+            ctx.redirect(url)
+            return true
         }
     }
 })
