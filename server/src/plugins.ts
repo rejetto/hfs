@@ -132,6 +132,9 @@ export function getAvailablePlugins() {
 }
 
 const rescanAsap = debounceAsync(rescan, 1000)
+if (!existsSync(PATH))
+    try { mkdirSync(PATH) }
+    catch {}
 watchDir(PATH, rescanAsap)
 
 subscribeConfig({ k:'disable_plugins', defaultValue:['download-counter', 'redirect-root'] }, rescanAsap)
