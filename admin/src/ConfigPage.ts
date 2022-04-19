@@ -109,7 +109,7 @@ export default function ConfigPage() {
                 keyLabel: "Files", keyWidth: 7,
                 valueLabel: "Mime type", valueWidth: 4
             },
-            { k: 'block', label: "Blocked IPs", multiline: true, minRows:3, helperText: "Enter an IP address for each line",
+            { k: 'block', label: "Blocked IPs", multiline: true, minRows:3, helperText: "Enter an IP address for each line. CIDR and * are supported.",
                 fromField: (all:string) => all.split('\n').map(s => s.trim()).filter(Boolean).map(ip => ({ ip })),
                 toField: (all: any) => !Array.isArray(all) ? '' : all.map(x => x?.ip).filter(Boolean).join('\n')
             },

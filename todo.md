@@ -17,7 +17,6 @@
 - command line help --help
 - download-counter: expose results on admin
 - frontend: make a "login" route, and link it in side the 404's suggest-login message  
-- block to support masks and CIDR
 - whitelist di ip
 - plugin to show country by ip in admin/monitor
 - log filter option

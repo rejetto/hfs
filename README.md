@@ -239,11 +239,12 @@ Supported entries are:
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
 - `private_key` use this file for https private key. Default is none.
 - `allowed_referer` you can decide what domains can link to your files. Wildcards supported. Default is any.
-- `block` a list of rules that will block connections. At the moment only `ip` rules are supported. E.g.: 
+- `block` a list of rules that will block connections. E.g.: 
     ```
     block:
       - ip: 192.168.0.90
     ```
+  Syntax supports, other than simple address, `*` as wildcard and CIDR format.
 - `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration.
 - `custom_header` provide HTML code to be put at the top of your Frontend. Default is none.
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
