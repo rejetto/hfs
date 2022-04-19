@@ -7,8 +7,8 @@ import { Socket } from 'net'
 
 subscribeConfig({ k: 'block', defaultValue: [] }, (rules: any) => {
     compileBlock(rules)
-    for (const { socket } of getConnections())
-        applyBlock(socket)
+    for (const { socket, ip } of getConnections())
+        applyBlock(socket, ip)
 })
 
 type BlockFun = (x: string) => boolean
@@ -29,8 +29,7 @@ function compileBlock(rules: any) {
     }
 }
 
-export function applyBlock(socket: Socket) {
-    const ip = socket.remoteAddress
+export function applyBlock(socket: Socket, ip=socket.remoteAddress) {
     if (ip && blockFunctions.find(rule => rule(ip)))
         return socket.destroy()
 }

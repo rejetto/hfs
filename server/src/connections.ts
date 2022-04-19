@@ -4,29 +4,36 @@ import { Socket } from 'net'
 import events from './events'
 import Koa from 'koa'
 
-export interface Connection {
-    socket: Socket
-    secure: boolean
-    started: Date
-    got: number
-    sent: number
+export class Connection {
+    readonly started = new Date()
+    got = 0
+    sent = 0
+    alreadyEmitted = false // already communicated to
     outSpeed?: number
     ctx?: Koa.Context
-    alreadyEmitted: boolean // already communicated to
+    private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
+
+    constructor(readonly socket: Socket,readonly secure: boolean) {
+        all.push(this)
+        socket.on('data', data =>
+            this.got += data.length )
+        socket.on('close', () => {
+            all.splice(all.indexOf(this), 1)
+            events.emit('connectionClosed', this)
+        })
+    }
+
+    get ip() {
+        return this.ctx?.ip ?? (this._cachedIp = (this._cachedIp ?? this.socket.remoteAddress?.replace(/^::ffff:/,'')))
+    }
 }
+
 
 const all: Connection[] = []
 
 export function newConnection(socket: Socket, secure:boolean=false) {
-    const conn: Connection = { socket, secure, got: 0, sent: 0, alreadyEmitted: false, started: new Date() }
-    all.push(conn)
-    socket.on('data', data =>
-        conn.got += data.length )
-    socket.on('close', () => {
-        all.splice(all.indexOf(conn), 1)
-        events.emit('connectionClosed', conn)
-    })
+    new Connection(socket, secure)
 }
 
 export function getConnections(): Readonly<typeof all> {

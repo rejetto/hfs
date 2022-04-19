@@ -92,6 +92,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
 
 let proxyDetected = false
 export const someSecurity: Koa.Middleware = async (ctx, next) => {
+    ctx.request.ip = ctx.ip.replace(/^::ffff:/,'') // simplify ipv6-mapped addresses
     try {
         let proxy = ctx.get('X-Forwarded-For')
         // we have some dev-proxies to ignore
@@ -99,7 +100,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
             proxy = ''
         if (dirTraversal(decodeURI(ctx.path)))
             return ctx.status = 418
-        if (applyBlock(ctx.socket))
+        if (applyBlock(ctx.socket, ctx.ip))
             return
         proxyDetected ||= proxy > ''
         ctx.state.proxiedFor = proxy

@@ -86,7 +86,7 @@ export const adminApis: ApiHandlers = {
             connectionClosed(conn: Connection) {
                 list.remove(serializeConnection(conn, true))
             },
-            connectionUpdated(conn: Connection, change: Partial<Connection>) {
+            connectionUpdated(conn: Connection, change: Partial<Omit<Connection,'ip'>>) {
                 if (change.ctx) {
                     Object.assign(change, fromCtx(change.ctx))
                     delete change.ctx
