@@ -16,12 +16,13 @@ interface ZipSource {
     getData: () => Readable // deferred stream, so that we don't keep many open files because of calculateSize()
     size: number
     ts: Date
+    mode?: number
 }
 export class QuickZipStream extends Readable {
     private workingFile = false
     private numberOfFiles: number = 0
     private finished = false
-    private readonly centralDir: ({ size:number, crc:number, ts:Date, pathAsBuffer:Buffer, offset:number, version:number })[] = []
+    private readonly centralDir: ({ size:number, crc:number, ts:Date, pathAsBuffer:Buffer, offset:number, version:number, extAttr: number })[] = []
     private dataWritten = 0
     private prewalk?: ZipSource[]
 
@@ -69,7 +70,7 @@ export class QuickZipStream extends Readable {
         if (!file)
             return this.closeArchive()
         ++this.numberOfFiles
-        let { path, getData, size, ts } = file
+        let { path, getData, size, ts, mode } = file
         const data = getData()
         const pathAsBuffer = Buffer.from(path, 'utf8')
         const crc32 = await crc32provider
@@ -102,7 +103,8 @@ export class QuickZipStream extends Readable {
         this.workingFile = true
         data.on('end', ()=>{
             this.workingFile = false
-            this.centralDir.push({ size, crc:crc!, pathAsBuffer, ts, offset, version })
+            const extAttr = !mode ? 0 : (mode | 0x8000) * 0x10000 // it's like <<16 but doesn't overflow so easily
+            this.centralDir.push({ size, crc:crc!, pathAsBuffer, ts, offset, version, extAttr })
             const sizeSize = size > ZIP64_LIMIT ? 8 : 4
             this._push([
                 4, 0x08074b50,
@@ -116,7 +118,7 @@ export class QuickZipStream extends Readable {
     closeArchive() {
         this.finished = true
         let centralOffset = this.dataWritten
-        for (let { size, ts, crc, offset, pathAsBuffer, version } of this.centralDir) {
+        for (let { size, ts, crc, offset, pathAsBuffer, version, extAttr } of this.centralDir) {
             const extra = []
             if (size > ZIP64_LIMIT) {
                 extra.push(size, size)
@@ -145,7 +147,7 @@ export class QuickZipStream extends Readable {
                 2, 0, //comment length
                 2, 0, // disk
                 2, 0, // attr
-                4, 0, // ext.attr
+                4, extAttr,
                 4, offset,
             ])
             this._push(pathAsBuffer)
