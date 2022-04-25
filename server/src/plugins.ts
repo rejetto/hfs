@@ -15,6 +15,7 @@ import { serveFile } from './serveFile'
 import events from './events'
 import { readFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
+import { getConnections } from './connections'
 
 const PATH = 'plugins'
 
@@ -176,6 +177,8 @@ async function rescan() {
                     srcDir: __dirname,
                     const: Const,
                     require,
+                    getConnections,
+                    events,
                     getConfig: (cfgKey: string) =>
                         getConfig(CFG_PLUGINS_CONFIG)?.[id]?.[cfgKey]
                 })

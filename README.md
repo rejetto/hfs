@@ -177,7 +177,11 @@ The `api` object you get as parameter of the `init` contains the following:
   - `getConfig(key: string): any` get config's value set up by using `exports.config`.
 
   - `const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
-   
+
+  - `getConnections: Connections[]` retrieve current list of active connections.
+
+  - `events: EventEmitter` this is the main events emitter used by HFS.
+
   - `srcDir: string` this can be useful if you need to import some extra function not available in `api`.
     ```js
     exports.init = api => {
