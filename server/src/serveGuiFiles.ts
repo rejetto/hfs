@@ -58,7 +58,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
         proxy = lib.default('localhost:'+port, {
             proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
             userResDecorator(res, data, ctx) {
-                if (!ctx.path.includes('.'))
+                if (ctx.path.endsWith('/'))
                     return treatIndex(ctx, String(data), uri)
                 const mod = getModifier(ctx.path, uri)
                 return mod ? mod(String(data)) : data
