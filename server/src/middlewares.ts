@@ -15,7 +15,7 @@ import mount from 'koa-mount'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { getAccount, getCurrentUsername } from './perm'
-import { socket2connection, updateConnection } from './connections'
+import { socket2connection, updateConnection, normalizeIp } from './connections'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -92,7 +92,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
 
 let proxyDetected = false
 export const someSecurity: Koa.Middleware = async (ctx, next) => {
-    ctx.request.ip = ctx.ip.replace(/^::ffff:/,'') // simplify ipv6-mapped addresses
+    ctx.request.ip = normalizeIp(ctx.ip)
     try {
         let proxy = ctx.get('X-Forwarded-For')
         // we have some dev-proxies to ignore

@@ -25,10 +25,13 @@ export class Connection {
     }
 
     get ip() {
-        return this.ctx?.ip ?? (this._cachedIp = (this._cachedIp ?? this.socket.remoteAddress?.replace(/^::ffff:/,'')))
+        return this.ctx?.ip ?? (this._cachedIp = (this._cachedIp ?? normalizeIp(this.socket.remoteAddress||'')))
     }
 }
 
+export function normalizeIp(ip: string) {
+    return ip.replace(/^::ffff:/,'') // simplify ipv6-mapped addresses
+}
 
 const all: Connection[] = []
 
