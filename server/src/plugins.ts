@@ -138,7 +138,8 @@ if (!existsSync(PATH))
     catch {}
 watchDir(PATH, rescanAsap)
 
-subscribeConfig({ k:'disable_plugins', defaultValue:['download-counter', 'redirect-root'] }, rescanAsap)
+const defaultValue = ['download-counter', 'redirect-root','max-downloads-ip']
+subscribeConfig({ k:'disable_plugins', defaultValue }, rescanAsap)
 
 async function rescan() {
     console.debug('scanning plugins')
