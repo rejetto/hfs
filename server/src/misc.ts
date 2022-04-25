@@ -10,6 +10,7 @@ import Koa from 'koa'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { execFile } from 'child_process'
+import { Connection } from './connections'
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Dict<T = any> = Record<string, T>
@@ -239,10 +240,9 @@ export function with_<T,RT>(par:T, cb: (par:T) => RT) {
     return cb(par)
 }
 
-export function isLocalHost(s: string | Koa.Context) {
-    if (typeof s !== 'string')
-        s = s.socket.remoteAddress || '' // don't use .ip as it is subject to proxied ips
-    return s === '127.0.0.1' || s === '::1' || s === '::ffff:127.0.0.1'
+export function isLocalHost(c: Connection | Koa.Context) {
+    const ip = c.socket.remoteAddress // don't use Context.ip as it is subject to proxied ips, and that's no use for localhost detection
+    return ip && (ip === '::1' || ip.endsWith('127.0.0.1'))
 }
 
 export async function* dirStream(path: string) {

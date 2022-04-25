@@ -57,7 +57,7 @@ export const adminApis: ApiHandlers = {
             urls: getUrls(),
             proxyDetected: getProxyDetected(),
             frpDetected: getConfig('localhost_admin') && !getProxyDetected()
-                && getConnections().every(c => isLocalHost(c.ctx || c.socket.remoteAddress || ''))
+                && getConnections().every(isLocalHost)
                 && await frpDebounced(),
         }
 
