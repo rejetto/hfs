@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import { Writable } from 'stream'
 import { defineConfig, getConfig, subscribeConfig } from './config'
-import { createWriteStream, renameSync } from 'fs'
+import { createWriteStream, existsSync, renameSync, WriteStream } from 'fs'
 import * as util from 'util'
 import { stat } from 'fs/promises'
 import { DAY } from './const'
@@ -99,4 +99,17 @@ export function log(): Koa.Middleware {
 
 function doubleDigit(n: number) {
     return n > 9 ? n : '0'+n
+}
+
+{ // dump console.error to file
+    const was = console.error
+    let log: WriteStream
+    console.error = function(...args: any[]) {
+        was.apply(this, args)
+        if (!log || !existsSync(log.path))
+            log = createWriteStream('debug.log', { flags: 'a' })
+        const params = args.map(x =>
+            typeof x === 'string' ? x : JSON.stringify(x)).join(' ')
+        log.write(new Date().toJSON() + ': ' + params + '\n')
+    }
 }
