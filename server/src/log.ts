@@ -3,9 +3,9 @@
 import Koa from 'koa'
 import { Writable } from 'stream'
 import { defineConfig, getConfig, subscribeConfig } from './config'
-import { createWriteStream } from 'fs'
+import { createWriteStream, renameSync } from 'fs'
 import * as util from 'util'
-import { rename, stat } from 'fs/promises'
+import { stat } from 'fs/promises'
 import { DAY } from './const'
 import events from './events'
 import _ from 'lodash'
@@ -33,7 +33,7 @@ class Logger {
     }
 
     reopen() {
-        this.stream = createWriteStream(this.path, { flags: 'a' })
+        return this.stream = createWriteStream(this.path, { flags: 'a' })
     }
 }
 
@@ -52,11 +52,6 @@ subscribeConfig({ k: 'error_log', defaultValue: 'error.log' }, path => {
     errorLogger.setPath(path)
 })
 
-function getMidnight(date: Date=new Date) {
-    date.setHours(0,0,0,0)
-    return date
-}
-
 defineConfig('log_rotation', { defaultValue: 'weekly' })
 
 export function log(): Koa.Middleware {
@@ -64,28 +59,33 @@ export function log(): Koa.Middleware {
         await next()
         const isError = ctx.status >= 400
         const logger = isError && errorLogger || accessLogger
-        const freq = getConfig('log_rotation')?.[0]
-        const { stream, last, path } = logger
+        const rotate = getConfig('log_rotation')?.[0]
+        let { stream, last, path } = logger
         if (!stream) return
         const now = new Date()
         const a = now.toString().split(' ')
-        if (freq && last) {
+        logger.last = now
+        if (rotate && last) { // rotation enabled and a file exists?
             const passed = Number(now) - Number(last)
                 - 3600_000 // be pessimistic and count a possible DST change
-            if (freq === 'm' && (passed >= 31*DAY || now.getMonth() !== last.getMonth())
-            || freq === 'd' && (passed >= DAY || now.getDate() !== last.getDate())
-            || freq === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
+            if (rotate === 'm' && (passed >= 31*DAY || now.getMonth() !== last.getMonth())
+            || rotate === 'd' && (passed >= DAY || now.getDate() !== last.getDate())
+            || rotate === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
                 stream.end()
                 const postfix = last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
-                await rename(path, path + '-' + postfix)
-                logger.reopen()
+                try { // other logging requests shouldn't happen while we are renaming. Since this is very infrequent we can tolerate solving this by making it sync.
+                    renameSync(path, path + '-' + postfix)
+                }
+                catch(e) {  // ok, rename failed, but this doesn't mean we ain't gonna log
+                    console.error(e)
+                }
+                stream = logger.reopen() // keep variable updated
             }
         }
-        logger.last = now
         const format = '%s - - [%s] "%s %s HTTP/%s" %d %s\n';
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5].slice(3)
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status','length']), { ts: now, uri: ctx.path }))
-        logger.stream!.write(util.format( format,
+        stream.write(util.format( format,
             ctx.ip,
             date,
             ctx.method,
