@@ -87,7 +87,7 @@ export default function ConfigPage() {
             values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file" },
             { k: 'open_browser_at_start', comp: BoolField },
             { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections",
-                validate: x => x || admins?.length>0 || "First create at least one admin account",
+                validate: x => x || !admins || admins.length>0 || "First create at least one admin account",
                 helperText: "To access Admin without entering credentials"
             },
             ...Object.entries(logLabels).map(a => ({ k: a[0], label: a[1], lg: 3 })),
