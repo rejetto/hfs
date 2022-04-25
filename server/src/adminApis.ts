@@ -178,8 +178,13 @@ export const adminApis: ApiHandlers = {
                 setConfig({ [cfgK]: disable ? [...a, id] : a.filter((x: string) => x !== id) })
         }
         if (config) {
-            const o = { ...getConfig(CFG_PLUGINS_CONFIG), [id]: config }
-            setConfig({ [CFG_PLUGINS_CONFIG]: o })
+            config = _.pickBy(config, v => v !== null)
+            const o = { ...getConfig(CFG_PLUGINS_CONFIG) }
+            if (_.isEmpty(config))
+                delete o[id]
+            else
+                o[id] = config
+            setConfig({ [CFG_PLUGINS_CONFIG]: _.isEmpty(o) ? undefined : o })
         }
         return {}
     },
