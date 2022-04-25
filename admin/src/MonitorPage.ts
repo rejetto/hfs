@@ -68,7 +68,6 @@ function Connections() {
         [!paused && list, filtered]) //eslint-disable-line
     // memoizing the table will work around a little DataGrid's bug https://github.com/mui/mui-x/issues/4139
     const table = useMemo(() => h(DataGrid, {
-        pageSize: 25,
         rows,
         columns: [
             {
