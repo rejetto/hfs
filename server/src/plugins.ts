@@ -158,7 +158,10 @@ async function rescan() {
             const pl = foundDisabled[id] = { id } as typeof foundDisabled[0]
             try {
                 const source = await readFile(f, 'utf8')
-                pl.description = /exports.description *= *"([^"]*)"/.exec(source)?.[1]
+                const v = pl.description = /exports.description *= *"(.*)"/.exec(source)?.[1]
+                if (v)
+                    try { pl.description = JSON.parse(`"${v}"`) }
+                    catch {}
                 pl.version = Number(/exports.version *= *(\d+)/.exec(source)?.[1]) || undefined
                 pl.apiRequired = Number(/exports.apiRequired *= *(\d+)/.exec(source)?.[1]) || undefined
             }
