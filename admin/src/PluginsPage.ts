@@ -27,6 +27,7 @@ export default function PluginsPage() {
                 field: 'id',
                 headerName: "name",
                 flex: .3,
+                minWidth: 150,
             },
             {
                 field: 'started',
@@ -35,7 +36,7 @@ export default function PluginsPage() {
             },
             {
                 field: 'version',
-                width: 80,
+                width: 70,
             },
             {
                 field: 'description',
