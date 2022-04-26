@@ -34,7 +34,7 @@ export function prefix(pre:string, v:string|number, post:string='') {
 }
 
 export function setHidden(dest: object, src:object) {
-    Object.defineProperties(dest, objSameKeys(src as any, value => ({
+    return Object.defineProperties(dest, objSameKeys(src as any, value => ({
         enumerable: false,
         writable: true,
         value,

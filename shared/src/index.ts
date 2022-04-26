@@ -59,3 +59,10 @@ export function onlyTruthy<T>(arr: T[]) {
     return arr.filter(truthy)
 }
 
+export function setHidden(dest: object, src:object) {
+    return Object.defineProperties(dest, objSameKeys(src as any, value => ({
+        enumerable: false,
+        writable: true,
+        value,
+    })))
+}

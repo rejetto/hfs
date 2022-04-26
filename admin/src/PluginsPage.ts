@@ -1,11 +1,12 @@
-import { createElement as h, FC, isValidElement } from "react"
+import { createElement as h, isValidElement } from "react"
 import { apiCall, useApiComp, useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
 import { Alert, Box } from '@mui/material'
 import { IconBtn } from './misc'
 import { PowerSettingsNew, Settings } from '@mui/icons-material'
 import { alertDialog, formDialog } from './dialog'
-import { BoolField, MultiSelectField, NumberField, SelectField, StringField } from './Form'
+import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from './Form'
+import { ArrayField } from './ArrayField'
 
 const PLUGINS_CONFIG = 'plugins_config'
 
@@ -79,9 +80,12 @@ export default function PluginsPage() {
 }
 
 function makeFields(config: any) {
-    return Object.entries(config).map(([k,o]) => {
-        const comp = (type2comp as any)[(o as any)?.type] as FC | undefined
-        return ({ k, comp, ...(typeof o === 'object' ? o : null) })
+    return Object.entries(config).map(([k,o]: [string,any]) => {
+        const comp = (type2comp as any)[o?.type] as Field<any> | undefined
+        // @ts-ignore
+        if (comp === ArrayField)
+            o.fields = makeFields(o.fields)
+        return { k, comp, ...(typeof o === 'object' ? o : null) }
     })
 }
 
@@ -91,4 +95,5 @@ const type2comp = {
     boolean: BoolField,
     select: SelectField,
     multiselect: MultiSelectField,
+    array: ArrayField,
 }

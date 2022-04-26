@@ -28,7 +28,7 @@ import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 import { SxProps } from '@mui/system'
 
-interface FieldDescriptor<T=any> {
+export interface FieldDescriptor<T=any> {
     k: string
     comp?: any
     label?: ReactNode
@@ -141,7 +141,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                             field.helperText = field.helperText ? h(Fragment, {}, error, h('br'), field.helperText)
                                 : error
                         if (field.label === undefined)
-                            field.label = _.capitalize(k.replace(/_/g, ' '))
+                            field.label = labelFromKey(k)
                         _.defaults(field, defaults?.(field))
                     }
                     const { xs=12, sm, md, lg, xl, comp=StringField,
@@ -169,6 +169,10 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
             )
         )
     )
+}
+
+export function labelFromKey(k: string) {
+    return _.capitalize(k.replace(/_/g, ' '))
 }
 
 export interface FieldProps<T> {
@@ -351,7 +355,6 @@ export function RadioField<T>({ label, options, value, onChange }: FieldProps<T>
 }
 
 export function CheckboxesField({ label, options, value, onChange }: FieldProps<string[]> & { options: string[] }) {
-    console.log({ value })
     return h(FormControl, {},
         label && h(FormLabel, {}, label),
         h(FormGroup, {},
