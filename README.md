@@ -59,10 +59,10 @@ If your system is not covered, you can try this alternative version:
 
 # Plug-ins
 
-If a `plugins` folder is present, HFS monitors it.
-Each plug-in is a sub-folder of `plugins` folder.
+To install a plugin you just copy its folder inside `plugins` folder.
 
-Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
+Delete it to uninstall.
+
 HFS will ignore all folders with `-disabled` at the end of the name.
 
 # Developers section
@@ -97,11 +97,11 @@ In this latter case, the `DEV=1` you set before will make the server get the fil
 
 A plug-in is a folder with a `plugin.js` file in it.
 
+Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
+
 Each plug-in has access to the same set of features.
 Normally you'll have a plug-in that's a theme, and another that's a firewall,
 but nothing is preventing a single plug-in from doing both tasks.
-
-You can find some examples distributed as `plugins.zip`.
 
 `plugin.js` is a javascript module that exports an `init` function like this:
 ```js
@@ -111,10 +111,10 @@ exports.init = api => ({
 ```
 
 The init function is called when the module is loaded and should return an object with things to customize.
-In this example we are asking a css file to be loaded in the frontend.
+In the example above we are asking a css file to be loaded in the frontend.
 The parameter `api` object contains some useful things we'll see later.
-You can decide to return things in the `init` function, or directly in the `exports`. Normally you should use `init`
-if you need to access the api, otherwise you can go directly with `exports`.
+You can decide to return things in the `init` function, or directly in the `exports`. 
+If you need to access the api you must use `init`, otherwise you can go directly with `exports`.
 
 Let's first look at the things you can return:
 
@@ -250,6 +250,7 @@ Supported entries are:
     ```
   Syntax supports, other than simple address, `*` as wildcard and CIDR format.
 - `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration.
+- `enable_plugins` if a plugin is not present here, it won't run. Defaults is `[ antibrute ]`.
 - `custom_header` provide HTML code to be put at the top of your Frontend. Default is none.
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.

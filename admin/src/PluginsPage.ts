@@ -52,7 +52,7 @@ export default function PluginsPage() {
                             icon: PowerSettingsNew,
                             title: (row.started ? "Stop" : "Start") + ' ' + id,
                             onClick: () =>
-                                apiCall('set_plugin', { id, disable: !!row.started }).then(() =>
+                                apiCall('set_plugin', { id, enabled: !row.started }).then(() =>
                                     alertDialog(row.started ? "Plugin is stopping" : "Plugin is starting")),
                         }),
                         h(IconBtn, {

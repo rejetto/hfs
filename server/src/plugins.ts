@@ -3,8 +3,8 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import { resolve } from 'path'
-import { API_VERSION, CFG_PLUGINS_CONFIG, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
+import pathLib from 'path'
+import { API_VERSION, CFG_ENABLE_PLUGINS, CFG_PLUGINS_CONFIG, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import { debounceAsync, getOrSet, onProcessExit, wantArray, watchDir } from './misc'
@@ -91,7 +91,7 @@ export class Plugin {
                 console.warn('invalid', k)
             }
         }
-        events.emit(old ? 'pluginReloaded' : 'pluginLoaded', this)
+        events.emit(old || availablePlugins[id] ? 'pluginStarted' : 'pluginInstalled', this)
     }
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
@@ -111,14 +111,18 @@ export class Plugin {
     }
 
     unload() {
-        console.log('unloading plugin', this.id)
+        const { id } = this
+        console.log('unloading plugin', id)
         try { this.data?.unload?.() }
         catch(e) {
-            console.debug('error unloading plugin', this.id, String(e))
+            console.debug('error unloading plugin', id, String(e))
         }
-        delete plugins[this.id]
+        delete plugins[id]
         this.unwatch()
-        events.emit('pluginUnloaded', this.id)
+        if (availablePlugins[id])
+            events.emit('pluginStopped', availablePlugins[id])
+        else
+            events.emit('pluginUninstalled', id)
     }
 }
 
@@ -126,7 +130,8 @@ type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
 type Stop = true
 type CallMeAfter = ()=>void
 
-let availablePlugins: Record<string, { id: string, description?: string, version?: number, apiRequired?: number }> = {}
+export interface AvailablePlugin { id: string, description?: string, version?: number, apiRequired?: number }
+let availablePlugins: Record<string, AvailablePlugin> = {}
 
 export function getAvailablePlugins() {
     return Object.values(availablePlugins)
@@ -138,18 +143,18 @@ if (!existsSync(PATH))
     catch {}
 watchDir(PATH, rescanAsap)
 
-const defaultValue = ['download-counter', 'redirect-root','max-downloads-ip']
-subscribeConfig({ k:'disable_plugins', defaultValue }, rescanAsap)
+const defaultValue = ['antibrute']
+subscribeConfig({ k: CFG_ENABLE_PLUGINS, defaultValue }, rescanAsap)
 
 async function rescan() {
     console.debug('scanning plugins')
     const found = []
     const foundDisabled: typeof availablePlugins = {}
-    const disable_plugins = wantArray(getConfig('disable_plugins'))
+    const enable_plugins = wantArray(getConfig(CFG_ENABLE_PLUGINS))
     for (let f of await glob(PATH+'/*/plugin.js')) {
         const id = f.split('/').slice(-2)[0]
         if (id.endsWith('-disabled')) continue
-        if (disable_plugins.includes(id)) {
+        if (!enable_plugins.includes(id)) {
             const pl = foundDisabled[id] = { id } as typeof foundDisabled[0]
             try {
                 const source = await readFile(f, 'utf8')
@@ -163,13 +168,13 @@ async function rescan() {
         found.push(id)
         if (plugins[id]) // already loaded
             continue
-        f = resolve(f) // without this, import won't work
+        const module = pathLib.resolve(f)
         const { unwatch } = watchLoad(f, async () => {
             try {
                 console.log(plugins[id] ? 'reloading plugin' : 'loading plugin', id)
-                const { init, ...data } = await import(f)
+                const { init, ...data } = await import(module)
                 delete data.default
-                deleteModule(require.resolve(f)) // avoid caching
+                deleteModule(require.resolve(module)) // avoid caching at next import
                 if (data.apiRequired > API_VERSION)
                     console.log('plugin', id, 'may not work correctly as it is designed for a newer version of HFS')
                 if (data.apiRequired < COMPATIBLE_API_VERSION)
@@ -190,16 +195,16 @@ async function rescan() {
             }
         })
     }
+    for (const id in foundDisabled)
+        if (!availablePlugins[id] && !plugins[id])
+            events.emit('pluginInstalled', foundDisabled[id])
+    for (const id in availablePlugins)
+        if (!foundDisabled[id] && !plugins[id])
+            events.emit('pluginUninstalled', id)
+    availablePlugins = foundDisabled
     for (const id in plugins)
         if (!found.includes(id))
             plugins[id].unload()
-    for (const k in foundDisabled)
-        if (!availablePlugins[k])
-            events.emit('pluginAvailable', foundDisabled[k])
-    for (const k in availablePlugins)
-        if (!foundDisabled[k])
-        events.emit('pluginAvailableNoMore', availablePlugins[k])
-    availablePlugins = foundDisabled
 }
 
 function deleteModule(id: string) {

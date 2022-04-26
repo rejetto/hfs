@@ -3,7 +3,7 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { defineConfig, getConfig, getWholeConfig, setConfig } from './config'
 import { getStatus, getUrls } from './listen'
-import { API_VERSION, BUILD_TIMESTAMP, CFG_PLUGINS_CONFIG,
+import { API_VERSION, BUILD_TIMESTAMP, CFG_ENABLE_PLUGINS, CFG_PLUGINS_CONFIG,
     COMPATIBLE_API_VERSION, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
@@ -19,7 +19,7 @@ import { writeFile } from 'fs/promises'
 import { createReadStream } from 'fs'
 import * as readline from 'readline'
 import { loggers } from './log'
-import { mapPlugins, getAvailablePlugins, Plugin } from './plugins'
+import { mapPlugins, getAvailablePlugins, Plugin, AvailablePlugin } from './plugins'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 
@@ -155,27 +155,24 @@ export const adminApis: ApiHandlers = {
     get_plugins({}, ctx) {
         const list = sendList([ ...mapPlugins(serialize), ...getAvailablePlugins() ])
         return list.events(ctx, {
-            pluginLoaded: p => list.add(serialize(p)),
-            pluginReloaded: p => {
+            pluginInstalled: p => list.add(serialize(p)),
+            'pluginStarted pluginStopped': p => {
                 const { id, ...rest } = serialize(p)
                 list.update({ id }, rest)
             },
-            pluginUnloaded: id => list.remove({ id }),
-            pluginAvailableNoMore: p => list.remove({ id: p.id }),
-            pluginAvailable: p => list.add(p),
+            pluginUninstalled: id => list.remove({ id }),
         })
 
-        function serialize(p: Readonly<Plugin>) {
-            return Object.assign(p.getData(), _.pick(p, ['id','started']))
+        function serialize(p: Readonly<Plugin> | AvailablePlugin) {
+            return Object.assign('getData' in p ? p.getData() : p, { started: null }, _.pick(p, ['id','started']))
         }
     },
 
-    async set_plugin({ id, disable, config }) {
-        if (disable !== undefined) {
-            const cfgK = 'disable_plugins'
-            const a = getConfig(cfgK)
-            if (a.includes(id) !== disable)
-                setConfig({ [cfgK]: disable ? [...a, id] : a.filter((x: string) => x !== id) })
+    async set_plugin({ id, enabled, config }) {
+        if (enabled !== undefined) {
+            const a = getConfig(CFG_ENABLE_PLUGINS)
+            if (a.includes(id) !== enabled)
+                setConfig({ [CFG_ENABLE_PLUGINS]: enabled ? [...a, id] : a.filter((x: string) => x !== id) })
         }
         if (config) {
             config = _.pickBy(config, v => v !== null)
