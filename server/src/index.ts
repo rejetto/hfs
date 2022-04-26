@@ -39,7 +39,8 @@ function errorHandler(err:Error & { code:string, path:string }) {
 }
 
 process.on('uncaughtException', err => {
-    console.error(err)
+    if ((err as any).syscall !== 'watch')
+        console.error(err)
 })
 
 subscribeConfig({ k: 'proxies', defaultValue: 0 }, n => {
