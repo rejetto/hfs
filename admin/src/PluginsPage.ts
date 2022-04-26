@@ -1,7 +1,7 @@
 import { createElement as h, FC, isValidElement } from "react"
 import { apiCall, useApiComp, useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
-import { Alert } from '@mui/material'
+import { Alert, Box } from '@mui/material'
 import { IconBtn } from './misc'
 import { PowerSettingsNew, Settings } from '@mui/icons-material'
 import { alertDialog, formDialog } from './dialog'
@@ -63,7 +63,7 @@ export default function PluginsPage() {
                             onClick() {
                                 formDialog({
                                     title: `${id} configuration`,
-                                    fields: makeFields(config),
+                                    fields: [ h(Box, {}, row.description), ...makeFields(config) ],
                                     values: cfg?.[id],
                                 }).then(config => {
                                     if (config)
