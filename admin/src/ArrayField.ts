@@ -71,9 +71,6 @@ export function ArrayField<T=any>({ label, helperText, fields, value, onChange, 
                 rows,
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
-                pageSize: rows.length,
-                rowsPerPageOptions: [rows.length],
-                autoPageSize: true,
                 componentsProps: {
                     pagination: {
                         showFirstButton: true,
