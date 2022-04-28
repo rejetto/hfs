@@ -6,12 +6,14 @@ import fs from 'fs/promises'
 import { FORBIDDEN, METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
 import { getNodeName, MIME_AUTO, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
-import { defineConfig, getConfig } from './config'
+import { defineConfig } from './config'
 import mm, { isMatch } from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
 import { updateConnection } from './connections'
+
+const allowedReferer = defineConfig('allowed_referer')
 
 export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const { source, mime } = node
@@ -19,11 +21,11 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const mimeString = typeof mime === 'string' ? mime
         : _.find(mime, (val,mask) => isMatch(name, mask))
     return (ctx, next) => {
-       const allowedRef = getConfig('allowed_referer')
-        if (allowedRef) {
+       const allowed = allowedReferer.get()
+        if (allowed) {
             const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
             if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
-            && !isMatch(ref, allowedRef))
+            && !isMatch(ref, allowed))
                 return ctx.status = FORBIDDEN
 
             function host() {
@@ -37,7 +39,7 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
     }
 }
 
-defineConfig('mime', { defaultValue:{ '*.jpg|*.png|*.mp3|*.txt': 'auto' } })
+const mimeCfg = defineConfig('mime', { '*.jpg|*.png|*.mp3|*.txt': 'auto' })
 
 export function serveFile(source:string, mime?:string, modifier?:(s:string)=>string) : Koa.Middleware {
     return async (ctx) => {
@@ -45,9 +47,8 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
             return
         const { range } = ctx.request.header
         ctx.set('Accept-Ranges', 'bytes')
-        const mimeCfg = getConfig('mime')
         const fn = path.basename(source)
-        mime = mime ?? _.find(mimeCfg, (v,k) => k && mm.isMatch(fn, k))
+        mime = mime ?? _.find(mimeCfg.get(), (v,k) => k && mm.isMatch(fn, k))
         if (mime === MIME_AUTO)
             mime = mimetypes.lookup(source) || ''
         if (mime)

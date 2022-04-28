@@ -11,7 +11,7 @@ import { throttler } from './throttler'
 import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, prepareState } from './middlewares'
 import './listen'
 import { adminApis } from './adminApis'
-import { subscribeConfig } from './config'
+import { defineConfig } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
 
@@ -43,7 +43,7 @@ process.on('uncaughtException', err => {
         console.error(err)
 })
 
-subscribeConfig({ k: 'proxies', defaultValue: 0 }, n => {
+defineConfig('proxies', 0).sub(n => {
     app.proxy = n > 0
     app.maxIpsCount = n
 })

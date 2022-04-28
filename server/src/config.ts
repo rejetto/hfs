@@ -9,8 +9,6 @@ import { debounceAsync, objSameKeys, onOff, wait } from './misc'
 import { exists } from 'fs'
 import { promisify } from 'util'
 
-export const CFG_ALLOW_CLEAR_TEXT_LOGIN = 'allow_clear_text_login'
-
 const PATH = 'config.yaml'
 
 const configProps:Record<string, ConfigProps<any>> = {}
@@ -30,34 +28,39 @@ const { save } = watchLoad(path, values => setConfig(values||{}, false), {
 
 interface ConfigProps<T> {
     defaultValue?: T,
-    arg?: T,
-    caster: (argV:string)=> T
 }
-export function defineConfig<T>(k: string, definition: Partial<ConfigProps<T>>) {
-    const { caster = _.identity } = definition
-    configProps[k] = {
-        caster,
-        ...definition,
-        defaultValue: _.cloneDeep(definition.defaultValue),
+export function defineConfig<T>(k: string, defaultValue?: T) {
+    configProps[k] = { defaultValue }
+    return {
+        key() {
+            return k
+        },
+        get() {
+            return getConfig(k)
+        },
+        sub(cb: (v:T, was?:T)=>void) {
+            return subscribeConfig(k, cb)
+        },
+        set(v: T) {
+            setConfig({ [k]: v })
+        }
     }
 }
 
-export function subscribeConfig<T>({ k, ...definition }:{ k:string } & Partial<ConfigProps<T>>, cb:(v:T, was?:T)=>void) {
-    if (definition)
-        defineConfig(k, definition)
+function subscribeConfig<T>(k:string, cb: (v:T, was?:T)=>void) {
     const { defaultValue } = configProps[k] ?? {}
     const eventName = 'new.'+k
     if (started) {
         let v = state[k]
         if (v === undefined)
-            state[k] = v = _.cloneDeep(defaultValue)
+            state[k] = v = _.cloneDeep(defaultValue) // clone to avoid changing
         if (v !== undefined)
             cb(v)
     }
     return onOff(cfgEvents, { [eventName]: cb })
 }
 
-export function getConfig(k:string) {
+function getConfig(k:string) {
     return k in state ? state[k] : configProps[k]?.defaultValue
 }
 
@@ -103,10 +106,8 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
     function check(k: string) {
         const oldV = started ? getConfig(k) : state[k] // from second time consider also defaultValue
         const newV = newCfg[k]
-        const { caster, defaultValue } = configProps[k] ?? {}
+        const { defaultValue } = configProps[k] ?? {}
         let v = newV ?? _.cloneDeep(defaultValue) // if we have an object we may get into troubles letting others change ours
-        if (caster)
-            v = caster(v)
         const j = JSON.stringify(v)
         if (j === JSON.stringify(oldV)) return // no change
         state[k] = v
@@ -130,13 +131,3 @@ export const saveConfigAsap = debounceAsync(async () => {
     save(path, txt)
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
-
-// async version of getConfig, allowing you to wait for config to be ready
-export async function getConfigReady<T>(k: string, definition?: object) {
-    return new Promise<T>(resolve => {
-        const off = subscribeConfig({ k, ...definition }, v => {
-            off?.()
-            resolve(v as T)
-        })
-    })
-}

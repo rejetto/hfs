@@ -3,14 +3,14 @@
 import { Readable } from 'stream'
 import Koa from 'koa'
 import { ThrottledStream, ThrottleGroup } from './ThrottledStream'
-import { subscribeConfig } from './config'
+import { defineConfig } from './config'
 import { getOrSet, isLocalHost } from './misc'
 import { updateConnection } from './connections'
 import _ from 'lodash'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
-subscribeConfig({ k:'max_kbps', defaultValue:null }, v =>
+defineConfig('max_kbps', null).sub(v =>
     mainThrottleGroup.updateLimit(v ?? Infinity))
 
 const ip2group: Record<string, {
@@ -22,6 +22,8 @@ const ip2group: Record<string, {
 const SymThrStr = Symbol('stream')
 const SymTimeout = Symbol('timeout')
 
+const maxKbpsPerIp = defineConfig('max_kbps_per_ip', null)
+
 export const throttler: Koa.Middleware = async (ctx, next) => {
     await next()
     const { body } = ctx
@@ -32,7 +34,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         const doLimit = ctx.state.account?.ignore_limits || isLocalHost(ctx) ? undefined : true
         const group = new ThrottleGroup(Infinity, doLimit && mainThrottleGroup)
 
-        const unsub = doLimit && subscribeConfig({ k:'max_kbps_per_ip', defaultValue:null }, v =>
+        const unsub = doLimit && maxKbpsPerIp.sub(v =>
             group.updateLimit(v ?? Infinity))
         return { group, count:0, destroy: unsub }
     })

@@ -1,11 +1,11 @@
-import { subscribeConfig } from './config'
+import { defineConfig } from './config'
 import { getConnections } from './connections'
 import { onlyTruthy, with_ } from './misc'
 import cidr from 'cidr-tools'
 import _ from 'lodash'
 import { Socket } from 'net'
 
-subscribeConfig({ k: 'block', defaultValue: [] }, (rules: any) => {
+defineConfig<string[]>('block', []).sub(rules => {
     compileBlock(rules)
     for (const { socket, ip } of getConnections())
         applyBlock(socket, ip)

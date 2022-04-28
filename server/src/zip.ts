@@ -6,7 +6,7 @@ import { filterMapGenerator, pattern2filter, prefix } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
-import { defineConfig, getConfig } from './config'
+import { defineConfig } from './config'
 import { dirname } from 'path'
 
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
@@ -48,10 +48,10 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         catch {}
     })
     const zip = new QuickZipStream(mappedWalker)
-    const time = 1000 * (getConfig('zip_calculate_size_for_seconds'))
+    const time = 1000 * zipSeconds.get()
     ctx.response.length = await zip.calculateSize(time)
     ctx.body = zip
     ctx.req.on('close', ()=> zip.destroy())
 }
 
-defineConfig('zip_calculate_size_for_seconds', { defaultValue: 1 })
+const zipSeconds = defineConfig('zip_calculate_size_for_seconds', 1)

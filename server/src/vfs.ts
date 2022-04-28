@@ -7,7 +7,7 @@ import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys
 import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
-import { setConfig, subscribeConfig } from './config'
+import { defineConfig, setConfig } from './config'
 import { FORBIDDEN, IS_WINDOWS } from './const'
 import events from './events'
 import { getCurrentUsernameExpanded } from './perm'
@@ -115,7 +115,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
 }
 
 export let vfs: VfsNode = {}
-subscribeConfig<VfsNode>({ k: 'vfs', defaultValue: {} }, data =>
+defineConfig<VfsNode>('vfs', {}).sub(data =>
     vfs = data)
 
 export function saveVfs() {

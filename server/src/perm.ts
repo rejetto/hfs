@@ -4,7 +4,7 @@ import _ from 'lodash'
 import { hashPassword } from './crypt'
 import { objRenameKey, setHidden, wantArray } from './misc'
 import Koa from 'koa'
-import { CFG_ALLOW_CLEAR_TEXT_LOGIN, getConfig, saveConfigAsap, setConfig, subscribeConfig } from './config'
+import { defineConfig, saveConfigAsap, setConfig } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
 import { watchLoad } from './watchLoad'
@@ -54,6 +54,8 @@ export function saveSrpInfo(account:Account, salt:string | bigint, verifier: str
     account.srp = String(salt) + '|' + String(verifier)
 }
 
+export const allowClearTextLogin = defineConfig('allow_clear_text_login')
+
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
 type Changer = (account:Account)=> void | Promise<void>
@@ -63,7 +65,7 @@ export async function updateAccount(account: Account, changer?:Changer) {
     const { username } = account
     if (account.password) {
         console.debug('hashing password for', username)
-        if (getConfig(CFG_ALLOW_CLEAR_TEXT_LOGIN))
+        if (allowClearTextLogin.get())
             account.hashed_password = await hashPassword(account.password)
         const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, account.password)
         saveSrpInfo(account, res.s, res.v)
@@ -90,7 +92,7 @@ watchLoad('accounts.yaml', accounts => {
     unlink('accounts.yaml', () => console.log("accounts file merged"))
 })
 
-subscribeConfig<Accounts>({ k:'accounts', defaultValue: {} }, async v => {
+defineConfig<Accounts>('accounts', {}).sub(async v => {
     // we should validate content here
     accounts = v // keep local reference
     await Promise.all(_.map(accounts, async (rec,k) => {

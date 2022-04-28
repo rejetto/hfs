@@ -4,11 +4,11 @@ import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import pathLib from 'path'
-import { API_VERSION, CFG_ENABLE_PLUGINS, CFG_PLUGINS_CONFIG, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
+import { API_VERSION, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import { debounceAsync, getOrSet, onProcessExit, wantArray, watchDir } from './misc'
-import { getConfig, subscribeConfig } from './config'
+import { defineConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
@@ -143,18 +143,19 @@ if (!existsSync(PATH))
     catch {}
 watchDir(PATH, rescanAsap)
 
-const defaultValue = ['antibrute']
-subscribeConfig({ k: CFG_ENABLE_PLUGINS, defaultValue }, rescanAsap)
+export const enablePlugins = defineConfig('enable_plugins', ['antibrute'])
+enablePlugins.sub(rescanAsap)
+
+export const pluginsConfig = defineConfig('plugins_config')
 
 async function rescan() {
     console.debug('scanning plugins')
     const found = []
     const foundDisabled: typeof availablePlugins = {}
-    const enable_plugins = wantArray(getConfig(CFG_ENABLE_PLUGINS))
     for (let f of await glob(PATH+'/*/plugin.js')) {
         const id = f.split('/').slice(-2)[0]
         if (id.endsWith('-disabled')) continue
-        if (!enable_plugins.includes(id)) {
+        if (!enablePlugins.get().includes(id)) {
             const pl = foundDisabled[id] = { id } as typeof foundDisabled[0]
             try {
                 const source = await readFile(f, 'utf8')
@@ -189,7 +190,7 @@ async function rescan() {
                     getConnections,
                     events,
                     getConfig: (cfgKey: string) =>
-                        getConfig(CFG_PLUGINS_CONFIG)?.[id]?.[cfgKey]
+                        pluginsConfig.get()?.[id]?.[cfgKey]
                 })
                 Object.assign(data, res)
                 new Plugin(id, data, unwatch)

@@ -2,7 +2,7 @@
 
 import Koa from 'koa'
 import { Writable } from 'stream'
-import { defineConfig, getConfig, subscribeConfig } from './config'
+import { defineConfig } from './config'
 import { createWriteStream, existsSync, renameSync, WriteStream } from 'fs'
 import * as util from 'util'
 import { stat } from 'fs/promises'
@@ -42,24 +42,25 @@ const accessLogger = new Logger('log')
 const errorLogger = new Logger('error_log')
 export const loggers = [accessLogger, errorLogger]
 
-subscribeConfig({ k: 'log', defaultValue: 'access.log' }, path => {
+defineConfig('log', 'access.log').sub(path => {
     console.debug('log file: ' + (path || 'disabled'))
     accessLogger.setPath(path)
 })
 
-subscribeConfig({ k: 'error_log', defaultValue: 'error.log' }, path => {
+const errorLogFile = defineConfig('error_log', 'error.log')
+errorLogFile.sub(path => {
     console.debug('error log: ' + (path || 'disabled'))
     errorLogger.setPath(path)
 })
 
-defineConfig('log_rotation', { defaultValue: 'weekly' })
+const logRotation = defineConfig('log_rotation', 'weekly')
 
 export function log(): Koa.Middleware {
     return async (ctx, next) => {  // wrapping in a function will make it use current 'mw' value
         await next()
         const isError = ctx.status >= 400
         const logger = isError && errorLogger || accessLogger
-        const rotate = getConfig('log_rotation')?.[0]
+        const rotate = logRotation.get()?.[0]
         let { stream, last, path } = logger
         if (!stream) return
         const now = new Date()

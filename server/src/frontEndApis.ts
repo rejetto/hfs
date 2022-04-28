@@ -3,13 +3,15 @@
 import { ApiHandlers } from './apiMiddleware'
 import { file_list } from './api.file_list'
 import * as api_auth from './api.auth'
-import { getConfig } from './config'
+import { defineConfig } from './config'
+
+const customHeader = defineConfig('custom_header')
 
 export const frontEndApis: ApiHandlers = {
     file_list,
     ...api_auth,
 
     config() {
-        return Object.fromEntries(['custom_header'].map(k => [k, getConfig(k)]))
+        return Object.fromEntries([customHeader].map(x => [x.key(), x.get()]))
     }
 }

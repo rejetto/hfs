@@ -1,10 +1,9 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { defineConfig, getConfig, getWholeConfig, setConfig } from './config'
-import { getStatus, getUrls } from './listen'
-import { API_VERSION, BUILD_TIMESTAMP, CFG_ENABLE_PLUGINS, CFG_PLUGINS_CONFIG,
-    COMPATIBLE_API_VERSION, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
+import { defineConfig, getWholeConfig, setConfig } from './config'
+import { getStatus, getUrls, httpsPortCfg, portCfg } from './listen'
+import { API_VERSION, BUILD_TIMESTAMP, COMPATIBLE_API_VERSION, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
@@ -19,7 +18,7 @@ import { writeFile } from 'fs/promises'
 import { createReadStream } from 'fs'
 import * as readline from 'readline'
 import { loggers } from './log'
-import { mapPlugins, getAvailablePlugins, Plugin, AvailablePlugin } from './plugins'
+import { mapPlugins, getAvailablePlugins, Plugin, AvailablePlugin, enablePlugins, pluginsConfig } from './plugins'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 
@@ -31,8 +30,8 @@ export const adminApis: ApiHandlers = {
     async set_config({ values: v }) {
         if (v) {
             const st = getStatus()
-            const noHttp = (v.port ?? getConfig('port')) < 0 || !st.httpSrv.listening
-            const noHttps = (v.https_port ?? getConfig('https_port')) < 0 || !st.httpsSrv.listening
+            const noHttp = (v.port ?? portCfg.get()) < 0 || !st.httpSrv.listening
+            const noHttps = (v.https_port ?? httpsPortCfg.get()) < 0 || !st.httpsSrv.listening
             if (noHttp && noHttps)
                 return new ApiError(FORBIDDEN, "You cannot switch off both http and https ports")
             await setConfig(v)
@@ -52,11 +51,11 @@ export const adminApis: ApiHandlers = {
             version: VERSION,
             apiVersion: API_VERSION,
             compatibleApiVersion: COMPATIBLE_API_VERSION,
-            http: serverStatus(st.httpSrv, getConfig('port')),
-            https: serverStatus(st.httpsSrv, getConfig('https_port')),
+            http: serverStatus(st.httpSrv, portCfg.get()),
+            https: serverStatus(st.httpsSrv, httpsPortCfg.get()),
             urls: getUrls(),
             proxyDetected: getProxyDetected(),
-            frpDetected: getConfig('localhost_admin') && !getProxyDetected()
+            frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
                 && await frpDebounced(),
         }
@@ -170,18 +169,18 @@ export const adminApis: ApiHandlers = {
 
     async set_plugin({ id, enabled, config }) {
         if (enabled !== undefined) {
-            const a = getConfig(CFG_ENABLE_PLUGINS)
+            const a = enablePlugins.get()
             if (a.includes(id) !== enabled)
-                setConfig({ [CFG_ENABLE_PLUGINS]: enabled ? [...a, id] : a.filter((x: string) => x !== id) })
+                enablePlugins.set( enabled ? [...a, id] : a.filter((x: string) => x !== id) )
         }
         if (config) {
             config = _.pickBy(config, v => v !== null)
-            const o = { ...getConfig(CFG_PLUGINS_CONFIG) }
+            const o = { ...pluginsConfig.get() }
             if (_.isEmpty(config))
                 delete o[id]
             else
                 o[id] = config
-            setConfig({ [CFG_PLUGINS_CONFIG]: _.isEmpty(o) ? undefined : o })
+            pluginsConfig.set( _.isEmpty(o) ? undefined : o )
         }
         return {}
     },
@@ -223,10 +222,10 @@ for (const k in adminApis) {
             : new ApiError(401)
 }
 
-defineConfig('localhost_admin', { defaultValue: true })
+export const localhostAdmin = defineConfig('localhost_admin', true)
 
 export function ctxAdminAccess(ctx: Koa.Context) {
-    return isLocalHost(ctx) && getConfig('localhost_admin')
+    return isLocalHost(ctx) && localhostAdmin.get()
             && !ctx.state.proxiedFor // this may detect an http-proxied request on localhost
         || getFromAccount(ctx.state.account, a => a.admin)
 }

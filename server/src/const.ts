@@ -29,9 +29,6 @@ export const FORBIDDEN = 403
 
 export const IS_WINDOWS = process.platform === 'win32'
 
-export const CFG_PLUGINS_CONFIG = 'plugins_config'
-export const CFG_ENABLE_PLUGINS = 'enable_plugins'
-
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()
 else console.debug = ()=>{}

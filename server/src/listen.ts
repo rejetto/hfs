@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import * as http from 'http'
-import { defineConfig, getConfig, subscribeConfig } from './config'
+import { defineConfig } from './config'
 import { app } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
@@ -11,13 +11,15 @@ import open from 'open'
 import { onlyTruthy, prefix, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
-import _ from 'lodash'
 
 interface ServerExtra { name: string, error?: string, busy?: string }
 let httpSrv: http.Server & ServerExtra
 let httpsSrv: http.Server & ServerExtra
 
-subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
+const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
+
+export const portCfg = defineConfig<number>('port', 80)
+portCfg.sub(async port => {
     while (!app)
         await wait(100)
     stopServer(httpSrv).then()
@@ -26,47 +28,47 @@ subscribeConfig<number>({ k:'port', defaultValue: 80 }, async port => {
     if (!port) return
     httpSrv.on('connection', newConnection)
     printUrls(port, 'http')
-    if (getConfig('open_browser_at_start'))
+    if (openBrowserAtStart.get())
         open('http://localhost' + (port === 80 ? '' : ':' + port) + ADMIN_URI).then()
 })
 
-defineConfig('open_browser_at_start', { defaultValue: !DEV })
-
-const httpsNeeds = { cert:'', private_key:'' }
+const cert = defineConfig<string>('cert')
+const privateKey = defineConfig<string>('private_key')
+const httpsNeeds = [cert, privateKey]
 const httpsNeedsNames = { cert: 'certificate', private_key: 'private key' }
-for (const k of Object.keys(httpsNeeds) as (keyof typeof httpsNeeds)[]) { // please be smarter typescript
+for (const cfg of httpsNeeds) {
     let unwatch: ReturnType<typeof watchLoad>['unwatch']
-    subscribeConfig({ k }, async (v: string) => {
+    cfg.sub(async v => {
         unwatch?.()
-        httpsNeeds[k] = v
+        cfg.set(v)
         if (!v || v.includes('\n'))
             return considerHttps()
         // it's a path
-        httpsNeeds[k] = ''
+        cfg.set('')
         unwatch = watchLoad(v, data => {
-            httpsNeeds[k] = data
+            cfg.set(data)
             considerHttps()
         }).unwatch
         await considerHttps()
     })
 }
 
-const CFG_HTTPS_PORT = 'https_port'
-subscribeConfig({ k:CFG_HTTPS_PORT, defaultValue: -1 }, considerHttps)
+export const httpsPortCfg = defineConfig('https_port', -1)
+httpsPortCfg.sub(considerHttps)
 
 async function considerHttps() {
     stopServer(httpsSrv).then()
-    let port = getConfig('https_port')
+    let port = httpsPortCfg.get()
     try {
         while (!app)
             await wait(100)
         httpsSrv = Object.assign(
-            https.createServer(port < 0 ? {} : { key: httpsNeeds.private_key, cert: httpsNeeds.cert }, app.callback()),
+            https.createServer(port < 0 ? {} : { key: privateKey.get(), cert: cert.get() }, app.callback()),
             { name: 'https' }
         )
-        const missingKey = _.findKey(httpsNeeds, v => !v) as keyof typeof httpsNeeds
+        const missingCfg = httpsNeeds.find(x => !x.get())
         httpsSrv.error = port < 0 ? undefined
-            : missingKey && prefix(getConfig(missingKey) ? "cannot read file for " : "missing ", httpsNeedsNames[missingKey])
+            : missingCfg && prefix(missingCfg.get() ? "cannot read file for " : "missing ", (httpsNeedsNames as any)[missingCfg.key()])
         if (httpsSrv.error)
             return
     }
@@ -75,7 +77,7 @@ async function considerHttps() {
         console.log("failed to create https server: check your private key and certificate", String(e))
         return
     }
-    port = await startServer(httpsSrv, { port: getConfig('https_port') })
+    port = await startServer(httpsSrv, { port: httpsPortCfg.get() })
     if (!port) return
     httpsSrv.on('connection', socket =>
         newConnection(socket, true))
