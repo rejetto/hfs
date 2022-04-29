@@ -146,7 +146,7 @@ watchDir(PATH, rescanAsap)
 export const enablePlugins = defineConfig('enable_plugins', ['antibrute'])
 enablePlugins.sub(rescanAsap)
 
-export const pluginsConfig = defineConfig('plugins_config')
+export const pluginsConfig = defineConfig('plugins_config', {} as Record<string,any>)
 
 async function rescan() {
     console.debug('scanning plugins')

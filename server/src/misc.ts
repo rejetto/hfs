@@ -11,6 +11,7 @@ import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { execFile } from 'child_process'
 import { Connection } from './connections'
+import assert from 'assert'
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Dict<T = any> = Record<string, T>
@@ -281,3 +282,10 @@ export function run(cmd: string, args: string[] = []): Promise<string> {
         }))
 }
 
+export function same(a: any, b: any) {
+    try {
+        assert.deepStrictEqual(a, b)
+        return true
+    }
+    catch { return false }
+}

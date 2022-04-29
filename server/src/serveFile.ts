@@ -13,7 +13,7 @@ import path from 'path'
 import { promisify } from 'util'
 import { updateConnection } from './connections'
 
-const allowedReferer = defineConfig('allowed_referer')
+const allowedReferer = defineConfig('allowed_referer', '')
 
 export function serveFileNode(node: VfsNode) : Koa.Middleware {
     const { source, mime } = node
@@ -39,7 +39,7 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
     }
 }
 
-const mimeCfg = defineConfig('mime', { '*.jpg|*.png|*.mp3|*.txt': 'auto' })
+const mimeCfg = defineConfig<Record<string,string>>('mime', { '*.jpg|*.png|*.mp3|*.txt': 'auto' })
 
 export function serveFile(source:string, mime?:string, modifier?:(s:string)=>string) : Koa.Middleware {
     return async (ctx) => {
@@ -48,7 +48,7 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
         const { range } = ctx.request.header
         ctx.set('Accept-Ranges', 'bytes')
         const fn = path.basename(source)
-        mime = mime ?? _.find(mimeCfg.get(), (v,k) => k && mm.isMatch(fn, k))
+        mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && mm.isMatch(fn, k)) // isMatch throws on an empty string
         if (mime === MIME_AUTO)
             mime = mimetypes.lookup(source) || ''
         if (mime)

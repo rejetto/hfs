@@ -5,7 +5,7 @@ import { argv } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { debounceAsync, objSameKeys, onOff, wait } from './misc'
+import { debounceAsync, same, objSameKeys, onOff, wait } from './misc'
 import { exists } from 'fs'
 import { promisify } from 'util'
 
@@ -35,42 +35,43 @@ export function defineConfig<T>(k: string, defaultValue?: T) {
         key() {
             return k
         },
-        get() {
+        get(): T {
             return getConfig(k)
         },
         sub(cb: (v:T, was?:T)=>void) {
             return subscribeConfig(k, cb)
         },
         set(v: T) {
-            setConfig({ [k]: v })
+            return setConfig1(k, v)
         }
     }
 }
 
+const stack: any[] = []
 function subscribeConfig<T>(k:string, cb: (v:T, was?:T)=>void) {
-    const { defaultValue } = configProps[k] ?? {}
+    if (started) // initial event already passed, we'll make the first call
+        cb(getConfig(k))
     const eventName = 'new.'+k
-    if (started) {
-        let v = state[k]
-        if (v === undefined)
-            state[k] = v = _.cloneDeep(defaultValue) // clone to avoid changing
-        if (v !== undefined)
-            cb(v)
-    }
-    return onOff(cfgEvents, { [eventName]: cb })
+    return onOff(cfgEvents, {
+        [eventName]() {
+            if (stack.includes(cb)) return // avoid infinite loop in case a subscriber changes the value
+            stack.push(cb) // @ts-ignore arguments
+            try { return cb.apply(this,arguments) }
+            finally { stack.pop() }
+        }
+    })
 }
 
 function getConfig(k:string) {
-    return k in state ? state[k] : configProps[k]?.defaultValue
+    return state[k] ?? _.cloneDeep(configProps[k]?.defaultValue) // clone to avoid changing
 }
 
-export function getWholeConfig({ omit=[], only=[] }: { omit:string[], only:string[] }) {
-    let copy = Object.assign(
-        objSameKeys(configProps, x => x.defaultValue),
-        state,
-    )
-    copy = _.omit(copy, omit)
-    if (only.length)
+export function getWholeConfig({ omit, only }: { omit?:string[], only?:string[] }) {
+    const defs = objSameKeys(configProps, x => x.defaultValue)
+    let copy = _.defaults({}, state, defs)
+    if (omit?.length)
+        copy = _.omit(copy, omit)
+    if (only)
        copy = _.pick(copy, only)
     return _.cloneDeep(copy)
 }
@@ -85,7 +86,7 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
         }
     }
     for (const k in newCfg)
-        check(k)
+        apply(k, newCfg[k])
     if (save) {
         saveConfigAsap().then()
         return
@@ -94,35 +95,35 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
         if (save === false) // false is used when loading whole config, and in such case we should not leave previous values untreated. Also, we need this only after we already `started`.
             for (const k of Object.keys(state))
                 if (!newCfg.hasOwnProperty(k))
-                    check(k)
+                    apply(k, newCfg[k])
         return
     }
     // first time we emit also for the default values
     for (const k of Object.keys(configProps))
         if (!newCfg.hasOwnProperty(k))
-            check(k)
+            apply(k, newCfg[k])
     started = true
 
-    function check(k: string) {
-        const oldV = started ? getConfig(k) : state[k] // from second time consider also defaultValue
-        const newV = newCfg[k]
-        const { defaultValue } = configProps[k] ?? {}
-        let v = newV ?? _.cloneDeep(defaultValue) // if we have an object we may get into troubles letting others change ours
-        const j = JSON.stringify(v)
-        if (j === JSON.stringify(oldV)) return // no change
-        state[k] = v
-        cfgEvents.emit('new.'+k, v, oldV)
-        if (save === undefined)
-            saveConfigAsap().then()
+    function apply(k: string, newV: any) {
+        return setConfig1(k, newV, save === undefined)
     }
+}
+
+function setConfig1(k: string, newV: any, saveChanges=true) {
+    if (same(newV, configProps[k]?.defaultValue))
+        newV = undefined
+    if (started && same(newV, state[k])) return // no change
+    const was = getConfig(k) // include cloned default, if necessary
+    state[k] = newV
+    cfgEvents.emit('new.'+k, getConfig(k), was)
+    if (saveChanges)
+        saveConfigAsap().then()
 }
 
 export const saveConfigAsap = debounceAsync(async () => {
     while (!started)
         await wait(100)
-    const diff = objSameKeys(state, (v,k) =>
-        JSON.stringify(v) === JSON.stringify(configProps[k]?.defaultValue) ? undefined : v)
-    let txt = yaml.stringify(diff, { lineWidth:1000 })
+    let txt = yaml.stringify(state, { lineWidth:1000 })
     if (txt.trim() === '{}')  // most users wouldn't understand
         if (await promisify(exists)(path)) // if a file exists then empty it, else don't bother creating it
             txt = ''

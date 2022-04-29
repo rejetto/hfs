@@ -175,12 +175,9 @@ export const adminApis: ApiHandlers = {
         }
         if (config) {
             config = _.pickBy(config, v => v !== null)
-            const o = { ...pluginsConfig.get() }
             if (_.isEmpty(config))
-                delete o[id]
-            else
-                o[id] = config
-            pluginsConfig.set( _.isEmpty(o) ? undefined : o )
+                config = undefined
+            pluginsConfig.set({ ...pluginsConfig.get(), [id]: config })
         }
         return {}
     },

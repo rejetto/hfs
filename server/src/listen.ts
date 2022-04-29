@@ -36,17 +36,19 @@ const cert = defineConfig<string>('cert')
 const privateKey = defineConfig<string>('private_key')
 const httpsNeeds = [cert, privateKey]
 const httpsNeedsNames = { cert: 'certificate', private_key: 'private key' }
+const httpsOptions = { key: '', cert: '' }
 for (const cfg of httpsNeeds) {
     let unwatch: ReturnType<typeof watchLoad>['unwatch']
     cfg.sub(async v => {
         unwatch?.()
-        cfg.set(v)
+        const k = cfg.key() === 'private_key' ? 'key' : 'cert'
+        httpsOptions[k] = v
         if (!v || v.includes('\n'))
             return considerHttps()
-        // it's a path
-        cfg.set('')
+        // v is a path
+        httpsOptions[k] = ''
         unwatch = watchLoad(v, data => {
-            cfg.set(data)
+            httpsOptions[k] = data
             considerHttps()
         }).unwatch
         await considerHttps()
@@ -63,7 +65,7 @@ async function considerHttps() {
         while (!app)
             await wait(100)
         httpsSrv = Object.assign(
-            https.createServer(port < 0 ? {} : { key: privateKey.get(), cert: cert.get() }, app.callback()),
+            https.createServer(port < 0 ? {} : httpsOptions, app.callback()),
             { name: 'https' }
         )
         const missingCfg = httpsNeeds.find(x => !x.get())

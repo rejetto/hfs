@@ -10,8 +10,8 @@ import _ from 'lodash'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
-defineConfig('max_kbps', null).sub(v =>
-    mainThrottleGroup.updateLimit(v ?? Infinity))
+defineConfig('max_kbps', Infinity).sub(v =>
+    mainThrottleGroup.updateLimit(v))
 
 const ip2group: Record<string, {
     count: number
@@ -22,7 +22,7 @@ const ip2group: Record<string, {
 const SymThrStr = Symbol('stream')
 const SymTimeout = Symbol('timeout')
 
-const maxKbpsPerIp = defineConfig('max_kbps_per_ip', null)
+const maxKbpsPerIp = defineConfig('max_kbps_per_ip', Infinity)
 
 export const throttler: Koa.Middleware = async (ctx, next) => {
     await next()
@@ -35,7 +35,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         const group = new ThrottleGroup(Infinity, doLimit && mainThrottleGroup)
 
         const unsub = doLimit && maxKbpsPerIp.sub(v =>
-            group.updateLimit(v ?? Infinity))
+            group.updateLimit(v))
         return { group, count:0, destroy: unsub }
     })
     const conn = ctx.state.connection
