@@ -85,13 +85,6 @@ export async function updateAccount(account: Account, changer?:Changer) {
 
 const saveAccountsAsap = saveConfigAsap
 
-// legacy, remove after May 1
-watchLoad('accounts.yaml', accounts => {
-    if (accounts)
-        setConfig(accounts)
-    unlink('accounts.yaml', () => console.log("accounts file merged"))
-})
-
 defineConfig<Accounts>('accounts', {}).sub(async v => {
     // we should validate content here
     accounts = v // keep local reference
