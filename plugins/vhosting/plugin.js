@@ -1,5 +1,5 @@
 exports.description = "If you want to have different home folders, based on domain"
-exports.version = 1
+exports.version = 2 // added config.mandatory
 exports.apiRequired = 2 // 2 is for the config 'array'
 
 exports.config = {
@@ -12,7 +12,11 @@ exports.config = {
         },
         defaultValue: [],
         height: 300,
-    }
+    },
+	mandatory: {
+		label: "Block requests that are not using any of the domains above",
+		type: 'boolean',
+	}
 }
 
 exports.init = api => ({
@@ -30,5 +34,9 @@ exports.init = api => ({
                 toModify.path = row.root + toModify.path
                 return
             }
+        if (api.getConfig('mandatory')) {
+            ctx.socket.destroy()
+            return true
+        }
     }
 })
