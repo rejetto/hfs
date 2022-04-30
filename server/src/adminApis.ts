@@ -21,6 +21,7 @@ import { loggers } from './log'
 import { mapPlugins, getAvailablePlugins, Plugin, AvailablePlugin, enablePlugins, pluginsConfig } from './plugins'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import assert from 'assert'
 
 export const adminApis: ApiHandlers = {
 
@@ -168,6 +169,7 @@ export const adminApis: ApiHandlers = {
     },
 
     async set_plugin({ id, enabled, config }) {
+        assert(id, 'id')
         if (enabled !== undefined) {
             const a = enablePlugins.get()
             if (a.includes(id) !== enabled)
