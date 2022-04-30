@@ -30,6 +30,10 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> 
     }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
 
+export function getPluginConfigFields(id: string) {
+    return plugins[id]?.getData().config
+}
+
 export function pluginsMiddleware(): Koa.Middleware {
     return async (ctx, next) => {
         const after = []
@@ -190,7 +194,7 @@ async function rescan() {
                     getConnections,
                     events,
                     getConfig: (cfgKey: string) =>
-                        pluginsConfig.get()?.[id]?.[cfgKey]
+                        pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue
                 })
                 Object.assign(data, res)
                 new Plugin(id, data, unwatch)

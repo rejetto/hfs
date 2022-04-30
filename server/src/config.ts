@@ -110,6 +110,8 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
 }
 
 function setConfig1(k: string, newV: any, saveChanges=true) {
+    if (_.isPlainObject(newV))
+        newV = _.pickBy(newV, x => x !== undefined)
     if (same(newV, configProps[k]?.defaultValue))
         newV = undefined
     if (started && same(newV, state[k])) return // no change

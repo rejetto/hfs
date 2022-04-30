@@ -5,7 +5,7 @@ import { alertDialog } from "./dialog"
 import { useSnapState } from './state'
 
 export default function LogoutPage() {
-    const [cfg] = useApiComp('get_config', { only: [] })
+    const [cfg] = useApiComp('get_config', { only: [] }) // sort of noop
     const { username } = useSnapState()
     if (isValidElement(cfg))
         return cfg

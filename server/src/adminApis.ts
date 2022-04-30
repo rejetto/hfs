@@ -7,7 +7,7 @@ import { API_VERSION, BUILD_TIMESTAMP, COMPATIBLE_API_VERSION, FORBIDDEN, HFS_ST
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import { Connection, getConnections } from './connections'
-import { debounceAsync, isLocalHost, onOff, pendingPromise } from './misc'
+import { debounceAsync, isLocalHost, objSameKeys, onOff, pendingPromise, same } from './misc'
 import _ from 'lodash'
 import events from './events'
 import { getFromAccount } from './perm'
@@ -18,7 +18,15 @@ import { writeFile } from 'fs/promises'
 import { createReadStream } from 'fs'
 import * as readline from 'readline'
 import { loggers } from './log'
-import { mapPlugins, getAvailablePlugins, Plugin, AvailablePlugin, enablePlugins, pluginsConfig } from './plugins'
+import {
+    mapPlugins,
+    getAvailablePlugins,
+    Plugin,
+    AvailablePlugin,
+    enablePlugins,
+    pluginsConfig,
+    getPluginConfigFields
+} from './plugins'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import assert from 'assert'
@@ -176,12 +184,24 @@ export const adminApis: ApiHandlers = {
                 enablePlugins.set( enabled ? [...a, id] : a.filter((x: string) => x !== id) )
         }
         if (config) {
-            config = _.pickBy(config, v => v !== null)
+            const fields = getPluginConfigFields(id)
+            config = _.pickBy(config, (v, k) =>
+                v !== null && !same(v, fields?.[k]?.defaultValue))
             if (_.isEmpty(config))
                 config = undefined
             pluginsConfig.set({ ...pluginsConfig.get(), [id]: config })
         }
         return {}
+    },
+
+    async get_plugin({ id }) {
+        return {
+            enabled: enablePlugins.get().includes(id),
+            config: {
+                ...objSameKeys(getPluginConfigFields(id) ||{}, v => v?.defaultValue),
+                ...pluginsConfig.get()[id]
+            }
+        }
     },
 }
 

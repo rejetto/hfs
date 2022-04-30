@@ -1,5 +1,5 @@
-import { createElement as h, isValidElement } from "react"
-import { apiCall, useApiComp, useApiList } from './api'
+import { createElement as h } from "react"
+import { apiCall, useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
 import { Alert, Box } from '@mui/material'
 import { IconBtn } from './misc'
@@ -8,16 +8,10 @@ import { alertDialog, formDialog } from './dialog'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from './Form'
 import { ArrayField } from './ArrayField'
 
-const PLUGINS_CONFIG = 'plugins_config'
-
 export default function PluginsPage() {
     const { list, error, initializing } = useApiList('get_plugins')
-    const [cfgRes, reloadCfg] = useApiComp('get_config', { only: [PLUGINS_CONFIG] })
-    if (isValidElement(cfgRes))
-        return cfgRes
     if (error)
         return h(Alert, { severity: 'error' }, error)
-    const cfg = cfgRes[PLUGINS_CONFIG]
     return h(DataGrid, {
         rows: list,
         loading: initializing,
@@ -61,15 +55,15 @@ export default function PluginsPage() {
                             icon: Settings,
                             title: "Configuration",
                             disabled: !config,
-                            onClick() {
-                                formDialog({
+                            async onClick() {
+                                const pl = await apiCall('get_plugin', { id })
+                                const values = await formDialog({
                                     title: `${id} configuration`,
                                     fields: [ h(Box, {}, row.description), ...makeFields(config) ],
-                                    values: cfg?.[id],
-                                }).then(config => {
-                                    if (config)
-                                        apiCall('set_plugin', { id, config }).then(reloadCfg)
+                                    values: pl.config,
                                 })
+                                if (values)
+                                    await apiCall('set_plugin', { id, config: values })
                             }
                         }),
                     )

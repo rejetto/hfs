@@ -10,6 +10,7 @@ exports.config = {
             host: { label: "Domain" },
             root: { helperText: "Root path in VFS" },
         },
+        defaultValue: [],
         height: 300,
     }
 }
@@ -23,7 +24,7 @@ exports.init = api => ({
                 return
         }
         const hosts = api.getConfig('hosts')
-        if (!hosts) return
+        if (!hosts?.length) return
         for (const row of hosts)
             if (ctx.host === row.host) {
                 toModify.path = row.root + toModify.path
