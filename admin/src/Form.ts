@@ -319,7 +319,9 @@ export function NumberField({ value, onChange, min, max, step, ...props }: Field
     })
 }
 
-export function BoolField({ label='', value, onChange, helperText, error, fromField=_.identity, toField=_.identity, ...props }: FieldProps<boolean>) {
+export function BoolField({ label='', value, onChange, helperText, error, fromField=_.identity, toField=_.identity,
+                              type, // avoid passing this by accident, as it disrupts the control
+                              ...props }: FieldProps<boolean>) {
     const setter = () => toField(value) ?? false
     const [state, setState] = useState(setter)
     useEffect(() => setState(setter),
