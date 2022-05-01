@@ -10,7 +10,7 @@ import { subscribeKey } from 'valtio/utils'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field } from './Form';
 import StringStringField from './StringStringField'
 import FileField from './FileField'
-import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, waitDialog } from './dialog'
+import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'
 
 let loaded: Dict | undefined
@@ -134,7 +134,7 @@ export default function ConfigPage() {
         setTimeout(reloadStatus, 1000)
         Object.assign(loaded, values) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
-        await alertDialog("Changes applied", 'success')
+        toast("Changes applied", 'success')
     }
 }
 

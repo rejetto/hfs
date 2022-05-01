@@ -28,12 +28,13 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
     }, [])
     const ref = useRef<HTMLElement>()
     d = { ...dialogsDefaults, ...d }
-    const { sx, ...rest } = d.dialogProps||{}
+    const { sx, root, ...rest } = d.dialogProps||{}
     const p = d.padding ? 2 : 0
     return h(MuiDialog, {
         open: true,
         maxWidth: 'lg',
         ...rest,
+        ...root,
         onClose: ()=> closeDialog(),
     },
         d.title && h(DialogTitle, {}, d.title),
@@ -52,8 +53,9 @@ const type2ico = {
     info: Info,
     success: Check,
 }
-
-export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', icon?: ReactElement) {
+export async function alertDialog(msg: ReactElement | string | Error, options?: AlertType | ({ type?:AlertType, icon?: ReactElement } & Partial<DialogOptions>)) {
+    const opt = typeof options === 'string' ? { type: options } : (options ?? {})
+    let { type='info', ...rest } = opt
     if (msg instanceof Error) {
         msg = msg.message || String(msg)
         type = 'error'
@@ -62,12 +64,13 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
         className: 'dialog-alert-'+type,
         icon: '!',
         onClose: resolve,
+        ...rest,
         Content
     }))
 
     function Content(){
         return h(Box, { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
-            icon ?? h(type2ico[type], { color:type }),
+            opt.icon ?? h(type2ico[type], { color:type }),
             isValidElement(msg) ? msg : h('div', {}, String(msg))
         )
     }
@@ -155,4 +158,28 @@ export async function promptDialog(msg: string, props:any={}) : Promise<string |
 
 export function waitDialog() {
     return newDialog({ Content: CircularProgress, closable: false })
+}
+
+export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info') {
+    const ms = 3000
+    const close = newDialog({
+        Content,
+        dialogProps: {
+            PaperProps: {
+                sx: { transition: `opacity ${ms}ms ease-in` },
+                ref(x: HTMLElement) { // we need to set opacity later, to trigger transition
+                    if (x)
+                        x.style.opacity = '0'
+                }
+            }
+        }
+    })
+    setTimeout(close, ms)
+
+    function Content(){
+        return h(Box, { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
+            isValidElement(type) ? type : h(type2ico[type], { color:type }),
+            isValidElement(msg) ? msg : h('div', {}, String(msg))
+        )
+    }
 }

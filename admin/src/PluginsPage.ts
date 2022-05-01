@@ -3,8 +3,8 @@ import { apiCall, useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
 import { Alert, Box } from '@mui/material'
 import { IconBtn } from './misc'
-import { PowerSettingsNew, Settings } from '@mui/icons-material'
-import { alertDialog, formDialog } from './dialog'
+import { PlayCircle, Settings, StopCircle } from '@mui/icons-material'
+import { toast, formDialog } from './dialog'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from './Form'
 import { ArrayField } from './ArrayField'
 
@@ -44,12 +44,18 @@ export default function PluginsPage() {
                 renderCell({ row }) {
                     const { config, id } = row
                     return h('div', {},
-                        h(IconBtn, {
-                            icon: PowerSettingsNew,
-                            title: (row.started ? "Stop" : "Start") + ' ' + id,
+                        h(IconBtn, row.started ? {
+                            icon: StopCircle,
+                            title: `Stop ${id}`,
                             onClick: () =>
-                                apiCall('set_plugin', { id, enabled: !row.started }).then(() =>
-                                    alertDialog(row.started ? "Plugin is stopping" : "Plugin is starting")),
+                                apiCall('set_plugin', { id, enabled: false }).then(() =>
+                                    toast("Plugin is stopping", h(StopCircle, { color: 'warning' })))
+                        } : {
+                            icon: PlayCircle,
+                            title: `Start ${id}`,
+                            onClick: () =>
+                                apiCall('set_plugin', { id, enabled: true }).then(() =>
+                                    toast("Plugin is starting", h(PlayCircle, { color: 'success' }))),
                         }),
                         h(IconBtn, {
                             icon: Settings,
