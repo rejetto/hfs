@@ -178,18 +178,19 @@ export const adminApis: ApiHandlers = {
 
     async set_plugin({ id, enabled, config }) {
         assert(id, 'id')
-        if (enabled !== undefined) {
-            const a = enablePlugins.get()
-            if (a.includes(id) !== enabled)
-                enablePlugins.set( enabled ? [...a, id] : a.filter((x: string) => x !== id) )
-        }
+        if (enabled !== undefined)
+            enablePlugins.set( arr =>
+                arr.includes(id) === enabled ? arr
+                    : enabled ? [...arr, id]
+                        : arr.filter((x: string) => x !== id)
+            )
         if (config) {
             const fields = getPluginConfigFields(id)
             config = _.pickBy(config, (v, k) =>
                 v !== null && !same(v, fields?.[k]?.defaultValue))
             if (_.isEmpty(config))
                 config = undefined
-            pluginsConfig.set({ ...pluginsConfig.get(), [id]: config })
+            pluginsConfig.set(v => ({ ...v, [id]: config }))
         }
         return {}
     },

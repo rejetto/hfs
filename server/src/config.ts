@@ -31,6 +31,7 @@ interface ConfigProps<T> {
 }
 export function defineConfig<T>(k: string, defaultValue?: T) {
     configProps[k] = { defaultValue }
+    type Updater = (currentValue:T) => T
     return {
         key() {
             return k
@@ -41,8 +42,11 @@ export function defineConfig<T>(k: string, defaultValue?: T) {
         sub(cb: (v:T, was?:T)=>void) {
             return subscribeConfig(k, cb)
         },
-        set(v: T) {
-            return setConfig1(k, v)
+        set(v: T | Updater) {
+            if (typeof v === 'function')
+                this.set((v as Updater)(this.get()))
+            else
+                setConfig1(k, v)
         }
     }
 }
