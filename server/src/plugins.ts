@@ -119,10 +119,10 @@ export class Plugin {
         return { ...this.data }
     }
 
-    unload() {
+    async unload() {
         const { id } = this
         console.log('unloading plugin', id)
-        try { this.data?.unload?.() }
+        try { await this.data?.unload?.() }
         catch(e) {
             console.debug('error unloading plugin', id, String(e))
         }
@@ -221,7 +221,7 @@ async function rescan() {
         }
     for (const id in plugins)
         if (!found.includes(id))
-            plugins[id].unload()
+            await plugins[id].unload()
 }
 
 function deleteModule(id: string) {
@@ -246,7 +246,5 @@ function deleteModule(id: string) {
     }
 }
 
-onProcessExit(() => {
-    for (const pl of Object.values(plugins))
-        pl.unload()
-})
+onProcessExit(() =>
+    Promise.allSettled(mapPlugins(pl => pl.unload())))

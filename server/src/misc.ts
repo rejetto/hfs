@@ -104,9 +104,15 @@ export function randomId(len = 10) {
         .replace(/l/g, 'L'); // avoid confusion reading l1
 }
 
-export function onProcessExit(cb: (signal:string)=>void) {
-    onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], cb)
+type ProcessExitHandler = (signal:string) => any
+const cbs = new Set<ProcessExitHandler>()
+export function onProcessExit(cb: ProcessExitHandler) {
+    cbs.add(cb)
+    return () => cbs.delete(cb)
 }
+onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal =>
+    Promise.allSettled(Array.from(cbs).map(cb => cb(signal))).then(() =>
+        process.exit(0)))
 
 export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {
     let already = false

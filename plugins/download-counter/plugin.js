@@ -1,25 +1,31 @@
 exports.description = "Counts downloads for each file, and displays the total in the list"
-exports.version = 1
+exports.version = 2 // comply to new async init/unload
+exports.apiRequired = 3
 
-exports.init = api => {
+exports.init = async api => {
     const _ = api.require('lodash')
     const yaml = api.require('yaml')
-    const { writeFile, readFile } = api.require('fs')
+    const { writeFile, readFile } = api.require('fs/promises')
+    const { debounceAsync } = api.require('./misc')
 
     const countersFile = 'counters.yaml'
 
-    const counters = {}
-    const save = _.debounce(() => {
-        writeFile(countersFile, yaml.stringify(counters), err => console.debug(err || 'counters saved'))
+    let counters = {}
+    const save = debounceAsync(async () => {
+        await writeFile(countersFile, yaml.stringify(counters))
+        console.debug('counters saved')
     }, 5_000, { maxWait:30_000 })
 
     // load previous stats
-    readFile(countersFile, 'utf8', (err, data) => {
-        if (err)
-            return err.code === 'ENOENT' || console.debug(countersFile, err)
-        Object.assign(counters, yaml.parse(String(data)))
+    try {
+        const data = await readFile(countersFile, 'utf8')
+        counters = yaml.parse(data)
         console.debug('counters loaded')
-    })
+    }
+    catch(err) {
+        if (err.code !== 'ENOENT')
+            console.debug(countersFile, err)
+    }
 
     return {
         frontend_js: 'hits.js',

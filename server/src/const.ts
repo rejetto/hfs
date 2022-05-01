@@ -12,7 +12,7 @@ export const VERSION = ''
 export const SESSION_DURATION = 30*60_000
 export const DAY = 86_400_000
 
-export const API_VERSION = 3 // with 3 we introduced config.defaultValue
+export const API_VERSION = 3 // introduced config.defaultValue and async for init/unload
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise is made equal to API_VERSION
 
 export const SPECIAL_URI = '/~/'
