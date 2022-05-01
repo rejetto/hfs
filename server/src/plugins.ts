@@ -198,6 +198,9 @@ async function rescan() {
                     require,
                     getConnections,
                     events,
+                    log(...args: any[]) {
+                        console.log('plugin', id, ':', ...args)
+                    },
                     getConfig: (cfgKey: string) =>
                         pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue
                 })

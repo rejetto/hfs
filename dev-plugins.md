@@ -61,6 +61,7 @@ Let's first look at the things you can return:
 Currently, these properties are supported:
 - `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
+- `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
 
 Based on `type`, other properties are supported:
@@ -80,6 +81,8 @@ The `api` object you get as parameter of the `init` contains the following:
 - `require: function` use this instead of standard `require` function to access modules already loaded by HFS.
 
 - `getConfig(key: string): any` get config's value set up by using `exports.config`.
+
+- `log(...args)` print log in a standard form for plugins.
 
 - `const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
 
