@@ -1,33 +1,35 @@
-exports.version = 1
+exports.version = 2
 exports.description = "Introduce increasing delays between login attempts."
-exports.apiRequired = 1
+exports.apiRequired = 3 // log
 
-// these settings will grant 4 attempts in first minute, 2 in second minute, and 1 from the third one on
-const INCREMENT = 5_000
-const CAP = 60_000
+exports.config = {
+    increment: { type: 'number', min: 1, defaultValue: 5, md: 6, helperText: "Seconds to add to the delay for each login attempt" },
+    max: { type: 'number', min: 1, defaultValue: 60, md: 6, helperText: "Max seconds to delay before next login is allowed" },
+}
 
 const byIp = {}
 
 exports.init = api => {
     const LOGIN_URI = api.const.API_URI + 'loginSrp1'
-    return ({
+    const { getOrSet } = api.require('./misc')
+    return {
         async middleware(ctx) {
             if (ctx.path !== LOGIN_URI) return
-            const k = ctx.ip
+            const { ip } = ctx
             const now = Date.now()
-            const rec = byIp[k]
-            if (rec) {
-                const wait = rec.when - now
-                if (wait > 0) {
-                    console.log('plugin antibrute is delaying', k, 'for', Math.round(wait / 1000))
-                    await new Promise(resolve => setTimeout(resolve, wait))
-                }
+            const rec = getOrSet(byIp, ip, () => ({ delay: 0, next: now }))
+            const wait = rec.next - now
+            const max = api.getConfig('max') * 1000
+            const inc = api.getConfig('increment') * 1000
+            rec.delay = Math.min(max, rec.delay + inc)
+            rec.next += rec.delay
+            clearTimeout(rec.timer)
+            if (wait > 0) {
+                api.log('delaying', ip, 'for', Math.round(wait / 1000))
                 ctx.set('x-anti-brute-force', wait)
+                await new Promise(resolve => setTimeout(resolve, wait))
             }
-            const delay = Math.min(CAP, (rec?.delay || 0) + INCREMENT)
-            byIp[k] = { delay, when: now + delay }
-            setTimeout(() => delete byIp[k], delay * 10) // no memory leak
+            rec.timer = setTimeout(() => delete byIp[ip], rec.delay * 10) // no memory leak
         }
-    })
+    }
 }
-
