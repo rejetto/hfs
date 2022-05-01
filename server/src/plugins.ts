@@ -83,7 +83,12 @@ export class Plugin {
         catch(e){
             console.debug('error unloading plugin', id, String(e))
         }
-        plugins[id] = this // track this
+        // track this
+        const wasStopped = availablePlugins[id]
+        if (wasStopped)
+            delete availablePlugins[id]
+        plugins[id] = this
+
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
         // some validation
         for (const k of ['frontend_css', 'frontend_js']) {
@@ -95,7 +100,7 @@ export class Plugin {
                 console.warn('invalid', k)
             }
         }
-        events.emit(old || availablePlugins[id] ? 'pluginStarted' : 'pluginInstalled', this)
+        events.emit(old || wasStopped ? 'pluginStarted' : 'pluginInstalled', this)
     }
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
@@ -204,12 +209,16 @@ async function rescan() {
         })
     }
     for (const id in foundDisabled)
-        if (!availablePlugins[id] && !plugins[id])
-            events.emit('pluginInstalled', foundDisabled[id])
+        if (!availablePlugins[id]) {
+            availablePlugins[id] = foundDisabled[id]
+            if (!plugins[id])
+                events.emit('pluginInstalled', foundDisabled[id])
+        }
     for (const id in availablePlugins)
-        if (!foundDisabled[id] && !plugins[id])
+        if (!foundDisabled[id] && !found.includes(id) && !plugins[id]) {
+            delete availablePlugins[id]
             events.emit('pluginUninstalled', id)
-    availablePlugins = foundDisabled
+        }
     for (const id in plugins)
         if (!found.includes(id))
             plugins[id].unload()
