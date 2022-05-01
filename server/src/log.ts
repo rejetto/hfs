@@ -104,13 +104,17 @@ function doubleDigit(n: number) {
 
 { // dump console.error to file
     const was = console.error
-    let log: WriteStream
     console.error = function(...args: any[]) {
         was.apply(this, args)
-        if (!log || !existsSync(log.path))
-            log = createWriteStream('debug.log', { flags: 'a' })
-        const params = args.map(x =>
-            typeof x === 'string' ? x : JSON.stringify(x)).join(' ')
-        log.write(new Date().toJSON() + ': ' + params + '\n')
+        debugLog(...args)
     }
+}
+
+let debugLogFile: WriteStream
+export function debugLog(...args: any[]) {
+    if (!debugLogFile || !existsSync(debugLogFile.path))
+        debugLogFile = createWriteStream('debug.log', { flags: 'a' })
+    const params = args.map(x =>
+        typeof x === 'string' ? x : JSON.stringify(x)).join(' ')
+    debugLogFile.write(new Date().toJSON() + ': ' + params + '\n')
 }

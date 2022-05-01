@@ -105,7 +105,7 @@ export function randomId(len = 10) {
 }
 
 export function onProcessExit(cb: (signal:string)=>void) {
-    onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT'], cb)
+    onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], cb)
 }
 
 export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {

@@ -5,7 +5,7 @@ import mount from 'koa-mount'
 import { apiMiddleware } from './apiMiddleware'
 import { API_URI, DEV } from './const'
 import { frontEndApis } from './frontEndApis'
-import { log } from './log'
+import { debugLog, log } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
 import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, prepareState } from './middlewares'
@@ -14,6 +14,7 @@ import { adminApis } from './adminApis'
 import { defineConfig } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
+import { onProcessExit } from './misc'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints
 
@@ -46,4 +47,9 @@ process.on('uncaughtException', err => {
 defineConfig('proxies', 0).sub(n => {
     app.proxy = n > 0
     app.maxIpsCount = n
+})
+
+onProcessExit(sig => {
+    debugLog('exit by', sig)
+    setTimeout(()=> process.exit(0), 1000) // 1-second grace period
 })
