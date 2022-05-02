@@ -117,9 +117,11 @@ function Connections() {
             valueFormatter: ({ value }) => formatBytes(value as number)
         },
         {
-            field: "Actions ",
+            field: "Actions",
             width: 80,
             align: 'center',
+            hideSortIcons: true,
+            disableColumnMenu: true,
             renderCell({ row }) {
                 return h('div', {},
                     h(IconBtn, {

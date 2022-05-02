@@ -48,6 +48,8 @@ export default function PluginsPage() {
                 field: "actions",
                 width: 80,
                 align: 'center',
+                hideSortIcons: true,
+                disableColumnMenu: true,
                 renderCell({ row }) {
                     const { config, id } = row
                     return h('div', {},
