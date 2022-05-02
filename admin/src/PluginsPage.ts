@@ -1,9 +1,9 @@
-import { createElement as h } from "react"
+import { createElement as h, Fragment } from "react"
 import { apiCall, useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
-import { Alert, Box } from '@mui/material'
+import { Alert, Box, Tooltip } from '@mui/material'
 import { IconBtn } from './misc'
-import { PlayCircle, Settings, StopCircle } from '@mui/icons-material'
+import { Error, PlayCircle, Settings, StopCircle } from '@mui/icons-material'
 import { toast, formDialog } from './dialog'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from './Form'
 import { ArrayField } from './ArrayField'
@@ -23,6 +23,12 @@ export default function PluginsPage() {
                 headerName: "name",
                 flex: .3,
                 minWidth: 150,
+                renderCell({ row, value }) {
+                    return h(Fragment, {},
+                        value,
+                        typeof row.badApi === 'string' && h(Tooltip, { title: row.badApi, children: h(Error, { color: 'warning', sx: { ml: 1 } }) })
+                    )
+                }
             },
             {
                 field: 'started',

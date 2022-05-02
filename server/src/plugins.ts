@@ -184,14 +184,16 @@ async function rescan() {
         const module = pathLib.resolve(f)
         const { unwatch } = watchLoad(f, async () => {
             try {
-                console.log(plugins[id] ? 'reloading plugin' : 'loading plugin', id)
+                console.log(plugins[id] ? "reloading plugin" : "loading plugin", id)
                 const { init, ...data } = await import(module)
                 delete data.default
                 deleteModule(require.resolve(module)) // avoid caching at next import
-                if (data.apiRequired > API_VERSION)
-                    console.log('plugin', id, 'may not work correctly as it is designed for a newer version of HFS')
-                if (data.apiRequired < COMPATIBLE_API_VERSION)
-                    console.log('plugin', id, 'may not work correctly as it is designed for an older version of HFS')
+                data.badApi = data.apiRequired > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS"
+                    : data.apiRequired < COMPATIBLE_API_VERSION ? "may not work correctly as it is designed for an older version of HFS"
+                        : undefined
+                if (data.badApi)
+                    console.log("plugin", id, data.badApi)
+
                 const res = await init?.call(null, {
                     srcDir: __dirname,
                     const: Const,
@@ -207,7 +209,7 @@ async function rescan() {
                 Object.assign(data, res)
                 new Plugin(id, data, unwatch)
             } catch (e) {
-                console.log('plugin error:', e)
+                console.log("plugin error:", e)
             }
         })
     }
