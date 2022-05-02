@@ -3,8 +3,11 @@ exports.description = "Introduce increasing delays between login attempts."
 exports.apiRequired = 3 // log
 
 exports.config = {
-    increment: { type: 'number', min: 1, defaultValue: 5, md: 6, helperText: "Seconds to add to the delay for each login attempt" },
-    max: { type: 'number', min: 1, defaultValue: 60, md: 6, helperText: "Max seconds to delay before next login is allowed" },
+    increment: { type: 'number', min: 1, defaultValue: 5, helperText: "Seconds to add to the delay for each login attempt" },
+    max: { type: 'number', min: 1, defaultValue: 60, helperText: "Max seconds to delay before next login is allowed" },
+}
+exports.configDialog = {
+    maxWidth: 'sm',
 }
 
 const byIp = {}

@@ -25,6 +25,8 @@ Let's first look at the things you can return:
 
 ## Things a plugin can return or export
 
+All the following properties are essentially optional.
+
 - `description: string` try to explain what this plugin is for. This must go in `exports` and use "double quotes".
 - `version: number` use progressive numbers to distinguish each release. This must go in `exports`.
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
@@ -55,6 +57,8 @@ Let's first look at the things you can return:
         message: Hi there!
     ```
   When necessary your plugin will read its value using `api.getConfig('message')`.
+
+- `configDialog: FormDialog` object to override dialog options. Please refer to sources for details.
 
 ### FieldDescriptor
 

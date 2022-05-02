@@ -73,6 +73,7 @@ export default function PluginsPage() {
                                     title: `${id} configuration`,
                                     fields: [ h(Box, {}, row.description), ...makeFields(config) ],
                                     values: pl.config,
+                                    ...row.configDialog,
                                 })
                                 if (values)
                                     await apiCall('set_plugin', { id, config: values })
