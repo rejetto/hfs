@@ -7,6 +7,7 @@ import { Error, PlayCircle, Settings, StopCircle } from '@mui/icons-material'
 import { toast, formDialog } from './dialog'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from './Form'
 import { ArrayField } from './ArrayField'
+import _ from "lodash"
 
 export default function PluginsPage() {
     const { list, error, initializing } = useApiList('get_plugins')
@@ -88,11 +89,13 @@ export default function PluginsPage() {
 
 function makeFields(config: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
-        const comp = (type2comp as any)[o?.type] as Field<any> | undefined
-        // @ts-ignore
+        if (!_.isPlainObject(o))
+            return o
+        let { type, defaultValue, fields, ...rest } = o
+        const comp = (type2comp as any)[type] as Field<any> | undefined
         if (comp === ArrayField)
-            o.fields = makeFields(o.fields)
-        return { k, comp, ...(typeof o === 'object' ? o : null) }
+            fields = makeFields(fields)
+        return { k, comp, fields, ...rest }
     })
 }
 
