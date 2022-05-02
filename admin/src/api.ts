@@ -94,6 +94,7 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
         catch {
             return cb('string', data)
         }
+        console.debug('SSE msg', data)
         cb('msg', data)
     }
     return source
