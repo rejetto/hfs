@@ -65,37 +65,11 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
 
     const [loading, setLoading] = useState(false)
     const [errors, setErrors] = useState<Dict>({})
-    const saveBtn = typeof save === 'function' ? { onClick: save } : save
-    const { onClick } = saveBtn
-    saveBtn.onClick = onClick && async function (ev: Parameters<NonNullable<typeof saveBtn.onClick>>[0]) {
-        setLoading(true)
-        try {
-            for (const f of fields) {
-                if (!f || isValidElement(f) || !f.k || !f.validate) continue
-                let fv = f.validate
-                if (fv instanceof RegExp) {
-                    const re = fv
-                    fv = x => re.test(x)
-                }
-                const res = await fv(values?.[f.k], { values, fields })
-                if (!mounted.current) return
-                if (res !== true)
-                    return setErrors({ [f.k]: res || true })
-            }
-            setErrors({})
-            return await onClick(ev)
-        }
-        catch(e) { onError?.(e) }
-        finally {
-            if (mounted.current)
-                setLoading(false)
-        }
-    }
-
+    const saveBtn = typeof save === 'function' ? { onClick: save } : save // normalize
     const [pendingSubmit, setPendingSubmit] = useState(false)
     useEffect(() => {
         if (!pendingSubmit) return
-        setTimeout(saveBtn.onClick!)
+        setTimeout(wrappedSave)
         setPendingSubmit(false)
     }, [pendingSubmit]) //eslint-disable-line
 
@@ -151,7 +125,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                         isValidElement(comp) ? comp : h(comp, rest) )
                 })
             ),
-            save && h(Box, {
+            saveBtn && h(Box, {
                     display: 'flex',
                     alignItems: 'center',
                     sx: Object.assign({},
@@ -163,12 +137,41 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                     startIcon: h(Save),
                     children: "Save",
                     loading,
-                    ...save,
+                    ...saveBtn,
+                    onClick: wrappedSave,
                 }),
                 ...addToBar,
             )
         )
     )
+
+    async function wrappedSave(...args: Parameters<NonNullable<typeof saveBtn.onClick>>) {
+        const cb = saveBtn.onClick
+        if (!cb) return
+        setLoading(true)
+        try {
+            for (const f of fields) {
+                if (!f || isValidElement(f) || !f.k || !f.validate) continue
+                let fv = f.validate
+                if (fv instanceof RegExp) {
+                    const re = fv
+                    fv = x => re.test(x)
+                }
+                const res = await fv(values?.[f.k], { values, fields })
+                if (!mounted.current) return
+                if (res !== true)
+                    return setErrors({ [f.k]: res || true })
+            }
+            setErrors({})
+            return await cb(...args)
+        }
+        catch(e) { onError?.(e) }
+        finally {
+            if (mounted.current)
+                setLoading(false)
+        }
+    }
+
 }
 
 export function labelFromKey(k: string) {

@@ -87,7 +87,6 @@ export default function FilePicker({ onSelect, multiple=true, from }: FilePicker
                         children: size =>
                             h(FixedSizeList, {
                                 ...size, itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
-                                /*sx:{ overflow:'auto', flex: 1 }*/
                                 children({ index, style }) {
                                     const it: DirEntry = filteredList[index]
                                     return h(MenuItem, {
