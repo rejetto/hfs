@@ -143,7 +143,7 @@ function Connections() {
             h(SelectField as Field<boolean>, {
                 fullWidth: false,
                 value: filtered,
-                onChange: setFiltered,
+                onChange: setFiltered as any,
                 options: { "Downloads connections": true, "All connections": false }
             }),
 

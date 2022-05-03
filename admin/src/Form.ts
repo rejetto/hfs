@@ -33,7 +33,8 @@ export interface FieldDescriptor<T=any> {
     comp?: any
     label?: ReactNode
     validate?: RegExp | ((v: any, extra:any) => string | boolean)
-    onChange?: (v: T) => void
+    toField?: (v: T) => any
+    fromField?: (v: any) => T
     [extraProp: string]: any
 }
 
@@ -65,6 +66,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
 
     const [loading, setLoading] = useState(false)
     const [errors, setErrors] = useState<Dict>({})
+    const [fieldErrors, setFieldErrors] = useState<Dict>({})
     const saveBtn = typeof save === 'function' ? { onClick: save } : save // normalize
     const [pendingSubmit, setPendingSubmit] = useState(false)
     useEffect(() => {
@@ -96,19 +98,23 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                     if (isValidElement(row))
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
                     let field = row
-                    const { k, onChange } = field
-                    let error = errors[k]
+                    const { k, fromField=_.identity, toField=_.identity } = field
+                    let error = errors[k] || fieldErrors[k]
                     if (error === true)
                         error = "Not valid"
                     if (k) {
+                        const originalValue = values?.[k]
                         field = {
-                            value: values?.[k],
+                            value: toField(originalValue),
                             ...field,
                             error: field.error || Boolean(error) || undefined,
-                            onChange(v:any) {
-                                if (onChange)
-                                    v = onChange(v)
-                                set(v, field.k)
+                            onChange(v: any) {
+                                try { v = fromField(v) } // catch parsing exceptions
+                                catch (e) { v = e }
+                                const err = v instanceof Error ? v.message || true : undefined
+                                setFieldErrors({ ...fieldErrors, [k]: err })
+                                if (!err && !_.isEqual(v, originalValue))
+                                    set(v, k)
                             },
                         }
                         if (error)
@@ -118,11 +124,13 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                             field.label = labelFromKey(k)
                         _.defaults(field, defaults?.(field))
                     }
-                    const { xs=12, sm, md, lg, xl, comp=StringField,
-                        validate, // don't propagate
-                        ...rest } = field
-                    return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
-                        isValidElement(comp) ? comp : h(comp, rest) )
+                    {
+                        const { xs=12, sm, md, lg, xl, comp=StringField,
+                            validate, fromField, toField, // don't propagate
+                            ...rest } = field
+                        return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
+                            isValidElement(comp) ? comp : h(comp, rest) )
+                    }
                 })
             ),
             saveBtn && h(Box, {
@@ -148,19 +156,25 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
     async function wrappedSave(...args: Parameters<NonNullable<typeof saveBtn.onClick>>) {
         const cb = saveBtn.onClick
         if (!cb) return
+        const MSG = "Please review errors"
         setLoading(true)
         try {
             for (const f of fields) {
-                if (!f || isValidElement(f) || !f.k || !f.validate) continue
+                if (!f || isValidElement(f) || !f.k) continue
+                if (fieldErrors[f.k])
+                    return onError?.(MSG)
                 let fv = f.validate
+                if (!fv) continue
                 if (fv instanceof RegExp) {
                     const re = fv
                     fv = x => re.test(x)
                 }
                 const res = await fv(values?.[f.k], { values, fields })
                 if (!mounted.current) return
-                if (res !== true)
-                    return setErrors({ [f.k]: res || true })
+                if (res !== true) {
+                    setErrors({ [f.k]: res || true })
+                    return onError?.(MSG)
+                }
             }
             setErrors({})
             return await cb(...args)
@@ -181,27 +195,18 @@ export function labelFromKey(k: string) {
 export interface FieldProps<T> {
     label?: string | ReactElement
     value?: T
-    onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
-    toField?: (v: any) => T
-    fromField?: (v: T) => any
+    onChange: (v: T | Error, more: { was?: T, event: any, [rest: string]: any }) => void
     error?: true
     [rest: string]: any
 }
 
-export function StringField({ value, onChange, fromField=_.identity, toField=_.identity, ...props }: FieldProps<string>) {
-    if (fromField === JSON.parse)
-        fromField = v => v ? JSON.parse(v) : undefined
-    const [state, setState] = useState(() => toField(value) ?? '')
-    const [err, setErr] = useState('')
-    if (err) {
-        props.error = true
-        props.helperText = h(Fragment, {}, err, props.helperText && h('br'), props.helperText ) // keep existing helperText, if any
-    }
+export function StringField({ value, onChange, ...props }: FieldProps<string>) {
+    const setter = () => value ?? ''
+    const [state, setState] = useState(setter)
 
     useEffect(() => {
-        setState(() => toField(value) ?? '')
-        setErr('')
-    }, [value, toField])
+        setState(setter)
+    }, [value])
     return h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
@@ -226,21 +231,13 @@ export function StringField({ value, onChange, fromField=_.identity, toField=_.i
     })
 
     function go(event: any, val: string=state) {
-        let newV
-        try { // catch parsing exceptions
-            newV = fromField(val.trim())
-        }
-        catch (e) {
-            return setErr(String(e))
-        }
-        if (newV !== value)
-            onChange(newV, {
-                was: value,
-                event,
-                cancel() {
-                    setState(value ?? '')
-                }
-            })
+        onChange(val.trim(), {
+            was: value,
+            event,
+            cancel() {
+                setState(setter)
+            }
+        })
     }
 }
 
@@ -310,22 +307,23 @@ function commonSelectProps<T>(props: { sx?:SxProps, label?: FieldProps<T>['label
 }
 
 export function NumberField({ value, onChange, min, max, step, ...props }: FieldProps<number | null>) {
-    // @ts-ignore
     return h(StringField, {
         type: 'number',
         value: typeof value === 'number' ? String(value) : '',
         onChange(v, { was, ...rest }) {
-            onChange(v ? Number(v) : null, { ...rest, was:was ? Number(was) : null })
+            const n = Number(v)
+            onChange(!v ? null : n < min ? Error('too low') : n > max ? Error('too high') : n,
+                { ...rest, was: was ? Number(was) : null })
         },
         inputProps: { min, max, step, },
         ...props,
     })
 }
 
-export function BoolField({ label='', value, onChange, helperText, error, fromField=_.identity, toField=_.identity,
+export function BoolField({ label='', value, onChange, helperText, error,
                               type, // avoid passing this by accident, as it disrupts the control
                               ...props }: FieldProps<boolean>) {
-    const setter = () => toField(value) ?? false
+    const setter = () => value ?? false
     const [state, setState] = useState(setter)
     useEffect(() => setState(setter),
         [value]) //eslint-disable-line
@@ -333,7 +331,7 @@ export function BoolField({ label='', value, onChange, helperText, error, fromFi
         checked: state,
         ...props,
         onChange(event) {
-            onChange(fromField(event.target.checked), { event, was: value })
+            onChange(event.target.checked, { event, was: value })
         }
     })
     return h(Box, { ml: 1, mt: 1, sx: error && { color: 'error.main', outlineOffset: 6, outline: '1px solid' } },

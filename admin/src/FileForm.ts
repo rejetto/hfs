@@ -95,7 +95,7 @@ export default function FileForm({ file }: { file: VfsNode }) {
                 toField: Boolean, fromField: (v:boolean) => v ? 'index.html' : null,
                 helperText: md("This folder may be a website because contains `index.html`. Enabling this will show the website instead of the list of files.")
             },
-            isDir && { k: 'masks', multiline: true, xl: 6, toField: JSON.stringify, fromField: JSON.parse,
+            isDir && { k: 'masks', multiline: true, xl: 6, toField: JSON.stringify, fromField: v => v ? JSON.parse(v) : undefined,
                 helperText: "This is a special field. Leave it empty unless you know what you are doing." }
         ]
     })

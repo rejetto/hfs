@@ -76,7 +76,7 @@ export default function FilePicker({ onSelect, multiple=true, from }: FilePicker
             h(StringField, {
                 label: 'Current path',
                 value: cwd,
-                onChange: setCwd
+                onChange: setCwd as any,
             }),
         ),
         error ? h(Alert, { severity:'error' }, String(error))

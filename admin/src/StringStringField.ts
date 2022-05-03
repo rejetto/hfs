@@ -39,6 +39,7 @@ export default function StringStringField({ value, onChange, keyLabel='key', val
                 h(StringField, {
                     value: id,
                     onChange(v, { was, ...rest }){
+                        if (v instanceof Error) return
                         const copy = { ...value }
                         if (v)
                             copy[v] = was !== undefined ? copy[was] : ''
@@ -52,6 +53,7 @@ export default function StringStringField({ value, onChange, keyLabel='key', val
                     inputRef: justEntered.current === id ? justEntered : undefined,
                     value: v,
                     onChange(v, { was, ...rest }){
+                        if (v instanceof Error) return
                         const copy = { ...value }
                         if (v)
                             copy[id] = v
@@ -75,7 +77,7 @@ export default function StringStringField({ value, onChange, keyLabel='key', val
                 inputRef: refNew,
                 value: '',
                 onChange(v, more){
-                    if (!v) return
+                    if (!v || v instanceof Error) return
                     more.cancel()
                     if (value && v in value)
                         return alert(keyLabel + " entry already present")
