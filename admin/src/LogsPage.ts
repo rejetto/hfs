@@ -12,7 +12,7 @@ export default function LogsPage() {
     return h(Fragment, {},
         h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
             files.map(f => h(Tab, { label: logLabels[f], key: f })) ),
-        h(LogFile, { key: tab, file: files[tab] }), // without key, some state is unwantedly preserved across files
+        h(LogFile, { key: tab, file: files[tab] }), // without key, some state is accidentally preserved across files
     )
 }
 
@@ -25,8 +25,6 @@ function LogFile({ file }: { file: string }) {
         autoHeight: true,
         rows: list as any,
         rowHeight: 47,
-        pageSize: 10,
-        rowsPerPageOptions: [5, 10, 20, 100],
         componentsProps: {
             pagination: {
                 showFirstButton: true,
