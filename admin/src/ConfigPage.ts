@@ -12,6 +12,7 @@ import StringStringField from './StringStringField'
 import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'
+import _ from 'lodash';
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
@@ -117,6 +118,8 @@ export default function ConfigPage() {
 
     async function save() {
         const values = state.changes
+        if (_.isEmpty(values))
+            return toast("Nothing to save")
         const loc = window.location
         const newPort = loc.protocol === 'http:' ? values.port : values.https_port
         if (newPort <= 0 && !await confirmDialog("You are switching off the server port and you will be disconnected"))
