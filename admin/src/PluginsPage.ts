@@ -100,6 +100,8 @@ function makeFields(config: any) {
         const comp = (type2comp as any)[type] as Field<any> | undefined
         if (comp === ArrayField)
             fields = makeFields(fields)
+        if (defaultValue !== undefined && type === 'boolean')
+            rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`
         return { k, comp, fields, ...rest }
     })
 }
