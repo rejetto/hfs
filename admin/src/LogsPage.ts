@@ -22,9 +22,7 @@ function LogFile({ file }: { file: string }) {
         return error
     return h(DataGrid, {
         loading: !list,
-        autoHeight: true,
         rows: list as any,
-        rowHeight: 47,
         componentsProps: {
             pagination: {
                 showFirstButton: true,
