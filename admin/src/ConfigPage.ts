@@ -21,7 +21,7 @@ subscribeKey(state, 'config', recalculateChanges)
 
 export const logLabels = {
     log: "Access log file",
-    error_log: "Error log file"
+    error_log: "Access error log file"
 }
 
 export default function ConfigPage() {
@@ -90,7 +90,8 @@ export default function ConfigPage() {
                 validate: x => x || !admins || admins.length>0 || "First create at least one admin account",
                 helperText: "To access Admin without entering credentials"
             },
-            ...Object.entries(logLabels).map(a => ({ k: a[0], label: a[1], lg: 3 })),
+            { k: 'log', label: logLabels.log, lg: 3, helperText: "Requests are logged here" },
+            { k: 'error_log', label: logLabels.error_log, lg: 3, placeholder: "errors go to main log", helperText: "If you want errors in a different log" },
             { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },

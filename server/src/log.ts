@@ -39,18 +39,18 @@ class Logger {
 
 // we'll have names same as config keys. These are used also by the get_log api.
 const accessLogger = new Logger('log')
-const errorLogger = new Logger('error_log')
-export const loggers = [accessLogger, errorLogger]
+const accessErrorLog = new Logger('error_log')
+export const loggers = [accessLogger, accessErrorLog]
 
 defineConfig('log', 'access.log').sub(path => {
-    console.debug('log file: ' + (path || 'disabled'))
+    console.debug('access log file: ' + (path || 'disabled'))
     accessLogger.setPath(path)
 })
 
-const errorLogFile = defineConfig('error_log', 'error.log')
+const errorLogFile = defineConfig(accessErrorLog.name, 'access-error.log')
 errorLogFile.sub(path => {
-    console.debug('error log: ' + (path || 'disabled'))
-    errorLogger.setPath(path)
+    console.debug('access error log: ' + (path || 'disabled'))
+    accessErrorLog.setPath(path)
 })
 
 const logRotation = defineConfig('log_rotation', 'weekly')
@@ -59,7 +59,7 @@ export function log(): Koa.Middleware {
     return async (ctx, next) => {  // wrapping in a function will make it use current 'mw' value
         await next()
         const isError = ctx.status >= 400
-        const logger = isError && errorLogger || accessLogger
+        const logger = isError && accessErrorLog || accessLogger
         const rotate = logRotation.get()?.[0]
         let { stream, last, path } = logger
         if (!stream) return
