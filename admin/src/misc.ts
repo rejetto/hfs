@@ -8,7 +8,6 @@ import { SvgIconComponent } from '@mui/icons-material'
 import { alertDialog } from './dialog'
 import { apiCall } from './api'
 import { onlyTruthy, useStateMounted } from '@hfs/shared'
-import {} from '@hfs/shared' // without this we get weird warnings by webpack
 export * from '@hfs/shared'
 
 export function spinner() {

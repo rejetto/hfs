@@ -1,4 +1,5 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import {
     createElement as h,
     FC,
@@ -307,13 +308,14 @@ function commonSelectProps<T>(props: { sx?:SxProps, label?: FieldProps<T>['label
     }
 }
 
-export function NumberField({ value, onChange, min, max, step, ...props }: FieldProps<number | null>) {
+export function NumberField({ value, onChange, min, max, step, required, ...props }: FieldProps<number | null>) {
     return h(StringField, {
         type: 'number',
         value: typeof value === 'number' ? String(value) : '',
         onChange(v, { was, ...rest }) {
             const n = Number(v)
-            onChange(!v ? null : n < min ? Error('too low') : n > max ? Error('too high') : n,
+            onChange(!v ? (required ? Error('required') : null)
+                    : n < min ? Error('too low') : n > max ? Error('too high') : n,
                 { ...rest, was: was ? Number(was) : null })
         },
         inputProps: { min, max, step, },
