@@ -44,12 +44,14 @@ export const mainMenu: MenuEntry[] = [
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
 
+let version: any // cache 'version', as it won't change at runtime, while the Drawer mechanism will unmount our menu each time
 export default function Menu({ onSelect }: { onSelect: ()=>void }) {
-    const [status] = useApi('get_status')
+    const [status] = useApi(!version && 'get_status')
+    version ||= status?.version?.replace('-', ' ')
     return h(List, { sx:{ pr:1, bgcolor: 'primary.main', color:'primary.contrastText', minHeight: '100%', boxSizing: 'border-box' } },
         h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'flex-end' },
             h(Typography, { variant:'h3' }, 'HFS'),
-            h(Box, { pb: 1, fontSize: 'small' }, status?.version?.replace('-', ' ')),
+            h(Box, { pb: 1, fontSize: 'small' }, version),
         ),
         mainMenu.map(it =>
             h(ListItemButton, {
