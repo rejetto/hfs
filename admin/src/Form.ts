@@ -14,6 +14,7 @@ import {
 import {
     Box, BoxProps, Button,
     Checkbox,
+    Divider,
     FormControl,
     FormControlLabel, FormGroup, FormHelperText,
     FormLabel,
@@ -117,8 +118,8 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                                     set(v, k)
                             },
                         }
-                        if (error)
-                            field.helperText = field.helperText ? h(Fragment, {}, error, h('br'), field.helperText)
+                        if (error) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
+                            field.helperText = field.helperText ? h(Fragment, {}, h('span', { style: { borderBottom: '1px solid' } }, error), h('br'), field.helperText)
                                 : error
                         if (field.label === undefined)
                             field.label = labelFromKey(k)
