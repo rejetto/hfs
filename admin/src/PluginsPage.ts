@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { createElement as h, Fragment } from "react"
 import { apiCall, useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
@@ -78,8 +80,9 @@ export default function PluginsPage() {
                                     values: pl.config,
                                     ...row.configDialog,
                                 })
-                                if (values)
-                                    await apiCall('set_plugin', { id, config: values })
+                                if (!values || _.isEqual(pl.config, values)) return
+                                await apiCall('set_plugin', { id, config: values })
+                                toast("Configuration saved")
                             }
                         }),
                     )
