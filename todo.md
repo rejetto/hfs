@@ -11,7 +11,6 @@
 - admin/stats: total bytes sent
 - admin/stats: list of IPs seen  
 - if specified config is a folder, check for file config.yaml inside
-- frontend: ok button to inputDialogs
 - admin: in a group, show linked accounts
 - admin: warn in case of items with same name
 - command line help --help

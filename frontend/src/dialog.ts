@@ -15,7 +15,7 @@ export async function promptDialog(msg: string, { def, type }:PromptOptions={}) 
     }) )
 
     function Content() {
-        const ref = useRef()
+        const ref = useRef<HTMLInputElement>()
         useEffect(()=>{
             const e = ref.current
             if (!e) return
@@ -33,13 +33,18 @@ export async function promptDialog(msg: string, { def, type }:PromptOptions={}) 
                 onKeyDown(ev: KeyboardEvent) {
                     const { key } = ev
                     if (key === 'Escape')
-                        closeDialog(null)
-                    if (key === 'Enter') {
-                        closeDialog((ev.target as any).value as string)
-                    }
+                        return closeDialog(null)
+                    if (key === 'Enter')
+                        return go()
                 }
-            })
+            }),
+            h('div', { style: { textAlign: 'right', marginTop: '.8em' } },
+                h('button', {  onClick: go }, "Continue")),
         )
+
+        function go() {
+            closeDialog(ref.current?.value)
+        }
     }
 }
 
