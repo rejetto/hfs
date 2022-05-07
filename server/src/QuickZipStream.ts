@@ -2,13 +2,13 @@
 
 import { Readable } from 'stream'
 // @ts-ignore
-import { crc32number } from 'buffer-crc32'
+import { crc32 as crc32lib } from 'buffer-crc32'
 
 const ZIP64_LIMIT = 2**31 -1
 
 const crc32provider = import('@node-rs/crc32').then(lib => lib.crc32, () => {
-    console.debug('using generic lib for crc32')
-    return crc32number
+    console.log('using generic lib for crc32')
+    return crc32lib.unsigned
 })
 
 interface ZipSource {

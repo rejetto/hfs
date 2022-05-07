@@ -1,4 +1,5 @@
 # To do
+- admin/fs: sort items
 - plugin.api.subscribeConfig
 - watch certificates for change
 - admin/fs: render virtual folders differently
@@ -21,6 +22,7 @@
 - log filter option
 - log filter plugin
 - admin: improve masks editor
+- admin: warn before changing page if we have unsaved changes
 - publish to npm (so people can "npm install hfs")
 - frontend search supporting masks
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
