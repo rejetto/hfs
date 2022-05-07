@@ -7,7 +7,8 @@ import {
     Dialog as MuiDialog,
     DialogContent,
     DialogProps,
-    DialogTitle
+    DialogTitle,
+    IconButton
 } from '@mui/material'
 import {
     createElement as h, Fragment,
@@ -17,7 +18,7 @@ import {
     useRef,
     useState
 } from 'react'
-import { Check, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
+import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared/lib/dialogs'
 import { Form, FormProps } from './Form'
 export * from '@hfs/shared/lib/dialogs'
@@ -54,26 +55,33 @@ const type2ico = {
     success: Check,
 }
 export async function alertDialog(msg: ReactElement | string | Error, options?: AlertType | ({ type?:AlertType, icon?: ReactElement } & Partial<DialogOptions>)) {
-    const opt = typeof options === 'string' ? { type: options } : (options ?? {})
-    let { type='info', ...rest } = opt
-    if (msg instanceof Error) {
-        msg = msg.message || String(msg)
-        type = 'error'
-    }
-    return new Promise(resolve => newDialog({
-        className: 'dialog-alert-'+type,
-        icon: '!',
-        onClose: resolve,
-        ...rest,
-        Content
-    }))
-
-    function Content(){
-        return h(Box, { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
-            opt.icon ?? h(type2ico[type], { color:type }),
-            isValidElement(msg) ? msg : h('div', {}, String(msg))
-        )
-    }
+    return new Promise(resolve => {
+        const opt = typeof options === 'string' ? { type: options } : (options ?? {})
+        let { type='info', ...rest } = opt
+        if (msg instanceof Error) {
+            msg = msg.message || String(msg)
+            type = 'error'
+        }
+        const close = newDialog({
+            className: 'dialog-alert-' + type,
+            icon: '!',
+            onClose: resolve,
+            ...rest,
+            Content() {
+                return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
+                    h(IconButton, {
+                        onClick() {
+                            close()
+                        },
+                        size: 'small',
+                        sx: { position: 'absolute', right: 0, top: 0, opacity: .5 }
+                    }, h(Close)),
+                    opt.icon ?? h(type2ico[type], { color: type, fontSize: 'large' }),
+                    isValidElement(msg) ? msg : h(Box, { fontSize: 'large', mb: 1 }, String(msg)),
+                )
+            }
+        })
+    })
 }
 
 interface ConfirmOptions { href?: string }
