@@ -15,7 +15,6 @@ import {
 import {
     Box, BoxProps, Button,
     Checkbox,
-    Divider,
     FormControl,
     FormControlLabel, FormGroup, FormHelperText,
     FormLabel,
@@ -206,9 +205,7 @@ export function StringField({ value, onChange, ...props }: FieldProps<string>) {
     const setter = () => value ?? ''
     const [state, setState] = useState(setter)
 
-    useEffect(() => {
-        setState(setter)
-    }, [value])
+    useEffect(() => setState(setter), [value]) //eslint-disable-line
     return h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
