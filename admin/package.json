@@ -3,9 +3,9 @@
   "private": true,
   "proxy": "http://localhost",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "cross-env GENERATE_SOURCEMAP=false BUILD_PATH='../dist/admin' react-scripts build",
-    "test": "react-scripts test",
+    "start": "react-app-rewired start",
+    "build": "cross-env GENERATE_SOURCEMAP=false BUILD_PATH='../dist/admin' react-app-rewired build",
+    "test": "react-app-rewired test",
     "test-dep": "npm audit --production",
     "eject": "react-scripts eject"
   },
@@ -37,6 +37,9 @@
     "@types/react-dom": "^17.0.11",
     "@types/react-window": "^1.8.5",
     "@types/react-virtualized-auto-sizer": "^1.0.1",
+    "react-app-rewired": "^2.2.1",
+    "babel-plugin-direct-import": "^1.0.0",
+    "customize-cra": "^1.0.0",
     "react-scripts": "^5.0.1"
   },
   "eslintConfig": {
