@@ -23,7 +23,7 @@
     "build-shared": "cd shared && npx tsc",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "dist-node": "cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-*",
-    "dist-bin": "pkg . -C brotli && cd dist && mv -f hfs-win.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos hfs && zip hfs-macos.zip hfs -r plugins && rm hfs",
+    "dist-bin": "pkg . -C gzip && cd dist && mv -f hfs-win.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos hfs && zip hfs-macos.zip hfs -r plugins && rm hfs",
     "dist": "npm run build-all && npm run dist-node && npm run dist-bin"
   },
   "engines": {

@@ -42,8 +42,7 @@ If your system is not covered, you can try this alternative version:
 
 1. install node.js version 16+ from https://nodejs.org/
 2. download and unzip `hfs-node.zip`
-3. chmod +x run
-4. launch `./run`
+3. launch `./run`
 
 ## Plug-ins
 
