@@ -1,4 +1,9 @@
 # To do
+- move logs to dedicated folder
+- admin: don't rely on google for font 
+- fix: root without can_download breaks 
+- use dialogs instead of side-forms on mobile (admin/fs+accounts)
+- easier deploy on cloud server
 - admin/fs: sort items
 - plugin.api.subscribeConfig
 - watch certificates for change
@@ -24,7 +29,6 @@
 - admin: warn before changing page if we have unsaved changes
 - publish to npm (so people can "npm install hfs")
 - frontend search supporting masks
-- use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - remove seconds from time
 - plugin to download latest release
   - https://api.github.com/repos/rejetto/hfs/releases/latest

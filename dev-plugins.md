@@ -131,3 +131,13 @@ This is a list of available frontend events, with respective parameters and outp
         - `m?: Date` modified-time.
     - output `string | void`
 
+## Publish your plug-in
+
+Suggested method for publishing is to have a dedicated repository on github, with topic `hfs-plugin`.
+To set the topic go on the repo home and click on the gear icon near the "About" box.
+Be sure to also fill the "description" field, especially with words that people may search for.
+
+The files intended to be installed must go in a folder named `dist`.
+You can keep other files outside.
+
+You can refer to this dummy plugin for reference https://github.com/rejetto/demo-plugin .

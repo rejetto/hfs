@@ -66,7 +66,7 @@ async function getJsonFromReq(req: IncomingMessage): Promise<any> {
 }
 
 // offer an api for a generic dynamic list
-export function sendList<T>(addAtStart: T[]=[]) {
+export function sendList<T>(addAtStart?: T[]) {
     const stream = new Readable({ objectMode: true, read(){} })
     const ret = {
         return: stream,
@@ -75,15 +75,20 @@ export function sendList<T>(addAtStart: T[]=[]) {
         update(search: Partial<T>, change: Partial<T>) {
             stream.push({ update:[{ search, change }] })
         },
+        end() { // notify end of additions
+            stream.push('end')
+        },
         events(ctx: Koa.Context, eventMap: Parameters<typeof onOff>[1]) {
             const off = onOff(events, eventMap)
             ctx.res.once('close', off)
             return stream
         }
     }
-    for (const x of addAtStart)
-        ret.add(x)
-    stream.push('init')
+    if (addAtStart) {
+        for (const x of addAtStart)
+            ret.add(x)
+        stream.push('init')
+    }
     return ret
 }
 

@@ -28,10 +28,13 @@ export function modifiedSx(is: boolean) {
     return is ? { outline: '2px solid' } : undefined
 }
 
-export function IconBtn({ title, icon, onClick, ...rest }: { title?: string, icon: SvgIconComponent, [rest:string]:any }) {
+interface IconBtnProps { title?: string, icon: SvgIconComponent, disabled?: boolean | string,  [rest:string]:any }
+export function IconBtn({ title, icon, onClick, disabled, ...rest }: IconBtnProps) {
     const [loading, setLoading] = useStateMounted(false)
+    if (typeof disabled === 'string')
+        title = disabled
     let ret: ReturnType<FC> = h(IconButton, {
-        disabled: loading,
+        disabled: loading || Boolean(disabled),
         ...rest,
         onClick() {
             const ret = onClick?.apply(this,arguments)

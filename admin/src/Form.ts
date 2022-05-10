@@ -18,7 +18,7 @@ import {
     FormControl,
     FormControlLabel, FormGroup, FormHelperText,
     FormLabel,
-    Grid,
+    Grid, InputAdornment,
     MenuItem, Radio,
     RadioGroup,
     Switch,
@@ -201,7 +201,7 @@ export interface FieldProps<T> {
     [rest: string]: any
 }
 
-export function StringField({ value, onChange, ...props }: FieldProps<string>) {
+export function StringField({ value, onChange, typing, start, end, ...props }: FieldProps<string>) {
     const setter = () => value ?? ''
     const [state, setState] = useState(setter)
 
@@ -215,7 +215,8 @@ export function StringField({ value, onChange, ...props }: FieldProps<string>) {
             props.onChange?.(ev)
             const val = ev.target.value
             setState(val)
-            if (document.activeElement !== ev.target) // autofill ongoing, don't wait onBlur event, just go
+            if (typing // change state as the user is typing
+            || document.activeElement !== ev.target) // autofill ongoing, don't wait onBlur event, just go
                 go(ev, val)
         },
         onKeyDown(ev) {
@@ -226,7 +227,12 @@ export function StringField({ value, onChange, ...props }: FieldProps<string>) {
         onBlur(ev) {
             props.onBlur?.(ev)
             go(ev)
-        }
+        },
+        InputProps: {
+            startAdornment: start && h(InputAdornment, { position: 'start' }, start),
+            endAdornment: end && h(InputAdornment, { position: 'end' }, end),
+            ...props.InputProps,
+        },
     })
 
     function go(event: any, val: string=state) {

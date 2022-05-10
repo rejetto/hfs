@@ -25,7 +25,8 @@
     "minimist": "^1.2.6",
     "open": "^8.4.0",
     "tssrp6a": "^3.0.0",
-    "yaml": "^2.0.0-10"
+    "yaml": "^2.0.0-10",
+    "unzipper": "^0.10.11"
   },
   "devDependencies": {
     "@types/archiver": "^5.1.1",
@@ -40,6 +41,7 @@
     "@types/minimist": "^1.2.2",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.11.12",
+    "@types/unzipper": "^0.10.5",
     "axios": "^0.24.0",
     "koa-better-http-proxy": "^0.2.9",
     "mocha": "^9.1.3",

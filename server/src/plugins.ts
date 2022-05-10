@@ -17,7 +17,8 @@ import { readFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 
-const PATH = 'plugins'
+export const PATH = 'plugins'
+export const DISABLING_POSTFIX = '-disabled'
 
 const plugins: Record<string, Plugin> = {}
 
@@ -139,7 +140,15 @@ type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
 type Stop = true
 type CallMeAfter = ()=>void
 
-export interface AvailablePlugin { id: string, description?: string, version?: number, apiRequired?: number }
+export interface AvailablePlugin {
+    id: string
+    description?: string
+    version?: number
+    apiRequired?: number
+    repo?: string
+    badApi?: string
+}
+
 let availablePlugins: Record<string, AvailablePlugin> = {}
 
 export function getAvailablePlugins() {
@@ -163,17 +172,11 @@ async function rescan() {
     const foundDisabled: typeof availablePlugins = {}
     for (let f of await glob(PATH+'/*/plugin.js')) {
         const id = f.split('/').slice(-2)[0]
-        if (id.endsWith('-disabled')) continue
+        if (id.endsWith(DISABLING_POSTFIX)) continue
         if (!enablePlugins.get().includes(id)) {
-            const pl = foundDisabled[id] = { id } as typeof foundDisabled[0]
             try {
                 const source = await readFile(f, 'utf8')
-                const v = pl.description = /exports.description *= *"(.*)"/.exec(source)?.[1]
-                if (v)
-                    try { pl.description = JSON.parse(`"${v}"`) }
-                    catch {}
-                pl.version = Number(/exports.version *= *(\d+)/.exec(source)?.[1]) || undefined
-                pl.apiRequired = Number(/exports.apiRequired *= *(\d+)/.exec(source)?.[1]) || undefined
+                foundDisabled[id] = parsePluginSource(id, source)
             }
             catch {}
             continue
@@ -188,9 +191,7 @@ async function rescan() {
                 const { init, ...data } = await import(module)
                 delete data.default
                 deleteModule(require.resolve(module)) // avoid caching at next import
-                data.badApi = data.apiRequired > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS"
-                    : data.apiRequired < COMPATIBLE_API_VERSION ? "may not work correctly as it is designed for an older version of HFS"
-                        : undefined
+                calculateBadApi(data)
                 if (data.badApi)
                     console.log("plugin", id, data.badApi)
 
@@ -253,3 +254,22 @@ function deleteModule(id: string) {
 
 onProcessExit(() =>
     Promise.allSettled(mapPlugins(pl => pl.unload())))
+
+export function parsePluginSource(id: string, source: string) {
+    const pl: AvailablePlugin = { id }
+    const v = pl.description = /exports.description *= *"(.*)"/.exec(source)?.[1]
+    if (v)
+        try { pl.description = JSON.parse(`"${v}"`) }
+        catch {}
+    pl.repo = /exports.repo *= *"(.*)"/.exec(source)?.[1]
+    pl.version = Number(/exports.version *= *(\d+)/.exec(source)?.[1]) || undefined
+    pl.apiRequired = Number(/exports.apiRequired *= *(\d+)/.exec(source)?.[1]) || undefined
+    calculateBadApi(pl)
+    return pl
+}
+
+function calculateBadApi(data: AvailablePlugin) {
+    data.badApi = data.apiRequired! > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS"
+        : data.apiRequired! < COMPATIBLE_API_VERSION ? "may not work correctly as it is designed for an older version of HFS"
+            : undefined
+}

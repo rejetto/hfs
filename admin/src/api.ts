@@ -120,6 +120,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                 setList(list => [ ...list, ...chunk ])
         }
         setLoading(true)
+        setInitializing(true)
         setList([])
         const timer = setInterval(flush, 1000)
         const src = apiEvents(cmd, params, (type, data) => {
@@ -133,7 +134,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return stop()
-                    if (data === 'init') {
+                    if (data === 'init' || data === 'end') {
                         flush()
                         setInitializing(false)
                         return
