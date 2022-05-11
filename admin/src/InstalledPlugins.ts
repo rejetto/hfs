@@ -2,22 +2,26 @@ import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment } from 'react'
 import { Alert, Box, Tooltip } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
-import { Delete, Error, PlayCircle, Settings, StopCircle } from '@mui/icons-material'
+import { Delete, Error, PlayCircle, Settings, StopCircle, SystemUpdateAlt } from '@mui/icons-material'
 import { IconBtn } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from './Form'
 import { ArrayField } from './ArrayField'
 
-export default function InstalledPlugins() {
-    const { list, error, initializing } = useApiList('get_plugins')
+export default function InstalledPlugins({ updates }: { updates?: true }) {
+    const { list, setList, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     if (error)
         return h(Alert, { severity: 'error' }, error)
     return h(DataGrid, {
-        rows: list,
+        rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         loading: initializing,
         disableColumnSelector: true,
         disableColumnMenu: true,
+        columnVisibilityModel: {
+            started: !updates,
+        },
+        localeText: updates && { noRowsLabel: "No updates available. Only online plugins are checked." },
         columns: [
             {
                 field: 'id',
@@ -48,10 +52,20 @@ export default function InstalledPlugins() {
                 field: "actions",
                 width: 120,
                 align: 'center',
+                headerAlign: 'center',
                 hideSortIcons: true,
                 disableColumnMenu: true,
                 renderCell({ row }) {
                     const { config, id } = row
+                    if (updates)
+                        return h(IconBtn, {
+                            icon: SystemUpdateAlt,
+                            title: "Update",
+                            async onClick() {
+                                await apiCall('update_plugin', { id })
+                                setList(list.filter(x => x.id !== id))
+                            }
+                        })
                     return h('div', {},
                         h(IconBtn, row.started ? {
                             icon: StopCircle,

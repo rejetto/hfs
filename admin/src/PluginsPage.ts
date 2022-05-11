@@ -5,12 +5,23 @@ import { Tab, Tabs } from '@mui/material'
 import InstalledPlugins from "./InstalledPlugins"
 import OnlinePlugins from "./OnlinePlugins"
 
+const TABS = {
+    "Installed": InstalledPlugins,
+    "Search online": OnlinePlugins,
+    "Check updates": () => h(InstalledPlugins, { updates: true }),
+}
+const LABELS = Object.keys(TABS)
+const PANES = Object.values(TABS)
+
 export default function PluginsPage() {
     const [tab, setTab] = useState(0)
-    const tabs = ["Installed", "Search online"]
     return h(Fragment, {},
-        h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
-            tabs.map(f => h(Tab, { label: f, key: f })) ),
-        h(tab ? OnlinePlugins : InstalledPlugins)
+        h(Tabs, {
+            value: tab,
+            onChange(ev, i) {
+                setTab(i)
+            }
+        }, LABELS.map(label => h(Tab, { label, key: label })) ),
+        h(PANES[tab])
     )
 }

@@ -7,7 +7,7 @@ import pathLib from 'path'
 import { API_VERSION, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import { debounceAsync, getOrSet, onProcessExit, wantArray, watchDir } from './misc'
+import { debounceAsync, getOrSet, onProcessExit, same, wantArray, watchDir } from './misc'
 import { defineConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
@@ -32,6 +32,10 @@ export function enablePlugin(id: string, state=true) {
             : state ? [...arr, id]
                 : arr.filter((x: string) => x !== id)
     )
+}
+
+export function getPluginInfo(id: string) {
+    return plugins[id]?.getData() ?? availablePlugins[id]
 }
 
 export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T) {
@@ -178,7 +182,7 @@ enablePlugins.sub(rescanAsap)
 
 export const pluginsConfig = defineConfig('plugins_config', {} as Record<string,any>)
 
-async function rescan() {
+export async function rescan() {
     console.debug('scanning plugins')
     const found = []
     const foundDisabled: typeof availablePlugins = {}
@@ -226,12 +230,16 @@ async function rescan() {
             }
         })
     }
-    for (const id in foundDisabled)
-        if (!availablePlugins[id]) {
-            availablePlugins[id] = foundDisabled[id]
-            if (!plugins[id])
-                events.emit('pluginInstalled', foundDisabled[id])
-        }
+    for (const id in foundDisabled) {
+        const p = foundDisabled[id]
+        const a = availablePlugins[id]
+        if (same(a, p)) continue
+        availablePlugins[id] = p
+        if (a)
+            events.emit('pluginUpdated', p)
+        else if (!plugins[id])
+            events.emit('pluginInstalled', p)
+    }
     for (const id in availablePlugins)
         if (!foundDisabled[id] && !found.includes(id) && !plugins[id]) {
             delete availablePlugins[id]

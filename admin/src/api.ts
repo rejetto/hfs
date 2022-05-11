@@ -189,5 +189,5 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
             clearInterval(timer)
         }
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, loading, error, initializing }
+    return { list, loading, error, initializing, setList }
 }
