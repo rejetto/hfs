@@ -22,6 +22,18 @@ export const DISABLING_POSTFIX = '-disabled'
 
 const plugins: Record<string, Plugin> = {}
 
+export function isPluginRunning(id: string) {
+    return plugins[id]?.started
+}
+
+export function enablePlugin(id: string, state=true) {
+    enablePlugins.set( arr =>
+        arr.includes(id) === state ? arr
+            : state ? [...arr, id]
+                : arr.filter((x: string) => x !== id)
+    )
+}
+
 export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T) {
     return _.map(plugins, (pl,plName) => {
         try { return cb(pl,plName) }

@@ -6,16 +6,16 @@ import {
     mapPlugins,
     parsePluginSource,
     Plugin, pluginsConfig,
-    PATH as PLUGINS_PATH
+    PATH as PLUGINS_PATH, isPluginRunning, enablePlugin
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { httpsString, httpsStream, objSameKeys, onOff, same } from './misc'
+import { httpsString, httpsStream, objSameKeys, onOff, same, wait } from './misc'
 import { ApiError, ApiHandlers, sendList } from './apiMiddleware'
 import events from './events'
 import unzipper from 'unzipper'
-import { createWriteStream } from 'fs'
-import { access, mkdir } from 'fs/promises'
+import { createWriteStream, mkdirSync } from 'fs'
+import { rm } from 'fs/promises'
 
 const DIST_ROOT = 'dist/'
 
@@ -39,11 +39,7 @@ const apis: ApiHandlers = {
     async set_plugin({ id, enabled, config }) {
         assert(id, 'id')
         if (enabled !== undefined)
-            enablePlugins.set( arr =>
-                arr.includes(id) === enabled ? arr
-                    : enabled ? [...arr, id]
-                        : arr.filter((x: string) => x !== id)
-            )
+            enablePlugin(id, enabled)
         if (config) {
             const fields = getPluginConfigFields(id)
             config = _.pickBy(config, (v, k) =>
@@ -108,9 +104,18 @@ const apis: ApiHandlers = {
     async download_plugin({ id }) {
         if (downloading[id])
             return new ApiError(409, "already downloading")
-        downloadPlugin(id).then()
+        await downloadPlugin(id)
         return {}
     },
+
+    async uninstall_plugin({ id }) {
+        while (isPluginRunning(id)) {
+            enablePlugin(id, false)
+            await wait(500)
+        }
+        await rm(PLUGINS_PATH + '/' + id,  { recursive: true, force: true })
+        return {}
+    }
 
 }
 

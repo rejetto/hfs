@@ -2,7 +2,7 @@ import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment } from 'react'
 import { Alert, Box, Tooltip } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
-import { Error, PlayCircle, Settings, StopCircle } from '@mui/icons-material'
+import { Delete, Error, PlayCircle, Settings, StopCircle } from '@mui/icons-material'
 import { IconBtn } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -46,7 +46,7 @@ export default function InstalledPlugins() {
             },
             {
                 field: "actions",
-                width: 80,
+                width: 120,
                 align: 'center',
                 hideSortIcons: true,
                 disableColumnMenu: true,
@@ -69,7 +69,7 @@ export default function InstalledPlugins() {
                         h(IconBtn, {
                             icon: Settings,
                             title: "Configuration",
-                            disabled: !config,
+                            disabled: !config && "No configuration available for this plugin",
                             async onClick() {
                                 const pl = await apiCall('get_plugin', { id })
                                 const values = await formDialog({
@@ -81,6 +81,14 @@ export default function InstalledPlugins() {
                                 if (!values || _.isEqual(pl.config, values)) return
                                 await apiCall('set_plugin', { id, config: values })
                                 toast("Configuration saved")
+                            }
+                        }),
+                        h(IconBtn, {
+                            icon: Delete,
+                            title: "Uninstall",
+                            async onClick() {
+                                await apiCall('uninstall_plugin', { id })
+                                toast("Plugin uninstalled")
                             }
                         }),
                     )
