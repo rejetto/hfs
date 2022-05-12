@@ -28,13 +28,15 @@ export function modifiedSx(is: boolean) {
     return is ? { outline: '2px solid' } : undefined
 }
 
-interface IconBtnProps { title?: string, icon: SvgIconComponent, disabled?: boolean | string,  [rest:string]:any }
-export function IconBtn({ title, icon, onClick, disabled, ...rest }: IconBtnProps) {
+interface IconBtnProps { title?: string, icon: SvgIconComponent, disabled?: boolean | string, progress?: boolean | number, link?: string, [rest:string]:any }
+export function IconBtn({ title, icon, onClick, disabled, progress=false, link, ...rest }: IconBtnProps) {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
+    if (link)
+        onClick = () => window.open(link)
     let ret: ReturnType<FC> = h(IconButton, {
-        disabled: loading || Boolean(disabled),
+        disabled: loading || progress !== false || Boolean(disabled),
         ...rest,
         onClick() {
             const ret = onClick?.apply(this,arguments)
@@ -44,6 +46,15 @@ export function IconBtn({ title, icon, onClick, disabled, ...rest }: IconBtnProp
             }
         }
     }, h(icon))
+    if (progress || loading)
+        ret = h(Box, { position:'relative' },
+            h(CircularProgress, {
+                ...(typeof progress === 'number' ? { value: progress, variant: 'determinate' } : null),
+                size: 48,
+                style: { position:'absolute' }
+            }),
+            ret
+        )
     if (title)
         ret = h(Tooltip, { title, children: h('span',{},ret) })
     return ret

@@ -2,11 +2,12 @@ import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
 import { Alert } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
-import { IconBtn, spinner } from './misc'
-import { Download, Search } from '@mui/icons-material'
+import { IconBtn } from './misc'
+import { Download, GitHub, Search } from '@mui/icons-material'
 import { confirmDialog, toast } from './dialog'
 import { StringField } from './Form'
 import { useDebounce } from 'use-debounce'
+import { repoLink } from './InstalledPlugins'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -47,17 +48,21 @@ export default function OnlinePlugins() {
                     hideSortIcons: true,
                     disableColumnMenu: true,
                     renderCell({ row }) {
-                        return row.downloading ? spinner() : h(IconBtn, {
-                            icon: Download,
-                            title: "Download",
-                            disabled: row.installed && "Already installed",
-                            async onClick() {
-                                if (!await confirmDialog("WARNING - Proceed only if you trust this author and this plugin")) return
-                                const { id } = row
-                                return apiCall('download_plugin', { id })
-                                    .then(() => toast("Plugin downloaded: " + id))
-                            }
-                        })
+                        const { id } = row
+                        return h('div', {},
+                            repoLink(id),
+                            h(IconBtn, {
+                                icon: Download,
+                                title: "Download",
+                                progress: row.downloading,
+                                disabled: row.installed && "Already installed",
+                                async onClick() {
+                                    if (!await confirmDialog("WARNING - Proceed only if you trust this author and this plugin")) return
+                                    return apiCall('download_plugin', { id })
+                                        .then(() => toast("Plugin downloaded: " + id))
+                                }
+                            })
+                        )
                     }
                 },
             ]

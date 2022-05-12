@@ -2,7 +2,7 @@ import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment } from 'react'
 import { Alert, Box, Tooltip } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
-import { Delete, Error, PlayCircle, Settings, StopCircle, SystemUpdateAlt } from '@mui/icons-material'
+import { Delete, Error, GitHub, PlayCircle, Settings, StopCircle, SystemUpdateAlt } from '@mui/icons-material'
 import { IconBtn } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -31,7 +31,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 renderCell({ row, value }) {
                     return h(Fragment, {},
                         value,
-                        typeof row.badApi === 'string' && h(Tooltip, { title: row.badApi, children: h(Error, { color: 'warning', sx: { ml: 1 } }) })
+                        typeof row.badApi === 'string' && h(Tooltip, { title: row.badApi, children: h(Error, { color: 'warning', sx: { ml: 1 } }) }),
+                        repoLink(row.repo),
                     )
                 }
             },
@@ -133,4 +134,12 @@ const type2comp = {
     select: SelectField,
     multiselect: MultiSelectField,
     array: ArrayField,
+}
+
+export function repoLink(repo?: string) {
+    return repo && h(IconBtn, {
+        icon: GitHub,
+        title: "Open web page",
+        link: 'https://github.com/' + repo,
+    })
 }
