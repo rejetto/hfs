@@ -126,7 +126,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
         const src = apiEvents(cmd, params, (type, data) => {
             switch (type) {
                 case 'error':
-                    setError(JSON.stringify(data))
+                    setError("Connection error")
                     return stop()
                 case 'closed':
                     flush()
