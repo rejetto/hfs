@@ -97,6 +97,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                         h(IconBtn, {
                             icon: Delete,
                             title: "Uninstall",
+                            confirm: "Remove?",
                             async onClick() {
                                 await apiCall('uninstall_plugin', { id })
                                 toast("Plugin uninstalled")

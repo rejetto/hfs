@@ -5,7 +5,7 @@ import { Box, CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { SxProps } from '@mui/system'
 import { SvgIconComponent } from '@mui/icons-material'
-import { alertDialog } from './dialog'
+import { alertDialog, confirmDialog } from './dialog'
 import { apiCall } from './api'
 import { onlyTruthy, useStateMounted } from '@hfs/shared'
 export * from '@hfs/shared'
@@ -28,17 +28,27 @@ export function modifiedSx(is: boolean) {
     return is ? { outline: '2px solid' } : undefined
 }
 
-interface IconBtnProps { title?: ReactNode, icon: SvgIconComponent, disabled?: boolean | string, progress?: boolean | number, link?: string, [rest:string]:any }
-export function IconBtn({ title, icon, onClick, disabled, progress=false, link, tooltipProps, ...rest }: IconBtnProps) {
+interface IconBtnProps {
+    title?: ReactNode
+    icon: SvgIconComponent
+    disabled?: boolean | string
+    progress?: boolean | number
+    link?: string
+    confirm?: string
+    [rest: string]: any
+}
+
+export function IconBtn({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, ...rest }: IconBtnProps) {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
     if (link)
         onClick = () => window.open(link)
     let ret: ReturnType<FC> = h(IconButton, {
-        disabled: loading || progress !== false || Boolean(disabled),
+        disabled: Boolean(loading || progress || disabled),
         ...rest,
-        onClick() {
+        async onClick() {
+            if (confirm && !await confirmDialog(confirm)) return
             const ret = onClick?.apply(this,arguments)
             if (ret && ret instanceof Promise) {
                 setLoading(true)
@@ -46,12 +56,11 @@ export function IconBtn({ title, icon, onClick, disabled, progress=false, link, 
             }
         }
     }, h(icon))
-    if (progress || loading)
-        ret = h(Box, { position:'relative' },
+    if ((progress || loading) && progress !== false) // false is also useful to inhibit behavior with loading
+        ret = h(Box, { position:'relative', display: 'inline-block' },
             h(CircularProgress, {
-                ...(typeof progress === 'number' ? { value: progress, variant: 'determinate' } : null),
-                size: 48,
-                style: { position:'absolute' }
+                ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
+                style: { position:'absolute', top: 4, left: 4, width: 32, height: 32 }
             }),
             ret
         )

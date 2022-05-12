@@ -4,7 +4,7 @@ import { Alert } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import { IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
-import { confirmDialog, toast } from './dialog'
+import { toast } from './dialog'
 import { StringField } from './Form'
 import { useDebounce } from 'use-debounce'
 import { repoLink } from './InstalledPlugins'
@@ -57,10 +57,10 @@ export default function OnlinePlugins() {
                                 progress: row.downloading,
                                 disabled: row.installed && "Already installed",
                                 tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
+                                confirm: "WARNING - Proceed only if you trust this author and this plugin",
                                 async onClick() {
-                                    if (!await confirmDialog("WARNING - Proceed only if you trust this author and this plugin")) return
-                                    return apiCall('download_plugin', { id })
-                                        .then(() => toast("Plugin downloaded: " + id))
+                                    await apiCall('download_plugin', { id })
+                                    toast("Plugin downloaded: " + id)
                                 }
                             })
                         )
