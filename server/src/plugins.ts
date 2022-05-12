@@ -282,7 +282,7 @@ export function parsePluginSource(id: string, source: string) {
         try { pl.description = JSON.parse(`"${v}"`) }
         catch {}
     pl.repo = /exports.repo *= *"(.*)"/.exec(source)?.[1]
-    pl.version = Number(/exports.version *= *(\d+)/.exec(source)?.[1]) || undefined
+    pl.version = Number(/exports.version *= *(\d*\.?\d+)/.exec(source)?.[1]) || undefined
     pl.apiRequired = Number(/exports.apiRequired *= *(\d+)/.exec(source)?.[1]) || undefined
     calculateBadApi(pl)
     return pl
