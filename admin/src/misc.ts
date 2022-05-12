@@ -29,7 +29,7 @@ export function modifiedSx(is: boolean) {
 }
 
 interface IconBtnProps { title?: ReactNode, icon: SvgIconComponent, disabled?: boolean | string, progress?: boolean | number, link?: string, [rest:string]:any }
-export function IconBtn({ title, icon, onClick, disabled, progress=false, link, ...rest }: IconBtnProps) {
+export function IconBtn({ title, icon, onClick, disabled, progress=false, link, tooltipProps, ...rest }: IconBtnProps) {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
@@ -56,7 +56,7 @@ export function IconBtn({ title, icon, onClick, disabled, progress=false, link, 
             ret
         )
     if (title)
-        ret = h(Tooltip, { title, children: h('span',{},ret) })
+        ret = h(Tooltip, { title, ...tooltipProps, children: h('span',{},ret) })
     return ret
 }
 
