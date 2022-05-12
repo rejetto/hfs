@@ -78,6 +78,9 @@ export function sendList<T>(addAtStart?: T[]) {
         end() { // notify end of additions
             stream.push('end')
         },
+        error(msg: string) {
+            stream.push({ error: msg })
+        },
         events(ctx: Koa.Context, eventMap: Parameters<typeof onOff>[1]) {
             const off = onOff(events, eventMap)
             ctx.res.once('close', off)

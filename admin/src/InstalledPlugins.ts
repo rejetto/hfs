@@ -3,7 +3,7 @@ import { createElement as h, Fragment } from 'react'
 import { Alert, Box, Tooltip } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import { Delete, Error, GitHub, PlayCircle, Settings, StopCircle, SystemUpdateAlt } from '@mui/icons-material'
-import { IconBtn } from './misc'
+import { IconBtn, xlate } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from './Form'
@@ -12,7 +12,7 @@ import { ArrayField } from './ArrayField'
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, setList, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     if (error)
-        return h(Alert, { severity: 'error' }, error)
+        return showError(error)
     return h(DataGrid, {
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         loading: initializing,
@@ -139,4 +139,10 @@ export function repoLink(repo?: string) {
         title: "Open web page",
         link: 'https://github.com/' + repo,
     })
+}
+
+export function showError(error: any) {
+    return h(Alert, { severity: 'error' }, xlate(error, {
+        ENOTFOUND: "Couldn't reach github.com"
+    }))
 }

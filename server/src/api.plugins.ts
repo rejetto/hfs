@@ -41,14 +41,18 @@ const apis: ApiHandlers = {
         const list = sendList()
         setTimeout(async () => {
             const repo2id = getRepo2id()
-            for (const repo in repo2id) {
-                const online = await readOnlinePlugin(repo)
-                if (!online.apiRequired || online.badApi) continue
-                const id = repo2id[repo]
-                const disk = getPluginInfo(id)
-                if (online.version! > disk.version)
-                    list.add(online)
-            }
+            for (const repo in repo2id)
+                try {
+                    const online = await readOnlinePlugin(repo)
+                    if (!online.apiRequired || online.badApi) continue
+                    const id = repo2id[repo]
+                    const disk = getPluginInfo(id)
+                    if (online.version! > disk.version)
+                        list.add(online)
+                }
+                catch (err:any) {
+                    list.error(err.code || err.message)
+                }
             list.end()
         })
         return list.return
@@ -108,6 +112,8 @@ const apis: ApiHandlers = {
                 }) )
             }
             list.end()
+        }, (err: any) => {
+            list.error(err.code || err.message)
         })
         return list.return
     },
@@ -180,17 +186,16 @@ async function downloadPlugin(repo: string, overwrite?: boolean) {
 
 export default apis
 
-function apiGithub(uri: string) {
-    return httpsString('https://api.github.com/'+uri, {
+async function apiGithub(uri: string) {
+    const res = await httpsString('https://api.github.com/'+uri, {
         headers: {
             'User-Agent': 'HFS',
             Accept: 'application/vnd.github.v3+json',
         }
-    }).then(async res => {
-        if (!res.ok)
-            throw res.statusCode
-        return JSON.parse(res.body)
     })
+    if (!res.ok)
+        throw res.statusCode
+    return JSON.parse(res.body)
 }
 
 function readOnlinePlugin(repo: string) {

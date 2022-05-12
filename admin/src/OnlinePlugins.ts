@@ -1,20 +1,19 @@
 import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
-import { Alert } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import { IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { toast } from './dialog'
 import { StringField } from './Form'
 import { useDebounce } from 'use-debounce'
-import { repoLink } from './InstalledPlugins'
+import { repoLink, showError } from './InstalledPlugins'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
     const [debouncedSearch] = useDebounce(search, 1000)
     const { list, error, initializing } = useApiList('search_online_plugins', { text: debouncedSearch })
     if (error)
-        return h(Alert, { severity: 'error' }, error)
+        return showError(error)
     return h(Fragment, {},
         h(StringField, {
             value: search,

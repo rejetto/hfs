@@ -139,6 +139,8 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                         setInitializing(false)
                         return
                     }
+                    if (data.error)
+                        return setError(data.error)
                     if (data.add) {
                         const rec = map(data.add)
                         if (addId)

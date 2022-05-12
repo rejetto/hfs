@@ -118,3 +118,7 @@ export function findFirst<I=any, O=any>(a: I[], cb:(v:I)=>O): any {
             return ret
     }
 }
+
+export function xlate(input: any, table: Record<string, any>) {
+    return table[input] ?? input
+}
