@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, FC } from 'react'
+import { createElement as h, FC, ReactNode } from 'react'
 import { Box, CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { SxProps } from '@mui/system'
@@ -28,7 +28,7 @@ export function modifiedSx(is: boolean) {
     return is ? { outline: '2px solid' } : undefined
 }
 
-interface IconBtnProps { title?: string, icon: SvgIconComponent, disabled?: boolean | string, progress?: boolean | number, link?: string, [rest:string]:any }
+interface IconBtnProps { title?: ReactNode, icon: SvgIconComponent, disabled?: boolean | string, progress?: boolean | number, link?: string, [rest:string]:any }
 export function IconBtn({ title, icon, onClick, disabled, progress=false, link, ...rest }: IconBtnProps) {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string')

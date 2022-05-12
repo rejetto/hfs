@@ -37,11 +37,6 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 }
             },
             {
-                field: 'started',
-                width: 180,
-                valueFormatter: ({ value }) => !value ? "off" : new Date(value as string).toLocaleString()
-            },
-            {
                 field: 'version',
                 width: 70,
             },
@@ -70,7 +65,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                     return h('div', {},
                         h(IconBtn, row.started ? {
                             icon: StopCircle,
-                            title: `Stop ${id}`,
+                            title: h(Box, {}, `Stop ${id}`, h('br'), `Started ` + new Date(row.started as string).toLocaleString()),
+                            color: 'success',
                             onClick: () =>
                                 apiCall('set_plugin', { id, enabled: false }).then(() =>
                                     toast("Plugin is stopping", h(StopCircle, { color: 'warning' })))
