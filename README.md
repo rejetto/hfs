@@ -36,9 +36,28 @@ You won't find all previous features here (yet), but still we got:
 1. go to https://github.com/rejetto/hfs/releases
 2. click on `Assets`
 3. **download** the right version for your computer
-4. run the file
+4. launch `hfs` file
+5. the browser should automatically open on `localhost` address, so you can configure the rest
 
-If your system is not covered, you can try this alternative version:
+### Cloud server?
+
+If you are installing HFS on "another" machine, then step 5 may not be possible.
+In this case you should create a `config.yaml` file with this content:
+```
+accounts:
+    YOUR-USERNAME:
+        admin: true
+        password: YOUR-PASSWORD
+```
+
+This way you'll have your admin account.
+Be sure to respect spaces/indentation.
+
+Don't worry about the password, it will be encrypted at first run.
+
+### Other systems
+
+If your system is not Windows/Linux/Mac, you can try this alternative version:
 
 1. install node.js version 16+ from https://nodejs.org/
 2. download and unzip `hfs-node.zip`
