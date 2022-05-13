@@ -40,13 +40,12 @@ const apis: ApiHandlers = {
     async get_plugin_updates() {
         const list = sendList()
         setTimeout(async () => {
-            const repo2id = getRepo2id()
-            for (const repo in repo2id)
+            const repo2folder = getRepo2folder()
+            for (const repo in repo2folder)
                 try {
                     const online = await readOnlinePlugin(await getRepoInfo(repo))
                     if (!online.apiRequired || online.badApi) continue
-                    const id = repo2id[repo]
-                    const disk = getPluginInfo(id)
+                    const disk = getPluginInfo(repo2folder[repo])
                     if (online.version! > disk.version)
                         list.add(online)
                 }
@@ -85,15 +84,29 @@ const apis: ApiHandlers = {
 
     search_online_plugins({ text }, ctx) {
         const list = sendList()
-        const repo2id = getRepo2id()
+        const repo2folder = getRepo2folder()
+        // do our job in then() so api can return in the meantime
         apiGithub('search/repositories?q=topic:hfs-plugin+' + encodeURI(text)).then(async res => {
             for (const it of res.items) {
                 const repo = it.full_name
-                const pl = await readOnlinePlugin(it)
-                if (!pl.apiRequired || pl.badApi) continue
+                let pl = await readOnlinePlugin(it)
+                if (!pl.apiRequired) continue // mandatory field
+                if (pl.badApi) { // we try other branches (starting with 'api')
+                    const branches: string[] = (await apiGithub('repos/' + it.full_name + '/branches'))
+                        .map((x:any) => x.name).filter((x: string) => x.startsWith('api')).sort()
+                    for (const branch of branches) {
+                        pl = await readOnlinePlugin(it, branch)
+                        if (!pl.apiRequired)
+                            pl.badApi = '-'
+                        if (!pl.badApi)
+                            break
+                    }
+                }
+                if (pl.badApi)
+                    continue
                 Object.assign(pl, { // inject some extra useful fields
                     downloading: downloading[repo],
-                    installed: repo2id[repo]
+                    installed: repo2folder[repo]
                 })
                 list.add(pl)
                 // watch for events about this plugin, until this request is closed
@@ -103,7 +116,7 @@ const apis: ApiHandlers = {
                             list.update({ id: repo }, { installed: true })
                     },
                     pluginUninstalled: id => {
-                        if (repo === _.findKey(repo2id, x => x === id))
+                        if (repo === _.findKey(repo2folder, x => x === id))
                             list.update({ id: repo }, { installed: false })
                     },
                     ['pluginDownload_'+repo](status) {
@@ -118,17 +131,17 @@ const apis: ApiHandlers = {
         return list.return
     },
 
-    async download_plugin({ id }) {
-        if (downloading[id])
+    async download_plugin(pl) {
+        if (downloading[pl.id])
             return new ApiError(409, "already downloading")
-        await downloadPlugin(id)
+        await downloadPlugin(pl.id, pl.branch)
         return {}
     },
 
-    async update_plugin({ id }) {
-        if (downloading[id])
+    async update_plugin(pl) {
+        if (downloading[pl.id])
             return new ApiError(409, "already downloading")
-        await downloadPlugin(id, true)
+        await downloadPlugin(pl.id, pl.branch, true)
         return {}
     },
 
@@ -154,17 +167,19 @@ function downloadProgress(id: string, status: DownloadStatus) {
     events.emit('pluginDownload_'+id, status)
 }
 
-async function downloadPlugin(repo: string, overwrite?: boolean) {
+async function downloadPlugin(repo: string, branch='', overwrite?: boolean) {
     downloadProgress(repo, true)
     const rec = await getRepoInfo(repo)
-    const url = `https://github.com/${repo}/archive/${rec.default_branch}.zip`
+    if (!branch)
+        branch = rec.default_branch
+    const url = `https://github.com/${repo}/archive/refs/heads/${branch}.zip`
     const res = await httpsStream(url)
     const repo2 = repo.split('/')[1] // second part, repo without the owner
     const repo2clash = !overwrite
         && (getAvailablePlugins().find(x => x.id === repo2) || mapPlugins(x => x.id === repo2).some(Boolean))
     const pluginFolder = repo2clash ? repo.replace('/','-') : repo2 // longer form only if necessary
     const installFolder = PLUGINS_PATH + '/' + pluginFolder
-    const GITHUB_ZIP_ROOT = repo2 + '-' + rec.default_branch // github puts everything within this folder
+    const GITHUB_ZIP_ROOT = repo2 + '-' + (branch) // github puts everything within this folder
     const rootWithinZip = GITHUB_ZIP_ROOT + '/' + DIST_ROOT
     return new Promise(resolve =>
         res.pipe(unzipper.Parse())
@@ -202,14 +217,17 @@ function getRepoInfo(id: string) {
     return apiGithub('repos/'+id)
 }
 
-async function readOnlinePlugin(repo: { full_name: string, default_branch: string }) {
-    const res = await httpsString(`https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/${DIST_ROOT}plugin.js`)
+async function readOnlinePlugin(repoInfo: { full_name: string, default_branch: string }, branch='') {
+    const url = `https://raw.githubusercontent.com/${repoInfo.full_name}/${branch || repoInfo.default_branch}/${DIST_ROOT}plugin.js`
+    const res = await httpsString(url)
     if (!res.ok)
         throw res.statusCode
-    return parsePluginSource(repo.full_name, res.body) // use 'repo' as 'id' client-side
+    const pl = parsePluginSource(repoInfo.full_name, res.body) // use 'repo' as 'id' client-side
+    pl.branch = branch || undefined
+    return pl
 }
 
-function getRepo2id() {
+function getRepo2folder() {
     const ret = Object.fromEntries(getAvailablePlugins().map(x => [x.repo, x.id]))
     Object.assign(ret, Object.fromEntries(mapPlugins(x => [x.getData().repo, x.id]))) // started ones
     delete ret.undefined

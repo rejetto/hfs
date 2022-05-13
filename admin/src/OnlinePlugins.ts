@@ -48,7 +48,7 @@ export default function OnlinePlugins() {
                     hideSortIcons: true,
                     disableColumnMenu: true,
                     renderCell({ row }) {
-                        const { id } = row
+                        const { id, branch } = row
                         return h('div', {},
                             repoLink(id),
                             h(IconBtn, {
@@ -59,7 +59,7 @@ export default function OnlinePlugins() {
                                 tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
                                 confirm: "WARNING - Proceed only if you trust this author and this plugin",
                                 async onClick() {
-                                    await apiCall('download_plugin', { id })
+                                    await apiCall('download_plugin', { id, branch })
                                     toast("Plugin downloaded: " + id)
                                 }
                             })
