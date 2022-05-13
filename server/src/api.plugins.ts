@@ -43,7 +43,7 @@ const apis: ApiHandlers = {
             const repo2id = getRepo2id()
             for (const repo in repo2id)
                 try {
-                    const online = await readOnlinePlugin(repo)
+                    const online = await readOnlinePlugin(await getRepoInfo(repo))
                     if (!online.apiRequired || online.badApi) continue
                     const id = repo2id[repo]
                     const disk = getPluginInfo(id)
@@ -89,7 +89,7 @@ const apis: ApiHandlers = {
         apiGithub('search/repositories?q=topic:hfs-plugin+' + encodeURI(text)).then(async res => {
             for (const it of res.items) {
                 const repo = it.full_name
-                const pl = await readOnlinePlugin(repo)
+                const pl = await readOnlinePlugin(it)
                 if (!pl.apiRequired || pl.badApi) continue
                 Object.assign(pl, { // inject some extra useful fields
                     downloading: downloading[repo],
@@ -156,7 +156,7 @@ function downloadProgress(id: string, status: DownloadStatus) {
 
 async function downloadPlugin(repo: string, overwrite?: boolean) {
     downloadProgress(repo, true)
-    const rec = await apiGithub('repos/'+repo)
+    const rec = await getRepoInfo(repo)
     const url = `https://github.com/${repo}/archive/${rec.default_branch}.zip`
     const res = await httpsStream(url)
     const repo2 = repo.split('/')[1] // second part, repo without the owner
@@ -198,12 +198,15 @@ async function apiGithub(uri: string) {
     return JSON.parse(res.body)
 }
 
-function readOnlinePlugin(repo: string) {
-    return httpsString(`https://raw.githubusercontent.com/${repo}/master/${DIST_ROOT}plugin.js`).then(res => {
-        if (!res.ok)
-            throw res.statusCode
-        return parsePluginSource(repo, res.body) // use 'repo' as 'id' client-side
-    })
+function getRepoInfo(id: string) {
+    return apiGithub('repos/'+id)
+}
+
+async function readOnlinePlugin(repo: { full_name: string, default_branch: string }) {
+    const res = await httpsString(`https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/${DIST_ROOT}plugin.js`)
+    if (!res.ok)
+        throw res.statusCode
+    return parsePluginSource(repo.full_name, res.body) // use 'repo' as 'id' client-side
 }
 
 function getRepo2id() {
