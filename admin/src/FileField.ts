@@ -28,6 +28,7 @@ export default function FileField({ value, onChange, ...props }: FieldProps<stri
                         function Content() {
                             return h(FilePicker, {
                                 multiple: false,
+                                folders: false,
                                 from: value,
                                 async onSelect(sel) {
                                     let one = sel?.[0]

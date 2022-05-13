@@ -27,8 +27,9 @@ interface FilePickerProps {
     onSelect:(v:string[])=>void
     multiple?: boolean
     from?: string
+    folders?: boolean
 }
-export default function FilePicker({ onSelect, multiple=true, from }: FilePickerProps) {
+export default function FilePicker({ onSelect, multiple=true, folders=true, from }: FilePickerProps) {
     const passedDir = useMemo(() => from && dirname(from), [from])
     const [cwd, setCwd] = useState(from && passedDir || '')
     const [ready, setReady] = useState(false)
@@ -89,11 +90,12 @@ export default function FilePicker({ onSelect, multiple=true, from }: FilePicker
                                 ...size, itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
                                 children({ index, style }) {
                                     const it: DirEntry = filteredList[index]
+                                    const isFolder = it.k === 'd'
                                     return h(MenuItem, {
                                             style,
                                             key: it.n,
                                             onClick() {
-                                                if (it.k === 'd')
+                                                if (isFolder)
                                                     setCwd(cwdPostfixed + it.n)
                                                 else
                                                     onSelect([cwdPostfixed + it.n])
@@ -101,6 +103,7 @@ export default function FilePicker({ onSelect, multiple=true, from }: FilePicker
                                         },
                                         multiple && h(Checkbox, {
                                             checked: sel.includes(it.n),
+                                            disabled: !folders && isFolder,
                                             onClick(ev) {
                                                 const id = it.n
                                                 const removed = sel.filter(x => x !== id)
@@ -110,7 +113,7 @@ export default function FilePicker({ onSelect, multiple=true, from }: FilePicker
                                         }),
                                         h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
                                         h(ListItemText, { sx: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }, it.n),
-                                        it.k !== 'd' && it.s !== undefined && h(Typography, {
+                                        !isFolder && it.s !== undefined && h(Typography, {
                                             variant: 'body2',
                                             color: 'text.secondary',
                                             ml: 4
@@ -121,14 +124,14 @@ export default function FilePicker({ onSelect, multiple=true, from }: FilePicker
                     }),
                 ),
                 h(Box, { display:'flex', gap: 1 },
-                    multiple && h(Button, {
+                    (multiple || folders) && h(Button, {
                         variant: 'contained',
-                        disabled: !sel.length,
+                        disabled: !folders && !sel.length,
                         sx: { minWidth: 'max-content' },
                         onClick() {
-                            onSelect(sel.map(x => cwdPostfixed + x))
+                            onSelect(sel.length ? sel.map(x => cwdPostfixed + x) : [cwd])
                         }
-                    }, `Select (${sel.length})`),
+                    }, sel.length || !folders ? `Select (${sel.length})` : `Select this folder`),
                     h(TextField, {
                         value: filter,
                         label: `Filter results (${filteredList.length}${filteredList.length < list.length ? '/'+list.length : ''})`,
