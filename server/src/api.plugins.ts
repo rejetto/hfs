@@ -33,7 +33,8 @@ const apis: ApiHandlers = {
         })
 
         function serialize(p: Readonly<Plugin> | AvailablePlugin) {
-            return Object.assign('getData' in p ? p.getData() : p, { started: null }, _.pick(p, ['id','started']))
+            return _.defaults('getData' in p ? Object.assign(_.pick(p, ['id','started']), p.getData()) : p,
+                { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
         }
     },
 
