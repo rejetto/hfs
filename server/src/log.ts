@@ -5,10 +5,11 @@ import { Writable } from 'stream'
 import { defineConfig } from './config'
 import { createWriteStream, existsSync, renameSync, WriteStream } from 'fs'
 import * as util from 'util'
-import { stat } from 'fs/promises'
+import { mkdir, stat } from 'fs/promises'
 import { DAY } from './const'
 import events from './events'
 import _ from 'lodash'
+import { dirname } from 'path'
 
 class Logger {
     stream?: Writable
@@ -28,7 +29,9 @@ class Logger {
             const stats = await stat(path)
             this.last = stats.mtime || stats.ctime
         }
-        catch {}
+        catch {
+            await mkdir(dirname(path), { recursive: true })
+        }
         this.reopen()
     }
 
