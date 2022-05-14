@@ -13,7 +13,7 @@ import { objSameKeys, onOff, same, wait } from './misc'
 import { ApiHandlers, sendList } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
-import { downloadPlugin, getRepo2folder, getRepoInfo, readOnlinePlugin, searchPlugins } from './github'
+import { downloadPlugin, getFolder2repo, getRepoInfo, readOnlinePlugin, searchPlugins } from './github'
 
 const apis: ApiHandlers = {
 
@@ -37,12 +37,12 @@ const apis: ApiHandlers = {
     async get_plugin_updates() {
         const list = sendList()
         setTimeout(async () => {
-            const repo2folder = getRepo2folder()
-            for (const repo in repo2folder)
+            for (const [folder, repo] of Object.entries(getFolder2repo()))
                 try {
+                    if (!repo) continue
                     const online = await readOnlinePlugin(await getRepoInfo(repo))
                     if (!online.apiRequired || online.badApi) continue
-                    const disk = getPluginInfo(repo2folder[repo])
+                    const disk = getPluginInfo(folder)
                     if (online.version! > disk.version)
                         list.add(online)
                 }
@@ -81,12 +81,12 @@ const apis: ApiHandlers = {
 
     search_online_plugins({ text }, ctx) {
         const list = sendList()
-        const repo2folder = getRepo2folder()
         setTimeout(async () => {
             try {
+                const folder2repo = getFolder2repo()
                 for await (const pl of searchPlugins(text)) {
                     const repo = pl.id
-                    Object.assign(pl, { installed: repo2folder[repo] })
+                    Object.assign(pl, { installed: _.includes(folder2repo, repo) })
                     list.add(pl)
                     // watch for events about this plugin, until this request is closed
                     ctx.req.on('close', onOff(events, {
@@ -94,8 +94,8 @@ const apis: ApiHandlers = {
                             if (p.repo === repo)
                                 list.update({ id: repo }, { installed: true })
                         },
-                        pluginUninstalled: id => {
-                            if (repo === _.findKey(repo2folder, x => x === id))
+                        pluginUninstalled: folder => {
+                            if (repo === getFolder2repo()[folder])
                                 list.update({ id: repo }, { installed: false })
                         },
                         ['pluginDownload_'+repo](status) {

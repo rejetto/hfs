@@ -4,6 +4,7 @@ import { getAvailablePlugins, mapPlugins, parsePluginSource, PATH as PLUGINS_PAT
 import unzipper from 'unzipper'
 import { createWriteStream, mkdirSync } from 'fs'
 import { ApiError } from './apiMiddleware'
+import _ from 'lodash'
 
 const DIST_ROOT = 'dist/'
 
@@ -27,12 +28,13 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
         branch = rec.default_branch
     const url = `https://github.com/${repo}/archive/refs/heads/${branch}.zip`
     const res = await httpsStream(url)
-    const repo2 = repo.split('/')[1] // second part, repo without the owner
-    const repo2clash = !overwrite
-        && (getAvailablePlugins().find(x => x.id === repo2) || mapPlugins(x => x.id === repo2).some(Boolean))
-    const pluginFolder = repo2clash ? repo.replace('/','-') : repo2 // longer form only if necessary
-    const installFolder = PLUGINS_PATH + '/' + pluginFolder
-    const GITHUB_ZIP_ROOT = repo2 + '-' + (branch) // github puts everything within this folder
+    const short = repo.split('/')[1] // second part, repo without the owner
+    const folder2repo = getFolder2repo()
+    const folder = overwrite ? _.findKey(folder2repo, x => x===repo) // use existing folder
+        : short in folder2repo ? repo.replace('/','-') // longer form only if another plugin is using short form
+            : short
+    const installPath = PLUGINS_PATH + '/' + folder
+    const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder
     const rootWithinZip = GITHUB_ZIP_ROOT + '/' + DIST_ROOT
     return new Promise(resolve =>
         res.pipe(unzipper.Parse())
@@ -40,7 +42,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
                 const { path, type } = entry
                 if (!path.startsWith(rootWithinZip))
                     return entry.autodrain()
-                const dest = installFolder + '/' + path.slice(rootWithinZip.length)
+                const dest = installPath + '/' + path.slice(rootWithinZip.length)
                 if (type === 'File')
                     return entry.pipe(createWriteStream(dest))
                 mkdirSync(dest, { recursive: true }) // easy way be sure to have the folder ready before proceeding
@@ -66,10 +68,9 @@ export async function readOnlinePlugin(repoInfo: { full_name: string, default_br
     return pl
 }
 
-export function getRepo2folder() {
-    const ret = Object.fromEntries(getAvailablePlugins().map(x => [x.repo, x.id]))
-    Object.assign(ret, Object.fromEntries(mapPlugins(x => [x.getData().repo, x.id]))) // started ones
-    delete ret.undefined
+export function getFolder2repo() {
+    const ret = Object.fromEntries(getAvailablePlugins().map(x => [x.id, x.repo]))
+    Object.assign(ret, Object.fromEntries(mapPlugins(x => [x.id, x.getData().repo])))
     return ret
 }
 
