@@ -85,7 +85,8 @@ export async function updateAccount(account: Account, changer?:Changer) {
 
 const saveAccountsAsap = saveConfigAsap
 
-defineConfig<Accounts>('accounts', {}).sub(async v => {
+const accountsConfig = defineConfig<Accounts>('accounts', {})
+accountsConfig.sub(async v => {
     // we should validate content here
     accounts = v // keep local reference
     await Promise.all(_.map(accounts, async (rec,k) => {
@@ -134,7 +135,8 @@ export function addAccount(username: string, props: Partial<Account>) {
         return
     const copy = _.pickBy(_.pick(props, assignableProps), Boolean)
     setHidden(copy, { username })
-    accounts[username] = copy as typeof copy & { username: string }
+    accountsConfig.set(accounts =>
+        Object.assign(accounts, { [username]: copy }))
     saveAccountsAsap()
     return copy
 }
@@ -154,7 +156,8 @@ export function setAccount(username: string, changes: Partial<Account>) {
 export function delAccount(username: string) {
     if (!getAccount(username))
         return false
-    delete accounts[username]
+    accountsConfig.set(accounts =>
+        Object.assign(accounts, { [username]: undefined }))
     saveAccountsAsap()
     return true
 }
