@@ -2,7 +2,7 @@
 
 import { createElement as h, isValidElement } from 'react'
 import { Box, Button, Link } from '@mui/material'
-import { apiCall, useApi, useApiComp } from './api'
+import { apiCall, useApi, useApiComp, useApiList } from './api'
 import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy } from './misc'
 import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
@@ -21,6 +21,7 @@ export default function HomePage() {
     const [vfs] = useApiComp<{ root?: VfsNode }>('get_vfs')
     const [account] = useApi<Account>(username && 'get_account')
     const [cfg, reloadCfg] = useApiComp('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
+    const { list: plugins } = useApiList('get_plugins')
     if (!status || isValidElement(status))
         return status
     const { http, https } = status
@@ -37,6 +38,7 @@ export default function HomePage() {
                 " or ",
                 SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
+    console.log(plugins)
     return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
         username && entry('', "Welcome "+username),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
@@ -49,6 +51,7 @@ export default function HomePage() {
             ['http','https'].map(k => k + " " + (errorMap[k] ? "is in error" : "is off")).join(', '),
             !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
         ),
+        plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
         !account?.adminActualAccess && entry('', md("You are accessing on _localhost_ where permission is not required"),
             SOLUTION_SEP, h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers") ),
         proxyWarning(cfg, status) && entry('warning', "A proxy was detected but none is configured",
