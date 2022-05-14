@@ -1,5 +1,4 @@
 # To do
-- move logs to dedicated folder
 - fix: root without can_download breaks 
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - easier deploy on cloud server

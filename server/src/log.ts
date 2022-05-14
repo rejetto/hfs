@@ -45,12 +45,12 @@ const accessLogger = new Logger('log')
 const accessErrorLog = new Logger('error_log')
 export const loggers = [accessLogger, accessErrorLog]
 
-defineConfig('log', 'access.log').sub(path => {
+defineConfig('log', 'logs/access.log').sub(path => {
     console.debug('access log file: ' + (path || 'disabled'))
     accessLogger.setPath(path)
 })
 
-const errorLogFile = defineConfig(accessErrorLog.name, 'access-error.log')
+const errorLogFile = defineConfig(accessErrorLog.name, 'logs/access-error.log')
 errorLogFile.sub(path => {
     console.debug('access error log: ' + (path || 'disabled'))
     accessErrorLog.setPath(path)
