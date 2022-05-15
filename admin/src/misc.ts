@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, FC, ReactNode } from 'react'
-import { Box, CircularProgress, IconButton, Link, Tooltip } from '@mui/material'
+import { Box, Breakpoint, CircularProgress, IconButton, Link, Tooltip, useMediaQuery } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { SxProps } from '@mui/system'
 import { SvgIconComponent } from '@mui/icons-material'
@@ -121,4 +121,8 @@ export function findFirst<I=any, O=any>(a: I[], cb:(v:I)=>O): any {
 
 export function xlate(input: any, table: Record<string, any>) {
     return table[input] ?? input
+}
+
+export function useBreakpoint(name: Breakpoint) {
+    return useMediaQuery((theme: any) => theme.breakpoints.up(name), { noSsr:true }) // without noSsr, first execution always returns false
 }

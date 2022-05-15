@@ -3,9 +3,10 @@
 import { createElement as h, Fragment, useState } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
-import { AppBar, Box, Drawer, Hidden, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
+import { AppBar, Box, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { Dialogs } from './dialog'
 import { useMyTheme } from './theme'
+import { useBreakpoint} from './misc'
 import { LoginRequired } from './LoginRequired'
 import { Menu } from '@mui/icons-material'
 
@@ -32,16 +33,15 @@ function Routed() {
     const current = mainMenu.find(x => x.path === loc)
     const title = current && (current.title || getMenuLabel(current))
     const [open, setOpen] = useState(false)
+    const large = useBreakpoint('lg')
     return h(Fragment, {},
-        h(Hidden, { mdUp: true },
-            h(StickyBar, { title, openMenu: () => setOpen(true) }),
-            h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
-                h(MainMenu, {
-                    onSelect: () => setOpen(false)
-                }))
-        ),
+        !large && h(StickyBar, { title, openMenu: () => setOpen(true) }),
+        !large && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
+            h(MainMenu, {
+                onSelect: () => setOpen(false)
+            })),
         h(Box, { display: 'flex', flex: 1, }, // horizontal layout for menu-content
-            h(Hidden, { mdDown: true }, h(MainMenu) ),
+            large && h(MainMenu),
             h(Box, {
                 component: 'main',
                 sx: {
@@ -55,7 +55,7 @@ function Routed() {
                     width: '100%',
                 }
             },
-                title && h(Hidden, { mdDown: true }, h(Typography, { variant:'h2', mb:2 }, title) ),
+                title && large && h(Typography, { variant:'h2', mb:2 }, title),
                 h(Routes, {}, mainMenu.map((it,idx) =>
                     h(Route, { key: idx, path: it.path, element: h(it.comp) })) )
             ),

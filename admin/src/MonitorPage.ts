@@ -4,10 +4,10 @@ import _ from "lodash"
 import { isValidElement, createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiComp, useApiList } from "./api"
 import { PauseCircle, PlayCircle, Delete, Lock, Block } from '@mui/icons-material'
-import { Box, Chip, Hidden } from '@mui/material'
+import { Box, Chip } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
-import { formatBytes, IconBtn, iconTooltip, manipulateConfig } from "./misc"
+import { formatBytes, IconBtn, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
 import { Field, SelectField } from './Form'
 import { GridColumns } from '@mui/x-data-grid/models/colDef/gridColDef'
 
@@ -22,14 +22,13 @@ const isoDateRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 
 function MoreInfo() {
     const [res] = useApiComp('get_status')
-    return h(Hidden, { smDown: true },
-        isValidElement(res) ? res :
+    return !useBreakpoint('md') ? null
+        : isValidElement(res) ? res :
             h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
                 pair('started'),
                 pair('http', "HTTP", port),
                 pair('https', "HTTPS", port),
             )
-    )
 
     type Color = Parameters<typeof Chip>[0]['color']
     type Render = (v:any) => [string, Color?]
