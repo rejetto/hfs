@@ -12,14 +12,11 @@
   "dependencies": {
     "@emotion/react": "^11.7.1",
     "@emotion/styled": "^11.6.0",
-    "@mui/icons-material": "^5.6.0",
-    "@mui/lab": "^5.0.0-alpha.80",
-    "@mui/material": "^5.6.0",
-    "@mui/styles": "^5.6.0",
+    "@mui/icons-material": "^5.6.2",
+    "@mui/lab": "^5.0.0-alpha.81",
+    "@mui/material": "^5.7.0",
+    "@mui/styles": "^5.7.0",
     "@mui/x-data-grid": "^5.11.0",
-    "@testing-library/jest-dom": "^5.16.1",
-    "@testing-library/react": "^12.1.2",
-    "@testing-library/user-event": "^13.5.0",
     "js-sha512": "^0.8.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
@@ -31,6 +28,9 @@
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^5.16.1",
+    "@testing-library/react": "^12.1.2",
+    "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.4.0",
     "@types/node": "^16.11.21",
     "@types/react": "^17.0.38",
