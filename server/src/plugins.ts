@@ -7,7 +7,7 @@ import pathLib from 'path'
 import { API_VERSION, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import { debounceAsync, getOrSet, onProcessExit, same, wantArray, watchDir } from './misc'
+import { debounceAsync, getOrSet, onProcessExit, same, tryJson, wantArray, watchDir } from './misc'
 import { defineConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
@@ -286,11 +286,6 @@ export function parsePluginSource(id: string, source: string) {
         pl.apiRequired = undefined
     calculateBadApi(pl)
     return pl
-}
-
-function tryJson(s?: string) {
-    try { return s && JSON.parse(s) }
-    catch {}
 }
 
 function calculateBadApi(data: AvailablePlugin) {

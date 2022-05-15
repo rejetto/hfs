@@ -14,7 +14,7 @@ import {
     TextField,
     Typography
 } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, spinner, pathJoin, dirname, isAbsolutePath } from './misc'
+import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center } from './misc'
 import { ArrowUpward, Home } from '@mui/icons-material'
 import { StringField } from './Form'
 import { FileIcon, FolderIcon } from './VfsTree'
@@ -28,21 +28,19 @@ interface FilePickerProps {
     multiple?: boolean
     from?: string
     folders?: boolean
+    files?: boolean
 }
-export default function FilePicker({ onSelect, multiple=true, folders=true, from }: FilePickerProps) {
-    const passedDir = useMemo(() => from && dirname(from), [from])
-    const [cwd, setCwd] = useState(from && passedDir || '')
+export default function FilePicker({ onSelect, multiple=true, files=true, folders=true, from='' }: FilePickerProps) {
+    const [cwd, setCwd] = useState(from)
     const [ready, setReady] = useState(false)
     useEffect(() => {
-        if (passedDir && isAbsolutePath(passedDir))
-            return setReady(true)
-        apiCall('get_cwd').then(res => {
+        apiCall('resolve_path', { path: from, closestFolder: true }).then(res => {
             if (typeof res.path === 'string')
-                setCwd(pathJoin(res.path, passedDir))
+                setCwd(res.path)
             setReady(true)
         })
-    }, [passedDir])
-    const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd })
+    }, [from])
+    const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd, files })
     useEffect(() => {
         setSel([])
         setFilter('')
@@ -81,10 +79,9 @@ export default function FilePicker({ onSelect, multiple=true, folders=true, from
             }),
         ),
         error ? h(Alert, { severity:'error' }, String(error))
-            : !list.length ? h(Typography, { p:1 }, 'No elements in this folder')
             : h(Fragment, {},
                 h(Box, { sx: { flex: 1 } },
-                    h(AutoSizer, {
+                    !list.length ? h(Center, { flex: 1, mt: '4em' }, "No elements in this folder") : h(AutoSizer, {
                         children: size =>
                             h(FixedSizeList, {
                                 ...size, itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
@@ -124,14 +121,14 @@ export default function FilePicker({ onSelect, multiple=true, folders=true, from
                     }),
                 ),
                 h(Box, { display:'flex', gap: 1 },
-                    (multiple || folders) && h(Button, {
+                    (multiple || folders || !files) && h(Button, {
                         variant: 'contained',
-                        disabled: !folders && !sel.length,
+                        disabled: !folders && !sel.length && files,
                         sx: { minWidth: 'max-content' },
                         onClick() {
                             onSelect(sel.length ? sel.map(x => cwdPostfixed + x) : [cwd])
                         }
-                    }, sel.length || !folders ? `Select (${sel.length})` : `Select this folder`),
+                    }, files && (sel.length || !folders) ? `Select (${sel.length})` : `Select this folder`),
                     h(TextField, {
                         value: filter,
                         label: `Filter results (${filteredList.length}${filteredList.length < list.length ? '/'+list.length : ''})`,

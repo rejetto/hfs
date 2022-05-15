@@ -323,3 +323,8 @@ export function httpsStream(url: string, options:RequestOptions={}): Promise<Inc
         }).on('error', reject).end()
     })
 }
+
+export function tryJson(s?: string) {
+    try { return s && JSON.parse(s) }
+    catch {}
+}

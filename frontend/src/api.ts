@@ -8,7 +8,9 @@ const PREFIX = '/~/api/'
 interface ApiCallOptions { noModal?:true }
 export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) : Promise<any> {
     const stop = options.noModal ? undefined : working()
-    params = addCsrf(params)
+    const csrf = getCsrf()
+    if (csrf)
+        params = { csrf, ...params }
     return fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -47,13 +49,14 @@ export function useApi(cmd: string | Falsy, params?: object) : any {
 type EventHandler = (type:string, data?:any) => void
 
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
-    const processed: Record<string,string> = {}
+    const csrf = getCsrf()
+    const processed: Record<string,string> = { csrf: csrf && JSON.stringify(csrf) }
     for (const k in params) {
         const v = params[k]
         if (v === undefined) continue
-        processed[k] = v === true ? '1' : v
+        processed[k] = JSON.stringify(v)
     }
-    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(addCsrf(processed)))
+    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(processed))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {
@@ -70,6 +73,6 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     return source
 }
 
-function addCsrf(params?: Dict) {
-    return { csrf: getCookie('csrf'), ...params }
+function getCsrf() {
+    return getCookie('csrf')
 }

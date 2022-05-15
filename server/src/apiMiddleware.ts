@@ -4,7 +4,7 @@ import { IncomingMessage } from 'http'
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, onOff } from './misc'
+import { asyncGeneratorToReadable, objSameKeys, onOff, tryJson } from './misc'
 import events from './events'
 
 export class ApiError extends Error {
@@ -18,7 +18,8 @@ export type ApiHandlers = Record<string, ApiHandler>
 
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
-        const params = ctx.method === 'POST' ? await getJsonFromReq(ctx.req) : ctx.request.query
+        const params = ctx.method === 'POST' ? await getJsonFromReq(ctx.req)
+            : objSameKeys(ctx.request.query, x => Array.isArray(x) ? x : tryJson(x))
         console.debug('API', ctx.method, ctx.path, { ...params })
         if (!apis.hasOwnProperty(ctx.path)) {
             ctx.body = 'invalid api'

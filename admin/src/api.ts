@@ -21,7 +21,9 @@ export function useApiComp<T=any>(...args: Parameters<typeof useApi>): [T | Reac
 const PREFIX = '/~/api/'
 
 export function apiCall(cmd: string, params?: Dict) : Promise<any> {
-    params = addCsrf(params)
+    const csrf = getCsrf()
+    if (csrf)
+        params = { csrf, ...params }
 
     const controller = new AbortController()
     setTimeout(() => controller.abort(), 10_000)
@@ -75,14 +77,15 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
 type EventHandler = (type:string, data?:any) => void
 
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
-    const processed: Record<string,string> = {}
+    console.debug('API EVENTS', cmd, params)
+    const csrf = getCsrf()
+    const processed: Record<string,string> = { csrf: csrf && JSON.stringify(csrf) }
     for (const k in params) {
         const v = params[k]
         if (v === undefined) continue
-        processed[k] = v === true ? '1' : v
+        processed[k] = JSON.stringify(v)
     }
-    console.debug('API EVENTS', cmd, params)
-    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(addCsrf(processed)))
+    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(processed))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {
@@ -100,9 +103,8 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     return source
 }
 
-function addCsrf(params?: Dict) {
-    const csrf = getCookie('csrf')
-    return csrf ? { csrf, ...params } : params
+function getCsrf() {
+    return getCookie('csrf')
 }
 
 export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=false, map=((x:any)=>x) }={}) {

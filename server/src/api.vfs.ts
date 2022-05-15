@@ -4,7 +4,7 @@ import { getNodeName, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode } from '
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { dirname, join } from 'path'
+import { dirname, join, resolve } from 'path'
 import { dirStream, enforceFinal, isWindowsDrive, objSameKeys } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
@@ -109,11 +109,18 @@ const apis: ApiHandlers = {
         }
     },
 
-    async get_cwd() {
+    get_cwd() {
         return { path: process.cwd() }
     },
 
-    async *ls({ path }, ctx) {
+    async resolve_path({ path, closestFolder }) {
+        path = resolve(path)
+        if (closestFolder && !(await stat(path)).isDirectory())
+            path = dirname(path)
+        return { path }
+    },
+
+    async *ls({ path, files=true }, ctx) {
         if (!path && IS_WINDOWS) {
             try {
                 for (const n of await getDrives())
@@ -133,6 +140,8 @@ const apis: ApiHandlers = {
                 try {
                     const full = join(path, name)
                     const stats = await stat(full)
+                    if (!files && stats.isFile())
+                        continue
                     yield {
                         add: {
                             n: name,

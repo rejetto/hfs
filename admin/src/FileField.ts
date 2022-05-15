@@ -7,7 +7,7 @@ import { newDialog } from '@hfs/shared/lib/dialogs'
 import FilePicker from './FilePicker'
 import { apiCall } from './api'
 
-export default function FileField({ value, onChange, ...props }: FieldProps<string>) {
+export default function FileField({ value, onChange, files, title, ...props }: FieldProps<string>) {
     return h(StringField, {
         ...props,
         value,
@@ -20,7 +20,7 @@ export default function FileField({ value, onChange, ...props }: FieldProps<stri
                     edge: 'end',
                     onClick() {
                         const close = newDialog({
-                            title: "Pick a file",
+                            title: title ?? (files ? "Pick a file" : "Pick a folder"),
                             dialogProps: { sx:{ minWidth:'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
                             Content,
                         })
@@ -29,6 +29,7 @@ export default function FileField({ value, onChange, ...props }: FieldProps<stri
                             return h(FilePicker, {
                                 multiple: false,
                                 folders: false,
+                                files,
                                 from: value,
                                 async onSelect(sel) {
                                     let one = sel?.[0]
