@@ -170,7 +170,7 @@ function pickProps(o: any, keys: string[]) {
     if (o && typeof o === 'object')
         for (const k of keys)
             if (k in o)
-                ret[k] = o[k] === null && o[k] === '' ? undefined : o[k]
+                ret[k] = o[k] === null || o[k] === '' ? undefined : o[k]
     return ret
 }
 
