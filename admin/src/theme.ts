@@ -12,6 +12,9 @@ export function useMyTheme() {
             text: { primary: '#bbb' },
             primary: { main: '#469' },
         },
+        typography: {
+            fontFamily: 'Roboto, "Noto sans", "Segoe UI", "San Francisco", "Helvetica Neue", Arial, sans-serif'
+        },
         components: {
             MuiTextField: {
                 defaultProps: { variant: 'filled' }
