@@ -28,6 +28,15 @@ Having this env-s will make the server get all related stuff from the other dev 
 Otherwise, you should be sure that frontend and admin have been built, and its files are ready to be used in `dist` folder.
 In this latter case, the `DEV=1` you set before will make the server get the files from inside the `dist` folder.
 
+## Tests
+
+To run tests
+- `npm run build-all`
+- `npm run server-for-test` 
+- in another shell `npm test`
+
+Alternatively you can run a development server, just be sure to load config from `tests` folder.
+
 ## File formats
 
 General configuration is read by default from file `config.yaml`.
