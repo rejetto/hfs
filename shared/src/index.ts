@@ -34,6 +34,7 @@ export function wait(ms: number) {
 
 export function getCookie(name: string) {
     const pre = name + '='
+    //@ts-ignore necessary to import this file in tests.ts (node doesn't have document)
     let decodedCookie = decodeURIComponent(document.cookie)
     let ca = decodedCookie.split(';')
     for (let c of ca) {

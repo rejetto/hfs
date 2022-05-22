@@ -1,5 +1,8 @@
 import axios from 'axios'
+import { wrapper } from 'axios-cookiejar-support'
+import { CookieJar } from 'tough-cookie'
 import { Done } from 'mocha'
+import { srpSequence } from '@hfs/shared/src'
 /*
 import { PORT, srv } from '../src'
 
@@ -11,6 +14,10 @@ const appStarted = new Promise(resolve =>
 const username = 'rejetto'
 const password = 'password'
 const API = '/~/api/'
+const BASE_URL = 'http://localhost'
+
+const jar = new CookieJar()
+const client = wrapper(axios.create({ jar }))
 
 describe('basics', () => {
     //before(async () => appStarted)
@@ -67,19 +74,13 @@ describe('basics', () => {
     }))
 })
 
-/*
-let cookie:any
 describe('after-login', () => {
-    before(req(API+'login', (data, res) => Boolean(cookie = res.headers['set-cookie']), {
-        data: { username, password }
-    }))
-    it('list protected', done => // defer execution of req() to have cookie set
-        req(API+'file_list', data => isInList(data, 'alfa.txt'), {
-            data: { path:'/for-admins/' },
-            headers: { cookie },
-        })(done))
+    before(() =>
+        srpSequence(username, password, (cmd: string, params: any) =>
+            client.post(API+cmd, params).then(x => x.data))
+    )
+    it('list protected', reqList('/for-admins/', { inList:['alfa.txt'] }))
 })
-*/
 
 type Tester = number
     | ((data: any, fullResponse: any) => boolean | Error)
@@ -96,17 +97,21 @@ type Tester = number
 
 function req(methodUrl: string, test:Tester, requestOptions?:any) {
     return (done:Done) => {
+        const csrf = getCookie('csrf')
+        if (csrf)
+            Object.assign(requestOptions.data, { csrf })
+
         const i = methodUrl.indexOf('/')
         const method = methodUrl.slice(0,i) || requestOptions?.data && 'POST' || 'GET'
-        const url = 'http://localhost'+methodUrl.slice(i)
-        axios.request({ method, url, ...requestOptions })
+        const url = BASE_URL+methodUrl.slice(i)
+        client.request({ method, url, ...requestOptions })
             .then(fun, fun)
             .catch(err => {
                 done(err)
             })
 
         function fun(res:any) {
-            console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status, res.data])
+            //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])
             if (test && test instanceof RegExp)
                 test = { re:test }
             if (typeof test === 'number')
@@ -130,6 +135,10 @@ function req(methodUrl: string, test:Tester, requestOptions?:any) {
             done(!ok && Error())
         }
     }
+}
+
+function getCookie(k: string) {
+    return jar.getCookiesSync(BASE_URL).find(c => c.key === k)?.value
 }
 
 function reqApi(api: string, params: object, test:Tester) {

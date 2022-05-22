@@ -31,7 +31,6 @@
   - https://api.github.com/repos/rejetto/hfs/releases/latest
   - check if 'created_at' is after exe's timestamp
   - if positive search 'assets' array for 'name' matching exe, and download 'browser_download_url', and replace exe
-- update tests to SRP login
 - upload
 - upload unzipping (while streaming?)
 - plugin to automatic generate letsencrypt cert?
