@@ -203,14 +203,20 @@ ul.dir {
 #menu-panel {
     margin-bottom: 0.2em;
 
-    & button {
-        margin: 0.1em;
-    }
 }
 #menu-bar {
     display: flex;
     justify-content: space-evenly;
     flex-wrap: wrap;
+    &>* {
+        flex: auto;
+        margin: 0.1em;
+    }
+    & button { /* no need for horizontal padding as we are using flex to grow */
+        padding-left: 0;
+        padding-right: 0;
+    }
+    &>a>button { width:100% } /* occupy whole available space */
 }
 #searched {
     margin: .2em;
