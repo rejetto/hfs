@@ -4,11 +4,9 @@ import _ from 'lodash'
 import { hashPassword } from './crypt'
 import { objRenameKey, setHidden, wantArray } from './misc'
 import Koa from 'koa'
-import { defineConfig, saveConfigAsap, setConfig } from './config'
+import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
-import { watchLoad } from './watchLoad'
-import { unlink } from 'fs'
 
 export interface Account {
     username: string, // we'll have username in it, so we don't need to pass it separately
