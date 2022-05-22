@@ -13,7 +13,6 @@
 - admin/monitor: show some info on what folder is browsing
 - admin/stats: total bytes sent
 - admin/stats: list of IPs seen  
-- if specified config is a folder, check for file config.yaml inside
 - admin: in a group, show linked accounts
 - admin: warn in case of items with same name
 - command line help --help

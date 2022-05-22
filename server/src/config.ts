@@ -5,9 +5,10 @@ import { argv } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { debounceAsync, same, objSameKeys, onOff, wait } from './misc'
-import { exists } from 'fs'
+import { debounceAsync, same, objSameKeys, onOff, wait, with_ } from './misc'
+import { exists, statSync } from 'fs'
 import { promisify } from 'util'
+import { join } from 'path'
 
 const PATH = 'config.yaml'
 
@@ -17,7 +18,15 @@ let started = false // this will tell the difference for subscribeConfig()s that
 let state: Record<string, any> = {}
 const cfgEvents = new EventEmitter()
 cfgEvents.setMaxListeners(10_000)
-const path = argv.config || process.env.HFS_CONFIG || PATH
+const path = with_(argv.config || process.env.HFS_CONFIG || PATH, p => {
+    try {
+        if (statSync(p).isDirectory()) // try to detect if path points to a folder, in which case we add the standard filename
+            return join(p, PATH)
+    }
+    catch {}
+    console.log("config", p)
+    return p
+})
 const { save } = watchLoad(path, values => setConfig(values||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
