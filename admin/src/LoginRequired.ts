@@ -3,7 +3,7 @@ import { createElement as h, Fragment, useState } from 'react'
 import { Center } from './misc'
 import { Form } from './Form'
 import { apiCall } from './api'
-import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
+import { srpSequence } from '@hfs/shared'
 import { Alert } from '@mui/material'
 
 export function LoginRequired({ children }: any) {
@@ -47,20 +47,10 @@ function LoginForm() {
 }
 
 async function login(username: string, password: string) {
-    const WRONG = "Wrong username or password"
-    const { pubKey, salt } = await apiCall('loginSrp1', { username })
-        .catch(() => { throw WRONG })
-    if (!salt)
-        throw "Bad response from server"
-
-    const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-    const srp = new SRPClientSession(srp6aNimbusRoutines);
-    const resStep1 = await srp.step1(username, password)
-    const resStep2 = await resStep1.step2(BigInt(salt), BigInt(pubKey))
-    const res = await apiCall('loginSrp2', { pubKey: String(resStep2.A), proof: String(resStep2.M1) }) // bigint-s must be cast to string to be json-ed
-        .catch(() => { throw WRONG })
-    await resStep2.step3(BigInt(res.proof))
-        .catch(() => { throw "Login aborted: server identity cannot be trusted" })
+    const res = await srpSequence(username, password, apiCall).catch(err => {
+        throw err === 'trust' ? "Login aborted: server identity cannot be trusted"
+            : "Wrong username or password"
+    })
     if (!res.adminUrl)
         throw "This account has no Admin access"
 

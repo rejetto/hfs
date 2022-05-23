@@ -6,6 +6,9 @@
     "test": "test",
     "build": "tsc && yarn sass src/:lib/"
   },
+  "dependencies": {
+    "tssrp6a": "^3.0.0"
+  },
   "devDependencies": {
     "react": "*",
     "react-dom": "*",

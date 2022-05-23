@@ -3,47 +3,25 @@
 import { apiCall, ApiError } from './api'
 import { state } from './state'
 import { alertDialog } from './dialog'
-import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
-import { working } from './misc'
+import { srpSequence, working } from './misc'
 
 export async function login(username:string, password:string) {
     const stopWorking = working()
-    try {
-/* simple login without encryption. Here commented just for example. Please use SRP version.
-        const res = await apiCall('login', { username, password })
-*/
-        const { pubKey, salt } = await apiCall('loginSrp1', { username })
-        if (!salt) return
-
-        const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-        const srp = new SRPClientSession(srp6aNimbusRoutines);
-        const resStep1 = await srp.step1(username, password)
-        const resStep2 = await resStep1.step2(BigInt(salt), BigInt(pubKey))
-        const res = await apiCall('loginSrp2', { pubKey: String(resStep2.A), proof: String(resStep2.M1) }) // bigint-s must be cast to string to be json-ed
-        try {
-            await resStep2.step3(BigInt(res.proof))
-        }
-        catch(e){
-            console.debug(String(e))
-            stopWorking()
-            await alertDialog("Login aborted: server identity cannot be trusted", 'error')
-            return
-        }
-
-        // login was successful, update state
+    return srpSequence(username, password, apiCall).then(res => {
+        stopWorking()
         sessionRefresher(res)
         return res
-    }
-    catch(err) {
+    }, (err: Error) => {
         stopWorking()
-        if (err instanceof ApiError)
+        if (err.message === 'trust')
+            err = Error("Login aborted: server identity cannot be trusted")
+        else if (err instanceof ApiError)
             if (err.code === 401)
-                err = 'Invalid credentials'
+                err = Error("Invalid credentials")
             else if (err.code === 409)
-                err = 'Cookies not working - login failed'
-        await alertDialog(err as Error, 'error')
-    }
-    finally { stopWorking() }
+                err = Error("Cookies not working - login failed")
+        return alertDialog(err)
+    })
 }
 
 // @ts-ignore
