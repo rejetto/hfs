@@ -22,10 +22,13 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 const subNode = await urlToNode(el, ctx, node)
                 if (!subNode || !hasPermission(subNode,'can_read',ctx))
                     continue
-                if (await nodeIsDirectory(subNode)) // a directory needs to walked
-                    yield* walkNode(subNode, ctx, Infinity, el+'/')
-                else
-                    yield {  ...subNode, name: prefix('', dirname(el), '/') + getNodeName(subNode) } // reflect relative path in archive, otherwise way may have name-clashes
+                if (await nodeIsDirectory(subNode)) {// a directory needs to walked
+                    yield* walkNode(subNode, ctx, Infinity, el + '/')
+                    continue
+                }
+                let folder = dirname(el)
+                folder = folder === '.' ? '' : folder + '/'
+                yield { ...subNode, name: folder + getNodeName(subNode) } // reflect relative path in archive, otherwise way may have name-clashes
             }
         })()
     const mappedWalker = filterMapGenerator(walker, async (el:VfsNode) => {
