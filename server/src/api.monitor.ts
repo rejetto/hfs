@@ -44,7 +44,10 @@ const apis: ApiHandlers = {
         }
 
         function fromCtx(ctx?: Koa.Context) {
-            return ctx && { path: ctx.fileSource && ctx.path } // only for downloading files
+            return ctx && {
+                archive: ctx.state.archive,
+                path: (ctx.fileSource || ctx.state.archive) && ctx.path  // only for downloading files
+            }
         }
     },
 

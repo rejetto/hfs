@@ -3,7 +3,7 @@
 import _ from "lodash"
 import { isValidElement, createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiComp, useApiList } from "./api"
-import { PauseCircle, PlayCircle, Delete, Lock, Block } from '@mui/icons-material'
+import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip } from '@mui/icons-material'
 import { Box, Chip } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
@@ -86,8 +86,10 @@ function Connections() {
             field: 'path',
             headerName: "File",
             flex: 1,
-            renderCell({ value }) {
+            renderCell({ value, row }) {
                 if (!value) return
+                if (row.archive)
+                    return h(Fragment, {}, h(FolderZip, { sx: { mr: 1 } }), row.archive, h(Box, { ml: 2, color: 'text.secondary' }, value))
                 const i = value?.lastIndexOf('/')
                 return h(Fragment, {}, value.slice(i + 1),
                     i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i)))

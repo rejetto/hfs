@@ -8,6 +8,7 @@ import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { dirname } from 'path'
+import { updateConnection } from './connections'
 
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.status = 200
@@ -55,6 +56,10 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.response.length = await zip.calculateSize(time)
     ctx.body = zip
     ctx.req.on('close', ()=> zip.destroy())
+    ctx.state.archive = 'zip'
+    const conn = ctx.state.connection
+    if (conn)
+        updateConnection(conn, { ctx }) // update connection data
 }
 
 const zipSeconds = defineConfig('zip_calculate_size_for_seconds', 1)
