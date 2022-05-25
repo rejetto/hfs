@@ -21,9 +21,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
     const filter = pattern2filter(search)
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
-    return sse ? asyncGeneratorToReadable(
-            filterMapGenerator(produceEntries(), async (entry) => ({ entry })) // wrap entry in an object
-        )
+    return sse ? filterMapGenerator(produceEntries(), async entry => ({ entry })) // wrap entry in an object
         : { list: await asyncGeneratorToArray(produceEntries()) }
 
     async function* produceEntries() {
