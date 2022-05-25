@@ -119,5 +119,5 @@ export function debugLog(...args: any[]) {
         debugLogFile = createWriteStream('debug.log', { flags: 'a' })
     const params = args.map(x =>
         typeof x === 'string' ? x : JSON.stringify(x)).join(' ')
-    debugLogFile.write(new Date().toJSON() + ': ' + params + '\n')
+    debugLogFile.write(new Date().toLocaleString() + ': ' + params + '\n')
 }
