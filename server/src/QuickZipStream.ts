@@ -47,21 +47,20 @@ export class QuickZipStream extends Readable {
             if (!value) break
             this.prewalk.push(value) // we keep same shape of the generator, so
         }
-        let size = 0
+        let offset = 0
         let centralDirSize = 0
         for (const file of this.prewalk) {
             const pathSize = Buffer.from(file.path, 'utf8').length
-            const sizeSize = size > ZIP64_LIMIT ? 8 : 4
-            const extraLength = (file.size > ZIP64_LIMIT ? 2 : 0) + (size > ZIP64_LIMIT ? 1 : 0)
+            const extraLength = (file.size > ZIP64_LIMIT ? 2 : 0) + (offset > ZIP64_LIMIT ? 1 : 0)
             const extraDataSize = extraLength && (2+2 + extraLength*8)
-            size += 4+2+2+2+ 4+4+4+4+ 2+2+ pathSize + file.size +4+4 +sizeSize*2
+            offset += 4+2+2+2+ 4+4+4+4+ 2+2+ pathSize + file.size
             centralDirSize += 4+2+2+2+2+ 4+4+4+4+ 2+2+2+2+2+ 4+4 + pathSize + extraDataSize
         }
-        const centralOffset = size
+        const centralOffset = offset
         if (centralOffset > ZIP64_LIMIT)
             centralDirSize += 4+8+2+2+4+4+8+8+8+8+4+4+8+4
         centralDirSize += 4+4+2+2+4+4+2
-        return size + centralDirSize
+        return offset + centralDirSize
     }
 
     async _read(): Promise<void> {
@@ -105,13 +104,7 @@ export class QuickZipStream extends Readable {
             this.workingFile = false
             const extAttr = !mode ? 0 : (mode | 0x8000) * 0x10000 // it's like <<16 but doesn't overflow so easily
             this.centralDir.push({ size, crc:crc!, pathAsBuffer, ts, offset, version, extAttr })
-            const sizeSize = size > ZIP64_LIMIT ? 8 : 4
-            this._push([
-                4, 0x08074b50,
-                4, crc,
-                sizeSize, size,
-                sizeSize, size,
-            ])
+            this.push('') // continue piping
         })
     }
 

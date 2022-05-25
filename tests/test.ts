@@ -65,8 +65,8 @@ describe('basics', () => {
     it('protectFromAbove', req('/protectFromAbove/child/alfa.txt', 403))
     it('protectFromAbove.list', reqList('/protectFromAbove/child/', { outList:['alfa.txt'] }))
 
-    it('zip.head', req('/f1/?get=zip', { empty:true, length:13074 }, { method:'HEAD' }) )
-    it('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt*renamed', { empty: true, length:138 }, { method:'HEAD' }))
+    it('zip.head', req('/f1/?get=zip', { empty:true, length:13010 }, { method:'HEAD' }) )
+    it('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt*renamed', { empty: true, length:118 }, { method:'HEAD' }))
     it('login', reqApi('login', { username, password }, 406)) // by default, we don't support clear-text login
 
     it('referer', req('/f1/page/gpl.png', 403, {
