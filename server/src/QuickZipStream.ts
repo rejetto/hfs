@@ -224,8 +224,8 @@ function buffer(parts: any[]) {
 }
 
 function ts2buf(ts:Date) {
-    const date = (ts.getFullYear() - 1980) << 9 | ts.getMonth() << 5 | ts.getDate()
-    const time = ts.getHours() << 11 | ts.getMinutes() << 5 | ts.getSeconds()
+    const date = ((ts.getFullYear() - 1980) & 0x7F) << 9 | (ts.getMonth() + 1) << 5 | ts.getDate()
+    const time = ts.getHours() << 11 | ts.getMinutes() << 5 | (ts.getSeconds() / 2) & 0x0F
     return [
         2, time,
         2, date,
