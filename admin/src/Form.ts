@@ -206,6 +206,7 @@ export function StringField({ value, onChange, typing, start, end, ...props }: F
     const [state, setState] = useState(setter)
 
     useEffect(() => setState(setter), [value]) //eslint-disable-line
+    let lastChange = value
     return h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
@@ -236,7 +237,10 @@ export function StringField({ value, onChange, typing, start, end, ...props }: F
     })
 
     function go(event: any, val: string=state) {
-        onChange(val.trim(), {
+        const newV = val.trim()
+        if (newV === lastChange) return // don't compare to 'value' as that represents only accepted changes, while we are interested also in changes through discarded values
+        lastChange = newV
+        onChange(newV, {
             was: value,
             event,
             cancel() {

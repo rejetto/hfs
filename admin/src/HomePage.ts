@@ -38,7 +38,6 @@ export default function HomePage() {
                 " or ",
                 SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
-    console.log(plugins)
     return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
         username && entry('', "Welcome "+username),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
