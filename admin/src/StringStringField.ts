@@ -20,8 +20,6 @@ const useStyles = makeStyles({
 export default function StringStringField({ value, onChange, keyLabel='key', valueLabel='value', keyWidth=5, valueWidth=5, actionsWidth=1 }: FieldProps<Dict<string>> & { keyLabel:string }) {
     const refNew = useRef()
     const justEntered = useRef<any>()
-    useEffect(() => justEntered.current?.focus?.(),
-        [justEntered.current]) //eslint-disable-line
     const styles = useStyles()
     return h(Grid, { container: true },
         // header
@@ -50,7 +48,11 @@ export default function StringStringField({ value, onChange, keyLabel='key', val
                 })),
             h(Grid, { key:'v', item: true, xs: valueWidth, },
                 h(StringField, {
-                    inputRef: justEntered.current === id ? justEntered : undefined,
+                    inputRef(el: HTMLInputElement) {
+                        if (justEntered.current !== id) return
+                        el?.focus()
+                        justEntered.current = null
+                    },
                     value: v,
                     onChange(v, { was, ...rest }){
                         if (v instanceof Error) return
@@ -81,7 +83,7 @@ export default function StringStringField({ value, onChange, keyLabel='key', val
                     more.cancel()
                     if (value && v in value)
                         return alert(keyLabel + " entry already present")
-                    justEntered.current = v
+                    justEntered.current = v // the way dom is manipulated will cause focus on wrong element, so we have to re-focus
                     onChange({ ...value, [v]:'' }, { ...more, was:value })
                 }
             })),
