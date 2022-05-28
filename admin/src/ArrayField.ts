@@ -6,7 +6,7 @@ import { DataGrid, GridAlignment } from '@mui/x-data-grid'
 import { FieldDescriptor, FieldProps, labelFromKey } from './Form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 
-export function ArrayField<T=any>({ label, helperText, fields, value, onChange, ...rest }: FieldProps<T[]> & { fields: FieldDescriptor[], height?: number }) {
+export function ArrayField<T=any>({ label, helperText, fields, value, onChange, onError, ...rest }: FieldProps<T[]> & { fields: FieldDescriptor[], height?: number }) {
     const rows = useMemo(() => (value||[]).map((x,$idx) =>
             setHidden({ ...x } as any, 'id' in x ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line

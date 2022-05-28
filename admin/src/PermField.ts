@@ -33,7 +33,6 @@ export default function PermField({ label, value, onChange }: FieldProps<Dict<st
                         options: usernames,
                         value: username,
                         onChange(v, { was, ...rest }){
-                            if (v instanceof Error) return
                             const copy: any = { ...value, [v]: value![was!] }
                             delete copy[was!]
                             onChange(copy, { was:value, ...rest })
@@ -45,7 +44,6 @@ export default function PermField({ label, value, onChange }: FieldProps<Dict<st
                         options: permOptions,
                         value: perm,
                         onChange(v, { was, ...rest }){
-                            if (v instanceof Error) return
                             const copy = { ...value }
                             if (v)
                                 copy[username] = v
@@ -71,7 +69,6 @@ export default function PermField({ label, value, onChange }: FieldProps<Dict<st
                     disabled: !temp,
                     options: permOptions,
                     onChange(v, rest) {
-                        if (v instanceof Error) return
                         if (v)
                             onChange({ ...value, [temp!]: v }, { ...rest, was: value })
                         setTemp(undefined)

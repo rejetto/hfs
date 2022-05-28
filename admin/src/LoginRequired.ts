@@ -18,24 +18,23 @@ function LoginForm() {
     const [error, setError] = useState('')
     return h(Center, {},
         h(Form, {
-            values: {},
+            values,
             set(v, k) {
                 setValues({ ...values, [k]: v })
             },
             fields: [
-                { k: 'username', autoComplete: 'username', autoFocus: true },
-                { k: 'password', type: 'password', autoComplete: 'current-password' },
+                { k: 'username', autoComplete: 'username', autoFocus: true, required: true },
+                { k: 'password', type: 'password', autoComplete: 'current-password', required: true },
             ],
             addToBar: [ error && h(Alert, { severity: 'error', sx: { flex: 1 } }, error) ],
+            saveOnEnter: true,
             save: {
                 children: "Enter",
                 startIcon: null,
                 async onClick() {
-                    const { username, password } = values
-                    if (!username || !password) return
                     try {
                         setError('')
-                        await login(username, password)
+                        await login(values.username, values.password)
                     }
                     catch(e) {
                         setError(String(e))

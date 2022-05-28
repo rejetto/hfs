@@ -29,11 +29,12 @@ import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 import { SxProps } from '@mui/system'
 
+type Validate = (v: any, extra?: any) => string | boolean
 export interface FieldDescriptor<T=any> {
     k: string
     comp?: any
     label?: ReactNode
-    validate?: RegExp | ((v: any, extra:any) => string | boolean)
+    validate?: Validate
     toField?: (v: T) => any
     fromField?: (v: any) => T
     [extraProp: string]: any
@@ -53,10 +54,12 @@ export interface FormProps<Values> extends Partial<BoxProps> {
     stickyBar?: boolean
     addToBar?: ReactNode[]
     barSx?: Dict
-    onError?: (err: any) => void
+    onError?: (err: any) => any
     formRef?: MutableRefObject<HTMLFormElement | undefined>
+    saveOnEnter?: boolean
 }
-export function Form<Values extends Dict>({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, ...rest }: FormProps<Values>) {
+enum Phase { Idle, WaitValues, Validating }
+export function Form<Values extends Dict>({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, saveOnEnter, ...rest }: FormProps<Values>) {
     const mounted = useRef(false)
     useEffect(() => {
         mounted.current = true
@@ -65,17 +68,14 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
         }
     }, [])
 
-    const [loading, setLoading] = useState(false)
-    const [errors, setErrors] = useState<Dict>({})
-    const [fieldErrors, setFieldErrors] = useState<Dict>({})
+    const [errors, setErrors] = useState<Dict<string | false>>({})
     const saveBtn = typeof save === 'function' ? { onClick: save } : save // normalize
-    const [pendingSubmit, setPendingSubmit] = useState(false)
-    useEffect(() => {
-        if (!pendingSubmit) return
-        setTimeout(wrappedSave)
-        setPendingSubmit(false)
-    }, [pendingSubmit]) //eslint-disable-line
+    const [phase, setPhase] = useState(Phase.Idle)
+    const submitAfterValidation = useRef(false)
+    const validateUpTo = useRef('')
+    useEffect(() => void(phaseChange()), [phase]) //eslint-disable-line
 
+    const apis: Dict<FieldApi> = {}
     return h('form', {
         ref: formRef && (x => formRef.current = x ? x as HTMLFormElement : undefined),
         onSubmit(ev) {
@@ -83,7 +83,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
         },
         onKeyDown(ev) {
             if (!saveBtn.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
-                setPendingSubmit(true) // we need to let outer component perform its state changes
+                pleaseSubmit()
         }
     },
         h(Box, {
@@ -98,36 +98,45 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                         return null
                     if (isValidElement(row))
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
-                    let field = row
-                    const { k, fromField=_.identity, toField=_.identity } = field
-                    let error = errors[k] || fieldErrors[k]
-                    if (error === true)
+                    const { k, fromField=_.identity, toField=_.identity, validate, ...field } = row
+                    let error = errors[k]
+                    if (error === '')
                         error = "Not valid"
                     if (k) {
                         const originalValue = values?.[k]
-                        field = {
+                        const whole = { ...row, ...field }
+                        Object.assign(field, {
                             value: toField(originalValue),
-                            ...field,
-                            error: field.error || Boolean(error) || undefined,
-                            onChange(v: any) {
-                                try { v = fromField(v) } // catch parsing exceptions
-                                catch (e) { v = e }
-                                const err = v instanceof Error ? v.message || true : undefined
-                                setFieldErrors({ ...fieldErrors, [k]: err })
-                                if (!err && !_.isEqual(v, originalValue))
-                                    set(v, k)
+                            error: Boolean(error) || undefined,
+                            getApi(api) { apis[k] = api },
+                            onBlur() {
+                                pleaseValidate(k)
                             },
-                        }
+                            async onChange(v, { event }) {
+                                try {
+                                    v = fromField(v)
+                                    if (_.isEqual(v, originalValue)) return
+                                    set(v, k)
+                                    if (saveOnEnter && event.key === 'Enter')
+                                        pleaseSubmit()
+                                    else
+                                        pleaseValidate(k)
+                                }
+                                catch (e) {
+                                    onError?.(e)
+                                }
+                            },
+                        } as Partial<FieldProps<any>>)
                         if (error) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
                             field.helperText = field.helperText ? h(Fragment, {}, h('span', { style: { borderBottom: '1px solid' } }, error), h('br'), field.helperText)
                                 : error
                         if (field.label === undefined)
                             field.label = labelFromKey(k)
-                        _.defaults(field, defaults?.(field))
+                        _.defaults(field, defaults?.(whole))
                     }
                     {
                         const { xs=12, sm, md, lg, xl, comp=StringField,
-                            validate, fromField, toField, // don't propagate
+                            fromField, toField, // don't propagate
                             ...rest } = field
                         return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
                             isValidElement(comp) ? comp : h(comp, rest) )
@@ -145,45 +154,59 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                     variant: 'contained',
                     startIcon: h(Save),
                     children: "Save",
-                    loading,
+                    loading: phase !== Phase.Idle,
                     ...saveBtn,
-                    onClick: wrappedSave,
+                    onClick: pleaseSubmit,
                 }),
                 ...addToBar,
             )
         )
     )
 
-    async function wrappedSave(...args: Parameters<NonNullable<typeof saveBtn.onClick>>) {
-        const cb = saveBtn.onClick
-        if (!cb) return
+    function pleaseSubmit() { // we use state here to let outer component perform its state changes
+        submitAfterValidation.current = true
+        pleaseValidate()
+    }
+
+    function pleaseValidate(k='') {
+        if (phase !== Phase.Idle) return
+        validateUpTo.current = k
+        setPhase(Phase.WaitValues)
+    }
+
+    async function phaseChange() {
+        if (phase === Phase.Idle) return
+        if (phase === Phase.WaitValues)
+            return setPhase(Phase.Validating)
         const MSG = "Please review errors"
-        setLoading(true)
-        try {
-            for (const f of fields) {
-                if (!f || isValidElement(f) || !f.k) continue
-                if (fieldErrors[f.k])
-                    return onError?.(MSG)
-                let fv = f.validate
-                if (!fv) continue
-                if (fv instanceof RegExp) {
-                    const re = fv
-                    fv = x => re.test(x)
-                }
-                const res = await fv(values?.[f.k], { values, fields })
-                if (!mounted.current) return
-                if (res !== true) {
-                    setErrors({ [f.k]: res || true })
-                    return onError?.(MSG)
-                }
+        const errs: typeof errors = {}
+        for (const f of fields) {
+            if (!f || isValidElement(f) || !f.k) continue
+            const { k } = f
+            const v = values?.[k]
+            let err = await apis[k]?.getError()
+            if (!err) {
+                const res = await f.validate?.(v, { values, fields })
+                err = res !== undefined && res !== true && (res || '')
             }
-            setErrors({})
-            return await cb(...args)
+            errs[k] = err
+            if (k === validateUpTo.current) break
+            if (!mounted.current) return // abort
         }
-        catch(e) { onError?.(e) }
+        setErrors(errs)
+        try {
+            if (!submitAfterValidation.current) return
+            if (Object.values(errs).some(Boolean))
+                return await onError?.(MSG)
+            const cb = saveBtn.onClick
+            if (cb) // @ts-ignore
+                await cb()
+        }
+        catch(e) { await onError?.(e) }
         finally {
+            submitAfterValidation.current = false
             if (mounted.current)
-                setLoading(false)
+                setPhase(Phase.Idle)
         }
     }
 
@@ -193,27 +216,37 @@ export function labelFromKey(k: string) {
     return _.capitalize(k.replace(/_/g, ' '))
 }
 
+type Promisable<T> = T | Promise<T>
+interface FieldApi { getError: () => Promisable<string | false>, [rest: string]: any }
 export interface FieldProps<T> {
     label?: string | ReactElement
     value?: T
-    onChange: (v: T | Error, more: { was?: T, event: any, [rest: string]: any }) => void
+    onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
+    getApi?: (api: FieldApi) => void
     error?: true
     [rest: string]: any
 }
 
-export function StringField({ value, onChange, typing, start, end, ...props }: FieldProps<string>) {
+export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, ...props }: FieldProps<string>) {
     const setter = () => value ?? ''
+    getApi?.({
+        getError() {
+            return !value && required ? "required"
+                : value?.length! < min ? "too short"
+                    : value?.length! > max ? "too long"
+                        : false
+        }
+    })
     const [state, setState] = useState(setter)
 
+    const lastChange = useRef(value)
     useEffect(() => setState(setter), [value]) //eslint-disable-line
-    let lastChange = value
     return h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
         ...props,
         value: state,
         onChange(ev) {
-            props.onChange?.(ev)
             const val = ev.target.value
             setState(val)
             if (typing // change state as the user is typing
@@ -238,8 +271,8 @@ export function StringField({ value, onChange, typing, start, end, ...props }: F
 
     function go(event: any, val: string=state) {
         const newV = val.trim()
-        if (newV === lastChange) return // don't compare to 'value' as that represents only accepted changes, while we are interested also in changes through discarded values
-        lastChange = newV
+        if (newV === lastChange.current) return // don't compare to 'value' as that represents only accepted changes, while we are interested also in changes through discarded values
+        lastChange.current = newV
         onChange(newV, {
             was: value,
             event,
@@ -261,7 +294,7 @@ type SelectOption<T> = SelectPair<T> | (T extends string | number ? T : never)
 interface SelectPair<T> { label: string, value:T }
 
 export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T> }) {
-    const { value, onChange, options, sx, ...rest } = props
+    const { value, onChange, getApi, options, sx, ...rest } = props
     return h(TextField, { // using TextField because Select is not displaying label correctly
         ...commonSelectProps(props),
         ...rest,
@@ -277,7 +310,7 @@ export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T>
 }
 
 export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectOptions<T> }) {
-    const { value, options, sx, ...rest } = props
+    const { value, onChange, getApi, options, sx, ...rest } = props
     return h(TextField, {
         ...commonSelectProps({ ...props, value: undefined }),
         ...rest,
@@ -287,7 +320,7 @@ export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectOpt
             try {
                 let v: any = event.target.value
                 v = Array.isArray(v) ? v.map(x => JSON.parse(x)) : []
-                props.onChange(v as T[], { was: value, event })
+                onChange(v as T[], { was: value, event })
             }
             catch {}
         }
@@ -315,22 +348,28 @@ function commonSelectProps<T>(props: { sx?:SxProps, label?: FieldProps<T>['label
     }
 }
 
-export function NumberField({ value, onChange, min, max, step, required, ...props }: FieldProps<number | null>) {
+export function NumberField({ value, onChange, getApi, required, min, max, step, ...props }: FieldProps<number | null>) {
+    getApi?.({
+        getError() {
+            return value == null ? (required ? "required" : false)
+                : (value < min ? "too low" : value > max ? "too high" : false)
+        }
+    })
     return h(StringField, {
         type: 'number',
-        value: typeof value === 'number' ? String(value) : '',
+        value: value == null ? '' : String(value),
         onChange(v, { was, ...rest }) {
-            const n = Number(v)
-            onChange(!v ? (required ? Error('required') : null)
-                    : n < min ? Error('too low') : n > max ? Error('too high') : n,
-                { ...rest, was: was ? Number(was) : null })
+            onChange(!v ? null : Number(v), {
+                ...rest,
+                was: was ? Number(was) : null,
+            })
         },
         inputProps: { min, max, step, },
         ...props,
     })
 }
 
-export function BoolField({ label='', value, onChange, helperText, error,
+export function BoolField({ label='', value, onChange, getApi, helperText, error,
                               type, // avoid passing this by accident, as it disrupts the control
                               ...props }: FieldProps<boolean>) {
     const setter = () => value ?? false
