@@ -89,9 +89,7 @@ export default function StringStringField({ value, onChange, keyLabel='key', val
             h(StringField, {
                 value: '',
                 onChange(){},
-                onFocus() { //@ts-ignore
-                    setTimeout(()=> refNew.current.focus()) // without setTimeout TextField component is in an inconsistent focus-state
-                }
+                disabled: true,
             })),
     )
 }
