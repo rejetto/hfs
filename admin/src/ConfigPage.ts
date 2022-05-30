@@ -87,7 +87,7 @@ export default function ConfigPage() {
             values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file" },
             { k: 'open_browser_at_start', comp: BoolField },
             { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections",
-                validate: x => x || !admins || admins.length>0 || "First create at least one admin account",
+                getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "To access Admin without entering credentials"
             },
             { k: 'log', label: logLabels.log, lg: 3, helperText: "Requests are logged here" },
@@ -215,7 +215,7 @@ export async function makeCertAndSave() {
     try {
         const saved = await apiCall('save_pem', await makeCert(res))
         await apiCall('set_config', { values: saved })
-        if (loaded) // when undefined we are outside of this page
+        if (loaded) // when undefined we are not in this page
             Object.assign(loaded, saved)
         setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
         Object.assign(state.config, saved)

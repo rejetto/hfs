@@ -169,7 +169,7 @@ function AccountForm({ account, done, groups, close }: FormProps) {
                 label: add ? "Password" : "Change password"
             },
             !group && { k: 'password2', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
-                validate: (x, { values }) => x === values.password || "Enter same password" },
+                getError: (x, { values }) => x !== values.password && "Enter same password" },
             { k: 'ignore_limits', comp: BoolField, xl: 6,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
             { k: 'admin', comp: BoolField, xl: 6, fromField: (v:boolean) => v||null, label: "Permission to access Admin interface",

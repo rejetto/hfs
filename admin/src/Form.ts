@@ -29,12 +29,12 @@ import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 import { SxProps } from '@mui/system'
 
-type Validate = (v: any, extra?: any) => string | boolean
+type ValidationError = string | boolean // false = no error
 export interface FieldDescriptor<T=any> {
     k: string
     comp?: any
     label?: ReactNode
-    validate?: Validate
+    getError?: (v: any, extra?: any) => Promisable<ValidationError>
     toField?: (v: T) => any
     fromField?: (v: any) => T
     [extraProp: string]: any
@@ -68,7 +68,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
         }
     }, [])
 
-    const [errors, setErrors] = useState<Dict<string | false>>({})
+    const [errors, setErrors] = useState<Dict<ValidationError>>({})
     const saveBtn = typeof save === 'function' ? { onClick: save } : save // normalize
     const [phase, setPhase] = useState(Phase.Idle)
     const submitAfterValidation = useRef(false)
@@ -98,9 +98,9 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                         return null
                     if (isValidElement(row))
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
-                    const { k, fromField=_.identity, toField=_.identity, validate, ...field } = row
+                    const { k, fromField=_.identity, toField=_.identity, getError, ...field } = row
                     let error = errors[k]
-                    if (error === '')
+                    if (error === true)
                         error = "Not valid"
                     if (k) {
                         const originalValue = values?.[k]
@@ -184,12 +184,9 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
             if (!f || isValidElement(f) || !f.k) continue
             const { k } = f
             const v = values?.[k]
-            let err = await apis[k]?.getError()
-            if (!err) {
-                const res = await f.validate?.(v, { values, fields })
-                err = res !== undefined && res !== true && (res || '')
-            }
-            errs[k] = err
+            const err = await apis[k]?.getError()
+                || await f.getError?.(v, { values, fields })
+            errs[k] = err || false
             if (k === validateUpTo.current) break
             if (!mounted.current) return // abort
         }
@@ -217,7 +214,7 @@ export function labelFromKey(k: string) {
 }
 
 type Promisable<T> = T | Promise<T>
-interface FieldApi { getError: () => Promisable<string | false>, [rest: string]: any }
+interface FieldApi { getError: () => Promisable<ValidationError>, [rest: string]: any }
 export interface FieldProps<T> {
     label?: string | ReactElement
     value?: T
