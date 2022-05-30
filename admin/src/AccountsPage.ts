@@ -15,8 +15,9 @@ import MenuButton from './MenuButton'
 const useStyles = makeStyles({
     label: {
         display: 'flex',
+        flexWrap: 'wrap',
+        padding: '.2em 0',
         gap: '.5em',
-        lineHeight: '2em',
         alignItems: 'center',
     }
 })
@@ -82,7 +83,7 @@ export default function AccountsPage() {
                 h(Button, { onClick: reload, startIcon: h(Refresh) }, "Reload"),
                 h(Typography, { p: 1 }, `${list.length} account(s)`),
             ) ),
-        h(Grid, { item: true, md: 6, xl: 5, },
+        h(Grid, { item: true, md: 5 },
             h(TreeView, {
                 multiSelect: true,
                 sx: { pr: 4, pb: 2, minWidth: '15em' },
@@ -107,7 +108,7 @@ export default function AccountsPage() {
             )
         ),
         sel.length > 0 // this clever test is true both when some accounts are selected and when we are in "new account" modes
-        && h(Grid, { item: true, md: 6, xl: 7 },
+        && h(Grid, { item: true, md: 7 },
             h(Card, {},
                 h(CardContent, {},
                     selectionMode && sel.length > 1 ? h(Box, {},
