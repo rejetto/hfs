@@ -164,9 +164,9 @@ function AccountForm({ account, done, groups, close }: FormProps) {
             account2icon(values, { fontSize: 'large', sx: { p: 1 }})
         ],
         fields: [
-            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', validate: x => x>'' || "Required", xl: group ? 12 : 4 },
-            !group && { k: 'password', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', label: add ? "Password" : "Change password",
-                validate: x => x>'' || !add || "Please provide a password"
+            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, xl: group ? 12 : 4 },
+            !group && { k: 'password', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', required: add,
+                label: add ? "Password" : "Change password"
             },
             !group && { k: 'password2', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 validate: (x, { values }) => x === values.password || "Enter same password" },

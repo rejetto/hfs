@@ -77,10 +77,8 @@ export default function FileForm({ file }: { file: VfsNode }) {
             }
         },
         fields: [
-            isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.") : {
-                k: 'name', validate: x => x>'' || `Required`,
-                helperText: source && "You can decide a name that's different from the one on your disk",
-            },
+            isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
+                : { k: 'name', required: true, helperText: source && "You can decide a name that's different from the one on your disk" },
             isRoot ? { k: 'source', comp: FileField, files: false,  helperText: "If you specify a folder here, its files will be listed in the home" }
                 : (hasSource && { k: 'source', comp: DisplayField, multiline: true }),
             !isRoot && { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
