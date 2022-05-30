@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -23,6 +23,7 @@
     "server-for-test": "cross-env HFS_CONFIG=tests node dist/src",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "dist-node": "cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-*",
+    "dist-win": "pkg . -C gzip -t node16-win && cd dist && zip hfs-windows.zip hfs.exe -r plugins",
     "dist-bin": "pkg . -C gzip && cd dist && mv -f hfs-win.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos hfs && zip hfs-macos.zip hfs -r plugins && rm hfs",
     "dist": "npm run build-all && npm run dist-node && npm run dist-bin"
   },
@@ -35,6 +36,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/rejetto/hfs/"
+  },
+  "devDependencies": {
+    "pkg": "^5.7.0"
   },
   "bin": {
     "hfs": "dist/src/index.js"

@@ -1,4 +1,6 @@
 # To do
+- plugin api to read hfs config
+- plugin: config to be able to declare a file field (real-path) https://github.com/rejetto/hfs/issues/46
 - fix: root without can_download breaks 
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - easier deploy on cloud server
