@@ -164,7 +164,9 @@ function AccountForm({ account, done, groups, close }: FormProps) {
             account2icon(values, { fontSize: 'large', sx: { p: 1 }})
         ],
         fields: [
-            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, xl: group ? 12 : 4 },
+            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, xl: group ? 12 : 4,
+                getError: v => v !== account.username && apiCall('get_account', { username: v }).then(() => "already used", () => false),
+            },
             !group && { k: 'password', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', required: add,
                 label: add ? "Password" : "Change password"
             },
