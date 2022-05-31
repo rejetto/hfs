@@ -3,7 +3,7 @@
 import { Dict, useStateMounted } from './misc'
 import { createElement as h, Fragment, isValidElement } from 'react'
 import { Button, Grid } from '@mui/material'
-import { Field, FieldProps, SelectField } from './Form'
+import { Field, FieldProps, SelectField } from '@hfs/mui-grid-form'
 import _ from 'lodash'
 import { useApiComp } from './api'
 

@@ -3,7 +3,7 @@
 import { state } from './state'
 import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
 import { Alert, Button } from '@mui/material'
-import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from './Form'
+import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiComp } from './api'
 import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
 import { reloadVfs, VfsNode, Who } from './VfsPage'

@@ -1,0 +1,19 @@
+{
+  "name": "@hfs/mui-grid-form",
+  "main": "./lib/Form.js",
+  "types": "./lib/Form.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@mui/icons-material": "*",
+    "@mui/lab": "*",
+    "@mui/material": "*"
+  },
+  "devDependencies": {
+    "react": "*",
+    "react-dom": "*",
+    "react-scripts": "*",
+    "typescript": "*"
+  }
+}

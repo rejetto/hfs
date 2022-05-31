@@ -16,7 +16,7 @@ import {
 } from '@mui/material'
 import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center } from './misc'
 import { ArrowUpward, Home } from '@mui/icons-material'
-import { StringField } from './Form'
+import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
 import { FixedSizeList } from 'react-window'
 import AutoSizer from "react-virtualized-auto-sizer"

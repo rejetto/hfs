@@ -1,5 +1,5 @@
 {
-  "exclude": ["frontend","admin","tests","dist","shared"],
+  "exclude": ["frontend","admin","tests","dist","shared","mui-grid-form"],
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 

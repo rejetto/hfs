@@ -3,7 +3,7 @@ import { IconBtn, setHidden } from './misc'
 import { Add, Edit, Delete } from '@mui/icons-material'
 import { confirmDialog, formDialog } from './dialog'
 import { DataGrid, GridAlignment } from '@mui/x-data-grid'
-import { FieldDescriptor, FieldProps, labelFromKey } from './Form'
+import { FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 
 export function ArrayField<T=any>({ label, helperText, fields, value, onChange, onError, ...rest }: FieldProps<T[]> & { fields: FieldDescriptor[], height?: number }) {

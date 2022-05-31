@@ -7,8 +7,7 @@ import { state, useSnapState } from './state'
 import { Info, Refresh } from '@mui/icons-material'
 import { Dict, modifiedSx } from './misc'
 import { subscribeKey } from 'valtio/utils'
-import { Form, BoolField, NumberField, SelectField, FieldProps, Field } from './Form';
-import StringStringField from './StringStringField'
+import { Form, BoolField, NumberField, SelectField, StringStringField, FieldProps, Field } from '@hfs/mui-grid-form';
 import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'

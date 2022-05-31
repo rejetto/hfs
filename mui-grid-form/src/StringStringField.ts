@@ -1,7 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { makeStyles } from '@mui/styles'
-import { Dict } from './misc'
 import { createElement as h, useRef } from 'react'
 import { Grid, IconButton } from '@mui/material'
 import { Add, Delete } from '@mui/icons-material'
@@ -17,7 +16,7 @@ const useStyles = makeStyles({
     }
 })
 
-export default function StringStringField({ value, onChange, keyLabel='key', valueLabel='value', keyWidth=5, valueWidth=5, actionsWidth=1 }: FieldProps<Dict<string>> & { keyLabel:string }) {
+export function StringStringField({ value, onChange, keyLabel='key', valueLabel='value', keyWidth=5, valueWidth=5, actionsWidth=1 }: FieldProps<Record<string,string>> & { keyLabel:string }) {
     const refNew = useRef()
     const justEntered = useRef<any>()
     const styles = useStyles()

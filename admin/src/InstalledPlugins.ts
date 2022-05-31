@@ -6,7 +6,7 @@ import { Delete, Error, GitHub, PlayCircle, Settings, StopCircle, SystemUpdateAl
 import { IconBtn, xlate } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
-import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from './Form'
+import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {

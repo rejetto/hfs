@@ -1,7 +1,7 @@
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useState } from 'react'
 import { Center } from './misc'
-import { Form } from './Form'
+import { Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
 import { srpSequence } from '@hfs/shared'
 import { Alert } from '@mui/material'

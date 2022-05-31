@@ -3,6 +3,7 @@
 import _ from 'lodash'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 export * from './react'
+export * from './dialogs'
 
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0

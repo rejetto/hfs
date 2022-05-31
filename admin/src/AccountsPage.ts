@@ -4,7 +4,7 @@ import { isValidElement, createElement as h, useState, useEffect, Fragment, useR
 import { apiCall, useApiComp } from './api'
 import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
-import { BoolField, Form, MultiSelectField } from './Form'
+import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog } from './dialog'
 import { iconTooltip, isEqualLax, modifiedSx, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'

@@ -4,7 +4,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import { IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { toast } from './dialog'
-import { StringField } from './Form'
+import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'use-debounce'
 import { repoLink, showError } from './InstalledPlugins'
 

@@ -19,8 +19,8 @@ import {
     useState
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
-import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared/lib/dialogs'
-import { Form, FormProps } from './Form'
+import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared'
+import { Form, FormProps } from '@hfs/mui-grid-form'
 export * from '@hfs/shared/lib/dialogs'
 
 dialogsDefaults.Container = function Container(d:DialogOptions) {
