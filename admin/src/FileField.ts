@@ -7,7 +7,7 @@ import { newDialog } from '@hfs/shared/lib/dialogs'
 import FilePicker from './FilePicker'
 import { apiCall } from './api'
 
-export default function FileField({ value, onChange, files, title, ...props }: FieldProps<string>) {
+export default function FileField({ value, onChange, files=true, title, ...props }: FieldProps<string>) {
     return h(StringField, {
         ...props,
         value,
