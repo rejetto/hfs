@@ -26,7 +26,7 @@
     "dist-node": "cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-*",
     "dist-win": "pkg . -C gzip -t node16-win && cd dist && zip hfs-windows.zip hfs.exe -r plugins",
     "dist-bin": "pkg . -C gzip && cd dist && mv -f hfs-win.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos hfs && zip hfs-macos.zip hfs -r plugins && rm hfs",
-    "dist": "npm run build-all && npm run dist-node && npm run dist-bin"
+    "dist": "npm run build-all && npm run dist-node && npm install @node-rs/crc32-win32-x64-msvc -f && npm run dist-bin"
   },
   "engines": {
     "node": ">=16.13.0"
