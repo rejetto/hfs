@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { onlyTruthy, prefix, wait } from './misc'
+import { debounceAsync, onlyTruthy, prefix, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
 
@@ -31,6 +31,35 @@ portCfg.sub(async port => {
     if (openBrowserAtStart.get())
         open('http://localhost' + (port === 80 ? '' : ':' + port) + ADMIN_URI).then()
 })
+
+const considerHttps = debounceAsync(async () => {
+    stopServer(httpsSrv).then()
+    let port = httpsPortCfg.get()
+    try {
+        while (!app)
+            await wait(100)
+        httpsSrv = Object.assign(
+            https.createServer(port < 0 ? {} : httpsOptions, app.callback()),
+            { name: 'https' }
+        )
+        const missingCfg = httpsNeeds.find(x => !x.get())
+        httpsSrv.error = port < 0 ? undefined
+            : missingCfg && prefix(missingCfg.get() ? "cannot read file for " : "missing ", (httpsNeedsNames as any)[missingCfg.key()])
+        if (httpsSrv.error)
+            return
+    }
+    catch(e) {
+        httpsSrv.error = "bad private key or certificate"
+        console.log("failed to create https server: check your private key and certificate", String(e))
+        return
+    }
+    port = await startServer(httpsSrv, { port: httpsPortCfg.get() })
+    if (!port) return
+    httpsSrv.on('connection', socket =>
+        newConnection(socket, true))
+    printUrls(port, 'https')
+})
+
 
 const cert = defineConfig<string>('cert')
 const privateKey = defineConfig<string>('private_key')
@@ -58,41 +87,33 @@ for (const cfg of httpsNeeds) {
 export const httpsPortCfg = defineConfig('https_port', -1)
 httpsPortCfg.sub(considerHttps)
 
-async function considerHttps() {
-    stopServer(httpsSrv).then()
-    let port = httpsPortCfg.get()
-    try {
-        while (!app)
-            await wait(100)
-        httpsSrv = Object.assign(
-            https.createServer(port < 0 ? {} : httpsOptions, app.callback()),
-            { name: 'https' }
-        )
-        const missingCfg = httpsNeeds.find(x => !x.get())
-        httpsSrv.error = port < 0 ? undefined
-            : missingCfg && prefix(missingCfg.get() ? "cannot read file for " : "missing ", (httpsNeedsNames as any)[missingCfg.key()])
-        if (httpsSrv.error)
-            return
-    }
-    catch(e) {
-        httpsSrv.error = "bad private key or certificate"
-        console.log("failed to create https server: check your private key and certificate", String(e))
-        return
-    }
-    port = await startServer(httpsSrv, { port: httpsPortCfg.get() })
-    if (!port) return
-    httpsSrv.on('connection', socket =>
-        newConnection(socket, true))
-    printUrls(port, 'https')
-}
-
-interface StartServer { port: number, net?:string }
-function startServer(srv: typeof httpSrv, { port, net }: StartServer) {
-    return new Promise<number>((resolve, reject) => {
+interface StartServer { port: number, host?:string }
+function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
+    return new Promise<number>(async resolve => {
         try {
-            if (port < 0)
+            if (port < 0 || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
                 return resolve(0)
-            srv.listen(port, net, () => {
+            port = await listen(host)
+            if (port)
+                console.log(srv.name, "serving on", host||"any network", ':', port)
+            resolve(port)
+        }
+        catch(e) {
+            srv.error = String(e)
+            console.error(srv.name, "couldn't listen on port", port, srv.error)
+            resolve(0)
+        }
+    })
+
+    async function testIpV4() {
+        const res = await listen('0.0.0.0')
+        await new Promise(res => srv.close(res))
+        return res > 0
+    }
+
+    function listen(host?: string) {
+        return new Promise<number>(async (resolve, reject) => {
+            srv.listen({ port, host }, () => {
                 const ad = srv.address()
                 if (!ad)
                     return reject('no address')
@@ -100,7 +121,6 @@ function startServer(srv: typeof httpSrv, { port, net }: StartServer) {
                     srv.close()
                     return reject('type of socket not supported')
                 }
-                console.log(srv.name, "serving on", net||"any network", ':', ad.port)
                 resolve(ad.port)
             }).on('error', async e => {
                 srv.error = String(e)
@@ -111,16 +131,12 @@ function startServer(srv: typeof httpSrv, { port, net }: StartServer) {
                     srv.error = `couldn't listen on port ${port} used by ${srv.busy}`
                 }
                 console.error(srv.name, srv.error)
-                console.log(" >> try specifying a different port like: --port 8011")
+                const k = (srv === httpSrv? portCfg : httpsPortCfg).key()
+                console.log(` >> try specifying a different port like: --${k} 8011`)
                 resolve(0)
             })
-        }
-        catch(e) {
-            srv.error = String(e)
-            console.error(srv.name, "couldn't listen on port", port, srv.error)
-            resolve(0)
-        }
-    })
+        })
+    }
 }
 
 function stopServer(srv: http.Server) {
