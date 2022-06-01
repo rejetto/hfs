@@ -49,8 +49,7 @@ export default function ConfigPage() {
         sx: { maxWidth: '60em' },
         values,
         set(v, k) {
-            if (v || values[k])
-                state.config[k] = v
+            state.config[k] = v
         },
         stickyBar: true,
         onError: alertDialog,
