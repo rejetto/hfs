@@ -133,7 +133,7 @@ export default function ConfigPage() {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
             return window.location.href = loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
         }
-        setTimeout(reloadStatus, 1000)
+        setTimeout(reloadStatus, 2000) // in case of busy port, finding the name of the process can be a lengthy task. Worst case we'll get the generic error message
         Object.assign(loaded, values) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         toast("Changes applied", 'success')
