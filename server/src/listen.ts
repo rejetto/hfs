@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, onlyTruthy, prefix, wait } from './misc'
+import { debounceAsync, onlyTruthy, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
 
@@ -39,21 +39,25 @@ const considerHttps = debounceAsync(async () => {
         while (!app)
             await wait(100)
         httpsSrv = Object.assign(
-            https.createServer(port < 0 ? {} : httpsOptions, app.callback()),
-            { name: 'https' }
+            https.createServer(port < 0 ? {} : { key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
+            { name: 'https', error: undefined }
         )
-        const missingCfg = httpsNeeds.find(x => !x.get())
-        httpsSrv.error = port < 0 ? undefined
-            : missingCfg && prefix(missingCfg.get() ? "cannot read file for " : "missing ", (httpsNeedsNames as any)[missingCfg.key()])
-        if (httpsSrv.error)
-            return
+        if (port >= 0) {
+            const namesForOutput: any = { cert: 'certificate', private_key: 'private key' }
+            const missing = httpsNeeds.find(x => !x.get())?.key()
+            if (missing)
+                return httpsSrv.error = "missing " + namesForOutput[missing]
+            const cantRead = httpsNeeds.find(x => !httpsOptions[x.key() as HttpsKeys])?.key()
+            if (cantRead)
+                return httpsSrv.error = "cannot read " + namesForOutput[cantRead]
+        }
     }
     catch(e) {
         httpsSrv.error = "bad private key or certificate"
         console.log("failed to create https server: check your private key and certificate", String(e))
         return
     }
-    port = await startServer(httpsSrv, { port: httpsPortCfg.get() })
+    port = await startServer(httpsSrv, { port })
     if (!port) return
     httpsSrv.on('connection', socket =>
         newConnection(socket, true))
@@ -64,13 +68,13 @@ const considerHttps = debounceAsync(async () => {
 const cert = defineConfig<string>('cert')
 const privateKey = defineConfig<string>('private_key')
 const httpsNeeds = [cert, privateKey]
-const httpsNeedsNames = { cert: 'certificate', private_key: 'private key' }
-const httpsOptions = { key: '', cert: '' }
+const httpsOptions = { cert: '', private_key: '' }
+type HttpsKeys = keyof typeof httpsOptions
 for (const cfg of httpsNeeds) {
     let unwatch: ReturnType<typeof watchLoad>['unwatch']
     cfg.sub(async v => {
         unwatch?.()
-        const k = cfg.key() === 'private_key' ? 'key' : 'cert'
+        const k = cfg.key() as HttpsKeys
         httpsOptions[k] = v
         if (!v || v.includes('\n'))
             return considerHttps()

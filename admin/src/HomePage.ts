@@ -8,7 +8,7 @@ import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { useSnapState } from './state'
 import { confirmDialog } from './dialog'
-import { isCertError, makeCertAndSave } from './ConfigPage'
+import { isCertError, isKeyError, makeCertAndSave } from './ConfigPage'
 import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 
@@ -33,10 +33,9 @@ export default function HomePage() {
             : v.error )
     const errors = errorMap && onlyTruthy(Object.entries(errorMap).map(([k,v]) =>
         v && [md(`Protocol _${k}_ cannot work: `), v,
-            isCertError(v) && [
+            (isCertError(v) || isKeyError(v)) && [
                 SOLUTION_SEP, h(Link, { sx: { cursor: 'pointer' }, onClick() { makeCertAndSave().then(reloadCfg).then(reloadStatus) } }, "make one"),
-                " or ",
-                SOLUTION_SEP, cfgLink("provide adequate files")
+                " or ", SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
         username && entry('', "Welcome "+username),

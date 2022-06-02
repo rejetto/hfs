@@ -81,8 +81,15 @@ export default function ConfigPage() {
                     return v
                 }
             },
-            values.https_port >= 0 && { k: 'cert', comp: FileField, label: "HTTPS certificate file" },
-            values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file" },
+            values.https_port >= 0 && { k: 'cert', comp: FileField, label: "HTTPS certificate file",
+                ...with_(status?.https.error, e => isCertError(e) ? { 
+                    error: true, 
+                    helperText: [e, ' - ', h(Link, { key: 'fix', sx: { cursor: 'pointer' }, onClick: makeCertAndSave }, "make one")] 
+                } : null)
+            },
+            values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file",
+                ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
+            },
             { k: 'open_browser_at_start', comp: BoolField },
             { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
@@ -149,17 +156,24 @@ function recalculateChanges() {
 }
 
 export function isCertError(error: any) {
-    return typeof error === 'string' && /certificate|key/.test(error)
+    return /certificate/.test(error)
 }
 
-function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldProps<number | null>) {
+export function isKeyError(error: any) {
+    return /private key/.test(error)
+}
+
+function ServerPort({ label, value, onChange, getApi, status, suggestedPort=1, error }: FieldProps<number | null>) {
     const lastCustom = useRef(suggestedPort)
     if (value! > 0)
         lastCustom.current = value!
     const selectValue = Number(value! > 0 ? lastCustom.current : value) || 0
-    let error = status?.error
-    if (isCertError(error))
-        error = [error, ' - ', h(Link, { key: 'fix', sx: { cursor: 'pointer' }, onClick: makeCertAndSave }, "make one")]
+    let errMsg = status?.error
+    if (errMsg)
+        if (isCertError(errMsg) || isKeyError(errMsg))
+            errMsg = undefined // never mind, we'll show this error elsewhere
+        else
+            error = true
     return h(Box, {},
         h(Box, { display: 'flex' },
             h(SelectField as Field<number>, {
@@ -173,11 +187,11 @@ function ServerPort({ label, value, onChange, status, suggestedPort=1 }: FieldPr
                 ],
                 onChange,
             }),
-            value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange, min: 1, max: 65535, sx: { minWidth:'5.5em' } }),
+            value! > 0 && h(NumberField, { label: 'Number', fullWidth: false, value, onChange, getApi, error, min: 1, max: 65535, sx: { minWidth:'5.5em' } }),
         ),
-        status && h(FormHelperText, { error: Boolean(error) },
+        status && h(FormHelperText, { error },
             status === true ? '...'
-                : error ?? (status?.listening && "Correctly working on port "+ status.port) )
+                : errMsg ?? (status?.listening && "Correctly working on port " + status.port) )
     )
 }
 
@@ -243,3 +257,8 @@ async function makeCert(attributes: Record<string, string>) {
         private_key: pki.privateKeyToPem(keys.privateKey),
     }
 }
+
+export function with_<T,RT>(par:T, cb: (par:T) => RT) {
+    return cb(par)
+}
+

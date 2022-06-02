@@ -36,6 +36,18 @@ export interface FieldDescriptor<T=any> {
 // it seems necessary to cast (Multi)SelectField sometimes
 export type Field<T> = FC<FieldProps<T>>
 
+type Promisable<T> = T | Promise<T>
+interface FieldApi { getError: () => Promisable<ValidationError>, [rest: string]: any }
+export interface FieldProps<T> {
+    label?: string | ReactElement
+    value?: T
+    onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
+    getApi?: (api: FieldApi) => void
+    error?: true
+    helperText?: ReactNode
+    [rest: string]: any
+}
+
 type Dict<T=any> = Record<string,T>
 
 export interface FormProps<Values> extends Partial<BoxProps> {
@@ -91,21 +103,21 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                         return null
                     if (isValidElement(row))
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
-                    const { k, fromField=_.identity, toField=_.identity, getError, ...field } = row
-                    let error = errors[k]
-                    if (error === true)
-                        error = "Not valid"
+                    const { k, fromField=_.identity, toField=_.identity, getError, error, ...field } = row
+                    let errMsg = errors[k]
+                    if (errMsg === true)
+                        errMsg = "Not valid"
                     if (k) {
                         const originalValue = values?.[k]
                         const whole = { ...row, ...field }
                         Object.assign(field, {
                             value: toField(originalValue),
-                            error: Boolean(error) || undefined,
+                            error: Boolean(errMsg || error) || undefined,
                             getApi(api) { apis[k] = api },
                             onBlur() {
                                 pleaseValidate(k)
                             },
-                            async onChange(v, { event }) {
+                            onChange(v, { event }) {
                                 try {
                                     v = fromField(v)
                                     if (_.isEqual(v, originalValue)) return
@@ -120,9 +132,9 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                                 }
                             },
                         } as Partial<FieldProps<any>>)
-                        if (error) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
-                            field.helperText = field.helperText ? h(Fragment, {}, h('span', { style: { borderBottom: '1px solid' } }, error), h('br'), field.helperText)
-                                : error
+                        if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
+                            field.helperText = field.helperText ? h(Fragment, {}, h('span', { style: { borderBottom: '1px solid' } }, errMsg), h('br'), field.helperText)
+                                : errMsg
                         if (field.label === undefined)
                             field.label = labelFromKey(k)
                         _.defaults(field, defaults?.(whole))
@@ -204,15 +216,4 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
 
 export function labelFromKey(k: string) {
     return _.capitalize(k.replace(/_/g, ' '))
-}
-
-type Promisable<T> = T | Promise<T>
-interface FieldApi { getError: () => Promisable<ValidationError>, [rest: string]: any }
-export interface FieldProps<T> {
-    label?: string | ReactElement
-    value?: T
-    onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
-    getApi?: (api: FieldApi) => void
-    error?: true
-    [rest: string]: any
 }
