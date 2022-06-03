@@ -10,6 +10,7 @@ import { reloadVfs, VfsNode, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
 import FileField from './FileField'
+import { alertDialog } from './dialog'
 
 interface Account { username: string }
 
@@ -58,6 +59,7 @@ export default function FileForm({ file }: { file: VfsNode }) {
                 }
             }, "Close")
         ],
+        onError: alertDialog,
         save: {
             sx: modifiedSx(!isEqualLax(values, file)),
             async onClick() {
