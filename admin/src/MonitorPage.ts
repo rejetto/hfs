@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from "lodash"
-import { isValidElement, createElement as h, useMemo, Fragment, useState } from "react"
-import { apiCall, useApiComp, useApiList } from "./api"
+import { createElement as h, useMemo, Fragment, useState } from "react"
+import { apiCall, useApiEx, useApiList } from "./api"
 import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip } from '@mui/icons-material'
 import { Box, Chip } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
@@ -21,20 +21,19 @@ export default function MonitorPage() {
 const isoDateRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 
 function MoreInfo() {
-    const [res] = useApiComp('get_status')
+    const { data, element } = useApiEx('get_status')
     return !useBreakpoint('md') ? null
-        : isValidElement(res) ? res :
-            h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
-                pair('started'),
-                pair('http', "HTTP", port),
-                pair('https', "HTTPS", port),
-            )
+        : element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
+            pair('started'),
+            pair('http', "HTTP", port),
+            pair('https', "HTTPS", port),
+        )
 
     type Color = Parameters<typeof Chip>[0]['color']
     type Render = (v:any) => [string, Color?]
 
     function pair(k: string, label: string='', render?:Render) {
-        let v = _.get(res, k)
+        let v = _.get(data, k)
         if (v === undefined)
             return null
         if (typeof v === 'string' && isoDateRe.test(v))

@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Box, Button, FormHelperText, Link } from '@mui/material';
-import { createElement as h, isValidElement, useEffect, useRef } from 'react';
-import { apiCall, useApi, useApiEx, useApiComp } from './api'
+import { createElement as h, useEffect, useRef } from 'react';
+import { apiCall, useApi, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh } from '@mui/icons-material'
 import { Dict, modifiedSx } from './misc'
@@ -24,23 +24,24 @@ export const logLabels = {
 }
 
 export default function ConfigPage() {
-    const [res, reloadConfig] = useApiComp('get_config', { omit: ['vfs'] })
+    const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
     let snap = useSnapState()
-    const statusApi  = useApiEx(res && 'get_status')
+    const statusApi  = useApiEx(data && 'get_status')
     const status = statusApi.data
-    useEffect(statusApi.reload, [res]) //eslint-disable-line
+    const reloadStatus = statusApi.reload
+    useEffect(reloadStatus, [data]) //eslint-disable-line
 
-    exposedReloadStatus = statusApi.reload
+    exposedReloadStatus = reloadStatus
     useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
 
     const admins = useApi('get_admins')[0]?.list
 
-    if (isValidElement(res))
-        return res
+    if (element)
+        return element
     if (statusApi.error)
         return statusApi.element
     const { changes } = snap
-    const values = (loaded !== res) ? (state.config = loaded = res) : snap.config
+    const values = (loaded !== data) ? (state.config = loaded = data) : snap.config
     const maxSpeedDefaults = {
         comp: NumberField,
         min: 1,
@@ -62,7 +63,7 @@ export default function ConfigPage() {
         addToBar: [h(Button, {
             onClick() {
                 reloadConfig()
-                statusApi.reload()
+                reloadStatus()
             },
             startIcon: h(Refresh),
         }, "Reload")],
@@ -140,7 +141,7 @@ export default function ConfigPage() {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
             return window.location.href = loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
         }
-        setTimeout(statusApi.reload, 2000) // in case of busy port, finding the name of the process can be a lengthy task. Worst case we'll get the generic error message
+        setTimeout(reloadStatus, 2000) // in case of busy port, finding the name of the process can be a lengthy task. Worst case we'll get the generic error message
         Object.assign(loaded, values) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         toast("Changes applied", 'success')

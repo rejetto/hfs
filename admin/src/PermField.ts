@@ -1,16 +1,16 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Dict, useStateMounted } from './misc'
-import { createElement as h, Fragment, isValidElement } from 'react'
+import { createElement as h, Fragment } from 'react'
 import { Button, Grid } from '@mui/material'
 import { Field, FieldProps, SelectField } from '@hfs/mui-grid-form'
 import _ from 'lodash'
-import { useApiComp } from './api'
+import { useApiEx } from './api'
 
 export default function PermField({ label, value, onChange }: FieldProps<Dict<string> | null> & { keyLabel:string }) {
     const [temp, setTemp] = useStateMounted<string|undefined>(undefined)
-    const [res] = useApiComp('get_usernames')
-    const usernames = res.list
+    const { data, element } = useApiEx('get_usernames')
+    const usernames = data?.list || []
 
     const permOptions = [{ label:'read', value:'r' }, { label:'none', value:''  }]
     const usernamesLeft = _.difference(usernames, Object.keys(value||{}))
@@ -18,13 +18,13 @@ export default function PermField({ label, value, onChange }: FieldProps<Dict<st
     return h(Grid, { container: true },
         label && h(Grid, { item: true, xs: 12, pl: 2, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
             label,
-            !isValidElement(res) && h(Button, {
+            !element && h(Button, {
                 onClick(event){
                     setTemp(undefined)
                     onChange(null, { event, was: value })
                 }
             }, 'Clear')),
-        isValidElement(res) ? res :  h(Fragment, {},
+        element || h(Fragment, {},
             // existing entries
             Object.entries(value||{}).map(([username, perm]) => [
                 h(Grid, { key:'k', item: true, xs: 6 },

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { isValidElement, createElement as h, useState, useEffect, Fragment, useRef } from "react"
-import { apiCall, useApiComp } from './api'
+import { createElement as h, useState, useEffect, Fragment, useRef } from "react"
+import { apiCall, useApiEx } from './api'
 import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
 import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
@@ -32,17 +32,17 @@ export interface Account {
 }
 
 export default function AccountsPage() {
-    const [res, reload] = useApiComp('get_accounts')
+    const { data, reload, element } = useApiEx('get_accounts')
     const [sel, setSel] = useState<string[] | 'new-group' | 'new-user'>([])
     const selectionMode = Array.isArray(sel)
     const styles = useStyles()
     useEffect(() => { // if accounts are reloaded, review the selection to remove elements that don't exist anymore
-        if (Array.isArray(res?.list) && selectionMode)
-            setSel( sel.filter(u => res.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
-    }, [res]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
-    if (isValidElement(res))
-        return res
-    const { list }: { list: Account[] } = res
+        if (Array.isArray(data?.list) && selectionMode)
+            setSel( sel.filter(u => data.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
+    }, [data]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
+    if (element)
+        return element
+    const { list }: { list: Account[] } = data
     return h(Grid, { container: true, maxWidth: '80em' },
         h(Grid, { item: true, xs: 12 },
             h(Box, {

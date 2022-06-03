@@ -1,10 +1,10 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state } from './state'
-import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
+import { createElement as h, useEffect, useMemo, useState } from 'react'
 import { Alert, Button } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from '@hfs/mui-grid-form'
-import { apiCall, useApiComp } from './api'
+import { apiCall, useApiEx } from './api'
 import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
 import { reloadVfs, VfsNode, Who } from './VfsPage'
 import md from './md'
@@ -40,10 +40,10 @@ export default function FileForm({ file }: { file: VfsNode }) {
     const showCanSee = (values.can_read ?? inheritedPerms.can_read) === true
     const showTimestamps = hasSource && Boolean(values.ctime)
 
-    let [accountsRes] = useApiComp<{ list: Account[] }>('get_accounts')
-    if (isValidElement(accountsRes))
-        return accountsRes
-    const accounts = accountsRes.list
+    const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
+    if (element || !data)
+        return element
+    const accounts = data.list
 
     return h(Form, {
         values,

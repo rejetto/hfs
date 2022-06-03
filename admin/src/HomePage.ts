@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, isValidElement } from 'react'
-import { Box, Button, Link } from '@mui/material'
-import { apiCall, useApi, useApiComp, useApiList } from './api'
+import { createElement as h } from 'react'
+import { Box, Button, LinearProgress, Link } from '@mui/material'
+import { apiCall, useApi, useApiEx, useApiList } from './api'
 import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy } from './misc'
 import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
@@ -17,13 +17,13 @@ interface ServerStatus { listening: boolean, port: number, error?: string, busy?
 export default function HomePage() {
     const SOLUTION_SEP = " — "
     const { username } = useSnapState()
-    const [status, reloadStatus] = useApiComp<Dict<ServerStatus>>('get_status')
-    const [vfs] = useApiComp<{ root?: VfsNode }>('get_vfs')
+    const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Dict<ServerStatus>>('get_status')
+    const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const [account] = useApi<Account>(username && 'get_account')
-    const [cfg, reloadCfg] = useApiComp('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
+    const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
     const { list: plugins } = useApiList('get_plugins')
-    if (!status || isValidElement(status))
-        return status
+    if (statusEl || !status)
+        return statusEl
     const { http, https } = status
     const goSecure = !http?.listening && https?.listening ? 's' : ''
     const srv = goSecure ? https : (http?.listening && http)
@@ -41,7 +41,7 @@ export default function HomePage() {
         username && entry('', "Welcome "+username),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
             : entry('success', "Server is working"),
-        !vfs || isValidElement(vfs) ? vfs
+        !vfs ? h(LinearProgress)
             : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
                 : entry('', md("Here you manage your server. There is a _separated_ interface to access your shared files: "),
                     h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),

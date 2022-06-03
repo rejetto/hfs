@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, isValidElement, useEffect, useMemo, useState } from 'react'
-import { useApi, useApiComp } from './api'
+import { createElement as h, useEffect, useMemo, useState } from 'react'
+import { useApi, useApiEx } from './api'
 import { Alert, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
@@ -17,14 +17,14 @@ let selectOnReload: string[] | undefined
 export default function VfsPage() {
     const [id2node] = useState(() => new Map<string, VfsNode>())
     const snap = useSnapState()
-    const [res, reload] = useApiComp('get_vfs')
+    const { data, reload, element } = useApiEx('get_vfs')
     useMemo(() => snap.vfs || reload(), [snap.vfs, reload])
     useEffect(() => {
         state.vfs = undefined
-        if (!res) return
+        if (!data) return
         // rebuild id2node
         id2node.clear()
-        const { root } = res
+        const { root } = data
         if (!root) return
         recur(root) // this must be done before state change that would cause Tree to render and expecting id2node
         root.isRoot = true
@@ -45,7 +45,7 @@ export default function VfsPage() {
                 recur(n, (pre && node.id) + '/', node)
         }
 
-    }, [res, id2node])
+    }, [data, id2node])
     const [status] = useApi(window.location.host === 'localhost' && 'get_status')
     const urls = useMemo(() =>
         typeof status === 'object'
@@ -54,11 +54,11 @@ export default function VfsPage() {
                 url => url.includes('[')
             ),
         [status])
-    if (isValidElement(res)) {
+    if (element) {
         id2node.clear()
-        return res
+        return element
     }
-    const anythingShared = !res?.root?.children?.length && !res?.root?.source
+    const anythingShared = !data?.root?.children?.length && !data?.root?.source
     const alert: AlertProps | false = anythingShared ? {
         severity: 'warning',
         children: "Add something to your shared files — click Add"
