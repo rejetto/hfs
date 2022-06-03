@@ -61,8 +61,7 @@ export default function FileForm({ file }: { file: VfsNode }) {
         save: {
             sx: modifiedSx(!isEqualLax(values, file)),
             async onClick() {
-                const props = _.pickBy(values, (v,k) =>
-                    v !== file[k as keyof typeof values])
+                const props = { ...values }
                 if (!props.masks)
                     props.masks = null // undefined cannot be serialized
                 if (!isRoot)
@@ -71,7 +70,7 @@ export default function FileForm({ file }: { file: VfsNode }) {
                     uri: values.id,
                     props,
                 })
-                if (props.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
+                if (props.name !== file.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
                     state.selectedFiles[0].id = file.id.slice(0, -file.name.length) + props.name
                 reloadVfs()
             }
