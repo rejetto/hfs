@@ -74,6 +74,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
     }, [])
 
     const [errors, setErrors] = useState<Dict<ValidationError>>({})
+    const [fieldExceptions, setFieldExceptions] = useState<Dict<ValidationError>>({})
     const saveBtn = typeof save === 'function' ? { onClick: save } : save // normalize
     const [phase, setPhase] = useState(Phase.Idle)
     const submitAfterValidation = useRef(false)
@@ -104,7 +105,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                     if (isValidElement(row))
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
                     const { k, fromField=_.identity, toField=_.identity, getError, error, ...field } = row
-                    let errMsg = errors[k]
+                    let errMsg = errors[k] || fieldExceptions[k]
                     if (errMsg === true)
                         errMsg = "Not valid"
                     if (k) {
@@ -124,12 +125,13 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                             onChange(v) {
                                 try {
                                     v = fromField(v)
+                                    setFieldExceptions(x => ({ ...x, [k]: false }))
                                     if (_.isEqual(v, originalValue)) return
                                     set(v, k)
                                     pleaseValidate(k)
                                 }
                                 catch (e) {
-                                    onError?.(e)
+                                    setFieldExceptions(x => ({ ...x, [k]: (e as any)?.message || String(e) || true }))
                                 }
                             },
                         } as Partial<FieldProps<any>>)
@@ -192,6 +194,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
             const v = values?.[k]
             const err = await apis[k]?.getError()
                 || await f.getError?.(v, { values, fields })
+                || fieldExceptions[k]
             errs[k] = err || false
             if (k === validateUpTo.current) break
             if (!mounted.current) return // abort
