@@ -28,10 +28,8 @@ export default function ConfigPage() {
     let snap = useSnapState()
     const statusApi  = useApiEx(data && 'get_status')
     const status = statusApi.data
-    const reloadStatus = statusApi.reload
+    const reloadStatus = exposedReloadStatus = statusApi.reload
     useEffect(reloadStatus, [data]) //eslint-disable-line
-
-    exposedReloadStatus = reloadStatus
     useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
 
     const admins = useApi('get_admins')[0]?.list
@@ -141,7 +139,7 @@ export default function ConfigPage() {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
             return window.location.href = loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
         }
-        setTimeout(reloadStatus, 2000) // in case of busy port, finding the name of the process can be a lengthy task. 2s is hopefully enough. Worst case we'll kee the generic error message
+        setTimeout(reloadStatus, 'port' in values || 'https_port' in values ? 1000 : 0) // give some time to consider new ports
         Object.assign(loaded, values) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         toast("Changes applied", 'success')

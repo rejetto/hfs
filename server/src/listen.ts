@@ -12,7 +12,7 @@ import { debounceAsync, onlyTruthy, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
 
-interface ServerExtra { name: string, error?: string, busy?: string }
+interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: http.Server & ServerExtra
 let httpsSrv: http.Server & ServerExtra
 
@@ -128,11 +128,12 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 resolve(ad.port)
             }).on('error', async e => {
                 srv.error = String(e)
+                srv.busy = undefined
                 const { code } = e as any
                 if (code === 'EADDRINUSE') {
-                    const res = await findProcess('port', port)
-                    srv.busy = res[0]?.name
-                    srv.error = `couldn't listen on port ${port} used by ${srv.busy}`
+                    srv.busy = findProcess('port', port).then(res => res?.[0]?.name || '', () => '')
+                    console.debug("PROMISE")
+                    srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
                 }
                 console.error(srv.name, srv.error)
                 const k = (srv === httpSrv? portCfg : httpsPortCfg).key()

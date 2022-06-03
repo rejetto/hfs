@@ -33,13 +33,17 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
 
 const PREFIX = '/~/api/'
 
-export function apiCall(cmd: string, params?: Dict) : Promise<any> {
+const timeoutByApi: Dict = {
+    get_status: 20 // can be lengthy on slow machines because of the find-process-on-busy-port feature
+}
+export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) : Promise<any> {
     const csrf = getCsrf()
     if (csrf)
         params = { csrf, ...params }
 
     const controller = new AbortController()
-    setTimeout(() => controller.abort(), 10_000)
+    if (timeout !== false)
+        setTimeout(() => controller.abort(), (timeoutByApi[cmd] ?? timeout ?? 10)*1000)
     return fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

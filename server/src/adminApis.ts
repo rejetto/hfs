@@ -9,7 +9,7 @@ import accountsApis from './api.accounts'
 import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import { getConnections } from './connections'
-import { debounceAsync, isLocalHost, onOff } from './misc'
+import { debounceAsync, isLocalHost, onOff, wait } from './misc'
 import _ from 'lodash'
 import events from './events'
 import { getFromAccount } from './perm'
@@ -52,8 +52,8 @@ export const adminApis: ApiHandlers = {
             version: VERSION,
             apiVersion: API_VERSION,
             compatibleApiVersion: COMPATIBLE_API_VERSION,
-            http: serverStatus(st.httpSrv, portCfg.get()),
-            https: serverStatus(st.httpsSrv, httpsPortCfg.get()),
+            http: await serverStatus(st.httpSrv, portCfg.get()),
+            https: await serverStatus(st.httpsSrv, httpsPortCfg.get()),
             urls: getUrls(),
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
@@ -61,9 +61,12 @@ export const adminApis: ApiHandlers = {
                 && await frpDebounced(),
         }
 
-        function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
+        async function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
+            const busy = await h.busy
+            await wait(0) // simple trick to wait for also .error to be updated. If this trickery becomes necessary elsewhere, then we should make also error a Promise.
             return {
-                ..._.pick(h, ['listening', 'busy', 'error']),
+                ..._.pick(h, ['listening', 'error']),
+                busy,
                 port: (h?.address() as any)?.port || configuredPort,
             }
         }
