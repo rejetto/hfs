@@ -92,5 +92,5 @@ function cfgLink(text=`Configuration page`) {
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return cfg && !cfg.proxies && !cfg.ignore_proxies && status.proxyDetected
+    return cfg && !cfg.proxies && !cfg.ignore_proxies && status?.proxyDetected
 }

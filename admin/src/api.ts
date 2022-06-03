@@ -18,6 +18,19 @@ export function useApiComp<T=any>(...args: Parameters<typeof useApi>): [T | Reac
         [res, err, arg0, reload])
 }
 
+export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
+    const [data, error, reload] = useApi<T>(...args)
+    const cmd = args[0]
+    const loading = data === undefined
+    const element = useMemo(() =>
+            !cmd ? null
+                : error ? h(Alert, { severity: 'error' }, String(error), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } }))
+                    : loading ? spinner()
+                        : null,
+        [error, cmd, loading, reload])
+    return { data, error, reload, loading, element }
+}
+
 const PREFIX = '/~/api/'
 
 export function apiCall(cmd: string, params?: Dict) : Promise<any> {
