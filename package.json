@@ -11,8 +11,10 @@
   "author": "Massimo Melina <a@rejetto.com>",
   "workspaces": [ "server", "admin", "frontend", "shared", "mui-grid-form" ],
   "scripts": {
-    "watch-server": "nodemon --ignore tests/ --watch server/src -e ts,tsx --exec ts-node server/src/index.ts",
+    "watch-server": "cross-env DEV=1 nodemon --ignore tests/ --watch server/src -e ts,tsx --exec ts-node server/src",
+    "watch-server-proxied": "cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
     "watch-shared": "cd shared && tsc --watch",
+    "watch-form": "cd mui-grid-form && tsc --watch",
     "start-frontend": "cd frontend && npm run start",
     "start-admin": "cd admin && npm run start",
     "build-all": "npm audit --omit=dev && rm -rf dist && npm install && npm run build-shared && npm run build-mui-grid-form && npm run build-server && npm run build-frontend && npm run build-admin && echo COMPLETED",

@@ -12,28 +12,20 @@ more reassuring, like "found 0 vulnerabilities", hopefully.
 
 ## Dev environment
 
-First `npm install`.
+0. `npm install`
+1. `npm run watch-server-proxied` and leave it running. It will serve server stuff plus will proxy frontend and admin files.
+2. `npm run start-frontend` and leave it running. It will serve on port 3005.
+3. `npm run start-admin` and leave it running. It will serve on port 3006
 
-One way of working on sources here is to `npm run watch-server`.
-This will give you auto-restarting of the server on back-end changes.
-Set an env `DEV=1` to let the code know we are in a dev environment.
-
-If you want to work on the frontend and admin too, you should *first*
-1. set an env `FRONTEND_PROXY=3005`
-2. `npm run start-frontend`
-1. set an env `ADMIN_PROXY=3006`
-2. `npm run start-admin`
-
-Having this env-s will make the server get all related stuff from the other dev servers.
-Otherwise, you should be sure that frontend and admin have been built, and its files are ready to be used in `dist` folder.
-In this latter case, the `DEV=1` you set before will make the server get the files from inside the `dist` folder.
+If you don't want this proxying version, you can use `npm run watch-server` but after both frontend and admin have
+been built, so their files are available in `dist` folder.
 
 ## Tests
 
 To run tests
 - `npm run build-all`
-- `npm run server-for-test` 
-- in another shell `npm test`
+- `npm run server-for-test` and leave it running.
+- `npm test`
 
 Alternatively you can run a development server, just be sure to load config from `tests` folder.
 
