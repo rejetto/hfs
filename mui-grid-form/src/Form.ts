@@ -117,15 +117,16 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                             onBlur() {
                                 pleaseValidate(k)
                             },
-                            onChange(v, { event }) {
+                            onKeyDown(event: any) {
+                                if (saveOnEnter && event.key === 'Enter')
+                                    pleaseSubmit()
+                            },
+                            onChange(v) {
                                 try {
                                     v = fromField(v)
                                     if (_.isEqual(v, originalValue)) return
                                     set(v, k)
-                                    if (saveOnEnter && event.key === 'Enter')
-                                        pleaseSubmit()
-                                    else
-                                        pleaseValidate(k)
+                                    pleaseValidate(k)
                                 }
                                 catch (e) {
                                     onError?.(e)
