@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@emotion/react": "^11.7.1",
+    "@hfs/mui-grid-form": "*",
+    "@hfs/shared": "*",
     "@emotion/styled": "^11.6.0",
     "@mui/icons-material": "^5.6.2",
     "@mui/lab": "^5.0.0-alpha.81",
