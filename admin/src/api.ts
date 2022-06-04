@@ -1,22 +1,11 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactElement, Fragment, useCallback, useEffect, useMemo, useRef } from 'react'
+import { createElement as h, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Dict, Falsy, getCookie, IconBtn, spinner, useStateMounted } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
 import { Refresh } from '@mui/icons-material'
-
-export function useApiComp<T=any>(...args: Parameters<typeof useApi>): [T | ReactElement, ()=>void] {
-    const [res, err, reload] = useApi<T>(...args)
-    const arg0 = args[0]
-    return useMemo(() =>
-        !arg0 ? [h(Fragment), reload]
-            : err ? [ h(Alert, { severity: 'error' }, String(err), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } })), reload ]
-                : res === undefined ? [spinner(), reload]
-                    : [res, reload],
-        [res, err, arg0, reload])
-}
 
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     const [data, error, reload] = useApi<T>(...args)
