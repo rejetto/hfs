@@ -87,8 +87,10 @@ Based on `type`, other properties are supported:
     - `options: { [label]: AnyJsonValue }`
 - `multiselect` it's like `select` but its result is an array of values.
 - `real_path` path to server disk
-  - `files` allow to select a file. Default is `true`.
-  - `folders` allow to select a folder. Default is `false`.
+  - `files: boolean` allow to select a file. Default is `true`.
+  - `folders: boolean` allow to select a folder. Default is `false`.
+  - `defaultPath: string` what path to start from if no value is set. E.g. __dirname if you want to start with your plugin's folder.
+  - `fileMask: string` restrict files that are displayed. E.g. `*.jpg|*.png`
 
 ## api object
 

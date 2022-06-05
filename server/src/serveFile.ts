@@ -7,7 +7,7 @@ import { FORBIDDEN, METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
 import { getNodeName, MIME_AUTO, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import mm, { isMatch } from 'micromatch'
+import { isMatch } from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
@@ -48,7 +48,7 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
         const { range } = ctx.request.header
         ctx.set('Accept-Ranges', 'bytes')
         const fn = path.basename(source)
-        mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && mm.isMatch(fn, k)) // isMatch throws on an empty string
+        mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && isMatch(fn, k)) // isMatch throws on an empty string
         if (mime === MIME_AUTO)
             mime = mimetypes.lookup(source) || ''
         if (mime)

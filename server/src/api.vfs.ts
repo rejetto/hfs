@@ -9,6 +9,7 @@ import { dirStream, enforceFinal, isWindowsDrive, objSameKeys } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { FORBIDDEN, IS_WINDOWS } from './const'
+import { isMatch } from 'micromatch'
 
 type VfsAdmin = {
     type?: string,
@@ -120,7 +121,7 @@ const apis: ApiHandlers = {
         return { path }
     },
 
-    async *ls({ path, files=true }, ctx) {
+    async *ls({ path, files=true, fileMask }, ctx) {
         if (!path && IS_WINDOWS) {
             try {
                 for (const n of await getDrives())
@@ -138,10 +139,10 @@ const apis: ApiHandlers = {
                 if (ctx.req.aborted)
                     return
                 try {
-                    const full = join(path, name)
-                    const stats = await stat(full)
-                    if (!files && stats.isFile())
-                        continue
+                    const stats = await stat(join(path, name))
+                    if (stats.isFile())
+                        if (!files || fileMask && !isMatch(name, fileMask))
+                            continue
                     yield {
                         add: {
                             n: name,

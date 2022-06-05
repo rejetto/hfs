@@ -29,8 +29,9 @@ interface FilePickerProps {
     from?: string
     folders?: boolean
     files?: boolean
+    fileMask?: string
 }
-export default function FilePicker({ onSelect, multiple=true, files=true, folders=true, from='' }: FilePickerProps) {
+export default function FilePicker({ onSelect, multiple=true, files=true, folders=true, fileMask, from='' }: FilePickerProps) {
     const [cwd, setCwd] = useState(from)
     const [ready, setReady] = useState(false)
     useEffect(() => {
@@ -40,7 +41,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
             setReady(true)
         })
     }, [from])
-    const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd, files })
+    const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd, files, fileMask })
     useEffect(() => {
         setSel([])
         setFilter('')

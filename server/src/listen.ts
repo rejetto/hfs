@@ -132,7 +132,6 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 const { code } = e as any
                 if (code === 'EADDRINUSE') {
                     srv.busy = findProcess('port', port).then(res => res?.[0]?.name || '', () => '')
-                    console.debug("PROMISE")
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
                 }
                 console.error(srv.name, srv.error)

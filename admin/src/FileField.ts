@@ -7,7 +7,7 @@ import { newDialog } from '@hfs/shared'
 import FilePicker from './FilePicker'
 import { apiCall } from './api'
 
-export default function FileField({ value, onChange, files=true, folders=false, title, ...props }: FieldProps<string>) {
+export default function FileField({ value, onChange, files=true, folders=false, fileMask, defaultPath, title, ...props }: FieldProps<string>) {
     return h(StringField, {
         ...props,
         value,
@@ -30,7 +30,8 @@ export default function FileField({ value, onChange, files=true, folders=false, 
                                 multiple: false,
                                 folders,
                                 files,
-                                from: value,
+                                fileMask,
+                                from: value || defaultPath,
                                 async onSelect(sel) {
                                     let one = sel?.[0]
                                     if (!one) return
