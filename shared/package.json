@@ -4,7 +4,7 @@
   "types": "./lib/index.d.ts",
   "scripts": {
     "test": "test",
-    "build": "tsc && yarn sass src/:lib/"
+    "build": "tsc && sass src/:lib/"
   },
   "dependencies": {
     "tssrp6a": "^3.0.0"
