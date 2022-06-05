@@ -8,6 +8,7 @@ import { formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
+import FileField from './FileField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, setList, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
@@ -131,6 +132,7 @@ const type2comp = {
     select: SelectField,
     multiselect: MultiSelectField,
     array: ArrayField,
+    real_path: FileField,
 }
 
 export function repoLink(repo?: string) {

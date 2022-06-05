@@ -72,7 +72,7 @@ All the following properties are essentially optional.
 ### FieldDescriptor
 
 Currently, these properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect'` . Default is `string`.
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
@@ -86,6 +86,9 @@ Based on `type`, other properties are supported:
 - `select`
     - `options: { [label]: AnyJsonValue }`
 - `multiselect` it's like `select` but its result is an array of values.
+- `real_path` path to server disk
+  - `files` allow to select a file. Default is `true`.
+  - `folders` allow to select a folder. Default is `false`.
 
 ## api object
 
