@@ -12,9 +12,13 @@ import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
+import { proxy, useSnapshot } from 'valtio'
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
+const pageState = proxy({
+    changes: {} as Dict
+})
 
 subscribeKey(state, 'config', recalculateChanges)
 
@@ -26,6 +30,7 @@ export const logLabels = {
 export default function ConfigPage() {
     const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
     let snap = useSnapState()
+    const { changes } = useSnapshot(pageState)
     const statusApi  = useApiEx(data && 'get_status')
     const status = statusApi.data
     const reloadStatus = exposedReloadStatus = statusApi.reload
@@ -38,7 +43,6 @@ export default function ConfigPage() {
         return element
     if (statusApi.error)
         return statusApi.element
-    const { changes } = snap
     const values = (loaded !== data) ? (state.config = loaded = data) : snap.config
     const maxSpeedDefaults = {
         comp: NumberField,
@@ -66,7 +70,7 @@ export default function ConfigPage() {
             startIcon: h(Refresh),
         }, "Reload")],
         defaults({ comp }) {
-            return comp === ServerPort ? { sm:  6, lg: 3 }
+            return comp === ServerPort ? { sm: 6, md: 3 }
                 : comp === NumberField ? { sm: 3 }
                     : { sm: 6 }
         },
@@ -123,36 +127,35 @@ export default function ConfigPage() {
     })
 
     async function save() {
-        const values = state.changes
-        if (_.isEmpty(values))
+        if (_.isEmpty(changes))
             return toast("Nothing to save")
         const loc = window.location
-        const newPort = loc.protocol === 'http:' ? values.port : values.https_port
+        const newPort = loc.protocol === 'http:' ? changes.port : changes.https_port
         if (newPort <= 0 && !await confirmDialog("You are switching off the server port and you will be disconnected"))
             return
         else if (newPort > 0 && !await confirmDialog("You are changing the port and you may be disconnected"))
             return
-        if (loc.protocol === 'https:' && ('cert' in values || 'private_key' in values) && !await confirmDialog("You may disrupt https service, kicking you out"))
+        if (loc.protocol === 'https:' && ('cert' in changes || 'private_key' in changes) && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
-        await apiCall('set_config', { values })
+        await apiCall('set_config', { values: changes })
         if (newPort > 0) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
             return window.location.href = loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
         }
-        setTimeout(reloadStatus, 'port' in values || 'https_port' in values ? 1000 : 0) // give some time to consider new ports
-        Object.assign(loaded, values) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
+        setTimeout(reloadStatus, 'port' in changes || 'https_port' in changes ? 1000 : 0) // give some time to consider new ports
+        Object.assign(loaded, changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         toast("Changes applied", 'success')
     }
 }
 
 function recalculateChanges() {
-    const changes: Dict = {}
+    const o: Dict = {}
     if (state.config)
         for (const [k, v] of Object.entries(state.config))
             if (JSON.stringify(v) !== JSON.stringify(loaded?.[k]))
-                changes[k] = v
-    state.changes = changes
+                o[k] = v
+    pageState.changes = o
 }
 
 export function isCertError(error: any) {

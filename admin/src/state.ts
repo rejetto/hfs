@@ -10,7 +10,6 @@ const STORAGE_KEY = 'admin_state'
 export const state = proxy<{
     title: string
     config: Dict
-    changes: Dict
     vfs: VfsNode | undefined
     selectedFiles: VfsNode[]
     loginRequired: boolean
@@ -19,7 +18,6 @@ export const state = proxy<{
 }>(Object.assign({
     title: '',
     config: {},
-    changes: {},
     selectedFiles: [],
     vfs: undefined,
     loginRequired: false,
