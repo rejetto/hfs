@@ -7,11 +7,13 @@ import { toast } from './dialog'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'use-debounce'
 import { repoLink, showError } from './InstalledPlugins'
+import { state, useSnapState } from './state'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
     const [debouncedSearch] = useDebounce(search, 1000)
     const { list, error, initializing } = useApiList('search_online_plugins', { text: debouncedSearch })
+    const snap = useSnapState()
     if (error)
         return showError(error)
     return h(Fragment, {},
@@ -26,6 +28,8 @@ export default function OnlinePlugins() {
             rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
             localeText: { noRowsLabel: "No compatible plugins have been found" },
             loading: initializing,
+            columnVisibilityModel: snap.onlinePluginsColumns,
+            onColumnVisibilityModelChange: newModel => Object.assign(state.onlinePluginsColumns, newModel),
             columns: [
                 {
                     field: 'id',
@@ -35,18 +39,15 @@ export default function OnlinePlugins() {
                 {
                     field: 'version',
                     width: 70,
-                    hide: true,
                 },
                 {
                     field: 'pushed_at',
                     headerName: "last update",
-                    hide: true,
                     valueGetter: ({ value }) => new Date(value).toLocaleDateString(),
                 },
                 {
                     field: 'license',
                     width: 80,
-                    hide: true,
                 },
                 {
                     field: 'description',
@@ -64,6 +65,7 @@ export default function OnlinePlugins() {
                     align: 'center',
                     hideSortIcons: true,
                     disableColumnMenu: true,
+                    hideable: false,
                     renderCell({ row }) {
                         const { id, branch } = row
                         return h('div', {},

@@ -12,6 +12,7 @@ export const state = proxy<{
     selectedFiles: VfsNode[]
     loginRequired: boolean
     username: string
+    onlinePluginsColumns: Dict<boolean>
 }>({
     title: '',
     config: {},
@@ -20,6 +21,11 @@ export const state = proxy<{
     vfs: undefined,
     loginRequired: false,
     username: '',
+    onlinePluginsColumns: {
+        version: false,
+        pushed_at: false,
+        license: false,
+    }
 })
 
 export function useSnapState() {
