@@ -5,7 +5,6 @@
 - easier deploy on cloud server
 - admin/fs: sort items
 - plugin.api.subscribeConfig
-- watch certificates for change
 - admin/fs: render virtual folders differently
 - admin/config: hide advanced settings
 - admin/fs: drag&drop to move items around
