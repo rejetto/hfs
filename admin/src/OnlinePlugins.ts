@@ -30,16 +30,33 @@ export default function OnlinePlugins() {
                 {
                     field: 'id',
                     headerName: "name",
-                    flex: .3,
-                    minWidth: 150,
+                    flex: 1,
                 },
                 {
                     field: 'version',
                     width: 70,
+                    hide: true,
+                },
+                {
+                    field: 'pushed_at',
+                    headerName: "last update",
+                    hide: true,
+                    valueGetter: ({ value }) => new Date(value).toLocaleDateString(),
+                },
+                {
+                    field: 'license',
+                    width: 80,
+                    hide: true,
                 },
                 {
                     field: 'description',
-                    flex: 1,
+                    flex: 3,
+                },
+                {
+                    field: 'stargazers_count',
+                    width: 50,
+                    headerName: "stars",
+                    align: 'center',
                 },
                 {
                     field: "actions",

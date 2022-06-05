@@ -107,7 +107,8 @@ export async function* searchPlugins(text: string) {
             continue
         Object.assign(pl, { // inject some extra useful fields
             downloading: downloading[repo],
-        })
+            license: it.license?.spdx_id,
+        }, _.pick(it, ['pushed_at', 'stargazers_count']))
         yield pl
     }
 }
