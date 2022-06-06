@@ -155,9 +155,8 @@ const apis: ApiHandlers = {
                 }
                 catch {} // just ignore entries we can't stat
             }
-        } catch (e) {
-            if ((e as any).code !== 'ENOTDIR')
-                throw e
+        } catch (e: any) {
+            yield { error: e.code || e.message || String(e) }
         }
     }
 

@@ -127,6 +127,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
             if (chunk.length)
                 setList(list => [ ...list, ...chunk ])
         }
+        setError(undefined)
         setLoading(true)
         setInitializing(true)
         setList([])

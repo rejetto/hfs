@@ -258,6 +258,9 @@ export function isLocalHost(c: Connection | Koa.Context) {
 }
 
 export async function* dirStream(path: string) {
+    const stats = await fs.stat(path)
+    if (!stats.isDirectory())
+        throw Error('ENOTDIR')
     const dirStream = glob.stream('*', {
         cwd: path,
         dot: true,

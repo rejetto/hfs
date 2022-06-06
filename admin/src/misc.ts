@@ -126,3 +126,10 @@ export function xlate(input: any, table: Record<string, any>) {
 export function useBreakpoint(name: Breakpoint) {
     return useMediaQuery((theme: any) => theme.breakpoints.up(name), { noSsr:true }) // without noSsr, first execution always returns false
 }
+
+export function err2msg(code: string) {
+    return {
+        ENOENT: "Not found",
+        ENOTDIR: "Not a folder",
+    }[code] || code
+}

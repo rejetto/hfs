@@ -14,7 +14,7 @@ import {
     TextField,
     Typography
 } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center } from './misc'
+import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center, err2msg } from './misc'
 import { ArrowUpward, Home } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
@@ -79,7 +79,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                 onChange: setCwd as any,
             }),
         ),
-        error ? h(Alert, { severity:'error' }, String(error))
+        error ? h(Alert, { severity:'error' }, err2msg(error))
             : h(Fragment, {},
                 h(Box, { sx: { flex: 1 } },
                     !list.length ? h(Center, { flex: 1, mt: '4em' }, "No elements in this folder") : h(AutoSizer, {

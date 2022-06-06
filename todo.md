@@ -2,7 +2,7 @@
 - plugin api to read hfs config
 - fix: root without can_download breaks 
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
-- easier deploy on cloud server
+- easier deploy on cloud server: --create-admin <password>
 - admin/fs: sort items
 - plugin.api.subscribeConfig
 - admin/fs: render virtual folders differently
