@@ -3,7 +3,6 @@
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - easier deploy on cloud server: --create-admin <password>
 - admin/fs: sort items
-- plugin.api.subscribeConfig
 - admin/fs: render virtual folders differently
 - admin/config: hide advanced settings
 - admin/fs: drag&drop to move items around

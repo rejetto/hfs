@@ -102,6 +102,9 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `setConfig(key: string, value: any)` set config's value set up by using `exports.config`.
 
+- `subscribeConfig(key: string, callback: (value: any) => void): Unsubscriber`
+  will call `callback` with initial value and then at each change.  
+
 - `getHfsConfig(key: string): any` similar to getConfig, but retrieves HFS' config instead.
 
 - `log(...args)` print log in a standard form for plugins.

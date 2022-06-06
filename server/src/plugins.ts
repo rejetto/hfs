@@ -7,7 +7,7 @@ import pathLib from 'path'
 import { API_VERSION, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import { debounceAsync, Dict, getOrSet, onProcessExit, same, tryJson, wantArray, watchDir } from './misc'
+import { Callback, debounceAsync, Dict, getOrSet, onProcessExit, same, tryJson, wantArray, watchDir } from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
@@ -232,6 +232,15 @@ export async function rescan() {
                         pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue,
                     setConfig: (cfgKey: string, value: any) =>
                         setPluginConfig(id, { [cfgKey]: value }),
+                    subscribeConfig(cfgKey: string, cb: Callback<any>) {
+                        let last = this.getConfig(cfgKey)
+                        cb(last)
+                        return pluginsConfig.sub(() => {
+                            const now = this.getConfig(cfgKey)
+                            if (!same(now, last))
+                                cb(last = now)
+                        })
+                    },
                     getHfsConfig: getConfig,
                 })
                 Object.assign(data, res)
