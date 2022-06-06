@@ -1,5 +1,4 @@
 # To do
-- plugin api to read hfs config
 - fix: root without can_download breaks 
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - easier deploy on cloud server: --create-admin <password>

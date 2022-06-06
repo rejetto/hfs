@@ -5,11 +5,11 @@ import {
     getPluginConfigFields,
     mapPlugins,
     Plugin, pluginsConfig,
-    PATH as PLUGINS_PATH, isPluginRunning, enablePlugin, getPluginInfo
+    PATH as PLUGINS_PATH, isPluginRunning, enablePlugin, getPluginInfo, setPluginConfig
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { objSameKeys, onOff, same, wait } from './misc'
+import { objSameKeys, onOff, wait } from './misc'
 import { ApiHandlers, sendList } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
@@ -58,14 +58,8 @@ const apis: ApiHandlers = {
         assert(id, 'id')
         if (enabled !== undefined)
             enablePlugin(id, enabled)
-        if (config) {
-            const fields = getPluginConfigFields(id)
-            config = _.pickBy(config, (v, k) =>
-                v !== null && !same(v, fields?.[k]?.defaultValue))
-            if (_.isEmpty(config))
-                config = undefined
-            pluginsConfig.set(v => ({ ...v, [id]: config }))
-        }
+        if (config)
+            setPluginConfig(id, config)
         return {}
     },
 

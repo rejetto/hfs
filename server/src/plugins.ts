@@ -7,7 +7,7 @@ import pathLib from 'path'
 import { API_VERSION, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import { debounceAsync, getOrSet, onProcessExit, same, tryJson, wantArray, watchDir } from './misc'
+import { debounceAsync, Dict, getOrSet, onProcessExit, same, tryJson, wantArray, watchDir } from './misc'
 import { defineConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
@@ -32,6 +32,13 @@ export function enablePlugin(id: string, state=true) {
             : state ? [...arr, id]
                 : arr.filter((x: string) => x !== id)
     )
+}
+
+export function setPluginConfig(id: string, config: Dict) {
+    const fields = getPluginConfigFields(id)
+    config = _.pickBy(config, (v, k) =>
+        v !== null && !same(v, fields?.[k]?.defaultValue))
+    pluginsConfig.set(v => ({ ...v, [id]: _.isEmpty(config) ? undefined : config }))
 }
 
 export function getPluginInfo(id: string) {
@@ -222,7 +229,9 @@ export async function rescan() {
                         console.log('plugin', id, ':', ...args)
                     },
                     getConfig: (cfgKey: string) =>
-                        pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue
+                        pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue,
+                    setConfig: (cfgKey: string, value: any) =>
+                        setPluginConfig(id, { [cfgKey]: value }),
                 })
                 Object.assign(data, res)
                 new Plugin(id, data, unwatch)

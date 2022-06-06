@@ -100,6 +100,8 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `getConfig(key: string): any` get config's value set up by using `exports.config`.
 
+- `setConfig(key: string, value: any)` set config's value set up by using `exports.config`.
+
 - `log(...args)` print log in a standard form for plugins.
 
 - `const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
