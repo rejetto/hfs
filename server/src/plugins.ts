@@ -8,7 +8,7 @@ import { API_VERSION, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import { debounceAsync, Dict, getOrSet, onProcessExit, same, tryJson, wantArray, watchDir } from './misc'
-import { defineConfig } from './config'
+import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
@@ -232,6 +232,7 @@ export async function rescan() {
                         pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue,
                     setConfig: (cfgKey: string, value: any) =>
                         setPluginConfig(id, { [cfgKey]: value }),
+                    getHfsConfig: getConfig,
                 })
                 Object.assign(data, res)
                 new Plugin(id, data, unwatch)

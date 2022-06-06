@@ -75,7 +75,7 @@ function subscribeConfig<T>(k:string, cb: (v:T, was?:T)=>void) {
     })
 }
 
-function getConfig(k:string) {
+export function getConfig(k:string) {
     return state[k] ?? _.cloneDeep(configProps[k]?.defaultValue) // clone to avoid changing
 }
 
