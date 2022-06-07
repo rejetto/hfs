@@ -168,3 +168,16 @@ Published plugins are required to specify the `apiRequired` property.
 It is possible to publish different versions of the plugin to be compatible with different versions of HFS.
 To do that, just have your other versions in branches with name starting with `api`.
 HFS will scan through them in alphabetical order searching for a compatible one. 
+
+## API version history
+
+- 4 (v0.23.0)
+  - config.type:real_path
+  - api.subscribeConfig
+  - api.setConfig
+  - api.getHfsConfig
+- 3
+  - config.defaultValue
+  - async for init/unload
+- 2
+  - config.type:array
