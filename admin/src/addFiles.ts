@@ -43,7 +43,7 @@ export async function addVirtual() {
         const under = getUnder()
         await apiCall('add_vfs', { under, name })
         reloadVfs([ (under||'') + '/' + name ])
-        await alertDialog(name + " created", 'success')
+        await alertDialog(`Folder "${name}" created`, 'success')
     }
     catch(e) {
         await alertDialog(e as Error)
