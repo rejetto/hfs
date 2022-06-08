@@ -143,7 +143,7 @@ export default function ConfigPage() {
             return window.location.href = loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
         }
         setTimeout(reloadStatus, 'port' in changes || 'https_port' in changes ? 1000 : 0) // give some time to consider new ports
-        Object.assign(loaded, changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
+        Object.assign(loaded!, changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         toast("Changes applied", 'success')
     }

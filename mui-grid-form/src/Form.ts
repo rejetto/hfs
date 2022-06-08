@@ -17,6 +17,7 @@ import { Save } from '@mui/icons-material'
 import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 import { StringField } from './StringField'
+import { GridProps } from '@mui/material/Grid/Grid'
 export * from './SelectField'
 export * from './misc-fields'
 export * from './StringStringField'
@@ -30,6 +31,8 @@ export interface FieldDescriptor<T=any> {
     getError?: (v: any, extra?: any) => Promisable<ValidationError>
     toField?: (v: T) => any
     fromField?: (v: any) => T
+    before?: ReactNode
+    after?: ReactNode
     [extraProp: string]: any
 }
 
@@ -62,9 +65,25 @@ export interface FormProps<Values> extends Partial<BoxProps> {
     onError?: (err: any) => any
     formRef?: MutableRefObject<HTMLFormElement | undefined>
     saveOnEnter?: boolean
+    gridProps?: Partial<GridProps>
 }
 enum Phase { Idle, WaitValues, Validating }
-export function Form<Values extends Dict>({ fields, values, set, defaults, save, stickyBar, addToBar=[], barSx, formRef, onError, saveOnEnter, ...rest }: FormProps<Values>) {
+
+export function Form<Values extends Dict>({
+    fields,
+    values,
+    set,
+    defaults,
+    save,
+    stickyBar,
+    addToBar = [],
+    barSx,
+    formRef,
+    onError,
+    saveOnEnter,
+    gridProps,
+    ...rest
+}: FormProps<Values>) {
     const mounted = useRef(false)
     useEffect(() => {
         mounted.current = true
@@ -98,7 +117,7 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
             gap: 3,
             ...rest
         },
-            h(Grid, { container:true, rowSpacing:3, columnSpacing:1 },
+            h(Grid, { container:true, rowSpacing:3, columnSpacing:1, ...gridProps },
                 fields.map((row, idx) => {
                     if (!row)
                         return null
@@ -143,11 +162,14 @@ export function Form<Values extends Dict>({ fields, values, set, defaults, save,
                         _.defaults(field, defaults?.(whole))
                     }
                     {
-                        const { xs=12, sm, md, lg, xl, comp=StringField,
+                        const { xs=12, sm, md, lg, xl, comp=StringField, before, after,
                             fromField, toField, // don't propagate
                             ...rest } = field
                         return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
-                            isValidElement(comp) ? comp : h(comp, rest) )
+                            before,
+                            isValidElement(comp) ? comp : h(comp, rest),
+                            after
+                        )
                     }
                 })
             ),

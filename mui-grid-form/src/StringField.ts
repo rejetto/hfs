@@ -20,6 +20,7 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
         ...props,
+        sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1.5 } }, props.sx),
         value: state,
         onChange(ev) {
             const val = ev.target.value

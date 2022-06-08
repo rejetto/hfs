@@ -148,14 +148,17 @@ export async function promptDialog(msg: string, props:any={}) : Promise<string |
     return formDialog<{ text: string }>({
         ...props,
         fields: [
-            h(Box, {}, msg),
-            { k: 'text', label: null, autoFocus: true, ...props.field },
+            { k: 'text', label: null, autoFocus: true,
+                before: h(Box, { mb: 2 }, msg),
+                ...props.field
+            },
         ],
         save: {
             children: "Continue",
             startIcon: h(Forward),
             ...props.save,
         },
+        saveOnEnter: true,
         barSx: { gap: 2 },
         addToBar: [
             h(Button, { onClick: closeDialog }, "Cancel"),
