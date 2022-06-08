@@ -9,6 +9,7 @@ import { debounceAsync, same, objSameKeys, onOff, wait, with_ } from './misc'
 import { exists, statSync } from 'fs'
 import { promisify } from 'util'
 import { join } from 'path'
+import events from './events'
 
 const PATH = 'config.yaml'
 
@@ -115,6 +116,7 @@ export function setConfig(newCfg: Record<string,any>, save?: boolean) {
         if (!newCfg.hasOwnProperty(k))
             apply(k, newCfg[k])
     started = true
+    events.emit('config ready')
 
     function apply(k: string, newV: any) {
         return setConfig1(k, newV, save === undefined)

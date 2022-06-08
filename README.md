@@ -39,21 +39,15 @@ You won't find all previous features here (yet), but still we got:
 4. launch `hfs` file
 5. the browser should automatically open on `localhost` address, so you can configure the rest
 
+If you access HFS via localhost, by default it won't require your to login.
+
 ### Cloud server?
 
 If you are installing HFS on "another" machine, then step 5 may not be possible.
-In this case you should create a `config.yaml` file with this content:
-```
-accounts:
-    YOUR-USERNAME:
-        admin: true
-        password: YOUR-PASSWORD
-```
-
-This way you'll have your admin account.
-Be sure to respect spaces/indentation.
-
-Don't worry about the password, it will be encrypted at first run.
+In this case you should run hfs with `--create-admin <PASSWORD>`.
+This will both
+- create an account with username `admin` with the provided password and Admin privilege (granting access to Admin panel). 
+- disable the unprotected access (no login) to Admin panel
 
 ### Other systems
 

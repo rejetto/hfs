@@ -37,12 +37,12 @@ export function prefix(pre:string, v:string|number, post:string='') {
     return v ? pre+v+post : ''
 }
 
-export function setHidden(dest: object, src:object) {
+export function setHidden<T, ADD>(dest: T, src: ADD) {
     return Object.defineProperties(dest, objSameKeys(src as any, value => ({
         enumerable: false,
         writable: true,
         value,
-    })))
+    }))) as T & ADD
 }
 
 export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>any) {

@@ -7,6 +7,8 @@ import Koa from 'koa'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
+import { argv } from './const'
+import { localhostAdmin } from './adminApis'
 
 export interface Account {
     username: string, // we'll have username in it, so we don't need to pass it separately
@@ -98,6 +100,15 @@ accountsConfig.sub(async v => {
     }))
 })
 
+events.once('config ready', async () => {
+    const pwd = argv['create-admin']
+    if (!pwd) return
+    const acc = getAccount('admin') || addAccount('admin', { admin: true })
+    await updateAccount(acc!, acc => acc.password = pwd)
+    localhostAdmin.set(false)
+    console.log("account 'admin' created while unprotected admin access on localhost is now disabled")
+})
+
 function normalizeUsername(username: string) {
     return username.toLocaleLowerCase()
 }
@@ -131,23 +142,26 @@ const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs'
 export function addAccount(username: string, props: Partial<Account>) {
     if (!username || accounts[username])
         return
-    const copy = _.pickBy(_.pick(props, assignableProps), Boolean)
-    setHidden(copy, { username })
+    const copy: Account = setHidden(_.pickBy(_.pick(props, assignableProps), Boolean),
+        { username }) // have the field in the object but hidden so that stringification won't include it
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [username]: copy }))
-    saveAccountsAsap()
+    saveAccountsAsap().then()
     return copy
 }
 
 export function setAccount(username: string, changes: Partial<Account>) {
+    const acc = getAccount(username)
+    if (!acc)
+        return false
     const rest = _.pick(changes, assignableProps)
     for (const [k,v] of Object.entries(rest))
         if (!v)
             rest[k as keyof Account] = undefined
-    Object.assign(getAccount(username), rest)
+    Object.assign(acc, rest)
     if (changes.username)
         renameAccount(username, changes.username)
-    saveAccountsAsap()
+    saveAccountsAsap().then()
     return true
 }
 
@@ -156,7 +170,7 @@ export function delAccount(username: string) {
         return false
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [username]: undefined }))
-    saveAccountsAsap()
+    saveAccountsAsap().then()
     return true
 }
 
