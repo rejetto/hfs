@@ -201,9 +201,7 @@ export function debounceAsync<CB extends (...args: any[]) => Promise<R>, R>(
     const interceptingWrapper = (...args:any[]) => runningDebouncer = debouncer.apply(null, args)
     return Object.assign(interceptingWrapper, {
         cancel: () => whoIsWaiting = undefined,
-        flush() {
-            return whoIsWaiting ? callback.apply(null, whoIsWaiting) : this.cancel()
-        },
+        flush: () => runningCallback ?? (whoIsWaiting && callback.apply(null, whoIsWaiting)),
     })
 
     async function debouncer(...args:any[]) {
