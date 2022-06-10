@@ -1,4 +1,5 @@
 # HFS: HTTP File Server
+<img alt="logo and motto" src="hfs-logo-color-motto.svg" />
 
 ## Introduction
 
