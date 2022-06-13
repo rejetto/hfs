@@ -4,7 +4,7 @@ import { getAccount, getCurrentUsername } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
-import { ADMIN_URI, SESSION_DURATION } from './const'
+import { ADMIN_URI, SESSION_DURATION, UNAUTHORIZED } from './const'
 import { randomId } from './misc'
 import Koa from 'koa'
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
@@ -43,11 +43,11 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
     username = username.toLocaleLowerCase()
     const acc = getAccount(username)
     if (!acc)
-        return new ApiError(401)
+        return new ApiError(UNAUTHORIZED)
     if (!acc.hashed_password)
         return new ApiError(406)
     if (!await verifyPassword(acc.hashed_password, password))
-        return new ApiError(401)
+        return new ApiError(UNAUTHORIZED)
     if (!ctx.session)
         return new ApiError(500)
     loggedIn(ctx, username)
@@ -62,7 +62,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     if (!ctx.session)
         return new ApiError(500)
     if (!account) // TODO simulate fake account to prevent knowing valid usernames
-        return new ApiError(401)
+        return new ApiError(UNAUTHORIZED)
     if (!account.srp)
         return new ApiError(406) // unacceptable
     const [salt, verifier] = account.srp.split('|')
@@ -92,7 +92,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         }
     }
     catch(e) {
-        return new ApiError(401, String(e))
+        return new ApiError(UNAUTHORIZED, String(e))
     }
     finally {
         delete ongoingLogins[sid]

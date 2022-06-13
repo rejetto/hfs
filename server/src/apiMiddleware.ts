@@ -6,6 +6,7 @@ import createSSE from './sse'
 import { Readable } from 'stream'
 import { asyncGeneratorToReadable, objSameKeys, onOff, tryJson } from './misc'
 import events from './events'
+import { UNAUTHORIZED } from './const'
 
 export class ApiError extends Error {
     constructor(public status:number, message?:string | Error) {
@@ -27,7 +28,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         const csrf = ctx.cookies.get('csrf')
         // we don't rely on SameSite cookie option because it's https-only
-        let res = csrf && csrf !== params.csrf ? new ApiError(401, 'csrf')
+        let res = csrf && csrf !== params.csrf ? new ApiError(UNAUTHORIZED, 'csrf')
             : await apis[ctx.path](params || {}, ctx)
         if (isAsyncGenerator(res))
             res = asyncGeneratorToReadable(res)

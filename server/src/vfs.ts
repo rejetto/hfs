@@ -8,7 +8,7 @@ import Koa from 'koa'
 import glob from 'fast-glob'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
-import { FORBIDDEN, IS_WINDOWS } from './const'
+import { FORBIDDEN, IS_WINDOWS, UNAUTHORIZED } from './const'
 import events from './events'
 import { getCurrentUsernameExpanded } from './perm'
 import { with_ } from './misc'
@@ -233,7 +233,7 @@ function matchWho(who: Who, ctx: Koa.Context) {
 }
 
 export function cantReadStatusCode(node: VfsNode) {
-    return node.can_read === false ? FORBIDDEN : 401
+    return node.can_read === false ? FORBIDDEN : UNAUTHORIZED
 }
 
 events.on('accountRenamed', (from, to) => {

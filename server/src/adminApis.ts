@@ -3,7 +3,16 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { defineConfig, getWholeConfig, setConfig } from './config'
 import { getStatus, getUrls, httpsPortCfg, portCfg } from './listen'
-import { API_VERSION, BUILD_TIMESTAMP, COMPATIBLE_API_VERSION, FORBIDDEN, HFS_STARTED, IS_WINDOWS, VERSION } from './const'
+import {
+    API_VERSION,
+    BUILD_TIMESTAMP,
+    COMPATIBLE_API_VERSION,
+    FORBIDDEN,
+    HFS_STARTED,
+    IS_WINDOWS,
+    UNAUTHORIZED,
+    VERSION
+} from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import pluginsApis from './api.plugins'
@@ -118,7 +127,7 @@ for (const k in adminApis) {
     const was = adminApis[k]
     adminApis[k] = (params, ctx) =>
         ctxAdminAccess(ctx) ? was(params, ctx)
-            : new ApiError(401)
+            : new ApiError(UNAUTHORIZED)
 }
 
 export const localhostAdmin = defineConfig('localhost_admin', true)
