@@ -81,8 +81,7 @@ export function sendList<T>(addAtStart?: T[]) {
         update(search: Partial<T>, change: Partial<T>) {
             stream.push({ update:[{ search, change }] })
         },
-        end() { // notify end of additions
-            stream.push('end')
+        end() {
             stream.push(null)
         },
         error(msg: string | number) {

@@ -45,11 +45,13 @@ export default function useFetchList() {
             switch (type) {
                 case 'error':
                     state.stopSearch?.()
-                    return state.error = JSON.stringify(data)
+                    state.error = JSON.stringify(data)
+                    return
                 case 'closed':
                     flush()
                     state.stopSearch?.()
-                    return state.loading = false
+                    state.loading = false
+                    return
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()

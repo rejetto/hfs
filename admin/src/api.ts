@@ -139,11 +139,12 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                     return stop()
                 case 'closed':
                     flush()
+                    setInitializing(false)
                     return stop()
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return stop()
-                    if (data === 'init' || data === 'end') {
+                    if (data === 'init') {
                         flush()
                         setInitializing(false)
                         return
