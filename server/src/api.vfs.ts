@@ -35,8 +35,8 @@ const apis: ApiHandlers = {
             const dir = await nodeIsDirectory(node)
             const stats: Pick<VfsAdmin, 'size' | 'ctime' | 'mtime'> = {}
             try {
-                if (node.source && !dir)
-                    Object.assign(stats, _.pick(await stat(node.source), ['size', 'ctime', 'mtime']))
+                if (!dir)
+                    Object.assign(stats, _.pick(await stat(node.source!), ['size', 'ctime', 'mtime']))
             }
             catch {
                 stats.size = -1

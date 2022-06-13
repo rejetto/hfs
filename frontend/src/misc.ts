@@ -11,7 +11,7 @@ export function hIcon(name: string, props?:any) {
     return h(Icon, { name, ...props })
 }
 
-export function hError(err: Error | string | null) {
+export function hError(err: Error | string | undefined) {
     return err && h('div', { className:'error-msg' }, typeof err === 'string' ? err : err.message)
 }
 

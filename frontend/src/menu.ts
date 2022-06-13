@@ -4,7 +4,7 @@ import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'use-debounce'
 import { confirmDialog, promptDialog } from './dialog'
-import { hIcon, isMobile, prefix } from './misc'
+import { hIcon, isMobile, prefix, useStateMounted } from './misc'
 import { login } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -20,12 +20,12 @@ export function MenuPanel() {
             state.selected = {}
     }, [showFilter])
 
-    const [started1secAgo, setStarted1secAgo] = useState(false)
+    const [started1secAgo, setStarted1secAgo] = useStateMounted(false)
     useEffect(() => {
         if (!stopSearch) return
         setStarted1secAgo(false)
         setTimeout(() => setStarted1secAgo(true), 1000)
-    }, [stopSearch])
+    }, [stopSearch, setStarted1secAgo])
 
     //TODO do something for list > 63KB as it hit the url limit (1kb reserved for the rest for the url)
     const list = Object.keys(selected).map(s => s.endsWith('/') ? s.slice(0,-1) : s).join('*')
@@ -160,16 +160,16 @@ function LoginButton() {
     } : {
         icon: 'login',
         label: 'Login',
-        async onClick() {
-            const user = await promptDialog('Username')
-            if (!user) return
-            const password = await promptDialog('Password', { type: 'password' })
-            if (!password) return
-            const res = await login(user, password)
-            if (res?.redirect)
-                navigate(res.redirect)
-        }
+        onClick: () => loginDialog(navigate),
     })
 }
 
-
+export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
+    const user = await promptDialog('Username')
+    if (!user) return
+    const password = await promptDialog('Password', { type: 'password' })
+    if (!password) return
+    const res = await login(user, password)
+    if (res?.redirect)
+        navigate(res.redirect)
+}

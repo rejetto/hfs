@@ -70,7 +70,9 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
 }
 
 interface ConfirmOptions { href?: string }
-export async function confirmDialog(msg: string, { href }: ConfirmOptions={}) : Promise<boolean> {
+export async function confirmDialog(msg: ReactElement | string, { href }: ConfirmOptions={}) : Promise<boolean> {
+    if (typeof msg === 'string')
+        msg = h('p', {}, msg)
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
         icon: '?',
@@ -80,7 +82,7 @@ export async function confirmDialog(msg: string, { href }: ConfirmOptions={}) : 
 
     function Content() {
         return h('div', {},
-            h('p', {}, msg),
+            msg,
             h('a', {
                 href,
                 onClick: () => closeDialog(true),

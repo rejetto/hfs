@@ -71,16 +71,24 @@ export function sendList<T>(addAtStart?: T[]) {
     const stream = new Readable({ objectMode: true, read(){} })
     const ret = {
         return: stream,
-        add(rec: T) { stream.push({ add: rec }) },
-        remove(key: Partial<T>) { stream.push({ remove: [ key ] }) },
+        add(rec: T) {
+            stream.push({ add: rec })
+        },
+        remove(key: Partial<T>) {
+            stream.push({ remove: [key] })
+        },
         update(search: Partial<T>, change: Partial<T>) {
             stream.push({ update:[{ search, change }] })
         },
         end() { // notify end of additions
             stream.push('end')
+            stream.push(null)
         },
-        error(msg: string) {
+        error(msg: string | number) {
             stream.push({ error: msg })
+        },
+        custom(data: any) {
+            stream.push(data)
         },
         events(ctx: Koa.Context, eventMap: Parameters<typeof onOff>[1]) {
             const off = onOff(events, eventMap)

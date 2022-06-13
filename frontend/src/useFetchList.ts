@@ -14,10 +14,6 @@ export default function useFetchList() {
     const lastPath = useRef('')
 
     useEffect(()=>{
-        if (!desiredPath.endsWith('/')) { // useful only in dev, while accessing the frontend directly without passing by the main server
-            window.location.href = window.location.href + '/'
-            return
-        }
         const previous = lastPath.current
         lastPath.current = desiredPath
         if (previous !== desiredPath) {
@@ -36,7 +32,7 @@ export default function useFetchList() {
         state.filteredList = undefined
         state.selected = {}
         state.loading = true
-        state.error = null
+        state.error = undefined
         // buffering entries is necessary against burst of events that will hang the browser
         const buffer: DirList = []
         const flush = () => {
@@ -49,7 +45,7 @@ export default function useFetchList() {
             switch (type) {
                 case 'error':
                     state.stopSearch?.()
-                    return state.error = Error(JSON.stringify(data))
+                    return state.error = JSON.stringify(data)
                 case 'closed':
                     flush()
                     state.stopSearch?.()
@@ -57,7 +53,21 @@ export default function useFetchList() {
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()
-                    buffer.push(data.entry)
+                    if (!data) return
+                    if (data.add)
+                        return buffer.push(data.add)
+                    const { error } = data
+                    if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
+                        state.messageOnly = "Your download should now start"
+                        window.location.reload() // reload will start the download, because now we got authenticated
+                        return
+                    }
+                    if (error) {
+                        state.stopSearch?.()
+                        state.error = (ERRORS as any)[error] || String(error)
+                        state.loginRequired = error === 401
+                        return
+                    }
             }
         })
         state.stopSearch = ()=>{
@@ -68,6 +78,10 @@ export default function useFetchList() {
             src.close()
         }
     }, [desiredPath, search, snap.username, snap.listReloader])
+}
+
+const ERRORS = {
+    404: "Not found"
 }
 
 export function reloadList() {

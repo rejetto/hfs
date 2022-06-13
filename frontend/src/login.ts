@@ -10,6 +10,7 @@ export async function login(username:string, password:string) {
     return srpSequence(username, password, apiCall).then(res => {
         stopWorking()
         sessionRefresher(res)
+        state.loginRequired = false
         return res
     }, (err: Error) => {
         stopWorking()

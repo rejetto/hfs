@@ -1,28 +1,45 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { cantReadStatusCode, getNodeName, hasPermission, urlToNode, VfsNode, walkNode } from './vfs'
-import { ApiError, ApiHandler } from './apiMiddleware'
+import { cantReadStatusCode, getNodeName, hasPermission, nodeIsDirectory, urlToNode, VfsNode, walkNode } from './vfs'
+import { ApiError, ApiHandler, sendList } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
-import { asyncGeneratorToArray, asyncGeneratorToReadable, dirTraversal, filterMapGenerator, pattern2filter } from './misc'
+import { asyncGeneratorToArray, dirTraversal, pattern2filter } from './misc'
+import _ from 'lodash'
 
-export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
+export const file_list: ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await urlToNode(path || '/', ctx)
+    const list = sendList()
     if (!node)
-        return new ApiError(404)
+        return fail(404)
     if (!hasPermission(node,'can_read',ctx))
-        return new ApiError(cantReadStatusCode(node))
+        return fail(cantReadStatusCode(node))
     if (dirTraversal(search))
-        return new ApiError(418)
+        return fail(418)
     if (node.default)
-        return { redirect: path }
+        return (sse ? list.custom : _.identity)({ redirect: path })
+    if (!await nodeIsDirectory(node))
+        return fail(405) // method not allowed on target
     offset = Number(offset)
     limit = Number(limit)
     const filter = pattern2filter(search)
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
-    return sse ? filterMapGenerator(produceEntries(), async entry => ({ entry })) // wrap entry in an object
-        : { list: await asyncGeneratorToArray(produceEntries()) }
+    if (!sse)
+        return { list: await asyncGeneratorToArray(produceEntries()) }
+    setTimeout(async () => {
+        for await (const entry of produceEntries())
+            list.add(entry)
+        list.end()
+    })
+    return list.return
+
+    function fail(code: any) {
+        if (!sse)
+            return new ApiError(code)
+        list.error(code)
+        return list.return
+    }
 
     async function* produceEntries() {
         for await (const sub of walker) {
@@ -38,7 +55,7 @@ export const file_list:ApiHandler = async ({ path, offset, limit, search, omit, 
                     continue
             }
             catch(e) {
-                console.log('a plugin with onDirEntry is causing problems:', e)
+                console.log("a plugin with onDirEntry is causing problems:", e)
             }
             if (offset) {
                 --offset

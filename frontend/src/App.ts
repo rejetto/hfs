@@ -5,13 +5,17 @@ import { createElement as h, Fragment } from 'react'
 import { BrowseFiles } from "./BrowseFiles"
 import { Dialogs } from './dialog'
 import useTheme from "./useTheme"
+import { useSnapState } from './state'
 
 function App() {
     useTheme()
+    const { messageOnly } = useSnapState()
+    if (messageOnly)
+        return h('h1', { style: { textAlign: 'center'} }, messageOnly)
     return h(Fragment, {},
         h(BrowserRouter, {},
             h(Routes, {},
-                h(Route, { path:'*', element:h(BrowseFiles) })
+                h(Route, { path:'*', element: h(BrowseFiles) })
             )
         ),
         h(Dialogs)

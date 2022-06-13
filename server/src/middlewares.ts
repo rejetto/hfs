@@ -3,11 +3,11 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import session from 'koa-session'
-import { ADMIN_URI, BUILD_TIMESTAMP, DEV, SESSION_DURATION } from './const'
+import { ADMIN_URI, BUILD_TIMESTAMP, DEV, FORBIDDEN, SESSION_DURATION } from './const'
 import Application from 'koa'
 import { FRONTEND_URI } from './const'
-import { cantReadStatusCode, hasPermission, urlToNode } from './vfs'
-import { dirTraversal, isDirectory } from './misc'
+import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode } from './vfs'
+import { dirTraversal } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -63,31 +63,33 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (path.startsWith(ADMIN_URI))
         return serveAdminPrefixed(ctx,next)
     const node = await urlToNode(path, ctx)
-    if (!node) {
-        ctx.body = "Not found. Sometimes you need to login first."
+    if (!node)
         return ctx.status = 404
-    }
-    if (!hasPermission(node, 'can_read', ctx))
-        return ctx.status = cantReadStatusCode(node)
-    const { source } = node
-    if (!source || await isDirectory(source)) {
-        const { get } = ctx.query
-        if (get === 'zip')
-            return await zipStreamFromFolder(node, ctx)
-        if (!path.endsWith('/')) // this folder was requested without the trailing /
+    const cantRead = !hasPermission(node, 'can_read', ctx)
+    const isFolder = await nodeIsDirectory(node)
+    if (!cantRead && !isFolder)
+        return node.source ? serveFileNode(node)(ctx,next)
+            : next()
+    ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
+    if (cantRead) {
+        ctx.status = cantReadStatusCode(node)
+        if (ctx.status === FORBIDDEN)
+            return
+        // this folder was requested without the trailing / and we may still log in
+        if (isFolder && !path.endsWith('/') && !ctx.state.account)
             return ctx.redirect(path + '/')
-        if (node.default) {
-            const def = await urlToNode(path + node.default, ctx)
-            return !def ? next()
-                : hasPermission(def, 'can_read', ctx) ? serveFileNode(def)(ctx, next)
-                : ctx.status = cantReadStatusCode(def)
-        }
-        ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
         return serveFrontendFiles(ctx, next)
     }
-    if (source)
-        return serveFileNode(node)(ctx,next)
-    return next()
+    const { get } = ctx.query
+    if (get === 'zip')
+        return await zipStreamFromFolder(node, ctx)
+    if (node.default) {
+        const def = await urlToNode(path + node.default, ctx)
+        return !def ? next()
+            : hasPermission(def, 'can_read', ctx) ? serveFileNode(def)(ctx, next)
+            : ctx.status = cantReadStatusCode(def)
+    }
+    return serveFrontendFiles(ctx, next)
 }
 
 let proxyDetected = false

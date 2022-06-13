@@ -8,6 +8,7 @@ import { Head } from './Head'
 import { state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
+import useAuthorized from './useAuthorized'
 
 export function usePath() {
     return decodeURI(useLocation().pathname)
@@ -20,10 +21,10 @@ export type DirList = DirEntry[]
 export function BrowseFiles() {
     useFetchList()
     const { error, list, serverConfig } = useSnapState()
-    return h(Fragment, {},
+    return useAuthorized() && h(Fragment, {},
         h(Html, { code: serverConfig?.custom_header }),
         h(Head),
-        hError(error && 'Failed to retrieve list')
+        hError(error)
         || h(list ? FilesList : Spinner))
 }
 
@@ -41,8 +42,8 @@ function FilesList() {
 
     return h(Fragment, {},
         h('ul', { className: 'dir' },
-            !list.length ? (!loading && (stoppedSearch ? 'Stopped before finding anything' : 'Nothing here'))
-                : filteredList && !filteredList.length ? 'No match for this filter'
+            !list.length ? (!loading && (stoppedSearch ? "Stopped before finding anything" : "Nothing here"))
+                : filteredList && !filteredList.length ? "No match for this filter"
                     : theList.slice(offset, offset + pageSize).map((entry: DirEntry) =>
                         h(Entry, { key: entry.n, midnight, ...entry })),
             loading && h(Spinner),
@@ -126,14 +127,14 @@ const EntryProps = memo(function(entry: DirEntry & { midnight: Date }) {
         h(Html, { code, className:'add-props' }),
         s !== undefined && h(Fragment, {},
             h('span', { className:'entry-size' }, formatBytes(s)),
-            ' — ',
+            " — ",
         ),
         t && h('span', {
             className: 'entry-ts',
             title: today || !shortTs ? null : t.toLocaleString(),
             onClick() { // mobile has no hover
                 if (shortTs)
-                    alertDialog('Full timestamp:\n' + t.toLocaleString()).then()
+                    alertDialog("Full timestamp:\n" + t.toLocaleString()).then()
             }
         }, !shortTs ? t.toLocaleString() : today ? t.toLocaleTimeString() : t.toLocaleDateString()),
     )

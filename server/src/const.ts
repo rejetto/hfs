@@ -26,6 +26,7 @@ export const argv = minimist(process.argv.slice(2))
 export const METHOD_NOT_ALLOWED = 405
 export const NO_CONTENT = 204
 export const FORBIDDEN = 403
+export const UNAUTHORIZED = 401
 
 export const IS_WINDOWS = process.platform === 'win32'
 

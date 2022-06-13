@@ -14,7 +14,7 @@ export const state = proxy<{
     list: DirList,
     filteredList?: DirList,
     loading: boolean,
-    error: Error | null,
+    error?: string,
     listReloader: number,
     patternFilter: string,
     showFilter: boolean,
@@ -26,13 +26,14 @@ export const state = proxy<{
     theme: string,
     adminUrl?: string,
     serverConfig?: any,
+    loginRequired?: boolean, // force user to login before proceeding
+    messageOnly?: string, // no gui, just show this message
 }>({
     iconsClass: '',
     username: '',
     list: [],
     filteredList: undefined,
     loading: false,
-    error: null,
     listReloader: 0,
     patternFilter: '',
     showFilter: false,

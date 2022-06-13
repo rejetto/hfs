@@ -2,7 +2,7 @@
 
 import Koa from 'koa'
 import fs from 'fs/promises'
-import { METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI } from './const'
+import { METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI, UNAUTHORIZED } from './const'
 import { serveFile } from './serveFile'
 import { mapPlugins } from './plugins'
 import { refresh_session } from './api.auth'
@@ -15,8 +15,9 @@ const DEV_STATIC = process.env.DEV ? '../dist/' : ''
 function serveStatic(uri: string): Koa.Middleware {
     const folder = uri.slice(2,-1) // we know folder is very similar to uri
     return async (ctx, next) => {
-        const isDir = ctx.path.endsWith('/')
-        const fullPath = path.join(__dirname, '..', DEV_STATIC, folder, isDir? '/index.html': ctx.path)
+        const loginRequired = ctx.status === UNAUTHORIZED
+        const serveApp = ctx.path.endsWith('/') || loginRequired
+        const fullPath = path.join(__dirname, '..', DEV_STATIC, folder, serveApp? '/index.html': ctx.path)
         if(ctx.method === 'OPTIONS') {
             ctx.status = NO_CONTENT
             ctx.set({ Allow: 'OPTIONS, GET' })
@@ -24,7 +25,7 @@ function serveStatic(uri: string): Koa.Middleware {
         }
         if (ctx.method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
-        if (!isDir)
+        if (!serveApp)
             return serveFile(fullPath, 'auto', getModifier(ctx.path, uri))(ctx, next)
         // we don't cache the index as it's small and may prevent plugins change to apply
         ctx.body = await treatIndex(ctx, String(await fs.readFile(fullPath)), uri)

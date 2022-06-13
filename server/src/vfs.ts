@@ -138,7 +138,7 @@ export async function nodeIsDirectory(node: VfsNode) {
 
 export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context): boolean {
     return matchWho(node[perm] ?? defaultPerms[perm], ctx)
-        && (perm !== 'can_see' || hasPermission(node, 'can_read', ctx)) // if you can't read, then you can't see
+        && (perm !== 'can_see' || hasPermission(node, 'can_read', ctx)) // for can_see you must also can_read
 }
 
 export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
