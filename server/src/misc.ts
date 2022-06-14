@@ -208,9 +208,10 @@ export function debounceAsync<CB extends (...args: any[]) => Promise<R>, R>(
     })
 
     async function debouncer(...args:any[]) {
+        if (runningCallback)
+            return await runningCallback
         whoIsWaiting = args
         waitingSince ||= Date.now()
-        await runningCallback
         const waitingCap = maxWait - (Date.now() - (waitingSince || started))
         const waitFor = Math.min(waitingCap, leading ? wait - (Date.now() - started) : wait)
         if (waitFor > 0)
