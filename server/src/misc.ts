@@ -200,8 +200,11 @@ export function debounceAsync<CB extends (...args: any[]) => Promise<R>, R>(
     let whoIsWaiting: undefined | any[] // args' array object identifies the pending instance, and incidentally stores args
     const interceptingWrapper = (...args:any[]) => runningDebouncer = debouncer.apply(null, args)
     return Object.assign(interceptingWrapper, {
-        cancel: () => whoIsWaiting = undefined,
-        flush: () => runningCallback ?? (whoIsWaiting && callback.apply(null, whoIsWaiting)),
+        cancel: () => {
+            waitingSince = 0
+            whoIsWaiting = undefined
+        },
+        flush: () => runningCallback ?? exec(),
     })
 
     async function debouncer(...args:any[]) {
@@ -216,14 +219,21 @@ export function debounceAsync<CB extends (...args: any[]) => Promise<R>, R>(
             return void(waitingSince = 0)
         if (whoIsWaiting !== args) // another fresher call is waiting
             return runningDebouncer
+        return await exec()
+    }
+
+    async function exec() {
+        if (!whoIsWaiting) return
         waitingSince = 0
-        whoIsWaiting = undefined
         started = Date.now()
         try {
-            runningCallback = callback.apply(null, args)
+            runningCallback = callback.apply(null, whoIsWaiting)
             return await runningCallback
         }
-        finally { runningCallback = undefined }
+        finally {
+            whoIsWaiting = undefined
+            runningCallback = undefined
+        }
     }
 }
 
