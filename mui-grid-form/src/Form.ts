@@ -218,7 +218,7 @@ export function Form<Values extends Dict>({
                 || await f.getError?.(v, { values, fields })
                 || fieldExceptions[k]
             errs[k] = err || false
-            if (k === validateUpTo.current) break
+            if (!submitAfterValidation.current && k === validateUpTo.current) break
             if (!mounted.current) return // abort
         }
         setErrors(errs)
