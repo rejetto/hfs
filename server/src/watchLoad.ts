@@ -59,7 +59,11 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                 data = await readFileBusy(path)
                 console.debug('loaded', path)
             }
-            catch (e) { return } // silently ignore read errors
+            catch (e: any) {
+                if (e.code === 'EPERM')
+                    console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
+                return // ignore read errors
+            }
             if (path.endsWith('.yaml'))
                 data = yaml.parse(data)
             await parser(data)

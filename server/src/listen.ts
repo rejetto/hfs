@@ -149,10 +149,10 @@ function stopServer(srv: http.Server) {
             return resolve(null)
         const ad = srv.address()
         if (ad && typeof ad !== 'string')
-            console.log('stopped port ' + ad.port)
+            console.log("stopped port", ad.port)
         srv.close(err => {
             if (err && (err as any).code !== 'ERR_SERVER_NOT_RUNNING')
-                console.debug('failed to stop server', String(err))
+                console.debug("failed to stop server", String(err))
             resolve(err)
         })
     })
