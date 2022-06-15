@@ -21,6 +21,7 @@ import {
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
+import { useBreakpoint } from './misc'
 export * from '@hfs/shared/lib/dialogs'
 
 dialogsDefaults.Container = function Container(d:DialogOptions) {
@@ -34,6 +35,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
     return h(MuiDialog, {
         open: true,
         maxWidth: 'lg',
+        fullScreen: !useBreakpoint('sm'),
         ...rest,
         ...root,
         onClose: ()=> closeDialog(),

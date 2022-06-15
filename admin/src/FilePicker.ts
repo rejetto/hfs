@@ -90,7 +90,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                                     const it: DirEntry = filteredList[index]
                                     const isFolder = it.k === 'd'
                                     return h(MenuItem, {
-                                            style,
+                                            style: { ...style, padding: 0 },
                                             key: it.n,
                                             onClick() {
                                                 if (isFolder)
@@ -136,8 +136,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         onChange(ev) {
                             setFilterBounced(ev.target.value)
                         },
-                        sx: { minWidth: '20em' },
-                        fullWidth: true,
+                        sx: { flex: 1 },
                     }),
                 ),
             )

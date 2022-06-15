@@ -123,8 +123,9 @@ export function xlate(input: any, table: Record<string, any>) {
     return table[input] ?? input
 }
 
-export function useBreakpoint(name: Breakpoint) {
-    return useMediaQuery((theme: any) => theme.breakpoints.up(name), { noSsr:true }) // without noSsr, first execution always returns false
+// return true if same size or larger
+export function useBreakpoint(breakpoint: Breakpoint) {
+    return useMediaQuery((theme: any) => theme.breakpoints.up(breakpoint), { noSsr:true }) // without noSsr, first execution always returns false
 }
 
 export function err2msg(code: string) {
