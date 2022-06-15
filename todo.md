@@ -30,7 +30,9 @@
   - if positive search 'assets' array for 'name' matching exe, and download 'browser_download_url', and replace exe
 - upload
 - upload unzipping (while streaming?)
-- plugin to automatic generate letsencrypt cert?
+- plugin to make letsencrypt easier
+  - could be just automatic detection of files by certbot
+  - letsencrypt supports plugins to automatically configure webservers
 - delete
 - updater (stop,unzip,start)
 - node.comment

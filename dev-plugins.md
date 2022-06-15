@@ -176,8 +176,9 @@ HFS will scan through them in alphabetical order searching for a compatible one.
   - api.subscribeConfig
   - api.setConfig
   - api.getHfsConfig
-- 3
+- 3 (v0.21.0)
   - config.defaultValue
   - async for init/unload
+  - api.log
 - 2
   - config.type:array
