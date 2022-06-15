@@ -116,8 +116,9 @@ const apis: ApiHandlers = {
 
     async resolve_path({ path, closestFolder }) {
         path = resolve(path)
-        if (closestFolder && !(await stat(path)).isDirectory())
-            path = dirname(path)
+        if (closestFolder)
+            while (path && !await stat(path).then(x => x.isDirectory(), () => 0))
+                path = dirname(path)
         return { path }
     },
 
