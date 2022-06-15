@@ -38,8 +38,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
         apiCall('resolve_path', { path: from, closestFolder: true }).then(res => {
             if (typeof res.path === 'string')
                 setCwd(res.path)
-            setReady(true)
-        })
+        }).finally(() => setReady(true))
     }, [from])
     const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd, files, fileMask })
     useEffect(() => {
