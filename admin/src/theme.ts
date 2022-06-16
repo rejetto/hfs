@@ -17,7 +17,10 @@ export function useMyTheme() {
         },
         components: {
             MuiTextField: {
-                defaultProps: { variant: 'filled' }
+                defaultProps: { variant: 'filled' },
+                styleOverrides: lightMode || {
+                    root: { '& label.Mui-focused': { color: '#ccc' } } // our primary.main is too dark for mui's dark theme, and when input element is :-webkit-autofill it will make not enough contrast
+                }
             },
             MuiButton: {
                 defaultProps: { variant: 'outlined' },
