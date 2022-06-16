@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
 import { pendingPromise } from './misc'
-import { ApiHandlers, sendList } from './apiMiddleware'
+import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
 
 const apis: ApiHandlers = {
@@ -17,7 +17,7 @@ const apis: ApiHandlers = {
     },
 
     get_connections({}, ctx) {
-        const list = sendList( getConnections().map(c => serializeConnection(c)) )
+        const list = new SendListReadable( getConnections().map(c => serializeConnection(c)) )
         return list.events(ctx, {
             connection: conn => list.add(serializeConnection(conn)),
             connectionClosed(conn: Connection) {

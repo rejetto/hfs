@@ -10,7 +10,7 @@ import {
 import _ from 'lodash'
 import assert from 'assert'
 import { objSameKeys, onOff, wait } from './misc'
-import { ApiHandlers, sendList } from './apiMiddleware'
+import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
 import { downloadPlugin, getFolder2repo, getRepoInfo, readOnlinePlugin, searchPlugins } from './github'
@@ -18,7 +18,7 @@ import { downloadPlugin, getFolder2repo, getRepoInfo, readOnlinePlugin, searchPl
 const apis: ApiHandlers = {
 
     get_plugins({}, ctx) {
-        const list = sendList([ ...mapPlugins(serialize), ...getAvailablePlugins() ])
+        const list = new SendListReadable([ ...mapPlugins(serialize), ...getAvailablePlugins() ])
         return list.events(ctx, {
             pluginInstalled: p => list.add(serialize(p)),
             'pluginStarted pluginStopped pluginUpdated': p => {
@@ -35,7 +35,7 @@ const apis: ApiHandlers = {
     },
 
     async get_plugin_updates() {
-        const list = sendList()
+        const list = new SendListReadable()
         setTimeout(async () => {
             for (const [folder, repo] of Object.entries(getFolder2repo()))
                 try {
@@ -51,7 +51,7 @@ const apis: ApiHandlers = {
                 }
             list.end()
         })
-        return list.return
+        return list
     },
 
     async set_plugin({ id, enabled, config }) {
@@ -74,7 +74,7 @@ const apis: ApiHandlers = {
     },
 
     search_online_plugins({ text }, ctx) {
-        const list = sendList()
+        const list = new SendListReadable()
         setTimeout(async () => {
             try {
                 const folder2repo = getFolder2repo()
@@ -103,7 +103,7 @@ const apis: ApiHandlers = {
             }
             list.end()
         })
-        return list.return
+        return list
     },
 
     async download_plugin(pl) {

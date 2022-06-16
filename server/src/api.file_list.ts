@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { cantReadStatusCode, getNodeName, hasPermission, nodeIsDirectory, urlToNode, VfsNode, walkNode } from './vfs'
-import { ApiError, ApiHandler, sendList } from './apiMiddleware'
+import { ApiError, ApiHandler, SendListReadable } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, pattern2filter } from './misc'
@@ -9,7 +9,7 @@ import _ from 'lodash'
 
 export const file_list: ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await urlToNode(path || '/', ctx)
-    const list = sendList()
+    const list = new SendListReadable()
     if (!node)
         return fail(404)
     if (!hasPermission(node,'can_read',ctx))
@@ -32,13 +32,14 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
             list.add(entry)
         list.end()
     })
-    return list.return
+    return list
 
     function fail(code: any) {
         if (!sse)
             return new ApiError(code)
         list.error(code)
-        return list.return
+        list.destroy(code)
+        return list
     }
 
     async function* produceEntries() {

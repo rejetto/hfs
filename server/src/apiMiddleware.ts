@@ -67,40 +67,42 @@ async function getJsonFromReq(req: IncomingMessage): Promise<any> {
     })
 }
 
-// offer an api for a generic dynamic list
-export function sendList<T>(addAtStart?: T[]) {
-    const stream = new Readable({ objectMode: true, read(){} })
-    const ret = {
-        return: stream,
-        add(rec: T) {
-            stream.push({ add: rec })
-        },
-        remove(key: Partial<T>) {
-            stream.push({ remove: [key] })
-        },
-        update(search: Partial<T>, change: Partial<T>) {
-            stream.push({ update:[{ search, change }] })
-        },
-        end() {
-            stream.push(null)
-        },
-        error(msg: string | number) {
-            stream.push({ error: msg })
-        },
-        custom(data: any) {
-            stream.push(data)
-        },
-        events(ctx: Koa.Context, eventMap: Parameters<typeof onOff>[1]) {
-            const off = onOff(events, eventMap)
-            ctx.res.once('close', off)
-            return stream
+// offer an api for a generic dynamic list. Suitable to be the result of an api.
+export class SendListReadable<T> extends Readable {
+    protected lastError: string | number | undefined
+    constructor(addAtStart?: T[]) {
+        super({ objectMode: true, read(){} })
+        if (addAtStart) {
+            for (const x of addAtStart)
+                this.add(x)
+            this.push('init')
         }
     }
-    if (addAtStart) {
-        for (const x of addAtStart)
-            ret.add(x)
-        stream.push('init')
+    add(rec: T) {
+        this.push({ add: rec })
     }
-    return ret
+    remove(key: Partial<T>) {
+        this.push({ remove: [key] })
+    }
+    update(search: Partial<T>, change: Partial<T>) {
+        this.push({ update:[{ search, change }] })
+    }
+    end() {
+        this.push(null)
+    }
+    error(msg: NonNullable<typeof this.lastError>) {
+        this.push({ error: msg })
+        this.lastError = msg
+    }
+    getLastError() {
+        return this.lastError
+    }
+    custom(data: any) {
+        this.push(data)
+    }
+    events(ctx: Koa.Context, eventMap: Parameters<typeof onOff>[1]) {
+        const off = onOff(events, eventMap)
+        ctx.res.once('close', off)
+        return this
+    }
 }
-
