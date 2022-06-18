@@ -13,7 +13,7 @@
 .dialog {
     background: #fff; /*fallback*/
     background: var(--bg);
-    padding: 1em 1.5em;
+    padding: 1em 2em;
     border-radius: 1em;
     position: relative;
     color: var(--color);
@@ -28,19 +28,19 @@
     height: 1.6em;
     text-align: center;
     border-radius: 50%;
-    opacity: .8;
 }
 .dialog-closer {
     background: #c77;
-    right: -1.4em;
-    bottom: -1.4em;
+    right: -1.3em;
+    bottom: -1.3em;
     width: 2.5em;
     height: 2.5em;
     opacity: .9;
 }
 .dialog-type {
-    left: -0.8em;
-    top: -0.8em;
+    left: -0.1em;
+    top: -0.1em;
+    border-radius: 50% 0 50% 0;
     overflow: hidden;
     line-height: 1.7em;
     background-color: var(--color);
