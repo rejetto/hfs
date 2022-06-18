@@ -38,7 +38,7 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
         if (!sse)
             return new ApiError(code)
         list.error(code)
-        list.destroy(code)
+        list.end()
         return list
     }
 
