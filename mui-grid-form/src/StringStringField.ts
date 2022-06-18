@@ -90,6 +90,6 @@ export function StringStringField({ value, onChange, keyLabel='key', valueLabel=
                 onChange(){},
                 disabled: true,
             })),
-    )
+    ) as ReactElement // temporary workaround https://github.com/mui/material-ui/issues/33165
 }
 
