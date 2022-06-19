@@ -13,52 +13,48 @@
 .dialog {
     background: #fff; /*fallback*/
     background: var(--bg);
-    padding: 1em 2em;
+    padding: max(0.5em, 1vw);
     border-radius: 1em;
     position: relative;
-    color: var(--color);
-    border: 3px solid var(--color);
-    margin: -10vh 1.5em 0; /* leave space for corner icons */
-    max-width: calc(100vw - 7em);
+    margin: 0 3vw;
+    overflow: hidden;
+    max-height: calc(100vh - 2em)
 }
 .dialog-icon {
     color: #fff;
+    background-color: var(--color);
     position: absolute;
-    width: 1.6em;
-    height: 1.6em;
+    top: 0;
+    width: 1.8em;
+    height: 1.7em;
     text-align: center;
-    border-radius: 50%;
+    border-radius: .8em 0;
 }
 .dialog-closer {
-    background: #c77;
-    right: -1.3em;
-    bottom: -1.3em;
-    width: 2.5em;
-    height: 2.5em;
-    opacity: .9;
+    border-radius: 0 0.8em;
+    right: 0;
+    padding: 0;
+    background-color: #c99;
+}
+.dialog-icon ~ .dialog-content {
+    margin-top: 1.3em;
 }
 .dialog-type {
-    left: -0.1em;
-    top: -0.1em;
-    border-radius: 50% 0 50% 0;
+    left: 0;
+    top: 0;
     overflow: hidden;
     line-height: 1.7em;
-    background-color: var(--color);
 }
 .dialog-content {
     overflow: auto;
-    max-height: 80vh;
+    max-height: calc(100vh - 4em);
 }
 .dialog-content p {
     white-space: pre-wrap;
     margin: .5em 0;
 }
-.dialog-confirm button {
+.dialog-confirm .dialog-content button {
     margin-top: 1em;
-}
-.dialog-confirm,
-.dialog-prompt {
-    --color: #228
 }
 .dialog-alert-info {
     --color: #282
@@ -73,5 +69,8 @@
 @media (max-width: 50em) {
     .dialog-closer {
         font-size: 120%
+    }
+    .dialog-icon ~ .dialog-content {
+        margin-top: 2em;
     }
 }

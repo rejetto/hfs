@@ -4,9 +4,9 @@
     --faint-contrast: #0002;
     --mild-contrast: #0005;
     --good-contrast: #000a;
-    --button-bg: #a4bac9;
-    --button-text: #444;
-    --focus-color: #55A;
+    --button-bg: #68a;
+    --button-text: #fff;
+    --focus-color: #468;
     .theme-dark {
         --bg: #000;
         --text: #999;
@@ -16,8 +16,7 @@
         --button-bg: #345;
         --button-text: #999;
         a { color:#8ac; }
-        .dialog-confirm, .dialog-prompt { --color:#77a }
-        .dialog-closer { background: #844 }
+        .dialog-closer { background: #633 }
         .dialog-icon { color: #ccc; }
         .dialog-backdrop { background: #333b; }
     }
@@ -51,6 +50,7 @@ input, select {
     background: var(--bg);
     border-color: var(--mild-contrast);
     color: var(--good-contrast);
+    max-width: 100%; box-sizing: border-box; // avoid scrolling
 }
 input[type=checkbox] {
     margin: 0 1.3em 0 0.8em;
@@ -67,7 +67,7 @@ input[type=checkbox] {
 .icon.mirror:before { transform: scaleX(-1); }
 a {
     text-decoration: none;
-    color: #357;
+    color: #57a;
 }
 button {
     background-color: var(--button-bg);
@@ -87,10 +87,11 @@ button, .breadcrumb { /* consistent focus color */
         outline: 3px solid var(--focus-color);
     }
 }
-input, select {
+input, select, ul a {
     &:focus-visible {
-        outline: 1px solid var(--focus-color);
-        border: 2px solid var(--focus-color);
+        border-radius: .3em;
+        border-color: transparent;
+        outline: 2px solid var(--focus-color);
     }
 }
 
@@ -176,6 +177,7 @@ ul.dir {
 
         & a {
             word-break: break-word;
+            padding-right: 0.3em;
 
             & .icon {
                 margin-right: .3em;
@@ -241,6 +243,11 @@ button label {
 }
 .dialog-content {
     padding: .2em; /* give space for focus outline */
+}
+
+.dialog-confirm,
+.dialog-prompt {
+    --color: var(--button-bg);
 }
 
 #paging {

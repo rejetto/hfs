@@ -55,9 +55,13 @@ function Dialog(d:DialogOptions) {
                         ev.stopPropagation()
                     }
                 },
-                d.closable || d.closable===undefined && h('button', { className:'dialog-icon dialog-closer', onClick:()=> closeDialog() }, d.closableContent),
-                d.icon && h('div', { className:'dialog-icon dialog-type' }, d.icon),
-                h('div', { className:'dialog-content' }, h(d.Content || 'div'))
+                d.closable || d.closable===undefined
+                    && h('button', {
+                        className: 'dialog-icon dialog-closer',
+                        onClick() { closeDialog() }
+                    }, d.closableContent),
+                d.icon && h('div', { className: 'dialog-icon dialog-type' }, d.icon),
+                h('div', { className: 'dialog-content' }, h(d.Content || 'div'))
             )
     )
 }
