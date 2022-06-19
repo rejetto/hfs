@@ -9,8 +9,8 @@ export const HFS_STARTED = new Date()
 export const BUILD_TIMESTAMP = ''
 export const VERSION = ''
     || DEV && String(_.attempt(() => JSON.parse(fs.readFileSync('package.json','utf8')).version)) // this should happen only in dev, build fills this value
-export const SESSION_DURATION = 30*60_000
 export const DAY = 86_400_000
+export const SESSION_DURATION = DAY
 
 export const API_VERSION = 4 // introduced type:real_path and api.subscribeConfig/setConfig/getHfsConfig
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise is made equal to API_VERSION
