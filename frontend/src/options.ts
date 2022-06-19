@@ -8,7 +8,7 @@ import { hIcon } from './misc'
 import { MenuLink } from './menu'
 
 export function showOptions (){
-    const options = ['name','extension','size','time']
+    const options = ['name', 'extension', 'size', 'time']
     const close = newDialog({ Content })
 
     function Content(){
@@ -20,7 +20,7 @@ export function showOptions (){
                 href: snap.adminUrl,
                 target: 'admin',
             }),
-            h('div', {}, 'Sort by'),
+            h('div', {}, "Sort by"),
             options.map(x => h('button',{
                 key: x,
                 onClick(){
@@ -32,16 +32,16 @@ export function showOptions (){
                 onChange(v) {
                     state.invertOrder = v
                 }
-            }, 'Invert order'),
+            }, "Invert order"),
             h(Checkbox, {
                 value: snap.foldersFirst,
                 onChange(v) {
                     state.foldersFirst = v
                 }
-            }, 'Folders first'),
+            }, "Folders first"),
 
             h(Select, {
-                options: ['light', 'dark'].map(s => ({ label:'theme: ' + s, value: s })),
+                options: ['', 'light', 'dark'].map(s => ({ label: "theme: " + (s || "auto"), value: s })),
                 value: snap.theme,
                 onChange(v) {
                     state.theme = v
