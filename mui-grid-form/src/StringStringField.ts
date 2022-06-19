@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { makeStyles } from '@mui/styles'
-import { createElement as h, useRef } from 'react'
+import { createElement as h, ReactElement, useRef } from 'react'
 import { Grid, IconButton } from '@mui/material'
 import { Add, Delete } from '@mui/icons-material'
 import { FieldProps, StringField } from './Form'
