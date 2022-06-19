@@ -18,7 +18,7 @@
     "start-frontend": "cd frontend && npm run start",
     "start-admin": "cd admin && npm run start",
     "build-all": "npm audit --omit=dev && rm -rf dist && npm i && npm run build-shared && npm run build-server && npm run build-form && npm run build-frontend && npm run build-admin && echo COMPLETED",
-    "build-server": "rm -rf dist/src dist/plugins && tsc --target es2018 && cp -v -r package-lock.json server/package.json READ* LICENSE* plugins dist && cd dist && npm ci --production && npm i -f @node-rs/crc32-win32-x64-msvc && cd .. && node afterbuild",
+    "build-server": "rm -rf dist/src dist/plugins && tsc --target es2018 && cp -v -r package-lock.json server/package.json READ* LICENSE* plugins dist && cd dist && npm ci --omit=dev && npm i -f --omit=dev @node-rs/crc32-win32-x64-msvc && cd .. && node afterbuild",
     "build-frontend": "cd frontend && npm run build",
     "build-admin": "cd admin && npm run build",
     "build-shared": "cd shared && npm run build",
