@@ -56,7 +56,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
     console.debug('proxied on port', port)
     let proxy: Koa.Middleware
     import('koa-better-http-proxy').then(lib =>
-        proxy = lib.default('localhost:'+port, {
+        proxy = lib.default('127.0.0.1:'+port, {
             proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
             userResDecorator(res, data, ctx) {
                 if (ctx.path.endsWith('/'))
