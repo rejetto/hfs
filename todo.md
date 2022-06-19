@@ -1,5 +1,4 @@
 # To do
-- fix: root without can_download breaks 
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - admin/fs: sort items
 - admin/fs: render virtual folders differently
