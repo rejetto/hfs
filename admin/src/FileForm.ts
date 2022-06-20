@@ -82,7 +82,7 @@ export default function FileForm({ file }: { file: VfsNode }) {
                 : { k: 'name', required: true, helperText: source && "You can decide a name that's different from the one on your disk" },
             isRoot ? { k: 'source', comp: FileField, files: false,  helperText: "If you specify a folder here, its files will be listed in the home" }
                 : (hasSource && { k: 'source', comp: DisplayField, multiline: true }),
-            !isRoot && { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
+            { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
                 helperText: "Note: who can't download won't see it in the list"
             },
             showCanSee && { k: 'can_see', label:"Who can see", xl: 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_see,
