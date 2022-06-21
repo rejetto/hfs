@@ -34,11 +34,15 @@ export function enablePlugin(id: string, state=true) {
     )
 }
 
-export function setPluginConfig(id: string, config: Dict) {
-    const fields = getPluginConfigFields(id)
-    config = _.pickBy(config, (v, k) =>
-        v !== null && !same(v, fields?.[k]?.defaultValue))
-    pluginsConfig.set(v => ({ ...v, [id]: _.isEmpty(config) ? undefined : config }))
+// nullish values are equivalent to defaultValues
+export function setPluginConfig(id: string, changes: Dict) {
+    pluginsConfig.set(allConfigs => {
+        const fields = getPluginConfigFields(id)
+        const oldConfig = allConfigs[id]
+        const newConfig = _.pickBy({ ...oldConfig, ...changes },
+            (v, k) => v != null && !same(v, fields?.[k]?.defaultValue))
+        return { ...allConfigs, [id]: _.isEmpty(newConfig) ? undefined : newConfig }
+    })
 }
 
 export function getPluginInfo(id: string) {
