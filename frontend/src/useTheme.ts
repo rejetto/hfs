@@ -14,7 +14,6 @@ export default function useTheme() {
         const pre = 'theme-'
         const ct = pre + name
         const list = e.classList
-        console.debug({ theme, name, dark: systemDark })
         for (const c of Array.from(list))
             if (c.startsWith(pre) && c !== ct)
                 list.remove(c)

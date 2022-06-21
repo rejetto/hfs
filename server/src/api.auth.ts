@@ -36,11 +36,9 @@ function makeExp() {
 }
 
 export const login: ApiHandler = async ({ username, password }, ctx) => {
-    if (!username)
+    if (!username || !password) // some validation
         return new ApiError(400)
-    if (!password)
-        return new ApiError(400)
-    username = username.toLocaleLowerCase()
+    username = username.toLocaleLowerCase() // normalize username, to be case-insensitive
     const acc = getAccount(username)
     if (!acc)
         return new ApiError(UNAUTHORIZED)
