@@ -50,7 +50,7 @@ export function useSnapState() {
 }
 
 const SETTINGS_KEY = 'hfs_settings'
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy','foldersFirst','theme']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'invertOrder', 'foldersFirst', 'theme']
 
 loadSettings()
 for (const k of SETTINGS_TO_STORE)
