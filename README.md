@@ -3,16 +3,26 @@
 
 ## Introduction
 
-HFS is a file server offering a virtual file system (vfs).
-You can easily share a single file instead of the whole folder,
-or you can rename it, but without touching the real file, just virtually.
+HFS is the best way via web to access or share files from your disk.
 
-Listing files, searching files, zipping folders, it's all very fast, streamed while data is produced, so you don't have to wait. 
+- It's a server software, share files **fresh from your disk**. Don't rely on services, be independent! 
+- It's all very **fast**. Try download zipping 100GB, it starts immediately!
+- **Easy to use**. HFS tries to detect problems and suggest solutions.
+- Share **even a single file** with our *virtual file system*, even with a different name, all without touching the real file. Present things the way you want!
+- **Watch** all activities in real-time.
+- **Control bandwidth**, decide how much to give.
 
-This project is in an early stage and distribution will be made easier.
+This project is in an early stage, few things are missing, but it already rocks!
 
 This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 You won't find all previous features here (yet), but still we got:
+
+## How does it work
+
+- run HFS on your computer, configuration page automatically shows up
+- select what files and folders you want to be accessible
+- possibly create accounts and limit access to files
+- access those files from a phone or another computer just using a browser
 
 ## Features
 
