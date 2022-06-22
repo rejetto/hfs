@@ -29,7 +29,11 @@ portCfg.sub(async port => {
     httpSrv.on('connection', newConnection)
     printUrls(port, 'http')
     if (openBrowserAtStart.get())
-        open('http://localhost' + (port === 80 ? '' : ':' + port) + ADMIN_URI).then()
+        open('http://localhost' + (port === 80 ? '' : ':' + port) + ADMIN_URI, { wait: true}).catch(e => {
+            console.debug(String(e))
+            console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
+                ...Object.values(getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
+        })
 })
 
 const considerHttps = debounceAsync(async () => {
@@ -169,7 +173,7 @@ const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*)$/i // avoid giving t
 
 export function getUrls() {
     return Object.fromEntries(onlyTruthy([httpSrv, httpsSrv].map(srv => {
-        if (!srv.listening)
+        if (!srv?.listening)
             return false
         const port = (srv?.address() as any)?.port
         const appendPort = port === (srv.name === 'https' ? 443 : 80) ? '' : ':' + port
