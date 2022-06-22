@@ -11,6 +11,7 @@ import open from 'open'
 import { debounceAsync, onlyTruthy, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
+import { anyAccountCanLoginAdmin } from './perm'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: http.Server & ServerExtra
@@ -33,6 +34,8 @@ portCfg.sub(async port => {
             console.debug(String(e))
             console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
                 ...Object.values(getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
+            if (! anyAccountCanLoginAdmin())
+                console.log(`HINT: you can enter command: create-admin YOUR_PASSWORD`)
         })
 })
 

@@ -7,8 +7,6 @@ import Koa from 'koa'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
-import { argv } from './const'
-import { localhostAdmin } from './adminApis'
 
 export interface Account {
     username: string, // we'll have username in it, so we don't need to pass it separately
@@ -100,15 +98,6 @@ accountsConfig.sub(async v => {
     }))
 })
 
-events.once('config ready', async () => {
-    const pwd = argv['create-admin']
-    if (!pwd) return
-    const acc = getAccount('admin') || addAccount('admin', { admin: true })
-    await updateAccount(acc!, acc => acc.password = pwd)
-    localhostAdmin.set(false)
-    console.log("account 'admin' created while unprotected admin access on localhost is now disabled")
-})
-
 function normalizeUsername(username: string) {
     return username.toLocaleLowerCase()
 }
@@ -194,4 +183,12 @@ export function accountHasPassword(account: Account) {
 
 export function accountCanLogin(account: Account) {
     return accountHasPassword(account)
+}
+
+export function accountCanLoginAdmin(account: Account) {
+    return accountCanLogin(account) && getFromAccount(account, a => a.admin)
+}
+
+export function anyAccountCanLoginAdmin() {
+    return Object.values(accounts).find(accountCanLoginAdmin)
 }

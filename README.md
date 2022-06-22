@@ -48,17 +48,12 @@ You won't find all previous features here (yet), but still we got:
 2. click on `Assets`
 3. **download** the right version for your computer
 4. launch `hfs` file
-5. the browser should automatically open on `localhost` address, so you can configure the rest
+5. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin panel.
+   - if a browser cannot be opened on the computer where you are installing HFS, 
+     you should enter this command in HFS console: `create-admin <PASSWORD>`
 
-If you access HFS via localhost, by default it won't require your to login.
-
-### Cloud server?
-
-If you are installing HFS on "another" machine, then step 5 may not be possible.
-In this case you should run hfs with `--create-admin <PASSWORD>`.
-This will both
-- create an account with username `admin` with the provided password and Admin privilege (granting access to Admin panel). 
-- disable the unprotected access (no login) to Admin panel
+If you access *Admin panel* via localhost, by default HFS **won't** require your to login.
+If you don't like this behavior, disable it in the Admin panel or enter this console command `config localhost_admin false`.
 
 ### Other systems
 

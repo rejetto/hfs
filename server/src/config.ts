@@ -60,6 +60,10 @@ export function defineConfig<T>(k: string, defaultValue?: T) {
     }
 }
 
+export function getConfigDefinition(k: string) {
+    return configProps[k]
+}
+
 const stack: any[] = []
 function subscribeConfig<T>(k:string, cb: (v:T, was?:T)=>void) {
     if (started) // initial event already passed, we'll make the first call

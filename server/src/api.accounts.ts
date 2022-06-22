@@ -4,13 +4,13 @@ import { changePasswordHelper, changeSrpHelper } from './api.helpers'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
     Account,
-    accountCanLogin,
+    accountCanLoginAdmin,
     accountHasPassword,
     addAccount,
     delAccount,
     getAccount,
-    getAccounts, getCurrentUsername,
-    getFromAccount,
+    getAccounts,
+    getCurrentUsername,
     setAccount
 } from './perm'
 import _ from 'lodash'
@@ -21,7 +21,7 @@ function prepareAccount(ac: Account | undefined) {
         ..._.omit(ac, ['password','hashed_password','srp']),
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
-        adminActualAccess: accountCanLogin(ac) && getFromAccount(ac, a => a.admin),
+        adminActualAccess: accountCanLoginAdmin(ac),
     }
 }
 
