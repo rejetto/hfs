@@ -1,4 +1,11 @@
 # To do
+- admin/monitor: account column
+- frontend: hide closer button on login dialog accessing a protected resource, as it's no use
+- easier nat life
+  - show public ip use, https://github.com/sindresorhus/public-ip
+  - configure router with upnp. If it fails, suggest a guide
+  - offer ddns registration/update
+- support http authentication
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - admin/fs: sort items
 - admin/fs: render virtual folders differently
