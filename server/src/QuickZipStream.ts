@@ -3,16 +3,19 @@
 import { Readable } from 'stream'
 // @ts-ignore
 import { crc32 as crc32lib } from 'buffer-crc32'
+import assert from 'assert'
 
 const ZIP64_LIMIT = 2**31 -1
 
-const crc32provider = import('@node-rs/crc32').then(lib => lib.crc32, () => {
+let crc32function: (input: string | Buffer, initialState?: number | undefined | null) => number
+import('@node-rs/crc32').then(lib => crc32function = lib.crc32, () => {
     console.log('using generic lib for crc32')
-    return crc32lib.unsigned
+    return crc32function = crc32lib.unsigned
 })
 
 interface ZipSource {
     path: string
+    sourcePath?: string
     getData: () => Readable // deferred stream, so that we don't keep many open files because of calculateSize()
     size: number
     ts: Date
@@ -24,32 +27,57 @@ export class QuickZipStream extends Readable {
     private finished = false
     private readonly centralDir: ({ size:number, crc:number, ts:Date, pathAsBuffer:Buffer, offset:number, version:number, extAttr: number })[] = []
     private dataWritten = 0
-    private prewalk?: ZipSource[]
+    private consumedCalculating: ZipSource[] = []
+    private skip: number = 0
+    private limit?: number
 
     constructor(private readonly walker:  AsyncIterableIterator<ZipSource>) {
         super({})
     }
 
-    _push(chunk:any) {
+    earlyClose() {
+        this.finished = true
+        this.push(null)
+    }
+
+    applyRange(start: number, end: number) {
+        if (end < start)
+            return this.earlyClose()
+        this.skip = start
+        this.limit = end - start + 1
+    }
+
+    _push(chunk: number[] | Buffer) {
         if (Array.isArray(chunk))
             chunk = buffer(chunk)
-        this.push(chunk)
         this.dataWritten += chunk.length
+        if (this.skip) {
+            if (this.skip >= chunk.length)
+                return this.skip -= chunk.length
+            chunk = chunk.subarray(this.skip)
+            this.skip = 0
+        }
+        const lastBit = this.limit! < chunk.length
+        if (lastBit)
+            chunk = chunk.subarray(0, this.limit)
+
+        this.push(chunk)
+        if (lastBit)
+            this.earlyClose()
     }
 
     async calculateSize(howLong:number = 1000) {
-        this.prewalk = []
         const endBy = Date.now() + howLong
         while (1) {
             if (Date.now() >= endBy)
                 return NaN
             const { value } = await this.walker.next()
             if (!value) break
-            this.prewalk.push(value) // we keep same shape of the generator, so
+            this.consumedCalculating.push(value) // we keep same shape of the generator, so
         }
         let offset = 0
         let centralDirSize = 0
-        for (const file of this.prewalk) {
+        for (const file of this.consumedCalculating) {
             const pathSize = Buffer.from(file.path, 'utf8').length
             const extraLength = (file.size > ZIP64_LIMIT ? 2 : 0) + (offset > ZIP64_LIMIT ? 1 : 0)
             const extraDataSize = extraLength && (2+2 + extraLength*8)
@@ -63,17 +91,14 @@ export class QuickZipStream extends Readable {
         return offset + centralDirSize
     }
 
-    async _read(): Promise<void> {
+    async _read() {
         if (this.workingFile || this.finished || this.destroyed) return
-        const file = this.prewalk?.shift() || (await this.walker.next()).value as ZipSource
+        const file = this.consumedCalculating.shift() || (await this.walker.next()).value as ZipSource
         if (!file)
             return this.closeArchive()
         ++this.numberOfFiles
-        let { path, getData, size, ts, mode } = file
-        const data = getData()
+        let { path, sourcePath, getData, size, ts, mode } = file
         const pathAsBuffer = Buffer.from(path, 'utf8')
-        const crc32 = await crc32provider
-        let crc: number | undefined = undefined
         const offset = this.dataWritten
         let version = 20
         this._push([
@@ -89,22 +114,39 @@ export class QuickZipStream extends Readable {
             2, 0, // extra length
         ])
         this._push(pathAsBuffer)
+        if (this.finished) return
 
-        let total = 0
+        const cache = sourcePath ? crcCache[sourcePath] : undefined
+        const cacheHit = Number(cache?.ts) === Number(ts)
+        let crc = cacheHit ? cache!.crc : crc32function('')
+        const extAttr = !mode ? 0 : (mode | 0x8000) * 0x10000 // it's like <<16 but doesn't overflow so easily
+        const centralDirEntry = { size, crc, pathAsBuffer, ts, offset, version, extAttr }
+        if (this.skip >= size && cacheHit) {
+            this.skip -= size
+            this.dataWritten += size
+            this.centralDir.push(centralDirEntry)
+            setTimeout(() => this.push('')) // this "signal" works only after _read() is done
+            return
+        }
+        const data = getData()
         data.on('error', (err) => console.error(err))
+        data.on('end', ()=>{
+            this.workingFile = false
+            centralDirEntry.crc = crc
+            if (sourcePath)
+                crcCache[sourcePath] = { ts, crc }
+            this.centralDir.push(centralDirEntry)
+            this.push('') // continue piping
+        })
+        this.workingFile = true
         data.on('data', chunk => {
             if (this.destroyed)
                 return data.destroy()
             this._push(chunk)
-            crc = crc32(chunk, crc)
-            total += chunk.length
-        })
-        this.workingFile = true
-        data.on('end', ()=>{
-            this.workingFile = false
-            const extAttr = !mode ? 0 : (mode | 0x8000) * 0x10000 // it's like <<16 but doesn't overflow so easily
-            this.centralDir.push({ size, crc:crc!, pathAsBuffer, ts, offset, version, extAttr })
-            this.push('') // continue piping
+            if (!cacheHit)
+                crc = crc32function(chunk, crc)
+            if (this.finished)
+                return data.destroy()
         })
     }
 
@@ -183,35 +225,28 @@ export class QuickZipStream extends Readable {
     }
 }
 
-function buffer(parts: any[]) {
-    const pairs = []
+function buffer(pairs: number[]) {
+    assert(pairs.length % 2 === 0)
     let total = 0
-    while (parts.length) {
-        const size = parts.shift()
-        if (typeof size === 'string') {
-            pairs.push([String, size])
-            total += size.length
-        }
-        else {
-            pairs.push([size, parts.shift()])
-            total += size
-        }
-    }
+    for (let i=0; i < pairs.length; i+=2)
+        total += pairs[i]
     const ret = Buffer.alloc(total, 0)
     let offset = 0
-    for (const [size, data] of pairs) {
+    let i = 0
+    while (i < pairs.length) {
+        const size = pairs[i++]
+        const data = pairs[i++]
         if (size === 1)
-            offset = ret.writeUInt8(data, offset)
+            ret.writeUInt8(data, offset)
         else if (size === 2)
-            offset = ret.writeUInt16LE(data, offset)
+            ret.writeUInt16LE(data, offset)
         else if (size === 4)
-            offset = ret.writeUInt32LE(data, offset)
+            ret.writeUInt32LE(data, offset)
         else if (size === 8)
-            offset = ret.writeBigUInt64LE(BigInt(data), offset)
-        else if (size === String)
-            offset = ret.write(data,'ascii')
+            ret.writeBigUInt64LE(BigInt(data), offset)
         else
             throw 'unsupported'
+        offset += size
     }
     return ret
 }
@@ -224,3 +259,6 @@ function ts2buf(ts:Date) {
         2, date,
     ]
 }
+
+interface CrcCacheEntry { ts: Date, crc: number }
+const crcCache: Record<string, CrcCacheEntry> = {}

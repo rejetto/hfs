@@ -2,13 +2,14 @@
 
 import { getNodeName, hasPermission, nodeIsDirectory, urlToNode, VfsNode, walkNode } from './vfs'
 import Koa from 'koa'
-import { filterMapGenerator, pattern2filter, prefix } from './misc'
+import { filterMapGenerator, pattern2filter } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { dirname } from 'path'
 import { updateConnection } from './connections'
+import { getRange } from './serveFile'
 
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.status = 200
@@ -46,6 +47,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 size: st.size,
                 ts: st.mtime || st.ctime,
                 mode: st.mode,
+                sourcePath: source,
                 getData: () => createReadStream(source)
             }
         }
@@ -54,6 +56,9 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const zip = new QuickZipStream(mappedWalker)
     const time = 1000 * zipSeconds.get()
     ctx.response.length = await zip.calculateSize(time)
+    const range = getRange(ctx, ctx.response.length)
+    if (range)
+        zip.applyRange(range.start, range.end)
     ctx.body = zip
     ctx.req.on('close', ()=> zip.destroy())
     ctx.state.archive = 'zip'

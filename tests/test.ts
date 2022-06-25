@@ -26,7 +26,7 @@ describe('basics', () => {
     it('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     it('search root', reqList('/', { inList:['cantReadPage/'], outList:['cantReadPage/page/'] }, { search:'page' }))
     it('download', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
-    it('partial download', req('/f1/f2/alfa.txt', /a[^d]+$/, { // only "abc" is expected
+    it('download.partial', req('/f1/f2/alfa.txt', /a[^d]+$/, { // only "abc" is expected
         headers: { Range: 'bytes=0-2' }
     }))
     it('bad range', req('/f1/f2/alfa.txt', 416, {
@@ -66,6 +66,7 @@ describe('basics', () => {
     it('protectFromAbove.list', reqList('/protectFromAbove/child/', { outList:['alfa.txt'] }))
 
     it('zip.head', req('/f1/?get=zip', { empty:true, length:13010 }, { method:'HEAD' }) )
+    it('zip.partial', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
     it('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt*renamed', { empty: true, length:118 }, { method:'HEAD' }))
     it('login', reqApi('login', { username, password }, 406)) // by default, we don't support clear-text login
 
@@ -105,12 +106,12 @@ function req(methodUrl: string, test:Tester, requestOptions?:any) {
         const method = methodUrl.slice(0,i) || requestOptions?.data && 'POST' || 'GET'
         const url = BASE_URL+methodUrl.slice(i)
         client.request({ method, url, ...requestOptions })
-            .then(fun, fun)
+            .then(process, process)
             .catch(err => {
                 done(err)
             })
 
-        function fun(res:any) {
+        function process(res:any) {
             //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])
             if (test && test instanceof RegExp)
                 test = { re:test }

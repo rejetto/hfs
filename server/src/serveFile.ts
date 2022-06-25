@@ -45,8 +45,6 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
     return async (ctx) => {
         if (!source)
             return
-        const { range } = ctx.request.header
-        ctx.set('Accept-Ranges', 'bytes')
         const fn = path.basename(source)
         mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && isMatch(fn, k)) // isMatch throws on an empty string
         if (mime === MIME_AUTO)
@@ -73,33 +71,39 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
                 updateConnection(conn, { ctx }) // fileSource is affecting connection's outputted data, so we request an update
             if (modifier)
                 return ctx.body = modifier(String(await fs.readFile(source)))
-            if (!range) {
-                ctx.body = createReadStream(source)
-                ctx.response.length = stats.size
-                return
-            }
-            const ranges = range.split('=')[1]
-            if (ranges.includes(','))
-                return ctx.throw(400, 'multi-range not supported')
-            let bytes = ranges?.split('-')
-            if (!bytes?.length)
-                return ctx.throw(400, 'bad range')
-            const max = stats.size - 1
-            let start = Number(bytes[0]) || 0
-            let end = Number(bytes[1]) || max
-            if (end > max || start > max) {
-                ctx.status = 416
-                ctx.set('Content-Range', `bytes ${stats.size}`)
-                ctx.body = 'Requested Range Not Satisfiable'
-                return
-            }
-            ctx.status = 206
-            ctx.set('Content-Range', `bytes ${start}-${end}/${stats.size}`)
-            ctx.body = createReadStream(source, { start, end })
-            ctx.response.length = end - start + 1
+            const range = getRange(ctx, stats.size)
+            ctx.body = createReadStream(source, range)
         }
         catch {
             return ctx.status = 404
         }
     }
+}
+
+export function getRange(ctx: Koa.Context, totalSize: number) {
+    ctx.set('Accept-Ranges', 'bytes')
+    const { range } = ctx.request.header
+    if (!range) {
+        ctx.response.length = totalSize
+        return
+    }
+    const ranges = range.split('=')[1]
+    if (ranges.includes(','))
+        return ctx.throw(400, 'multi-range not supported')
+    let bytes = ranges?.split('-')
+    if (!bytes?.length)
+        return ctx.throw(400, 'bad range')
+    const max = totalSize - 1
+    const start = bytes[0] ? Number(bytes[0]) : Math.max(0, totalSize-Number(bytes[1])) // a negative start is relative to the end
+    const end = bytes[0] ? Number(bytes[1] || max) : max // NaN in case we are asked for last N bytes without knowing max
+    if (isNaN(end) || end > max || start > max) {
+        ctx.status = 416
+        ctx.set('Content-Range', `bytes ${totalSize}`)
+        ctx.body = 'Requested Range Not Satisfiable'
+        return
+    }
+    ctx.status = 206
+    ctx.set('Content-Range', `bytes ${start}-${end}/${isNaN(totalSize) ? '*' : totalSize}`)
+    ctx.response.length = end - start + 1
+    return { start, end }
 }
