@@ -1,7 +1,8 @@
 import events from './events'
 import { httpsStream, httpsString } from './misc'
 import { getAvailablePlugins, mapPlugins, parsePluginSource, PATH as PLUGINS_PATH, rescan } from './plugins'
-import unzipper from 'unzipper'
+// @ts-ignore
+import unzipper from 'unzip-stream'
 import { createWriteStream, mkdirSync } from 'fs'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
@@ -38,7 +39,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
     const rootWithinZip = GITHUB_ZIP_ROOT + '/' + DIST_ROOT
     return new Promise(resolve =>
         res.pipe(unzipper.Parse())
-            .on('entry', entry => {
+            .on('entry', (entry: any) => {
                 const { path, type } = entry
                 if (!path.startsWith(rootWithinZip))
                     return entry.autodrain()
