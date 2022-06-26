@@ -13,6 +13,8 @@ import('@node-rs/crc32').then(lib => crc32function = lib.crc32, () => {
     return crc32function = crc32lib.unsigned
 })
 
+const FLAGS = 0x0808 // bit3 = no crc in local header + bit11 = utf8
+
 interface ZipSource {
     path: string
     sourcePath?: string
@@ -105,11 +107,11 @@ export class QuickZipStream extends Readable {
         let { path, sourcePath, getData, size, ts, mode } = file
         const pathAsBuffer = Buffer.from(path, 'utf8')
         const offset = this.dataWritten
-        let version = 20
+        const version = 20
         this.controlledPush([
             4, 0x04034b50,
             2, version,
-            2, 0x08, // flags
+            2, FLAGS,
             2, 0, // compression = store
             ...ts2buf(ts),
             4, 0, // crc
@@ -177,7 +179,7 @@ export class QuickZipStream extends Readable {
                 4, 0x02014b50, // central dir signature
                 2, version,
                 2, version,
-                2, 0x08, // flags (bit3 = no crc in local header)
+                2, FLAGS,
                 2, 0,    // compression method = store
                 ...ts2buf(ts),
                 4, crc,
