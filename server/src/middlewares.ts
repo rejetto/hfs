@@ -65,13 +65,13 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const node = await urlToNode(path, ctx)
     if (!node)
         return ctx.status = 404
-    const cantRead = !hasPermission(node, 'can_read', ctx)
+    const canRead = hasPermission(node, 'can_read', ctx)
     const isFolder = await nodeIsDirectory(node)
-    if (!cantRead && !isFolder)
+    if (canRead && !isFolder)
         return node.source ? serveFileNode(node)(ctx,next)
             : next()
     ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
-    if (cantRead) {
+    if (!canRead) {
         ctx.status = cantReadStatusCode(node)
         if (ctx.status === FORBIDDEN)
             return
