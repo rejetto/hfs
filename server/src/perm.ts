@@ -29,7 +29,7 @@ export function getAccounts() {
 }
 
 export function getCurrentUsername(ctx: Koa.Context): string {
-    return ctx.session?.username || ''
+    return ctx.state.account?.username || ctx.session?.username || ''
 }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions

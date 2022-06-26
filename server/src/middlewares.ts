@@ -16,6 +16,9 @@ import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { getAccount, getCurrentUsername } from './perm'
 import { socket2connection, updateConnection, normalizeIp } from './connections'
+import basicAuth from 'basic-auth'
+import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
+import { srpStep1 } from './api.auth'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -78,6 +81,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         // this folder was requested without the trailing / and we may still log in
         if (isFolder && !path.endsWith('/') && !ctx.state.account)
             return ctx.redirect(path + '/')
+        ctx.set('WWW-Authenticate', 'Basic')
         return serveFrontendFiles(ctx, next)
     }
     const { get } = ctx.query
@@ -119,9 +123,27 @@ export function getProxyDetected() {
 }
 export const prepareState: Koa.Middleware = async (ctx, next) => {
     // calculate these once and for all
-    ctx.state.account = getAccount(getCurrentUsername(ctx))
+    ctx.state.account = await getHttpAccount(ctx) ?? getAccount(getCurrentUsername(ctx))
     const conn = ctx.state.connection = socket2connection(ctx.socket)
     if (conn)
         updateConnection(conn, { ctx })
     await next()
+}
+
+async function getHttpAccount(ctx: Koa.Context) {
+    const credentials = basicAuth(ctx.req)
+    const account = getAccount(credentials?.name||'')
+    if (account && await srpCheck(account.username, credentials!.pass))
+        return account
+}
+
+async function srpCheck(username: string, password: string) {
+    username = username.toLocaleLowerCase()
+    const account = getAccount(username)
+    if (!account?.srp) return false
+    const { step1, salt, pubKey } = await srpStep1(account)
+    const client = new SRPClientSession(new SRPRoutines(new SRPParameters()))
+    const clientRes1 = await client.step1(username, password)
+    const clientRes2 = await clientRes1.step2(BigInt(salt), BigInt(pubKey))
+    return await step1.step2(clientRes2.A, clientRes2.M1).then(() => true, () => false)
 }

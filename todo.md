@@ -5,7 +5,6 @@
   - show public ip use, https://github.com/sindresorhus/public-ip
   - configure router with upnp. If it fails, suggest a guide
   - offer ddns registration/update
-- support http authentication
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
 - admin/fs: sort items
 - admin/fs: render virtual folders differently

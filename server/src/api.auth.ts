@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getAccount, getCurrentUsername } from './perm'
+import { Account, getAccount, getCurrentUsername } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
@@ -12,7 +12,6 @@ import { ctxAdminAccess } from './adminApis'
 import { prepareState } from './middlewares'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-const srpSession = new SRPServerSession(srp6aNimbusRoutines)
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 
 // centralized log-in state
@@ -61,16 +60,26 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
         return new ApiError(500)
     if (!account) // TODO simulate fake account to prevent knowing valid usernames
         return new ApiError(UNAUTHORIZED)
-    if (!account.srp)
-        return new ApiError(406) // unacceptable
-    const [salt, verifier] = account.srp.split('|')
-    const step1 = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
-    const sid = Math.random()
-    ongoingLogins[sid] = step1
-    setTimeout(()=> delete ongoingLogins[sid], 60_000)
+    try {
+        const { step1, ...rest } = await srpStep1(account)
+        const sid = Math.random()
+        ongoingLogins[sid] = step1
+        setTimeout(()=> delete ongoingLogins[sid], 60_000)
+        ctx.session.login = { username, sid }
+        return rest
+    }
+    catch (code: any) {
+        return new ApiError(code)
+    }
+}
 
-    ctx.session.login = { username, sid }
-    return { salt, pubKey: String(step1.B) } // cast to string cause bigint can't be jsonized
+export async function srpStep1(account: Account) {
+    if (!account.srp)
+        throw 406 // unacceptable
+    const [salt, verifier] = account.srp.split('|')
+    const srpSession = new SRPServerSession(srp6aNimbusRoutines)
+    const step1 = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
+    return { step1, salt, pubKey: String(step1.B) } // cast to string cause bigint can't be jsonized
 }
 
 export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
