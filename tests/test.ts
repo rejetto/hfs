@@ -17,11 +17,12 @@ const API = '/~/api/'
 const BASE_URL = 'http://localhost'
 
 const jar = new CookieJar()
-const client = wrapper(axios.create({ jar }))
+const client = wrapper(axios.create({ jar, maxRedirects: 0 }))
 
 describe('basics', () => {
     //before(async () => appStarted)
     it('frontend', req('/', /<body>/))
+    it('force slash', req('/f1', 302))
     it('list', reqList('/f1/', { inList:['f2/', 'page'] }))
     it('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     it('search root', reqList('/', { inList:['cantReadPage/'], outList:['cantReadPage/page/'] }, { search:'page' }))

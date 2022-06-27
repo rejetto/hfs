@@ -70,20 +70,19 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return ctx.status = 404
     const canRead = hasPermission(node, 'can_read', ctx)
     const isFolder = await nodeIsDirectory(node)
+    if (isFolder && !path.endsWith('/'))
+        return ctx.redirect(path + '/')
     if (canRead && !isFolder)
         return node.source ? serveFileNode(node)(ctx,next)
             : next()
-    ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
     if (!canRead) {
         ctx.status = cantReadStatusCode(node)
         if (ctx.status === FORBIDDEN)
             return
-        // this folder was requested without the trailing / and we may still log in
-        if (isFolder && !path.endsWith('/') && !ctx.state.account)
-            return ctx.redirect(path + '/')
-        ctx.set('WWW-Authenticate', 'Basic')
+        ctx.set('WWW-Authenticate', 'Basic') // we support basic authentication
         return serveFrontendFiles(ctx, next)
     }
+    ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
     const { get } = ctx.query
     if (get === 'zip')
         return await zipStreamFromFolder(node, ctx)
