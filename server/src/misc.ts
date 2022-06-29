@@ -1,36 +1,22 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { EventEmitter } from 'events'
-import fs from 'fs/promises'
-import { basename, dirname } from 'path'
-import { watch } from 'fs'
+import { basename } from 'path'
 import _ from 'lodash'
-import { Readable } from 'stream'
 import Koa from 'koa'
-import glob from 'fast-glob'
-import { IS_WINDOWS } from './const'
-import { execFile } from 'child_process'
 import { Connection } from './connections'
 import assert from 'assert'
-import https from 'node:https'
-import { RequestOptions } from 'https'
-import { IncomingMessage } from 'node:http'
+export * from './util-http'
+export * from './util-generators'
+export * from './util-files'
+import debounceAsync from './debounceAsync'
+export { debounceAsync }
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Dict<T = any> = Record<string, T>
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
-}
-
-export async function isDirectory(path: string) {
-    try { return (await fs.stat(path)).isDirectory() }
-    catch { return false }
-}
-
-export async function isFile(path: string) {
-    try { return (await fs.stat(path)).isFile() }
-    catch { return false }
 }
 
 export function prefix(pre:string, v:string|number, post:string='') {
@@ -53,44 +39,8 @@ export function wait(ms: number) {
     return new Promise(res=> setTimeout(res,ms))
 }
 
-export async function readFileBusy(path: string): Promise<string> {
-    return fs.readFile(path, 'utf8').catch(e => {
-        if ((e as any)?.code !== 'EBUSY')
-            throw e
-        console.debug('busy')
-        return wait(100).then(()=> readFileBusy(path))
-    })
-}
-
 export function wantArray<T>(x?: void | T | T[]) {
     return x == null ? [] : Array.isArray(x) ? x : [x]
-}
-
-// callback can return undefined to skip element
-export async function* filterMapGenerator<IN,OUT>(generator: AsyncIterableIterator<IN>, filterMap: (el: IN) => Promise<OUT>) {
-    for await (const x of generator) {
-        const res:OUT = await filterMap(x)
-        if (res !== undefined)
-            yield res as Exclude<OUT,undefined>
-    }
-}
-
-export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Promise<T[]> {
-    const ret: T[] = []
-    for await(const x of generator)
-        ret.push(x)
-    return ret
-}
-
-export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
-    const iterator = generator[Symbol.asyncIterator]()
-    return new Readable({
-        objectMode: true,
-        read() {
-            iterator.next().then(it =>
-                this.push(it.done ? null : it.value))
-        }
-    })
 }
 
 export function getOrSet<T>(o: Record<string,T>, k:string, creator:()=>T): T {
@@ -125,29 +75,6 @@ export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...arg
             already = true
             cb(...args)
         })
-}
-
-export function watchDir(dir: string, cb: ()=>void) {
-    try { watch(dir, cb) }
-    catch {
-        // failing watching the content of the dir, we try to monitor its parent, but filtering events only for our target dir
-        const base = basename(dir)
-        try {
-            const watcher = watch(dirname(dir), (event,name) => {
-                if (name !== base) return
-                try {
-                    watch(dir, cb) // attempt at passing to a more specific watching
-                    watcher.close() // if we succeed, we give up the parent watching
-                }
-                catch {}
-                cb()
-            })
-        }
-        catch (e) {
-            console.debug(String(e))
-            return false
-        }
-    }
 }
 
 export function pattern2filter(pattern: string){
@@ -187,65 +114,6 @@ export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: 
     }
 }
 
-// like lodash.debounce, but also avoids async invocations to overlap
-export function debounceAsync<CB extends (...args: any[]) => Promise<R>, R>(
-    callback: CB,
-    wait: number=100,
-    { leading=false, maxWait=Infinity }={}
-) {
-    let started = 0 // latest callback invocation
-    let runningCallback: Promise<R> | undefined // latest callback invocation result
-    let runningDebouncer: Promise<R | undefined> // latest wrapper invocation
-    let waitingSince = 0 // we are delaying invocation since
-    let whoIsWaiting: undefined | any[] // args' array object identifies the pending instance, and incidentally stores args
-    const interceptingWrapper = (...args:any[]) => runningDebouncer = debouncer.apply(null, args)
-    return Object.assign(interceptingWrapper, {
-        cancel: () => {
-            waitingSince = 0
-            whoIsWaiting = undefined
-        },
-        flush: () => runningCallback ?? exec(),
-    })
-
-    async function debouncer(...args:any[]) {
-        if (runningCallback)
-            return await runningCallback
-        whoIsWaiting = args
-        waitingSince ||= Date.now()
-        const waitingCap = maxWait - (Date.now() - (waitingSince || started))
-        const waitFor = Math.min(waitingCap, leading ? wait - (Date.now() - started) : wait)
-        if (waitFor > 0)
-            await new Promise(resolve => setTimeout(resolve, waitFor))
-        if (!whoIsWaiting) // canceled
-            return void(waitingSince = 0)
-        if (whoIsWaiting !== args) // another fresher call is waiting
-            return runningDebouncer
-        return await exec()
-    }
-
-    async function exec() {
-        if (!whoIsWaiting) return
-        waitingSince = 0
-        started = Date.now()
-        try {
-            runningCallback = callback.apply(null, whoIsWaiting)
-            return await runningCallback
-        }
-        finally {
-            whoIsWaiting = undefined
-            runningCallback = undefined
-        }
-    }
-}
-
-export function dirTraversal(s?: string) {
-    return s && /(^|[/\\])\.\.($|[/\\])/.test(s)
-}
-
-export function isWindowsDrive(s?: string) {
-    return s && /^[a-zA-Z]:$/.test(s)
-}
-
 export function objRenameKey(o: Dict | undefined, from: string, to: string) {
     if (!o || !o.hasOwnProperty(from) || from === to) return
     o[to] = o[from]
@@ -266,74 +134,12 @@ export function isLocalHost(c: Connection | Koa.Context) {
     return ip && (ip === '::1' || ip.endsWith('127.0.0.1'))
 }
 
-export async function* dirStream(path: string) {
-    const stats = await fs.stat(path)
-    if (!stats.isDirectory())
-        throw Error('ENOTDIR')
-    const dirStream = glob.stream('*', {
-        cwd: path,
-        dot: true,
-        onlyFiles: false,
-        suppressErrors: true,
-    })
-    const skip = await getItemsToSkip(path)
-    for await (let path of dirStream) {
-        if (path instanceof Buffer)
-            path = path.toString('utf8')
-        if (skip?.includes(path))
-            continue
-        yield path
-    }
-
-    async function getItemsToSkip(path: string) {
-        if (!IS_WINDOWS) return
-        const out = await run('dir', ['/ah', '/b', path.replace(/\//g, '\\')])
-            .catch(()=>'') // error in case of no matching file
-        return out.split('\r\n').slice(0,-1)
-    }
-}
-
-export function run(cmd: string, args: string[] = []): Promise<string> {
-    return new Promise((resolve, reject) =>
-        execFile('cmd', ['/c', cmd, ...args], (err, stdout) => {
-            if (err)
-                reject(err)
-            else
-                resolve(stdout)
-        }))
-}
-
 export function same(a: any, b: any) {
     try {
         assert.deepStrictEqual(a, b)
         return true
     }
     catch { return false }
-}
-
-export function httpsString(url: string, options:RequestOptions={}): Promise<IncomingMessage & { ok: boolean, body: string }> {
-    return httpsStream(url, options).then(res =>
-        new Promise(resolve => {
-            let buf = ''
-            res.on('data', chunk => buf += chunk.toString())
-            res.on('end', () => resolve(Object.assign(res, {
-                ok: (res.statusCode || 400) < 400,
-                body: buf
-            })))
-        })
-    )
-}
-
-export function httpsStream(url: string, options:RequestOptions={}): Promise<IncomingMessage> {
-    return new Promise((resolve, reject) => {
-        https.request(url, options, res => {
-            if (!res.statusCode || res.statusCode >= 400)
-                throw res
-            if (res.statusCode === 302 && res.headers.location)
-                return resolve(httpsStream(res.headers.location, options))
-            resolve(res)
-        }).on('error', reject).end()
-    })
 }
 
 export function tryJson(s?: string) {
