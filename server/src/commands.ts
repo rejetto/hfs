@@ -20,14 +20,6 @@ require('readline').createInterface({ input: process.stdin }).on('line', (line: 
         })
 })
 
-function getFunctionArgs(fun: Function) {
-    const args = /\((.*)\)\s*\{/.exec(fun.toString())![1]
-    return args && args.split(',').map(arg => {
-        const [name,def] = arg.split('=')
-        return `<${name.trim()}>${def ? '='+def.trim() : ''}`
-    }).join(' ')
-}
-
 const commands = {
     help: {
         params: '',
