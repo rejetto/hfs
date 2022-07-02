@@ -1,4 +1,5 @@
 # To do
+- admin: check + update
 - admin/monitor: account column
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - easier nat life

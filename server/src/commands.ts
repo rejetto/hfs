@@ -1,11 +1,12 @@
 import { addAccount, getAccount, updateAccount } from './perm'
 import { getConfigDefinition, setConfig } from './config'
 import _ from 'lodash'
+import { getUpdate, update } from './update'
 
 console.log(`HINT: type "help" for help`)
 require('readline').createInterface({ input: process.stdin }).on('line', (line: string) => {
     if (!line) return
-    const [name, ...params] = line.split(/ +/)
+    const [name, ...params] = line.trim().split(/ +/)
     const cmd = (commands as any)[name]
     if (!cmd)
         return console.error("cannot understand entered command, try 'help'")
@@ -67,6 +68,17 @@ const commands = {
         params: '',
         async cb() {
             process.exit(0)
+        }
+    },
+    update: {
+        params: '',
+        cb: update
+    },
+    'check-update': {
+        params: '',
+        async cb() {
+            const update = await getUpdate()
+            console.log("new version available", update.name)
         }
     }
 }

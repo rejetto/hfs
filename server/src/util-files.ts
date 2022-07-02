@@ -29,25 +29,39 @@ export async function readFileBusy(path: string): Promise<string> {
 }
 
 export function watchDir(dir: string, cb: ()=>void) {
-    try { watch(dir, cb) }
+    let watcher: ReturnType<typeof watch>
+    let paused = false
+    try {
+        watcher = watch(dir, controlledCb)
+    }
     catch {
         // failing watching the content of the dir, we try to monitor its parent, but filtering events only for our target dir
         const base = basename(dir)
         try {
-            const watcher = watch(dirname(dir), (event,name) => {
+            watcher = watch(dirname(dir), (event,name) => {
                 if (name !== base) return
                 try {
-                    watch(dir, cb) // attempt at passing to a more specific watching
                     watcher.close() // if we succeed, we give up the parent watching
+                    watcher = watch(dir, controlledCb) // attempt at passing to a more specific watching
                 }
                 catch {}
-                cb()
+                controlledCb()
             })
         }
         catch (e) {
             console.debug(String(e))
-            return false
         }
+    }
+    return {
+        working() { return Boolean(watcher) },
+        stop() { watcher?.close() },
+        pause() { paused = true },
+        unpause() { paused = false },
+    }
+
+    function controlledCb() {
+        if (!paused)
+            cb()
     }
 }
 

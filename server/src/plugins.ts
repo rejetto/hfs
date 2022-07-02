@@ -187,7 +187,7 @@ const rescanAsap = debounceAsync(rescan, 1000)
 if (!existsSync(PATH))
     try { mkdirSync(PATH) }
     catch {}
-watchDir(PATH, rescanAsap)
+export const pluginsWatcher = watchDir(PATH, rescanAsap)
 
 export const enablePlugins = defineConfig('enable_plugins', ['antibrute'])
 enablePlugins.sub(rescanAsap)

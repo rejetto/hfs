@@ -4,7 +4,8 @@ import minimist from 'minimist'
 import * as fs from 'fs'
 import _ from 'lodash'
 
-export const DEV = process.env.DEV ? 'DEV' : ''
+export const argv = minimist(process.argv.slice(2))
+export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
 export const HFS_STARTED = new Date()
 export const BUILD_TIMESTAMP = ''
 export const VERSION = ''
@@ -20,8 +21,6 @@ export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
 export const ADMIN_URI = SPECIAL_URI + 'admin/'
 export const API_URI = SPECIAL_URI + 'api/'
 export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
-
-export const argv = minimist(process.argv.slice(2))
 
 export const METHOD_NOT_ALLOWED = 405
 export const NO_CONTENT = 204
