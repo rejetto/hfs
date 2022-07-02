@@ -1,9 +1,8 @@
 import events from './events'
-import { httpsStream, httpsString } from './misc'
+import { httpsString, httpsStream, unzip } from './misc'
 import { getAvailablePlugins, mapPlugins, parsePluginSource, PATH as PLUGINS_PATH, rescan } from './plugins'
 // @ts-ignore
 import unzipper from 'unzip-stream'
-import { createWriteStream, mkdirSync } from 'fs'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 
@@ -27,8 +26,6 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
     const rec = await getRepoInfo(repo)
     if (!branch)
         branch = rec.default_branch
-    const url = `https://github.com/${repo}/archive/refs/heads/${branch}.zip`
-    const res = await httpsStream(url)
     const short = repo.split('/')[1] // second part, repo without the owner
     const folder2repo = getFolder2repo()
     const folder = overwrite ? _.findKey(folder2repo, x => x===repo) // use existing folder
@@ -37,22 +34,11 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
     const installPath = PLUGINS_PATH + '/' + folder
     const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder
     const rootWithinZip = GITHUB_ZIP_ROOT + '/' + DIST_ROOT
-    return new Promise(resolve =>
-        res.pipe(unzipper.Parse())
-            .on('entry', (entry: any) => {
-                const { path, type } = entry
-                if (!path.startsWith(rootWithinZip))
-                    return entry.autodrain()
-                const dest = installPath + '/' + path.slice(rootWithinZip.length)
-                if (type === 'File')
-                    return entry.pipe(createWriteStream(dest))
-                mkdirSync(dest, { recursive: true }) // easy way be sure to have the folder ready before proceeding
-            })
-            .on('close', () => {
-                rescan() // workaround: for some reason, operations above are not triggering the rescan of the watched folder. Let's invoke it.
-                resolve(undefined)
-                downloadProgress(repo, undefined)
-            }))
+    const stream = await httpsStream(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`)
+    await unzip(stream, path =>
+        path.startsWith(rootWithinZip) && installPath + '/' + path.slice(rootWithinZip.length) )
+    downloadProgress(repo, undefined)
+    await rescan() // workaround: for some reason, operations are not triggering the rescan of the watched folder. Let's invoke it.
 }
 
 export function getRepoInfo(id: string) {

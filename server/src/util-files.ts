@@ -1,10 +1,13 @@
 import fs from 'fs/promises'
 import { wait } from './misc'
-import { watch } from 'fs'
+import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { execFile } from 'child_process'
+import { once, Readable } from 'stream'
+// @ts-ignore
+import unzipper from 'unzip-stream'
 
 export async function isDirectory(path: string) {
     try { return (await fs.stat(path)).isDirectory() }
@@ -91,5 +94,24 @@ export function run(cmd: string, args: string[] = []): Promise<string> {
             else
                 resolve(stdout)
         }))
+}
+
+export async function unzip(stream: Readable, cb: (path: string) => false | string) {
+    let pending: Promise<any> = Promise.resolve()
+    return new Promise(resolve =>
+        stream.pipe(unzipper.Parse())
+            .on('end', () => pending.then(resolve))
+            .on('entry', async (entry: any) => {
+                const { path, type } = entry
+                const dest = cb(path)
+                if (!dest || type !== 'File')
+                    return entry.autodrain()
+                await pending // don't overlap writings
+                console.debug('unzip', dest)
+                mkdirSync(dirname(dest), { recursive: true }) // easy way be sure to have the folder ready before proceeding
+                const thisFile = entry.pipe(createWriteStream(dest))
+                pending = once(thisFile, 'finish')
+            })
+    )
 }
 
