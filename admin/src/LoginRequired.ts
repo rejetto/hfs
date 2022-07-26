@@ -47,8 +47,10 @@ function LoginForm() {
 
 async function login(username: string, password: string) {
     const res = await srpSequence(username, password, apiCall).catch(err => {
-        throw err === 'trust' ? "Login aborted: server identity cannot be trusted"
-            : "Wrong username or password"
+        throw err?.code === 401 ? "Wrong username or password"
+            : err === 'trust' ? "Login aborted: server identity cannot be trusted"
+            : err?.name === 'AbortError' ? "Server didn't respond"
+            : (err?.message || "Unknown error")
     })
     if (!res.adminUrl)
         throw "This account has no Admin access"

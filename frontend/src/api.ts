@@ -19,7 +19,7 @@ export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) 
         stop?.()
         if (res.ok)
             return res.json()
-        const msg = 'Failed API ' + cmd
+        const msg = `Failed API ${cmd}: ${res.statusText}`
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
         throw new ApiError(res.status, msg)
     }, err => {

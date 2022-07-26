@@ -32,7 +32,7 @@ export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) : 
 
     const controller = new AbortController()
     if (timeout !== false)
-        setTimeout(() => controller.abort(), (timeoutByApi[cmd] ?? timeout ?? 10)*1000)
+        setTimeout(() => controller.abort('timeout'), 1000*(timeoutByApi[cmd] ?? timeout ?? 10))
     return fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
