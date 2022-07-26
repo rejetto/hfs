@@ -139,7 +139,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                 h(Box, { display:'flex', gap: 1 },
                     (multiple || folders || !files) && h(Button, {
                         variant: 'contained',
-                        disabled: !folders && !sel.length && files,
+                        disabled: !cwd || !folders && !sel.length && files,
                         sx: { minWidth: 'max-content' },
                         onClick() {
                             onSelect(sel.length ? sel.map(x => cwdDelimiter + x) : [cwd])
