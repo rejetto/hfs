@@ -134,8 +134,7 @@ const apis: ApiHandlers = {
             return
         }
         try {
-            if (isWindowsDrive(path))
-                path = enforceFinal('/', path)
+            path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
             for await (const name of dirStream(path)) {
                 if (ctx.req.aborted)
                     return
