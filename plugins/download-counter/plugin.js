@@ -19,7 +19,7 @@ exports.init = async api => {
     // load previous stats
     try {
         const data = await readFile(countersFile, 'utf8')
-        counters = yaml.parse(data)
+        counters = yaml.parse(data) || {}
         console.debug('counters loaded')
     }
     catch(err) {
