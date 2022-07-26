@@ -15,7 +15,7 @@ const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 
 // centralized log-in state
-function loggedIn(ctx:Koa.Context, username: string | false) {
+async function loggedIn(ctx:Koa.Context, username: string | false) {
     const s = ctx.session
     if (!s)
         return ctx.throw(500,'session')
@@ -25,7 +25,7 @@ function loggedIn(ctx:Koa.Context, username: string | false) {
         return
     }
     s.username = username
-    prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
+    await prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
     delete s.login
     ctx.cookies.set('csrf', randomId(), { signed:false, httpOnly: false })
 }
@@ -47,7 +47,7 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
         return new ApiError(UNAUTHORIZED)
     if (!ctx.session)
         return new ApiError(500)
-    loggedIn(ctx, username)
+    await loggedIn(ctx, username)
     return { ...makeExp(), redirect: acc.redirect }
 }
 
@@ -91,7 +91,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     const step1 = ongoingLogins[sid]
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
-        loggedIn(ctx, username)
+        await loggedIn(ctx, username)
         return {
             proof: String(M2),
             redirect: ctx.state.account?.redirect,
