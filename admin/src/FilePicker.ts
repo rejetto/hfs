@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { apiCall, useApiList } from './api'
 import _ from 'lodash'
 import {
@@ -15,7 +15,7 @@ import {
     Typography
 } from '@mui/material'
 import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center, err2msg } from './misc'
-import { ArrowUpward, Home } from '@mui/icons-material'
+import { ArrowUpward, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
 import { FixedSizeList } from 'react-window'
@@ -34,10 +34,13 @@ interface FilePickerProps {
 export default function FilePicker({ onSelect, multiple=true, files=true, folders=true, fileMask, from='' }: FilePickerProps) {
     const [cwd, setCwd] = useState(from)
     const [ready, setReady] = useState(false)
+    const isWindows = useRef(false)
     useEffect(() => {
         apiCall('resolve_path', { path: from, closestFolder: true }).then(res => {
-            if (typeof res.path === 'string')
+            if (typeof res.path === 'string') {
                 setCwd(res.path)
+                isWindows.current = res.path[1] === ':'
+            }
         }).finally(() => setReady(true))
     }, [from])
     const { list, error, loading } = useApiList<DirEntry>(ready && 'ls', { path: cwd, files, fileMask })
@@ -57,28 +60,41 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
     const filteredList = useMemo(() => list.filter(it => filterMatch(it.n)), [list,filterMatch])
     if (loading)
         return spinner()
-    const pathDelimiter = /[:\\]/.test(cwd) ? '\\' : '/'
-    const cwdPostfixed = enforceFinal(pathDelimiter, cwd)
+    const root = isWindows.current ? '' : '/'
+    const pathDelimiter = isWindows.current ? '\\' : '/'
+    const cwdDelimiter = enforceFinal(pathDelimiter, cwd)
+    const isRoot = cwd.length < 2
     return h(Fragment, {},
-        h(Box, { display:'flex', gap: 1 },
+        h(Box, { display: 'flex', gap: 1 },
             h(Button, {
+                title: "root",
+                disabled: isRoot,
                 onClick() {
-                    const s = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
-                    setCwd( isWindowsDrive(s) ? '' : s.slice(0, s.lastIndexOf(pathDelimiter)) )
+                    setCwd(root)
+                }
+            }, h(VerticalAlignTop)),
+            h(Button, {
+                disabled: isRoot,
+                title: "parent folder",
+                onClick() {
+                    const cwdND = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
+                    const parent = isWindowsDrive(cwdND) ? root : cwdND.slice(0, cwdND.lastIndexOf(pathDelimiter) || 1)
+                    setCwd(parent)
                 }
             }, h(ArrowUpward)),
-            h(Button, {
-                onClick() {
-                    setCwd('')
-                }
-            }, h(Home)),
             h(StringField, {
-                label: 'Current path',
+                label: "Current path",
                 value: cwd,
-                onChange: setCwd as any,
+                InputLabelProps: { shrink: true },
+                async onChange(v) {
+                    if (!v)
+                        return setCwd(root)
+                    const res = await apiCall('resolve_path', { path: v })
+                    setCwd(res.path)
+                },
             }),
         ),
-        error ? h(Alert, { severity:'error' }, err2msg(error))
+        error ? h(Alert, { severity: 'error' }, err2msg(error))
             : h(Fragment, {},
                 h(Box, { sx: { flex: 1 } },
                     !list.length ? h(Center, { flex: 1, mt: '4em' }, "No elements in this folder") : h(AutoSizer, {
@@ -93,9 +109,9 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                                             key: it.n,
                                             onClick() {
                                                 if (isFolder)
-                                                    setCwd(cwdPostfixed + it.n)
+                                                    setCwd(cwdDelimiter + it.n)
                                                 else
-                                                    onSelect([cwdPostfixed + it.n])
+                                                    onSelect([cwdDelimiter + it.n])
                                             }
                                         },
                                         multiple && h(Checkbox, {
@@ -126,7 +142,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         disabled: !folders && !sel.length && files,
                         sx: { minWidth: 'max-content' },
                         onClick() {
-                            onSelect(sel.length ? sel.map(x => cwdPostfixed + x) : [cwd])
+                            onSelect(sel.length ? sel.map(x => cwdDelimiter + x) : [cwd])
                         }
                     }, files && (sel.length || !folders) ? `Select (${sel.length})` : `Select this folder`),
                     h(TextField, {
