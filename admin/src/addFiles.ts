@@ -16,7 +16,8 @@ export default function addFiles() {
         Content() {
             const under = getUnder()
             return h(Fragment, {},
-                h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } }, "Selected elements will be added to " + (under || '(home)')),
+                h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } },
+                    "Selected elements will be added to virtual path " + (under || '(home)')),
                 h(FilePicker, {
                     async onSelect(sel) {
                         let failed = await Promise.all(sel.map(source =>
@@ -49,7 +50,10 @@ export async function addVirtual() {
 
 function getUnder() {
     let f: VfsNode | undefined = state.selectedFiles[0]
-    if (f && f.type !== 'folder')
+    if (!f)
+        return ''
+    if (f.type !== 'folder')
         f = f.parent
-    return f?.id
+    const { id } = f!
+    return id === '/' ? '' : id
 }
