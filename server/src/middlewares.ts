@@ -139,7 +139,7 @@ async function getHttpAccount(ctx: Koa.Context) {
 async function srpCheck(username: string, password: string) {
     username = username.toLocaleLowerCase()
     const account = getAccount(username)
-    if (!account?.srp) return false
+    if (!account?.srp || !password) return false
     const { step1, salt, pubKey } = await srpStep1(account)
     const client = new SRPClientSession(new SRPRoutines(new SRPParameters()))
     const clientRes1 = await client.step1(username, password)
