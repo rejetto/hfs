@@ -1,6 +1,8 @@
 # To do
+- fix: currently user field in the access.log is '-' 
 - admin: check + update
 - admin/monitor: account column
+- admin/monitor: show total throughput
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - easier nat life
   - show public ip use, https://github.com/sindresorhus/public-ip

@@ -5,7 +5,7 @@ import Koa from 'koa'
 import { ThrottledStream, ThrottleGroup } from './ThrottledStream'
 import { defineConfig } from './config'
 import { getOrSet, isLocalHost } from './misc'
-import { updateConnection } from './connections'
+import { Connection, updateConnection } from './connections'
 import _ from 'lodash'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
@@ -38,19 +38,22 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
             group.updateLimit(v))
         return { group, count:0, destroy: unsub }
     })
-    const conn = ctx.state.connection
+    const conn = ctx.state.connection as Connection | undefined
     if (!conn) throw 'assert throttler connection'
 
     const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr])
+    let closed = false
 
     const DELAY = 1000
     const update = _.debounce(() => {
-        const ts = conn[SymThrStr]
+        const ts = conn[SymThrStr] as ThrottledStream
         const speed = ts.getSpeed()
         const outSpeed = _.round(speed, 1) || _.round(speed, 3) // further precision if necessary
         updateConnection(conn, { outSpeed, sent: ts.getBytesSent() })
+        /* in case this stream stands still for a while (before the end), we'll have neither 'sent' or 'close' events,
+        * so who will take care to updateConnection? This artificial next-call will ensure just that */
         clearTimeout(conn[SymTimeout])
-        if (outSpeed || !(ts.finished || ts.ended))
+        if (outSpeed || !closed)
             conn[SymTimeout] = setTimeout(update, DELAY)
     }, DELAY, { maxWait:DELAY })
     ts.on('sent', update)
@@ -58,6 +61,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     ++ipGroup.count
     ts.on('close', ()=> {
         update.flush()
+        closed = true
         if (--ipGroup.count) return // any left?
         ipGroup.destroy?.()
         delete ip2group[ctx.ip]
