@@ -110,7 +110,8 @@ export const logout: ApiHandler = async ({}, ctx) => {
     if (!ctx.session)
         return new ApiError(500)
     loggedIn(ctx, false)
-    return {}
+    // 401 is a convenient code for OK: the browser clears a possible http authentication (hopefully), and Admin automatically triggers login dialog
+    return new ApiError(401)
 }
 
 export const refresh_session: ApiHandler = async ({}, ctx) => {

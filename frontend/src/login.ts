@@ -41,7 +41,10 @@ function sessionRefresher(response: any) {
 }
 
 export function logout(){
-    return apiCall('logout').then(()=> {
-        state.username = ''
+    return apiCall('logout').catch(res => {
+        if (res.code === 401) // we expect 401
+            state.username = ''
+        else
+            throw res
     })
 }

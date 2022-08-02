@@ -18,9 +18,8 @@ export default function LogoutPage() {
                 size: 'large',
                 variant: 'contained',
                 onClick() {
-                    apiCall('logout').then(() =>
-                            apiCall('get_status').catch(()=>0), // second call is supposed to trigger a 401 if login is required
-                        alertDialog) // show errors
+                    apiCall('logout').catch(err => // we expect 401
+                        err.code !== 401 && alertDialog(err))
                 }
             }, "Yes, I want to logout")
         )

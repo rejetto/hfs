@@ -45,7 +45,7 @@ function Content() {
             icon: 'logout',
             label: "Logout",
             onClick() {
-                logout().then(closeDialog)
+                logout().then(closeDialog, alertDialog)
             }
         })
     )
