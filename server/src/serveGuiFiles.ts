@@ -8,16 +8,15 @@ import { mapPlugins } from './plugins'
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import path from 'path'
+import { getOrSet } from './misc'
 
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? '../dist/' : ''
 
 function serveStatic(uri: string): Koa.Middleware {
     const folder = uri.slice(2,-1) // we know folder is very similar to uri
+    const cache: Record<string, Promise<string>> = {}
     return async (ctx, next) => {
-        const loginRequired = ctx.status === UNAUTHORIZED
-        const serveApp = ctx.path.endsWith('/') || loginRequired
-        const fullPath = path.join(__dirname, '..', DEV_STATIC, folder, serveApp? '/index.html': ctx.path)
         if(ctx.method === 'OPTIONS') {
             ctx.status = NO_CONTENT
             ctx.set({ Allow: 'OPTIONS, GET' })
@@ -25,19 +24,28 @@ function serveStatic(uri: string): Koa.Middleware {
         }
         if (ctx.method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
+        const loginRequired = ctx.status === UNAUTHORIZED
+        const serveApp = ctx.path.endsWith('/') || loginRequired
+        const fullPath = path.join(__dirname, '..', DEV_STATIC, folder, serveApp? '/index.html': ctx.path)
+        const content = await getOrSet(cache, ctx.path, async () => {
+            const data = await fs.readFile(fullPath).catch(() => null)
+            return serveApp || !data ? data : adjustWebpackLinks(ctx.path, uri, data)
+        })
+        if (content === null)
+            return ctx.status = 404
         if (!serveApp)
-            return serveFile(fullPath, 'auto', getModifier(ctx.path, uri))(ctx, next)
+            return serveFile(fullPath, 'auto', content)(ctx, next)
         // we don't cache the index as it's small and may prevent plugins change to apply
-        ctx.body = await treatIndex(ctx, String(await fs.readFile(fullPath)), uri)
+        ctx.body = await treatIndex(ctx, String(content), uri)
         ctx.type = 'html'
         ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     }
 }
 
-function getModifier(path: string, uri: string) {
-    return path.startsWith('/static/js') ? // webpack
-        (s: string) => s.replace(/(")(static\/)/g, '$1' + uri.substring(1) + '$2')
-        : undefined
+function adjustWebpackLinks(path: string, uri: string, data: string | Buffer) {
+    return path.startsWith('/static/js') // webpack
+        ? String(data).replace(/(")(static\/)/g, '$1' + uri.substring(1) + '$2')
+        : data
 }
 
 async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
@@ -50,7 +58,7 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
         .replace('_HFS_PLUGINS_', pluginsInjection)
 }
 
-function serveProxied(port: string | undefined, uri: string) { // used for development
+function serveProxied(port: string | undefined, uri: string) { // used for development only
     if (!port)
         return
     console.debug('proxied on port', port)
@@ -59,10 +67,8 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
         proxy = lib.default('127.0.0.1:'+port, {
             proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
             userResDecorator(res, data, ctx) {
-                if (ctx.path.endsWith('/'))
-                    return treatIndex(ctx, String(data), uri)
-                const mod = getModifier(ctx.path, uri)
-                return mod ? mod(String(data)) : data
+                return ctx.path.endsWith('/') ? treatIndex(ctx, String(data), uri)
+                    : adjustWebpackLinks(ctx.path, uri, String(data))
             }
         }) )
     return function() { //@ts-ignore

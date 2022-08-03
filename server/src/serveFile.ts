@@ -41,7 +41,7 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
 
 const mimeCfg = defineConfig<Record<string,string>>('mime', { '*.jpg|*.png|*.mp3|*.txt': 'auto' })
 
-export function serveFile(source:string, mime?:string, modifier?:(s:string)=>string) : Koa.Middleware {
+export function serveFile(source:string, mime?:string, content?: string | Buffer) : Koa.Middleware {
     return async (ctx) => {
         if (!source)
             return
@@ -69,8 +69,8 @@ export function serveFile(source:string, mime?:string, modifier?:(s:string)=>str
             const conn = ctx.state.connection
             if (conn)
                 updateConnection(conn, { ctx }) // fileSource is affecting connection's outputted data, so we request an update
-            if (modifier)
-                return ctx.body = modifier(String(await fs.readFile(source)))
+            if (content !== undefined)
+                return ctx.body = content
             const range = getRange(ctx, stats.size)
             ctx.body = createReadStream(source, range)
         }
