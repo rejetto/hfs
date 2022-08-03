@@ -10,6 +10,7 @@ import { DAY } from './const'
 import events from './events'
 import _ from 'lodash'
 import { dirname } from 'path'
+import { getCurrentUsername } from './perm'
 
 class Logger {
     stream?: Writable
@@ -86,11 +87,13 @@ export function log(): Koa.Middleware {
                 stream = logger.reopen() // keep variable updated
             }
         }
-        const format = '%s - - [%s] "%s %s HTTP/%s" %d %s\n';
+        const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s\n' // Apache's Common Log Format
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5].slice(3)
-        events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status','length']), { ts: now, uri: ctx.path }))
+        const user = getCurrentUsername(ctx)
+        events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status','length']), { user, ts: now, uri: ctx.path }))
         stream.write(util.format( format,
             ctx.ip,
+            user || '-',
             date,
             ctx.method,
             ctx.path,
