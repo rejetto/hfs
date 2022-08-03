@@ -1,4 +1,5 @@
 # To do
+- fix: chrome is prompting to save credentials without username because of login's double-form
 - fix: currently user field in the access.log is '-' 
 - admin: check + update
 - admin/monitor: account column

@@ -87,6 +87,15 @@ But you may still want to stay with HFS 2.x (so far) for the following reasons
 - more tested
 - classic window interface (can be easier for some people)
 
+## Console commands
+
+If you have access to HFS' console, you can enter commands. Start with `help` to have a full list. 
+
+## Passing parameters
+
+Any value you see in the config file with name *X* can be passed at command line in the form `--X <new_value>`,
+or you can enter console command `config X <new_value>`.  
+
 ## License
 
 [GPLv3](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
