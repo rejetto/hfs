@@ -1,7 +1,8 @@
 import { addAccount, getAccount, updateAccount } from './perm'
-import { getConfigDefinition, setConfig } from './config'
+import { getConfig, getConfigDefinition, setConfig } from './config'
 import _ from 'lodash'
 import { getUpdate, update } from './update'
+import yaml from 'yaml'
 
 console.log(`HINT: type "help" for help`)
 require('readline').createInterface({ input: process.stdin }).on('line', (line: string) => {
@@ -12,7 +13,7 @@ require('readline').createInterface({ input: process.stdin }).on('line', (line: 
         return console.error("cannot understand entered command, try 'help'")
     if (cmd.cb.length > params.length)
         return console.error("insufficient parameters, expected: " + cmd.params)
-    cmd.cb(...params).then(() =>console.log("command executed"),
+    cmd.cb(...params).then(() =>console.log("+++ command executed"),
         (err: any) => {
             if (typeof err === 'string')
                 console.error("command failed:", err)
@@ -62,6 +63,15 @@ const commands = {
             try { v = JSON.parse(v) }
             catch {}
             setConfig({ [key]: v })
+        }
+    },
+    'show-config': {
+        params: '<key>',
+        async cb(key: string) {
+            const conf = getConfigDefinition(key)
+            if (!conf)
+                throw "specified key doesn't exist"
+            console.log(yaml.stringify(getConfig(key), { lineWidth:1000 }).trim())
         }
     },
     quit: {
