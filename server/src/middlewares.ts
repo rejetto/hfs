@@ -79,7 +79,9 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.status = cantReadStatusCode(node)
         if (ctx.status === FORBIDDEN)
             return
-        ctx.set('WWW-Authenticate', 'Basic') // we support basic authentication
+        const browserDetected = ctx.get('Upgrade-Insecure-Requests') || ctx.get('Sec-Fetch-Mode') // ugh, heuristics
+        if (!browserDetected) // we don't want to trigger basic authentication on browsers, it's meant for download managers only
+            ctx.set('WWW-Authenticate', 'Basic') // we support basic authentication
         return serveFrontendFiles(ctx, next)
     }
     ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
