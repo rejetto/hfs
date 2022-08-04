@@ -30,7 +30,7 @@ export function Dialogs() {
     const snap = useSnapshot(dialogs)
     return h(Fragment, {},
         snap.length > 0 && snap.map((d,i) =>
-            h(Dialog, { key:i, ...d })))
+            h(Dialog, { key:i, ...(d as DialogOptions) })))
 }
 
 function Dialog(d:DialogOptions) {
