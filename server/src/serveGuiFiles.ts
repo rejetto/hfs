@@ -68,7 +68,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
             proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
             userResDecorator(res, data, ctx) {
                 return ctx.path.endsWith('/') ? treatIndex(ctx, String(data), uri)
-                    : adjustWebpackLinks(ctx.path, uri, String(data))
+                    : adjustWebpackLinks(ctx.path, uri, data)
             }
         }) )
     return function() { //@ts-ignore
