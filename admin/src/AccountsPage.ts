@@ -7,19 +7,8 @@ import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/ic
 import { alertDialog, confirmDialog } from './dialog'
 import { iconTooltip, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
-import { makeStyles } from '@mui/styles'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
-
-const useStyles = makeStyles({
-    label: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        padding: '.2em 0',
-        gap: '.5em',
-        alignItems: 'center',
-    }
-})
 
 export interface Account {
     username: string
@@ -34,7 +23,6 @@ export default function AccountsPage() {
     const { data, reload, element } = useApiEx('get_accounts')
     const [sel, setSel] = useState<string[] | 'new-group' | 'new-user'>([])
     const selectionMode = Array.isArray(sel)
-    const styles = useStyles()
     useEffect(() => { // if accounts are reloaded, review the selection to remove elements that don't exist anymore
         if (Array.isArray(data?.list) && selectionMode)
             setSel( sel.filter(u => data.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
@@ -95,7 +83,15 @@ export default function AccountsPage() {
                     h(TreeItem, {
                         key: ac.username,
                         nodeId: ac.username,
-                        label: h('div', { className: styles.label },
+                        label: h(Box, {
+                            sx: {
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                padding: '.2em 0',
+                                gap: '.5em',
+                                alignItems: 'center',
+                            }
+                        },
                             account2icon(ac),
                             ac.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin"),
                             ac.username,

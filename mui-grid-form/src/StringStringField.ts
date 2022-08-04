@@ -1,29 +1,21 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { makeStyles } from '@mui/styles'
 import { createElement as h, ReactElement, useRef } from 'react'
 import { Grid, IconButton } from '@mui/material'
 import { Add, Delete } from '@mui/icons-material'
 import { FieldProps, StringField } from './Form'
 
-const useStyles = makeStyles({
-    tableHeader: {
-        padding: '.5em 1em',
-        fontWeight: 'bold',
-    },
-    actions: {
-        display: 'flex',
-    }
-})
-
 export function StringStringField({ value, onChange, keyLabel='key', valueLabel='value', keyWidth=5, valueWidth=5, actionsWidth=1 }: FieldProps<Record<string,string>> & { keyLabel:string }) {
     const refNew = useRef()
     const justEntered = useRef<any>()
-    const styles = useStyles()
+    const tableHeader = {
+        padding: '.5em 1em',
+        fontWeight: 'bold',
+    }
     return h(Grid, { container: true },
         // header
-        h(Grid, { item: true, xs:keyWidth, className: styles.tableHeader }, keyLabel),
-        h(Grid, { item: true, xs:valueWidth, className: styles.tableHeader }, valueLabel),
+        h(Grid, { item: true, xs:keyWidth, sx: tableHeader }, keyLabel),
+        h(Grid, { item: true, xs:valueWidth, sx: tableHeader }, valueLabel),
         h(Grid, { item: true, xs:actionsWidth },
             h(IconButton, {
                 onClick() { // @ts-ignore
@@ -61,7 +53,7 @@ export function StringStringField({ value, onChange, keyLabel='key', valueLabel=
                         onChange(copy, { was:value, ...rest })
                     }
                 })),
-            h(Grid, { key:'actions', item: true, xs: actionsWidth, className: styles.actions },
+            h(Grid, { key:'actions', item: true, xs: actionsWidth, sx: { display: 'flex' } },
                 h(IconButton, {
                     onClick(event){
                         const copy = { ...value }

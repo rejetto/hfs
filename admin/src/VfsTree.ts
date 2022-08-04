@@ -1,6 +1,5 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { makeStyles } from '@mui/styles'
 import { state, useSnapState } from './state'
 import { createElement as h, ReactElement, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/lab'
@@ -15,29 +14,17 @@ import {
     RemoveRedEye,
     Web
 } from '@mui/icons-material'
+import { Box } from '@mui/material'
 import { VfsNode, Who } from './VfsPage'
 import { iconTooltip, isWindowsDrive, onlyTruthy } from './misc'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
 
-const useStyles = makeStyles({
-    label: {
-        display: 'flex',
-        gap: '.5em',
-        lineHeight: '2em',
-        alignItems: 'center',
-    },
-    path: {
-        opacity: .4,
-    }
-})
-
 export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
     const { vfs, selectedFiles } = useSnapState()
     const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
-    const styles = useStyles()
     if (!vfs)
         return null
     return h(TreeView, {
@@ -63,7 +50,14 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
         if (folder && !isWindowsDrive(source) && source === name) // we need a way to show that the name we are displaying is a source in this ambiguous case, so we add a redundant ./
             source = './' + source
         return h(TreeItem, {
-            label: h('div', { className: styles.label },
+            label: h(Box, {
+                sx: {
+                    display: 'flex',
+                    gap: '.5em',
+                    lineHeight: '2em',
+                    alignItems: 'center',
+                }
+            },
                 !name ? iconTooltip(Home, "home, or root if you like")
                     : folder ? iconTooltip(FolderIcon, "Folder")
                         : iconTooltip(FileIcon, "File"),
@@ -74,7 +68,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 isRoot ? "Home"
                     // special rendering if the whole source is not too long, and the name was not customized
                     : source?.length! < 45 && source?.endsWith(name) ? h('span', {},
-                        h('span', { className:styles.path }, source.slice(0,-name.length)),
+                        h('span', { style: { opacity: .4 } }, source.slice(0,-name.length)),
                         h('span', {}, source.slice(-name.length)),
                     )
                     : name
