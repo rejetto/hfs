@@ -19,7 +19,6 @@ import { ArrowUpward, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
 import { FixedSizeList } from 'react-window'
-import AutoSizer from "react-virtualized-auto-sizer"
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 
@@ -57,6 +56,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
         return (v:string) => re.test(v)
     }, [filter])
 
+    const [listHeight, setListHeight] = useState(0)
     const filteredList = useMemo(() => list.filter(it => filterMatch(it.n)), [list,filterMatch])
     if (loading)
         return spinner()
@@ -96,45 +96,52 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
         ),
         error ? h(Alert, { severity: 'error' }, err2msg(error))
             : h(Fragment, {},
-                h(Box, { sx: { flex: 1 } },
-                    !list.length ? h(Center, { flex: 1, mt: '4em' }, "No elements in this folder") : h(AutoSizer, {
-                        children: size =>
-                            h(FixedSizeList, {
-                                ...size, itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
-                                children({ index, style }) {
-                                    const it: DirEntry = filteredList[index]
-                                    const isFolder = it.k === 'd'
-                                    return h(MenuItem, {
-                                            style: { ...style, padding: 0 },
-                                            key: it.n,
-                                            onClick() {
-                                                if (isFolder)
-                                                    setCwd(cwdDelimiter + it.n)
-                                                else
-                                                    onSelect([cwdDelimiter + it.n])
-                                            }
+                h(Box, {
+                    ref(x?: HTMLElement){
+                        if (!x) return
+                        const h = x?.clientHeight - 1
+                        if (h - listHeight > 1)
+                            setListHeight(h)
+                    },
+                    sx: { flex: 1, display: 'flex', flexDirection: 'column' }
+                },
+                    !list.length ? h(Center, { flex: 1, mt: '4em' }, "No elements in this folder")
+                        : h(FixedSizeList, {
+                            width: '100%', height: listHeight,
+                            itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
+                            children({ index, style }) {
+                                const it: DirEntry = filteredList[index]
+                                const isFolder = it.k === 'd'
+                                return h(MenuItem, {
+                                        style: { ...style, padding: 0 },
+                                        key: it.n,
+                                        onClick() {
+                                            if (isFolder)
+                                                setCwd(cwdDelimiter + it.n)
+                                            else
+                                                onSelect([cwdDelimiter + it.n])
+                                        }
+                                    },
+                                    multiple && h(Checkbox, {
+                                        checked: sel.includes(it.n),
+                                        disabled: !folders && isFolder,
+                                        onClick(ev) {
+                                            const id = it.n
+                                            const removed = sel.filter(x => x !== id)
+                                            setSel(removed.length < sel.length ? removed : [...sel, id])
+                                            ev.stopPropagation()
                                         },
-                                        multiple && h(Checkbox, {
-                                            checked: sel.includes(it.n),
-                                            disabled: !folders && isFolder,
-                                            onClick(ev) {
-                                                const id = it.n
-                                                const removed = sel.filter(x => x !== id)
-                                                setSel(removed.length < sel.length ? removed : [...sel, id])
-                                                ev.stopPropagation()
-                                            },
-                                        }),
-                                        h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
-                                        h(ListItemText, { sx: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }, it.n),
-                                        !isFolder && it.s !== undefined && h(Typography, {
-                                            variant: 'body2',
-                                            color: 'text.secondary',
-                                            ml: 4
-                                        }, formatBytes(it.s))
-                                    )
-                                }
-                            })
-                    }),
+                                    }),
+                                    h(ListItemIcon, {}, h(it.k ? FolderIcon : FileIcon)),
+                                    h(ListItemText, { sx: { whiteSpace: 'pre-wrap', wordBreak: 'break-all' } }, it.n),
+                                    !isFolder && it.s !== undefined && h(Typography, {
+                                        variant: 'body2',
+                                        color: 'text.secondary',
+                                        ml: 4
+                                    }, formatBytes(it.s))
+                                )
+                            }
+                        })
                 ),
                 h(Box, { display:'flex', gap: 1 },
                     (multiple || folders || !files) && h(Button, {
