@@ -24,9 +24,8 @@ function serveStatic(uri: string): Koa.Middleware {
         }
         if (ctx.method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
-        const loginRequired = ctx.status === UNAUTHORIZED
-        const serveApp = ctx.path.endsWith('/') || loginRequired
-        const fullPath = path.join(__dirname, '..', DEV_STATIC, folder, serveApp? '/index.html': ctx.path)
+        const serveApp = shouldServeApp(ctx)
+        const fullPath = path.join(__dirname, '..', DEV_STATIC, folder, serveApp ? '/index.html': ctx.path)
         const content = await getOrSet(cache, ctx.path, async () => {
             const data = await fs.readFile(fullPath).catch(() => null)
             return serveApp || !data ? data : adjustWebpackLinks(ctx.path, uri, data)
@@ -40,6 +39,10 @@ function serveStatic(uri: string): Koa.Middleware {
         ctx.type = 'html'
         ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     }
+}
+
+function shouldServeApp(ctx: Koa.Context) {
+    return ctx.state.serveApp ||= ctx.path.endsWith('/')
 }
 
 function adjustWebpackLinks(path: string, uri: string, data: string | Buffer) {
@@ -65,9 +68,10 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
     let proxy: Koa.Middleware
     import('koa-better-http-proxy').then(lib => // dynamic import to avoid having this in final distribution
         proxy = lib.default('127.0.0.1:'+port, {
-            proxyReqPathResolver: (ctx) => ctx.path.endsWith('/') ? '/' : ctx.path,
+            proxyReqPathResolver: (ctx) =>
+                shouldServeApp(ctx) ? '/' : ctx.path,
             userResDecorator(res, data, ctx) {
-                return ctx.path.endsWith('/') ? treatIndex(ctx, String(data), uri)
+                return shouldServeApp(ctx) ? treatIndex(ctx, String(data), uri)
                     : adjustWebpackLinks(ctx.path, uri, data)
             }
         }) )
