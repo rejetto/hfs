@@ -21,7 +21,8 @@ export class Connection {
             this.got += data.length )
         socket.on('close', () => {
             all.splice(all.indexOf(this), 1)
-            events.emit('connectionClosed', this)
+            if (this.alreadyEmitted)
+                events.emit('connectionClosed', this)
         })
         events.emit('socket', socket)
     }

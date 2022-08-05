@@ -65,10 +65,6 @@ export function serveFile(source:string, mime?:string, content?: string | Buffer
             ctx.status = 200
             if (ctx.fresh)
                 return ctx.status = 304
-
-            const conn = ctx.state.connection
-            if (conn)
-                updateConnection(conn, { ctx }) // fileSource is affecting connection's outputted data, so we request an update
             if (content !== undefined)
                 return ctx.body = content
             const range = getRange(ctx, stats.size)

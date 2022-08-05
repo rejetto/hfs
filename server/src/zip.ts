@@ -62,9 +62,6 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.body = zip
     ctx.req.on('close', ()=> zip.destroy())
     ctx.state.archive = 'zip'
-    const conn = ctx.state.connection
-    if (conn)
-        updateConnection(conn, { ctx }) // update connection data
 }
 
 const zipSeconds = defineConfig('zip_calculate_size_for_seconds', 1)

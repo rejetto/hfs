@@ -127,9 +127,9 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     // calculate these once and for all
     ctx.state.account = await getHttpAccount(ctx) ?? getAccount(getCurrentUsername(ctx))
     const conn = ctx.state.connection = socket2connection(ctx.socket)
+    await next()
     if (conn)
         updateConnection(conn, { ctx })
-    await next()
 }
 
 async function getHttpAccount(ctx: Koa.Context) {
