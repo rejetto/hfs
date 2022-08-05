@@ -19,19 +19,25 @@ const apis: ApiHandlers = {
 
     get_connections({}, ctx) {
         const list = new SendListReadable( getConnections().map(c => serializeConnection(c)) )
+        type Change = Partial<Omit<Connection,'ip'>>
+        const throttledUpdate = _.throttle(update, 1000/20) // try to avoid clogging with updates
         return list.events(ctx, {
             connection: conn => list.add(serializeConnection(conn)),
             connectionClosed(conn: Connection) {
                 list.remove(serializeConnection(conn, true))
             },
-            connectionUpdated(conn: Connection, change: Partial<Omit<Connection,'ip'>>) {
-                if (change.ctx) {
-                    Object.assign(change, fromCtx(change.ctx))
-                    delete change.ctx
-                }
-                list.update(serializeConnection(conn, true), change)
+            connectionUpdated(conn: Connection, change: Change) {
+                if (!change.ctx)
+                    return throttledUpdate(conn, change)
+                Object.assign(change, fromCtx(change.ctx))
+                delete change.ctx
+                throttledUpdate(conn, change)
             },
         })
+
+        function update(conn: Connection, change: Change) {
+            list.update(serializeConnection(conn, true), change)
+        }
 
         function serializeConnection(conn: Connection, minimal?:true) {
             const { socket, started, secure, got } = conn
