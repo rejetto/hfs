@@ -3,6 +3,7 @@ import { getConfig, getConfigDefinition, setConfig } from './config'
 import _ from 'lodash'
 import { getUpdate, update } from './update'
 import yaml from 'yaml'
+import { BUILD_TIMESTAMP, VERSION } from './const'
 
 console.log(`HINT: type "help" for help`)
 require('readline').createInterface({ input: process.stdin }).on('line', (line: string) => {
@@ -90,5 +91,12 @@ const commands = {
             const update = await getUpdate()
             console.log("new version available", update.name)
         }
-    }
+    },
+    version: {
+        params: '',
+        async cb() {
+            console.log(VERSION)
+            console.log(BUILD_TIMESTAMP)
+        }
+    },
 }
