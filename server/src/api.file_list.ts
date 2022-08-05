@@ -17,7 +17,7 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     if (dirTraversal(search))
         return fail(418)
     if (node.default)
-        return (sse ? list.custom : _.identity)({ redirect: path })
+        return (sse ? list.custom : _.identity)({ redirect: path }) // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
     if (!await nodeIsDirectory(node))
         return fail(405) // method not allowed on target
     offset = Number(offset)

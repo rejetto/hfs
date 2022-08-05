@@ -9,7 +9,7 @@ export class ThrottledStream extends Transform {
     private sent: number = 0
     private lastSpeed: number = 0
     private lastSpeedTime = Date.now()
-    private totalSent: number = 0
+    private totalSent: number = 0 // total sent over connection, since connection can be re-used for multiple requests
 
     constructor(private group: ThrottleGroup, copyStats?: ThrottledStream) {
         super()
@@ -34,7 +34,7 @@ export class ThrottledStream extends Transform {
                 this.sent += n
                 this.totalSent += n
                 pos += n
-                this.emit('sent')
+                this.emit('sent', n)
             } catch (e) {
                 done(e as Error)
                 return

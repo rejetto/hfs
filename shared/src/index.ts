@@ -9,7 +9,7 @@ export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
 
-export function formatBytes(n: number, post: string = 'B', k=1024) {
+export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
     if (isNaN(Number(n)) || n < 0)
         return ''
     let x = ['', 'K', 'M', 'G', 'T']
@@ -22,7 +22,9 @@ export function formatBytes(n: number, post: string = 'B', k=1024) {
         ++i
     }
     n /= prevMul
-    return _.round(n, 1) + ' ' + (x[i]||'') + post
+    const ns = !i || isNaN(digits) ? _.round(n, isNaN(digits) ? 1 : digits) // _.round will avoid useless fractional zeros when `digits is unspecified or no multiplier was used
+        : n.toFixed(digits)
+    return ns + ' ' + (x[i]||'') + post
 } // formatBytes
 
 export function prefix(pre:string, v:string|number|undefined|null|false, post:string='') {

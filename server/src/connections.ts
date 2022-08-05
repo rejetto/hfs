@@ -3,6 +3,7 @@
 import { Socket } from 'net'
 import events from './events'
 import Koa from 'koa'
+import _ from 'lodash'
 
 export class Connection {
     readonly started = new Date()
@@ -14,7 +15,7 @@ export class Connection {
     private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 
-    constructor(readonly socket: Socket,readonly secure: boolean) {
+    constructor(readonly socket: Socket, readonly secure: boolean) {
         all.push(this)
         socket.on('data', data =>
             this.got += data.length )
@@ -22,6 +23,7 @@ export class Connection {
             all.splice(all.indexOf(this), 1)
             events.emit('connectionClosed', this)
         })
+        events.emit('socket', socket)
     }
 
     get ip() {
@@ -51,13 +53,9 @@ export function socket2connection(socket: Socket) {
 
 export function updateConnection(conn: Connection, change: Partial<Connection>) {
     // if no change is detected, skip update. ctx is a special case
-    if (!change.ctx && Object.entries(change).every(([k,v]) => eq(v, conn[k as keyof Connection]) ))
+    if (!change.ctx && Object.entries(change).every(([k,v]) => _.isEqual(v, conn[k as keyof Connection]) ))
         return
     Object.assign(conn, change)
     events.emit(conn.alreadyEmitted ? 'connectionUpdated' : 'connection', conn, change)
     conn.alreadyEmitted = true
-
-    function eq(a: any, b: any) {
-        return JSON.stringify(a) === JSON.stringify(b)
-    }
 }

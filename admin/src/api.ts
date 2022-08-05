@@ -113,6 +113,36 @@ function getCsrf() {
     return getCookie('csrf')
 }
 
+export function useApiEvents(cmd: string, params: Dict={}) {
+    const [data, setData] = useStateMounted<any>(undefined)
+    const [error, setError] = useStateMounted<any>(undefined)
+    const [loading, setLoading] = useStateMounted(false)
+    useEffect(() => {
+        const src = apiEvents(cmd, params, (type, data) => {
+            switch (type) {
+                case 'error':
+                    setError("Connection error")
+                    return stop()
+                case 'closed':
+                    return stop()
+                case 'msg':
+                    if (src?.readyState === src?.CLOSED)
+                        return stop()
+                    return setData(data)
+            }
+        })
+        return () => {
+            src.close()
+            stop()
+        }
+
+        function stop() {
+            setLoading(false)
+        }
+    }, [cmd, JSON.stringify(params)]) //eslint-disable-line
+    return { data, loading, error }
+}
+
 export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=false, map=((x:any)=>x) }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [error, setError] = useStateMounted<any>(undefined)

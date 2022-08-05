@@ -2,14 +2,15 @@
 
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
-import { apiCall, useApiEx, useApiList } from "./api"
+import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip } from '@mui/icons-material'
-import { Box, Chip } from '@mui/material'
+import { Box, Chip, ChipProps } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { Alert } from '@mui/material'
 import { formatBytes, IconBtn, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { GridColumns } from '@mui/x-data-grid/models/colDef/gridColDef'
+import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -21,39 +22,58 @@ export default function MonitorPage() {
 const isoDateRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 
 function MoreInfo() {
-    const { data, element } = useApiEx('get_status')
-    return !useBreakpoint('md') ? null
-        : element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
-            pair('started'),
-            pair('http', "HTTP", port),
-            pair('https', "HTTPS", port),
-        )
+    const { data: status, element } = useApiEx('get_status')
+    const { data: connections } = useApiEvents('get_connection_stats')
+    if (status && connections)
+        Object.assign(status, connections)
+    const md = useBreakpoint('md')
+    const sm = useBreakpoint('sm')
+    return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
+        md && pair('started'),
+        md && pair('http', { label: "HTTP", render: port }),
+        md && pair('https', { label: "HTTPS", render: port }),
+        sm && pair('connections'),
+        pair('sent', { render: formatBytes, minWidth: '4em' }),
+        pair('outSpeed', { label: "Output speed", render: formatSpeed }),
+    )
 
-    type Color = Parameters<typeof Chip>[0]['color']
-    type Render = (v:any) => [string, Color?]
+    type Color = ChipProps['color']
+    type Render = (v: any) => [string, Color?] | string
+    interface PairOptions {
+        label?: string
+        render?: Render
+        minWidth?: StandardCSSProperties['minWidth']
+    }
 
-    function pair(k: string, label: string='', render?:Render) {
-        let v = _.get(data, k)
+    function pair(k: string, { label, minWidth, render }: PairOptions={}) {
+        let v = _.get(status, k)
         if (v === undefined)
             return null
         if (typeof v === 'string' && isoDateRe.test(v))
             v = new Date(v).toLocaleString()
         let color: Color = undefined
-        if (render)
-            [v, color] = render(v)
+        if (render) {
+            v = render(v)
+            if (Array.isArray(v))
+                [v, color] = v
+        }
         if (!label)
             label = _.capitalize(k.replaceAll('_', ' '))
         return h(Chip, {
             variant: 'filled',
             color,
-            label: h(Fragment, {}, h('b',{},label), ': ', v),
+            label: h(Fragment, {},
+                h('b',{},label),
+                ': ',
+                h('span', { style:{ display: 'inline-block', minWidth } }, v),
+            ),
         })
     }
 
     function port(v: any): ReturnType<Render> {
         return v.listening ? ["port " + v.port, 'success']
             : v.error ? [v.error, 'error']
-                : ["off"]
+                : "off"
     }
 
 }
@@ -62,8 +82,8 @@ function Connections() {
     const { list, error } = useApiList('get_connections')
     const [filtered, setFiltered] = useState(true)
     const [paused, setPaused] = useState(false)
-    const rows = useMemo(()=>
-        list?.filter((x:any) => !filtered || x.path).map((x:any,id:number) => ({ id, ...x })),
+    const rows = useMemo(() =>
+            list?.filter((x: any) => !filtered || x.path).map((x: any, id: number) => ({ id, ...x })),
         [!paused && list, filtered]) //eslint-disable-line
     // if I don't memo 'columns', it won't keep hiding status
     const columns = useMemo<GridColumns<any>>(() => [
@@ -88,7 +108,11 @@ function Connections() {
             renderCell({ value, row }) {
                 if (!value) return
                 if (row.archive)
-                    return h(Fragment, {}, h(FolderZip, { sx: { mr: 1 } }), row.archive, h(Box, { ml: 2, color: 'text.secondary' }, value))
+                    return h(Fragment, {},
+                        h(FolderZip, { sx: { mr: 1 } }),
+                        row.archive,
+                        h(Box, { ml: 2, color: 'text.secondary' }, value)
+                    )
                 const i = value?.lastIndexOf('/')
                 return h(Fragment, {}, value.slice(i + 1),
                     i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i)))
@@ -108,7 +132,7 @@ function Connections() {
             field: 'outSpeed',
             headerName: "Speed",
             type: 'number',
-            valueFormatter: ({ value }) => value ? formatBytes(value as number * 1000, "B/s", 1000) : ''
+            valueFormatter: ({ value }) => formatSpeed(value)
         },
         {
             field: 'sent',
@@ -164,4 +188,8 @@ function Connections() {
 
 function blockIp(ip: string) {
     return manipulateConfig('block', data => [...data, { ip }])
+}
+
+function formatSpeed(value: number) {
+    return !value ? '' : formatBytes(value * 1000, { post: "B/s", k: 1000, digits: 1 })
 }

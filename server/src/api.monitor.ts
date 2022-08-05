@@ -1,8 +1,9 @@
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { pendingPromise } from './misc'
+import { pendingPromise, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
+import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
 
 const apis: ApiHandlers = {
 
@@ -51,6 +52,18 @@ const apis: ApiHandlers = {
         }
     },
 
+    async *get_connection_stats() {
+        while (1) {
+            yield {
+                outSpeed: totalOutSpeed,
+                inSpeed: totalInSpeed,
+                got: totalGot,
+                sent: totalSent,
+                connections: getConnections().length
+            }
+            await wait(1000)
+        }
+    },
 }
 
 export default apis

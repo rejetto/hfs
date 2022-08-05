@@ -91,6 +91,7 @@ export function log(): Koa.Middleware {
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5].slice(3)
         const user = getCurrentUsername(ctx)
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status','length']), { user, ts: now, uri: ctx.path }))
+        console.debug(ctx.status, ctx.method, ctx.path)
         stream.write(util.format( format,
             ctx.ip,
             user || '-',

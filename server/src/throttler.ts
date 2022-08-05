@@ -7,6 +7,8 @@ import { defineConfig } from './config'
 import { getOrSet, isLocalHost } from './misc'
 import { Connection, updateConnection } from './connections'
 import _ from 'lodash'
+import events from './events'
+import { Socket } from 'net'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
@@ -47,8 +49,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     const DELAY = 1000
     const update = _.debounce(() => {
         const ts = conn[SymThrStr] as ThrottledStream
-        const speed = ts.getSpeed()
-        const outSpeed = _.round(speed, 1) || _.round(speed, 3) // further precision if necessary
+        const outSpeed = roundKb(ts.getSpeed())
         updateConnection(conn, { outSpeed, sent: ts.getBytesSent() })
         /* in case this stream stands still for a while (before the end), we'll have neither 'sent' or 'close' events,
         * so who will take care to updateConnection? This artificial next-call will ensure just that */
@@ -56,7 +57,10 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         if (outSpeed || !closed)
             conn[SymTimeout] = setTimeout(update, DELAY)
     }, DELAY, { maxWait:DELAY })
-    ts.on('sent', update)
+    ts.on('sent', (n: number) => {
+        totalSent += n
+        update()
+    })
 
     ++ipGroup.count
     ts.on('close', ()=> {
@@ -73,3 +77,31 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     if (bak)
         ctx.response.length = bak
 }
+
+function roundKb(n: number) {
+    return _.round(n, 1) || _.round(n, 3) // further precision if necessary
+}
+
+export let totalSent = 0
+export let totalGot = 0
+export let totalOutSpeed = 0
+export let totalInSpeed = 0
+
+let lastSent = totalSent
+let lastGot = totalGot
+let last = Date.now()
+setInterval(() => {
+    const now = Date.now()
+    const past = (now - last) / 1000 // seconds
+    last = now
+    const deltaSentKb = (totalSent - lastSent) / 1000
+    lastSent = totalSent
+    const deltaGotKb = (totalGot - lastGot) / 1000
+    lastGot = totalGot
+    totalOutSpeed = roundKb(deltaSentKb / past)
+    totalInSpeed = roundKb(deltaGotKb / past)
+}, 1000)
+
+events.on('socket', (socket: Socket) =>
+    socket.on('data', data =>
+        totalGot += data.length ))
