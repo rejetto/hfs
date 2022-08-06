@@ -15,7 +15,7 @@ export class Connection {
     private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 
-    constructor(readonly socket: Socket, readonly secure: boolean) {
+    constructor(readonly socket: Socket) {
         all.push(this)
         socket.on('data', data =>
             this.got += data.length )
@@ -30,6 +30,10 @@ export class Connection {
     get ip() {
         return this.ctx?.ip ?? (this._cachedIp = (this._cachedIp ?? normalizeIp(this.socket.remoteAddress||'')))
     }
+
+    get secure() {
+        return (this.socket as any).server.cert > ''
+    }
 }
 
 export function normalizeIp(ip: string) {
@@ -38,8 +42,8 @@ export function normalizeIp(ip: string) {
 
 const all: Connection[] = []
 
-export function newConnection(socket: Socket, secure:boolean=false) {
-    new Connection(socket, secure)
+export function newConnection(socket: Socket) {
+    new Connection(socket)
 }
 
 export function getConnections(): Readonly<typeof all> {

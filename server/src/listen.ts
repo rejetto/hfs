@@ -66,8 +66,7 @@ const considerHttps = debounceAsync(async () => {
     }
     port = await startServer(httpsSrv, { port })
     if (!port) return
-    httpsSrv.on('connection', socket =>
-        newConnection(socket, true))
+    httpsSrv.on('connection', newConnection)
     printUrls(port, 'https')
 })
 
