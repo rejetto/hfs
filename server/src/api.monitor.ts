@@ -21,29 +21,51 @@ const apis: ApiHandlers = {
         const list = new SendListReadable( getConnections().map(c => serializeConnection(c)) )
         type Change = Partial<Omit<Connection,'ip'>>
         const throttledUpdate = _.throttle(update, 1000/20) // try to avoid clogging with updates
+        const state = Symbol('state') // undefined=added, Timeout=add-pending, false=removed
         return list.events(ctx, {
-            connection: conn => list.add(serializeConnection(conn)),
+            connection(conn: Connection) {
+                conn[state] = setTimeout(() => add(conn), 100)
+            },
             connectionClosed(conn: Connection) {
+                if (cancel(conn)) return
                 list.remove(serializeConnection(conn, true))
+                conn[state] = false
             },
             connectionUpdated(conn: Connection, change: Change) {
                 if (!change.ctx)
                     return throttledUpdate(conn, change)
+
                 Object.assign(change, fromCtx(change.ctx))
-                delete change.ctx
-                throttledUpdate(conn, change)
+                change.ctx = undefined
+                if (!add(conn))
+                    throttledUpdate(conn, change)
             },
         })
 
+        function add(conn: Connection) {
+            if (!cancel(conn)) return
+            list.add(serializeConnection(conn))
+            return true
+        }
+
+        function cancel(conn: Connection) {
+            if (!conn[state]) return
+            clearTimeout(conn[state])
+            conn[state] = undefined
+            return true
+        }
+
         function update(conn: Connection, change: Change) {
+            if (conn[state] === false) return
             list.update(serializeConnection(conn, true), change)
         }
 
         function serializeConnection(conn: Connection, minimal?:true) {
-            const { socket, started, secure, got } = conn
+            const { socket, started, secure } = conn
             return Object.assign(getConnAddress(conn), !minimal && {
                 v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
-                got,
+                got: socket.bytesRead,
+                sent: socket.bytesWritten,
                 started,
                 secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
                 ...fromCtx(conn.ctx),

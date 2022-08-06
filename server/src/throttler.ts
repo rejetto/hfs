@@ -8,7 +8,6 @@ import { getOrSet, isLocalHost } from './misc'
 import { Connection, updateConnection } from './connections'
 import _ from 'lodash'
 import events from './events'
-import { Socket } from 'net'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
@@ -102,6 +101,6 @@ setInterval(() => {
     totalInSpeed = roundKb(deltaGotKb / past)
 }, 1000)
 
-events.on('socket', (socket: Socket) =>
-    socket.on('data', data =>
+events.on('connection', (c: Connection) =>
+    c.socket.on('data', data =>
         totalGot += data.length ))

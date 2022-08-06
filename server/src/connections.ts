@@ -7,9 +7,7 @@ import _ from 'lodash'
 
 export class Connection {
     readonly started = new Date()
-    got = 0
     sent = 0
-    alreadyEmitted = false // already communicated to
     outSpeed?: number
     ctx?: Koa.Context
     private _cachedIp?: string
@@ -17,14 +15,11 @@ export class Connection {
 
     constructor(readonly socket: Socket) {
         all.push(this)
-        socket.on('data', data =>
-            this.got += data.length )
         socket.on('close', () => {
             all.splice(all.indexOf(this), 1)
-            if (this.alreadyEmitted)
-                events.emit('connectionClosed', this)
+            events.emit('connectionClosed', this)
         })
-        events.emit('socket', socket)
+        events.emit('connection', this)
     }
 
     get ip() {
@@ -61,6 +56,5 @@ export function updateConnection(conn: Connection, change: Partial<Connection>) 
     if (!change.ctx && Object.entries(change).every(([k,v]) => _.isEqual(v, conn[k as keyof Connection]) ))
         return
     Object.assign(conn, change)
-    events.emit(conn.alreadyEmitted ? 'connectionUpdated' : 'connection', conn, change)
-    conn.alreadyEmitted = true
+    events.emit('connectionUpdated', conn, change)
 }
