@@ -3,12 +3,13 @@ import { Fragment, createElement as h, useState } from 'react'
 import { DataGrid } from '@mui/x-data-grid'
 import { IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
-import { toast } from './dialog'
+import { confirmDialog } from './dialog'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'use-debounce'
-import { repoLink, showError, UpdateButton } from './InstalledPlugins'
+import { repoLink, showError, startPlugin, UpdateButton } from './InstalledPlugins'
 import { state, useSnapState } from './state'
 import _ from 'lodash'
+import md from './md'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -79,14 +80,15 @@ export default function OnlinePlugins() {
                                 }
                             }) : h(IconBtn, {
                                 icon: Download,
-                                title: "Download",
+                                title: "Install",
                                 progress: row.downloading,
                                 disabled: row.installed && "Already installed",
                                 tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
                                 confirm: "WARNING - Proceed only if you trust this author and this plugin",
                                 async onClick() {
-                                    await apiCall('download_plugin', { id, branch })
-                                    toast("Plugin downloaded: " + id)
+                                    const { id: installedId } = await apiCall('download_plugin', { id, branch })
+                                    if (await confirmDialog(md(`Plugin /${id}/ installed.\nDo you want to start it now?`)))
+                                        await startPlugin(installedId)
                                 }
                             })
                         )

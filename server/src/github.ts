@@ -28,7 +28,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
         branch = rec.default_branch
     const short = repo.split('/')[1] // second part, repo without the owner
     const folder2repo = getFolder2repo()
-    const folder = overwrite ? _.findKey(folder2repo, x => x===repo) // use existing folder
+    const folder = overwrite ? _.findKey(folder2repo, x => x===repo)! // use existing folder
         : short in folder2repo ? repo.replace('/','-') // longer form only if another plugin is using short form
             : short
     const installPath = PLUGINS_PATH + '/' + folder
@@ -39,6 +39,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
         path.startsWith(rootWithinZip) && installPath + '/' + path.slice(rootWithinZip.length) )
     downloadProgress(repo, undefined)
     await rescan() // workaround: for some reason, operations are not triggering the rescan of the watched folder. Let's invoke it.
+    return folder
 }
 
 export function getRepoInfo(id: string) {

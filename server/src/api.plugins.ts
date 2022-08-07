@@ -116,8 +116,8 @@ const apis: ApiHandlers = {
     },
 
     async download_plugin(pl) {
-        await downloadPlugin(pl.id, pl.branch)
-        return {}
+        const res = await downloadPlugin(pl.id, pl.branch)
+        return typeof res === 'string' ? getPluginInfo(res) : res
     },
 
     async update_plugin(pl) {

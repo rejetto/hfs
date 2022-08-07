@@ -67,9 +67,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                         } : {
                             icon: PlayCircle,
                             title: `Start ${id}`,
-                            onClick: () =>
-                                apiCall('set_plugin', { id, enabled: true }).then(() =>
-                                    toast("Plugin is starting", h(PlayCircle, { color: 'success' }))),
+                            onClick: () => startPlugin(id),
                         }),
                         h(IconBtn, {
                             icon: Settings,
@@ -152,4 +150,9 @@ export function UpdateButton({ id, then }: { id: string, then: (id:string)=>void
             toast("Plugin updated")
         }
     })
+}
+
+export function startPlugin(id: string) {
+    return apiCall('set_plugin', { id, enabled: true }).then(() =>
+        toast("Plugin is starting", h(PlayCircle, { color: 'success' })))
 }

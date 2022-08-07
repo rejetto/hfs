@@ -79,7 +79,8 @@ export async function alertDialog(msg: ReactElement | string | Error, options?: 
                         sx: { position: 'absolute', right: 0, top: 0, opacity: .5 }
                     }, h(Close)),
                     opt.icon ?? h(type2ico[type], { color: type, fontSize: 'large' }),
-                    isValidElement(msg) ? msg : h(Box, { fontSize: 'large', mb: 1 }, String(msg)),
+                    isValidElement(msg) ? msg
+                        : h(Box, { fontSize: 'large', mb: 1, lineHeight: '1.8em' }, String(msg)),
                 )
             }
         })
@@ -87,7 +88,7 @@ export async function alertDialog(msg: ReactElement | string | Error, options?: 
 }
 
 interface ConfirmOptions { href?: string }
-export async function confirmDialog(msg: string, { href }: ConfirmOptions={}) : Promise<boolean> {
+export async function confirmDialog(msg: string | ReactElement, { href }: ConfirmOptions={}) : Promise<boolean> {
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
         icon: '?',
@@ -96,12 +97,14 @@ export async function confirmDialog(msg: string, { href }: ConfirmOptions={}) : 
     }) )
 
     function Content() {
-        return h('div', {},
-            h('p', {}, msg),
-            h('a', {
-                href,
-                onClick: () => closeDialog(true),
-            }, h(Button, {}, 'Confirm'))
+        return h(Fragment, {},
+            h(Box, { mb: 2 }, msg),
+            h(Box, { textAlign: 'right' },
+                h('a', {
+                    href,
+                    onClick: () => closeDialog(true),
+                }, h(Button, {}, 'Confirm'))
+            ),
         )
     }
 }
