@@ -34,7 +34,7 @@ export default function ConfigPage() {
     const statusApi  = useApiEx(data && 'get_status')
     const status = statusApi.data
     const reloadStatus = exposedReloadStatus = statusApi.reload
-    useEffect(reloadStatus, [data]) //eslint-disable-line
+    useEffect(() => void(reloadStatus()), [data]) //eslint-disable-line
     useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
 
     const admins = useApi('get_admins')[0]?.list

@@ -15,8 +15,7 @@
 - admin/fs: support insert/delete key
 - admin/fs: button "copy url to clipboard"
 - admin/monitor: show some info on what folder is browsing
-- admin/stats: total bytes sent
-- admin/stats: list of IPs seen  
+- plugin: list of IPs seen
 - admin: in a group, show linked accounts
 - admin: warn in case of items with same name
 - command line help --help
