@@ -1,7 +1,6 @@
 # To do
 - fix: chrome is prompting to save credentials without username because of login's double-form
 - admin: check + update
-- admin/monitor: account column
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - easier nat life
   - show public ip use, https://github.com/sindresorhus/public-ip
@@ -19,8 +18,7 @@
 - admin: in a group, show linked accounts
 - admin: warn in case of items with same name
 - command line help --help
-- download-counter: expose results on admin
-- frontend: make a "login" route, and link it in side the 404's suggest-login message  
+- plugin download-counter: expose results on admin
 - whitelist di ip
 - plugin to show country by ip in admin/monitor
 - log filter option
@@ -30,10 +28,6 @@
 - publish to npm (so people can "npm install hfs")
 - frontend search supporting masks
 - remove seconds from time
-- plugin to download latest release
-  - https://api.github.com/repos/rejetto/hfs/releases/latest
-  - check if 'created_at' is after exe's timestamp
-  - if positive search 'assets' array for 'name' matching exe, and download 'browser_download_url', and replace exe
 - upload
 - upload unzipping (while streaming?)
 - plugin to make letsencrypt easier

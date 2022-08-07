@@ -95,6 +95,10 @@ function Connections() {
             valueGetter: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port
         },
         {
+            field: 'user',
+            headerName: "User",
+        },
+        {
             field: 'started',
             headerName: "Started",
             type: 'dateTime',

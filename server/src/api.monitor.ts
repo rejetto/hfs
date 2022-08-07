@@ -4,6 +4,7 @@ import { pendingPromise, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
+import { getCurrentUsername } from './perm'
 
 const apis: ApiHandlers = {
 
@@ -74,6 +75,7 @@ const apis: ApiHandlers = {
 
         function fromCtx(ctx?: Koa.Context) {
             return ctx && {
+                user: getCurrentUsername(ctx),
                 archive: ctx.state.archive,
                 path: (ctx.fileSource || ctx.state.archive) && ctx.path  // only for downloading files
             }
