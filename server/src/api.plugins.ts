@@ -49,7 +49,7 @@ const apis: ApiHandlers = {
                 catch (err:any) {
                     list.error(err.code || err.message)
                 }
-            list.end()
+            list.close()
         })
         return list
     },
@@ -80,7 +80,12 @@ const apis: ApiHandlers = {
                 const folder2repo = getFolder2repo()
                 for await (const pl of searchPlugins(text)) {
                     const repo = pl.id
-                    Object.assign(pl, { installed: _.includes(folder2repo, repo) })
+                    const folder = _.findKey(folder2repo, x => x === repo)
+                    const installed = folder && getPluginInfo(folder)
+                    Object.assign(pl, {
+                        installed: _.includes(folder2repo, repo),
+                        update: installed && installed.version < pl.version!,
+                    })
                     list.add(pl)
                     // watch for events about this plugin, until this request is closed
                     ctx.req.on('close', onOff(events, {
@@ -91,6 +96,10 @@ const apis: ApiHandlers = {
                         pluginUninstalled: folder => {
                             if (repo === getFolder2repo()[folder])
                                 list.update({ id: repo }, { installed: false })
+                        },
+                        pluginUpdated: p => {
+                            if (p.repo === repo)
+                                list.update({ id: repo }, { update: p.version < pl.version! })
                         },
                         ['pluginDownload_'+repo](status) {
                             list.update({ id: repo }, { downloading: status ?? null })

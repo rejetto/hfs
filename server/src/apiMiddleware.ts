@@ -75,7 +75,7 @@ export class SendListReadable<T> extends Readable {
         if (addAtStart) {
             for (const x of addAtStart)
                 this.add(x)
-            this.push('init')
+            this.end()
         }
     }
     add(rec: T) {
@@ -87,8 +87,11 @@ export class SendListReadable<T> extends Readable {
     update(search: Partial<T>, change: Partial<T>) {
         this.push({ update:[{ search, change }] })
     }
-    end() {
+    close() {
         this.push(null)
+    }
+    end() { // useful to indicate the end of an initial phase, but we leave open for updates
+        this.push('end')
     }
     error(msg: NonNullable<typeof this.lastError>) {
         this.push({ error: msg })

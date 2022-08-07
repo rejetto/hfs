@@ -6,13 +6,14 @@ import { Download, Search } from '@mui/icons-material'
 import { toast } from './dialog'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'use-debounce'
-import { repoLink, showError } from './InstalledPlugins'
+import { repoLink, showError, UpdateButton } from './InstalledPlugins'
 import { state, useSnapState } from './state'
+import _ from 'lodash'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
     const [debouncedSearch] = useDebounce(search, 1000)
-    const { list, error, initializing } = useApiList('search_online_plugins', { text: debouncedSearch })
+    const { list, error, initializing, updateList } = useApiList('search_online_plugins', { text: debouncedSearch })
     const snap = useSnapState()
     if (error)
         return showError(error)
@@ -70,7 +71,13 @@ export default function OnlinePlugins() {
                         const { id, branch } = row
                         return h('div', {},
                             repoLink(id),
-                            h(IconBtn, {
+                            row.update ? h(UpdateButton, {
+                                id,
+                                then() {
+                                    updateList(list =>
+                                        _.find(list, { id }).update = false )
+                                }
+                            }) : h(IconBtn, {
                                 icon: Download,
                                 title: "Download",
                                 progress: row.downloading,

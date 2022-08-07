@@ -30,7 +30,7 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     setTimeout(async () => {
         for await (const entry of produceEntries())
             list.add(entry)
-        list.end()
+        list.close()
     })
     return list
 
@@ -38,7 +38,7 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
         if (!sse)
             return new ApiError(code)
         list.error(code)
-        list.end()
+        list.close()
         return list
     }
 

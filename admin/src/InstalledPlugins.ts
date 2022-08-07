@@ -2,7 +2,7 @@ import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment } from 'react'
 import { Alert, Box, Tooltip } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
-import { Delete, Error, GitHub, PlayCircle, Settings, StopCircle, SystemUpdateAlt } from '@mui/icons-material'
+import { Delete, Error, GitHub, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
 import { IconBtn, xlate } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -55,14 +55,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 renderCell({ row }) {
                     const { config, id } = row
                     if (updates)
-                        return h(IconBtn, {
-                            icon: SystemUpdateAlt,
-                            title: "Update",
-                            async onClick() {
-                                await apiCall('update_plugin', { id })
-                                setList(list.filter(x => x.id !== id))
-                            }
-                        })
+                        return h(UpdateButton, { id, then: () => setList(list.filter(x => x.id !== id)) })
                     return h('div', {},
                         h(IconBtn, row.started ? {
                             icon: StopCircle,
@@ -147,4 +140,16 @@ export function showError(error: any) {
     return h(Alert, { severity: 'error' }, xlate(error, {
         ENOTFOUND: "Couldn't reach github.com"
     }))
+}
+
+export function UpdateButton({ id, then }: { id: string, then: (id:string)=>void }) {
+    return h(IconBtn, {
+        icon: Upgrade,
+        title: "Update",
+        async onClick() {
+            await apiCall('update_plugin', { id })
+            then?.(id)
+            toast("Plugin updated")
+        }
+    })
 }

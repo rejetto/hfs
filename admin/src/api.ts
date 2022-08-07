@@ -6,6 +6,7 @@ import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
 import { Refresh } from '@mui/icons-material'
+import produce, { Draft } from 'immer'
 
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     const [data, error, reload] = useApi<T>(...args)
@@ -168,13 +169,11 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                     setError("Connection error")
                     return stop()
                 case 'closed':
-                    flush()
-                    setInitializing(false)
                     return stop()
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return stop()
-                    if (data === 'init') {
+                    if (data === 'end') {
                         flush()
                         setInitializing(false)
                         return
@@ -227,9 +226,17 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
         }
 
         function stop() {
+            setInitializing(false)
             setLoading(false)
             clearInterval(timer)
+            flush()
         }
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, loading, error, initializing, setList }
+    return { list, loading, error, initializing, setList, updateList }
+
+    function updateList(cb: (toModify: Draft<typeof list>) => void) {
+        setList(produce(list, x => {
+            cb(x)
+        }))
+    }
 }

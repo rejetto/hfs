@@ -215,7 +215,8 @@ export async function rescan() {
         const module = pathLib.resolve(f)
         const { unwatch } = watchLoad(f, async () => {
             try {
-                console.log(plugins[id] ? "reloading plugin" : "loading plugin", id)
+                const reloading = plugins[id]
+                console.log(reloading ? "reloading plugin" : "loading plugin", id)
                 const { init, ...data } = await import(module)
                 delete data.default
                 deleteModule(require.resolve(module)) // avoid caching at next import
@@ -249,6 +250,8 @@ export async function rescan() {
                 })
                 Object.assign(data, res)
                 new Plugin(id, data, unwatch)
+                if (reloading)
+                    events.emit('pluginUpdated', getPluginInfo(id))
             } catch (e) {
                 console.log("plugin error:", e)
             }
