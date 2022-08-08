@@ -1,5 +1,5 @@
 import { defineConfig } from './config'
-import { getConnections } from './connections'
+import { getConnections, normalizeIp } from './connections'
 import { onlyTruthy, with_ } from './misc'
 import cidr from 'cidr-tools'
 import _ from 'lodash'
@@ -29,7 +29,7 @@ function compileBlock(rules: any) {
     }
 }
 
-export function applyBlock(socket: Socket, ip=socket.remoteAddress) {
+export function applyBlock(socket: Socket, ip=normalizeIp(socket.remoteAddress||'')) {
     if (ip && blockFunctions.find(rule => rule(ip)))
         return socket.destroy()
 }

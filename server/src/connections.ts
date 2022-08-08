@@ -22,8 +22,8 @@ export class Connection {
         events.emit('connection', this)
     }
 
-    get ip() {
-        return this.ctx?.ip ?? (this._cachedIp = (this._cachedIp ?? normalizeIp(this.socket.remoteAddress||'')))
+    get ip() { // prioritize ctx.ip as it supports proxies, but fallback for when ctx is not yet available
+        return this.ctx?.ip || (this._cachedIp ??= normalizeIp(this.socket.remoteAddress||''))
     }
 
     get secure() {

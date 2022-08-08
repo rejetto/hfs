@@ -100,7 +100,7 @@ export default apis
 
 function getConnAddress(conn: Connection) {
     return {
-        ip: conn.ctx?.ip || conn.socket.remoteAddress,
+        ip: conn.ip,
         port: conn.socket.remotePort,
     }
 }
