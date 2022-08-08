@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs from 'fs/promises'
-import { basename } from 'path'
+import { basename, join } from 'path'
 import { isMatch } from 'micromatch'
 import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
 import Koa from 'koa'
@@ -154,15 +154,14 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
     if (!source)
         return
     try {
-        const base = enforceFinal('/', source)
-        for await (const path of dirStream(base)) {
+        for await (const path of dirStream(source)) {
             if (ctx.req.aborted)
                 return
             let { rename } = parent
             const renamed = rename?.[path]
             yield* workItem({
                 name: (prefixPath || renamed) && prefixPath + (renamed || path),
-                source: base + path,
+                source: join(source, path),
                 rename: renameUnderPath(rename, path),
             })
         }

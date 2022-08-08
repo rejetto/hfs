@@ -5,7 +5,8 @@ import { Readable } from 'stream'
 import { crc32 as crc32lib } from 'buffer-crc32'
 import assert from 'assert'
 
-const ZIP64_LIMIT = 2**31 -1
+const ZIP64_SIZE_LIMIT = 0xffffffff
+const ZIP64_NUMBER_LIMIT = 0xffff
 
 let crc32function: (input: string | Buffer, initialState?: number | undefined | null) => number
 import('@node-rs/crc32').then(lib => crc32function = lib.crc32, () => {
@@ -25,9 +26,8 @@ interface ZipSource {
 }
 export class QuickZipStream extends Readable {
     private workingFile: Readable | undefined
-    private numberOfFiles: number = 0
     private finished = false
-    private readonly centralDir: ({ size:number, crc:number, ts:Date, pathAsBuffer:Buffer, offset:number, version:number, extAttr: number })[] = []
+    private readonly entries: ({ size:number, crc:number, ts:Date, pathAsBuffer:Buffer, offset:number, version:number, extAttr: number })[] = []
     private dataWritten = 0
     private consumedCalculating: ZipSource[] = []
     private skip: number = 0
@@ -80,17 +80,21 @@ export class QuickZipStream extends Readable {
             if (!value) break
             this.consumedCalculating.push(value) // we keep same shape of the generator, so
         }
+        // if we reach here, then we were able to consume all entries of the walker (in time)
         let offset = 0
         let centralDirSize = 0
         for (const file of this.consumedCalculating) {
             const pathSize = Buffer.from(file.path, 'utf8').length
-            const extraLength = (file.size > ZIP64_LIMIT ? 2 : 0) + (offset > ZIP64_LIMIT ? 1 : 0)
+            const extraLength = (file.size > ZIP64_SIZE_LIMIT ? 2 : 0) + (offset > ZIP64_SIZE_LIMIT ? 1 : 0)
             const extraDataSize = extraLength && (2+2 + extraLength*8)
             offset += 4+2+2+2+ 4+4+4+4+ 2+2+ pathSize + file.size
             centralDirSize += 4+2+2+2+2+ 4+4+4+4+ 2+2+2+2+2+ 4+4 + pathSize + extraDataSize
         }
-        const centralOffset = offset
-        if (centralOffset > ZIP64_LIMIT)
+        const n = this.consumedCalculating.length
+        const centralDirOffset = offset
+        if (n >= ZIP64_NUMBER_LIMIT
+        || centralDirOffset >= ZIP64_SIZE_LIMIT
+        || centralDirSize >= ZIP64_SIZE_LIMIT)
             centralDirSize += 4+8+2+2+4+4+8+8+8+8+4+4+8+4
         centralDirSize += 4+4+2+2+4+4+2
         return offset + centralDirSize
@@ -103,7 +107,6 @@ export class QuickZipStream extends Readable {
         const file = this.consumedCalculating.shift() || (await this.walker.next()).value as ZipSource
         if (!file)
             return this.closeArchive()
-        ++this.numberOfFiles
         let { path, sourcePath, getData, size, ts, mode } = file
         const pathAsBuffer = Buffer.from(path, 'utf8')
         const offset = this.dataWritten
@@ -127,11 +130,11 @@ export class QuickZipStream extends Readable {
         const cacheHit = Number(cache?.ts) === Number(ts)
         let crc = cacheHit ? cache!.crc : crc32function('')
         const extAttr = !mode ? 0 : (mode | 0x8000) * 0x10000 // it's like <<16 but doesn't overflow so easily
-        const centralDirEntry = { size, crc, pathAsBuffer, ts, offset, version, extAttr }
+        const entry = { size, crc, pathAsBuffer, ts, offset, version, extAttr }
         if (this.skip >= size && cacheHit) {
             this.skip -= size
             this.dataWritten += size
-            this.centralDir.push(centralDirEntry)
+            this.entries.push(entry)
             setTimeout(() => this.push('')) // this "signal" works only after _read() is done
             return
         }
@@ -139,10 +142,10 @@ export class QuickZipStream extends Readable {
         data.on('error', (err) => console.error(err))
         data.on('end', ()=>{
             this.workingFile = undefined
-            centralDirEntry.crc = crc
+            entry.crc = crc
             if (sourcePath)
                 crcCache[sourcePath] = { ts, crc }
-            this.centralDir.push(centralDirEntry)
+            this.entries.push(entry)
             this.push('') // continue piping
         })
         this.workingFile = data
@@ -160,16 +163,16 @@ export class QuickZipStream extends Readable {
 
     closeArchive() {
         this.finished = true
-        let centralOffset = this.dataWritten
-        for (let { size, ts, crc, offset, pathAsBuffer, version, extAttr } of this.centralDir) {
+        let centralDirOffset = this.dataWritten
+        for (let { size, ts, crc, offset, pathAsBuffer, version, extAttr } of this.entries) {
             const extra = []
-            if (size > ZIP64_LIMIT) {
+            if (size > ZIP64_SIZE_LIMIT) {
                 extra.push(size, size)
-                size = 0xffffffff
+                size = ZIP64_SIZE_LIMIT
             }
-            if (offset > ZIP64_LIMIT) {
+            if (offset > ZIP64_SIZE_LIMIT) {
                 extra.push(offset)
-                offset = 0xffffffff
+                offset = ZIP64_SIZE_LIMIT
             }
             const extraData = buffer(!extra.length ? []
                 : [ 2,1, 2,8*extra.length, ...extra.map(x=> [8,x]).flat() ])
@@ -196,10 +199,12 @@ export class QuickZipStream extends Readable {
             this.controlledPush(pathAsBuffer)
             this.controlledPush(extraData)
         }
-        const n = this.centralDir.length
         const after = this.dataWritten
-        let centralSize = after-centralOffset
-        if (centralOffset > ZIP64_LIMIT) {
+        let centralDirSize = after - centralDirOffset
+        let n = this.entries.length
+        if (n >= ZIP64_NUMBER_LIMIT
+            || centralDirOffset >= ZIP64_SIZE_LIMIT
+            || centralDirSize >= ZIP64_SIZE_LIMIT) {
             this.controlledPush([
                 4, 0x06064b50, // end of central dir zip64
                 8, 44,
@@ -209,8 +214,8 @@ export class QuickZipStream extends Readable {
                 4, 0,
                 8, n,
                 8, n,
-                8, centralSize,
-                8, centralOffset,
+                8, centralDirSize,
+                8, centralDirOffset,
             ])
             this.controlledPush([
                 4, 0x07064b50,
@@ -218,16 +223,18 @@ export class QuickZipStream extends Readable {
                 8, after,
                 4, 1,
             ])
-            centralOffset = 0xFFFFFFFF
+            centralDirOffset = ZIP64_SIZE_LIMIT
+            centralDirSize = ZIP64_SIZE_LIMIT
+            n = ZIP64_NUMBER_LIMIT
         }
         this.controlledPush([
-            4,0x06054b50, // end of central directory signature
-            4,0, // disk-related stuff
-            2,this.numberOfFiles,
-            2,this.numberOfFiles,
-            4,centralSize,
-            4,centralOffset,
-            2,0, // comment length
+            4, 0x06054b50, // end of central directory signature
+            4, 0, // disk-related stuff
+            2, n,
+            2, n,
+            4, centralDirSize,
+            4, centralDirOffset,
+            2, 0, // comment length
         ])
         this.push(null) // EOF
     }

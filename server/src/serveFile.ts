@@ -2,7 +2,6 @@
 
 import Koa from 'koa'
 import { createReadStream, stat } from 'fs'
-import fs from 'fs/promises'
 import { FORBIDDEN, METHOD_NOT_ALLOWED, NO_CONTENT } from './const'
 import { getNodeName, MIME_AUTO, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
@@ -11,7 +10,6 @@ import { isMatch } from 'micromatch'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
-import { updateConnection } from './connections'
 
 const allowedReferer = defineConfig('allowed_referer', '')
 

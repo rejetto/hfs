@@ -8,7 +8,6 @@ import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { dirname } from 'path'
-import { updateConnection } from './connections'
 import { getRange } from './serveFile'
 
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
