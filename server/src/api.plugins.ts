@@ -110,7 +110,7 @@ const apis: ApiHandlers = {
             catch (err: any) {
                 list.error(err.code || err.message)
             }
-            list.end()
+            list.ready()
         })
         return list
     },

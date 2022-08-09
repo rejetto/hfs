@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useCallback, useEffect, useMemo, useRef } from 'react'
-import { Dict, Falsy, getCookie, IconBtn, spinner, useStateMounted } from './misc'
+import { Dict, err2msg, Falsy, getCookie, IconBtn, spinner, useStateMounted, wantArray } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
@@ -173,13 +173,13 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                 case 'msg':
                     if (src?.readyState === src?.CLOSED)
                         return stop()
-                    if (data === 'end') {
+                    if (data === 'ready') {
                         flush()
                         setInitializing(false)
                         return
                     }
                     if (data.error)
-                        return setError(data.error)
+                        return setError(err2msg(data.error))
                     if (data.add) {
                         const rec = map(data.add)
                         if (addId)

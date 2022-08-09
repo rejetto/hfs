@@ -32,8 +32,13 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             : await apis[ctx.path](params || {}, ctx)
         if (isAsyncGenerator(res))
             res = asyncGeneratorToReadable(res)
-        if (res instanceof Readable) // Readable, we'll go SSE-mode
-            return res.pipe(createSSE(ctx))
+        if (res instanceof Readable) { // Readable, we'll go SSE-mode
+            res.pipe(createSSE(ctx))
+            const stillRes = res // satisfy ts
+            ctx.req.on('close', () => // by closing the generated stream, creator of the stream will know the request is over without having to access anything else
+                stillRes.destroy())
+            return
+        }
         if (res instanceof ApiError) {
             ctx.body = res.message
             return ctx.status = res.status
@@ -68,15 +73,22 @@ async function getJsonFromReq(req: IncomingMessage): Promise<any> {
 }
 
 // offer an api for a generic dynamic list. Suitable to be the result of an api.
+type SendListFunc<T> = (list:SendListReadable<T>) => void
 export class SendListReadable<T> extends Readable {
     protected lastError: string | number | undefined
-    constructor(addAtStart?: T[]) {
+    constructor(addOrDoAtStart?: T[] | SendListFunc<T>) {
         super({ objectMode: true, read(){} })
-        if (addAtStart) {
-            for (const x of addAtStart)
-                this.add(x)
-            this.end()
+        this.on('end', () =>
+            this.destroy())
+        if (!addOrDoAtStart)
+            return
+        if (typeof addOrDoAtStart === 'function') {
+            setTimeout(() => addOrDoAtStart(this))
+            return
         }
+        for (const x of addOrDoAtStart)
+            this.add(x)
+        this.ready()
     }
     add(rec: T) {
         this.push({ add: rec })
@@ -90,8 +102,8 @@ export class SendListReadable<T> extends Readable {
     close() {
         this.push(null)
     }
-    end() { // useful to indicate the end of an initial phase, but we leave open for updates
-        this.push('end')
+    ready() { // useful to indicate the end of an initial phase, but we leave open for updates
+        this.push('ready')
     }
     error(msg: NonNullable<typeof this.lastError>) {
         this.push({ error: msg })
@@ -107,5 +119,8 @@ export class SendListReadable<T> extends Readable {
         const off = onOff(events, eventMap)
         ctx.res.once('close', off)
         return this
+    }
+    isClosed() {
+        return this.destroyed
     }
 }

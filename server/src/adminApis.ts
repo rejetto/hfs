@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { ApiError, ApiHandlers } from './apiMiddleware'
+import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { defineConfig, getWholeConfig, setConfig } from './config'
 import { getStatus, getUrls, httpsPortCfg, portCfg } from './listen'
 import {
@@ -23,7 +23,6 @@ import _ from 'lodash'
 import events from './events'
 import { getFromAccount } from './perm'
 import Koa from 'koa'
-import { Readable } from 'stream'
 import { getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
 import { createReadStream } from 'fs'
@@ -91,23 +90,31 @@ export const adminApis: ApiHandlers = {
     },
 
     async get_log({ file }, ctx) {
-        const logger = loggers.find(l => l.name === file)
-        if (!logger)
-            return new ApiError(404)
-        const ret = new Readable({ objectMode: true, read(){} })
-        const input = createReadStream(logger.path)
-        readline.createInterface({ input }).on('line', line => {
-            if (ctx.aborted)
-                return input.close()
-            ret.push({ add: parse(line) })
-        }).on('close', () =>  // file is automatically closed, so we continue by events
-            ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
-                [logger.name](entry) {
-                    ret.push({ add: entry })
-                }
-            })))
-
-        return ret
+        return new SendListReadable(list => {
+            const logger = loggers.find(l => l.name === file)
+            if (!logger)
+                return list.error(404)
+            const input = createReadStream(logger.path)
+            input.on('error', async (e: any) => {
+                if (e.code !== 'ENOENT') // ignore ENOENT, consider it an empty log
+                    return list.error(e.code || e.message)
+            })
+            input.on('ready', () => {
+                list.ready()
+                readline.createInterface({ input }).on('line', line => {
+                    if (ctx.aborted)
+                        return input.close()
+                    const obj = parse(line)
+                    if (obj)
+                        list.add(obj)
+                }).on('close', () =>  // file is automatically closed, so we continue by events
+                    ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
+                        [logger.name](entry) {
+                            list.add(entry)
+                        }
+                    })) )
+            })
+        })
 
         function parse(line: string) {
             const m = /^(.+?) - (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (.+)$/.exec(line)
