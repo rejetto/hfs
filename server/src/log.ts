@@ -60,6 +60,7 @@ errorLogFile.sub(path => {
 const logRotation = defineConfig('log_rotation', 'weekly')
 
 export function log(): Koa.Middleware {
+    const debounce = _.debounce(cb => cb(), 1000)
     return async (ctx, next) => {  // wrapping in a function will make it use current 'mw' value
         await next()
         const isError = ctx.status >= 400
@@ -74,7 +75,7 @@ export function log(): Koa.Middleware {
             const passed = Number(now) - Number(last)
                 - 3600_000 // be pessimistic and count a possible DST change
             if (rotate === 'm' && (passed >= 31*DAY || now.getMonth() !== last.getMonth())
-            || rotate === 'd' && (passed >= DAY || now.getDate() !== last.getDate())
+            || rotate === 'd' && (passed >= DAY || now.getDate() !== last.getDate()) // checking passed will solve the case when the day of the month is the same but a month has passed
             || rotate === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
                 stream.end()
                 const postfix = last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
@@ -92,6 +93,8 @@ export function log(): Koa.Middleware {
         const user = getCurrentUsername(ctx)
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status','length']), { user, ts: now, uri: ctx.path }))
         console.debug(ctx.status, ctx.method, ctx.path)
+        debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
+            stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
         stream.write(util.format( format,
             ctx.ip,
             user || '-',
