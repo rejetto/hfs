@@ -137,7 +137,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                                     !isFolder && it.s !== undefined && h(Typography, {
                                         variant: 'body2',
                                         color: 'text.secondary',
-                                        ml: 4
+                                        ml: 4, mr: 1,
                                     }, formatBytes(it.s))
                                 )
                             }
