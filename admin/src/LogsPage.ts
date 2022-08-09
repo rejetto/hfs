@@ -38,6 +38,11 @@ function LogFile({ file }: { file: string }) {
                 maxWidth: 400,
             },
             {
+                field: 'user',
+                headerName: "Username",
+                flex: 1,
+            },
+            {
                 field: 'ts',
                 headerName: "Timestamp",
                 type: 'dateTime',
@@ -62,7 +67,7 @@ function LogFile({ file }: { file: string }) {
             {
                 field: 'uri',
                 headerName: "URI",
-                flex: 1,
+                flex: 2,
                 minWidth: 100,
             },
         ]
