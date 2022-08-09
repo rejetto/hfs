@@ -54,12 +54,12 @@ function LogFile({ file }: { file: string }) {
                 headerName: "Method",
             },
             {
-                field: 'code',
+                field: 'status',
                 headerName: "Code",
                 type: 'number',
             },
             {
-                field: 'size',
+                field: 'length',
                 headerName: "Size",
                 type: 'number',
                 valueFormatter: ({ value }) => formatBytes(value as number)
