@@ -19,7 +19,7 @@ const apis: ApiHandlers = {
     },
 
     get_connections({}, ctx) {
-        const list = new SendListReadable( getConnections().map(c => serializeConnection(c)) )
+        const list = new SendListReadable({ addAtStart: getConnections().map(c => serializeConnection(c)) })
         type Change = Partial<Omit<Connection,'ip'>>
         const throttledUpdate = _.throttle(update, 1000/20) // try to avoid clogging with updates
         const state = Symbol('state') // undefined=added, Timeout=add-pending, false=removed

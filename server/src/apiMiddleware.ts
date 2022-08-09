@@ -4,9 +4,10 @@ import { IncomingMessage } from 'http'
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, objSameKeys, onOff, tryJson } from './misc'
+import { asyncGeneratorToReadable, objSameKeys, onOff, tryJson, wantArray } from './misc'
 import events from './events'
 import { UNAUTHORIZED } from './const'
+import _, { DebouncedFunc } from 'lodash'
 
 export class ApiError extends Error {
     constructor(public status:number, message?:string | Error) {
@@ -76,44 +77,58 @@ async function getJsonFromReq(req: IncomingMessage): Promise<any> {
 type SendListFunc<T> = (list:SendListReadable<T>) => void
 export class SendListReadable<T> extends Readable {
     protected lastError: string | number | undefined
-    constructor(addOrDoAtStart?: T[] | SendListFunc<T>) {
+    protected buffer: any[] = []
+    protected processBuffer: DebouncedFunc<any>
+    constructor({ addAtStart, doAtStart, bufferTime }:{ bufferTime?: number, addAtStart?: T[], doAtStart?: SendListFunc<T> }={}) {
         super({ objectMode: true, read(){} })
+        if (!bufferTime)
+            bufferTime = 100
+        this.processBuffer = _.debounce(() => {
+            this.push(this.buffer)
+            this.buffer = []
+        }, bufferTime, { maxWait: bufferTime })
         this.on('end', () =>
             this.destroy())
-        if (!addOrDoAtStart)
-            return
-        if (typeof addOrDoAtStart === 'function') {
-            setTimeout(() => addOrDoAtStart(this))
-            return
+        if (doAtStart)
+            setTimeout(() => doAtStart(this)) // work later, when list object has been received by Koa
+        if (addAtStart) {
+            for (const x of addAtStart)
+                this.add(x)
+            this.ready()
         }
-        for (const x of addOrDoAtStart)
-            this.add(x)
-        this.ready()
     }
-    add(rec: T) {
-        this.push({ add: rec })
+    protected _push(rec: any) {
+        this.buffer.push(rec)
+        if (this.buffer.length > 10_000) // hard limit
+            this.processBuffer.flush()
+        else
+            this.processBuffer()
+    }
+    add(rec: T | T[]) {
+        this._push({ add: rec })
     }
     remove(key: Partial<T>) {
-        this.push({ remove: [key] })
+        this._push({ remove: [key] })
     }
     update(search: Partial<T>, change: Partial<T>) {
-        this.push({ update:[{ search, change }] })
-    }
-    close() {
-        this.push(null)
+        this._push({ update:[{ search, change }] })
     }
     ready() { // useful to indicate the end of an initial phase, but we leave open for updates
-        this.push('ready')
+        this._push('ready')
+    }
+    custom(data: any) {
+        this._push(data)
     }
     error(msg: NonNullable<typeof this.lastError>) {
-        this.push({ error: msg })
+        this._push({ error: msg })
         this.lastError = msg
     }
     getLastError() {
         return this.lastError
     }
-    custom(data: any) {
-        this.push(data)
+    close() {
+        this.processBuffer.flush()
+        this.push(null)
     }
     events(ctx: Koa.Context, eventMap: Parameters<typeof onOff>[1]) {
         const off = onOff(events, eventMap)

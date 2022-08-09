@@ -134,3 +134,8 @@ export function err2msg(code: string) {
         ENOTDIR: "Not a folder",
     }[code] || code
 }
+
+export function wantArray<T>(x?: void | T | T[]) {
+    return x == null ? [] : Array.isArray(x) ? x : [x]
+}
+

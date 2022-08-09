@@ -147,6 +147,7 @@ export function useApiEvents(cmd: string, params: Dict={}) {
 export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=false, map=((x:any)=>x) }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [error, setError] = useStateMounted<any>(undefined)
+    const [connecting, setConnecting] = useStateMounted(true)
     const [loading, setLoading] = useStateMounted(false)
     const [initializing, setInitializing] = useStateMounted(true)
     const idRef = useRef(0)
@@ -160,11 +161,13 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
         }, 1000, { maxWait: 1000 })
         setError(undefined)
         setLoading(true)
+        setConnecting(true)
         setInitializing(true)
         setList([])
         const src = apiEvents(cmd, params, (type, data) => {
             switch (type) {
                 case 'connected':
+                    setConnecting(false)
                     return setTimeout(() => apply.flush()) // this trick we'll cause first entries to be rendered almost immediately, while the rest will be subject to normal debouncing
                 case 'error':
                     setError("Connection error")
@@ -172,54 +175,56 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                 case 'closed':
                     return stop()
                 case 'msg':
-                    if (src?.readyState === src?.CLOSED)
-                        return stop()
-                    if (data === 'ready') {
-                        apply.flush()
-                        setInitializing(false)
-                        return
-                    }
-                    if (data.error)
-                        return setError(err2msg(data.error))
-                    if (data.add) {
-                        const rec = map(data.add)
-                        if (addId)
-                            rec.id = ++idRef.current
-                        buffer.push(rec)
-                        apply()
-                        return
-                    }
-                    if (data.remove) {
-                        const matchOnList: ReturnType<typeof _.matches>[] = []
-                        // first remove from the buffer
-                        for (const key of data.remove) {
-                            const match1 = _.matches(key)
-                            if (_.isEmpty(_.remove(buffer, match1)))
-                                matchOnList.push(match1)
-                        }
-                        // then work the hooked state
-                        if (_.isEmpty(matchOnList))
+                    wantArray(data).forEach(data => {
+                        if (data === 'ready') {
+                            apply.flush()
+                            setInitializing(false)
                             return
-                        setList(list => {
-                            const filtered = list.filter(rec => !matchOnList.some(match1 => match1(rec)))
-                            return filtered.length < list.length ? filtered : list // avoid unnecessary changes
-                        })
-                        return
-                    }
-                    if (data.update) {
-                        apply.flush() // avoid treating buffer
-                        setList(list => {
-                            const modified = [...list]
-                            for (const { search, change } of data.update) {
-                                const idx = modified.findIndex(_.matches(search))
-                                if (idx >= 0)
-                                    modified[idx] = { ...modified[idx], ...change }
+                        }
+                        if (data.error)
+                            return setError(err2msg(data.error))
+                        if (data.add) {
+                            const rec = map(data.add)
+                            if (addId)
+                                rec.id = ++idRef.current
+                            buffer.push(rec)
+                            apply()
+                            return
+                        }
+                        if (data.remove) {
+                            const matchOnList: ReturnType<typeof _.matches>[] = []
+                            // first remove from the buffer
+                            for (const key of data.remove) {
+                                const match1 = _.matches(key)
+                                if (_.isEmpty(_.remove(buffer, match1)))
+                                    matchOnList.push(match1)
                             }
-                            return modified
-                        })
-                        return
-                    }
-                    console.debug('unknown api event', type, data)
+                            // then work the hooked state
+                            if (_.isEmpty(matchOnList))
+                                return
+                            setList(list => {
+                                const filtered = list.filter(rec => !matchOnList.some(match1 => match1(rec)))
+                                return filtered.length < list.length ? filtered : list // avoid unnecessary changes
+                            })
+                            return
+                        }
+                        if (data.update) {
+                            apply.flush() // avoid treating buffer
+                            setList(list => {
+                                const modified = [...list]
+                                for (const { search, change } of data.update) {
+                                    const idx = modified.findIndex(_.matches(search))
+                                    if (idx >= 0)
+                                        modified[idx] = { ...modified[idx], ...change }
+                                }
+                                return modified
+                            })
+                            return
+                        }
+                        console.debug('unknown api event', type, data)
+                    })
+                    if (src?.readyState === src?.CLOSED)
+                        stop()
             }
         })
 
@@ -231,7 +236,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
             apply.flush()
         }
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, loading, error, initializing, setList, updateList }
+    return { list, loading, error, initializing, connecting, setList, updateList }
 
     function updateList(cb: (toModify: Draft<typeof list>) => void) {
         setList(produce(list, x => {

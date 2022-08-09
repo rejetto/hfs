@@ -18,7 +18,7 @@ import { downloadPlugin, getFolder2repo, getRepoInfo, readOnlinePlugin, searchPl
 const apis: ApiHandlers = {
 
     get_plugins({}, ctx) {
-        const list = new SendListReadable([ ...mapPlugins(serialize), ...getAvailablePlugins() ])
+        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize), ...getAvailablePlugins() ] })
         return list.events(ctx, {
             pluginInstalled: p => list.add(serialize(p)),
             'pluginStarted pluginStopped pluginUpdated': p => {
@@ -74,45 +74,44 @@ const apis: ApiHandlers = {
     },
 
     search_online_plugins({ text }, ctx) {
-        const list = new SendListReadable()
-        setTimeout(async () => {
-            try {
-                const folder2repo = getFolder2repo()
-                for await (const pl of searchPlugins(text)) {
-                    const repo = pl.id
-                    const folder = _.findKey(folder2repo, x => x === repo)
-                    const installed = folder && getPluginInfo(folder)
-                    Object.assign(pl, {
-                        installed: _.includes(folder2repo, repo),
-                        update: installed && installed.version < pl.version!,
-                    })
-                    list.add(pl)
-                    // watch for events about this plugin, until this request is closed
-                    ctx.req.on('close', onOff(events, {
-                        pluginInstalled: p => {
-                            if (p.repo === repo)
-                                list.update({ id: repo }, { installed: true })
-                        },
-                        pluginUninstalled: folder => {
-                            if (repo === getFolder2repo()[folder])
-                                list.update({ id: repo }, { installed: false })
-                        },
-                        pluginUpdated: p => {
-                            if (p.repo === repo)
-                                list.update({ id: repo }, { update: p.version < pl.version! })
-                        },
-                        ['pluginDownload_'+repo](status) {
-                            list.update({ id: repo }, { downloading: status ?? null })
-                        }
-                    }) )
+        return new SendListReadable({
+            async doAtStart(list) {
+                try {
+                    const folder2repo = getFolder2repo()
+                    for await (const pl of searchPlugins(text)) {
+                        const repo = pl.id
+                        const folder = _.findKey(folder2repo, x => x === repo)
+                        const installed = folder && getPluginInfo(folder)
+                        Object.assign(pl, {
+                            installed: _.includes(folder2repo, repo),
+                            update: installed && installed.version < pl.version!,
+                        })
+                        list.add(pl)
+                        // watch for events about this plugin, until this request is closed
+                        ctx.req.on('close', onOff(events, {
+                            pluginInstalled: p => {
+                                if (p.repo === repo)
+                                    list.update({ id: repo }, { installed: true })
+                            },
+                            pluginUninstalled: folder => {
+                                if (repo === getFolder2repo()[folder])
+                                    list.update({ id: repo }, { installed: false })
+                            },
+                            pluginUpdated: p => {
+                                if (p.repo === repo)
+                                    list.update({ id: repo }, { update: p.version < pl.version! })
+                            },
+                            ['pluginDownload_' + repo](status) {
+                                list.update({ id: repo }, { downloading: status ?? null })
+                            }
+                        }))
+                    }
+                } catch (err: any) {
+                    list.error(err.code || err.message)
                 }
+                list.ready()
             }
-            catch (err: any) {
-                list.error(err.code || err.message)
-            }
-            list.ready()
         })
-        return list
     },
 
     async download_plugin(pl) {

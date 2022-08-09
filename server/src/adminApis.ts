@@ -90,30 +90,33 @@ export const adminApis: ApiHandlers = {
     },
 
     async get_log({ file }, ctx) {
-        return new SendListReadable(list => {
-            const logger = loggers.find(l => l.name === file)
-            if (!logger)
-                return list.error(404)
-            const input = createReadStream(logger.path)
-            input.on('error', async (e: any) => {
-                if (e.code !== 'ENOENT') // ignore ENOENT, consider it an empty log
-                    return list.error(e.code || e.message)
-            })
-            input.on('ready', () => {
-                list.ready()
-                readline.createInterface({ input }).on('line', line => {
-                    if (ctx.aborted)
-                        return input.close()
-                    const obj = parse(line)
-                    if (obj)
-                        list.add(obj)
-                }).on('close', () =>  // file is automatically closed, so we continue by events
-                    ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
-                        [logger.name](entry) {
-                            list.add(entry)
-                        }
-                    })) )
-            })
+        return new SendListReadable({
+            bufferTime: 10,
+            doAtStart(list) {
+                const logger = loggers.find(l => l.name === file)
+                if (!logger)
+                    return list.error(404)
+                const input = createReadStream(logger.path)
+                input.on('error', async (e: any) => {
+                    if (e.code !== 'ENOENT') // ignore ENOENT, consider it an empty log
+                        return list.error(e.code || e.message)
+                })
+                input.on('ready', () => {
+                    readline.createInterface({ input }).on('line', line => {
+                        if (ctx.aborted)
+                            return input.close()
+                        const obj = parse(line)
+                        if (obj)
+                            list.add(obj)
+                    }).on('close', () => { // file is automatically closed, so we continue by events
+                        ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
+                            [logger.name](entry) {
+                                list.add(entry)
+                            }
+                        }))
+                    })
+                })
+            }
         })
 
         function parse(line: string) {
