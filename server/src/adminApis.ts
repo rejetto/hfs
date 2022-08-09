@@ -89,13 +89,13 @@ export const adminApis: ApiHandlers = {
         return files
     },
 
-    async get_log({ file }, ctx) {
+    async get_log({ file='log' }, ctx) {
         return new SendListReadable({
             bufferTime: 10,
             doAtStart(list) {
                 const logger = loggers.find(l => l.name === file)
                 if (!logger)
-                    return list.error(404)
+                    return list.error(404, true)
                 const input = createReadStream(logger.path)
                 input.on('error', async (e: any) => {
                     if (e.code !== 'ENOENT') // ignore ENOENT, consider it an empty log
@@ -120,9 +120,9 @@ export const adminApis: ApiHandlers = {
         })
 
         function parse(line: string) {
-            const m = /^(.+?) - (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (.+)$/.exec(line)
+            const m = /^(.+?) (.+?) (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (-|\d+)/.exec(line)
             if (!m) return
-            const [, ip, user, date, time, method, uri, status, length] = m
+            const [, ip, , user, date, time, method, uri, status, length] = m
             return { // keep object format same as events emitted by the log module
                 ip,
                 user: user === '-' ? undefined : user,
