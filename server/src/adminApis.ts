@@ -110,14 +110,17 @@ export const adminApis: ApiHandlers = {
         return ret
 
         function parse(line: string) {
-            const m = /^(.+) - - \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (.+)$/.exec(line)
-            return m && { // keep object format same as events emitted by the log module
-                ip: m[1],
-                ts: new Date(m[2] + ' ' + m[3]),
-                method: m[4],
-                uri: m[5],
-                code: Number(m[6]),
-                size: m[7] === '-' ? undefined : Number(m[7])
+            const m = /^(.+?) - (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (.+)$/.exec(line)
+            if (!m) return
+            const [, ip, user, date, time, method, uri, code, size] = m
+            return { // keep object format same as events emitted by the log module
+                ip,
+                user: user === '-' ? undefined : user,
+                ts: new Date(date + ' ' + time),
+                method,
+                uri,
+                code: Number(code),
+                size: size === '-' ? undefined : Number(size),
             }
         }
     },
