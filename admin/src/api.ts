@@ -153,18 +153,19 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
     useEffect(() => {
         if (!cmd) return
         const buffer: T[] = []
-        const flush = () => {
+        const apply = _.debounce(() => {
             const chunk = buffer.splice(0, Infinity)
             if (chunk.length)
                 setList(list => [ ...list, ...chunk ])
-        }
+        }, 1000, { maxWait: 1000 })
         setError(undefined)
         setLoading(true)
         setInitializing(true)
         setList([])
-        const timer = setInterval(flush, 1000)
         const src = apiEvents(cmd, params, (type, data) => {
             switch (type) {
+                case 'connected':
+                    return setTimeout(() => apply.flush()) // this trick we'll cause first entries to be rendered almost immediately, while the rest will be subject to normal debouncing
                 case 'error':
                     setError("Connection error")
                     return stop()
@@ -174,7 +175,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                     if (src?.readyState === src?.CLOSED)
                         return stop()
                     if (data === 'ready') {
-                        flush()
+                        apply.flush()
                         setInitializing(false)
                         return
                     }
@@ -184,7 +185,9 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                         const rec = map(data.add)
                         if (addId)
                             rec.id = ++idRef.current
-                        return buffer.push(rec)
+                        buffer.push(rec)
+                        apply()
+                        return
                     }
                     if (data.remove) {
                         const matchOnList: ReturnType<typeof _.matches>[] = []
@@ -204,7 +207,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                         return
                     }
                     if (data.update) {
-                        flush() // avoid treating buffer
+                        apply.flush() // avoid treating buffer
                         setList(list => {
                             const modified = [...list]
                             for (const { search, change } of data.update) {
@@ -220,16 +223,12 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
             }
         })
 
-        return () => {
-            src.close()
-            stop()
-        }
+        return () => src.close()
 
         function stop() {
             setInitializing(false)
             setLoading(false)
-            clearInterval(timer)
-            flush()
+            apply.flush()
         }
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
     return { list, loading, error, initializing, setList, updateList }

@@ -17,11 +17,11 @@ export default function LogsPage() {
 }
 
 function LogFile({ file }: { file: string }) {
-    const { list, error } = useApiList('get_log', { file }, { addId: true })
+    const { list, error, initializing } = useApiList('get_log', { file }, { addId: true })
     if (error)
         return error
     return h(DataGrid, {
-        loading: !list,
+        loading: initializing,
         rows: list as any,
         componentsProps: {
             pagination: {
