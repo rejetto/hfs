@@ -2,12 +2,12 @@
 
 import Koa from 'koa'
 import fs from 'fs/promises'
-import { METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI, UNAUTHORIZED } from './const'
+import { METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI } from './const'
 import { serveFile } from './serveFile'
 import { mapPlugins } from './plugins'
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
-import path from 'path'
+import { join, extname } from 'path'
 import { getOrSet } from './misc'
 
 // in case of dev env we have our static files within the 'dist' folder'
@@ -25,10 +25,11 @@ function serveStatic(uri: string): Koa.Middleware {
         if (ctx.method !== 'GET')
             return ctx.status = METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
-        const fullPath = path.join(__dirname, '..', DEV_STATIC, folder, serveApp ? '/index.html': ctx.path)
+        const fullPath = join(__dirname, '..', DEV_STATIC, folder, serveApp ? '/index.html': ctx.path)
         const content = await getOrSet(cache, ctx.path, async () => {
             const data = await fs.readFile(fullPath).catch(() => null)
-            return serveApp || !data ? data : adjustWebpackLinks(ctx.path, uri, data)
+            return serveApp || !data ? data
+                : adjustBundlerLinks(ctx.path, uri, data)
         })
         if (content === null)
             return ctx.status = 404
@@ -45,10 +46,10 @@ function shouldServeApp(ctx: Koa.Context) {
     return ctx.state.serveApp ||= ctx.path.endsWith('/')
 }
 
-function adjustWebpackLinks(path: string, uri: string, data: string | Buffer) {
-    return path.startsWith('/static/js') // webpack
-        ? String(data).replace(/(")(static\/)/g, '$1' + uri.substring(1) + '$2')
-        : data
+function adjustBundlerLinks(path: string, uri: string, data: string | Buffer) {
+    const ext = extname(path)
+    return ext && !ext.match(/\.(css|html|js|ts|scss)/) ? data
+        : String(data).replace(/((?:import | from )['"])\//g, `$1${uri}`)
 }
 
 async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
@@ -72,7 +73,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
                 shouldServeApp(ctx) ? '/' : ctx.path,
             userResDecorator(res, data, ctx) {
                 return shouldServeApp(ctx) ? treatIndex(ctx, String(data), uri)
-                    : adjustWebpackLinks(ctx.path, uri, data)
+                    : adjustBundlerLinks(ctx.path, uri, data)
             }
         }) )
     return function() { //@ts-ignore

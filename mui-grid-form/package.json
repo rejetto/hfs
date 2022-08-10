@@ -13,7 +13,6 @@
   "devDependencies": {
     "react": "*",
     "react-dom": "*",
-    "react-scripts": "*",
     "typescript": "*"
   }
 }

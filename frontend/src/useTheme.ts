@@ -2,15 +2,15 @@
 
 import { useSnapState } from './state'
 import { useEffect } from 'react'
-import { useMediaQuery } from '@mui/material'
+import { useDarkMode } from 'usehooks-ts'
 
 export default function useTheme() {
     const { theme } = useSnapState()
-    const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
+    const { isDarkMode } = useDarkMode()
     useEffect(()=>{
         const e = document.body
         if (!e) return
-        const name = theme || (systemDark ? 'dark' : 'light')
+        const name = theme || (isDarkMode ? 'dark' : 'light')
         const pre = 'theme-'
         const ct = pre + name
         const list = e.classList
@@ -19,5 +19,5 @@ export default function useTheme() {
                 list.remove(c)
         if (name)
             list.add(ct)
-    }, [theme, systemDark])
+    }, [theme, isDarkMode])
 }

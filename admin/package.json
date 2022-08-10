@@ -3,11 +3,10 @@
   "private": true,
   "proxy": "http://localhost",
   "scripts": {
-    "start": "react-app-rewired start",
-    "build": "cross-env GENERATE_SOURCEMAP=false BUILD_PATH='../dist/admin' react-app-rewired build",
-    "test": "react-app-rewired test",
-    "test-dep": "npm audit --production",
-    "eject": "react-scripts eject"
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test-dep": "npm audit --production"
   },
   "dependencies": {
     "@emotion/react": "^11.10.0",
@@ -25,6 +24,7 @@
     "react-window": "^1.8.6",
     "tssrp6a": "^3.0.0",
     "valtio": "^1.2.9",
+    "immer": "^9.0.15",
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
@@ -33,10 +33,8 @@
     "@types/react-dom": "^18.0.6",
     "@types/react-window": "^1.8.5",
     "@types/react-virtualized-auto-sizer": "^1.0.1",
-    "react-app-rewired": "^2.2.1",
-    "babel-plugin-direct-import": "^1.0.0",
-    "customize-cra": "^1.0.0",
-    "react-scripts": "^5.0.1"
+    "vite": "^3.0.0",
+    "vite-plugin-babel-import": "github:rejetto/vite-plugin-babel-import"
   },
   "eslintConfig": {
     "extends": [

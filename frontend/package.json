@@ -3,11 +3,10 @@
   "private": true,
   "proxy": "http://localhost",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "cross-env GENERATE_SOURCEMAP=false BUILD_PATH='../dist/frontend' react-scripts build",
-    "test": "react-scripts test",
-    "test-dep": "npm audit --production",
-    "eject": "react-scripts eject"
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test-dep": "npm audit --production"
   },
   "dependencies": {
     "@hfs/shared": "*",
@@ -18,6 +17,7 @@
     "react-router-dom": "^6.1.1",
     "tssrp6a": "^3.0.0",
     "use-debounce": "^7.0.1",
+    "usehooks-ts": "^2.6.0",
     "valtio": "^1.2.7",
     "web-vitals": "^2.1.4"
   },
@@ -27,8 +27,8 @@
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
     "cross-env": "^7.0.3",
-    "react-scripts": "^5.0.1",
-    "sass": "^1.45.0"
+    "sass": "^1.54.5",
+    "vite": "^3.0.0"
   },
   "eslintConfig": {
     "extends": [
