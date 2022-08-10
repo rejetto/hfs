@@ -4,9 +4,10 @@
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - easier nat life
   - show public ip use, https://github.com/sindresorhus/public-ip
-  - configure router with upnp. If it fails, suggest a guide
+  - configure router with upnp. If it fails, suggest a guide. https://github.com/indutny/node-nat-upnp
   - offer ddns registration/update
 - use dialogs instead of side-forms on mobile (admin/fs+accounts)
+- blacklist of plugins (as a temporary measure until GitHub's intervention)
 - admin/fs: sort items
 - admin/fs: render virtual folders differently
 - admin/config: hide advanced settings

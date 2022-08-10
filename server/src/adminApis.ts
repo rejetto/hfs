@@ -146,8 +146,8 @@ for (const k in adminApis) {
 export const localhostAdmin = defineConfig('localhost_admin', true)
 
 export function ctxAdminAccess(ctx: Koa.Context) {
-    return isLocalHost(ctx) && localhostAdmin.get()
-            && !ctx.state.proxiedFor // this may detect an http-proxied request on localhost
+    return !ctx.state.proxiedFor // we consider localhost_admin only if no proxy is detected
+        && localhostAdmin.get() && isLocalHost(ctx)
         || getFromAccount(ctx.state.account, a => a.admin)
 }
 
