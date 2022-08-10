@@ -53,23 +53,24 @@ export default function useFetchList() {
                     state.loading = false
                     return
                 case 'msg':
+                    data.forEach((data: any) => {
+                        if (data.add)
+                            return buffer.push(data.add)
+                        const { error } = data
+                        if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
+                            state.messageOnly = "Your download should now start"
+                            window.location.reload() // reload will start the download, because now we got authenticated
+                            return
+                        }
+                        if (error) {
+                            state.stopSearch?.()
+                            state.error = (ERRORS as any)[error] || String(error)
+                            state.loginRequired = error === 401
+                            return
+                        }
+                    })
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()
-                    if (!data) return
-                    if (data.add)
-                        return buffer.push(data.add)
-                    const { error } = data
-                    if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
-                        state.messageOnly = "Your download should now start"
-                        window.location.reload() // reload will start the download, because now we got authenticated
-                        return
-                    }
-                    if (error) {
-                        state.stopSearch?.()
-                        state.error = (ERRORS as any)[error] || String(error)
-                        state.loginRequired = error === 401
-                        return
-                    }
             }
         })
         state.stopSearch = ()=>{
