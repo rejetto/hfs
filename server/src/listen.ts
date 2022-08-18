@@ -171,7 +171,7 @@ export function getStatus() {
     }
 }
 
-const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*)$/i // avoid giving too much information
+const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
 export function getUrls() {
     return Object.fromEntries(onlyTruthy([httpSrv, httpsSrv].map(srv => {
@@ -195,7 +195,9 @@ export function getUrls() {
 function printUrls(port: number, proto: string) {
     if (!port) return
     for (const [name, nets] of Object.entries(networkInterfaces())) {
-        if (!nets || ignore.test(name)) continue
+        if (!nets) continue
+        const filteredNets = nets.filter(n => !n.internal)
+        if (!filteredNets.length || ignore.test(name)) continue
         console.log('network', name)
         for (const net of nets) {
             if (net.internal) continue
