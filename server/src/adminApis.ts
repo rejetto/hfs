@@ -98,9 +98,12 @@ export const adminApis: ApiHandlers = {
                     return list.error(404, true)
                 const input = createReadStream(logger.path)
                 input.on('error', async (e: any) => {
-                    if (e.code !== 'ENOENT') // ignore ENOENT, consider it an empty log
-                        return list.error(e.code || e.message)
+                    if (e.code === 'ENOENT') // ignore ENOENT, consider it an empty log
+                        return list.ready()
+                    list.error(e.code || e.message)
                 })
+                input.on('end', () =>
+                    list.ready())
                 input.on('ready', () => {
                     readline.createInterface({ input }).on('line', line => {
                         if (ctx.aborted)
