@@ -58,7 +58,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                     alignItems: 'center',
                 }
             },
-                !name ? iconTooltip(Home, "home, or root if you like")
+                isRoot ? iconTooltip(Home, "home, or root if you like")
                     : folder ? iconTooltip(FolderIcon, "Folder")
                         : iconTooltip(FileIcon, "File"),
                 isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
@@ -89,7 +89,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 }
             }),
             nodeId: id
-        }, isRoot && !node.children?.length ? "nothing here" : node.children?.map(recur))
+        }, isRoot && !node.children?.length ? h('i', {}, "nothing here") : node.children?.map(recur))
     }
 
 }
