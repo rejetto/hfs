@@ -11,7 +11,7 @@ import { join, extname } from 'path'
 import { getOrSet } from './misc'
 
 // in case of dev env we have our static files within the 'dist' folder'
-const DEV_STATIC = process.env.DEV ? '../dist/' : ''
+const DEV_STATIC = process.env.DEV ? 'dist/' : ''
 
 function serveStatic(uri: string): Koa.Middleware {
     const folder = uri.slice(2,-1) // we know folder is very similar to uri
