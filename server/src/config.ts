@@ -11,23 +11,25 @@ import { promisify } from 'util'
 import { join } from 'path'
 import events from './events'
 
-const PATH = 'config.yaml'
+const FILE = 'config.yaml'
 
-const configProps:Record<string, ConfigProps<any>> = {}
+const configProps: Record<string, ConfigProps<any>> = {}
 
 let started = false // this will tell the difference for subscribeConfig()s that are called before or after config is loaded
 let state: Record<string, any> = {}
 const cfgEvents = new EventEmitter()
 cfgEvents.setMaxListeners(10_000)
-const path = with_(argv.config || process.env.HFS_CONFIG || PATH, p => {
+const path = with_(argv.config || process.env.HFS_CONFIG, p => {
+    if (!p)
+        return FILE
     try {
         if (statSync(p).isDirectory()) // try to detect if path points to a folder, in which case we add the standard filename
-            return join(p, PATH)
+            return join(p, FILE)
     }
     catch {}
-    console.log("config", p)
     return p
 })
+console.log("config", path)
 const { save } = watchLoad(path, values => setConfig(values||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
