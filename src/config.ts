@@ -1,14 +1,14 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import EventEmitter from 'events'
-import { argv } from './const'
+import { APP_PATH, argv, ORIGINAL_CWD } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
 import { debounceAsync, same, objSameKeys, onOff, wait, with_ } from './misc'
-import { exists, statSync } from 'fs'
+import { copyFileSync, exists, existsSync, renameSync, statSync } from 'fs'
 import { promisify } from 'util'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import events from './events'
 
 const FILE = 'config.yaml'
@@ -22,6 +22,7 @@ cfgEvents.setMaxListeners(10_000)
 const path = with_(argv.config || process.env.HFS_CONFIG, p => {
     if (!p)
         return FILE
+    p = resolve(ORIGINAL_CWD, p)
     try {
         if (statSync(p).isDirectory()) // try to detect if path points to a folder, in which case we add the standard filename
             return join(p, FILE)
@@ -30,6 +31,19 @@ const path = with_(argv.config || process.env.HFS_CONFIG, p => {
     return p
 })
 console.log("config", path)
+const legacyPosition = join(APP_PATH, FILE)
+if (!existsSync(path) && existsSync(legacyPosition))
+    try {
+        renameSync(legacyPosition, path)
+        console.log("moved from legacy position", legacyPosition)
+    }
+    catch {
+        try { // attempt copying, in case moving the source file proves to be impractical
+            copyFileSync(legacyPosition, path)
+            console.log("copied from legacy position", legacyPosition)
+        }
+        catch {}
+    }
 const { save } = watchLoad(path, values => setConfig(values||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")

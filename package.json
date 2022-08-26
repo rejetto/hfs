@@ -23,7 +23,7 @@
     "build-admin": "npm run build --workspace=admin",
     "build-shared": "npm run build --workspace=shared",
     "build-form": "npm run build --workspace=mui-grid-form",
-    "server-for-test": "cross-env HFS_CONFIG=tests node dist/src",
+    "server-for-test": "node dist/src --cwd . --config tests",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "dist-node": "cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-* *.log logs",
     "dist-win": "pkg . -C gzip -t node16-win && cd dist && zip hfs-windows.zip hfs.exe -r plugins",

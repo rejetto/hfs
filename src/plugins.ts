@@ -3,8 +3,8 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import pathLib from 'path'
-import { API_VERSION, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
+import pathLib, { join } from 'path'
+import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import { Callback, debounceAsync, Dict, getOrSet, onProcessExit, same, tryJson, wantArray, watchDir } from './misc'
@@ -198,7 +198,8 @@ export async function rescan() {
     console.debug('scanning plugins')
     const found = []
     const foundDisabled: typeof availablePlugins = {}
-    for (let f of await glob(PATH+'/*/plugin.js')) {
+    const MASK = join(PATH, '*', 'plugin.js')
+    for (const f of await glob([join(APP_PATH, MASK), MASK])) {
         const id = f.split('/').slice(-2)[0]
         if (id.endsWith(DISABLING_POSTFIX)) continue
         if (!enablePlugins.get().includes(id)) {

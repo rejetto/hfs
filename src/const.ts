@@ -2,10 +2,14 @@
 
 import minimist from 'minimist'
 import * as fs from 'fs'
+import { homedir } from 'os'
 import _ from 'lodash'
+import { mkdirSync } from 'fs'
+import { join, resolve } from 'path'
 
 export const argv = minimist(process.argv.slice(2))
 export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
+export const ORIGINAL_CWD = process.cwd()
 export const HFS_STARTED = new Date()
 export const BUILD_TIMESTAMP = ''
 export const VERSION = ''
@@ -29,6 +33,8 @@ export const UNAUTHORIZED = 401
 
 export const IS_WINDOWS = process.platform === 'win32'
 
+export const APP_PATH = resolve(__dirname + '/..')
+
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()
 else console.debug = ()=>{}
@@ -37,5 +43,16 @@ console.log(`License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
+if (argv.cwd)
+    process.chdir(argv.cwd)
+else if (!process.argv0.endsWith('.exe')) { // still considering whether to use this behavior with Windows users, who may be less accustomed to it
+    const dir = join(homedir(), '.hfs')
+    try { mkdirSync(dir) }
+    catch(e: any) {
+        if (e.code !== 'EEXIST')
+            console.error(e)
+    }
+    process.chdir(dir)
+}
 console.log('cwd', process.cwd())
 
