@@ -121,7 +121,7 @@ export function objRenameKey(o: Dict | undefined, from: string, to: string) {
     return true
 }
 
-export function typedKeys<T>(o: T) {
+export function typedKeys<T extends {}>(o: T) {
     return Object.keys(o) as (keyof T)[]
 }
 

@@ -89,7 +89,7 @@ export async function manipulateConfig(k: string, work:(data:any) => any) {
         await apiCall('set_config', { values: { [k]: will } })
 }
 
-export function typedKeys<T>(o: T) {
+export function typedKeys<T extends {}>(o: T) {
     return Object.keys(o) as (keyof T)[]
 }
 
