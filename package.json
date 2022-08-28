@@ -62,7 +62,7 @@
     "@koa/router": "^10.1.1",
     "@node-rs/crc32": "^1.5.1",
     "basic-auth": "^2.0.1",
-    "buffer-crc32": "https://github.com/rejetto/buffer-crc32.git",
+    "buffer-crc32": "^0.2.13",
     "cidr-tools": "^4.3.0",
     "fast-glob": "^3.2.7",
     "find-process": "^1.4.7",
