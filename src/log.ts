@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import { Writable } from 'stream'
 import { defineConfig } from './config'
-import { createWriteStream, existsSync, renameSync, WriteStream } from 'fs'
+import { createWriteStream, renameSync } from 'fs'
 import * as util from 'util'
 import { mkdir, stat } from 'fs/promises'
 import { DAY } from './const'
@@ -32,12 +32,14 @@ class Logger {
         }
         catch {
             await mkdir(dirname(path), { recursive: true })
+                .catch(() => console.log("cannot create folder for", path))
         }
         this.reopen()
     }
 
     reopen() {
         return this.stream = createWriteStream(this.path, { flags: 'a' })
+            .on('error', () => this.stream = undefined)
     }
 }
 
@@ -86,6 +88,7 @@ export function log(): Koa.Middleware {
                     console.error(e)
                 }
                 stream = logger.reopen() // keep variable updated
+                if (!stream) return
             }
         }
         const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s\n' // Apache's Common Log Format
@@ -112,19 +115,14 @@ function doubleDigit(n: number) {
     return n > 9 ? n : '0'+n
 }
 
-{ // dump console.error to file
+// dump console.error to file
+const debugLogFile = createWriteStream('debug.log', { flags: 'a' })
+debugLogFile.on('open', () => {
     const was = console.error
     console.error = function(...args: any[]) {
         was.apply(this, args)
-        debugLog(...args)
+        const params = args.map(x =>
+            typeof x === 'string' ? x : JSON.stringify(x)).join(' ')
+        debugLogFile.write(new Date().toLocaleString() + ': ' + params + '\n')
     }
-}
-
-let debugLogFile: WriteStream
-export function debugLog(...args: any[]) {
-    if (!debugLogFile || !existsSync(debugLogFile.path))
-        debugLogFile = createWriteStream('debug.log', { flags: 'a' })
-    const params = args.map(x =>
-        typeof x === 'string' ? x : JSON.stringify(x)).join(' ')
-    debugLogFile.write(new Date().toLocaleString() + ': ' + params + '\n')
-}
+}).on('error', () => console.log("cannot create debug.log"))
