@@ -3,7 +3,6 @@
 import minimist from 'minimist'
 import * as fs from 'fs'
 import { homedir } from 'os'
-import _ from 'lodash'
 import { mkdirSync } from 'fs'
 import { join, resolve } from 'path'
 
@@ -11,9 +10,10 @@ export const argv = minimist(process.argv.slice(2))
 export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
 export const ORIGINAL_CWD = process.cwd()
 export const HFS_STARTED = new Date()
-export const BUILD_TIMESTAMP = ''
-export const VERSION = ''
-    || DEV && String(_.attempt(() => JSON.parse(fs.readFileSync('package.json','utf8')).version)) // this should happen only in dev, build fills this value
+const PKG_PATH = join(__dirname, '..', 'package.json')
+export const BUILD_TIMESTAMP = fs.statSync(PKG_PATH).mtime.toISOString()
+const pkg = JSON.parse(fs.readFileSync(PKG_PATH,'utf8'))
+export const VERSION = pkg.version
 export const DAY = 86_400_000
 export const SESSION_DURATION = DAY
 

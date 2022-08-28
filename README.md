@@ -60,9 +60,13 @@ If you don't like this behavior, disable it in the Admin panel or enter this con
 
 If your system is not Windows/Linux/Mac, you can try this alternative version:
 
-1. install node.js version 16+ from https://nodejs.org/
-2. download and unzip `hfs-node.zip`
-3. launch `./run`
+0. [install node.js](https://nodejs.org)
+1. execute: `sudo npm -g i hfs`
+2. launch: `hfs`
+
+Configuration and other files will be stored in `USER_HOME_FOLDER/.vfs`
+
+With this installation method, you can update with `sudo npm -g update hfs` .
 
 ## Plug-ins
 

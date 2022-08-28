@@ -18,17 +18,19 @@
     "start-frontend": "npm run start --workspace=frontend",
     "start-admin": "npm run start --workspace=admin",
     "build-all": "npm audit --omit=dev && rm -rf dist && npm i && npm run build-shared && npm run build-server && npm run build-form && npm run build-frontend && npm run build-admin && echo COMPLETED",
-    "build-server": "rm -rf dist/src dist/plugins && tsc --target es2018 && cp -v -r package-lock.json package.json plugins dist && cd dist && npm ci --omit=dev && npm i -f --omit=dev @node-rs/crc32-win32-x64-msvc && cd .. && node afterbuild",
+    "build-server": "rm -rf dist/src dist/plugins && tsc --target es2018 && touch package.json && cp -v -r package.json README* LICENSE* plugins dist && find dist -name .DS_Store -delete",
     "build-frontend": "npm run build --workspace=frontend",
     "build-admin": "npm run build --workspace=admin",
     "build-shared": "npm run build --workspace=shared",
     "build-form": "npm run build --workspace=mui-grid-form",
     "server-for-test": "node dist/src --cwd . --config tests",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
-    "dist-node": "cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-* *.log logs",
-    "dist-win": "pkg . -C gzip -t node16-win && cd dist && zip hfs-windows.zip hfs.exe -r plugins",
-    "dist-bin": "pkg . -C gzip && cd dist && mv -f hfs-win.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos hfs && zip hfs-mac.zip hfs -r plugins && rm hfs",
-    "dist": "npm run build-all && npm run dist-bin"
+    "pub": "cd dist && npm publish",
+    "dist": "npm run build-all && npm run dist-bin",
+    "dist-bin": "npm run dist-modules && cd dist && pkg . -C gzip && mv -f hfs-win.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos hfs && zip hfs-mac.zip hfs -r plugins && rm hfs",
+    "dist-modules": "cp package*.json dist && cd dist && npm ci --omit=dev && npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc && rm package-lock.json && cd .. && node prune_modules",
+    "dist-win": "npm run dist-modules && pkg . -C gzip -t node16-win && cd dist && zip hfs-windows.zip hfs.exe -r plugins",
+    "dist-node": "npm run dist-modules && cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-* *.log logs"
   },
   "engines": {
     "node": ">=16.13.0"
@@ -36,27 +38,25 @@
   "files": [
     "README*",
     "LICENSE*",
-    "dist/**/*",
-    "!dist/@(hfs-*|logs|*.@(exe|log|zip))"
+    "@(src|admin|frontend|plugins)/*"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/rejetto/hfs/"
   },
   "bin": {
-    "hfs": "dist/src/index.js"
+    "hfs": "src/index.js"
   },
   "pkg": {
     "assets": [
-      "dist/admin/**/*",
-      "dist/frontend/**/*"
+      "admin/**/*",
+      "frontend/**/*"
     ],
     "targets": [
       "node16-win",
       "node16-mac",
       "node16-linux"
-    ],
-    "outputPath": "dist"
+    ]
   },
   "dependencies": {
     "@koa/router": "^10.1.1",

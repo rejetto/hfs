@@ -9,3 +9,4 @@ counters.yaml
 self.*
 config.yaml
 accounts.yaml
+.DS_Store
