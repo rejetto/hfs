@@ -77,6 +77,8 @@ const apis: ApiHandlers = {
             return new ApiError(404, 'invalid under')
         if (n.isTemp || !await nodeIsDirectory(n))
             return new ApiError(FORBIDDEN, 'invalid under')
+        if (isWindowsDrive(source))
+            source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
         const a = n.children || (n.children = [])
         if (source && a.find(x => x.source === source))
             return new ApiError(409, 'already present')
