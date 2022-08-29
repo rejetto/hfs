@@ -37,8 +37,8 @@ export const mainMenu: MenuEntry[] = [
     { path: '', icon: Public, label: 'Home', title: "Admin panel", comp: HomePage },
     { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
-    { path: 'monitoring', icon: Monitor, comp: MonitorPage },
     { path: 'configuration', icon: Settings, comp: ConfigPage },
+    { path: 'monitoring', icon: Monitor, comp: MonitorPage },
     { path: 'logs', icon: History, comp: LogsPage },
     { path: 'plugins', icon: Extension, comp: PluginsPage },
     { path: 'logout', icon: Logout, comp: LogoutPage }
