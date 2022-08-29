@@ -42,7 +42,7 @@ export default function AccountForm({ account, done, groups, close }: FormProps)
             { k: 'ignore_limits', comp: BoolField, xl: 6,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
             { k: 'admin', comp: BoolField, xl: 6, fromField: (v:boolean) => v||null, label: "Permission to access Admin interface",
-                helperText: "It's THIS interface you are using right now.",
+                helperText: "To access THIS interface you are using right now",
                 ...account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited" },
             },
             { k: 'belongs', comp: MultiSelectField, label: "Inherits from", options: belongsOptions,

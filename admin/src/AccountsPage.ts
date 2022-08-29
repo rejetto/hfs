@@ -2,13 +2,14 @@
 
 import { createElement as h, useState, useEffect, Fragment } from "react"
 import { apiCall, useApiEx } from './api'
-import { Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { iconTooltip, onlyTruthy } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
+import md from './md'
 
 export interface Account {
     username: string
@@ -68,9 +69,10 @@ export default function AccountsPage() {
                     }
                 }, "Remove"),
                 h(Button, { onClick: reload, startIcon: h(Refresh) }, "Reload"),
-                h(Typography, { p: 1 }, `${list.length} account(s)`),
+                list.length > 0 && h(Typography, { p: 1 }, `${list.length} account(s)`),
             ) ),
         h(Grid, { item: true, md: 5 },
+            !list.length && h(Alert, { severity: 'info' }, md`To access administration _remotely_ you will need to create a user account with admin permission`),
             h(TreeView, {
                 multiSelect: true,
                 sx: { pr: 4, pb: 2, minWidth: '15em' },

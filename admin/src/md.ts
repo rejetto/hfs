@@ -3,7 +3,9 @@
 import { createElement as h, Fragment } from 'react'
 
 // markdown inspired syntax to transform text into react elements: * for bold, / for italic, _ for underline, ` for code
-export default function md(text: string) {
+export default function md(text: string | TemplateStringsArray) {
+    if (typeof text !== 'string')
+        text = text[0]
     const re = /([`*/_])(.+)\1|(\n)/g
     const res = []
     let last = 0
