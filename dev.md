@@ -29,6 +29,26 @@ To run tests
 
 Alternatively you can run a development server, just be sure to load config from `tests` folder.
 
+## Known problems
+- vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
+- vite's building of react-projects (frontend & admin) produce non-working apps
+  - console shows exceptions on any hook invocation
+  - the problem seems to be related to libs being built with a separate instance of react 
+
+## Guidelines
+
+- For strings, I'm trying to use double-quotes or backticks for text that's read by the user, and single-quotes elsewhere.
+- All objects that go in yaml should use snake_case.
+  - Reason: we want something that is both easy for the user and maps directly in our code.
+    Spaces and kebab-case don't play well with javascript and camel is less readable for the user.
+
+## Project design
+
+- At the moment the admin interface was designed to be completely separated from the "user" frontend 
+  to keep the latter smaller and to allow alternative frontends creation without having to deal with the complexity of the admin interface.
+
+  Of course this comes with a price to pay on the programmer's side, more work to do.
+
 ## File formats
 
 General configuration is read by default from file `config.yaml`.
