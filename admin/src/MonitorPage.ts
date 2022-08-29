@@ -171,7 +171,7 @@ function Connections() {
                 fullWidth: false,
                 value: filtered,
                 onChange: setFiltered as any,
-                options: { "Downloads connections": true, "All connections": false }
+                options: { "Show only downloads": true, "Show all connections": false }
             }),
 
             h(Box, { flex: 1 }),
@@ -185,7 +185,9 @@ function Connections() {
             }),
         ),
         error ? h(Alert, { severity: 'error' }, error)
-            : h(DataGrid, { rows, columns })
+            : h(DataGrid, { rows, columns,
+                localeText: filtered ? { noRowsLabel: "No downloads at the moment" } : undefined,
+            })
     )
 }
 
