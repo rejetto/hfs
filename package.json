@@ -27,9 +27,9 @@
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "pub": "cd dist && npm publish",
     "dist": "npm run build-all && npm run dist-bin",
-    "dist-bin": "npm run dist-modules && cd dist && pkg . -C gzip && mv -f hfs-win.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos hfs && zip hfs-mac.zip hfs -r plugins && rm hfs",
+    "dist-bin": "npm run dist-modules && cd dist && pkg . -C gzip && mv -f hfs-win-x64.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux-x64 hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos-x64 hfs && zip hfs-mac.zip hfs -r plugins && cp -f hfs-macos-arm64 hfs && zip hfs-mac-arm.zip hfs -r plugins && rm hfs",
     "dist-modules": "cp package*.json dist && cd dist && npm ci --omit=dev && npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc && rm package-lock.json && cd .. && node prune_modules",
-    "dist-win": "npm run dist-modules && pkg . -C gzip -t node16-win && cd dist && zip hfs-windows.zip hfs.exe -r plugins",
+    "dist-win": "npm run dist-modules && cd dist && pkg . -C gzip -t node16-win-x64 && zip hfs-windows.zip hfs.exe -r plugins",
     "dist-node": "npm run dist-modules && cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-* *.log logs"
   },
   "engines": {
@@ -53,9 +53,10 @@
       "frontend/**/*"
     ],
     "targets": [
-      "node16-win",
-      "node16-mac",
-      "node16-linux"
+      "node16-win-x64",
+      "node16-mac-x64",
+      "node16-mac-arm64",
+      "node16-linux-x64"
     ]
   },
   "dependencies": {
