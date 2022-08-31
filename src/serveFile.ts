@@ -37,7 +37,7 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
     }
 }
 
-const mimeCfg = defineConfig<Record<string,string>>('mime', { '*.jpg|*.png|*.mp3|*.txt': 'auto' })
+const mimeCfg = defineConfig<Record<string,string>>('mime', { '*': 'auto' })
 
 export function serveFile(source:string, mime?:string, content?: string | Buffer) : Koa.Middleware {
     return async (ctx) => {
