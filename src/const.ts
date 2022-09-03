@@ -4,7 +4,7 @@ import minimist from 'minimist'
 import * as fs from 'fs'
 import { homedir } from 'os'
 import { mkdirSync } from 'fs'
-import { join, resolve } from 'path'
+import { basename, dirname, join } from 'path'
 
 export const argv = minimist(process.argv.slice(2))
 export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
@@ -32,8 +32,8 @@ export const FORBIDDEN = 403
 export const UNAUTHORIZED = 401
 
 export const IS_WINDOWS = process.platform === 'win32'
-
-export const APP_PATH = resolve(__dirname + '/..')
+const IS_BINARY = !basename(process.argv0).includes('node') // this won't be node if pkg was used
+export const APP_PATH = dirname(IS_BINARY ? process.argv0 : __dirname)
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()
@@ -55,4 +55,3 @@ else if (!process.argv0.endsWith('.exe')) { // still considering whether to use 
     process.chdir(dir)
 }
 console.log('cwd', process.cwd())
-
