@@ -55,7 +55,7 @@ export default function AccountsPage() {
                     ]
                 }, 'Add'),
                 h(Button, {
-                    disabled: !selectionMode,
+                    disabled: !selectionMode || !sel.length,
                     startIcon: h(Delete),
                     async onClick(){
                         if (!selectionMode) return
