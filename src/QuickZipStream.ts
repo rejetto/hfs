@@ -2,7 +2,7 @@
 
 import { Readable } from 'stream'
 // @ts-ignore
-import { crc32 as crc32lib } from 'buffer-crc32'
+import { unsigned } from 'buffer-crc32'
 import assert from 'assert'
 
 const ZIP64_SIZE_LIMIT = 0xffffffff
@@ -11,7 +11,7 @@ const ZIP64_NUMBER_LIMIT = 0xffff
 let crc32function: (input: string | Buffer, initialState?: number | undefined | null) => number
 import('@node-rs/crc32').then(lib => crc32function = lib.crc32, () => {
     console.log('using generic lib for crc32')
-    return crc32function = crc32lib.unsigned
+    crc32function = unsigned
 })
 
 const FLAGS = 0x0808 // bit3 = no crc in local header + bit11 = utf8
