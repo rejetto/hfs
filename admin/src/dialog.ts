@@ -22,6 +22,7 @@ import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/i
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { useBreakpoint } from './misc'
+import { Flex } from '@hfs/frontend/src/components'
 export * from '@hfs/shared/lib/dialogs'
 
 dialogsDefaults.Container = function Container(d:DialogOptions) {
@@ -99,11 +100,12 @@ export async function confirmDialog(msg: string | ReactElement, { href }: Confir
     function Content() {
         return h(Fragment, {},
             h(Box, { mb: 2 }, msg),
-            h(Box, { textAlign: 'right' },
+            h(Flex, {},
                 h('a', {
                     href,
                     onClick: () => closeDialog(true),
-                }, h(Button, {}, 'Confirm'))
+                }, h(Button, { variant: 'contained' }, "Confirm")),
+                h(Button, { onClick: () => closeDialog(false) }, "Don't"),
             ),
         )
     }

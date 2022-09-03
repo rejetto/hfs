@@ -83,11 +83,21 @@ export async function confirmDialog(msg: ReactElement | string, { href }: Confir
     function Content() {
         return h('div', {},
             msg,
-            h('a', {
-                href,
-                style: { float: 'right' },
-                onClick() { closeDialog(true) },
-            }, h('button', {}, 'Confirm'))
+            h('div', {
+                style: {
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: '1em'
+                },
+            },
+                h('a', {
+                    href,
+                    onClick() { closeDialog(true) },
+                }, h('button', {}, "Confirm")),
+                h('button', {
+                    onClick() { closeDialog(false) },
+                }, "Don't"),
+            )
         )
     }
 }
