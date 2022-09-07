@@ -73,6 +73,11 @@ export function isWindowsDrive(s?: string) {
     return s && /^[a-zA-Z]:$/.test(s)
 }
 
+// apply this to paths that may contain \ as separator (not supported by fast-glob) and other special chars to be escaped (parenthesis)
+export function adjustStaticPathForGlob(path: string) {
+    return glob.escapePath(path.replace(/\\/g, '/'))
+}
+
 export async function* dirStream(path: string) {
     const stats = await fs.stat(path)
     if (!stats.isDirectory())

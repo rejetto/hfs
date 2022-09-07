@@ -7,7 +7,18 @@ import pathLib, { join } from 'path'
 import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import { Callback, debounceAsync, Dict, getOrSet, onProcessExit, same, tryJson, wantArray, watchDir } from './misc'
+import {
+    adjustStaticPathForGlob,
+    Callback,
+    debounceAsync,
+    Dict,
+    getOrSet,
+    onProcessExit,
+    same,
+    tryJson,
+    wantArray,
+    watchDir
+} from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
@@ -198,8 +209,8 @@ export async function rescan() {
     console.debug('scanning plugins')
     const found = []
     const foundDisabled: typeof availablePlugins = {}
-    const MASK = join(PATH, '*', 'plugin.js')
-    for (const f of await glob([join(APP_PATH, MASK), MASK])) {
+    const MASK = PATH + '/*/plugin.js' // be sure to not use path.join as fast-glob doesn't work with \
+    for (const f of await glob([adjustStaticPathForGlob(APP_PATH) + '/' + MASK, MASK])) {
         const id = f.split('/').slice(-2)[0]
         if (id.endsWith(DISABLING_POSTFIX)) continue
         if (!enablePlugins.get().includes(id)) {
