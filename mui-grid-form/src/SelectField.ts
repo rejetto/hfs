@@ -66,16 +66,15 @@ export function RadioField<T>({ label, options, value, onChange }: FieldProps<T>
     return h(FormControl, {},
         label && h(FormLabel, {}, label),
         h(RadioGroup, {
-                row: true,
-                name: '',
-                value: JSON.stringify(value),
-                onChange(event, v){
-                    onChange(JSON.parse(v), { was: value, event })
-                }
+            row: true,
+            name: '',
+            value: JSON.stringify(value),
+            onChange(event, v) {
+                onChange(JSON.parse(v), { was: value, event })
             },
-            options.map(({ value, label }, idx) =>
-                h(FormControlLabel, { key: idx, value, control: h(Radio), label }) )
-        )
+            children: options.map(({ value, label }, idx) =>
+                h(FormControlLabel, { key: idx, value, control: h(Radio), label }))
+        })
     )
 }
 

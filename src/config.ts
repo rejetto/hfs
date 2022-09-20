@@ -161,10 +161,7 @@ export const saveConfigAsap = debounceAsync(async () => {
         await wait(100)
     let txt = yaml.stringify(state, { lineWidth:1000 })
     if (txt.trim() === '{}')  // most users wouldn't understand
-        if (await promisify(exists)(path)) // if a file exists then empty it, else don't bother creating it
-            txt = ''
-        else
-            return
+        txt = ''
     save(path, txt)
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
