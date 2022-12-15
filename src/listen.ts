@@ -12,6 +12,7 @@ import { debounceAsync, onlyTruthy, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './perm'
+import _ from 'lodash'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: http.Server & ServerExtra
@@ -195,17 +196,14 @@ export function getUrls() {
 function printUrls(port: number, proto: string) {
     if (!port) return
     for (const [name, nets] of Object.entries(networkInterfaces())) {
-        if (!nets) continue
-        const filteredNets = nets.filter(n => !n.internal)
-        if (!filteredNets.length || ignore.test(name)) continue
-        console.log('network', name)
-        for (const net of nets) {
-            if (net.internal) continue
-            const appendPort = port === (proto==='https' ? 443 : 80) ? '' : ':' + port
-            let { address } = net
-            if (address.includes(':'))
-                address = '['+address+']'
-            console.log('-', proto + '://' + address + appendPort)
-        }
+        if (!nets || ignore.test(name)) continue
+        _.remove(nets, 'internal')
+        if (!nets.length) continue
+        const best = _.find(nets, { family: 'IPv4' }) || nets[0]
+        const appendPort = port === (proto==='https' ? 443 : 80) ? '' : ':' + port
+        let { address } = best
+        if (address.includes(':'))
+            address = '['+address+']'
+        console.log('network', name, proto + '://' + address + appendPort)
     }
 }
