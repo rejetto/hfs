@@ -29,8 +29,9 @@ const apis: ApiHandlers = {
         })
 
         function serialize(p: Readonly<Plugin> | AvailablePlugin) {
-            return _.defaults('getData' in p ? Object.assign(_.pick(p, ['id','started']), p.getData()) : p,
-                { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
+            const o = 'getData' in p ? Object.assign(_.pick(p, ['id','started']), p.getData())
+                    : { ...p } // _.defaults mutates object, and we don't want that
+            return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
         }
     },
 

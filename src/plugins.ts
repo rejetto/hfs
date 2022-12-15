@@ -3,7 +3,7 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import pathLib, { join } from 'path'
+import pathLib from 'path'
 import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
@@ -57,7 +57,8 @@ export function setPluginConfig(id: string, changes: Dict) {
 }
 
 export function getPluginInfo(id: string) {
-    return plugins[id]?.getData() ?? availablePlugins[id]
+    const running = plugins[id]?.getData()
+    return running && Object.assign(running, {id}) || availablePlugins[id]
 }
 
 export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T) {
@@ -116,16 +117,8 @@ export class Plugin {
 
     constructor(readonly id:string, private readonly data:any, private unwatch:()=>void){
         if (!data) throw 'invalid data'
-        // if a previous instance is present, we are going to overwrite it, but first call its unload callback
-        const old = plugins[id]
-        try { old?.data?.unload?.() } // we don't want all the effects of the Plugin.unload
-        catch(e){
-            console.debug('error unloading plugin', id, String(e))
-        }
-        // track this
-        const wasStopped = availablePlugins[id]
-        if (wasStopped)
-            delete availablePlugins[id]
+        if (plugins[id])
+            throw "unload first: " + id
         plugins[id] = this
 
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
@@ -139,7 +132,6 @@ export class Plugin {
                 console.warn('invalid', k)
             }
         }
-        events.emit(old || wasStopped ? 'pluginStarted' : 'pluginInstalled', this)
     }
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
@@ -158,14 +150,17 @@ export class Plugin {
         return { ...this.data }
     }
 
-    async unload() {
+    async unload(reloading=false) {
         const { id } = this
-        console.log('unloading plugin', id)
-        try { await this.data?.unload?.() }
+        try {
+            await this.data?.unload?.()
+            console.log('unloaded plugin', id)
+        }
         catch(e) {
-            console.debug('error unloading plugin', id, String(e))
+            console.log('error unloading plugin', id, String(e))
         }
         delete plugins[id]
+        if (reloading) return
         this.unwatch()
         if (availablePlugins[id])
             events.emit('pluginStopped', availablePlugins[id])
@@ -227,8 +222,8 @@ export async function rescan() {
         const module = pathLib.resolve(f)
         const { unwatch } = watchLoad(f, async () => {
             try {
-                const reloading = plugins[id]
-                console.log(reloading ? "reloading plugin" : "loading plugin", id)
+                const alreadyRunning = plugins[id]
+                console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
                 const { init, ...data } = await import(module)
                 delete data.default
                 deleteModule(require.resolve(module)) // avoid caching at next import
@@ -236,6 +231,7 @@ export async function rescan() {
                 if (data.badApi)
                     console.log("plugin", id, data.badApi)
 
+                await alreadyRunning?.unload(true)
                 const res = await init?.call(null, {
                     srcDir: __dirname,
                     const: Const,
@@ -261,9 +257,16 @@ export async function rescan() {
                     getHfsConfig: getConfig,
                 })
                 Object.assign(data, res)
-                new Plugin(id, data, unwatch)
-                if (reloading)
+                const plugin = new Plugin(id, data, unwatch)
+                if (alreadyRunning)
                     events.emit('pluginUpdated', getPluginInfo(id))
+                else {
+                    const wasInstalled = availablePlugins[id]
+                    if (wasInstalled)
+                        delete availablePlugins[id]
+                    events.emit(wasInstalled ? 'pluginStarted' : 'pluginInstalled', plugin)
+                }
+
             } catch (e) {
                 console.log("plugin error:", e)
             }
