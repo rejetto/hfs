@@ -250,8 +250,11 @@ export async function rescan() {
                         cb(last)
                         return pluginsConfig.sub(() => {
                             const now = this.getConfig(cfgKey)
-                            if (!same(now, last))
-                                cb(last = now)
+                            if (same(now, last)) return
+                            try { cb(last = now) }
+                            catch(e){
+                                console.log('plugin', id, String(e))
+                            }
                         })
                     },
                     getHfsConfig: getConfig,
