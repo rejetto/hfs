@@ -1,6 +1,6 @@
-# For developers
+This file is mostly aimed to developers.
 
-## Building instructions
+# Building instructions
 
 0. Install [Node.js](https://nodejs.org/) 16+
 1. Install Typescript: launch `npm -g i typescript`
@@ -10,7 +10,7 @@ You'll see some warnings about vulnerabilities. Fear not, for those are in the d
 If you want to be assured, run `npm audit --production` that will exclude dev stuff, and you should see something
 more reassuring, like "found 0 vulnerabilities", hopefully.
 
-## Dev environment
+# Dev environment
 
 0. `npm install`
 1. `npm run watch-server-proxied` and leave it running. It will serve server stuff plus will proxy frontend and admin files.
@@ -20,7 +20,7 @@ more reassuring, like "found 0 vulnerabilities", hopefully.
 If you don't want this proxying version, you can use `npm run watch-server` but after both frontend and admin have
 been built, so their files are available in `dist` folder.
 
-## Tests
+# Tests
 
 To run tests
 - `npm run build-all`
@@ -29,28 +29,30 @@ To run tests
 
 Alternatively you can run a development server, just be sure to load config from `tests` folder.
 
-## Known problems
+# Known problems
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
 - vite's building of react-projects (frontend & admin) produce non-working apps
   - console shows exceptions on any hook invocation
   - the problem seems to be related to libs being built with a separate instance of react 
 
-## Guidelines
+# Guidelines
 
 - For strings, I'm trying to use double-quotes or backticks for text that's read by the user, and single-quotes elsewhere.
 - All objects that go in yaml should use snake_case.
   - Reason: we want something that is both easy for the user and maps directly in our code.
     Spaces and kebab-case don't play well with javascript and camel is less readable for the user.
 
-## Project design
+# Project design
 
 - At the moment the admin interface was designed to be completely separated from the "user" frontend 
-  to keep the latter smaller and to allow alternative frontends creation without having to deal with the complexity of the admin interface.
+  to keep the latter smaller and to allow alternative frontends creation without having to deal with
+  the complexity of the admin interface.
 
   Of course this comes with a price to pay on the programmer's side, more work to do.
 
-## File formats
+# File formats
 
+## Config
 General configuration is read by default from file `config.yaml`.
 When not specified, default values will be used.
 Supported entries are:
@@ -60,7 +62,7 @@ Supported entries are:
 - `log_rotation` frequency of log rotation. Accepted values are `daily`, `weekly`, `monthly`, or empty string to disable. Default is `weekly`.
 - `error_log` path of the log file for errors. Default is `error.log`.
 - `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
-- `accounts` path of the accounts file. Default is `accounts.yaml`.
+- `accounts` list of accounts. For details see the dedicated following section.
 - `mime` command what mime-type to be returned with some files.
   E.g.: `"*.jpg": image/jpeg`
   You can specify multiple entries, or separate multiple file masks with a p|pe.
@@ -115,7 +117,7 @@ Valid keys in a node are:
       mime: auto
   ```  
 
-## Accounts
+### Accounts
 
 All accounts go under `accounts:` key, as a dictionary where the key is the username.
 E.g.
@@ -134,11 +136,9 @@ As soon as the config is read HFS will encrypt passwords (if necessary) in a non
 As you can see in the example, `group1` has no password. This implies that you cannot log in as `group1`, but still `group1` exists and its purpose is to
 gather multiple accounts and refer to them collectively as `group1`, so you can quickly share powers among several accounts.
 
-## Account options
-
-Other options you can define as properties of an account:
+For each account entries, this is the list of properties you can have:
 
 - `ignore_limits` to ignore speed limits. Default is `false`.
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
-- `admin` set `true` if you want to let this account log in to the Admin interface.
-- `belongs` an array of usernames of other accounts from which to inherit their permissions. 
+- `admin` set `true` if you want to let this account log in to the Admin interface. Default is `false`.
+- `belongs` an array of usernames of other accounts from which to inherit their permissions. Default is none. 

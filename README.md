@@ -98,7 +98,9 @@ If you have access to HFS' console, you can enter commands. Start with `help` to
 ## Passing parameters
 
 Any value you see in the config file with name *X* can be passed at command line in the form `--X <new_value>`,
-or you can enter console command `config X <new_value>`.  
+or you can enter console command `config X <new_value>`.
+
+Find a complete list [at this link](dev.md#config).
 
 ## License
 
