@@ -2,6 +2,7 @@ import { addAccount, getAccount, updateAccount } from './perm'
 import { getConfig, getConfigDefinition, setConfig } from './config'
 import _ from 'lodash'
 import { getUpdate, update } from './update'
+import { openAdmin } from './listen'
 import yaml from 'yaml'
 import { BUILD_TIMESTAMP, VERSION } from './const'
 
@@ -30,6 +31,12 @@ const commands = {
             console.log("supported commands:",
                 ..._.map(commands, ({ params }, name) =>
                     '\n - ' + name + ' ' + params))
+        }
+    },
+    'show-admin': {
+        params: '',
+        cb(){
+            openAdmin()
         }
     },
     'create-admin': {
