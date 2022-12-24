@@ -31,14 +31,25 @@ portCfg.sub(async port => {
     httpSrv.on('connection', newConnection)
     printUrls(port, 'http')
     if (openBrowserAtStart.get())
-        open('http://localhost' + (port === 80 ? '' : ':' + port) + ADMIN_URI, { wait: true}).catch(e => {
+        openAdmin()
+})
+
+export function openAdmin() {
+    for (const srv of [httpSrv, httpsSrv]) {
+        const a = srv.address()
+        if (!a || typeof a === 'string') continue
+        const baseUrl = srv.name + '://localhost:' + a.port
+        open(baseUrl + ADMIN_URI, { wait: true}).catch(e => {
             console.debug(String(e))
             console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
                 ...Object.values(getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
             if (! anyAccountCanLoginAdmin())
                 console.log(`HINT: you can enter command: create-admin YOUR_PASSWORD`)
         })
-})
+        return true
+    }
+    console.log("openAdmin failed")
+}
 
 const considerHttps = debounceAsync(async () => {
     stopServer(httpsSrv).then()
