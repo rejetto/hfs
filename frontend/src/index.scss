@@ -15,6 +15,7 @@
         --good-contrast: #fffa;
         --button-bg: #345;
         --button-text: #999;
+        body { color-scheme: dark; }
         a { color:#8ac; }
         .dialog-closer { background: #633 }
         .dialog-icon { color: #ccc; }
@@ -25,8 +26,7 @@ body {
     background: var(--bg);
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
