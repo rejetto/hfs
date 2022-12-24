@@ -53,7 +53,7 @@ You won't find all previous features here (yet), but still we got:
    - if a browser cannot be opened on the computer where you are installing HFS, 
      you should enter this command in HFS console: `create-admin <PASSWORD>`
 
-If you access *Admin-panel* via localhost, by default HFS **won't** require your to login.
+If you access *Admin-panel* via localhost, by default HFS **won't** require you to login.
 If you don't like this behavior, disable it in the Admin-panel or enter this console command `config localhost_admin false`.
 
 ### Other systems
@@ -173,7 +173,10 @@ Valid keys in a node are:
       can_read: false
     "*.jpg|*.png": 
       mime: auto
-  ```  
+  ```
+
+Permissions set on an inner element will override inherited permissions. This means that you can restrict access to folder1,
+and yet decide to give free access to folder1/subfolder2.   
 
 #### Accounts
 
