@@ -9,9 +9,7 @@ exports.config = {
         fields: {
             host: { label: "Domain" },
             root: { helperText: "Root path in VFS" },
-        },
-        defaultValue: [],
-        height: 300,
+        }
     },
 	mandatory: {
 		label: "Block requests that are not using any of the domains above",

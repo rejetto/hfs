@@ -65,7 +65,7 @@ export function ArrayField<T=any>({ label, helperText, fields, value, onChange, 
     return h(Fragment, {},
         label && h(FormLabel, { sx: { ml: 1 } }, label),
         helperText && h(FormHelperText, {}, helperText),
-        h(Box, rest,
+        h(Box, { height: '20em', ...rest },
             h(DataGrid, {
                 columns,
                 rows,
