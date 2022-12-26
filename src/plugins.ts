@@ -232,6 +232,7 @@ export async function rescan() {
                     console.log("plugin", id, data.badApi)
 
                 await alreadyRunning?.unload(true)
+                console.debug("starting plugin", id)
                 const res = await init?.call(null, {
                     srcDir: __dirname,
                     const: Const,
@@ -262,7 +263,7 @@ export async function rescan() {
                 Object.assign(data, res)
                 const plugin = new Plugin(id, data, unwatch)
                 if (alreadyRunning)
-                    events.emit('pluginUpdated', getPluginInfo(id))
+                    events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
                 else {
                     const wasInstalled = availablePlugins[id]
                     if (wasInstalled)
