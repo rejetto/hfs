@@ -72,7 +72,7 @@ All the following properties are essentially optional.
 ### FieldDescriptor
 
 Currently, these properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path'` . Default is `string`.
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'array'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
@@ -86,6 +86,14 @@ Based on `type`, other properties are supported:
 - `select`
     - `options: { [label]: AnyJsonValue }`
 - `multiselect` it's like `select` but its result is an array of values.
+- `array` list of objects
+  - `fields`: an object of `FieldDescriptor`s, i.e. same format as `config`.
+    This field will be use for both the configuration of the grid's column, and the form's field.
+    Other than properties of `FieldDescriptor` you get these extra properties:
+    - `$column`: where you can put all the properties you want specifically to be set on the [grid's column](https://mui.com/x/api/data-grid/grid-col-def/).
+    - `$width`: a shortcut property that can substitute `$column: { width }` or `$column: { flex }`.
+      By default, a column gets flex:1 unless you specify $width. A value of 8 and higher is considered width's pixels,
+      while lower are flex-values.
 - `real_path` path to server disk
   - `files: boolean` allow to select a file. Default is `true`.
   - `folders: boolean` allow to select a folder. Default is `false`.
@@ -171,6 +179,8 @@ HFS will scan through them in alphabetical order searching for a compatible one.
 
 ## API version history
 
+- 4.1 (v0.23.4)
+  - config.type:array added $width, $column and fixed height 
 - 4 (v0.23.0)
   - config.type:real_path
   - api.subscribeConfig

@@ -17,7 +17,7 @@ export const VERSION = pkg.version
 export const DAY = 86_400_000
 export const SESSION_DURATION = DAY
 
-export const API_VERSION = 4 // introduced type:real_path and api.subscribeConfig/setConfig/getHfsConfig
+export const API_VERSION = 4.1 // array.$width
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise is made equal to API_VERSION
 
 export const SPECIAL_URI = '/~/'
