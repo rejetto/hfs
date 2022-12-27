@@ -1,5 +1,4 @@
 # To do
-- frontend: "download zip" should offer a third button like "select some files"
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin
 - fix: cannot switch off https and switch on http at the same time 

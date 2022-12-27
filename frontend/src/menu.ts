@@ -3,13 +3,14 @@
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'use-debounce'
-import { confirmDialog, promptDialog } from './dialog'
+import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
 import { hIcon, isMobile, prefix, useStateMounted } from './misc'
 import { login } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
 import { useNavigate } from 'react-router-dom'
 import _ from 'lodash'
+import { closeDialog } from '@hfs/shared/lib/dialogs'
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, stoppedSearch, patternFilter, selected } = useSnapState()
@@ -57,7 +58,18 @@ export function MenuPanel() {
                     search: remoteSearch,
                     list
                 }))),
-                confirm: list ? undefined : remoteSearch ? 'Download results of this search as ZIP archive?' : 'Download whole folder as ZIP archive?',
+                ...!list && {
+                    confirm: remoteSearch ? 'Download ALL results of this search as ZIP archive?' : 'Download WHOLE folder as ZIP archive?',
+                    confirmOptions: {
+                        afterButtons: h('button', {
+                            onClick() {
+                                state.showFilter = true
+                                closeDialog(false)
+                                return alertDialog("Use checkboxes to select the files, then you can use Download-zip again")
+                            },
+                        }, "Select some files"),
+                    }
+                }
             })
         ),
         remoteSearch && h('div', { id: 'searched' },
@@ -138,7 +150,7 @@ export function MenuButton({ icon, label, tooltip, toggled, onClick, className =
         h('label', {}, label))
 }
 
-export function MenuLink({ href, target, confirm, ...rest }: MenuButtonProps & { href: string, target?: string, confirm?: string }) {
+export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: MenuButtonProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
     return h('a', {
         tabIndex: -1,
         href,
@@ -146,7 +158,7 @@ export function MenuLink({ href, target, confirm, ...rest }: MenuButtonProps & {
         async onClick(ev) {
             if (!confirm) return
             ev.preventDefault()
-            await confirmDialog(confirm, { href })
+            await confirmDialog(confirm, { href, ...confirmOptions })
         }
     }, h(MenuButton, rest))
 }

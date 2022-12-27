@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactElement, useEffect, useRef } from 'react'
+import { createElement as h, ReactElement, ReactNode, useEffect, useRef } from 'react'
 import './dialog.css'
 import { newDialog, closeDialog } from '@hfs/shared/lib/dialogs'
 export * from '@hfs/shared/lib/dialogs'
@@ -69,8 +69,8 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
     }
 }
 
-interface ConfirmOptions { href?: string }
-export async function confirmDialog(msg: ReactElement | string, { href }: ConfirmOptions={}) : Promise<boolean> {
+export interface ConfirmOptions { href?: string, afterButtons?: ReactNode }
+export async function confirmDialog(msg: ReactElement | string, { href, afterButtons }: ConfirmOptions={}) : Promise<boolean> {
     if (typeof msg === 'string')
         msg = h('p', {}, msg)
     return new Promise(resolve => newDialog({
@@ -97,6 +97,7 @@ export async function confirmDialog(msg: ReactElement | string, { href }: Confir
                 h('button', {
                     onClick() { closeDialog(false) },
                 }, "Don't"),
+                afterButtons,
             )
         )
     }
