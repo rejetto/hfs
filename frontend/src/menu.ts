@@ -50,7 +50,8 @@ export function MenuPanel() {
             h(MenuLink, {
                 icon: 'archive',
                 label: "Download zip",
-                tooltip: "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded.",
+                tooltip: list ? "Download selected elements as a single zip file"
+                    : "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded.",
                 href: '?'+String(new URLSearchParams(_.pickBy({
                     get: 'zip',
                     search: remoteSearch,
