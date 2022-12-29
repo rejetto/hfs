@@ -140,7 +140,7 @@ export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Conte
         && (perm !== 'can_see' || hasPermission(node, 'can_read', ctx)) // for can_see you must also can_read
 }
 
-export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
+export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
     if (children)
         for (let idx = 0; idx < children.length; idx++) {
@@ -148,20 +148,19 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
             yield* workItem({
                 ...child,
                 name: prefixPath ? (prefixPath + getNodeName(child)) : child.name
-            })
+            }, depth > 0 && await nodeIsDirectory(child).catch(() => false))
         }
     if (!source)
         return
     try {
-        for await (const path of dirStream(source)) {
-            if (ctx.req.aborted)
+        for await (const path of dirStream(source, depth)) {
+            if (ctx?.req.aborted)
                 return
-            let { rename } = parent
-            const renamed = rename?.[path]
+            const renamed = parent.rename?.[path]
             yield* workItem({
-                name: (prefixPath || renamed) && prefixPath + (renamed || path),
+                name: prefixPath + (renamed || path),
                 source: join(source, path),
-                rename: renameUnderPath(rename, path),
+                rename: renameUnderPath(parent.rename, path),
             })
         }
     }
@@ -169,46 +168,45 @@ export async function* walkNode(parent:VfsNode, ctx: Koa.Context, depth:number=0
         console.debug('glob', source, e) // ENOTDIR, or lacking permissions
     }
 
-    async function* workItem(item: VfsNode) {
+    // item will be changed, so be sure to pass a temp node
+    async function* workItem(item: VfsNode, recur=false) {
+        const name = getNodeName(item)
         // we basename for depth>0 where we already have the rest of the path in the parent's url, and would be duplicated
-        const name = basename(getNodeName(item))
-        const url = enforceFinal('/', parent.url || '') + name
-        const temp = inheritFromParent(parent, {
-            ...item,
+        const virtualBasename = basename(name)
+        const url = enforceFinal('/', parent.url || '') + virtualBasename
+        Object.assign(item, {
             isTemp: true,
             url,
             parents: [ ...parent.parents||[], parent],
         })
-        applyMasks(temp, parent, name)
-        if (!hasPermission(temp, 'can_see', ctx))
+        inheritFromParent(parent, item)
+        applyMasks(item, parent, virtualBasename)
+        if (ctx && !hasPermission(item, 'can_see', ctx))
             return
-        yield temp
-        try {
-            if (!depth || !await nodeIsDirectory(temp)) return
-            inheritMasks(temp, parent, name)
-            yield* walkNode(temp, ctx, depth - 1, getNodeName(temp) + '/')
-        }
-        catch{} // stat failed in nodeIsDirectory, ignore
+        yield item
+        if (!recur) return
+        inheritMasks(item, parent, virtualBasename)
+        yield* walkNode(item, ctx, depth - 1, name + '/')
     }
 }
-function applyMasks(item: VfsNode, parent: VfsNode, name: string) {
+function applyMasks(item: VfsNode, parent: VfsNode, virtualBasename: string) {
     const { masks } = parent
     if (!masks) return
     for (const k in masks)
-        if (k.startsWith('**/') && isMatch(name, k.slice(3))
-        || !k.includes('/') && isMatch(name, k))
+        if (k.startsWith('**/') && isMatch(virtualBasename, k.slice(3))
+        || !k.includes('/') && isMatch(virtualBasename, k))
             Object.assign(item, masks[k])
 }
 
-function inheritMasks(item: VfsNode, parent: VfsNode, name:string) {
+function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
     const { masks } = parent
     if (!masks) return
     const o: Masks = {}
     for (const k in masks)
         if (k.startsWith('**/'))
             o[k.slice(3)] = masks[k]
-        else if (k.startsWith(name+'/'))
-            o[k.slice(name.length+1)] = masks[k]
+        else if (k.startsWith(virtualBasename+'/'))
+            o[k.slice(virtualBasename.length+1)] = masks[k]
     if (Object.keys(o).length)
         item.masks = o
 }

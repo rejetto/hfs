@@ -78,23 +78,24 @@ export function adjustStaticPathForGlob(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
 }
 
-export async function* dirStream(path: string) {
-    const stats = await fs.stat(path)
-    if (!stats.isDirectory())
+export async function* dirStream(path: string, deep?: number) {
+    if (!await isDirectory(path))
         throw Error('ENOTDIR')
-    const dirStream = glob.stream('*', {
+    const dirStream = glob.stream(deep ? '**/*' : '*', {
         cwd: path,
         dot: true,
+        deep,
         onlyFiles: false,
         suppressErrors: true,
+        objectMode: true,
     })
     const skip = await getItemsToSkip(path)
-    for await (let path of dirStream) {
-        if (path instanceof Buffer)
-            path = path.toString('utf8')
-        if (skip?.includes(path))
-            continue
-        yield path
+    for await (const entry of dirStream) {
+        let { path, dirent } = entry as any
+        if (!dirent.isDirectory() && !dirent.isFile()) continue
+        path = String(path)
+        if (!skip?.includes(path))
+            yield path
     }
 
     async function getItemsToSkip(path: string) {
