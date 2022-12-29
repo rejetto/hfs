@@ -83,6 +83,7 @@ Other than that, you can also consider:
 
 - it's more robust: it was designed to be an always-running server, while HFS 1-2 was designed for occasional usage (transfer and quit) 
 - passwords are never really stored, just a non-reversible hash is
+- faster search (up to 12x)
 - more flexible permissions
 
 But you may still want to stay with HFS 2.x (so far) for the following reasons
