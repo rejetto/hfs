@@ -54,12 +54,12 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
     for (const k of typedKeys(defaultPerms)) {
         const v = parent[k]
         if (v !== undefined)
-            child[k] = v
+            child[k] ??= v
     }
     if (typeof parent.mime === 'object' && typeof child.mime === 'object')
-        Object.assign(child.mime, parent.mime)
+        _.defaults(child.mime, parent.mime)
     else
-        child.mime = parent.mime
+        child.mime ||= parent.mime
     return child
 }
 
