@@ -3,6 +3,7 @@
 - plugins' log, accessible in admin
 - fix: cannot switch off https and switch on http at the same time 
 - fix: chrome is prompting to save credentials without username because of login's double-form
+- admin/monitor: show user-agent
 - admin: check + update
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - easier nat life

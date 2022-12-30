@@ -16,10 +16,11 @@ import { adminApis } from './adminApis'
 import { defineConfig } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
+import { randomId } from './misc'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints
 
-const keys = ['hfs-keys-test']
+const keys = process.env.COOKIE_SIGN_KEYS?.split(',') || [randomId(30)]
 export const app = new Koa({ keys })
 app.use(someSecurity)
     .use(sessions(app))

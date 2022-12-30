@@ -48,9 +48,10 @@ export function getOrSet<T>(o: Record<string,T>, k:string, creator:()=>T): T {
         : (o[k] = creator())
 }
 
-export function randomId(len = 10) {
-    // 10 chars is 51+bits, the max we can give. 8 is 41+bits
-    if (len > 10) throw Error('bad length');
+// 10 chars is 51+bits, 8 is 41+bits
+export function randomId(len = 10): string {
+    if (len > 10)
+        return randomId(10) + randomId(len - 10)
     return Math.random()
         .toString(36)
         .substring(2, 2+len)
