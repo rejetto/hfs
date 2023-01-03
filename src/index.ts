@@ -9,7 +9,7 @@ import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, prepareState } from './middlewares'
+import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, prepareState, paramsDecoder } from './middlewares'
 import './listen'
 import './commands'
 import { adminApis } from './adminApis'
@@ -29,6 +29,7 @@ app.use(someSecurity)
     .use(log())
     .use(throttler)
     .use(gzipper)
+    .use(paramsDecoder)
     .use(pluginsMiddleware())
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
     .use(serveGuiAndSharedFiles)

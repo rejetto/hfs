@@ -7,7 +7,7 @@ import { ADMIN_URI, BUILD_TIMESTAMP, DEV, FORBIDDEN, SESSION_DURATION } from './
 import Application from 'koa'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode } from './vfs'
-import { dirTraversal } from './misc'
+import { dirTraversal, objSameKeys, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -19,6 +19,7 @@ import { socket2connection, updateConnection, normalizeIp } from './connections'
 import basicAuth from 'basic-auth'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { srpStep1 } from './api.auth'
+import { IncomingMessage } from 'http'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -148,4 +149,28 @@ async function srpCheck(username: string, password: string) {
     const clientRes1 = await client.step1(username, password)
     const clientRes2 = await clientRes1.step2(BigInt(salt), BigInt(pubKey))
     return await step1.step2(clientRes2.A, clientRes2.M1).then(() => true, () => false)
+}
+
+// unify get/post parameters, with JSON decoding to not be limited to strings
+export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
+    ctx.params = ctx.method === 'POST' ? tryJson(await getReqData(ctx.req))
+        : objSameKeys(ctx.query, x => Array.isArray(x) ? x : tryJson(x))
+    await next()
+}
+
+async function getReqData(req: IncomingMessage): Promise<any> {
+    return new Promise((resolve, reject) => {
+        let data = ''
+        req.on('data', chunk =>
+            data += chunk)
+        req.on('error', reject)
+        req.on('end', () => {
+            try {
+                resolve(data)
+            }
+            catch(e) {
+                reject(e)
+            }
+        })
+    })
 }

@@ -21,7 +21,7 @@ exports.init = api => ({
     middleware(ctx) {
         let toModify = ctx
         if (ctx.path.startsWith(api.const.SPECIAL_URI)) { // special uris should be excluded...
-            toModify = ctx.request.query
+            toModify = ctx.params
             if (toModify.path === undefined) // ...unless they carry a path in the query. In that case we'll work that.
                 return
         }

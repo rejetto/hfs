@@ -1,10 +1,9 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { IncomingMessage } from 'http'
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, objSameKeys, onOff, tryJson, wantArray } from './misc'
+import { asyncGeneratorToReadable, onOff } from './misc'
 import events from './events'
 import { UNAUTHORIZED } from './const'
 import _, { DebouncedFunc } from 'lodash'
@@ -20,8 +19,7 @@ export type ApiHandlers = Record<string, ApiHandler>
 
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
-        const params = ctx.method === 'POST' ? await getJsonFromReq(ctx.req)
-            : objSameKeys(ctx.request.query, x => Array.isArray(x) ? x : tryJson(x))
+        const { params } = ctx
         console.debug('API', ctx.method, ctx.path, { ...params })
         if (!apis.hasOwnProperty(ctx.path)) {
             ctx.body = 'invalid api'
@@ -54,23 +52,6 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
 
 function isAsyncGenerator(x: any): x is AsyncGenerator {
     return typeof (x as AsyncGenerator)?.next === 'function'
-}
-
-async function getJsonFromReq(req: IncomingMessage): Promise<any> {
-    return new Promise((resolve, reject) => {
-        let data = ''
-        req.on('data', chunk =>
-            data += chunk)
-        req.on('error', reject)
-        req.on('end', () => {
-            try {
-                resolve(data && JSON.parse(data))
-            }
-            catch(e) {
-                reject(e)
-            }
-        })
-    })
 }
 
 // offer an api for a generic dynamic list. Suitable to be the result of an api.
