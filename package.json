@@ -24,6 +24,7 @@
     "build-shared": "npm run build --workspace=shared",
     "build-form": "npm run build --workspace=mui-grid-form",
     "server-for-test": "node dist/src --cwd . --config tests",
+    "server-for-test-dev": "cross-env DEV=1 nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src -- --cwd . --config tests",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "pub": "cd dist && npm publish",
     "dist": "npm run build-all && npm run dist-bin",
