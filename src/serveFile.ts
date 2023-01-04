@@ -89,15 +89,16 @@ export function getRange(ctx: Koa.Context, totalSize: number) {
         return ctx.throw(400, 'bad range')
     const max = totalSize - 1
     const start = bytes[0] ? Number(bytes[0]) : Math.max(0, totalSize-Number(bytes[1])) // a negative start is relative to the end
-    const end = bytes[0] ? Number(bytes[1] || max) : max // NaN in case we are asked for last N bytes without knowing max
-    if (isNaN(end) || end > max || start > max) {
+    const end = bytes[0] ? Number(bytes[1] || max) : max
+    // we don't support last-bytes without knowing max
+    if (isNaN(end) && isNaN(max) || end > max || start > max) {
         ctx.status = 416
         ctx.set('Content-Range', `bytes ${totalSize}`)
         ctx.body = 'Requested Range Not Satisfiable'
         return
     }
     ctx.status = 206
-    ctx.set('Content-Range', `bytes ${start}-${end}/${isNaN(totalSize) ? '*' : totalSize}`)
+    ctx.set('Content-Range', `bytes ${start}-${isNaN(end) ? '' : end}/${isNaN(totalSize) ? '*' : totalSize}`)
     ctx.response.length = end - start + 1
     return { start, end }
 }
