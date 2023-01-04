@@ -66,8 +66,12 @@ describe('basics', () => {
     it('protectFromAbove', req('/protectFromAbove/child/alfa.txt', 403))
     it('protectFromAbove.list', reqList('/protectFromAbove/child/', { outList:['alfa.txt'] }))
 
-    it('zip.head', req('/f1/?get=zip', { empty:true, length:13010 }, { method:'HEAD' }) )
-    it('zip.partial', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
+    const zipSize = 13010
+    const zipOfs = 5000
+    it('zip.head', req('/f1/?get=zip', { empty:true, length:zipSize }, { method:'HEAD' }) )
+    it('zip.partial', req('/f1/?get=zip', { re:/^C3$/, length: 2 }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+1}` } }) )
+    it('zip.partial.resume', req('/f1/?get=zip', { re:/^C3/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
+    it('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
     it('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt*renamed', { empty: true, length:118 }, { method:'HEAD' }))
     it('login', reqApi('login', { username, password }, 406)) // by default, we don't support clear-text login
 
