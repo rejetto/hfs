@@ -2,11 +2,11 @@
 
 import { useSnapState } from './state'
 import { useEffect } from 'react'
-import { useDarkMode } from 'usehooks-ts'
+import { useMediaQuery } from 'usehooks-ts'
 
 export default function useTheme() {
     const { theme } = useSnapState()
-    const { isDarkMode } = useDarkMode()
+    const isDarkMode = useMediaQuery('(prefers-color-scheme: dark)') // don't use useDarkMode() as it persists in localstorage and there's no way to just read system setting
     useEffect(()=>{
         const e = document.body
         if (!e) return
