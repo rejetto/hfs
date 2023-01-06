@@ -75,8 +75,6 @@ export default function ConfigPage() {
                     : { sm: 6 }
         },
         fields: [
-            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
-            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
             { k: 'port', comp: ServerPort, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
             { k: 'https_port', comp: ServerPort, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
@@ -85,6 +83,8 @@ export default function ConfigPage() {
                     return v
                 }
             },
+            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
+            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
             values.https_port >= 0 && { k: 'cert', comp: FileField, label: "HTTPS certificate file",
                 ...with_(status?.https.error, e => isCertError(e) ? { 
                     error: true, 
