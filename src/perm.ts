@@ -22,10 +22,6 @@ interface Accounts { [username:string]: Account }
 
 let accounts: Accounts = {}
 
-export function getAccounts() {
-    return accounts as Readonly<typeof accounts>
-}
-
 export function getCurrentUsername(ctx: Koa.Context): string {
     return ctx.state.account?.username || ''
 }
@@ -85,7 +81,7 @@ export async function updateAccount(account: Account, changer?:Changer) {
 
 const saveAccountsAsap = saveConfigAsap
 
-const accountsConfig = defineConfig<Accounts>('accounts', {})
+export const accountsConfig = defineConfig<Accounts>('accounts', {})
 accountsConfig.sub(async v => {
     // we should validate content here
     accounts = v // keep local reference
@@ -190,7 +186,7 @@ export function accountCanLogin(account: Account) {
 }
 
 export function accountCanLoginAdmin(account: Account) {
-    return accountCanLogin(account) && getFromAccount(account, a => a.admin)
+    return accountCanLogin(account) && Boolean(getFromAccount(account, a => a.admin))
 }
 
 export function anyAccountCanLoginAdmin() {

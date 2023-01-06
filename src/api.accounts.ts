@@ -6,10 +6,10 @@ import {
     Account,
     accountCanLoginAdmin,
     accountHasPassword,
+    accountsConfig,
     addAccount,
     delAccount,
     getAccount,
-    getAccounts,
     getCurrentUsername,
     setAccount
 } from './perm'
@@ -28,7 +28,7 @@ function prepareAccount(ac: Account | undefined) {
 const apis: ApiHandlers = {
 
     get_usernames() {
-        return { list: Object.keys(getAccounts()) }
+        return { list: Object.keys(accountsConfig.get()) }
     },
 
     get_account({ username }, ctx) {
@@ -37,11 +37,11 @@ const apis: ApiHandlers = {
     },
 
     get_accounts() {
-        return { list: Object.values(getAccounts()).map(prepareAccount) }
+        return { list: Object.values(accountsConfig.get()).map(prepareAccount) }
     },
 
     get_admins() {
-        return { list: Object.values(getAccounts()).map(prepareAccount).filter(ac => ac?.adminActualAccess).map(ac => ac!.username) }
+        return { list: _.filter(accountsConfig.get(), accountCanLoginAdmin).map(ac => ac.username) }
     },
 
     set_account({ username, changes }) {
