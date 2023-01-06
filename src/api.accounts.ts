@@ -50,15 +50,15 @@ const apis: ApiHandlers = {
             changes.admin = undefined
         else if (admin !== undefined && typeof admin !== 'boolean')
             return new ApiError(400, "invalid admin")
-        return setAccount(username, changes) ? {} : new ApiError(400)
+        const acc = setAccount(username, changes)
+        return acc ? _.pick(acc, 'username') : new ApiError(400)
     },
 
     add_account({ username, ...rest }) {
         if (getAccount(username))
             return new ApiError(FORBIDDEN)
-        if (!addAccount(username, rest))
-            return new ApiError(400)
-        return {}
+        const acc = addAccount(username, rest)
+        return acc ? _.pick(acc, 'username') : new ApiError(400)
     },
 
     del_account({ username }) {

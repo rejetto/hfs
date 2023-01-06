@@ -9,7 +9,7 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
 
 export interface Account {
-    username: string, // we'll have username in it, so we don't need to pass it separately
+    username: string, // we keep username property (hidden) so we don't need to pass it separately
     password?: string
     hashed_password?: string
     srp?: string
@@ -27,7 +27,7 @@ export function getAccounts() {
 }
 
 export function getCurrentUsername(ctx: Koa.Context): string {
-    return ctx.state.account?.username || ctx.session?.username || ''
+    return ctx.state.account?.username || ''
 }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
@@ -44,7 +44,9 @@ export function getCurrentUsernameExpanded(ctx: Koa.Context) {
     return ret
 }
 
-export function getAccount(username:string) : Account | undefined {
+export function getAccount(username:string, normalize=true) : Account | undefined {
+    if (normalize)
+        username = normalizeUsername(username)
     return username ? accounts[username] : undefined
 }
 
@@ -92,13 +94,14 @@ accountsConfig.sub(async v => {
         if (!rec) // an empty object in yaml is stored as null
             rec = accounts[norm] = { username: norm }
         else
-            objRenameKey(accounts, k, norm)
+            if (objRenameKey(accounts, k, norm))
+                saveAccountsAsap()
         setHidden(rec, { username: norm })
-        await updateAccount(rec)
+        await updateAccount(rec) // work password fields
     }))
 })
 
-function normalizeUsername(username: string) {
+export function normalizeUsername(username: string) {
     return username.toLocaleLowerCase()
 }
 
@@ -129,10 +132,11 @@ export function renameAccount(from: string, to: string) {
 const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin']
 
 export function addAccount(username: string, props: Partial<Account>) {
-    if (!username || accounts[username])
+    username = normalizeUsername(username)
+    if (!username || getAccount(username, false))
         return
-    const copy: Account = setHidden(_.pickBy(_.pick(props, assignableProps), Boolean),
-        { username }) // have the field in the object but hidden so that stringification won't include it
+    const filteredProps = _.pickBy(_.pick(props, assignableProps), Boolean)
+    const copy: Account = setHidden(filteredProps, { username }) // have the field in the object but hidden so that stringification won't include it
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [username]: copy }))
     saveAccountsAsap().then()
@@ -151,14 +155,14 @@ export function setAccount(username: string, changes: Partial<Account>) {
     if (changes.username)
         renameAccount(username, changes.username)
     saveAccountsAsap().then()
-    return true
+    return acc
 }
 
 export function delAccount(username: string) {
     if (!getAccount(username))
         return false
     accountsConfig.set(accounts =>
-        Object.assign(accounts, { [username]: undefined }))
+        Object.assign(accounts, { [normalizeUsername(username)]: undefined }))
     saveAccountsAsap().then()
     return true
 }

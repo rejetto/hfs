@@ -14,7 +14,7 @@ import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
-import { getAccount, getCurrentUsername } from './perm'
+import { getAccount } from './perm'
 import { socket2connection, updateConnection, normalizeIp } from './connections'
 import basicAuth from 'basic-auth'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
@@ -126,7 +126,7 @@ export function getProxyDetected() {
 }
 export const prepareState: Koa.Middleware = async (ctx, next) => {
     // calculate these once and for all
-    ctx.state.account = await getHttpAccount(ctx) ?? getAccount(getCurrentUsername(ctx))
+    ctx.state.account = await getHttpAccount(ctx) ?? getAccount(ctx.session?.username, false)
     const conn = ctx.state.connection = socket2connection(ctx.socket)
     await next()
     if (conn)
@@ -141,7 +141,6 @@ async function getHttpAccount(ctx: Koa.Context) {
 }
 
 async function srpCheck(username: string, password: string) {
-    username = username.toLocaleLowerCase()
     const account = getAccount(username)
     if (!account?.srp || !password) return false
     const { step1, salt, pubKey } = await srpStep1(account)

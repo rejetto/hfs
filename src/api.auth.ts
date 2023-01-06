@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Account, getAccount, getCurrentUsername } from './perm'
+import { Account, getAccount, getCurrentUsername, normalizeUsername } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
@@ -24,7 +24,7 @@ async function loggedIn(ctx:Koa.Context, username: string | false) {
         ctx.cookies.set('csrf', '')
         return
     }
-    s.username = username
+    s.username = normalizeUsername(username)
     await prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
     delete s.login
     ctx.cookies.set('csrf', randomId(), { signed:false, httpOnly: false })
@@ -37,7 +37,6 @@ function makeExp() {
 export const login: ApiHandler = async ({ username, password }, ctx) => {
     if (!username || !password) // some validation
         return new ApiError(400)
-    username = username.toLocaleLowerCase() // normalize username, to be case-insensitive
     const acc = getAccount(username)
     if (!acc)
         return new ApiError(UNAUTHORIZED)
@@ -54,7 +53,6 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     if (!username)
         return new ApiError(400)
-    username = username.toLocaleLowerCase()
     const account = getAccount(username)
     if (!ctx.session)
         return new ApiError(500)
@@ -109,7 +107,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
 export const logout: ApiHandler = async ({}, ctx) => {
     if (!ctx.session)
         return new ApiError(500)
-    loggedIn(ctx, false)
+    await loggedIn(ctx, false)
     // 401 is a convenient code for OK: the browser clears a possible http authentication (hopefully), and Admin automatically triggers login dialog
     return new ApiError(401)
 }

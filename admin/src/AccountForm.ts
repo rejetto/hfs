@@ -32,7 +32,8 @@ export default function AccountForm({ account, done, groups, close }: FormProps)
         ],
         fields: [
             { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, xl: group ? 12 : 4,
-                getError: v => v !== account.username && apiCall('get_account', { username: v }).then(() => "already used", () => false),
+                getError: v => v !== account.username && apiCall('get_account', { username: v })
+                    .then(got => got.username === account.username ? "usernames are case-insensitive" : "already used", () => false),
             },
             !group && { k: 'password', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', required: add,
                 label: add ? "Password" : "Change password"
@@ -58,23 +59,23 @@ export default function AccountForm({ account, done, groups, close }: FormProps)
                 const { password='', password2, adminActualAccess, ...withoutPassword } = values
                 const { username } = values
                 if (add) {
-                    await apiCall('add_account', withoutPassword)
+                    const got = await apiCall('add_account', withoutPassword)
                     if (password)
                         try { await apiNewPassword(username, password) }
                         catch(e) {
                             apiCall('del_account', { username }).then() // best effort, don't wait
                             throw e
                         }
-                    done(username)
+                    done(got.username)
                     return alertDialog("Account created", 'success')
                 }
-                await apiCall('set_account', {
+                const got = await apiCall('set_account', {
                     username: account.username,
                     changes: withoutPassword,
                 })
                 if (password)
                     await apiNewPassword(username, password)
-                done(username)
+                done(got.username)
                 return alertDialog("Account modified", 'success')
             }
         }
