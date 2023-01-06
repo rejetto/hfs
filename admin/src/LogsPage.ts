@@ -33,30 +33,33 @@ function LogFile({ file }: { file: string }) {
             {
                 field: 'ip',
                 headerName: "Address",
-                flex: 1,
+                flex: .6,
                 minWidth: 100,
-                maxWidth: 400,
+                maxWidth: 230,
             },
             {
                 field: 'user',
                 headerName: "Username",
-                flex: 1,
+                flex: .4,
+                maxWidth: 200,
             },
             {
                 field: 'ts',
                 headerName: "Timestamp",
                 type: 'dateTime',
-                width: 200,
+                width: 170,
                 valueFormatter: ({ value }) => new Date(value as string).toLocaleString()
             },
             {
                 field: 'method',
                 headerName: "Method",
+                width: 80,
             },
             {
                 field: 'status',
                 headerName: "Code",
                 type: 'number',
+                width: 70,
             },
             {
                 field: 'length',
