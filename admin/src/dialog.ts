@@ -23,7 +23,7 @@ import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/sha
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { useBreakpoint } from './misc'
 import { Flex } from '@hfs/frontend/src/components'
-export * from '@hfs/shared/lib/dialogs'
+export * from '@hfs/shared/dialogs'
 
 dialogsDefaults.Container = function Container(d:DialogOptions) {
     useEffect(()=>{

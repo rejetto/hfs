@@ -16,7 +16,7 @@ import {
 import { Box, BoxProps, Button, Grid } from '@mui/material'
 import { Save } from '@mui/icons-material'
 import { LoadingButton } from '@mui/lab'
-import _ from 'lodash'
+import * as _ from 'lodash'
 import { StringField } from './StringField'
 import { GridProps } from '@mui/material/Grid/Grid'
 export * from './SelectField'

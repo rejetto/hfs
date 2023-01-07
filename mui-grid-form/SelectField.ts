@@ -1,5 +1,5 @@
 import { createElement as h } from 'react'
-import { FieldProps } from './Form'
+import { FieldProps } from '.'
 import { FormControl, FormControlLabel, FormLabel, MenuItem, Radio, RadioGroup, TextField } from '@mui/material'
 import { SxProps } from '@mui/system'
 

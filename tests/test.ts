@@ -2,7 +2,7 @@ import axios from 'axios'
 import { wrapper } from 'axios-cookiejar-support'
 import { CookieJar } from 'tough-cookie'
 import { Done } from 'mocha'
-import { srpSequence } from '@hfs/shared/src/srp'
+import { srpSequence } from '@hfs/shared/srp'
 /*
 import { PORT, srv } from '../src'
 

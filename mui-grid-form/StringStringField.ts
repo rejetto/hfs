@@ -3,7 +3,7 @@
 import { createElement as h, useRef } from 'react'
 import { Grid, IconButton } from '@mui/material'
 import { Add, Delete } from '@mui/icons-material'
-import { FieldProps, StringField } from './Form'
+import { FieldProps, StringField } from '.'
 
 export function StringStringField({ value, onChange, keyLabel='key', valueLabel='value', keyWidth=5, valueWidth=5, actionsWidth=1 }: FieldProps<Record<string,string>> & { keyLabel:string }) {
     const refNew = useRef()

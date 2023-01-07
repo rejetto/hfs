@@ -2,8 +2,8 @@
 
 import { createElement as h, ReactElement, ReactNode, useEffect, useRef } from 'react'
 import './dialog.css'
-import { newDialog, closeDialog } from '@hfs/shared/lib/dialogs'
-export * from '@hfs/shared/lib/dialogs'
+import { newDialog, closeDialog } from '@hfs/shared/dialogs'
+export * from '@hfs/shared/dialogs'
 
 interface PromptOptions { def?:string, type?:string }
 export async function promptDialog(msg: string, { def, type }:PromptOptions={}) : Promise<string | null> {

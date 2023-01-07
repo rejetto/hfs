@@ -1,5 +1,5 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
-import { FieldProps } from './Form'
+import { FieldProps } from '.'
 import { InputAdornment, TextField } from '@mui/material'
 
 export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, ...props }: FieldProps<string>) {

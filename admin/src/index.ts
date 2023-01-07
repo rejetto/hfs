@@ -3,7 +3,7 @@
 import { createElement as h, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import '@hfs/shared/src/min-crypto-polyfill'
+import '@hfs/shared/min-crypto-polyfill'
 import App from './App'
 
 createRoot(document.getElementById('root')!)

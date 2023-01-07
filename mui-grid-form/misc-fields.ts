@@ -1,6 +1,6 @@
 import { createElement as h, useEffect, useState } from 'react'
 import { StringField } from './StringField'
-import { FieldProps } from './Form'
+import { FieldProps } from '.'
 import {
     Box,
     Checkbox,

@@ -10,7 +10,7 @@ import { showOptions } from './options'
 import showUserPanel from './UserPanel'
 import { useNavigate } from 'react-router-dom'
 import _ from 'lodash'
-import { closeDialog } from '@hfs/shared/lib/dialogs'
+import { closeDialog } from '@hfs/shared/dialogs'
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, stoppedSearch, patternFilter, selected } = useSnapState()

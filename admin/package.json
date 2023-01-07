@@ -17,7 +17,6 @@
     "@mui/lab": "^5.0.0-alpha.94",
     "@mui/material": "^5.10.0",
     "@mui/x-data-grid": "^5.15.1",
-    "js-sha512": "^0.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.2.1",

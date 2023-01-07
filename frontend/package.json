@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@hfs/shared": "*",
-    "js-sha512": "^0.8.0",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
