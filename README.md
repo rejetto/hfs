@@ -64,9 +64,20 @@ If your system is not Windows/Linux/Mac, you can try this alternative version:
 1. execute: `sudo npm -g i hfs`
 2. launch: `hfs`
 
-Configuration and other files will be stored in `USER_HOME_FOLDER/.vfs`
+Configuration and other files will be stored in `%HOME%/.vfs`
 
 With this installation method, you can update with `sudo npm -g update hfs` .
+
+### Service
+
+If you want to run HFS as a service
+- if you installed with `npm` on Windows 
+  - service installation
+      - run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
+  - service update 
+    - run `npx qckwinsvc2 uninstall name="HFS"`
+    - run `npm -g update hfs`
+    - run the service installation again
 
 ## Plug-ins
 
