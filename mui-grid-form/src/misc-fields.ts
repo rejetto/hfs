@@ -59,10 +59,11 @@ export function BoolField({ label='', value, onChange, getApi, helperText, error
     )
 }
 
-export function CheckboxesField({ label, options, value, onChange }: FieldProps<string[]> & { options: string[] }) {
-    return h(FormControl, {},
+export function CheckboxesField({ label, options, value, onChange, columns, columnWidth }: FieldProps<string[]> & { options: string[] }) {
+    const doCols = columns > 1 || Boolean(columnWidth)
+    return h(FormControl, { fullWidth: doCols },
         label && h(FormLabel, {}, label),
-        h(FormGroup, {},
+        h(FormGroup, { sx: { ...doCols && { columns, columnWidth, '&, & label': { display: 'block' } } } },
             options.map(o => {
                 const checked = value?.includes(o)
                 return h(FormControlLabel, {
