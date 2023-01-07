@@ -71,30 +71,34 @@ export async function updateAccount(account: Account, changer?:Changer) {
         console.log('please reset password for account', username)
         process.exit(1)
     }
-    if (account.belongs)
-        account.belongs = wantArray(account.belongs).filter(b =>
-            b in accounts // at this stage the group record may still be null if specified later in the file
-            || console.error(`account ${username} belongs to non-existing ${b}`) )
+    if (account.belongs) {
+        account.belongs = wantArray(account.belongs)
+        _.remove(account.belongs, b => {
+            if (b in accounts) return
+            console.error(`account ${username} belongs to non-existing ${b}`)
+            return true
+        })
+    }
     if (was !== JSON.stringify(account))
         saveAccountsAsap()
 }
 
-const saveAccountsAsap = saveConfigAsap
+const saveAccountsAsap = () => { saveConfigAsap().then() }
 
-export const accountsConfig = defineConfig<Accounts>('accounts', {})
-accountsConfig.sub(async v => {
-    // we should validate content here
-    accounts = v // keep local reference
-    await Promise.all(_.map(accounts, async (rec,k) => {
+export const accountsConfig = defineConfig('accounts', {} as Accounts)
+accountsConfig.sub(obj => {
+    // consider some validation here
+    _.each(accounts = obj, (rec,k) => {
         const norm = normalizeUsername(k)
-        if (!rec) // an empty object in yaml is stored as null
-            rec = accounts[norm] = { username: norm }
-        else
-            if (objRenameKey(accounts, k, norm))
+        if (rec?.username !== norm) {
+            if (!rec) // an empty object in yaml is parsed as null
+                rec = obj[norm] = { username: norm }
+            else if (objRenameKey(obj, k, norm))
                 saveAccountsAsap()
-        setHidden(rec, { username: norm })
-        await updateAccount(rec) // work password fields
-    }))
+            setHidden(rec, { username: norm })
+        }
+        updateAccount(rec).then() // work password fields
+    })
 })
 
 export function normalizeUsername(username: string) {
@@ -135,7 +139,6 @@ export function addAccount(username: string, props: Partial<Account>) {
     const copy: Account = setHidden(filteredProps, { username }) // have the field in the object but hidden so that stringification won't include it
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [username]: copy }))
-    saveAccountsAsap().then()
     return copy
 }
 
@@ -150,7 +153,7 @@ export function setAccount(username: string, changes: Partial<Account>) {
     Object.assign(acc, rest)
     if (changes.username)
         renameAccount(username, changes.username)
-    saveAccountsAsap().then()
+    saveAccountsAsap()
     return acc
 }
 
@@ -159,7 +162,7 @@ export function delAccount(username: string) {
         return false
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [normalizeUsername(username)]: undefined }))
-    saveAccountsAsap().then()
+    saveAccountsAsap()
     return true
 }
 
@@ -190,5 +193,5 @@ export function accountCanLoginAdmin(account: Account) {
 }
 
 export function anyAccountCanLoginAdmin() {
-    return Object.values(accounts).find(accountCanLoginAdmin)
+    return Boolean(_.find(accountsConfig.get(), accountCanLoginAdmin))
 }
