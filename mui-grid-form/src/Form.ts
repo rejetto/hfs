@@ -4,6 +4,7 @@ import {
     createElement as h,
     FC,
     Fragment,
+    HTMLProps,
     isValidElement,
     ReactElement,
     ReactNode,
@@ -66,6 +67,7 @@ export interface FormProps<Values> extends Partial<BoxProps> {
     formRef?: MutableRefObject<HTMLFormElement | undefined>
     saveOnEnter?: boolean
     gridProps?: Partial<GridProps>
+    formProps?: HTMLProps<HTMLFormElement>
 }
 enum Phase { Idle, WaitValues, Validating }
 
@@ -82,6 +84,7 @@ export function Form<Values extends Dict>({
     onError,
     saveOnEnter,
     gridProps,
+    formProps,
     ...rest
 }: FormProps<Values>) {
     const mounted = useRef(false)
@@ -103,6 +106,7 @@ export function Form<Values extends Dict>({
     const apis: Dict<FieldApi> = {}
     return h('form', {
         ref: formRef && (x => formRef.current = x ? x as HTMLFormElement : undefined),
+        ...formProps,
         onSubmit(ev) {
             ev.preventDefault()
         },
@@ -165,7 +169,7 @@ export function Form<Values extends Dict>({
                         const { xs=12, sm, md, lg, xl, comp=StringField, before, after,
                             fromField, toField, // don't propagate
                             ...rest } = field
-                        return h(Grid, { key: k, item: true, xs, sm, md, lg, xl },
+                        return h(Grid, { key: k || idx, item: true, xs, sm, md, lg, xl },
                             before,
                             isValidElement(comp) ? comp : h(comp, rest),
                             after
