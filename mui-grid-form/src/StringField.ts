@@ -3,7 +3,7 @@ import { FieldProps } from './Form'
 import { InputAdornment, TextField } from '@mui/material'
 
 export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, ...props }: FieldProps<string>) {
-    const setter = () => value ?? ''
+    const normalized = value ?? ''
     getApi?.({
         getError() {
             return !value && required ? "required"
@@ -12,10 +12,13 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
                         : false
         }
     })
-    const [state, setState] = useState(setter)
+    const [state, setState] = useState(normalized)
 
-    const lastChange = useRef(value)
-    useEffect(() => setState(setter), [value]) //eslint-disable-line
+    const lastChange = useRef(normalized)
+    useEffect(() => {
+        setState(normalized)
+        lastChange.current = normalized
+    }, [normalized])
     return h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
@@ -53,7 +56,7 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
             was: value,
             event,
             cancel() {
-                setState(setter)
+                setState(normalized)
             }
         })
     }
