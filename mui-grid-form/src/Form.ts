@@ -46,7 +46,7 @@ export interface FieldProps<T> {
     value?: T
     onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
     getApi?: (api: FieldApi) => void
-    error?: true
+    error?: boolean
     helperText?: ReactNode
     [rest: string]: any
 }
@@ -57,8 +57,8 @@ export interface FormProps<Values> extends Partial<BoxProps> {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
     defaults?: (f:FieldDescriptor) => any
     values: Values
-    set: (v: any, fieldK: string) => void
-    save: Partial<Parameters<typeof Button>[0]> | (()=>any)
+    set: (v: any, fieldK: keyof Values) => void
+    save: false | Partial<Parameters<typeof Button>[0]> | (()=>any)
     stickyBar?: boolean
     addToBar?: ReactNode[]
     barSx?: Dict
@@ -107,7 +107,7 @@ export function Form<Values extends Dict>({
             ev.preventDefault()
         },
         onKeyDown(ev) {
-            if (!saveBtn.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
+            if (saveBtn && !saveBtn.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
                 pleaseSubmit()
         }
     },
@@ -141,7 +141,7 @@ export function Form<Values extends Dict>({
                                 if (saveOnEnter && event.key === 'Enter')
                                     pleaseSubmit()
                             },
-                            onChange(v) {
+                            onChange(v: unknown) {
                                 try {
                                     v = fromField(v)
                                     setFieldExceptions(x => ({ ...x, [k]: false }))
@@ -174,12 +174,12 @@ export function Form<Values extends Dict>({
                 })
             ),
             saveBtn && h(Box, {
-                    display: 'flex',
-                    alignItems: 'center',
-                    sx: Object.assign({},
-                        stickyBar && { width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', position: 'sticky', bottom: 0, p: 1, m: -1 },
-                        barSx)
-                },
+                display: 'flex',
+                alignItems: 'center',
+                sx: Object.assign({},
+                    stickyBar && { width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', borderRadius: 1, position: 'sticky', bottom: 0, p: 1, m: -1 },
+                    barSx)
+            },
                 h(LoadingButton, {
                     variant: 'contained',
                     startIcon: h(Save),
@@ -226,7 +226,7 @@ export function Form<Values extends Dict>({
             if (!submitAfterValidation.current) return
             if (Object.values(errs).some(Boolean))
                 return await onError?.(MSG)
-            const cb = saveBtn.onClick
+            const cb = saveBtn && saveBtn.onClick
             if (cb) // @ts-ignore
                 await cb()
         }
