@@ -6,7 +6,7 @@ import { UNAUTHORIZED } from './const'
 
 export async function changePasswordHelper(account: Account | undefined, newPassword: string) {
     if (!newPassword) // clear text version
-        return Error('missing parameters')
+        return new ApiError(400, 'missing parameters')
     if (!account)
         return new ApiError(UNAUTHORIZED)
     await updateAccount(account, account => {
@@ -19,7 +19,7 @@ export async function changeSrpHelper(account: Account | undefined, salt: string
     if (allowClearTextLogin.get())
         return new ApiError(406)
     if (!salt || !verifier)
-        return Error('missing parameters')
+        return new ApiError(400, 'missing parameters')
     if (!account)
         return new ApiError(UNAUTHORIZED)
     await updateAccount(account, account => {

@@ -1,7 +1,7 @@
 allowed_referer: x.com
 vfs:
   mime:
-    "*.jpg|*.png|*.mp3|*.txt": auto
+    "*": auto
   masks:
     tests/page/*.html:
       mime: text/plain

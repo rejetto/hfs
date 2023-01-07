@@ -80,6 +80,13 @@ describe('basics', () => {
     }))
 })
 
+describe('accounts', () => {
+    const username = 'test-Add'
+    it('accounts.add', reqApi('add_account', { username }, res => res?.username === username.toLowerCase()))
+    it('account.password', reqApi('change_password_others', { username, newPassword: password }, 200))
+    it('accounts.remove', reqApi('del_account', { username }, 200))
+})
+
 describe('after-login', () => {
     before(() =>
         srpSequence(username, password, (cmd: string, params: any) =>
