@@ -265,6 +265,12 @@ button label {
     }
 }
 
+.upload-list {
+    & td:nth-child(1) { width: 0;  }
+    & td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
+    & td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
+}
+
 /* Works on Firefox */
 * {
     scrollbar-width: thin;

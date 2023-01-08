@@ -8,10 +8,10 @@ import {
     ADMIN_URI,
     BUILD_TIMESTAMP,
     DEV,
-    HTTP_FORBIDDEN,
     SESSION_DURATION,
+    HTTP_FORBIDDEN,
     HTTP_UNAUTHORIZED,
-    HTTP_NOT_FOUND
+    HTTP_NOT_FOUND,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs, VfsNode } from './vfs'
@@ -76,6 +76,13 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return ctx.redirect(ADMIN_URI)
     if (path.startsWith(ADMIN_URI))
         return serveAdminPrefixed(ctx,next)
+    if (ctx.method === 'PUT') { // curl -T file url/
+        let rest = basename(path)
+        const folder = await urlToNode(dirname(path), ctx, vfs, v => rest = v+'/'+rest)
+        if (!folder)
+            return ctx.status = HTTP_NOT_FOUND
+        return await getUpload(folder, rest, ctx.req, ctx)
+    }
     const node = await urlToNode(path, ctx)
     if (!node)
         return ctx.status = HTTP_NOT_FOUND
@@ -107,6 +114,16 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             : ctx.status = cantReadStatusCode(def)
     }
     return serveFrontendFiles(ctx, next)
+}
+
+async function getUpload(base: VfsNode, path: string, stream: Readable, ctx: Koa.Context) {
+    if (!base.source || !hasPermission(base, 'can_upload', ctx))
+        return ctx.status = base.can_upload === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED
+    path = join(base.source, path)
+    mkdirSync(dirname(path), { recursive: true })
+    const dest = createWriteStream(path)
+    await pipeline(stream, dest)
+    ctx.body = '{}'
 }
 
 let proxyDetected = false

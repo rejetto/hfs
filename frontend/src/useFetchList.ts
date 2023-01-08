@@ -39,6 +39,7 @@ export default function useFetchList() {
         state.selected = {}
         state.loading = true
         state.error = undefined
+        state.can_upload = false
         // buffering entries is necessary against burst of events that will hang the browser
         const buffer: DirList = []
         const flush = () => {
@@ -61,10 +62,12 @@ export default function useFetchList() {
                     lastReq.current = undefined
                     return
                 case 'msg':
-                    data.forEach((data: any) => {
-                        if (data.add)
-                            return buffer.push(data.add)
-                        const { error } = data
+                    data.forEach((entry: any) => {
+                        if (entry.props)
+                            return Object.assign(state, _.pick(entry.props, ['can_upload']))
+                        if (entry.add)
+                            return buffer.push(entry.add)
+                        const { error } = entry
                         if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
                             state.messageOnly = "Your download should now start"
                             window.location.reload() // reload will start the download, because now we got authenticated

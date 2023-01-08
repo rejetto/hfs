@@ -18,7 +18,7 @@ export default function FileForm({ file }: { file: VfsNode }) {
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
-        setValues(Object.assign({ can_see: null, can_read: null }, rest))
+        setValues(Object.assign({ can_see: null, can_read: null, can_upload: null }, rest))
     }, [file]) //eslint-disable-line
 
     const { source } = file
@@ -26,17 +26,13 @@ export default function FileForm({ file }: { file: VfsNode }) {
     const hasSource = source !== undefined // we need a boolean
     const realFolder = hasSource && isDir
     const inheritedPerms = useMemo(() => {
-        const ret = { can_read: true, can_see: true }
-        // reconstruct parents backward
-        const parents = []
+        const ret = {}
         let run = parent
         while (run) {
-            parents.unshift(run)
+            _.defaults(ret, run)
             run = run.parent
         }
-        for (const node of parents)
-            Object.assign(ret, node)
-        return ret
+        return _.defaults(ret, { can_read: true, can_see: true, can_upload: false })
     }, [parent])
     const showCanSee = (values.can_read ?? inheritedPerms.can_read) === true
     const showTimestamps = hasSource && Boolean(values.ctime)
@@ -80,12 +76,9 @@ export default function FileForm({ file }: { file: VfsNode }) {
                 : { k: 'name', required: true, helperText: source && "You can decide a name that's different from the one on your disk" },
             isRoot ? { k: 'source', comp: FileField, files: false,  helperText: "If you specify a folder here, its files will be listed in the home" }
                 : (hasSource && { k: 'source', comp: FileField, folders: true, multiline: true }),
-            { k: 'can_read', label:"Who can download", xl: showCanSee && 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_read,
-                helperText: "Note: who can't download won't see it in the list"
-            },
-            showCanSee && { k: 'can_see', label:"Who can see", xl: 6, comp: WhoField, parent, accounts, inherit: inheritedPerms.can_see,
-                helperText: "If you hide this element it will not be listed, but will still be accessible if you have a direct link"
-            },
+            perm('can_read', "Who can download", "Note: who can't download won't see it in the list"),
+            showCanSee && perm('can_see', "Who can see", "You can hide and keep it downloadable if you have a direct link"),
+            hasSource && perm('can_upload', "Who can upload"),
             hasSource && !realFolder && { k: 'size', comp: DisplayField, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, lg: 6, label: 'Created', toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, lg: 6, label: 'Modified', toField: formatTimestamp },
@@ -97,6 +90,10 @@ export default function FileForm({ file }: { file: VfsNode }) {
                 helperText: "This is a special field. Leave it empty unless you know what you are doing." }
         ]
     })
+
+    function perm(perm: keyof typeof inheritedPerms, label: string, helperText='', props={}) {
+        return { k: perm, xl: 6, comp: WhoField, parent, accounts, label, inherit: inheritedPerms[perm], helperText, ...props }
+    }
 }
 
 function formatTimestamp(x: string) {

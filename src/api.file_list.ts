@@ -26,9 +26,15 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     const filter = pattern2filter(search)
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
+    const can_upload = hasPermission(node, 'can_upload', ctx)
     if (!sse)
-        return { list: await asyncGeneratorToArray(produceEntries()) }
+        return {
+            can_upload,
+            list: await asyncGeneratorToArray(produceEntries())
+        }
     setTimeout(async () => {
+        if (can_upload)
+            list.custom({ props: { can_upload } })
         for await (const entry of produceEntries())
             list.add(entry)
         list.close()

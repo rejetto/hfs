@@ -11,9 +11,12 @@ import showUserPanel from './UserPanel'
 import { useNavigate } from 'react-router-dom'
 import _ from 'lodash'
 import { closeDialog } from '@hfs/shared/dialogs'
+import { showUpload, uploadState } from './upload'
+import { useSnapshot } from 'valtio'
 
 export function MenuPanel() {
-    const { showFilter, remoteSearch, stopSearch, stoppedSearch, patternFilter, selected } = useSnapState()
+    const { showFilter, remoteSearch, stopSearch, stoppedSearch, patternFilter, selected, can_upload } = useSnapState()
+    const { uploading }  = useSnapshot(uploadState)
     const [filter, setFilter] = useState(patternFilter)
     ;[state.patternFilter] = useDebounce(showFilter ? filter : '', 300)
     useEffect(() => {
@@ -70,7 +73,13 @@ export function MenuPanel() {
                         }, "Select some files"),
                     }
                 }
-            })
+            }),
+            can_upload && h(MenuButton, {
+                icon: 'upload',
+                label: 'Upload',
+                className: uploading && 'ani-working',
+                onClick: showUpload,
+            }),
         ),
         remoteSearch && h('div', { id: 'searched' },
             (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),

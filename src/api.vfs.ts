@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode } from './vfs'
+import { defaultPerms, getNodeName, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
@@ -60,7 +60,7 @@ const apis: ApiHandlers = {
         const n = await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
-        props = pickProps(props, ['name','source','can_see','can_read','masks','default'])
+        props = pickProps(props, ['name','source','masks','default', ...Object.keys(defaultPerms)])
         props = objSameKeys(props, v => v === null ? undefined : v) // null is a way to serialize undefined, that will restore default values
         if (props.masks && typeof props.masks !== 'object')
             delete props.masks

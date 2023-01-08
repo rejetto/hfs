@@ -22,8 +22,9 @@ type Who = typeof WHO_ANYONE
     | AccountList
 
 interface VfsPerm {
-    can_see: Who
     can_read: Who
+    can_see: Who // use this to hide something you can_read
+    can_upload: Who
 }
 
 type Masks = Record<string, VfsNode>
@@ -39,13 +40,13 @@ export interface VfsNode extends Partial<VfsPerm> {
     // fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     url?: string // what url brought to this node
-    parents?: VfsNode[]
     original?: VfsNode // if this is a temp node but reflecting an existing node
 }
 
 export const defaultPerms: VfsPerm = {
     can_see: WHO_ANYONE,
     can_read: WHO_ANYONE,
+    can_upload: WHO_NO_ONE,
 }
 
 export const MIME_AUTO = 'auto'
@@ -63,7 +64,7 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
     return child
 }
 
-export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=vfs) : Promise<VfsNode | undefined> {
+export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=vfs, getRest?: (rest: string) => any) : Promise<VfsNode | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')
         initialSlashes++
@@ -77,23 +78,23 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
             ctx.status = HTTP_FOOL
         return
     }
-    const parents = parent.parents || [] // don't waste time cloning the array, as we won't keep intermediate nodes
-    const ret: VfsNode = {
-        isTemp: true,
-        url: enforceFinal('/', parent.url || '') + name,
-        parents,
-    }
-    parents.push(parent)
-    inheritFromParent(parent, ret)
-    inheritMasks(ret, parent, name)
-    applyMasks(ret, parent, name)
     // does the tree node have a child that goes by this name?
     const sameName = !IS_WINDOWS ? (x:string) => x === name // easy
         : with_(name.toLowerCase(), lc =>
             (x: string) => x.toLowerCase() === lc)
     const child = parent.children?.find(x => sameName(getNodeName(x)))
+
+    const ret: VfsNode = {
+        ...child,
+        original: child,
+        isTemp: true,
+        url: enforceFinal('/', parent.url || '') + name,
+    }
+    inheritFromParent(parent, ret)
+    inheritMasks(ret, parent, name)
+    applyMasks(ret, parent, name)
     if (child)  // yes
-        return urlToNode(rest, ctx, Object.assign(ret, child, { original: child }))
+        return urlToNode(rest, ctx, ret, getRest)
     // not in the tree, we can see consider continuing on the disk
     if (!parent.source) return // but then we need the current node to be linked to the disk, otherwise, we give up
     let onDisk = name
@@ -109,10 +110,15 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     if (parent.default)
         inheritFromParent({ mime: { '*': MIME_AUTO } }, ret)
     if (rest)
-        return urlToNode(rest, ctx, ret)
+        return urlToNode(rest, ctx, ret, getRest)
     if (ret.source)
         try { await fs.stat(ret.source) } // check existence
-        catch { return }
+        catch {
+            if (!getRest)
+                return
+            getRest(onDisk)
+            return parent
+        }
     return ret
 }
 
@@ -140,7 +146,7 @@ export async function nodeIsDirectory(node: VfsNode) {
 
 export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context): boolean {
     return matchWho(node[perm] ?? defaultPerms[perm], ctx)
-        && (perm !== 'can_see' || hasPermission(node, 'can_read', ctx)) // for can_see you must also can_read
+        && (perm !== 'can_see' || hasPermission(node, 'can_read', ctx)) // can_see is used to hide something you nonetheless can_read, so you MUST also can_read
 }
 
 export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
@@ -176,11 +182,9 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         const name = getNodeName(item)
         // we basename for depth>0 where we already have the rest of the path in the parent's url, and would be duplicated
         const virtualBasename = basename(name)
-        const url = enforceFinal('/', parent.url || '') + virtualBasename
         Object.assign(item, {
             isTemp: true,
-            url,
-            parents: [ ...parent.parents||[], parent],
+            url: enforceFinal('/', parent.url || '') + virtualBasename,
         })
         inheritFromParent(parent, item)
         applyMasks(item, parent, virtualBasename)
@@ -240,8 +244,8 @@ events.on('accountRenamed', (from, to) => {
     saveVfs()
 
     function recur(n: VfsNode) {
-        replace(n.can_see)
-        replace(n.can_read)
+        for (const k of typedKeys(defaultPerms))
+            replace(n[k])
 
         if (n.masks)
             Object.values(n.masks).forEach(recur)
