@@ -31,7 +31,7 @@
     border-radius: .8em 0;
 }
 .dialog-title {
-    margin-top: -5px;
+    margin-top: -.5em;
     font-size: 110%;
 }
 .dialog-icon ~ .dialog-title {

@@ -3,6 +3,7 @@
 import { createElement as h, ReactElement, ReactNode, useEffect, useRef } from 'react'
 import './dialog.css'
 import { newDialog, closeDialog } from '@hfs/shared/dialogs'
+import _ from 'lodash'
 export * from '@hfs/shared/dialogs'
 
 interface PromptOptions { def?:string, type?:string }
@@ -52,11 +53,12 @@ type AlertType = 'error' | 'warning' | 'info'
 
 export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info') {
     if (msg instanceof Error) {
-        msg = String(msg)
+        msg = msg.message
         type = 'error'
     }
     return new Promise(resolve => newDialog({
         className: 'dialog-alert-'+type,
+        title: _.capitalize(type),
         icon: '!',
         onClose: resolve,
         Content
