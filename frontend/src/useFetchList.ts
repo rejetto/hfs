@@ -6,13 +6,17 @@ import { apiEvents } from './api'
 import { DirEntry, DirList, usePath } from './BrowseFiles'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
+import { useIsMounted } from 'usehooks-ts'
+
+const API = 'file_list'
 
 export default function useFetchList() {
     const snap = useSnapState()
     const desiredPath = usePath()
     const search = snap.remoteSearch || undefined
     const lastPath = useRef('')
-
+    const lastReq = useRef<any>()
+    const isMounted = useIsMounted()
     useEffect(()=>{
         const previous = lastPath.current
         lastPath.current = desiredPath
@@ -26,8 +30,10 @@ export default function useFetchList() {
             return
         }
 
-        const API = 'file_list'
         const baseParams = { path:desiredPath, search, sse:true, omit:'c' }
+        if (_.isEqual(baseParams, lastReq.current)) return
+        lastReq.current = baseParams
+
         state.list = []
         state.filteredList = undefined
         state.selected = {}
@@ -42,6 +48,7 @@ export default function useFetchList() {
         }
         const timer = setInterval(flush, 1000)
         const src = apiEvents(API, baseParams, (type, data) => {
+            if (!isMounted()) return
             switch (type) {
                 case 'error':
                     state.stopSearch?.()
@@ -51,6 +58,7 @@ export default function useFetchList() {
                     flush()
                     state.stopSearch?.()
                     state.loading = false
+                    lastReq.current = undefined
                     return
                 case 'msg':
                     data.forEach((data: any) => {

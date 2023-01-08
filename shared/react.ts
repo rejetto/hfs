@@ -1,17 +1,7 @@
 // This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef, useState } from 'react'
-
-export function useIsMounted() {
-    const mountRef = useRef(false)
-    useEffect(() => {
-        mountRef.current = true
-        return () => {
-            mountRef.current = false
-        }
-    }, [])
-    return useCallback(()=> mountRef.current, [mountRef])
-}
+import { createElement as h, Fragment, ReactElement, ReactNode, useCallback, useState } from 'react'
+import { useIsMounted } from 'usehooks-ts'
 
 export function useStateMounted<T>(init: T) {
     const isMounted = useIsMounted()
