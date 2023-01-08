@@ -32,7 +32,7 @@
     "@types/react-dom": "^18.0.6",
     "@types/react-window": "^1.8.5",
     "@types/react-virtualized-auto-sizer": "^1.0.1",
-    "vite": "^3.0.0",
+    "vite": "^4.0.4",
     "vite-plugin-babel-import": "github:rejetto/vite-plugin-babel-import"
   },
   "eslintConfig": {

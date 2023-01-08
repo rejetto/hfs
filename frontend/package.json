@@ -27,7 +27,7 @@
     "@types/react-dom": "^18.0.6",
     "cross-env": "^7.0.3",
     "sass": "^1.54.5",
-    "vite": "^3.0.0"
+    "vite": "^4.0.4"
   },
   "eslintConfig": {
     "extends": [
