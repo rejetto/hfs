@@ -87,6 +87,7 @@ export async function confirmDialog(msg: ReactElement | string, { href, afterBut
                 style: {
                     display: 'flex',
                     justifyContent: 'flex-end',
+                    alignItems: 'center',
                     gap: '1em'
                 },
             },
