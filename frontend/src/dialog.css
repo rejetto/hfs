@@ -30,6 +30,13 @@
     text-align: center;
     border-radius: .8em 0;
 }
+.dialog-title {
+    margin-top: -5px;
+    font-size: 110%;
+}
+.dialog-icon ~ .dialog-title {
+    text-align: center;
+}
 .dialog-closer {
     border-radius: 0 0.8em;
     right: 0;

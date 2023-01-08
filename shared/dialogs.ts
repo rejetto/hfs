@@ -8,7 +8,7 @@ export interface DialogOptions {
     closable?: boolean,
     onClose?: (v?:any)=> any,
     className?: string,
-    icon?: string | ReactNode,
+    icon?: string | ReactNode | FunctionComponent,
     closableContent?: string | ReactNode,
     reserveClosing?: true
     noFrame?: boolean
@@ -53,14 +53,17 @@ function Dialog(d:DialogOptions) {
                     className: 'dialog',
                     onClick(ev:any){
                         ev.stopPropagation()
-                    }
+                    },
+                    ...d.dialogProps,
                 },
                 d.closable || d.closable===undefined
                     && h('button', {
                         className: 'dialog-icon dialog-closer',
                         onClick() { closeDialog() }
                     }, d.closableContent),
-                d.icon && h('div', { className: 'dialog-icon dialog-type' }, d.icon),
+                d.icon && h('div', { className: 'dialog-icon dialog-type' },
+                    typeof d.icon === 'function' ? h(d.icon) : d.icon),
+                h('div', { className: 'dialog-title' }, d.title),
                 h('div', { className: 'dialog-content' }, h(d.Content || 'div'))
             )
     )

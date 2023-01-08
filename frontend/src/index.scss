@@ -18,7 +18,9 @@
         body { color-scheme: dark; }
         a { color:#8ac; }
         .dialog-closer { background: #633 }
-        .dialog-icon { color: #ccc; }
+        .dialog-icon { color: #ccc;
+            .icon { color: #aaa; margin-left: -1px; font-size:95%; }
+        }
         .dialog-backdrop { background: #333b; }
     }
 }
@@ -245,8 +247,7 @@ button label {
     padding: .2em; /* give space for focus outline */
 }
 
-.dialog-confirm,
-.dialog-prompt {
+.dialog {
     --color: var(--button-bg);
 }
 
