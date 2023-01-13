@@ -114,7 +114,7 @@ const Entry = memo(function(entry: DirEntry & { midnight: Date }) {
 })
 
 function fixUrl(s:string) {
-    return s.replace(/#/g, encodeURIComponent)
+    return s.replace(/[#%]/g, encodeURIComponent)
 }
 
 const EntryProps = memo(function(entry: DirEntry & { midnight: Date }) {
