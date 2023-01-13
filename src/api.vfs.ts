@@ -29,7 +29,10 @@ async function urlToNodeOriginal(uri: string) {
 const apis: ApiHandlers = {
 
     async get_vfs() {
-        return { root: vfs && await recur(vfs) }
+        return {
+            root: vfs && await recur(vfs),
+            defaultPerms,
+        }
 
         async function recur(node: VfsNode): Promise<VfsAdmin> {
             const dir = await nodeIsDirectory(node)

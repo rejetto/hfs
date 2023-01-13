@@ -16,9 +16,9 @@ let selectOnReload: string[] | undefined
 
 export default function VfsPage() {
     const [id2node] = useState(() => new Map<string, VfsNode>())
-    const snap = useSnapState()
+    const { vfs, selectedFiles } = useSnapState()
     const { data, reload, element } = useApiEx('get_vfs')
-    useMemo(() => snap.vfs || reload(), [snap.vfs, reload])
+    useMemo(() => vfs || reload(), [vfs, reload])
     useEffect(() => {
         state.vfs = undefined
         if (!data) return
@@ -74,20 +74,18 @@ export default function VfsPage() {
         h(Grid, { item:true, sm: 6, lg: 5 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(VfsMenuBar),
-            snap.vfs && h(VfsTree, { id2node })),
+            vfs && h(VfsTree, { id2node })),
         h(Grid, { item:true, sm: 6, lg: 7, maxWidth:'100%' },
-            h(SidePanel))
+            selectedFiles.length === 0 ? null
+                : selectedFiles.length === 1 ? h(FileForm, {
+                    defaultPerms: data?.defaultPerms as VfsPerms,
+                    file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
+                })
+                    : h(List, {},
+                        selectedFiles.length + ' selected',
+                        selectedFiles.map(f => h(ListItem, { key: f.name },
+                            h(ListItemText, { primary: f.name, secondary: f.source }) ))))
     )
-}
-
-function SidePanel() {
-    const { selectedFiles: files } = useSnapState()
-    return files.length === 0 ? null
-        : files.length === 1 ? h(FileForm, { file: files[0] as VfsNode }) // it's actually Snapshot<VfsNode> but it's easier this way
-            : h(List, {},
-                files.length + ' selected',
-                files.map(f => h(ListItem, { key: f.name },
-                    h(ListItemText, { primary: f.name, secondary: f.source }) )))
 }
 
 export function reloadVfs(pleaseSelect?: string[]) {
@@ -95,7 +93,12 @@ export function reloadVfs(pleaseSelect?: string[]) {
     state.vfs = undefined
 }
 
-export type VfsNode = {
+export interface VfsPerms {
+    can_see?: Who
+    can_read?: Who
+    can_upload?: Who
+}
+export interface VfsNode extends VfsPerms {
     id: string
     name: string
     type?: 'folder'
@@ -106,11 +109,8 @@ export type VfsNode = {
     default?: string
     children?: VfsNode[]
     parent?: VfsNode
-    can_see: Who
-    can_read: Who
     website?: true
     masks?: any
-
     isRoot?: true
 }
 

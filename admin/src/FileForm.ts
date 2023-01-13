@@ -6,7 +6,7 @@ import { Alert, Button } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
-import { reloadVfs, VfsNode, Who } from './VfsPage'
+import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
 import FileField from './FileField'
@@ -14,7 +14,7 @@ import { alertDialog } from './dialog'
 
 interface Account { username: string }
 
-export default function FileForm({ file }: { file: VfsNode }) {
+export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaultPerms: VfsPerms }) {
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -32,7 +32,7 @@ export default function FileForm({ file }: { file: VfsNode }) {
             _.defaults(ret, run)
             run = run.parent
         }
-        return _.defaults(ret, { can_read: true, can_see: true, can_upload: false })
+        return _.defaults(ret, defaultPerms)
     }, [parent])
     const showCanSee = (values.can_read ?? inheritedPerms.can_read) === true
     const showTimestamps = hasSource && Boolean(values.ctime)
@@ -104,7 +104,7 @@ interface WhoFieldProps extends FieldProps<Who> { accounts: Account[] }
 function WhoField({ value, onChange, parent, inherit, accounts, helperText, ...rest }: WhoFieldProps) {
     const options = useMemo(() =>
         onlyTruthy([
-            { value: null, label: (parent ? "Same as parent: " : "Default: " ) + who2desc(inherit === 0 ? true : inherit) },
+            { value: null, label: (parent ? "Same as parent: " : "Default: " ) + who2desc(inherit) },
             { value: true },
             { value: false },
             { value: '*' },

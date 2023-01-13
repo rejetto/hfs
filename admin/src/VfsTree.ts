@@ -41,7 +41,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
         }
     }, recur(vfs as Readonly<VfsNode>))
 
-    function isRestricted(who: Who) {
+    function isRestricted(who: Who | undefined) {
         return who !== undefined && who !== true
     }
 
