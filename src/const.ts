@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import { homedir } from 'os'
 import { mkdirSync } from 'fs'
 import { basename, dirname, join } from 'path'
+import http2 from 'http2'
 
 export const argv = minimist(process.argv.slice(2))
 export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
@@ -26,10 +27,21 @@ export const ADMIN_URI = SPECIAL_URI + 'admin/'
 export const API_URI = SPECIAL_URI + 'api/'
 export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
 
-export const METHOD_NOT_ALLOWED = 405
-export const NO_CONTENT = 204
-export const FORBIDDEN = 403
-export const UNAUTHORIZED = 401
+export const HTTP_OK = 200
+export const HTTP_NO_CONTENT = 204
+export const HTTP_PARTIAL_CONTENT = 206
+export const HTTP_TEMPORARY_REDIRECT = 302
+export const HTTP_NOT_MODIFIED = 304
+export const HTTP_BAD_REQUEST = 400
+export const HTTP_UNAUTHORIZED = 401
+export const HTTP_FORBIDDEN = 403
+export const HTTP_NOT_FOUND = 404
+export const HTTP_METHOD_NOT_ALLOWED = 405
+export const HTTP_NOT_ACCEPTABLE = 406
+export const HTTP_CONFLICT = 409
+export const HTTP_RANGE_NOT_SATISFIABLE = 416
+export const HTTP_FOOL = 418
+export const HTTP_SERVER_ERROR = 500
 
 export const IS_WINDOWS = process.platform === 'win32'
 const IS_BINARY = !basename(process.argv0).includes('node') // this won't be node if pkg was used

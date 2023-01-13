@@ -4,7 +4,14 @@ import { Account, getAccount, getCurrentUsername, normalizeUsername } from './pe
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
-import { ADMIN_URI, SESSION_DURATION, UNAUTHORIZED } from './const'
+import {
+    ADMIN_URI,
+    HTTP_SERVER_ERROR,
+    SESSION_DURATION,
+    HTTP_UNAUTHORIZED,
+    HTTP_BAD_REQUEST,
+    HTTP_NOT_ACCEPTABLE, HTTP_CONFLICT
+} from './const'
 import { randomId } from './misc'
 import Koa from 'koa'
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
@@ -18,7 +25,7 @@ const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that
 async function loggedIn(ctx:Koa.Context, username: string | false) {
     const s = ctx.session
     if (!s)
-        return ctx.throw(500,'session')
+        return ctx.throw(HTTP_SERVER_ERROR,'session')
     if (username === false) {
         delete s.username
         ctx.cookies.set('csrf', '')
@@ -36,28 +43,28 @@ function makeExp() {
 
 export const login: ApiHandler = async ({ username, password }, ctx) => {
     if (!username || !password) // some validation
-        return new ApiError(400)
+        return new ApiError(HTTP_BAD_REQUEST)
     const acc = getAccount(username)
     if (!acc)
-        return new ApiError(UNAUTHORIZED)
+        return new ApiError(HTTP_UNAUTHORIZED)
     if (!acc.hashed_password)
-        return new ApiError(406)
+        return new ApiError(HTTP_NOT_ACCEPTABLE)
     if (!await verifyPassword(acc.hashed_password, password))
-        return new ApiError(UNAUTHORIZED)
+        return new ApiError(HTTP_UNAUTHORIZED)
     if (!ctx.session)
-        return new ApiError(500)
+        return new ApiError(HTTP_SERVER_ERROR)
     await loggedIn(ctx, username)
     return { ...makeExp(), redirect: acc.redirect }
 }
 
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     if (!username)
-        return new ApiError(400)
+        return new ApiError(HTTP_BAD_REQUEST)
     const account = getAccount(username)
     if (!ctx.session)
-        return new ApiError(500)
+        return new ApiError(HTTP_SERVER_ERROR)
     if (!account) // TODO simulate fake account to prevent knowing valid usernames
-        return new ApiError(UNAUTHORIZED)
+        return new ApiError(HTTP_UNAUTHORIZED)
     try {
         const { step1, ...rest } = await srpStep1(account)
         const sid = Math.random()
@@ -73,7 +80,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
 
 export async function srpStep1(account: Account) {
     if (!account.srp)
-        throw 406 // unacceptable
+        throw HTTP_NOT_ACCEPTABLE
     const [salt, verifier] = account.srp.split('|')
     const srpSession = new SRPServerSession(srp6aNimbusRoutines)
     const step1 = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
@@ -82,9 +89,9 @@ export async function srpStep1(account: Account) {
 
 export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     if (!ctx.session)
-        return new ApiError(500)
+        return new ApiError(HTTP_SERVER_ERROR)
     if (!ctx.session.login)
-        return new ApiError(409)
+        return new ApiError(HTTP_CONFLICT)
     const { username, sid } = ctx.session.login
     const step1 = ongoingLogins[sid]
     try {
@@ -97,7 +104,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         }
     }
     catch(e) {
-        return new ApiError(UNAUTHORIZED, String(e))
+        return new ApiError(HTTP_UNAUTHORIZED, String(e))
     }
     finally {
         delete ongoingLogins[sid]
@@ -106,14 +113,14 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
 
 export const logout: ApiHandler = async ({}, ctx) => {
     if (!ctx.session)
-        return new ApiError(500)
+        return new ApiError(HTTP_SERVER_ERROR)
     await loggedIn(ctx, false)
     // 401 is a convenient code for OK: the browser clears a possible http authentication (hopefully), and Admin automatically triggers login dialog
-    return new ApiError(401)
+    return new ApiError(HTTP_UNAUTHORIZED)
 }
 
 export const refresh_session: ApiHandler = async ({}, ctx) => {
-    return !ctx.session ? new ApiError(500) : {
+    return !ctx.session ? new ApiError(HTTP_SERVER_ERROR) : {
         username: getCurrentUsername(ctx),
         adminUrl: ctxAdminAccess(ctx) ? ADMIN_URI : undefined,
         ...makeExp(),

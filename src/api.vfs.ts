@@ -8,7 +8,7 @@ import { dirname, join, resolve } from 'path'
 import { dirStream, isWindowsDrive, objSameKeys } from './misc'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { FORBIDDEN, IS_WINDOWS } from './const'
+import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, IS_WINDOWS, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT } from './const'
 import { isMatch } from 'micromatch'
 
 type VfsAdmin = {
@@ -59,7 +59,7 @@ const apis: ApiHandlers = {
     async set_vfs({ uri, props }) {
         const n = await urlToNodeOriginal(uri)
         if (!n)
-            return new ApiError(404, 'path not found')
+            return new ApiError(HTTP_NOT_FOUND, 'path not found')
         props = pickProps(props, ['name','source','can_see','can_read','masks','default'])
         props = objSameKeys(props, v => v === null ? undefined : v) // null is a way to serialize undefined, that will restore default values
         if (props.masks && typeof props.masks !== 'object')
@@ -74,14 +74,14 @@ const apis: ApiHandlers = {
     async add_vfs({ under, source, name }) {
         const n = under ? await urlToNodeOriginal(under) : vfs
         if (!n)
-            return new ApiError(404, 'invalid under')
+            return new ApiError(HTTP_NOT_FOUND, 'invalid under')
         if (n.isTemp || !await nodeIsDirectory(n))
-            return new ApiError(FORBIDDEN, 'invalid under')
+            return new ApiError(HTTP_FORBIDDEN, 'invalid under')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
         const a = n.children || (n.children = [])
         if (source && a.find(x => x.source === source))
-            return new ApiError(409, 'already present')
+            return new ApiError(HTTP_CONFLICT, 'already present')
         a.unshift({ source, name })
         await saveVfs()
         return {}
@@ -89,21 +89,21 @@ const apis: ApiHandlers = {
 
     async del_vfs({ uris }) {
         if (!uris || !Array.isArray(uris))
-            return new ApiError(400, 'invalid uris')
+            return new ApiError(HTTP_BAD_REQUEST, 'invalid uris')
         return {
             errors: await Promise.all(uris.map(async uri => {
                 if (typeof uri !== 'string')
-                    return 400
+                    return HTTP_BAD_REQUEST
                 const node = await urlToNodeOriginal(uri)
                 if (!node)
-                    return 404
+                    return HTTP_NOT_FOUND
                 const parent = dirname(uri)
                 const parentNode = await urlToNodeOriginal(parent)
                 if (!parentNode)
-                    return FORBIDDEN
+                    return HTTP_FORBIDDEN
                 const { children } = parentNode
                 if (!children) // shouldn't happen
-                    return 500
+                    return HTTP_SERVER_ERROR
                 const idx = children.indexOf(node)
                 children.splice(idx, 1)
                 saveVfs()

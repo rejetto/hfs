@@ -9,9 +9,10 @@ import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { dirname } from 'path'
 import { getRange } from './serveFile'
+import { HTTP_OK } from './const'
 
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
-    ctx.status = 200
+    ctx.status = HTTP_OK
     ctx.mime = 'zip'
     const name = getNodeName(node)
     ctx.attachment((name || 'archive') + '.zip')

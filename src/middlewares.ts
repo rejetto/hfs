@@ -3,10 +3,18 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import session from 'koa-session'
-import { ADMIN_URI, BUILD_TIMESTAMP, DEV, FORBIDDEN, SESSION_DURATION } from './const'
-import Application from 'koa'
+import {
+    HTTP_FOOL,
+    ADMIN_URI,
+    BUILD_TIMESTAMP,
+    DEV,
+    HTTP_FORBIDDEN,
+    SESSION_DURATION,
+    HTTP_UNAUTHORIZED,
+    HTTP_NOT_FOUND
+} from './const'
 import { FRONTEND_URI } from './const'
-import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode } from './vfs'
+import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs, VfsNode } from './vfs'
 import { dirTraversal, objSameKeys, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
@@ -19,7 +27,9 @@ import { socket2connection, updateConnection, normalizeIp } from './connections'
 import basicAuth from 'basic-auth'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { srpStep1 } from './api.auth'
-import { IncomingMessage } from 'http'
+import { basename, dirname, join } from 'path'
+import { createWriteStream, mkdirSync } from 'fs'
+import { pipeline } from 'stream/promises'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -45,7 +55,7 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
         ctx.response.length = length
 }
 
-export const sessions = (app: Application) => session({
+export const sessions = (app: Koa) => session({
     key: 'hfs_$id',
     signed: true,
     rolling: true,
@@ -68,7 +78,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return serveAdminPrefixed(ctx,next)
     const node = await urlToNode(path, ctx)
     if (!node)
-        return ctx.status = 404
+        return ctx.status = HTTP_NOT_FOUND
     const canRead = hasPermission(node, 'can_read', ctx)
     const isFolder = await nodeIsDirectory(node)
     if (isFolder && !path.endsWith('/'))
@@ -78,7 +88,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             : next()
     if (!canRead) {
         ctx.status = cantReadStatusCode(node)
-        if (ctx.status === FORBIDDEN)
+        if (ctx.status === HTTP_FORBIDDEN)
             return
         const browserDetected = ctx.get('Upgrade-Insecure-Requests') || ctx.get('Sec-Fetch-Mode') // ugh, heuristics
         if (!browserDetected) // we don't want to trigger basic authentication on browsers, it's meant for download managers only
@@ -108,14 +118,14 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
         if (DEV && proxy && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))
             proxy = ''
         if (dirTraversal(decodeURI(ctx.path)))
-            return ctx.status = 418
+            return ctx.status = HTTP_FOOL
         if (applyBlock(ctx.socket, ctx.ip))
             return
         proxyDetected ||= proxy > ''
         ctx.state.proxiedFor = proxy
     }
     catch {
-        return ctx.status = 418
+        return ctx.status = HTTP_FOOL
     }
     return next()
 }
@@ -152,18 +162,18 @@ async function srpCheck(username: string, password: string) {
 
 // unify get/post parameters, with JSON decoding to not be limited to strings
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
-    ctx.params = ctx.method === 'POST' ? tryJson(await getReqData(ctx.req))
+    ctx.params = ctx.method === 'POST' ? tryJson(await stream2string(ctx.req))
         : objSameKeys(ctx.query, x => Array.isArray(x) ? x : tryJson(x))
     await next()
 }
 
-async function getReqData(req: IncomingMessage): Promise<any> {
+async function stream2string(stream: Readable): Promise<string> {
     return new Promise((resolve, reject) => {
         let data = ''
-        req.on('data', chunk =>
+        stream.on('data', chunk =>
             data += chunk)
-        req.on('error', reject)
-        req.on('end', () => {
+        stream.on('error', reject)
+        stream.on('end', () => {
             try {
                 resolve(data)
             }

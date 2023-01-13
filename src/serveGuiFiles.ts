@@ -2,7 +2,7 @@
 
 import Koa from 'koa'
 import fs from 'fs/promises'
-import { METHOD_NOT_ALLOWED, NO_CONTENT, PLUGINS_PUB_URI } from './const'
+import { HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, PLUGINS_PUB_URI } from './const'
 import { serveFile } from './serveFile'
 import { mapPlugins } from './plugins'
 import { refresh_session } from './api.auth'
@@ -18,12 +18,12 @@ function serveStatic(uri: string): Koa.Middleware {
     const cache: Record<string, Promise<string>> = {}
     return async (ctx, next) => {
         if(ctx.method === 'OPTIONS') {
-            ctx.status = NO_CONTENT
+            ctx.status = HTTP_NO_CONTENT
             ctx.set({ Allow: 'OPTIONS, GET' })
             return
         }
         if (ctx.method !== 'GET')
-            return ctx.status = METHOD_NOT_ALLOWED
+            return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
         const fullPath = join(__dirname, '..', DEV_STATIC, folder, serveApp ? '/index.html': ctx.path)
         const content = await getOrSet(cache, ctx.path, async () => {
@@ -32,7 +32,7 @@ function serveStatic(uri: string): Koa.Middleware {
                 : adjustBundlerLinks(ctx.path, uri, data)
         })
         if (content === null)
-            return ctx.status = 404
+            return ctx.status = HTTP_NOT_FOUND
         if (!serveApp)
             return serveFile(fullPath, 'auto', content)(ctx, next)
         // we don't cache the index as it's small and may prevent plugins change to apply

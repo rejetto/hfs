@@ -5,7 +5,7 @@ import createSSE from './sse'
 import { Readable } from 'stream'
 import { asyncGeneratorToReadable, onOff } from './misc'
 import events from './events'
-import { UNAUTHORIZED } from './const'
+import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
 import _, { DebouncedFunc } from 'lodash'
 
 export class ApiError extends Error {
@@ -23,11 +23,11 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         console.debug('API', ctx.method, ctx.path, { ...params })
         if (!apis.hasOwnProperty(ctx.path)) {
             ctx.body = 'invalid api'
-            return ctx.status = 404
+            return ctx.status = HTTP_NOT_FOUND
         }
         const csrf = ctx.cookies.get('csrf')
         // we don't rely on SameSite cookie option because it's https-only
-        let res = csrf && csrf !== params.csrf ? new ApiError(UNAUTHORIZED, 'csrf')
+        let res = csrf && csrf !== params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
             : await apis[ctx.path](params || {}, ctx)
         if (isAsyncGenerator(res))
             res = asyncGeneratorToReadable(res)
@@ -44,7 +44,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         if (res instanceof Error) { // generic exception
             ctx.body = String(res)
-            return ctx.status = 400
+            return ctx.status = HTTP_BAD_REQUEST
         }
         ctx.body = res
     }

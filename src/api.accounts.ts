@@ -14,7 +14,7 @@ import {
     setAccount
 } from './perm'
 import _ from 'lodash'
-import { FORBIDDEN } from './const'
+import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND } from './const'
 
 function prepareAccount(ac: Account | undefined) {
     return ac && {
@@ -33,7 +33,7 @@ const apis: ApiHandlers = {
 
     get_account({ username }, ctx) {
         return prepareAccount(getAccount(username || getCurrentUsername(ctx)))
-            || new ApiError(404)
+            || new ApiError(HTTP_NOT_FOUND)
     },
 
     get_accounts() {
@@ -49,20 +49,20 @@ const apis: ApiHandlers = {
         if (admin === null)
             changes.admin = undefined
         else if (admin !== undefined && typeof admin !== 'boolean')
-            return new ApiError(400, "invalid admin")
+            return new ApiError(HTTP_BAD_REQUEST, "invalid admin")
         const acc = setAccount(username, changes)
-        return acc ? _.pick(acc, 'username') : new ApiError(400)
+        return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
     },
 
     add_account({ username, ...rest }) {
         if (getAccount(username))
-            return new ApiError(FORBIDDEN)
+            return new ApiError(HTTP_FORBIDDEN)
         const acc = addAccount(username, rest)
-        return acc ? _.pick(acc, 'username') : new ApiError(400)
+        return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
     },
 
     del_account({ username }) {
-        return delAccount(username) ? {} : new ApiError(400)
+        return delAccount(username) ? {} : new ApiError(HTTP_BAD_REQUEST)
     },
 
     async change_password_others({ username, newPassword }) {

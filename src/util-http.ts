@@ -1,6 +1,7 @@
 import { RequestOptions } from 'https'
 import { IncomingMessage } from 'node:http'
 import https from 'node:https'
+import { HTTP_TEMPORARY_REDIRECT } from './const'
 
 export function httpsString(url: string, options:RequestOptions={}): Promise<IncomingMessage & { ok: boolean, body: string }> {
     return httpsStream(url, options).then(res =>
@@ -20,7 +21,7 @@ export function httpsStream(url: string, options:RequestOptions={}): Promise<Inc
         https.request(url, options, res => {
             if (!res.statusCode || res.statusCode >= 400)
                 throw res
-            if (res.statusCode === 302 && res.headers.location)
+            if (res.statusCode === HTTP_TEMPORARY_REDIRECT && res.headers.location)
                 return resolve(httpsStream(res.headers.location, options))
             resolve(res)
         }).on('error', reject).end()

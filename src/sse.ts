@@ -2,6 +2,7 @@
 
 import Koa from 'koa'
 import { Transform } from 'stream'
+import { HTTP_OK } from './const'
 
 export default function createSSE(ctx: Koa.Context) {
     const { socket } = ctx.req
@@ -14,7 +15,7 @@ export default function createSSE(ctx: Koa.Context) {
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no', // avoid buffering when reverse-proxied through nginx
     })
-    ctx.status = 200
+    ctx.status = HTTP_OK
     return ctx.body = new Transform({
         objectMode: true,
         transform(chunk, encoding, cb) {

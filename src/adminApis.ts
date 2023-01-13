@@ -7,11 +7,13 @@ import {
     API_VERSION,
     BUILD_TIMESTAMP,
     COMPATIBLE_API_VERSION,
-    FORBIDDEN,
     HFS_STARTED,
     IS_WINDOWS,
-    UNAUTHORIZED,
-    VERSION
+    VERSION,
+    HTTP_UNAUTHORIZED,
+    HTTP_FORBIDDEN,
+    HTTP_NOT_FOUND,
+    HTTP_BAD_REQUEST
 } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
@@ -44,7 +46,7 @@ export const adminApis: ApiHandlers = {
             const noHttp = (v.port ?? portCfg.get()) < 0 || !st.httpSrv.listening
             const noHttps = (v.https_port ?? httpsPortCfg.get()) < 0 || !st.httpsSrv.listening
             if (noHttp && noHttps)
-                return new ApiError(FORBIDDEN, "You cannot switch off both http and https ports")
+                return new ApiError(HTTP_FORBIDDEN, "You cannot switch off both http and https ports")
             await setConfig(v)
         }
         return {}
@@ -82,7 +84,7 @@ export const adminApis: ApiHandlers = {
 
     async save_pem({ cert, private_key, name='self' }) {
         if (!cert || !private_key)
-            return new ApiError(400)
+            return new ApiError(HTTP_BAD_REQUEST)
         const files = { cert: name + '.cert', private_key: name + '.key' }
         await writeFile(files.private_key, private_key)
         await writeFile(files.cert, cert)
@@ -95,7 +97,7 @@ export const adminApis: ApiHandlers = {
             doAtStart(list) {
                 const logger = loggers.find(l => l.name === file)
                 if (!logger)
-                    return list.error(404, true)
+                    return list.error(HTTP_NOT_FOUND, true)
                 const input = createReadStream(logger.path)
                 input.on('error', async (e: any) => {
                     if (e.code === 'ENOENT') // ignore ENOENT, consider it an empty log
@@ -143,7 +145,7 @@ for (const k in adminApis) {
     const was = adminApis[k]
     adminApis[k] = (params, ctx) =>
         ctxAdminAccess(ctx) ? was(params, ctx)
-            : new ApiError(UNAUTHORIZED)
+            : new ApiError(HTTP_UNAUTHORIZED)
 }
 
 export const localhostAdmin = defineConfig('localhost_admin', true)

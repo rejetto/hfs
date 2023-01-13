@@ -5,6 +5,7 @@ import { getAvailablePlugins, mapPlugins, parsePluginSource, PATH as PLUGINS_PAT
 import unzipper from 'unzip-stream'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
+import { HTTP_CONFLICT } from './const'
 
 const DIST_ROOT = 'dist/'
 
@@ -21,7 +22,7 @@ function downloadProgress(id: string, status: DownloadStatus) {
 
 export async function downloadPlugin(repo: string, branch='', overwrite?: boolean) {
     if (downloading[repo])
-        return new ApiError(409, "already downloading")
+        return new ApiError(HTTP_CONFLICT, "already downloading")
     downloadProgress(repo, true)
     const rec = await getRepoInfo(repo)
     if (!branch)

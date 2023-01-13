@@ -7,7 +7,7 @@ import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
-import { FORBIDDEN, IS_WINDOWS, UNAUTHORIZED } from './const'
+import { HTTP_FOOL, HTTP_FORBIDDEN, IS_WINDOWS, HTTP_UNAUTHORIZED } from './const'
 import events from './events'
 import { getCurrentUsernameExpanded } from './perm'
 import { with_ } from './misc'
@@ -74,7 +74,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, url.endsWith('/') ? -1 : undefined)
     if (dirTraversal(name) || /[\/]/.test(name)) {
         if (ctx)
-            ctx.status = 418
+            ctx.status = HTTP_FOOL
         return
     }
     const parents = parent.parents || [] // don't waste time cloning the array, as we won't keep intermediate nodes
@@ -232,7 +232,7 @@ function matchWho(who: Who, ctx: Koa.Context) {
 }
 
 export function cantReadStatusCode(node: VfsNode) {
-    return node.can_read === false ? FORBIDDEN : UNAUTHORIZED
+    return node.can_read === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED
 }
 
 events.on('accountRenamed', (from, to) => {

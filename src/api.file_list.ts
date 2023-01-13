@@ -6,20 +6,21 @@ import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, pattern2filter } from './misc'
 import _ from 'lodash'
+import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 
 export const file_list: ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await urlToNode(path || '/', ctx)
     const list = new SendListReadable()
     if (!node)
-        return fail(404)
+        return fail(HTTP_NOT_FOUND)
     if (!hasPermission(node,'can_read',ctx))
         return fail(cantReadStatusCode(node))
     if (dirTraversal(search))
-        return fail(418)
+        return fail(HTTP_FOOL)
     if (node.default)
         return (sse ? list.custom : _.identity)({ redirect: path }) // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
     if (!await nodeIsDirectory(node))
-        return fail(405) // method not allowed on target
+        return fail(HTTP_METHOD_NOT_ALLOWED)
     offset = Number(offset)
     limit = Number(limit)
     const filter = pattern2filter(search)
@@ -64,7 +65,7 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
             }
             if (omit) {
                 if (omit !== 'c')
-                    ctx.throw(400, 'omit')
+                    ctx.throw(HTTP_BAD_REQUEST, 'omit')
                 if (!entry.m)
                     entry.m = entry.c
                 delete entry.c
