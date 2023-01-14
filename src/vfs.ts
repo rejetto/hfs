@@ -39,7 +39,6 @@ export interface VfsNode extends Partial<VfsPerm> {
     masks?: Masks // express fields for descendants that are not in the tree
     // fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
-    url?: string // what url brought to this node
     original?: VfsNode // if this is a temp node but reflecting an existing node
 }
 
@@ -88,7 +87,6 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         ...child,
         original: child,
         isTemp: true,
-        url: enforceFinal('/', parent.url || '') + name,
     }
     inheritFromParent(parent, ret)
     inheritMasks(ret, parent, name)
@@ -182,10 +180,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         const name = getNodeName(item)
         // we basename for depth>0 where we already have the rest of the path in the parent's url, and would be duplicated
         const virtualBasename = basename(name)
-        Object.assign(item, {
-            isTemp: true,
-            url: enforceFinal('/', parent.url || '') + virtualBasename,
-        })
+        item.isTemp = true
         inheritFromParent(parent, item)
         applyMasks(item, parent, virtualBasename)
         if (ctx && !hasPermission(item, 'can_see', ctx))
