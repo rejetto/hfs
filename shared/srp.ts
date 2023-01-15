@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 
 export async function srpSequence(username:string, password:string, apiCall: (cmd:string, params:any) => any) {

@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment } from 'react'
 import { Alert, Box, Tooltip } from '@mui/material'

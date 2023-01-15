@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { createElement as h, Fragment, useMemo } from 'react'
 import { IconBtn, setHidden } from './misc'
 import { Add, Edit, Delete } from '@mui/icons-material'

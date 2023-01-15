@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 // like lodash.debounce, but also avoids async invocations to overlap
 export default function debounceAsync<CB extends (...args: any[]) => Promise<R>, R>(
     callback: CB,

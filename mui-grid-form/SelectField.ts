@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { createElement as h } from 'react'
 import { FieldProps } from '.'
 import { FormControl, FormControlLabel, FormLabel, MenuItem, Radio, RadioGroup, TextField } from '@mui/material'

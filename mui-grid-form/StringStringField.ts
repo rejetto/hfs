@@ -1,9 +1,10 @@
-// This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useRef } from 'react'
 import { Grid, IconButton } from '@mui/material'
 import { Add, Delete } from '@mui/icons-material'
-import { FieldProps, StringField } from '.'
+import { FieldProps} from '.'
+import { StringField } from './StringField'
 
 export function StringStringField({ value, onChange, keyLabel='key', valueLabel='value', keyWidth=5, valueWidth=5, actionsWidth=1 }: FieldProps<Record<string,string>> & { keyLabel:string }) {
     const refNew = useRef()

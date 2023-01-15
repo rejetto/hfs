@@ -1,3 +1,5 @@
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
 import { defineConfig } from './config'
 import { getConnections, normalizeIp } from './connections'
 import { onlyTruthy, with_ } from './misc'

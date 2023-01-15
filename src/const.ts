@@ -1,4 +1,4 @@
-// This file is part of HFS - Copyright 2021-2022, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import minimist from 'minimist'
 import * as fs from 'fs'
@@ -50,7 +50,7 @@ export const APP_PATH = dirname(IS_BINARY ? process.argv0 : __dirname)
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()
 else console.debug = ()=>{}
-console.log(`HFS ~ HTTP File Server - Copyright 2021-2022, Massimo Melina <a@rejetto.com>`)
+console.log(`HFS ~ HTTP File Server - Copyright 2021-2023, Massimo Melina <a@rejetto.com>`)
 console.log(`License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
