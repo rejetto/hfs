@@ -54,6 +54,7 @@ export default function useFetchList() {
                 case 'error':
                     state.stopSearch?.()
                     state.error = JSON.stringify(data)
+                    lastReq.current = null
                     return
                 case 'closed':
                     flush()
@@ -77,6 +78,7 @@ export default function useFetchList() {
                             state.stopSearch?.()
                             state.error = (ERRORS as any)[error] || String(error)
                             state.loginRequired = error === 401
+                            lastReq.current = null
                             return
                         }
                     })
@@ -91,7 +93,7 @@ export default function useFetchList() {
             clearInterval(timer)
             src.close()
         }
-    }, [desiredPath, search, snap.username, snap.listReloader])
+    }, [desiredPath, search, snap.username, snap.listReloader, snap.loginRequired])
 }
 
 const ERRORS = {
