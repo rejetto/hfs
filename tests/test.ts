@@ -1,8 +1,10 @@
-import axios from 'axios'
+import axios, { AxiosRequestConfig } from 'axios'
 import { wrapper } from 'axios-cookiejar-support'
 import { CookieJar } from 'tough-cookie'
 import { Done } from 'mocha'
 import { srpSequence } from '@hfs/shared/srp'
+import { createReadStream, rmSync, unlinkSync } from 'fs'
+import { join } from 'path'
 /*
 import { PORT, srv } from '../src'
 
@@ -78,6 +80,8 @@ describe('basics', () => {
     it('referer', req('/f1/page/gpl.png', 403, {
         headers: { Referer: 'https://some-website.com/try-to-trick/x.com/' }
     }))
+
+    testUpload('upload.missing perm', 401)
 })
 
 describe('accounts', () => {
@@ -93,7 +97,17 @@ describe('after-login', () => {
             client.post(API+cmd, params).then(x => x.data))
     )
     it('list protected', reqList('/for-admins/', { inList:['alfa.txt'] }))
+    testUpload('upload', 200)
+    testUpload('upload.bad path', 418, '../../')
+    after(() =>
+        rmSync(join(__dirname, 'temp'), { recursive: true}))
 })
+
+function testUpload(name: string, tester: Tester, path = 'temp/') {
+    it(name, req('PUT/for-admins/upload/'+join(path+'gpl.png'), tester, {
+        data: createReadStream(join(__dirname, 'page/gpl.png'))
+    }))
+}
 
 type Tester = number
     | ((data: any, fullResponse: any) => boolean | Error)
@@ -108,12 +122,13 @@ type Tester = number
         length?: number
     }
 
-function req(methodUrl: string, test:Tester, requestOptions?:any) {
+function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<any>={}) {
     return (done:Done) => {
         const csrf = getCookie('csrf')
         if (csrf)
             Object.assign(requestOptions.data, { csrf })
 
+        // all url starts with /, so if one doesn't it's because the method is prefixed
         const i = methodUrl.indexOf('/')
         const method = methodUrl.slice(0,i) || requestOptions?.data && 'POST' || 'GET'
         const url = BASE_URL+methodUrl.slice(i)

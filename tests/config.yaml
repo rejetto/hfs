@@ -30,7 +30,10 @@ vfs:
       can_read:
         - admins
       children:
-        - name: asd
+        - name: upload
+          source: tests
+          can_upload:
+            - admins
         - source: tests/alfa.txt
     - source: tests
     - name: renameChild
