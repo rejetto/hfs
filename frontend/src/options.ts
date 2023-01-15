@@ -9,7 +9,11 @@ import { MenuLink } from './menu'
 
 export function showOptions (){
     const options = ['name', 'extension', 'size', 'time']
-    const close = newDialog({ Content })
+    const close = newDialog({
+        title: "Options",
+        icon: () => hIcon('settings'),
+        Content
+    })
 
     function Content(){
         const snap = useSnapState()

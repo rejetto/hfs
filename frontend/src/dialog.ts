@@ -2,16 +2,17 @@
 
 import { createElement as h, ReactElement, ReactNode, useEffect, useRef } from 'react'
 import './dialog.css'
-import { newDialog, closeDialog } from '@hfs/shared/dialogs'
+import { newDialog, closeDialog, DialogOptions } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 export * from '@hfs/shared/dialogs'
 
-interface PromptOptions { def?:string, type?:string }
-export async function promptDialog(msg: string, { def, type }:PromptOptions={}) : Promise<string | null> {
+interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string }
+export async function promptDialog(msg: string, { def, type, ...rest }:PromptOptions={}) : Promise<string | null> {
     return new Promise(resolve => newDialog({
         className: 'dialog-prompt',
         icon: '?',
         onClose: resolve,
+        ...rest,
         Content
     }) )
 

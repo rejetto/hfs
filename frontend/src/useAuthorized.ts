@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { loginDialog } from './menu'
+import { loginDialog } from './login'
 
 export default function useAuthorized() {
     const { loginRequired } = useSnapState()

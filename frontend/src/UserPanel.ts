@@ -7,9 +7,14 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from './api'
 import { logout } from './login'
 import { MenuButton } from './menu'
+import { hIcon } from './misc'
 
 export default function showUserPanel() {
-    newDialog({ Content })
+    newDialog({
+        title: "User panel",
+        icon: () => hIcon('user'),
+        Content
+    })
 }
 
 function Content() {

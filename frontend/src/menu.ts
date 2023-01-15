@@ -5,7 +5,7 @@ import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'use-debounce'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
 import { hIcon, isMobile, prefix, useStateMounted } from './misc'
-import { login } from './login'
+import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
 import { useNavigate } from 'react-router-dom'
@@ -184,14 +184,4 @@ function LoginButton() {
         label: 'Login',
         onClick: () => loginDialog(navigate),
     })
-}
-
-export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
-    const user = await promptDialog('Username')
-    if (!user) return
-    const password = await promptDialog('Password', { type: 'password' })
-    if (!password) return
-    const res = await login(user, password)
-    if (res?.redirect)
-        navigate(res.redirect)
 }

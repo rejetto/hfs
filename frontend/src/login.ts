@@ -2,10 +2,11 @@
 
 import { apiCall, ApiError } from './api'
 import { state } from './state'
-import { alertDialog } from './dialog'
-import { srpSequence, working } from './misc'
+import { alertDialog, promptDialog } from './dialog'
+import { hIcon, srpSequence, working } from './misc'
+import { useNavigate } from 'react-router-dom'
 
-export async function login(username:string, password:string) {
+async function login(username:string, password:string) {
     const stopWorking = working()
     return srpSequence(username, password, apiCall).then(res => {
         stopWorking()
@@ -47,4 +48,16 @@ export function logout(){
         else
             throw res
     })
+}
+
+export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
+    const title = "Login"
+    const icon = () => hIcon('login')
+    const user = await promptDialog('Username', { title, icon })
+    if (!user) return
+    const password = await promptDialog('Password', { type: 'password', title, icon })
+    if (!password) return
+    const res = await login(user, password)
+    if (res?.redirect)
+        navigate(res.redirect)
 }
