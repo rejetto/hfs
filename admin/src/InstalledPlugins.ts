@@ -77,7 +77,10 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                                 const pl = await apiCall('get_plugin', { id })
                                 const values = await formDialog({
                                     title: `${id} configuration`,
-                                    fields: [ h(Box, {}, row.description), ...makeFields(config) ],
+                                    fields: [
+                                        h(Box, {}, row.description),
+                                        ...makeFields(config)
+                                    ],
                                     values: pl.config,
                                     ...row.configDialog,
                                 })

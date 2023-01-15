@@ -14,6 +14,7 @@ import md from './md'
 export interface Account {
     username: string
     hasPassword?: boolean
+    admin?: boolean
     adminActualAccess?: boolean
     ignore_limits?: boolean
     redirect?: string

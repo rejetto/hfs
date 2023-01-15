@@ -132,7 +132,7 @@ export function Form<Values extends Dict>({
                     if (errMsg === true)
                         errMsg = "Not valid"
                     if (k) {
-                        const originalValue = values?.[k]
+                        const originalValue = row.hasOwnProperty('value') ? row.value : values?.[k]
                         const whole = { ...row, ...field }
                         Object.assign(field, {
                             value: toField(originalValue),
