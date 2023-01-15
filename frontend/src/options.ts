@@ -16,7 +16,7 @@ export function showOptions (){
         return h(FlexV, {},
             snap.adminUrl && h(MenuLink, {
                 icon: 'admin',
-                label: "Admin interface",
+                label: "Admin-panel",
                 href: snap.adminUrl,
                 target: 'admin',
             }),

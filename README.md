@@ -215,7 +215,7 @@ For each account entries, this is the list of properties you can have:
 
 - `ignore_limits` to ignore speed limits. Default is `false`.
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
-- `admin` set `true` if you want to let this account log in to the Admin interface. Default is `false`.
+- `admin` set `true` if you want to let this account log in to the Admin-panel. Default is `false`.
 - `belongs` an array of usernames of other accounts from which to inherit their permissions. Default is none.
 
 ## License

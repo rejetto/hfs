@@ -44,8 +44,8 @@ Alternatively you can run a development server, just be sure to load config from
 
 # Project design
 
-- At the moment the admin interface was designed to be completely separated from the "user" frontend 
+- At the moment the admin-panel was designed to be completely separated from the "user" frontend 
   to keep the latter smaller and to allow alternative frontends creation without having to deal with
-  the complexity of the admin interface.
+  the complexity of the admin-panel.
 
   Of course this comes with a price to pay on the programmer's side, more work to do.

@@ -43,15 +43,15 @@ export default function HomePage() {
             : entry('success', "Server is working"),
         !vfs ? h(LinearProgress)
             : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
-                : entry('', md("Here you manage your server. There is a _separated_ interface to access your shared files: "),
-                    h(Link, { target:'frontend', href: '/' }, "Frontend interface", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
+                : entry('', md("This is Admin-panel, where you manage your server. Access your files on "),
+                    h(Link, { target:'frontend', href: '/' }, "Frontend", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
         !href && entry('warning', "Frontend unreachable: ",
             ['http','https'].map(k => k + " " + (errorMap[k] ? "is in error" : "is off")).join(', '),
             !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
         ),
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
-        !account?.adminActualAccess && entry('', md("You are accessing on _localhost_ where permission is not required"),
-            SOLUTION_SEP, h(InLink, { to:'accounts' }, "give admin access to an account to be able to access from other computers") ),
+        !account?.adminActualAccess && entry('', md("On _localhost_ you don't need to login"),
+            SOLUTION_SEP, h(InLink, { to:'accounts' }, "to access from another computer create an account with /admin/ permission") ),
         proxyWarning(cfg, status) && entry('warning', "A proxy was detected but none is configured",
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure you can ", h(Button, {
