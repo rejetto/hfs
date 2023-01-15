@@ -81,7 +81,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         const folder = await urlToNode(dirname(path), ctx, vfs, v => rest = v+'/'+rest)
         if (!folder)
             return ctx.status = HTTP_NOT_FOUND
-        return await getUpload(folder, rest, ctx.req, ctx)
+        return await receiveUpload(folder, rest, ctx.req, ctx)
     }
     const node = await urlToNode(path, ctx)
     if (!node)
@@ -116,7 +116,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     return serveFrontendFiles(ctx, next)
 }
 
-async function getUpload(base: VfsNode, path: string, stream: Readable, ctx: Koa.Context) {
+async function receiveUpload(base: VfsNode, path: string, stream: Readable, ctx: Koa.Context) {
     if (!base.source || !hasPermission(base, 'can_upload', ctx))
         return ctx.status = base.can_upload === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED
     path = join(base.source, path)

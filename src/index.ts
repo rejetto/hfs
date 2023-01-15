@@ -38,7 +38,8 @@ app.use(someSecurity)
 function errorHandler(err:Error & { code:string, path:string }) {
     const { code } = err
     if (DEV && code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out dev stuff
-    if (code === 'ECANCELED' || code === 'ECONNRESET' || code === 'ECONNABORTED' || code === 'EPIPE') return // someone interrupted, don't care
+    if (code === 'ECANCELED' || code === 'ECONNRESET' || code === 'ECONNABORTED'  || code === 'EPIPE'
+        || code === 'HPE_INVALID_EOF_STATE') return // someone interrupted, don't care
     console.error('server error', err)
 }
 
