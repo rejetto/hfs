@@ -46,7 +46,7 @@ export function showUpload() {
 
     function Content(){
         const [files, setFiles] = useState([] as File[])
-        const { qs, done, doneByte, paused } = useSnapshot(uploadState)
+        const { qs, done, doneByte, paused, errors } = useSnapshot(uploadState)
         return h(FlexV, {},
             h(Flex, { gap: '.5em', flexWrap: 'wrap', justifyContent: 'center', position: 'sticky', top: -4, background: 'var(--bg)', boxShadow: '0 3px 3px #000' },
                 h('button',{ onClick: () => selectFiles() }, "Add file(s)"),
@@ -75,7 +75,7 @@ export function showUpload() {
                     setFiles(files.filter(x => x !== f))
                 }
             }),
-            done > 0 && h('div', {}, `Finished ${done} files, ${formatBytes(doneByte)}`),
+            h('div', {}, [done && `${done} finished (${formatBytes(doneByte)})`, errors && `${errors} failed`].filter(Boolean).join(' – ')),
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
                     "Queue",
@@ -180,9 +180,9 @@ function startUpload(f: File | undefined, to: string) {
             reloadOnClose = false
         }
     }).catch(e => {
-        if (e.code === e.ABORT_ERR) return
+        if (e.code === 20) return // aborted
         if (!uploadState.errors++)
-            alertDialog(e).then()
+            alertDialog("Upload error", 'error').then()
     })
 }
 
