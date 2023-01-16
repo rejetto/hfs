@@ -78,7 +78,7 @@ export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaul
                 : (hasSource && { k: 'source', comp: FileField, folders: true, multiline: true }),
             perm('can_read', "Who can download", "Note: who can't download won't see it in the list"),
             showCanSee && perm('can_see', "Who can see", "You can hide and keep it downloadable if you have a direct link"),
-            hasSource && perm('can_upload', "Who can upload"),
+            isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source"),
             hasSource && !realFolder && { k: 'size', comp: DisplayField, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, lg: 6, label: 'Created', toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, lg: 6, label: 'Modified', toField: formatTimestamp },
