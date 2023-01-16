@@ -1,4 +1,5 @@
 # To do
+- admin/fs: check if source exist when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin
 - fix: cannot switch off https and switch on http at the same time 

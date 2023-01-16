@@ -74,8 +74,9 @@ export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaul
         fields: [
             isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : { k: 'name', required: true, helperText: source && "You can decide a name that's different from the one on your disk" },
-            isRoot ? { k: 'source', comp: FileField, files: false,  helperText: "If you specify a folder here, its files will be listed in the home" }
-                : (hasSource && { k: 'source', comp: FileField, folders: true, multiline: true }),
+            { k: 'source', label: "Source on disk", comp: FileField, files: !isDir, folders: isDir, multiline: true,
+                placeholder: "Not on disk, this is a virtual folder",
+            },
             perm('can_read', "Who can download", "Note: who can't download won't see it in the list"),
             showCanSee && perm('can_see', "Who can see", "You can hide and keep it downloadable if you have a direct link"),
             isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source"),
