@@ -92,7 +92,8 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 }
             }),
             nodeId: id
-        }, isRoot && !node.children?.length ? h('i', {}, "nothing here") : node.children?.map(recur))
+        }, isRoot && !node.children?.length ? h(TreeItem, { nodeId: '?', label: h('i', {}, "nothing here") })
+            : node.children?.map(recur))
     }
 
 }
