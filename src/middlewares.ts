@@ -15,7 +15,7 @@ import {
 } from './const'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs, VfsNode } from './vfs'
-import { dirTraversal, objSameKeys, tryJson } from './misc'
+import { dirTraversal, objSameKeys, prepareFolder, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -28,7 +28,7 @@ import basicAuth from 'basic-auth'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { srpStep1 } from './api.auth'
 import { basename, dirname, join } from 'path'
-import { createWriteStream, mkdirSync } from 'fs'
+import { createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
 
 export const gzipper = compress({
@@ -120,7 +120,7 @@ async function receiveUpload(base: VfsNode, path: string, stream: Readable, ctx:
     if (!base.source || !hasPermission(base, 'can_upload', ctx))
         return ctx.status = base.can_upload === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED
     path = join(base.source, path)
-    mkdirSync(dirname(path), { recursive: true })
+    await prepareFolder(path)
     const dest = createWriteStream(path)
     await pipeline(stream, dest)
     ctx.body = '{}'

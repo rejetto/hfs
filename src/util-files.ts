@@ -130,10 +130,22 @@ export async function unzip(stream: Readable, cb: (path: string) => false | stri
                     return entry.autodrain()
                 await pending // don't overlap writings
                 console.debug('unzip', dest)
-                mkdirSync(dirname(dest), { recursive: true }) // easy way be sure to have the folder ready before proceeding
+                await prepareFolder(dest)
                 const thisFile = entry.pipe(createWriteStream(dest))
                 pending = once(thisFile, 'finish')
             })
     )
 }
 
+export async function prepareFolder(path: string, dirnameIt=true) {
+    if (dirnameIt)
+        path = dirname(path)
+    if (isWindowsDrive(path)) return
+    try {
+        await fs.mkdir(path, { recursive: true })
+        return true
+    }
+    catch {
+        return false
+    }
+}

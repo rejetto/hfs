@@ -5,11 +5,11 @@ import { Writable } from 'stream'
 import { defineConfig } from './config'
 import { createWriteStream, renameSync } from 'fs'
 import * as util from 'util'
-import { mkdir, stat } from 'fs/promises'
+import { stat } from 'fs/promises'
 import { DAY } from './const'
 import events from './events'
 import _ from 'lodash'
-import { dirname } from 'path'
+import { prepareFolder } from './util-files'
 import { getCurrentUsername } from './perm'
 
 class Logger {
@@ -31,8 +31,8 @@ class Logger {
             this.last = stats.mtime || stats.ctime
         }
         catch {
-            await mkdir(dirname(path), { recursive: true })
-                .catch(() => console.log("cannot create folder for", path))
+            if (await prepareFolder(path) === false)
+                console.log("cannot create folder for", path)
         }
         this.reopen()
     }
