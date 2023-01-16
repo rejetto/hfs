@@ -110,9 +110,9 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, ...r
             { value: false },
             { value: '*' },
             { value: [], label: "Select accounts" },
-        ].map(x => x && x.value !== inherit // don't offer inherited value twice
+        ].map(x => (x.value === value || x.value !== inherit) // don't offer inherited value twice, unless it was already selected
             && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
-    [inherit, parent])
+    [inherit, parent, value])
 
     const arrayMode = Array.isArray(value)
     return h('div', {},
