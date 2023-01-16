@@ -146,6 +146,7 @@ export function useApiEvents(cmd: string, params: Dict={}) {
 
 export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=false, map=((x:any)=>x) }={}) {
     const [list, setList] = useStateMounted<T[]>([])
+    const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
     const [connecting, setConnecting] = useStateMounted(true)
     const [loading, setLoading] = useStateMounted(false)
@@ -183,6 +184,8 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                         }
                         if (data.error)
                             return setError(err2msg(data.error))
+                        if (data.props)
+                            return setProps(data.props)
                         if (data.add) {
                             const rec = map(data.add)
                             if (addId)
@@ -236,7 +239,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
             apply.flush()
         }
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, loading, error, initializing, connecting, setList, updateList }
+    return { list, props, loading, error, initializing, connecting, setList, updateList }
 
     function updateList(cb: (toModify: Draft<typeof list>) => void) {
         setList(produce(list, x => {

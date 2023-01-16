@@ -25,6 +25,7 @@ const apis: ApiHandlers = {
         type Change = Partial<Omit<Connection,'ip'>>
         const throttledUpdate = _.throttle(update, 1000/20) // try to avoid clogging with updates
         const state = Symbol('state') // undefined=added, Timeout=add-pending, false=removed
+        list.props({ you: ctx.ip })
         return list.events(ctx, {
             connection(conn: Connection) {
                 conn[state] = setTimeout(() => add(conn), 100)

@@ -78,7 +78,7 @@ function MoreInfo() {
 }
 
 function Connections() {
-    const { list, error } = useApiList('get_connections')
+    const { list, error, props } = useApiList('get_connections')
     const [filtered, setFiltered] = useState(true)
     const [paused, setPaused] = useState(false)
     const rows = useMemo(() =>
@@ -159,12 +159,13 @@ function Connections() {
                     h(IconBtn, {
                         icon: Block,
                         title: "Block IP",
+                        disabled: row.ip === props?.you,
                         onClick: () => blockIp(row.ip),
                     }),
                 )
             }
         }
-    ], [])
+    ], [props])
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center' },
             h(SelectField as Field<boolean>, {
@@ -197,4 +198,8 @@ function blockIp(ip: string) {
 
 function formatSpeed(value: number) {
     return !value ? '' : formatBytes(value * 1000, { post: "B/s", k: 1000, digits: 1 })
+}
+
+function isLocalHost(ip: string) {
+    return ip === '::1' || ip.endsWith('127.0.0.1')
 }
