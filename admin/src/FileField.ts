@@ -40,7 +40,7 @@ export default function FileField({ value, onChange, files=true, folders=false, 
                                         if (!one) return
                                         const cwd = (await apiCall('get_cwd'))?.path
                                         if (one.startsWith(cwd))
-                                            one = one.slice(cwd.length+1)
+                                            one = one.slice(cwd.length+1) || '.'
                                         onChange(one, { was: value, event: 'picker' })
                                         close()
                                     }
