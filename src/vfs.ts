@@ -149,12 +149,15 @@ export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Conte
 
 export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
+    const took = prefixPath ? undefined : new Set()
     if (children)
         for (let idx = 0; idx < children.length; idx++) {
             const child = children[idx]
+            const name = prefixPath + getNodeName(child)
+            took?.add(name)
             yield* workItem({
                 ...child,
-                name: prefixPath ? (prefixPath + getNodeName(child)) : child.name
+                name,
             }, depth > 0 && await nodeIsDirectory(child).catch(() => false))
         }
     if (!source)
@@ -163,9 +166,10 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         for await (const path of dirStream(source, depth)) {
             if (ctx?.req.aborted)
                 return
-            const renamed = parent.rename?.[path]
+            const name = prefixPath + (parent.rename?.[path] || path)
+            if (took?.has(name)) continue
             yield* workItem({
-                name: prefixPath + (renamed || path),
+                name,
                 source: join(source, path),
                 rename: renameUnderPath(parent.rename, path),
             })
