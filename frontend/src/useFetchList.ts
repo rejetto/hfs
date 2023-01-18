@@ -7,6 +7,7 @@ import { DirEntry, DirList, usePath } from './BrowseFiles'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
+import { alertDialog } from './dialog'
 
 const API = 'file_list'
 
@@ -18,6 +19,7 @@ export default function useFetchList() {
     const lastReq = useRef<any>()
     const isMounted = useIsMounted()
     useEffect(()=>{
+        if (snap.loginRequired) return
         const previous = lastPath.current
         lastPath.current = desiredPath
         if (previous !== desiredPath) {
@@ -63,7 +65,7 @@ export default function useFetchList() {
                     lastReq.current = undefined
                     return
                 case 'msg':
-                    data.forEach((entry: any) => {
+                    data.forEach(async (entry: any) => {
                         if (entry.props)
                             return Object.assign(state, _.pick(entry.props, ['can_upload']))
                         if (entry.add)
@@ -77,6 +79,8 @@ export default function useFetchList() {
                         if (error) {
                             state.stopSearch?.()
                             state.error = (ERRORS as any)[error] || String(error)
+                            if (error === 401)
+                                await alertDialog("This account has no access, try another", 'warning')
                             state.loginRequired = error === 401
                             lastReq.current = null
                             return
@@ -97,7 +101,8 @@ export default function useFetchList() {
 }
 
 const ERRORS = {
-    404: "Not found"
+    401: "Unauthorized",
+    404: "Not found",
 }
 
 export function reloadList() {
