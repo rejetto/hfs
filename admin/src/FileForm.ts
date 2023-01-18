@@ -11,6 +11,7 @@ import md from './md'
 import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog } from './dialog'
+import yaml from 'yaml'
 
 interface Account { username: string }
 
@@ -87,8 +88,10 @@ export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaul
                 toField: Boolean, fromField: (v:boolean) => v ? 'index.html' : null,
                 helperText: md("This folder may be a website because contains `index.html`. Enabling this will show the website instead of the list of files.")
             },
-            isDir && { k: 'masks', multiline: true, xl: true, toField: JSON.stringify, fromField: v => v ? JSON.parse(v) : undefined,
-                helperText: "This is a special field. Leave it empty unless you know what you are doing." }
+            isDir && { k: 'masks', multiline: true, xl: true,
+                toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
+                sx: { '& textarea': { fontFamily: 'monospace' } },
+                helperText: "Special field, leave empty unless you know what you are doing. YAML syntax." }
         ]
     })
 
