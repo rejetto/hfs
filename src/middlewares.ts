@@ -77,8 +77,9 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (path.startsWith(ADMIN_URI))
         return serveAdminPrefixed(ctx,next)
     if (ctx.method === 'PUT') { // curl -T file url/
-        let rest = basename(path)
-        const folder = await urlToNode(dirname(path), ctx, vfs, v => rest = v+'/'+rest)
+        const decPath = decodeURI(path)
+        let rest = basename(decPath)
+        const folder = await urlToNode(dirname(decPath), ctx, vfs, v => rest = v+'/'+rest)
         if (!folder)
             return ctx.status = HTTP_NOT_FOUND
         return await receiveUpload(folder, rest, ctx.req, ctx)
