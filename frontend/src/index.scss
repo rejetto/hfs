@@ -22,6 +22,7 @@
             .icon { color: #aaa; margin-left: -1px; font-size:95%; }
         }
         .dialog-backdrop { background: #333b; }
+        .error-msg { color: #b88; background-color: #623; }
     }
 }
 body {
@@ -100,6 +101,7 @@ input, select, ul a {
 .error-msg {
     background-color: #faa;
     color: #833;
+    padding: .5em 1em;
 }
 
 header {
