@@ -1,4 +1,5 @@
 # To do
+- upload: minimum available disk
 - admin/fs: check if source exist when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin
@@ -36,7 +37,8 @@
 - remove seconds from time
 - upload
 - upload unzipping (while streaming?)
-- plugin to make letsencrypt easier
+- plugin: upload quota per-account (possibly inheriting), and a default
+- plugin: make letsencrypt easier
   - could be just automatic detection of files by certbot
   - letsencrypt supports plugins to automatically configure webservers
 - delete

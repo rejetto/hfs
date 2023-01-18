@@ -9,7 +9,7 @@ import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, prepareState, paramsDecoder } from './middlewares'
+import { headRequests, gzipper, sessions, serveGuiAndSharedFiles, someSecurity, prepareState } from './middlewares'
 import './listen'
 import './commands'
 import { adminApis } from './adminApis'
@@ -17,6 +17,7 @@ import { defineConfig } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
 import { randomId } from './misc'
+//import body from 'koa-better-body'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints
 
@@ -29,9 +30,9 @@ app.use(someSecurity)
     .use(log())
     .use(throttler)
     .use(gzipper)
-    .use(paramsDecoder)
     .use(pluginsMiddleware())
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
+    //.use(body({ multipart: false }))
     .use(serveGuiAndSharedFiles)
     .on('error', errorHandler)
 

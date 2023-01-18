@@ -24,7 +24,7 @@ exports.init = api => {
             let toModify = ctx
             if (ctx.path.startsWith(api.const.SPECIAL_URI)) { // special uris should be excluded...
                 toModify = ctx.params
-                if (toModify.path === undefined) // ...unless they carry a path in the query. In that case we'll work that.
+                if (toModify?.path === undefined) // ...unless they carry a path in the query. In that case we'll work that.
                     return
             }
             const hosts = api.getConfig('hosts')

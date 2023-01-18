@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, onOff } from './misc'
+import { asyncGeneratorToReadable, objSameKeys, onOff, stream2string, tryJson } from './misc'
 import events from './events'
 import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
 import _, { DebouncedFunc } from 'lodash'
@@ -26,10 +26,13 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             ctx.body = 'invalid api'
             return ctx.status = HTTP_NOT_FOUND
         }
+        ctx.params = ctx.method === 'POST' ? tryJson(await stream2string(ctx.req))
+            : objSameKeys(ctx.query, x => Array.isArray(x) ? x : tryJson(x))
+        console.debug('API', ctx.method, ctx.path, { ...ctx.params })
         const csrf = ctx.cookies.get('csrf')
         // we don't rely on SameSite cookie option because it's https-only
-        let res = csrf && csrf !== params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
-            : await apiFun(params || {}, ctx)
+        let res = csrf && csrf !== ctx.params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
+            : await apiFun(ctx.params || {}, ctx)
         if (isAsyncGenerator(res))
             res = asyncGeneratorToReadable(res)
         if (res instanceof Readable) { // Readable, we'll go SSE-mode

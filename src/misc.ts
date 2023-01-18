@@ -10,6 +10,7 @@ export * from './util-http'
 export * from './util-generators'
 export * from './util-files'
 import debounceAsync from './debounceAsync'
+import { Readable } from 'stream'
 export { debounceAsync }
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
@@ -146,4 +147,21 @@ export function same(a: any, b: any) {
 export function tryJson(s?: string) {
     try { return s && JSON.parse(s) }
     catch {}
+}
+
+export async function stream2string(stream: Readable): Promise<string> {
+    return new Promise((resolve, reject) => {
+        let data = ''
+        stream.on('data', chunk =>
+            data += chunk)
+        stream.on('error', reject)
+        stream.on('end', () => {
+            try {
+                resolve(data)
+            }
+            catch(e) {
+                reject(e)
+            }
+        })
+    })
 }
