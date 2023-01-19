@@ -14,11 +14,11 @@ import { HTTP_OK } from './const'
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.status = HTTP_OK
     ctx.mime = 'zip'
-    const name = getNodeName(node)
-    ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
-    const filter = pattern2filter(String(ctx.query.search||''))
     // ctx.query.list is undefined | string | string[]
     const list = wantArray(ctx.query.list)[0]?.split('*') // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
+    const name = list?.length === 1 ? basename(list[0]) : getNodeName(node)
+    ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
+    const filter = pattern2filter(String(ctx.query.search||''))
     const walker = !list ? walkNode(node, ctx, Infinity)
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const el of list) {
