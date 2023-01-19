@@ -141,12 +141,10 @@ export const adminApis: ApiHandlers = {
     },
 }
 
-for (const k in adminApis) {
-    const was = adminApis[k]
+for (const [k, was] of Object.entries(adminApis))
     adminApis[k] = (params, ctx) =>
         ctxAdminAccess(ctx) ? was(params, ctx)
             : new ApiError(HTTP_UNAUTHORIZED)
-}
 
 export const localhostAdmin = defineConfig('localhost_admin', true)
 

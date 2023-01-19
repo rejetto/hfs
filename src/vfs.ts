@@ -155,8 +155,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
     const { children, source } = parent
     const took = prefixPath ? undefined : new Set()
     if (children)
-        for (let idx = 0; idx < children.length; idx++) {
-            const child = children[idx]
+        for (const child of children) {
             const name = prefixPath + getNodeName(child)
             took?.add(name)
             yield* workItem({
@@ -212,11 +211,11 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
     const { masks } = parent
     if (!masks) return
     const o: Masks = {}
-    for (const k in masks)
+    for (const [k,v] of Object.entries(masks))
         if (k.startsWith('**/'))
-            o[k.slice(3)] = masks[k]
+            o[k.slice(3)] = v
         else if (k.startsWith(virtualBasename+'/'))
-            o[k.slice(virtualBasename.length+1)] = masks[k]
+            o[k.slice(virtualBasename.length+1)] = v
     if (Object.keys(o).length)
         item.masks = o
 }

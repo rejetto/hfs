@@ -16,7 +16,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.mime = 'zip'
     // ctx.query.list is undefined | string | string[]
     const list = wantArray(ctx.query.list)[0]?.split('*') // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
-    const name = list?.length === 1 ? basename(list[0]) : getNodeName(node)
+    const name = list?.length === 1 ? basename(list[0]!) : getNodeName(node)
     ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
     const walker = !list ? walkNode(node, ctx, Infinity)

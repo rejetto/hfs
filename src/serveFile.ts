@@ -89,8 +89,10 @@ export function getRange(ctx: Koa.Context, totalSize: number) {
         ctx.response.length = totalSize
         return
     }
-    const ranges = range.split('=')[1]
-    if (ranges.includes(','))
+    const [unit, ranges] = range.split('=')
+    if (unit !== 'bytes')
+        return ctx.throw(HTTP_BAD_REQUEST, 'bad range unit')
+    if (ranges?.includes(','))
         return ctx.throw(HTTP_BAD_REQUEST, 'multi-range not supported')
     let bytes = ranges?.split('-')
     if (!bytes?.length)

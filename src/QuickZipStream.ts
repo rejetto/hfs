@@ -244,13 +244,13 @@ function buffer(pairs: number[]) {
     assert(pairs.length % 2 === 0)
     let total = 0
     for (let i=0; i < pairs.length; i+=2)
-        total += pairs[i]
+        total += pairs[i]!
     const ret = Buffer.alloc(total, 0)
     let offset = 0
     let i = 0
     while (i < pairs.length) {
         const size = pairs[i++]
-        const data = pairs[i++]
+        const data = pairs[i++]!
         if (size === 1)
             ret.writeUInt8(data, offset)
         else if (size === 2)

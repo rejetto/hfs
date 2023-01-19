@@ -30,7 +30,7 @@ export async function update() {
         throw "asset not found"
     const url = asset.browser_download_url
     console.log("downloading", url)
-    const bin = process.argv[0]
+    const bin = process.argv0
     const binPath = dirname(bin)
     const binFile = basename(bin)
     const newBinFile = 'new-' + binFile
@@ -63,7 +63,7 @@ export async function update() {
 }
 
 if (argv.updating) { // we were launched with a temporary name, restore original name to avoid breaking references
-    const bin = process.argv[0]
+    const bin = process.argv0
     renameSync(bin, join(dirname(bin), argv.updating))
     console.log("renamed binary file to", argv.updating)
 }

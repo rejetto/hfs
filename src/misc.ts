@@ -44,7 +44,7 @@ export function wantArray<T>(x?: void | T | T[]) {
 }
 
 export function getOrSet<T>(o: Record<string,T>, k:string, creator:()=>T): T {
-    return k in o ? o[k]
+    return k in o ? o[k]!
         : (o[k] = creator())
 }
 

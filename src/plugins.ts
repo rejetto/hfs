@@ -78,9 +78,8 @@ export function pluginsMiddleware(): Koa.Middleware {
     return async (ctx, next) => {
         const after = []
         // run middleware plugins
-        for (const id in plugins)
+        for (const [id,pl] of Object.entries(plugins))
             try {
-                const pl = plugins[id]
                 const res = await pl.middleware?.(ctx)
                 if (res === true)
                     ctx.pluginStopped = true
@@ -96,7 +95,7 @@ export function pluginsMiddleware(): Koa.Middleware {
         if (!ctx.pluginStopped) {
             if (path.startsWith(PLUGINS_PUB_URI)) {
                 const a = path.substring(PLUGINS_PUB_URI.length).split('/')
-                if (plugins.hasOwnProperty(a[0])) { // do it only if the plugin is loaded
+                if (plugins.hasOwnProperty(a[0]!)) { // do it only if the plugin is loaded
                     a.splice(1, 0, 'public')
                     await serveFile(PATH + '/' + a.join('/'), 'auto')(ctx, next)
                 }
@@ -206,7 +205,7 @@ export async function rescan() {
     const foundDisabled: typeof availablePlugins = {}
     const MASK = PATH + '/*/plugin.js' // be sure to not use path.join as fast-glob doesn't work with \
     for (const f of await glob([adjustStaticPathForGlob(APP_PATH) + '/' + MASK, MASK])) {
-        const id = f.split('/').slice(-2)[0]
+        const id = f.split('/').slice(-2)[0]!
         if (id.endsWith(DISABLING_POSTFIX)) continue
         if (!enablePlugins.get().includes(id)) {
             try {
@@ -276,8 +275,7 @@ export async function rescan() {
             }
         })
     }
-    for (const id in foundDisabled) {
-        const p = foundDisabled[id]
+    for (const [id,p] of Object.entries(foundDisabled)) {
         const a = availablePlugins[id]
         if (same(a, p)) continue
         availablePlugins[id] = p
@@ -291,9 +289,9 @@ export async function rescan() {
             delete availablePlugins[id]
             events.emit('pluginUninstalled', id)
         }
-    for (const id in plugins)
+    for (const [id,p] of Object.entries(plugins))
         if (!found.includes(id))
-            await plugins[id].unload()
+            await p.unload()
 }
 
 function deleteModule(id: string) {

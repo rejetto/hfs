@@ -7,7 +7,7 @@ import { getAvailablePlugins, mapPlugins, parsePluginSource, PATH as PLUGINS_PAT
 import unzipper from 'unzip-stream'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
-import { HTTP_CONFLICT } from './const'
+import { HTTP_BAD_REQUEST, HTTP_CONFLICT } from './const'
 
 const DIST_ROOT = 'dist/'
 
@@ -30,6 +30,8 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
     if (!branch)
         branch = rec.default_branch
     const short = repo.split('/')[1] // second part, repo without the owner
+    if (!short)
+        return new ApiError(HTTP_BAD_REQUEST, "bad repo")
     const folder2repo = getFolder2repo()
     const folder = overwrite ? _.findKey(folder2repo, x => x===repo)! // use existing folder
         : short in folder2repo ? repo.replace('/','-') // longer form only if another plugin is using short form

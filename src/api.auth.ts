@@ -6,11 +6,13 @@ import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
 import {
     ADMIN_URI,
-    HTTP_SERVER_ERROR,
     SESSION_DURATION,
     HTTP_UNAUTHORIZED,
     HTTP_BAD_REQUEST,
-    HTTP_NOT_ACCEPTABLE, HTTP_CONFLICT
+    HTTP_SERVER_ERROR,
+    HTTP_NOT_ACCEPTABLE,
+    HTTP_CONFLICT,
+    HTTP_NOT_FOUND
 } from './const'
 import { randomId } from './misc'
 import Koa from 'koa'
@@ -82,6 +84,8 @@ export async function srpStep1(account: Account) {
     if (!account.srp)
         throw HTTP_NOT_ACCEPTABLE
     const [salt, verifier] = account.srp.split('|')
+    if (!salt || !verifier)
+        throw Error("malformed account")
     const srpSession = new SRPServerSession(srp6aNimbusRoutines)
     const step1 = await srpSession.step1(account.username, BigInt(salt), BigInt(verifier))
     return { step1, salt, pubKey: String(step1.B) } // cast to string cause bigint can't be jsonized
@@ -94,6 +98,8 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         return new ApiError(HTTP_CONFLICT)
     const { username, sid } = ctx.session.login
     const step1 = ongoingLogins[sid]
+    if (!step1)
+        return new ApiError(HTTP_NOT_FOUND)
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
         await loggedIn(ctx, username)

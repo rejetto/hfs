@@ -209,8 +209,9 @@ function printUrls(port: number, proto: string) {
     for (const [name, nets] of Object.entries(networkInterfaces())) {
         if (!nets || ignore.test(name)) continue
         _.remove(nets, 'internal')
-        if (!nets.length) continue
-        const best = _.find(nets, { family: 'IPv4' }) || nets[0]
+        const first = nets[0]
+        if (!first) continue
+        const best = _.find(nets, { family: 'IPv4' }) || first
         const appendPort = port === (proto==='https' ? 443 : 80) ? '' : ':' + port
         let { address } = best
         if (address.includes(':'))

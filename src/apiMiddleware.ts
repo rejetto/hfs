@@ -21,14 +21,15 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
         const { params } = ctx
         console.debug('API', ctx.method, ctx.path, { ...params })
-        if (!apis.hasOwnProperty(ctx.path)) {
+        const apiFun = apis.hasOwnProperty(ctx.path) && apis[ctx.path]!
+        if (!apiFun) {
             ctx.body = 'invalid api'
             return ctx.status = HTTP_NOT_FOUND
         }
         const csrf = ctx.cookies.get('csrf')
         // we don't rely on SameSite cookie option because it's https-only
         let res = csrf && csrf !== params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
-            : await apis[ctx.path](params || {}, ctx)
+            : await apiFun(params || {}, ctx)
         if (isAsyncGenerator(res))
             res = asyncGeneratorToReadable(res)
         if (res instanceof Readable) { // Readable, we'll go SSE-mode

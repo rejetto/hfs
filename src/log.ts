@@ -92,7 +92,7 @@ export function log(): Koa.Middleware {
             }
         }
         const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s\n' // Apache's Common Log Format
-        const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5].slice(3)
+        const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5]?.slice(3)
         const user = getCurrentUsername(ctx)
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status','length']), { user, ts: now, uri: ctx.path }))
         console.debug(ctx.status, ctx.method, ctx.path)

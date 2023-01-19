@@ -25,7 +25,7 @@ catch {
 function parseCommandLine(line: string) {
     if (!line) return
     const [name, ...params] = line.trim().split(/ +/)
-    const cmd = (commands as any)[name]
+    const cmd = (commands as any)[name!]
     if (!cmd)
         return console.error("cannot understand entered command, try 'help'")
     if (cmd.cb.length > params.length)
