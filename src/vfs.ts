@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs from 'fs/promises'
-import { basename, join } from 'path'
+import { basename, join, resolve } from 'path'
 import { isMatch } from 'micromatch'
 import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
 import Koa from 'koa'
@@ -129,13 +129,17 @@ export function saveVfs() {
 }
 
 export function getNodeName(node: VfsNode) {
-    return node.name
-        || node.source && (
-            /^[a-zA-Z]:\\?$/.test(node.source) && node.source.slice(0, 2)
-            || basename(node.source)
-            || node.source
-        )
-        || '' // should happen only for root
+    const { name, source: s } = node
+    if (name)
+        return name
+    if (!s)
+        return '' // should happen only for root
+    if (/^[a-zA-Z]:\\?$/.test(s))
+        return s.slice(0, 2) // exclude trailing slash
+    const base = basename(s)
+    if (/^[./\\]*$/.test(base)) // if empty or special-chars-only
+        return basename(resolve(s)) // resolve to try to get more
+    return base
 }
 
 export async function nodeIsDirectory(node: VfsNode) {
