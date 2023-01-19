@@ -2,12 +2,12 @@
 
 import { getNodeName, hasPermission, nodeIsDirectory, urlToNode, VfsNode, walkNode } from './vfs'
 import Koa from 'koa'
-import { filterMapGenerator, pattern2filter } from './misc'
+import { filterMapGenerator, isWindowsDrive, pattern2filter, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { defineConfig } from './config'
-import { dirname } from 'path'
+import { basename, dirname } from 'path'
 import { getRange } from './serveFile'
 import { HTTP_OK } from './const'
 
@@ -15,12 +15,13 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.status = HTTP_OK
     ctx.mime = 'zip'
     const name = getNodeName(node)
-    ctx.attachment((name || 'archive') + '.zip')
+    ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
-    const { list } = ctx.query
+    // ctx.query.list is undefined | string | string[]
+    const list = wantArray(ctx.query.list)[0]?.split('*') // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
     const walker = !list ? walkNode(node, ctx, Infinity)
         : (async function*(): AsyncIterableIterator<VfsNode> {
-            for await (const el of String(list).split('*')) { // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
+            for await (const el of list) {
                 const subNode = await urlToNode(el, ctx, node)
                 if (!subNode || !hasPermission(subNode,'can_read',ctx))
                     continue
