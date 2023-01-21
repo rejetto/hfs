@@ -267,6 +267,14 @@ button label {
     }
 }
 
+.upload-progress::before {
+    content: " – ";
+}
+.upload-progress {
+    min-width: 4em;
+    display: inline-block;
+    margin-left: 0.5em;
+}
 .upload-list {
     & td:nth-child(1) { width: 0;  }
     & td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }

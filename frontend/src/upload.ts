@@ -15,7 +15,9 @@ export const uploadState = proxy<{
     qs: { to: string, files: File[] }[]
     paused: boolean
     uploading?: File
+    progress: number
 }>({
+    progress: 0,
     paused: false,
     qs: [],
     errors: 0,
@@ -130,15 +132,20 @@ function path(f: File, pre='') {
 }
 
 function FilesList({ files, remove }: { files: File[], remove: (f:File) => any }) {
-    const { uploading }  = useSnapshot(uploadState)
+    const { uploading, progress }  = useSnapshot(uploadState)
     return !files.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
-            files.map((f,i) =>
-                h('tr', { key: i },
+            files.map((f,i) => {
+                const working = f === uploading
+                return h('tr', { key: i },
                     h('td', {}, iconBtn('trash', () => remove(f))),
                     h('td', {}, formatBytes(f.size)),
-                    h('td', { className: f === uploading ? 'ani-working' : undefined }, path(f)),
-                ))
+                    h('td', { className: working ? 'ani-working' : undefined },
+                        path(f),
+                        working && h('span', { className: 'upload-progress' }, progress.toFixed(1), '%')
+                    ),
+                )
+            })
         )
     )
 }
@@ -149,7 +156,7 @@ function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...pr
 
 /// Manage upload queue
 
-let controller: AbortController | undefined
+let req: XMLHttpRequest | undefined
 subscribe(uploadState, () => {
     const [cur] = uploadState.qs
     if (cur && !uploadState.uploading && !uploadState.paused)
@@ -159,35 +166,45 @@ subscribe(uploadState, () => {
 function startUpload(f: File | undefined, to: string) {
     if (!f) return
     uploadState.uploading = f
-    controller = new AbortController()
-    const full = path(f, to)
-    fetch(full, {
-        method: 'PUT',
-        body: f,
-        signal: controller.signal,
-    }).then(async res => {
-        if (!res.ok)
-            throw Error("Upload failed for " + full)
+    req = new XMLHttpRequest()
+    req.onloadend = () => {
+        if (req?.readyState !== 4) return
+        if (req.status >= 400 )
+            error()
+        else
+            done()
+        next()
+    }
+    req.upload.onprogress = (e:any) => uploadState.progress = e.loaded / e.total * 100
+    req.open("POST", to, true)
+    const form = new FormData()
+    form.append('file', f, path(f))
+    req.send(form)
+
+    function error() {
+        if (!uploadState.errors++)
+            alertDialog("Upload error", 'error').then()
+    }
+
+    function done() {
         uploadState.done++
-        uploadState.doneByte += f.size
+        uploadState.doneByte += f!.size
         reloadOnClose = true
-    }).finally(() => {
+    }
+
+    function next() {
         uploadState.uploading = undefined
         const { qs } = uploadState
+        if (!qs.length) return
         qs[0].files.shift()
         if (!qs[0].files.length)
             qs.shift()
-        if (!qs.length) {
-            reloadList()
-            reloadOnClose = false
-        }
-    }).catch(e => {
-        if (e.code === 20) return // aborted
-        if (!uploadState.errors++)
-            alertDialog("Upload error", 'error').then()
-    })
+        if (qs.length) return
+        reloadList()
+        reloadOnClose = false
+    }
 }
 
 function abortCurrentUpload() {
-    controller?.abort()
+    req?.abort()
 }
