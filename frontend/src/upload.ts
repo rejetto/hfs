@@ -82,8 +82,8 @@ export function showUpload() {
                     `(${_.sumBy(qs, q => q.files.length)})`,
                     h('button',{
                         onClick(){
-                            abortCurrentUpload()
                             uploadState.qs = []
+                            abortCurrentUpload()
                         }
                     }, "Clear"),
                     h('button',{
@@ -99,9 +99,11 @@ export function showUpload() {
                             files: Array.from(q.files),
                             remove(f) {
                                 if (f === uploadState.uploading)
-                                    abortCurrentUpload()
-                                else
-                                    _.pull(uploadState.qs[idx].files, f)
+                                    return abortCurrentUpload()
+                                const q = uploadState.qs[idx]
+                                _.pull(q.files, f)
+                                if (!q.files.length)
+                                    uploadState.qs.splice(idx,1)
                             }
                         }),
                     ))
@@ -145,7 +147,7 @@ function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...pr
     return h('button', { onClick, ...props, ...small && { style: { padding: '.1em', ...style } } }, hIcon(icon))
 }
 
-/// Manage uploadQ
+/// Manage upload queue
 
 let controller: AbortController | undefined
 subscribe(uploadState, () => {
