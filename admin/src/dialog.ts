@@ -44,7 +44,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
         d.title && h(DialogTitle, {}, d.title),
         h(DialogContent, {
             ref,
-            sx: { ...sx, px: p, pb: p, display: 'flex', flexDirection: 'column', }
+            sx: { ...sx, px: p, pb: p, display: 'flex', flexDirection: 'column', justifyContent: 'center', }
         }, h(d.Content) )
     )
 }

@@ -99,18 +99,18 @@ export default function ConfigPage() {
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "To access Admin without entering credentials"
             },
-            { k: 'log', label: logLabels.log, lg: 3, helperText: "Requests are logged here" },
-            { k: 'error_log', label: logLabels.error_log, lg: 3, placeholder: "errors go to main log", helperText: "If you want errors in a different log" },
+            { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
+            { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log", helperText: "If you want errors in a different log" },
             { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
                 helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
             },
-            { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, lg: 6, label: "How many HTTP proxies between this server and users?",
+            { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, label: "How many HTTP proxies between this server and users?",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
             { k: 'allowed_referer', placeholder: "any",
                 helperText: values.allowed_referer ? "Leave empty to allow any" : "Use this to avoid direct links from other websites", },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm:  6, label: "Calculate ZIP size for seconds",
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 6, label: "Calculate ZIP size for seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'custom_header', multiline: true, sx: { '& textarea': { fontFamily: 'monospace' } },
                 helperText: "Any HTML code here will be used as header for the Frontend"
