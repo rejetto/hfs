@@ -27,7 +27,7 @@ import basicAuth from 'basic-auth'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { srpStep1 } from './api.auth'
 import { basename, dirname, join } from 'path'
-import { createWriteStream, mkdirSync } from 'fs'
+import { createWriteStream, mkdirSync, rename } from 'fs'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
 import { notifyClient } from './frontEndApis'
@@ -139,9 +139,17 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
             return
         }
-        path = join(base.source, path)
-        mkdirSync(dirname(path), { recursive: true })
-        return createWriteStream(path)
+        const fullPath = join(base.source, path)
+        const dir = dirname(fullPath)
+        mkdirSync(dir, { recursive: true })
+        const tempName = join(dir, 'hfs$uploading-' + basename(fullPath).slice(-20))
+        const ret = createWriteStream(tempName)
+        ret.on('close', () => {
+            if (ctx.req.aborted) return
+            rename(tempName, fullPath, err =>
+                err && console.error("couldn't rename temp to", fullPath, String(err)))
+        })
+        return ret
     }
 
 }
