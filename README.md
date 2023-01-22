@@ -157,6 +157,7 @@ an *env* called `HFS_CONFIG`. Any relative path provided is relative to the *cwd
 - `custom_header` provide HTML code to be put at the top of your Frontend. Default is none.
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
+- `keep_unfinished_uploads` should unfinished uploads be deleted immediately when interrupted. Default is true.
 
 #### Virtual File System (VFS)
 

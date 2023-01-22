@@ -11,6 +11,7 @@ import {
     FormGroup,
     FormHelperText,
     FormLabel,
+    InputAdornment,
     Switch
 } from '@mui/material'
 
@@ -20,7 +21,7 @@ export function DisplayField({ value, empty='-', ...props }: any) {
     return h(StringField, {  ...props, value, disabled: true })
 }
 
-export function NumberField({ value, onChange, getApi, required, min, max, step, ...props }: FieldProps<number | null>) {
+export function NumberField({ value, onChange, getApi, required, min, max, step, unit, ...props }: FieldProps<number | null>) {
     getApi?.({
         getError() {
             return value == null ? (required ? "required" : false)
@@ -37,6 +38,13 @@ export function NumberField({ value, onChange, getApi, required, min, max, step,
             })
         },
         inputProps: { min, max, step, },
+        InputProps: unit && {
+            sx: { pr: '6px', '& input': { pl: '.2em', textAlign: 'right' } },
+            endAdornment: h(InputAdornment, {
+                position: 'end',
+                sx: { mt: '1.2em', ml: '2px', '& p': { fontSize: '80%' } }
+            }, unit),
+        },
         ...props,
     })
 }

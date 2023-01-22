@@ -27,10 +27,11 @@ import basicAuth from 'basic-auth'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { srpStep1 } from './api.auth'
 import { basename, dirname, join } from 'path'
-import { createWriteStream, mkdirSync, rename } from 'fs'
+import { createWriteStream, mkdirSync, rename, rm } from 'fs'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
 import { notifyClient } from './frontEndApis'
+import { defineConfig } from './config'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -144,15 +145,28 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         mkdirSync(dir, { recursive: true })
         const tempName = join(dir, 'hfs$uploading-' + basename(fullPath).slice(-20))
         const ret = createWriteStream(tempName)
+        clearTimeout(waitingToBeDeleted[tempName])
+        delete waitingToBeDeleted[tempName]
         ret.on('close', () => {
-            if (ctx.req.aborted) return
-            rename(tempName, fullPath, err =>
-                err && console.error("couldn't rename temp to", fullPath, String(err)))
+            if (!ctx.req.aborted)
+                return rename(tempName, fullPath, err =>
+                    err && console.error("couldn't rename temp to", fullPath, String(err)))
+            const sec = deleteUnfinishedUploadsAfter.get()
+            if (typeof sec !== 'number') return
+            waitingToBeDeleted[tempName] = setTimeout(deleteNow, sec * 1000)
+
+            function deleteNow() {
+                delete waitingToBeDeleted[tempName]
+                rm(tempName, () => {})
+            }
         })
         return ret
     }
 
 }
+
+const deleteUnfinishedUploadsAfter = defineConfig('delete_unfinished_uploads_after')
+const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
 
 let proxyDetected = false
 export const someSecurity: Koa.Middleware = async (ctx, next) => {
