@@ -37,9 +37,9 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             res = asyncGeneratorToReadable(res)
         if (res instanceof Readable) { // Readable, we'll go SSE-mode
             res.pipe(createSSE(ctx))
-            const stillRes = res // satisfy ts
+            const resAsReadable = res // satisfy ts
             ctx.req.on('close', () => // by closing the generated stream, creator of the stream will know the request is over without having to access anything else
-                stillRes.destroy())
+                resAsReadable.destroy())
             return
         }
         if (res instanceof ApiError) {

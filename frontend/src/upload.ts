@@ -7,6 +7,7 @@ import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog } from './dialog'
 import { reloadList } from './useFetchList'
+import { getNotification } from './api'
 
 export const uploadState = proxy<{
     done: number
@@ -156,27 +157,49 @@ function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...pr
 
 /// Manage upload queue
 
-let req: XMLHttpRequest | undefined
 subscribe(uploadState, () => {
     const [cur] = uploadState.qs
-    if (cur && !uploadState.uploading && !uploadState.paused)
-        startUpload(cur.files[0], cur.to)
+    if (!cur?.files.length) {
+        notificationChannel = '' // renew channel at each queue for improved security
+        notificationSource.close()
+        return
+    }
+    if (cur?.files.length && !uploadState.uploading && !uploadState.paused)
+        startUpload(cur.files[0], cur.to).then()
 })
 
-function startUpload(f: File | undefined, to: string) {
-    if (!f) return
+let req: XMLHttpRequest | undefined
+let overrideStatus = 0
+let notificationChannel = ''
+let notificationSource: EventSource
+
+async function startUpload(f: File, to: string) {
+    if (!notificationChannel) {
+        notificationChannel = 'upload-' + Math.random().toString(36).slice(2)
+        notificationSource = await getNotification(notificationChannel, (name, data) => {
+            if (name !== 'upload.status') return
+            const {uploading} = uploadState
+            if (!uploading) return
+            overrideStatus = data?.[path(uploading)]
+            if (overrideStatus >= 400)
+                abortCurrentUpload()
+        })
+    }
+    overrideStatus = 0
     uploadState.uploading = f
     req = new XMLHttpRequest()
     req.onloadend = () => {
         if (req?.readyState !== 4) return
-        if (req.status >= 400 )
-            error()
-        else
-            done()
+        const status = overrideStatus || req.status
+        if (status) // 0 = user-aborted
+            if (status >= 400)
+                error()
+            else
+                done()
         next()
     }
     req.upload.onprogress = (e:any) => uploadState.progress = e.loaded / e.total * 100
-    req.open("POST", to, true)
+    req.open("POST", to + '?notificationChannel=' + notificationChannel, true)
     const form = new FormData()
     form.append('file', f, path(f))
     req.send(form)

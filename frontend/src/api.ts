@@ -79,7 +79,7 @@ function getCsrf() {
     return getCookie('csrf')
 }
 
-export async function getNotification(channel: string, cb: (name: string, data:any) => void) {
+export async function getNotification(channel: string, cb: (name: string, data:any) => void): Promise<EventSource> {
     return new Promise(resolve => {
         const ret = apiEvents('get_notifications', { channel }, (type, entries) => {
             if (type === 'connected')

@@ -30,6 +30,7 @@ import { basename, dirname, join } from 'path'
 import { createWriteStream, mkdirSync } from 'fs'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
+import { notifyClient } from './frontEndApis'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -135,6 +136,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         if (!base.source || !hasPermission(base, 'can_upload', ctx)) {
             ctx.status = base.can_upload === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED
+            notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
             return
         }
         path = join(base.source, path)
