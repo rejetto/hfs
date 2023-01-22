@@ -168,8 +168,11 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         cancelDeletion(tempName)
         ret.on('close', () => {
             if (!ctx.req.aborted)
-                return fs.rename(tempName, fullPath, err =>
-                    err && console.error("couldn't rename temp to", fullPath, String(err)))
+                return fs.rename(tempName, fullPath, err => {
+                    err && console.error("couldn't rename temp to", fullPath, String(err))
+                    if (resumable)
+                        delayedDelete(resumable, 0)
+                })
             const sec = deleteUnfinishedUploadsAfter.get()
             if (typeof sec !== 'number') return
             delayedDelete(tempName, sec)

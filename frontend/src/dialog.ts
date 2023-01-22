@@ -2,7 +2,7 @@
 
 import { createElement as h, ReactElement, ReactNode, useEffect, useRef, useState } from 'react'
 import './dialog.css'
-import { newDialog, closeDialog, DialogOptions } from '@hfs/shared/dialogs'
+import { newDialog, closeDialog, DialogOptions, DialogCloser } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'
 export * from '@hfs/shared/dialogs'
@@ -73,16 +73,24 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
     }
 }
 
-export interface ConfirmOptions { href?: string, afterButtons?: ReactNode, timeout?: number, timeoutConfirm?: boolean }
-export async function confirmDialog(msg: ReactElement | string, { href, afterButtons, timeout, timeoutConfirm=false }: ConfirmOptions={}) : Promise<boolean> {
+export interface ConfirmOptions {
+    href?: string
+    afterButtons?: ReactNode
+    timeout?: number
+    timeoutConfirm?: boolean
+    getClose?: (cb: DialogCloser) => unknown
+}
+export async function confirmDialog(msg: ReactElement | string, options: ConfirmOptions={}) : Promise<unknown> {
+    const { href, afterButtons, timeout, timeoutConfirm=false, getClose=_.noop } = options
     if (typeof msg === 'string')
         msg = h('p', {}, msg)
-    return new Promise(resolve => newDialog({
-        className: 'dialog-confirm',
-        icon: '?',
-        onClose: resolve,
-        Content
-    }) )
+    return new Promise(resolve =>
+        getClose(newDialog({
+            className: 'dialog-confirm',
+            icon: '?',
+            onClose: resolve,
+            Content
+        })) )
 
     function Content() {
         const [sec,setSec] = useState(Math.ceil(timeout||0))

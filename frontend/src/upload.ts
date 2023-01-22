@@ -2,7 +2,7 @@
 
 import { createElement as h, useState } from 'react'
 import { Flex, FlexV } from './components'
-import { formatBytes, hIcon, newDialog, prefix } from './misc'
+import { DialogCloser, formatBytes, hIcon, newDialog, prefix } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog } from './dialog'
@@ -176,6 +176,7 @@ let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource
+let closeResumeDialog: DialogCloser | undefined
 
 async function startUpload(f: File, to: string, resume=0) {
     let resuming = false
@@ -213,7 +214,8 @@ async function startUpload(f: File, to: string, resume=0) {
                     const {expires} = data
                     const timeout = typeof expires !== 'number' ? 0
                         : (Number(new Date(expires)) - Date.now()) / 1000
-                    if (!await confirmDialog(`Resume upload? (${formatPerc(size/f.size)} = ${formatBytes(size)})`, { timeout })) return
+                    const msg = `Resume upload? (${formatPerc(size/f.size)} = ${formatBytes(size)})`
+                    if (!await confirmDialog(msg, { timeout, getClose: x => closeResumeDialog=x })) return
                     if (uploading !== uploadState.uploading) return // too late
                     resuming = true
                     abortCurrentUpload()
@@ -241,6 +243,7 @@ async function startUpload(f: File, to: string, resume=0) {
     }
 
     function next() {
+        closeResumeDialog?.()
         uploadState.uploading = undefined
         const { qs } = uploadState
         if (!qs.length) return
