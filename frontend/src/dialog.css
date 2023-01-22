@@ -54,7 +54,7 @@
 }
 .dialog-content {
     overflow: auto;
-    max-height: calc(100vh - 4em);
+    max-height: calc(100vh - 4.5em);
 }
 .dialog-content p {
     white-space: pre-wrap;
