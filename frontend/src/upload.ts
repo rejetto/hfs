@@ -5,7 +5,7 @@ import { Flex, FlexV } from './components'
 import { formatBytes, hIcon, newDialog, prefix } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
-import { alertDialog } from './dialog'
+import { alertDialog, confirmDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { getNotification } from './api'
 
@@ -143,7 +143,7 @@ function FilesList({ files, remove }: { files: File[], remove: (f:File) => any }
                     h('td', {}, formatBytes(f.size)),
                     h('td', { className: working ? 'ani-working' : undefined },
                         path(f),
-                        working && h('span', { className: 'upload-progress' }, progress.toFixed(1), '%')
+                        working && h('span', { className: 'upload-progress' }, formatPerc(progress))
                     ),
                 )
             })
@@ -153,6 +153,10 @@ function FilesList({ files, remove }: { files: File[], remove: (f:File) => any }
 
 function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...props }={}) {
     return h('button', { onClick, ...props, ...small && { style: { padding: '.1em', ...style } } }, hIcon(icon))
+}
+
+function formatPerc(p: number) {
+    return (p*100).toFixed(1) + '%'
 }
 
 /// Manage upload queue
@@ -173,20 +177,11 @@ let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource
 
-async function startUpload(f: File, to: string) {
-    if (!notificationChannel) {
-        notificationChannel = 'upload-' + Math.random().toString(36).slice(2)
-        notificationSource = await getNotification(notificationChannel, (name, data) => {
-            if (name !== 'upload.status') return
-            const {uploading} = uploadState
-            if (!uploading) return
-            overrideStatus = data?.[path(uploading)]
-            if (overrideStatus >= 400)
-                abortCurrentUpload()
-        })
-    }
+async function startUpload(f: File, to: string, resume=0) {
+    let resuming = false
     overrideStatus = 0
     uploadState.uploading = f
+    await subscribeNotifications()
     req = new XMLHttpRequest()
     req.onloadend = () => {
         if (req?.readyState !== 4) return
@@ -196,13 +191,43 @@ async function startUpload(f: File, to: string) {
                 error()
             else
                 done()
-        next()
+        if (!resuming)
+            next()
     }
-    req.upload.onprogress = (e:any) => uploadState.progress = e.loaded / e.total * 100
-    req.open("POST", to + '?notificationChannel=' + notificationChannel, true)
+    req.upload.onprogress = (e:any) =>
+        uploadState.progress = (e.loaded + resume) / (e.total + resume)
+    req.open('POST', to + '?' + new URLSearchParams({ notificationChannel, resume: String(resume) }), true)
     const form = new FormData()
-    form.append('file', f, path(f))
+    form.append('file', f.slice(resume), path(f))
     req.send(form)
+
+    async function subscribeNotifications() {
+        if (!notificationChannel) {
+            notificationChannel = 'upload-' + Math.random().toString(36).slice(2)
+            notificationSource = await getNotification(notificationChannel, async (name, data) => {
+                const {uploading} = uploadState
+                if (!uploading) return
+                if (name === 'upload.resumable') {
+                    const size = data?.[path(uploading)]
+                    if (!size || size > f.size) return
+                    const {expires} = data
+                    const timeout = typeof expires !== 'number' ? 0
+                        : (Number(new Date(expires)) - Date.now()) / 1000
+                    if (!await confirmDialog(`Resume upload? (${formatPerc(size/f.size)} = ${formatBytes(size)})`, { timeout })) return
+                    if (uploading !== uploadState.uploading) return // too late
+                    resuming = true
+                    abortCurrentUpload()
+                    return startUpload(f, to, size)
+                }
+                if (name === 'upload.status') {
+                    overrideStatus = data?.[path(uploading)]
+                    if (overrideStatus >= 400)
+                        abortCurrentUpload()
+                    return
+                }
+            })
+        }
+    }
 
     function error() {
         if (!uploadState.errors++)

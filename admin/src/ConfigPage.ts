@@ -112,7 +112,7 @@ export default function ConfigPage() {
                 helperText: values.allowed_referer ? "Leave empty to allow any" : "Use this to avoid direct links from other websites", },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 6, md: 3, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'delete_unfinished_uploads_after', comp: NumberField, sm: 6, md: 3, min : 0, unit: "seconds",
+            { k: 'delete_unfinished_uploads_after', comp: NumberField, sm: 6, md: 3, min : 0, unit: "seconds", placeholder: "Never",
                 helperText: "Leave empty to never delete" },
             { k: 'custom_header', multiline: true, sm: 12, md: 6, sx: { '& textarea': { fontFamily: 'monospace' } },
                 helperText: "Any HTML code here will be used as header for the Frontend"

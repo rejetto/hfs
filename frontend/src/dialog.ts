@@ -1,9 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactElement, ReactNode, useEffect, useRef } from 'react'
+import { createElement as h, ReactElement, ReactNode, useEffect, useRef, useState } from 'react'
 import './dialog.css'
 import { newDialog, closeDialog, DialogOptions } from '@hfs/shared/dialogs'
 import _ from 'lodash'
+import { useInterval } from 'usehooks-ts'
 export * from '@hfs/shared/dialogs'
 
 interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string }
@@ -72,8 +73,8 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
     }
 }
 
-export interface ConfirmOptions { href?: string, afterButtons?: ReactNode }
-export async function confirmDialog(msg: ReactElement | string, { href, afterButtons }: ConfirmOptions={}) : Promise<boolean> {
+export interface ConfirmOptions { href?: string, afterButtons?: ReactNode, timeout?: number, timeoutConfirm?: boolean }
+export async function confirmDialog(msg: ReactElement | string, { href, afterButtons, timeout, timeoutConfirm=false }: ConfirmOptions={}) : Promise<boolean> {
     if (typeof msg === 'string')
         msg = h('p', {}, msg)
     return new Promise(resolve => newDialog({
@@ -84,6 +85,13 @@ export async function confirmDialog(msg: ReactElement | string, { href, afterBut
     }) )
 
     function Content() {
+        const [sec,setSec] = useState(Math.ceil(timeout||0))
+        useInterval(() => setSec(x => Math.max(0, x-1)), 1000)
+        const missingText = timeout!>0 && ` (${sec})`
+        useEffect(() => {
+            if (timeout && !sec)
+                closeDialog(timeoutConfirm)
+        }, [sec])
         return h('div', {},
             msg,
             h('div', {
@@ -97,10 +105,10 @@ export async function confirmDialog(msg: ReactElement | string, { href, afterBut
                 h('a', {
                     href,
                     onClick() { closeDialog(true) },
-                }, h('button', {}, "Confirm")),
+                }, h('button', {}, "Confirm", timeoutConfirm && missingText)),
                 h('button', {
                     onClick() { closeDialog(false) },
-                }, "Don't"),
+                }, "Don't", !timeoutConfirm && missingText),
                 afterButtons,
             )
         )

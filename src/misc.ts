@@ -165,3 +165,12 @@ export async function stream2string(stream: Readable): Promise<string> {
         })
     })
 }
+
+export function try_(cb: () => any, onException?: (e:any) => any) {
+    try {
+        return cb()
+    }
+    catch(e) {
+        return onException?.(e)
+    }
+}
