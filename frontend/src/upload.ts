@@ -97,7 +97,7 @@ export function showUpload() {
                 ),
                 qs.map((q,idx) =>
                     h('div', { key: q.to },
-                        h('div', {}, "Destination ", q.to),
+                        h('div', {}, "Destination ", decodeURI(q.to)),
                         h(FilesList, {
                             files: Array.from(q.files),
                             remove(f) {

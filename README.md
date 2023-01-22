@@ -34,7 +34,7 @@ You won't find all previous features here (yet), but still we got:
 - search
 - accounts
 - resumable downloads
-- upload
+- resumable uploads
 - download folders as zip archive
 - simple website serving
 - plug-ins
