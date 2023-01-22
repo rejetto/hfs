@@ -49,13 +49,15 @@ export function useApi(cmd: string | Falsy, params?: object) : any {
 type EventHandler = (type:string, data?:any) => void
 
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
-    const csrf = getCsrf()
-    const processed: Record<string,string> = { csrf: csrf && JSON.stringify(csrf) }
+    const processed: Record<string,string> = {}
     for (const k in params) {
         const v = params[k]
-        if (v === undefined) continue
-        processed[k] = JSON.stringify(v)
+        if (v !== undefined)
+            processed[k] = JSON.stringify(v)
     }
+    const csrf = getCsrf()
+    if (csrf)
+        processed.csrf = JSON.stringify(csrf)
     const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(processed))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
@@ -75,4 +77,17 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
 
 function getCsrf() {
     return getCookie('csrf')
+}
+
+export async function getNotification(channel: string, cb: (name: string, data:any) => void) {
+    return new Promise(resolve => {
+        const ret = apiEvents('get_notifications', { channel }, (type, entries) => {
+            if (type === 'connected')
+                return resolve(ret)
+            if (type !== 'msg') return
+            for (const { name, data } of entries)
+                if (name)
+                    cb(name, data)
+        })
+    })
 }
