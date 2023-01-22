@@ -55,7 +55,7 @@ export default function useFetchList() {
             switch (type) {
                 case 'error':
                     state.stopSearch?.()
-                    state.error = JSON.stringify(data)
+                    state.error = "connection error"
                     lastReq.current = null
                     return
                 case 'closed':
