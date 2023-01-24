@@ -16,7 +16,7 @@ import { useSnapshot } from 'valtio'
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, stoppedSearch, patternFilter, selected, can_upload } = useSnapState()
-    const { uploading }  = useSnapshot(uploadState)
+    const { uploading, qs }  = useSnapshot(uploadState)
     const [filter, setFilter] = useState(patternFilter)
     ;[state.patternFilter] = useDebounce(showFilter ? filter : '', 300)
     useEffect(() => {
@@ -74,7 +74,7 @@ export function MenuPanel() {
                     }
                 }
             }),
-            can_upload && h(MenuButton, {
+            (can_upload || qs.length > 0) && h(MenuButton, {
                 icon: 'upload',
                 label: 'Upload',
                 className: uploading && 'ani-working',

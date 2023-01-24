@@ -8,6 +8,7 @@ import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { getNotification } from './api'
+import { useSnapState } from './state'
 
 export const uploadState = proxy<{
     done: number
@@ -75,12 +76,13 @@ export function showUpload() {
     function Content(){
         const [files, setFiles] = useState([] as File[])
         const { qs, done, doneByte, paused, errors, eta } = useSnapshot(uploadState)
+        const { can_upload } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
 
         return h(FlexV, {},
             h(Flex, { gap: '.5em', flexWrap: 'wrap', justifyContent: 'center', position: 'sticky', top: -4, background: 'var(--bg)', boxShadow: '0 3px 3px #000' },
-                h('button',{ onClick: () => selectFiles() }, "Add file(s)"),
-                h('button',{ onClick: () => selectFiles(true) }, "Add folder"),
+                can_upload && h('button',{ onClick: () => selectFiles() }, "Add file(s)"),
+                can_upload && h('button',{ onClick: () => selectFiles(true) }, "Add folder"),
                 files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
                 files.length > 0 &&  h('button', {
                     onClick() {
