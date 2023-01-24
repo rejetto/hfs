@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useState } from 'react'
+import { createElement as h, useMemo, useState } from 'react'
 import { Flex, FlexV } from './components'
 import { DialogCloser, formatBytes, hIcon, newDialog, prefix } from './misc'
 import _ from 'lodash'
@@ -16,8 +16,14 @@ export const uploadState = proxy<{
     qs: { to: string, files: File[] }[]
     paused: boolean
     uploading?: File
-    progress: number
+    progress: number // percentage
+    partial: number // relative to uploading file. This is how much we have done of the current queue.
+    speed: number
+    eta: number
 }>({
+    eta: 0,
+    speed: 0,
+    partial: 0,
     progress: 0,
     paused: false,
     qs: [],
@@ -25,6 +31,25 @@ export const uploadState = proxy<{
     doneByte: 0,
     done: 0,
 })
+
+// keep track of speed
+let bytesSentTimestamp = Date.now()
+let bytesSent = 0
+setInterval(() => {
+    const now = Date.now()
+    const passed = (now - bytesSentTimestamp) / 1000
+    if (passed < 3 && uploadState.speed) return
+    uploadState.speed = bytesSent / passed
+    bytesSent = 0 // reset counter
+    bytesSentTimestamp = now
+}, 1_000)
+
+// keep track of ETA
+setInterval(() => {
+    const qBytes = _.sumBy(uploadState.qs, q => _.sumBy(q.files, f => f.size))
+    const left = (qBytes  - uploadState.partial)
+    uploadState.eta = uploadState.speed && Math.round(left / uploadState.speed)
+}, 1000)
 
 let reloadOnClose = false
 
@@ -49,7 +74,9 @@ export function showUpload() {
 
     function Content(){
         const [files, setFiles] = useState([] as File[])
-        const { qs, done, doneByte, paused, errors } = useSnapshot(uploadState)
+        const { qs, done, doneByte, paused, errors, eta } = useSnapshot(uploadState)
+        const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
+
         return h(FlexV, {},
             h(Flex, { gap: '.5em', flexWrap: 'wrap', justifyContent: 'center', position: 'sticky', top: -4, background: 'var(--bg)', boxShadow: '0 3px 3px #000' },
                 h('button',{ onClick: () => selectFiles() }, "Add file(s)"),
@@ -81,8 +108,7 @@ export function showUpload() {
             h('div', {}, [done && `${done} finished (${formatBytes(doneByte)})`, errors && `${errors} failed`].filter(Boolean).join(' – ')),
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
-                    "Queue",
-                    `(${_.sumBy(qs, q => q.files.length)})`,
+                    `${_.sumBy(qs, q => q.files.length)} in queue${prefix(', ', etaStr)}`,
                     iconBtn('trash', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
@@ -155,6 +181,17 @@ function formatPerc(p: number) {
     return (p*100).toFixed(1) + '%'
 }
 
+function formatTime(t: number, decimals=0, length=Infinity) {
+    t /= 1000
+    const ret = [(t % 1).toFixed(decimals).slice(1)]
+    for (const [c,mod,pad] of [['s', 60, 2], ['m', 60, 2], ['h', 24], ['d', 36], ['y', 1 ]] as [string,number,number|undefined][]) {
+        ret.push( _.padStart(String(t % mod | 0), pad || 0,'0') + c )
+        t /= mod
+        if (t < 1) break
+    }
+    return ret.slice(-length).reverse().join('')
+}
+
 /// Manage upload queue
 
 subscribe(uploadState, () => {
@@ -191,8 +228,13 @@ async function startUpload(f: File, to: string, resume=0) {
         if (!resuming)
             next()
     }
-    req.upload.onprogress = (e:any) =>
-        uploadState.progress = (e.loaded + resume) / (e.total + resume)
+    let lastProgress = 0
+    req.upload.onprogress = (e:any) => {
+        uploadState.partial = e.loaded + resume
+        uploadState.progress = uploadState.partial / (e.total + resume)
+        bytesSent += e.loaded - lastProgress
+        lastProgress = e.loaded
+    }
     req.open('POST', to + '?' + new URLSearchParams({ notificationChannel, resume: String(resume) }), true)
     const form = new FormData()
     form.append('file', f.slice(resume), path(f))
@@ -241,6 +283,7 @@ async function startUpload(f: File, to: string, resume=0) {
     function next() {
         closeResumeDialog?.()
         uploadState.uploading = undefined
+        uploadState.partial = 0
         const { qs } = uploadState
         if (!qs.length) return
         qs[0].files.shift()
