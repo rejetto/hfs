@@ -1,5 +1,4 @@
 # To do
-- upload: minimum available disk
 - admin/fs: check if source exist when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin

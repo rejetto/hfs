@@ -8,11 +8,11 @@ import {
     BUILD_TIMESTAMP,
     DEV,
     SESSION_DURATION,
-    HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR,
+    HTTP_FORBIDDEN, HTTP_NOT_FOUND,
 } from './const'
 import { FRONTEND_URI } from './const'
-import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs, VfsNode } from './vfs'
-import { Callback, dirTraversal, try_ } from './misc'
+import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs } from './vfs'
+import { dirTraversal } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -24,12 +24,10 @@ import { socket2connection, updateConnection, normalizeIp } from './connections'
 import basicAuth from 'basic-auth'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { srpStep1 } from './api.auth'
-import { basename, dirname, join } from 'path'
-import fs from 'fs'
+import { basename, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
-import { notifyClient } from './frontEndApis'
-import { defineConfig } from './config'
+import { uploadWriter } from './upload'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -131,77 +129,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             : ctx.status = cantReadStatusCode(def)
     }
     return serveFrontendFiles(ctx, next)
-
-    function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
-        if (!base.source || !hasPermission(base, 'can_upload', ctx))
-            return fail(base.can_upload === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED)
-        const fullPath = join(base.source, path)
-        const dir = dirname(fullPath)
-        fs.mkdirSync(dir, { recursive: true })
-        const keepName = basename(fullPath).slice(-200)
-        let tempName = join(dir, 'hfs$upload-' + keepName)
-        const resumable = fs.existsSync(tempName) && tempName
-        if (resumable)
-            tempName = join(dir, 'hfs$upload2-' + keepName)
-        const resume = Number(ctx.query.resume)
-        const size = resumable && try_(() => fs.statSync(resumable).size)
-        if (size === undefined) // stat failed
-            return fail(HTTP_SERVER_ERROR)
-        if (resume > size)
-            return fail(HTTP_RANGE_NOT_SATISFIABLE)
-        if (!resume && resumable) {
-            const timeout = 30
-            notifyClient(ctx, 'upload.resumable', { [path]: size, expires: Date.now() + timeout * 1000 })
-            delayedDelete(resumable, timeout, () =>
-                fs.rename(tempName, resumable, err => {
-                    if (!err)
-                        tempName = resumable
-                }) )
-        }
-        const resuming = resume && resumable
-        const ret = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
-            : fs.createWriteStream(tempName)
-        if (resuming) {
-            fs.rm(tempName, () => {})
-            tempName = resumable
-        }
-        cancelDeletion(tempName)
-        ret.on('close', () => {
-            if (!ctx.req.aborted)
-                return fs.rename(tempName, fullPath, err => {
-                    err && console.error("couldn't rename temp to", fullPath, String(err))
-                    if (resumable)
-                        delayedDelete(resumable, 0)
-                })
-            const sec = deleteUnfinishedUploadsAfter.get()
-            if (typeof sec !== 'number') return
-            delayedDelete(tempName, sec)
-        })
-        return ret
-
-        function delayedDelete(path: string, secs: number, cb?: Callback) {
-            clearTimeout(waitingToBeDeleted[path])
-            waitingToBeDeleted[path] = setTimeout(() => {
-                delete waitingToBeDeleted[path]
-                fs.rm(path, () => cb?.())
-            }, secs * 1000)
-        }
-
-        function cancelDeletion(path: string) {
-            clearTimeout(waitingToBeDeleted[path])
-            delete waitingToBeDeleted[path]
-        }
-
-        function fail(status: number) {
-            ctx.status = status
-            notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
-        }
-    }
-
 }
-
-const deleteUnfinishedUploadsAfter = defineConfig('delete_unfinished_uploads_after')
-const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
 
 let proxyDetected = false
 export const someSecurity: Koa.Middleware = async (ctx, next) => {

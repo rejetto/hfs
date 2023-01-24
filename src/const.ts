@@ -39,6 +39,7 @@ export const HTTP_NOT_FOUND = 404
 export const HTTP_METHOD_NOT_ALLOWED = 405
 export const HTTP_NOT_ACCEPTABLE = 406
 export const HTTP_CONFLICT = 409
+export const HTTP_PAYLOAD_TOO_LARGE = 413
 export const HTTP_RANGE_NOT_SATISFIABLE = 416
 export const HTTP_FOOL = 418
 export const HTTP_SERVER_ERROR = 500

@@ -224,7 +224,7 @@ async function startUpload(f: File, to: string, resume=0) {
         const status = overrideStatus || req.status
         if (status) // 0 = user-aborted
             if (status >= 400)
-                error()
+                error(status)
             else
                 done()
         if (!resuming)
@@ -271,9 +271,13 @@ async function startUpload(f: File, to: string, resume=0) {
         }
     }
 
-    function error() {
-        if (!uploadState.errors++)
-            alertDialog("Upload error", 'error').then()
+    function error(status: number) {
+        if (uploadState.errors++) return
+        const ERRORS = {
+            413: "file too large",
+        }
+        const specifier = (ERRORS as any)[status]
+        alertDialog("Upload error" + prefix(': ', specifier), 'error').then()
     }
 
     function done() {

@@ -31,8 +31,8 @@ export function prefix(pre:string, v:string|number|undefined|null|false, post:st
     return v ? pre+v+post : ''
 }
 
-export function wait(ms: number) {
-    return new Promise(res=> setTimeout(res,ms))
+export function wait<T=undefined>(ms: number, val?: T): Promise<T> {
+    return new Promise(res=> setTimeout(res,ms,val))
 }
 
 export function getCookie(name: string) {
