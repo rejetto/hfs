@@ -83,17 +83,13 @@ export function showUpload() {
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
                     "Queue",
                     `(${_.sumBy(qs, q => q.files.length)})`,
-                    h('button',{
-                        onClick(){
-                            uploadState.qs = []
-                            abortCurrentUpload()
-                        }
-                    }, "Clear"),
-                    h('button',{
-                        onClick(){
-                            uploadState.paused = !uploadState.paused
-                        }
-                    }, paused ? "Resume" : "Pause"),
+                    iconBtn('trash', ()=>  {
+                        uploadState.qs = []
+                        abortCurrentUpload()
+                    }),
+                    iconBtn(paused ? '▶' : '⏸', () => {
+                        uploadState.paused = !uploadState.paused
+                    }),
                 ),
                 qs.map((q,idx) =>
                     h('div', { key: q.to },
@@ -152,7 +148,7 @@ function FilesList({ files, remove }: { files: File[], remove: (f:File) => any }
 }
 
 function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...props }={}) {
-    return h('button', { onClick, ...props, ...small && { style: { padding: '.1em', ...style } } }, hIcon(icon))
+    return h('button', { onClick, ...props, ...small && { style: { padding: '.1em', width: 35, height: 30, ...style } } }, icon.length > 1 ? hIcon(icon) : icon)
 }
 
 function formatPerc(p: number) {
