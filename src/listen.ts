@@ -115,6 +115,8 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
         try {
             if (port < 0 || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
                 return resolve(0)
+            // from a few tests, this seems enough to support the expect-100 http/1.1 mechanism, at least with curl -T, not used by chrome|firefox anyway
+            srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
             port = await listen(host)
             if (port)
                 console.log(srv.name, "serving on", host||"any network", ':', port)
