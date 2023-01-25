@@ -117,7 +117,7 @@ export default function ConfigPage() {
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 12, md: 6, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'custom_header', multiline: true, sm: 12, sx: { '& textarea': { fontFamily: 'monospace' } },
-                helperText: "Any HTML code here will be used as header for the Frontend"
+                helperText: "Any HTML code here will be displayed on top of the Frontend"
             },
             { k: 'mime', comp: StringStringField,
                 keyLabel: "Files", keyWidth: 7,

@@ -145,7 +145,7 @@ an *env* called `HFS_CONFIG`. Any relative path provided is relative to the *cwd
 - `https_port` listen on a specific port. Default is 443.
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
 - `private_key` use this file for https private key. Default is none.
-- `allowed_referer` you can decide what domains can link to your files. Wildcards supported. Default is any.
+- `allowed_referer` you can decide what domains can link to your files. Wildcards supported. Default is empty, meaning any.
 - `block` a list of rules that will block connections. E.g.:
     ```
     block:
