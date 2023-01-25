@@ -7,7 +7,16 @@ import { state, useSnapState } from './state'
 import { Info, Refresh } from '@mui/icons-material'
 import { Dict, modifiedSx } from './misc'
 import { subscribeKey } from 'valtio/utils'
-import { Form, BoolField, NumberField, SelectField, StringStringField, FieldProps, Field } from '@hfs/mui-grid-form';
+import {
+    Form,
+    BoolField,
+    NumberField,
+    SelectField,
+    StringStringField,
+    FieldProps,
+    Field,
+    StringField
+} from '@hfs/mui-grid-form';
 import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'
@@ -108,8 +117,7 @@ export default function ConfigPage() {
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
-            { k: 'allowed_referer', placeholder: "any",
-                helperText: values.allowed_referer ? "Leave empty to allow any" : "Use this to avoid direct links from other websites", },
+            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer },
             { k: 'delete_unfinished_uploads_after', comp: NumberField, sm: 6, md: 3, min : 0, unit: "seconds", placeholder: "Never",
                 helperText: "Leave empty to never delete" },
             { k: 'min_available_mb', comp: NumberField, sm: 6, md: 3, min : 0, unit: "MBytes", placeholder: "None",
@@ -211,6 +219,29 @@ function ServerPort({ label, value, onChange, getApi, status, suggestedPort=1, e
         status && h(FormHelperText, { error },
             status === true ? '...'
                 : errMsg ?? (status?.listening && "Correctly working on port " + status.port) )
+    )
+}
+
+function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
+    const yesno = !value || value==='-'
+    const example = 'example.com'
+    return h(Box, { display: 'flex' },
+        h(SelectField as Field<string>, {
+            label,
+            value: yesno ? value : example,
+            options: { "allow all": '', "forbid all": '-', "allow some": example, },
+            onChange,
+            error,
+            sx: yesno ? undefined : { maxWidth: '11em' },
+        }),
+        !yesno && h(StringField, {
+            label: "Domain to allow",
+            value,
+            placeholder: 'example.com',
+            onChange,
+            error,
+            helperText: "Masks supported"
+        })
     )
 }
 
