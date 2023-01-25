@@ -205,7 +205,8 @@ export function Form<Values extends Dict>({
     function pleaseValidate(k='') {
         if (phase !== Phase.Idle) return
         validateUpTo.current = k
-        setPhase(Phase.WaitValues)
+        setTimeout(() => // starting validation immediately will lose clicks on the saveBtn, so delay just a bit
+            setPhase(Phase.WaitValues))
     }
 
     async function phaseChange() {
