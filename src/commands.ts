@@ -30,7 +30,7 @@ function parseCommandLine(line: string) {
         return console.error("cannot understand entered command, try 'help'")
     if (cmd.cb.length > params.length)
         return console.error("insufficient parameters, expected: " + cmd.params)
-    cmd.cb(...params).then(() =>console.log("+++ command executed"),
+    Promise.resolve(cmd.cb(...params)).then(() => console.log("+++ command executed"),
         (err: any) => {
             if (typeof err === 'string')
                 console.error("command failed:", err)
@@ -42,7 +42,7 @@ function parseCommandLine(line: string) {
 const commands = {
     help: {
         params: '',
-        async cb() {
+        cb() {
             console.log("supported commands:",
                 ..._.map(commands, ({ params }, name) =>
                     '\n - ' + name + ' ' + params))
@@ -78,7 +78,7 @@ const commands = {
     },
     config: {
         params: '<key> <value>',
-        async cb(key: string, value: string) {
+        cb(key: string, value: string) {
             const conf = getConfigDefinition(key)
             if (!conf)
                 throw "specified key doesn't exist"
@@ -90,7 +90,7 @@ const commands = {
     },
     'show-config': {
         params: '<key>',
-        async cb(key: string) {
+        cb(key: string) {
             const conf = getConfigDefinition(key)
             if (!conf)
                 throw "specified key doesn't exist"
@@ -99,7 +99,7 @@ const commands = {
     },
     quit: {
         params: '',
-        async cb() {
+        cb() {
             process.exit(0)
         }
     },
@@ -116,7 +116,7 @@ const commands = {
     },
     version: {
         params: '',
-        async cb() {
+        cb() {
             console.log(VERSION)
             console.log(BUILD_TIMESTAMP)
         }
