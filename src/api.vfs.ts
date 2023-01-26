@@ -6,9 +6,10 @@ import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, join, resolve } from 'path'
 import { dirStream, isWindowsDrive, objSameKeys } from './misc'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, IS_WINDOWS, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT } from './const'
+import {
+    IS_WINDOWS,
+    HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE
+} from './const'
 import { isMatch } from 'micromatch'
 
 type VfsAdmin = {
@@ -79,7 +80,7 @@ const apis: ApiHandlers = {
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'invalid under')
         if (n.isTemp || !await nodeIsDirectory(n))
-            return new ApiError(HTTP_FORBIDDEN, 'invalid under')
+            return new ApiError(HTTP_NOT_ACCEPTABLE, 'invalid under')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
         const a = n.children || (n.children = [])
@@ -103,7 +104,7 @@ const apis: ApiHandlers = {
                 const parent = dirname(uri)
                 const parentNode = await urlToNodeOriginal(parent)
                 if (!parentNode)
-                    return HTTP_FORBIDDEN
+                    return HTTP_NOT_ACCEPTABLE
                 const { children } = parentNode
                 if (!children) // shouldn't happen
                     return HTTP_SERVER_ERROR

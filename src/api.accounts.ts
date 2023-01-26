@@ -14,7 +14,7 @@ import {
     setAccount
 } from './perm'
 import _ from 'lodash'
-import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_NOT_FOUND } from './const'
+import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 
 function prepareAccount(ac: Account | undefined) {
     return ac && {
@@ -56,7 +56,7 @@ const apis: ApiHandlers = {
 
     add_account({ username, ...rest }) {
         if (getAccount(username))
-            return new ApiError(HTTP_FORBIDDEN)
+            return new ApiError(HTTP_CONFLICT)
         const acc = addAccount(username, rest)
         return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
     },
