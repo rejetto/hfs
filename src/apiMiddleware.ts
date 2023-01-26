@@ -9,8 +9,8 @@ import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
 import _, { DebouncedFunc } from 'lodash'
 
 export class ApiError extends Error {
-    constructor(public status:number, message?:string | Error) {
-        super(typeof message === 'string' ? message : message?.message)
+    constructor(public status:number, message?:string | Error | object) {
+        super(typeof message === 'string' ? message : message && message instanceof Error ? message.message : JSON.stringify(message))
     }
 }
 type ApiHandlerResult = Record<string,any> | ApiError | Readable | AsyncGenerator<any>

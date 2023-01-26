@@ -5,7 +5,6 @@ import * as fs from 'fs'
 import { homedir } from 'os'
 import { mkdirSync } from 'fs'
 import { basename, dirname, join } from 'path'
-import http2 from 'http2'
 
 export const argv = minimist(process.argv.slice(2))
 export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''

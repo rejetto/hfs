@@ -12,7 +12,7 @@ export const state = proxy<{
     config: Dict
     vfs: VfsNode | undefined
     selectedFiles: VfsNode[]
-    loginRequired: boolean
+    loginRequired: boolean | number
     username: string
     onlinePluginsColumns: Dict<boolean>
 }>(Object.assign({

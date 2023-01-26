@@ -72,3 +72,11 @@ export function setHidden(dest: object, src:object) {
     })))
 }
 
+export function try_(cb: () => any, onException?: (e:any) => any) {
+    try {
+        return cb()
+    }
+    catch(e) {
+        return onException?.(e)
+    }
+}

@@ -7,6 +7,7 @@ import _ from 'lodash'
 import { state } from './state'
 import { Refresh } from '@mui/icons-material'
 import produce, { Draft } from 'immer'
+import { try_ } from './misc'
 
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     const [data, error, reload] = useApi<T>(...args)
@@ -48,7 +49,7 @@ export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) : 
         const msg = await res.text() || 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
         if (res.status === 401)
-            state.loginRequired = true
+            state.loginRequired = Boolean(try_(() => JSON.parse(msg)?.any)) || 403
         throw new ApiError(res.status, msg)
     }, err => {
         if (err?.message?.includes('fetch'))

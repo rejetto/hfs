@@ -78,7 +78,7 @@ export function InLink(props:any) {
 }
 
 export function Center(props: any) {
-    return h(Box, { display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center', ...props })
+    return h(Box, { display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props })
 }
 
 export async function manipulateConfig(k: string, work:(data:any) => any) {

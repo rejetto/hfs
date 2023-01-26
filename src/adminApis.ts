@@ -23,7 +23,7 @@ import { getConnections } from './connections'
 import { debounceAsync, isLocalHost, onOff, wait } from './misc'
 import _ from 'lodash'
 import events from './events'
-import { getFromAccount } from './perm'
+import { anyAccountCanLoginAdmin, getFromAccount } from './perm'
 import Koa from 'koa'
 import { getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
@@ -144,7 +144,7 @@ export const adminApis: ApiHandlers = {
 for (const [k, was] of Object.entries(adminApis))
     adminApis[k] = (params, ctx) =>
         ctxAdminAccess(ctx) ? was(params, ctx)
-            : new ApiError(HTTP_UNAUTHORIZED)
+            : new ApiError(HTTP_UNAUTHORIZED, { any: anyAccountCanLoginAdmin() })
 
 export const localhostAdmin = defineConfig('localhost_admin', true)
 

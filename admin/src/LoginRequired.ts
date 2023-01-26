@@ -6,10 +6,15 @@ import { Center } from './misc'
 import { Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
 import { srpSequence } from '@hfs/shared'
-import { Alert } from '@mui/material'
+import { Alert, Box } from '@mui/material'
 
 export function LoginRequired({ children }: any) {
     const { loginRequired } = useSnapState()
+    if (loginRequired === 403)
+        return h(Center, {},
+            h(Alert, { severity: 'error' }, "Admin-panel only for localhost"),
+            h(Box, { mt: 2, fontSize: 'small' }, "because no admin account was configured")
+        )
     if (loginRequired)
         return h(LoginForm)
     return h(Fragment, {}, children)
