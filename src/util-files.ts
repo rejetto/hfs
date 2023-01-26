@@ -2,11 +2,11 @@
 
 import fs from 'fs/promises'
 import { wait } from './misc'
-import { createWriteStream, mkdirSync, watch } from 'fs'
+import { createWriteStream, watch } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
-import { execFile } from 'child_process'
+import { runCmd } from './util-os'
 import { once, Readable } from 'stream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
@@ -102,20 +102,10 @@ export async function* dirStream(path: string, deep?: number) {
 
     async function getItemsToSkip(path: string) {
         if (!IS_WINDOWS) return
-        const out = await run('dir', ['/ah', '/b', path.replace(/\//g, '\\')])
+        const out = await runCmd('dir', ['/ah', '/b', path.replace(/\//g, '\\')])
             .catch(()=>'') // error in case of no matching file
         return out.split('\r\n').slice(0,-1)
     }
-}
-
-export function run(cmd: string, args: string[] = []): Promise<string> {
-    return new Promise((resolve, reject) =>
-        execFile('cmd', ['/c', cmd, ...args], (err, stdout) => {
-            if (err)
-                reject(err)
-            else
-                resolve(stdout)
-        }))
 }
 
 export async function unzip(stream: Readable, cb: (path: string) => false | string) {

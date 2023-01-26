@@ -11,6 +11,7 @@ import {
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE
 } from './const'
 import { isMatch } from 'micromatch'
+import { getDrives } from './util-os'
 
 type VfsAdmin = {
     type?: string,
@@ -178,9 +179,4 @@ function pickProps(o: any, keys: string[]) {
             if (k in o)
                 ret[k] = o[k] === null || o[k] === '' ? undefined : o[k]
     return ret
-}
-
-async function getDrives() {
-    const { stdout } = await promisify(exec)('wmic logicaldisk get name')
-    return stdout.split('\n').slice(1).map(x => x.trim()).filter(Boolean)
 }
