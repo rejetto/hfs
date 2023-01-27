@@ -14,10 +14,10 @@ interface WatchLoadReturn { unwatch:WatchLoadCanceller, save:WriteFile }
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt }:Options={}): WatchLoadReturn {
     let doing = false
     let watcher: FSWatcher | undefined
-    const debounced = debounceAsync(load, 500, { leading: true })
+    const debounced = debounceAsync(load, 500, { maxWait: 1000 })
     let retry: NodeJS.Timeout
     let saving: Promise<unknown> | undefined
-    let lastStats: any
+    let last: string | undefined
     init().then(ok => ok || failedOnFirstAttempt?.())
     return {
         unwatch(){
@@ -49,24 +49,18 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     async function load(){
         if (doing) return
         doing = true
-        let data: any
         try {
-            try { // I've seen watch() firing 'change' without any change, so we'll check if any change is detectable before going on
-                const stats = await fs.stat(path)
-                if (stats.mtimeMs === lastStats?.mtimeMs) return
-                lastStats = stats
-
-                data = await readFileBusy(path)
-                console.debug('loaded', path)
-            }
-            catch (e: any) {
-                if (e.code === 'EPERM')
-                    console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
-                return // ignore read errors
-            }
-            if (path.endsWith('.yaml'))
-                data = yaml.parse(data)
-            await parser(data)
+            const text = await readFileBusy(path)
+            if (text === last)
+                return
+            last = text
+            console.debug('loaded', path)
+            const parsed = path.endsWith('.yaml') ? yaml.parse(text) : text
+            await parser(parsed)
+        }
+        catch (e: any) { // ignore read errors
+            if (e.code === 'EPERM')
+                console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
         }
         finally {
             doing = false
