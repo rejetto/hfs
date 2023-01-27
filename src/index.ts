@@ -17,7 +17,6 @@ import { defineConfig } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
 import { randomId } from './misc'
-//import body from 'koa-better-body'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints
 
@@ -32,7 +31,6 @@ app.use(someSecurity)
     .use(gzipper)
     .use(pluginsMiddleware())
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
-    //.use(body({ multipart: false }))
     .use(serveGuiAndSharedFiles)
     .on('error', errorHandler)
 

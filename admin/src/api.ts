@@ -177,28 +177,33 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                 case 'closed':
                     return stop()
                 case 'msg':
-                    wantArray(data).forEach(data => {
-                        if (data === 'ready') {
+                    wantArray(data).forEach(entry => {
+                        if (entry === 'ready') {
                             apply.flush()
                             setInitializing(false)
                             return
                         }
-                        if (data.error)
-                            return setError(err2msg(data.error))
-                        if (data.props)
-                            return setProps(data.props)
-                        if (data.add) {
-                            const rec = map(data.add)
+                        if (entry.error) {
+                            if (entry.error === 401)
+                                state.loginRequired = entry.any || 403
+                            else
+                                setError(err2msg(entry.error))
+                            return
+                        }
+                        if (entry.props)
+                            return setProps(entry.props)
+                        if (entry.add) {
+                            const rec = map(entry.add)
                             if (addId)
                                 rec.id = ++idRef.current
                             buffer.push(rec)
                             apply()
                             return
                         }
-                        if (data.remove) {
+                        if (entry.remove) {
                             const matchOnList: ReturnType<typeof _.matches>[] = []
                             // first remove from the buffer
-                            for (const key of data.remove) {
+                            for (const key of entry.remove) {
                                 const match1 = _.matches(key)
                                 if (_.isEmpty(_.remove(buffer, match1)))
                                     matchOnList.push(match1)
@@ -212,11 +217,11 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                             })
                             return
                         }
-                        if (data.update) {
+                        if (entry.update) {
                             apply.flush() // avoid treating buffer
                             setList(list => {
                                 const modified = [...list]
-                                for (const { search, change } of data.update) {
+                                for (const { search, change } of entry.update) {
                                     const idx = modified.findIndex(_.matches(search))
                                     if (idx >= 0)
                                         modified[idx] = { ...modified[idx], ...change }
@@ -225,7 +230,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                             })
                             return
                         }
-                        console.debug('unknown api event', type, data)
+                        console.debug('unknown api event', type, entry)
                     })
                     if (src?.readyState === src?.CLOSED)
                         stop()

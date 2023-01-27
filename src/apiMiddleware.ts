@@ -107,8 +107,8 @@ export class SendListReadable<T> extends Readable {
     props(props: object) {
         this._push({ props })
     }
-    error(msg: NonNullable<typeof this.lastError>, close=false) {
-        this._push({ error: msg })
+    error(msg: NonNullable<typeof this.lastError>, close=false, props?: object) {
+        this._push({ error: msg, ...props })
         this.lastError = msg
         if (close)
             this.close()

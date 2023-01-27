@@ -142,9 +142,14 @@ export const adminApis: ApiHandlers = {
 }
 
 for (const [k, was] of Object.entries(adminApis))
-    adminApis[k] = (params, ctx) =>
-        ctxAdminAccess(ctx) ? was(params, ctx)
-            : new ApiError(HTTP_UNAUTHORIZED, { any: anyAccountCanLoginAdmin() })
+    adminApis[k] = (params, ctx) => {
+        if (ctxAdminAccess(ctx))
+            return was(params, ctx)
+        const props = { any: anyAccountCanLoginAdmin() }
+        return ctx.headers.accept === 'text/event-stream'
+            ? new SendListReadable({ doAtStart: x => x.error(HTTP_UNAUTHORIZED, true, props) })
+            : new ApiError(HTTP_UNAUTHORIZED, props)
+    }
 
 export const localhostAdmin = defineConfig('localhost_admin', true)
 
