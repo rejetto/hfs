@@ -7,7 +7,6 @@ process.chdir('dist')
 const FN = 'src/const.js'
 fs.writeFileSync(FN,
     fs.readFileSync(FN,'utf8')
-        .replace(/(BUILD_TIMESTAMP *= *')(.*)'/, '$1'+new Date().toISOString()+"'")
-        .replace(/(VERSION *= *')(.*)'/, '$1'+(pkg.version||'$2')+"'")
+        .replace(/(BUILD_TIMESTAMP *= *)(fs.*)(;\r?\n)/, '$1"'+new Date().toISOString()+'"$3')
 )
 console.log('afterbuild done, version', pkg.version)
