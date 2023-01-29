@@ -27,11 +27,12 @@ export async function promptDialog(msg: string, { def, type, ...rest }:PromptOpt
             if (def)
                 inp.value = def
         },[])
-        return h('div', {},
-            h('p', {}, msg),
+        return h('form', {},
+             h('label', { htmlFor: 'input' }, msg),
             h('input', {
                 ref,
                 type,
+                name: 'input',
                 autoFocus: true,
                 onKeyDown(ev: KeyboardEvent) {
                     const { key } = ev

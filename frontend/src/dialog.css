@@ -81,3 +81,9 @@
         margin-top: 2em;
     }
 }
+
+.dialog-prompt label {
+    display: block;
+    margin-bottom: .5em;
+    margin-left: .1em;
+}
