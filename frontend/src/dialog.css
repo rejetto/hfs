@@ -41,7 +41,7 @@
     border-radius: 0 0.8em;
     right: 0;
     padding: 0;
-    background-color: #c99;
+    background-color: #c88;
 }
 .dialog-icon ~ .dialog-content {
     margin-top: 2em;
@@ -51,6 +51,7 @@
     top: 0;
     overflow: hidden;
     line-height: 1.7em;
+    opacity: .8; /* render the idea that's not a button */
 }
 .dialog-content {
     overflow: auto;
