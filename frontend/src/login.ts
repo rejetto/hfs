@@ -1,10 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { apiCall, ApiError } from './api'
+import { apiCall } from './api'
 import { state } from './state'
-import { alertDialog, promptDialog } from './dialog'
+import { alertDialog, newDialog } from './dialog'
 import { hIcon, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
+import { createElement as h, useEffect, useRef } from 'react'
 
 async function login(username:string, password:string) {
     const stopWorking = working()
@@ -13,16 +14,12 @@ async function login(username:string, password:string) {
         sessionRefresher(res)
         state.loginRequired = false
         return res
-    }, (err: Error) => {
+    }, (err: any) => {
         stopWorking()
-        if (err.message === 'trust')
-            err = Error("Login aborted: server identity cannot be trusted")
-        else if (err instanceof ApiError)
-            if (err.code === 401)
-                err = Error("Invalid credentials")
-            else if (err.code === 409)
-                err = Error("Cookies not working - login failed")
-        return alertDialog(err)
+        throw Error(err.message === 'trust' ? "Login aborted: server identity cannot be trusted"
+            : err.code === 401 ? "Invalid credentials"
+                : err.code === 409 ? "Cookies not working - login failed"
+                    : err.message)
     })
 }
 
@@ -51,13 +48,69 @@ export function logout(){
 }
 
 export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
-    const title = "Login"
-    const icon = () => hIcon('login')
-    const user = await promptDialog('Username', { title, icon })
-    if (!user) return
-    const password = await promptDialog('Password', { type: 'password', title, icon })
-    if (!password) return
-    const res = await login(user, password)
-    if (res?.redirect)
-        navigate(res.redirect)
+    return new Promise(resolve => {
+        const closeDialog = newDialog({
+            className: 'dialog-login',
+            icon: () => hIcon('login'),
+            onClose: resolve,
+            title: "Login",
+            Content() {
+                const usrRef = useRef<HTMLInputElement>()
+                const pwdRef = useRef<HTMLInputElement>()
+                useEffect(() => {
+                    setTimeout(() => usrRef.current?.focus()) // setTimeout workarounds problem due to double-mount while in dev
+                }, [])
+                return h('form', {},
+                    h('div', { className: 'field' },
+                        h('label', { htmlFor: 'username' }, "Username"),
+                        h('input', {
+                            ref: usrRef,
+                            name: 'username',
+                            autoComplete: 'username',
+                            required: true,
+                            onKeyDown
+                        }),
+                    ),
+                    h('div', { className: 'field' },
+                        h('label', { htmlFor: 'password' }, "Password"),
+                        h('input', {
+                            ref: pwdRef,
+                            name: 'password',
+                            type: 'password',
+                            autoComplete: 'current-password',
+                            required: true,
+                            onKeyDown
+                        }),
+                    ),
+                    h('div', { style: { textAlign: 'right' } },
+                        h('button', { onClick: go }, "Continue")),
+                )
+
+                function onKeyDown(ev: KeyboardEvent) {
+                    const { key } = ev
+                    if (key === 'Escape')
+                        return closeDialog(null)
+                    if (key === 'Enter')
+                        return go()
+                }
+
+                async function go(ev?: Event) {
+                    ev?.stopPropagation()
+                    const usr = usrRef.current?.value
+                    const pwd = pwdRef.current?.value
+                    if (!usr || !pwd) return
+                    try {
+                        const res = await login(usr, pwd)
+                        closeDialog()
+                        if (res?.redirect)
+                            navigate(res.redirect)
+                    } catch (err: any) {
+                        await alertDialog(err)
+                        usrRef.current?.focus()
+                    }
+                }
+
+            }
+        })
+    })
 }

@@ -281,6 +281,19 @@ button label {
     & td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
 }
 
+.dialog-login {
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.2em;
+    }
+    label {
+        display: block;
+        margin-bottom: .5em;
+        margin-left: .1em;
+    }
+}
+
 /* Works on Firefox */
 * {
     scrollbar-width: thin;
