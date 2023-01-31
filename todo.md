@@ -1,5 +1,4 @@
 # To do
-- upload via drag&drop
 - admin/fs: check if source exist when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin
@@ -38,8 +37,6 @@
 - publish to npm (so people can "npm install hfs")
 - frontend search supporting masks
 - remove seconds from time
-- upload
-- upload unzipping (while streaming?)
 - plugin: upload quota per-account (possibly inheriting), and a default
 - plugin: make letsencrypt easier
   - could be just automatic detection of files by certbot
@@ -48,7 +45,6 @@
 - updater (stop,unzip,start)
 - node.comment
 - config: max connections/downloads (total/per-ip)
-- config: min disk space
 - thumbnails support
 - webdav?
 - log: ip2name

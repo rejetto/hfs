@@ -9,6 +9,7 @@ import { state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
 import useAuthorized from './useAuthorized'
+import { acceptDropFiles, enqueue } from './upload'
 
 export function usePath() {
     return decodeURI(useLocation().pathname)
@@ -29,7 +30,7 @@ export function BrowseFiles() {
 }
 
 function FilesList() {
-    const { filteredList, list, loading, stoppedSearch } = useSnapState()
+    const { filteredList, list, loading, stoppedSearch, can_upload } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
     const pageSize = 100
     const [page, setPage] = useState(0)
@@ -41,7 +42,7 @@ function FilesList() {
     useEffect(() => document.scrollingElement?.scrollTo(0,0), [page])
 
     return h(Fragment, {},
-        h('ul', { className: 'dir' },
+        h('ul', { className: 'dir', ...acceptDropFiles(can_upload && enqueue) },
             !list.length ? (!loading && (stoppedSearch ? "Stopped before finding anything" : "Nothing here"))
                 : filteredList && !filteredList.length ? "No match for this filter"
                     : theList.slice(offset, offset + pageSize).map((entry: DirEntry) =>

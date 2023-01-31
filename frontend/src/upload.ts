@@ -79,24 +79,14 @@ export function showUpload() {
         const { can_upload } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
 
-        return h(FlexV, {},
+        return h(FlexV, { props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
             h(Flex, { gap: '.5em', flexWrap: 'wrap', justifyContent: 'center', position: 'sticky', top: -4, background: 'var(--bg)', boxShadow: '0 3px 3px #000' },
                 can_upload && h('button',{ onClick: () => selectFiles() }, "Add file(s)"),
                 can_upload && h('button',{ onClick: () => selectFiles(true) }, "Add folder"),
                 files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
                 files.length > 0 &&  h('button', {
                     onClick() {
-                        const to = location.pathname
-                        const ready = _.find(uploadState.qs, { to })
-                        if (!ready)
-                            uploadState.qs.push({ to, files: files.map(ref) })
-                        else {
-                            _.remove(ready.files, f => { // avoid duplicates
-                                const match = path(f)
-                                return Boolean(_.find(files, x => match === path(x)))
-                            })
-                            ready.files.push(...files.map(ref))
-                        }
+                        enqueue(files)
                         setFiles([])
                     }
                 }, `Send ${files.length} file(s), ${formatBytes(files.reduce((a, f) => a + f.size, 0))}`),
@@ -207,6 +197,18 @@ subscribe(uploadState, () => {
         startUpload(cur.files[0], cur.to).then()
 })
 
+export function enqueue(files: File[]) {
+    const to = location.pathname
+    const ready = _.find(uploadState.qs, { to })
+    if (!ready)
+        return uploadState.qs.push({ to, files: files.map(ref) })
+    _.remove(ready.files, f => { // avoid duplicates
+        const match = path(f)
+        return Boolean(_.find(files, x => match === path(x)))
+    })
+    ready.files.push(...files.map(ref))
+}
+
 let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
@@ -230,6 +232,7 @@ async function startUpload(f: File, to: string, resume=0) {
         if (!resuming)
             next()
     }
+    req.onerror = () => alertDialog("Couldn't upload " + f.name)
     let lastProgress = 0
     req.upload.onprogress = (e:any) => {
         uploadState.partial = e.loaded + resume
@@ -303,4 +306,17 @@ async function startUpload(f: File, to: string, resume=0) {
 
 function abortCurrentUpload() {
     req?.abort()
+}
+
+export function acceptDropFiles(cb: false | ((files:File[]) => void)) {
+    return {
+        onDragOver(ev: DragEvent) {
+            ev.preventDefault()
+            ev.dataTransfer!.dropEffect = cb ? 'copy' : 'none'
+        },
+        onDrop(ev: DragEvent) {
+            ev.preventDefault()
+            cb && cb(Array.from(ev.dataTransfer!.files))
+        },
+    }
 }
