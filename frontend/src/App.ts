@@ -16,9 +16,9 @@ function App() {
         h(BrowserRouter, {},
             h(Routes, {},
                 h(Route, { path:'*', element: h(BrowseFiles) })
-            )
+            ),
+            h(Dialogs),
         ),
-        h(Dialogs)
     )
 }
 

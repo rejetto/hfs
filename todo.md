@@ -1,5 +1,6 @@
 # To do
-- admin/fs: check if source exist when set
+- config: favicon https://github.com/rejetto/hfs/discussions/94
+- admin/fs: check if source exists when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin
 - fix: cannot switch off https and switch on http at the same time 

@@ -9,6 +9,7 @@ import { alertDialog, confirmDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { getNotification } from './api'
 import { useSnapState } from './state'
+import { Link } from 'react-router-dom'
 
 export const uploadState = proxy<{
     done: number
@@ -61,7 +62,7 @@ export function showUpload() {
             done: 0,
             doneByte: 0,
         })
-    newDialog({
+    const close = newDialog({
         dialogProps: { style: { minWidth: 'min(20em, 100vw - 1em)' } },
         title: "Upload",
         icon: () => hIcon('upload'),
@@ -97,7 +98,7 @@ export function showUpload() {
                     setFiles(files.filter(x => x !== f))
                 }
             }),
-            h('div', {}, [done && `${done} finished (${formatBytes(doneByte)})`, errors && `${errors} failed`].filter(Boolean).join(' – ')),
+            [done && `${done} finished (${formatBytes(doneByte)})`, errors && `${errors} failed`].filter(Boolean).join(' – '),
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
                     `${_.sumBy(qs, q => q.files.length)} in queue${prefix(', ', etaStr)}`,
@@ -111,7 +112,7 @@ export function showUpload() {
                 ),
                 qs.map((q,idx) =>
                     h('div', { key: q.to },
-                        h('div', {}, "Destination ", decodeURI(q.to)),
+                        h(Link, { to: q.to, onClick: close }, "Destination ", decodeURI(q.to)),
                         h(FilesList, {
                             files: Array.from(q.files),
                             remove(f) {
