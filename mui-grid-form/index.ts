@@ -159,8 +159,11 @@ export function Form<Values extends Dict>({
                             },
                         } as Partial<FieldProps<any>>)
                         if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
-                            field.helperText = field.helperText ? h(Fragment, {}, h('span', { style: { borderBottom: '1px solid' } }, errMsg), h('br'), field.helperText)
-                                : errMsg
+                            field.helperText = !field.helperText ? errMsg
+                                : h(Fragment, {},
+                                    h('span', { style: { borderBottom: '1px solid' } }, errMsg),
+                                    h('br'), field.helperText
+                                )
                         if (field.label === undefined)
                             field.label = labelFromKey(k)
                         _.defaults(field, defaults?.(whole))
@@ -206,7 +209,7 @@ export function Form<Values extends Dict>({
         if (phase !== Phase.Idle) return
         validateUpTo.current = k
         setTimeout(() => // starting validation immediately will lose clicks on the saveBtn, so delay just a bit
-            setPhase(Phase.WaitValues))
+            setPhase(cur => cur === Phase.Idle ? Phase.WaitValues : cur)) // don't interfere with ongoing process
     }
 
     async function phaseChange() {
