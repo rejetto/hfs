@@ -45,7 +45,7 @@ function Routed() {
             h(Box, {
                 component: 'main',
                 sx: {
-                    background: 'url(logo.svg) no-repeat right fixed',
+                    background: 'url(cup.svg) no-repeat right fixed',
                     backgroundSize: 'contain',
                     px: { xs: 2, md: 3 },
                     pb: '1em',
