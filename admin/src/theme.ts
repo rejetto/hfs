@@ -3,9 +3,13 @@
 import { createTheme, useMediaQuery } from '@mui/material'
 import { useMemo } from 'react'
 
+export function useDark() {
+    return useMediaQuery('(prefers-color-scheme: dark)')
+}
+
 const EMPTY = {}
 export function useMyTheme() {
-    const lightMode = useMediaQuery('(prefers-color-scheme: dark)') ? null : EMPTY
+    const lightMode = useDark() ? null : EMPTY
     return useMemo(() => createTheme({
         palette: lightMode || {
             mode: 'dark',

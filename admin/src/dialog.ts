@@ -21,32 +21,62 @@ import {
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
-import { useBreakpoint } from './misc'
+import { IconBtn } from './misc'
 import { Flex } from '@hfs/frontend/src/components'
+import { useDark } from './theme'
+import { useWindowSize } from 'usehooks-ts'
 export * from '@hfs/shared/dialogs'
 
 dialogsDefaults.Container = function Container(d:DialogOptions) {
-    useEffect(()=>{
-        ref.current?.focus()
-    }, [])
     const ref = useRef<HTMLElement>()
+    const { width, height } = useWindowSize()
+    const mobile = Math.min(width, height) < 500
+    useEffect(()=> {
+        const h = setTimeout(() => {
+            const el = ref.current
+            if (!el) return
+            el.focus()
+            if (mobile) return
+            const input = el.querySelector('[autofocus]') || el.querySelector('input,textarea')
+            if (input && input instanceof HTMLElement)
+                input.focus()
+        })
+        return () => clearTimeout(h)
+    }, [ref.current])
     d = { ...dialogsDefaults, ...d }
     const { sx, root, ...rest } = d.dialogProps||{}
-    const p = d.padding ? 2 : 0
+    dialogsDefaults.dialogProps = { fullScreen: mobile, sx: { overflow:'initial' } }
     return h(MuiDialog, {
         open: true,
         maxWidth: 'lg',
-        fullScreen: !useBreakpoint('sm'),
+        fullScreen: mobile,
         ...rest,
         ...root,
         onClose: ()=> closeDialog(),
     },
-        d.title && h(DialogTitle, {}, d.title),
+        d.title && h(DialogTitle, {
+            sx: {
+                position: 'sticky', top: 0, py: 1, pr: 1, zIndex: 2, boxShadow: '0 0 8px #0004',
+                display: 'flex', alignItems: 'center',
+                ...useDialogBarColors()
+            }
+        },
+            h(Box, { flex:1, minWidth: 40 }, d.title),
+            h(IconBtn, { icon: Close, tooltip: "close", onClick: () => closeDialog() }),
+        ),
         h(DialogContent, {
             ref,
-            sx: { ...sx, px: p, pb: p, display: 'flex', flexDirection: 'column', justifyContent: 'center', }
+            sx: {
+                p: d.padding ? 2 : 0, pt: '16px !important', overflow: 'initial',
+                display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                ...sx,
+            }
         }, h(d.Content) )
     )
+}
+
+export function useDialogBarColors() {
+    return useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#aaa', color: '#444', }
 }
 
 type AlertType = 'error' | 'warning' | 'info' | 'success'

@@ -1,21 +1,22 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state } from './state'
-import { createElement as h, useEffect, useMemo, useState } from 'react'
-import { Alert, Button } from '@mui/material'
+import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
+import { Alert } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { formatBytes, isEqualLax, modifiedSx, onlyTruthy } from './misc'
+import { formatBytes, IconBtn, isEqualLax, modifiedSx, onlyTruthy } from './misc'
 import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
 import FileField from './FileField'
-import { alertDialog } from './dialog'
+import { alertDialog, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
+import { Delete } from '@mui/icons-material'
 
 interface Account { username: string }
 
-export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaultPerms: VfsPerms }) {
+export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNode, defaultPerms: VfsPerms, addToBar?: ReactNode }) {
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -37,6 +38,7 @@ export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaul
     }, [parent])
     const showCanSee = (values.can_read ?? inheritedPerms.can_read) === true
     const showTimestamps = hasSource && Boolean(values.ctime)
+    const barColors = useDialogBarColors()
 
     const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
     if (element || !data)
@@ -48,13 +50,16 @@ export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaul
         set(v, k) {
             setValues({ ...values, [k]: v })
         },
+        barSx: { gap: 2, width: '100%', ...barColors },
+        stickyBar: true,
         addToBar: [
-            h(Button, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
-                sx: { ml: 2 },
-                onClick(){
-                    state.selectedFiles = []
-                }
-            }, "Close")
+            !isRoot && h(IconBtn, {
+                icon: Delete,
+                title: "Delete",
+                confirm: "Delete?",
+                onClick: ()  => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs()),
+            }),
+            addToBar
         ],
         onError: alertDialog,
         save: {
@@ -81,14 +86,14 @@ export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaul
             perm('can_read', "Who can download", "Note: who can't download won't see it in the list"),
             showCanSee && perm('can_see', "Who can see", "You can hide and keep it downloadable if you have a direct link"),
             isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source"),
-            hasSource && !realFolder && { k: 'size', comp: DisplayField, toField: formatBytes },
-            showTimestamps && { k: 'ctime', comp: DisplayField, lg: 6, label: 'Created', toField: formatTimestamp },
-            showTimestamps && { k: 'mtime', comp: DisplayField, lg: 6, label: 'Modified', toField: formatTimestamp },
+            hasSource && !realFolder && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
+            showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: 4, label: 'Created', toField: formatTimestamp },
+            showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: 4, label: 'Modified', toField: formatTimestamp },
             file.website && { k: 'default', comp: BoolField, label:"Serve index.html",
                 toField: Boolean, fromField: (v:boolean) => v ? 'index.html' : null,
                 helperText: md("This folder may be a website because contains `index.html`. Enabling this will show the website instead of the list of files.")
             },
-            isDir && { k: 'masks', multiline: true, xl: true,
+            isDir && { k: 'masks', multiline: true, xl: true, lg: 6,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 sx: { '& textarea': { fontFamily: 'monospace' } },
                 helperText: "Special field, leave empty unless you know what you are doing. YAML syntax." }
@@ -96,7 +101,7 @@ export default function FileForm({ file, defaultPerms }: { file: VfsNode, defaul
     })
 
     function perm(perm: keyof typeof inheritedPerms, label: string, helperText='', props={}) {
-        return { k: perm, xl: 6, comp: WhoField, parent, accounts, label, inherit: inheritedPerms[perm], helperText, ...props }
+        return { k: perm, lg: 6, comp: WhoField, parent, accounts, label, inherit: inheritedPerms[perm], helperText, ...props }
     }
 }
 

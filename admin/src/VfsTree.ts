@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, ReactElement, useState } from 'react'
+import { createElement as h, ReactElement, useRef, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/lab'
 import {
     ChevronRight,
@@ -25,14 +25,17 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
     const { vfs, selectedFiles } = useSnapState()
     const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
+    const ref = useRef<HTMLElement>()
     if (!vfs)
         return null
     return h(TreeView, {
+        ref,
         expanded,
         selected,
         multiSelect: true,
         sx: {
             overflowX: 'auto',
+            maxWidth: ref.current && `calc(100vw - ${16 + ref.current.offsetLeft}px)`, // limit possible horizontal scrolling to this element
             '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px' },
         },
         onNodeSelect(ev, ids) {

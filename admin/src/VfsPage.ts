@@ -1,16 +1,27 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useEffect, useMemo, useState } from 'react'
-import { useApi, useApiEx } from './api'
-import { Alert, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
+import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
+import { apiCall, useApi, useApiEx } from './api'
+import {
+    Alert,
+    Button,
+    Card, CardContent,
+    Grid,
+    Link,
+    List, ListItem, ListItemText,
+    Typography
+} from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree from './VfsTree'
-import { onlyTruthy, prefix } from './misc'
+import { IconBtn, newDialog, onlyTruthy, prefix, useBreakpoint } from './misc'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
 import { AlertProps } from '@mui/material/Alert/Alert'
 import FileForm from './FileForm'
+import { Close, Delete } from '@mui/icons-material'
+import { alertDialog, confirmDialog } from './dialog'
+import { Flex } from '@hfs/frontend/src/components'
 
 let selectOnReload: string[] | undefined
 
@@ -19,6 +30,43 @@ export default function VfsPage() {
     const { vfs, selectedFiles } = useSnapState()
     const { data, reload, element } = useApiEx('get_vfs')
     useMemo(() => vfs || reload(), [vfs, reload])
+    const sideBreakpoint = 'md'
+    const isSideBreakpoint = useBreakpoint(sideBreakpoint)
+
+    const sideContent = !selectedFiles.length ? null
+        : selectedFiles.length === 1 ? h(FileForm, {
+                addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
+                    icon: Close,
+                    title: "Close",
+                    onClick(){
+                        state.selectedFiles = []
+                    }
+                }),
+                defaultPerms: data?.defaultPerms as VfsPerms,
+                file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
+            })
+            : h(Fragment, {},
+                h(Flex, { alignItems: 'center' },
+                    h(Typography, {variant: 'h6'}, selectedFiles.length + ' selected'),
+                    h(Button, { onClick: removeFiles, startIcon: h(Delete) }, "Remove"),
+                ),
+                h(List, { dense: true, disablePadding: true },
+                    selectedFiles.map(f => h(ListItem, { key: f.id },
+                        h(ListItemText, { primary: f.name, secondary: f.source }) ))
+                )
+            )
+
+    useEffect(() => {
+        if (isSideBreakpoint || !sideContent) return
+        return newDialog({
+            title: selectedFiles[0].name,
+            Content: () => sideContent,
+            onClose() {
+                state.selectedFiles = []
+            },
+        })
+    },[isSideBreakpoint, selectedFiles])
+
     useEffect(() => {
         state.vfs = undefined
         if (!data) return
@@ -71,26 +119,35 @@ export default function VfsPage() {
     }
     return h(Grid, { container:true, rowSpacing: 1, maxWidth: '80em', columnSpacing: 2 },
         alert && h(Grid, { item: true, mb: 2, xs: 12 }, h(Alert, alert)),
-        h(Grid, { item:true, sm: 6, lg: 5 },
+        h(Grid, { item:true, [sideBreakpoint]: 6, lg: 5 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(VfsMenuBar),
             vfs && h(VfsTree, { id2node })),
-        h(Grid, { item:true, sm: 6, lg: 7, maxWidth:'100%' },
-            selectedFiles.length === 0 ? null
-                : selectedFiles.length === 1 ? h(FileForm, {
-                    defaultPerms: data?.defaultPerms as VfsPerms,
-                    file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
-                })
-                    : h(List, {},
-                        selectedFiles.length + ' selected',
-                        selectedFiles.map(f => h(ListItem, { key: f.name },
-                            h(ListItemText, { primary: f.name, secondary: f.source }) ))))
+        isSideBreakpoint && sideContent && h(Grid, { item:true, [sideBreakpoint]: 6, lg: 7, maxWidth:'100%' },
+            h(Card, {}, h(CardContent, {}, sideContent) ))
     )
 }
 
 export function reloadVfs(pleaseSelect?: string[]) {
     selectOnReload = pleaseSelect
     state.vfs = undefined
+}
+
+export async function removeFiles() {
+    const f = state.selectedFiles
+    if (!f.length) return
+    if (!await confirmDialog(`Remove ${f.length} item(s)?`)) return
+    try {
+        const uris = f.map(x => x.id)
+        const { errors } = await apiCall('del_vfs', { uris })
+        const urisThatFailed = uris.filter((uri, idx) => errors[idx])
+        if (urisThatFailed.length)
+            return alertDialog("Following elements couldn't be removed: " + urisThatFailed.join(', '), 'error')
+        reloadVfs()
+    }
+    catch(e) {
+        await alertDialog(e as Error)
+    }
 }
 
 export interface VfsPerms {
