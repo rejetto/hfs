@@ -99,13 +99,15 @@ const apis: ApiHandlers = {
             errors: await Promise.all(uris.map(async uri => {
                 if (typeof uri !== 'string')
                     return HTTP_BAD_REQUEST
+                if (uri === '/')
+                    return HTTP_NOT_ACCEPTABLE
                 const node = await urlToNodeOriginal(uri)
                 if (!node)
                     return HTTP_NOT_FOUND
                 const parent = dirname(uri)
                 const parentNode = await urlToNodeOriginal(parent)
-                if (!parentNode)
-                    return HTTP_NOT_ACCEPTABLE
+                if (!parentNode) // shouldn't happen
+                    return HTTP_SERVER_ERROR
                 const { children } = parentNode
                 if (!children) // shouldn't happen
                     return HTTP_SERVER_ERROR

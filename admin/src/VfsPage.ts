@@ -50,7 +50,7 @@ export default function VfsPage() {
             : h(Fragment, {},
                 h(Flex, { alignItems: 'center' },
                     h(Typography, {variant: 'h6'}, selectedFiles.length + ' selected'),
-                    h(Button, { onClick: removeFiles, startIcon: h(Delete) }, "Remove"),
+                    h(Button, { onClick: deleteFiles, startIcon: h(Delete) }, "Remove"),
                 ),
                 h(List, { dense: true, disablePadding: true },
                     selectedFiles.map(f => h(ListItem, { key: f.id },
@@ -133,16 +133,17 @@ export function reloadVfs(pleaseSelect?: string[]) {
     state.vfs = undefined
 }
 
-export async function removeFiles() {
+export async function deleteFiles() {
     const f = state.selectedFiles
     if (!f.length) return
-    if (!await confirmDialog(`Remove ${f.length} item(s)?`)) return
+    if (!await confirmDialog(`Delete ${f.length} item(s)?`)) return
     try {
         const uris = f.map(x => x.id)
+        _.pull(uris, '/')
         const { errors } = await apiCall('del_vfs', { uris })
         const urisThatFailed = uris.filter((uri, idx) => errors[idx])
         if (urisThatFailed.length)
-            return alertDialog("Following elements couldn't be removed: " + urisThatFailed.join(', '), 'error')
+            return alertDialog("Following elements couldn't be deleted: " + urisThatFailed.join(', '), 'error')
         reloadVfs()
     }
     catch(e) {
