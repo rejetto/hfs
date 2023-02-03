@@ -1,22 +1,25 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useEffect, useRef, useState } from 'react'
+import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
 import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
-import { Box, Button } from '@mui/material'
+import { Box } from '@mui/material'
 import { apiCall } from './api'
-import { alertDialog } from './dialog'
-import { isEqualLax, modifiedSx } from './misc'
+import { alertDialog, toast, useDialogBarColors } from './dialog'
+import { IconBtn, isEqualLax, modifiedSx } from './misc'
 import { Account, account2icon } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
+import { Delete } from '@mui/icons-material'
+import { isMobile } from '@hfs/frontend/src/misc'
 
-interface FormProps { account: Account, groups: string[], done: (username: string)=>void, close: ()=>void }
-export default function AccountForm({ account, done, groups, close }: FormProps) {
+interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
+export default function AccountForm({ account, done, groups, addToBar, reload }: FormProps) {
     const [values, setValues] = useState<Account & { password?: string, password2?: string }>(account)
     const [belongsOptions, setBelongOptions] = useState<string[]>([])
     useEffect(() => {
         setValues(account)
         setBelongOptions(groups.filter(x => x !== account.username ))
-        ref.current?.querySelector('input')?.focus()
+        if (!isMobile())
+            ref.current?.querySelector('input')?.focus()
     }, [JSON.stringify(account)]) //eslint-disable-line
     const add = !account.username
     const group = !values.hasPassword
@@ -27,8 +30,16 @@ export default function AccountForm({ account, done, groups, close }: FormProps)
         set(v, k) {
             setValues({ ...values, [k]: v })
         },
+        barSx: { gap: 2, width: '100%', ...useDialogBarColors() },
+        stickyBar: true,
         addToBar: [
-            h(Button, { onClick: close, sx: { ml: 2 } }, "Close"),
+            !add && h(IconBtn, {
+                icon: Delete,
+                title: "Delete",
+                confirm: "Delete?",
+                onClick: () => apiCall('del_account', { username: account.username }).then(() => reload())
+            }),
+            addToBar,
             h(Box, { flex:1 }),
             account2icon(values, { fontSize: 'large', sx: { p: 1 }})
         ],
@@ -69,7 +80,8 @@ export default function AccountForm({ account, done, groups, close }: FormProps)
                             throw e
                         }
                     done(got.username)
-                    return alertDialog("Account created", 'success')
+                    toast("Account created", 'success')
+                    return
                 }
                 const got = await apiCall('set_account', {
                     username: account.username,
@@ -77,8 +89,8 @@ export default function AccountForm({ account, done, groups, close }: FormProps)
                 })
                 if (password)
                     await apiNewPassword(username, password)
-                done(got.username)
-                return alertDialog("Account modified", 'success')
+                setTimeout(() => toast("Account modified", 'success'), 1) // workaround: showing a dialog at this point is causing a crash if we are in a dialog
+                done(got.username) // username may have been changed, so we pass it back
             }
         }
     })

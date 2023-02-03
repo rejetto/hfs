@@ -1,15 +1,15 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useState, useEffect, Fragment } from "react"
-import { apiCall, useApiEx } from './api'
-import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
-import { alertDialog, confirmDialog } from './dialog'
-import { iconTooltip, onlyTruthy } from './misc'
+import { useApiEx } from './api'
+import { Alert, Box, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
+import { Close, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
+import { IconBtn, iconTooltip, newDialog, useBreakpoint } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import md from './md'
+import _ from 'lodash'
 
 export interface Account {
     username: string
@@ -29,10 +29,51 @@ export default function AccountsPage() {
         if (Array.isArray(data?.list) && selectionMode)
             setSel( sel.filter(u => data.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
     }, [data]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
-    if (element)
-        return element
-    const { list }: { list: Account[] } = data
-    return h(Grid, { container: true, maxWidth: '80em' },
+    const list: Account[] | undefined = data?.list
+    const selectedAccount = selectionMode && _.find(list, { username: sel[0] })
+
+    function close() {
+        setSel([])
+    }
+
+    const sideBreakpoint = 'md'
+    const isSideBreakpoint = useBreakpoint(sideBreakpoint)
+
+    const sideContent = !(sel.length > 0) || !list ? null // this clever test is true both when some accounts are selected and when we are in "new account" modes
+        : selectionMode && sel.length > 1 ? h(Fragment, {},
+                h(Typography, {}, sel.length + " selected"),
+                h(List, {},
+                    sel.map(username =>
+                        h(ListItem, { key: username },
+                            h(ListItemText, {}, username))))
+            )
+            : h(AccountForm, {
+                account: selectedAccount || { username: '', hasPassword: sel === 'new-user' },
+                groups: list.filter(x => !x.hasPassword).map( x => x.username ),
+                addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
+                    icon: Close,
+                    title: "Close",
+                    onClick: close
+                }),
+                reload,
+                done(username) {
+                    setSel([username])
+                    reload()
+                }
+            })
+    useEffect(() => {
+        if (isSideBreakpoint || !sideContent || !sel.length) return
+        return newDialog({
+            title: _.isString(sel) ? _.startCase(sel)
+                : sel.length > 1 ? "Multiple selection"
+                    : selectedAccount ? (selectedAccount.hasPassword ? "User: " : "Group: ") + selectedAccount.username
+                        : '?', // never
+            Content: () => sideContent,
+            onClose: close,
+        })
+    }, [isSideBreakpoint, sel, selectedAccount])
+
+    return element || h(Grid, { container: true, maxWidth: '80em' },
         h(Grid, { item: true, xs: 12 },
             h(Box, {
                 display: 'flex',
@@ -54,26 +95,12 @@ export default function AccountsPage() {
                         { children: "user", onClick: () => setSel('new-user') },
                         { children: "group", onClick: () => setSel('new-group') }
                     ]
-                }, 'Add'),
-                h(Button, {
-                    disabled: !selectionMode || !sel.length,
-                    startIcon: h(Delete),
-                    async onClick(){
-                        if (!selectionMode) return
-                        if (!await confirmDialog(`You are going to delete ${sel.length} account(s)`))
-                            return
-                        const errors = onlyTruthy(await Promise.all(sel.map(username =>
-                            apiCall('del_account', { username }).then(() => null, () => username) )))
-                        if (errors.length)
-                            return alertDialog(errors.length === sel.length ? "Request failed" : hList("Some accounts were not deleted", errors), 'error')
-                        reload()
-                    }
-                }, "Remove"),
-                h(Button, { onClick: reload, startIcon: h(Refresh) }, "Reload"),
-                list.length > 0 && h(Typography, { p: 1 }, `${list.length} account(s)`),
+                }, "Add"),
+                h(IconBtn, { icon: Refresh, title: "Reload", onClick: reload }),
+                list?.length! > 0 && h(Typography, { p: 1 }, `${list!.length} account(s)`),
             ) ),
         h(Grid, { item: true, md: 5 },
-            !list.length && h(Alert, { severity: 'info' }, md`To access administration _remotely_ you will need to create a user account with admin permission`),
+            !list?.length && h(Alert, { severity: 'info' }, md`To access administration _remotely_ you will need to create a user account with admin permission`),
             h(TreeView, {
                 multiSelect: true,
                 sx: { pr: 4, pb: 2, minWidth: '15em' },
@@ -82,7 +109,7 @@ export default function AccountsPage() {
                     setSel(ids)
                 }
             },
-                list.map((ac: Account) =>
+                list?.map((ac: Account) =>
                     h(TreeItem, {
                         key: ac.username,
                         nodeId: ac.username,
@@ -105,37 +132,8 @@ export default function AccountsPage() {
                 )
             )
         ),
-        sel.length > 0 // this clever test is true both when some accounts are selected and when we are in "new account" modes
-        && h(Grid, { item: true, md: 7 },
-            h(Card, {},
-                h(CardContent, {},
-                    selectionMode && sel.length > 1 ? h(Box, {},
-                        h(Typography, {}, sel.length + " selected"),
-                        h(List, {},
-                            sel.map(username =>
-                                h(ListItem, { key: username },
-                                    h(ListItemText, {}, username))))
-                    ) : h(AccountForm, {
-                        account: selectionMode && list.find(x => x.username === sel[0])
-                            || { username: '', hasPassword: sel === 'new-user' },
-                        groups: list.filter(x => !x.hasPassword).map( x => x.username ),
-                        close(){ setSel([]) },
-                        done(username) {
-                            setSel([username])
-                            reload()
-                        }
-                    })
-                )))
-    )
-}
-
-function hList(heading: string, list: any[]) {
-    return h(Fragment, {},
-        heading>'' && h(Typography, {}, heading),
-        h(List, {},
-            list.map((text,key) =>
-                h(ListItem, { key },
-                    typeof text === 'string' ? h(ListItemText, {}, text) : text) ))
+        isSideBreakpoint && sideContent && h(Grid, { item: true, md: 7 },
+            h(Card, {}, h(CardContent, {}, sideContent) )),
     )
 }
 
