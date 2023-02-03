@@ -20,11 +20,16 @@ export default function addFiles() {
                     "Selected elements will be added to virtual path " + (under || '(home)')),
                 h(FilePicker, {
                     async onSelect(sel) {
-                        let failed = await Promise.all(sel.map(source =>
-                            apiCall('add_vfs', { under, source }).then(() => '', () => source) ))
-                        failed = onlyTruthy(failed)
-                        if (failed.length)
-                            await alertDialog("Some elements have been rejected: "+failed.join(', '), 'error')
+                        const errs = onlyTruthy(await Promise.all(sel.map(source =>
+                            apiCall('add_vfs', { under, source }).then(() => null, e => [source,e.message]) )))
+                        if (errs.length)
+                            await alertDialog(h(Box, {},
+                                "Some elements have been rejected",
+                                h('ul', {},
+                                    errs.map(([file, err]) =>
+                                        h('li', { key: file }, file, ': ', err))
+                                )
+                            ), 'error')
                         reloadVfs()
                         close()
                     }

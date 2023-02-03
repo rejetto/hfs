@@ -57,7 +57,7 @@ export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNo
                 icon: Delete,
                 title: "Delete",
                 confirm: "Delete?",
-                onClick: ()  => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs()),
+                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs()),
             }),
             addToBar
         ],
