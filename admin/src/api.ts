@@ -49,7 +49,7 @@ export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) : 
         const msg = await res.text() || 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
         if (res.status === 401)
-            state.loginRequired = Boolean(try_(() => JSON.parse(msg)?.any)) || 403
+            state.loginRequired = try_(() => JSON.parse(msg)?.any) !== false || 403
         throw new ApiError(res.status, msg)
     }, err => {
         if (err?.message?.includes('fetch'))
@@ -185,7 +185,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                         }
                         if (entry.error) {
                             if (entry.error === 401)
-                                state.loginRequired = entry.any || 403
+                                state.loginRequired = entry.any !== false || 403
                             else
                                 setError(err2msg(entry.error))
                             return
