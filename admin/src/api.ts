@@ -27,7 +27,7 @@ const PREFIX = '/~/api/'
 const timeoutByApi: Dict = {
     get_status: 20 // can be lengthy on slow machines because of the find-process-on-busy-port feature
 }
-export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) : Promise<any> {
+export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) {
     const csrf = getCsrf()
     if (csrf)
         params = { csrf, ...params }
@@ -35,7 +35,7 @@ export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) : 
     const controller = new AbortController()
     if (timeout !== false)
         setTimeout(() => controller.abort('timeout'), 1000*(timeoutByApi[cmd] ?? timeout ?? 10))
-    return fetch(PREFIX+cmd, {
+    return Object.assign(fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         signal: controller.signal,
@@ -55,6 +55,10 @@ export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) : 
         if (err?.message?.includes('fetch'))
             throw Error("Network error")
         throw err
+    }), {
+        abort() {
+            controller.abort('cancel')
+        }
     })
 }
 
@@ -68,15 +72,22 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
     const [ret, setRet] = useStateMounted<T | undefined>(undefined)
     const [err, setErr] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
-    const loadingRef = useRef(false)
+    const loadingRef = useRef<ReturnType<typeof apiCall>>()
     useEffect(()=>{
+        loadingRef.current?.abort()
         setRet(undefined)
         setErr(undefined)
         if (!cmd) return
-        loadingRef.current = true
-        apiCall(cmd, params)
-            .then(setRet, setErr)
-            .finally(()=> loadingRef.current = false)
+        let aborted = false
+        const req = apiCall(cmd, params)
+        const wholePromise = req.then(x => aborted || setRet(x), x => aborted || setErr(x))
+            .finally(()=> loadingRef.current = undefined)
+        loadingRef.current = Object.assign(wholePromise, {
+            abort() {
+                aborted = true
+                req.abort()
+            }
+        })
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
     const reload = useCallback(()=> loadingRef.current || setForcer(v => v+1), [setForcer])
     return [ret, err, reload]
