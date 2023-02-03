@@ -62,10 +62,22 @@ export const sessions = (app: Koa) => session({
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
-const serveAdminPrefixed = mount(ADMIN_URI.slice(0,-1), serveGuiFiles(process.env.ADMIN_PROXY, ADMIN_URI))
+const serveAdminFiles = serveGuiFiles(process.env.ADMIN_PROXY, ADMIN_URI)
+const serveAdminPrefixed = mount(ADMIN_URI.slice(0,-1), serveAdminFiles)
 
 export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
+    // dynamic import on frontend|admin (used for non-https login) while developing (vite4) is not producing a relative path
+    if (DEV && path.startsWith('/node_modules/')) {
+        let { referer } = ctx.headers
+        referer &&= new URL(referer).pathname
+        if (referer) {
+            if (referer.startsWith(ADMIN_URI))
+                return serveAdminFiles(ctx, next)
+            if (referer.startsWith(FRONTEND_URI))
+                return serveFrontendFiles(ctx, next)
+        }
+    }
     if (ctx.body)
         return next()
     if (path.startsWith(FRONTEND_URI))
