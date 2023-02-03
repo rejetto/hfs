@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, useMemo } from 'react'
 import { IconBtn, setHidden } from './misc'
 import { Add, Edit, Delete } from '@mui/icons-material'
-import { confirmDialog, formDialog } from './dialog'
+import { formDialog } from './dialog'
 import { DataGrid, GridAlignment } from '@mui/x-data-grid'
 import { FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
@@ -53,12 +53,11 @@ export function ArrayField<T=any>({ label, helperText, fields, value, onChange, 
                         h(IconBtn, {
                             icon: Delete,
                             title: "Delete",
-                            onClick: (event:any) =>
-                                confirmDialog("Delete?").then(ok => {
-                                    if (!ok) return
-                                    const newValue = value!.filter((rec, i) => i !== $idx)
-                                    onChange(newValue, { was: value, event })
-                                }),
+                            confirm: "Delete?",
+                            onClick(event: any) {
+                                const newValue = value!.filter((rec, i) => i !== $idx)
+                                onChange(newValue, { was: value, event })
+                            },
                         }),
                     )
                 }
