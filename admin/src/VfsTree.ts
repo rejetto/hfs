@@ -77,7 +77,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                         h('span', { style: { opacity: .4 } }, source.slice(0,-name.length)),
                         h('span', {}, source.slice(-name.length)),
                     )
-                    : name
+                    : h(Box, { lineHeight: '1.1em' }, name)
             ),
             key: name,
             collapseIcon: h(ExpandMore, {
