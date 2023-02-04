@@ -1,15 +1,18 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useState, useEffect, Fragment } from "react"
-import { useApiEx } from './api'
-import { Alert, Box, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Close, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
+import { apiCall, useApiEx } from './api'
+import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
+import { Close, Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
 import { IconBtn, iconTooltip, newDialog, useBreakpoint } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import md from './md'
 import _ from 'lodash'
+import { Flex } from '@hfs/frontend/src/components'
+import { alertDialog, confirmDialog } from './dialog'
+import { useSnapState } from './state'
 
 export interface Account {
     username: string
@@ -22,6 +25,7 @@ export interface Account {
 }
 
 export default function AccountsPage() {
+    const { username } = useSnapState()
     const { data, reload, element } = useApiEx('get_accounts')
     const [sel, setSel] = useState<string[] | 'new-group' | 'new-user'>([])
     const selectionMode = Array.isArray(sel)
@@ -41,7 +45,10 @@ export default function AccountsPage() {
 
     const sideContent = !(sel.length > 0) || !list ? null // this clever test is true both when some accounts are selected and when we are in "new account" modes
         : selectionMode && sel.length > 1 ? h(Fragment, {},
-                h(Typography, {}, sel.length + " selected"),
+                h(Flex, { alignItems: 'center' },
+                    h(Typography, {variant: 'h6'}, sel.length + " selected"),
+                    h(Button, { onClick: deleteAccounts, startIcon: h(Delete) }, "Remove"),
+                ),
                 h(List, {},
                     sel.map(username =>
                         h(ListItem, { key: username },
@@ -135,6 +142,25 @@ export default function AccountsPage() {
         isSideBreakpoint && sideContent && h(Grid, { item: true, md: 7 },
             h(Card, {}, h(CardContent, {}, sideContent) )),
     )
+
+    async function deleteAccounts() {
+        if (sel.length > _.pull(sel, username).length)
+            await alertDialog("Won't delete current account", 'warning')
+        if (!sel.length) return
+        if (!await confirmDialog(`Delete ${sel.length} item(s)?`)) return
+        try {
+            const errors = []
+            for (const username of sel)
+                if (!await apiCall('del_account', { username }).then(() => 1, () => 0))
+                    errors.push(username)
+            reload()
+            if (errors.length)
+                return alertDialog("Following elements couldn't be deleted: " + errors.join(', '), 'error')
+        }
+        catch(e) {
+            await alertDialog(e as Error)
+        }
+    }
 }
 
 export function account2icon(ac: Account, props={}) {
