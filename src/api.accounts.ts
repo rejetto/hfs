@@ -44,13 +44,15 @@ const apis: ApiHandlers = {
         return { list: _.filter(accountsConfig.get(), accountCanLoginAdmin).map(ac => ac.username) }
     },
 
-    set_account({ username, changes }) {
+    set_account({ username, changes }, ctx) {
         const { admin } = changes
         if (admin === null)
             changes.admin = undefined
         else if (admin !== undefined && typeof admin !== 'boolean')
             return new ApiError(HTTP_BAD_REQUEST, "invalid admin")
         const acc = setAccount(username, changes)
+        if (changes.username && ctx.session)
+            ctx.session.username = changes.username
         return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
     },
 
