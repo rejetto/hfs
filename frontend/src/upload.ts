@@ -167,7 +167,15 @@ function FilesList({ files, remove }: { files: File[], remove: (f:File) => any }
 }
 
 function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...props }={}) {
-    return h('button', { onClick, ...props, ...small && { style: { padding: '.1em', width: 35, height: 30, ...style } } }, icon.length > 1 ? hIcon(icon) : icon)
+    return h('button', {
+            onClick,
+            ...props,
+            ...small && {
+                style: { padding: '.1em', width: 35, height: 30, ...style }
+            }
+        },
+        icon.length > 1 ? hIcon(icon) : icon
+    )
 }
 
 function formatPerc(p: number) {

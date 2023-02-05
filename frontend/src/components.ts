@@ -25,16 +25,14 @@ export function FlexV(props:any) {
 
 interface CheckboxProps { children?:ReactNode, value:any, onChange?:(v:boolean)=>void }
 export function Checkbox({ onChange, value, children, ...props }:CheckboxProps) {
-    return h('label', {},
-        h('input',{
-            type:'checkbox',
-            onChange: ev => onChange?.(Boolean(ev.target.checked)),
-            checked: Boolean(value),
-            value: 1,
-            ...props
-        }),
-        children
-    )
+    const ret = h('input',{
+        type: 'checkbox',
+        onChange: ev => onChange?.(Boolean(ev.target.checked)),
+        checked: Boolean(value),
+        value: 1,
+        ...props
+    })
+    return !children ? ret : h('label', {}, ret, children)
 }
 
 type Options = { label:string, value:string }[]

@@ -1,10 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, useEffect, useState } from 'react'
-import { useDebounce } from 'use-debounce'
+import { createElement as h, useEffect } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
-import { hIcon, isMobile, prefix, useStateMounted } from './misc'
+import { hIcon, prefix, useStateMounted } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -15,10 +14,8 @@ import { showUpload, uploadState } from './upload'
 import { useSnapshot } from 'valtio'
 
 export function MenuPanel() {
-    const { showFilter, remoteSearch, stopSearch, stoppedSearch, patternFilter, selected, can_upload } = useSnapState()
+    const { showFilter, remoteSearch, stopSearch, stoppedSearch, selected, can_upload } = useSnapState()
     const { uploading, qs }  = useSnapshot(uploadState)
-    const [filter, setFilter] = useState(patternFilter)
-    ;[state.patternFilter] = useDebounce(showFilter ? filter : '', 300)
     useEffect(() => {
         if (!showFilter)
             state.selected = {}
@@ -83,41 +80,7 @@ export function MenuPanel() {
         ),
         remoteSearch && h('div', { id: 'searched' },
             (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),
-        showFilter && h('div', { id: 'filter-bar' },
-            h('input', {
-                id: 'filter',
-                placeholder: "Type here to filter the list below",
-                autoComplete: 'off',
-                value: filter,
-                autoFocus: true,
-                onChange(ev) {
-                    setFilter(ev.target.value)
-                }
-            }),
-            !isMobile() && h(MenuButton, {
-                icon: 'check',
-                label: "Select all",
-                onClick() { workSel(() => true) }
-            }),
-            h(MenuButton, {
-                icon: 'invert',
-                label: 'Invert selection',
-                onClick() { workSel(x => !x) }
-            }),
-        )
     )
-
-    function workSel(cb: (b:boolean) => boolean) {
-        const sel = state.selected
-        for (const { n } of state.filteredList || state.list) {
-            const was = sel[n]
-            if (was !== cb(was))
-                if (was)
-                    delete sel[n]
-                else
-                    sel[n] = true
-        }
-    }
 
     function getSearchProps() {
         return stopSearch && started1secAgo ? {

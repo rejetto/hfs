@@ -1,18 +1,19 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useMemo} from 'react'
+import { createElement as h, Fragment, useMemo } from 'react'
 import { formatBytes, hIcon, prefix } from './misc'
 import { Spinner } from './components'
 import { useSnapState } from './state'
 import { MenuPanel } from './menu'
 import { Breadcrumbs } from './Breadcrumbs'
+import { FilterBar } from './FilterBar'
 
 export function Head() {
     return h('header', {},
         h(MenuPanel),
         h(Breadcrumbs),
         h(FolderStats),
-        h('div', { style:{ clear:'both' }}),
+        h(FilterBar),
     )
 }
 
@@ -31,15 +32,18 @@ function FolderStats() {
     }, [list])
     const sel = Object.keys(selected).length
     const fil = filteredList?.length
-    return h('div', { id:'folder-stats' },
-        stoppedSearch ? hIcon('interrupted', { title:'Search was interrupted' })
-            : list.length>0 && loading && h(Spinner),
-        [
-            prefix('', stats.files,' file(s)'),
-            prefix('', stats.folders, ' folder(s)'),
-            stats.size ? formatBytes(stats.size) : '',
-            sel && sel+' selected',
-            fil !== undefined && fil < list.length && fil+' displayed',
-        ].filter(Boolean).join(', ')
+    return h(Fragment, {},
+        h('div', { id:'folder-stats' },
+            stoppedSearch ? hIcon('interrupted', { title:'Search was interrupted' })
+                : list.length>0 && loading && h(Spinner),
+            [
+                prefix('', stats.files,' file(s)'),
+                prefix('', stats.folders, ' folder(s)'),
+                stats.size ? formatBytes(stats.size) : '',
+                sel && sel+' selected',
+                fil !== undefined && fil < list.length && fil+' displayed',
+            ].filter(Boolean).join(', '),
+        ),
+        h('div', { style:{ clear:'both' }}),
     )
 }

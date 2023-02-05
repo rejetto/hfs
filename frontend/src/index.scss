@@ -56,9 +56,11 @@ input, select {
     max-width: 100%; box-sizing: border-box; // avoid scrolling
 }
 input[type=checkbox] {
-    margin: 0 1.3em 0 0.8em;
     transform: scale(1.7);
     accent-color: var(--button-bg);
+}
+label input[type=checkbox] {
+    margin-right: .8em;
 }
 
 .hidden { display: none !important }
@@ -152,19 +154,18 @@ header {
         margin-right: .3em;
     }
 }
-header input {
-    width: 100%;
+#filter {
+    flex: 1;
     margin: 0.2em auto;
     box-sizing: border-box;
 }
 #filter-bar {
     display: flex;
+    align-items: center;
     gap: .3em;
-    margin: 0.5em 0;
-    & input { flex: 1 }
-    & button {
-        padding: 0 0.5em;
-    }
+    margin: 0.3em 0 0.1em;
+    padding-left: 11px;
+    & input[type=checkbox] { margin-right: .7em }
 }
 
 ul.dir {
@@ -179,6 +180,9 @@ ul.dir {
         padding: 0.3em;
         border-top: 1px solid var(--button-bg);
 
+        & input[type=checkbox] {
+            margin: 0 .8em;
+        }
         & a {
             word-break: break-word;
             padding-right: 0.3em;
@@ -250,6 +254,7 @@ button label {
 }
 
 .dialog {
+    min-width: 10em;
     --color: var(--button-bg);
 }
 
@@ -315,13 +320,12 @@ button label {
 
 @media (max-width: 42em) {
     body, button, select { font-size: 14pt; }
-    #menu-bar {
+    #menu-bar, #filter-bar {
         & button label { display: none } /* icons only */
     }
     #filter-bar {
         margin: 0.2em 0;
     }
-    #filter-bar label { display:none }
     #filter-bar button { /* make it same size of top bar */
         width: 17.6vw;
         height: 2.3em;
