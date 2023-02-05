@@ -12,7 +12,7 @@ import {
 } from './const'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs } from './vfs'
-import { dirTraversal } from './misc'
+import { dirTraversal, objSameKeys, stream2string, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -192,4 +192,11 @@ async function srpCheck(username: string, password: string) {
     const clientRes1 = await client.step1(username, password)
     const clientRes2 = await clientRes1.step2(BigInt(salt), BigInt(pubKey))
     return await step1.step2(clientRes2.A, clientRes2.M1).then(() => true, () => false)
+}
+
+// unify get/post parameters, with JSON decoding to not be limited to strings
+export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
+    ctx.params = ctx.method === 'POST' ? tryJson(await stream2string(ctx.req))
+        : objSameKeys(ctx.query, x => Array.isArray(x) ? x : tryJson(x))
+    await next()
 }
