@@ -122,9 +122,11 @@ export default function ConfigPage() {
                 helperText: "Leave empty to never delete" },
             { k: 'min_available_mb', comp: NumberField, sm: 6, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 12, md: 6, label: "Calculate ZIP size for", unit: "seconds",
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 6, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'custom_header', multiline: true, sm: 12, sx: { '& textarea': { fontFamily: 'monospace' } },
+            { k: 'favicon', comp: FileField, sm: 6, md: 6, fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
+                helperText: "The icon associated to your website" },
+            { k: 'custom_header', multiline: true, sm: 12, md: 6, sx: { '& textarea': { fontFamily: 'monospace' } },
                 helperText: "Any HTML code here will be displayed on top of the Frontend"
             },
             { k: 'mime', comp: StringStringField,

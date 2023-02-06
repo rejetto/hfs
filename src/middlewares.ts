@@ -14,7 +14,7 @@ import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs } from './vfs'
 import { dirTraversal, objSameKeys, stream2string, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
-import { serveFileNode } from './serveFile'
+import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { once, Readable } from 'stream'
@@ -28,6 +28,7 @@ import { basename, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
 import { uploadWriter } from './upload'
+import { favicon } from './adminApis'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -99,6 +100,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         }
         return
     }
+    if (ctx.originalUrl === '/favicon.ico' && favicon.get()) // originalUrl to not be subject to changes (vhosting plugin)
+        return serveFile(favicon.get())(ctx,next)
     const node = await urlToNode(path, ctx)
     if (!node)
         return ctx.status = HTTP_NOT_FOUND
