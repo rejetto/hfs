@@ -1,5 +1,5 @@
 exports.description = "If you want to have different home folders, based on domain"
-exports.version = 3 // support masks for host
+exports.version = 3.1 // support masks for host
 exports.apiRequired = 2 // 2 is for the config 'array'
 
 exports.config = {
@@ -23,9 +23,12 @@ exports.init = api => {
         middleware(ctx) {
             let toModify = ctx
             if (ctx.path.startsWith(api.const.SPECIAL_URI)) { // special uris should be excluded...
+                // ...unless it's a frontend api with a path param
+                if (!ctx.path.startsWith(api.const.API_URI) || ctx.params.path === undefined) return
+                let { referer } = ctx.headers
+                referer &&= new URL(referer).pathname
+                if (referer?.startsWith(api.const.ADMIN_URI)) return
                 toModify = ctx.params
-                if (toModify?.path === undefined) // ...unless they carry a path in the query. In that case we'll work that.
-                    return
             }
             const hosts = api.getConfig('hosts')
             if (!hosts?.length) return
