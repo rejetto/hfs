@@ -73,8 +73,9 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                 h(ListItemText, { primary: getMenuLabel(it) })
             ) ),
         h('img', { src: 'hfs-logo.svg', style: {
-            opacity: .7, bottom: 0, width: '80%', marginLeft: 'auto', marginRight: 'auto', flex: 1,
-            height: 0, // trick: without this the flex doesn't work
+            opacity: .7, bottom: 0, marginLeft: 'auto', marginRight: 'auto', flex: 1,
+                maxWidth: '80%', // using 'width' produces huge image on safari
+                height: 0, // trick: without this the flex doesn't work
         } }),
     )
 }
