@@ -14,6 +14,7 @@ import {
     InputAdornment,
     Switch
 } from '@mui/material'
+import _ from 'lodash'
 
 export function DisplayField({ value, empty='-', ...props }: any) {
     if (!props.toField && empty !== undefined && value !== 0 && !value)
@@ -38,13 +39,15 @@ export function NumberField({ value, onChange, getApi, required, min, max, step,
             })
         },
         inputProps: { min, max, step, },
-        InputProps: unit && {
+        InputProps: _.merge({
+            sx: { '& input': { appearance: 'textfield' } }
+        }, unit && {
             sx: { pr: '6px', '& input': { pl: '.2em', textAlign: 'right' } },
             endAdornment: h(InputAdornment, {
                 position: 'end',
-                sx: { mt: '1.2em', ml: '2px', '& p': { fontSize: '80%' } }
+                sx: { mt: '1.2em', ml: '5px', '& p': { fontSize: '80%' } }
             }, unit),
-        },
+        }),
         ...props,
     })
 }
