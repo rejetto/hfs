@@ -1,16 +1,25 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useEffect, useRef, useState } from 'react'
+import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
 import { FieldProps } from '.'
 import { InputAdornment, TextField } from '@mui/material'
 
-export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, ...props }: FieldProps<string>) {
+interface StringProps extends FieldProps<string> {
+    typing?: boolean
+    onTyping?: (v: string) => boolean
+    min?: number
+    max?: number
+    required?: boolean
+    start?: ReactNode
+    end?: ReactNode
+}
+export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, onTyping, ...props }: StringProps) {
     const normalized = value ?? ''
     getApi?.({
         getError() {
             return !value && required ? "required"
-                : value?.length! < min ? "too short"
-                    : value?.length! > max ? "too long"
+                : value?.length! < min! ? "too short"
+                    : value?.length! > max! ? "too long"
                         : false
         }
     })
@@ -29,6 +38,7 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
         value: state,
         onChange(ev) {
             const val = ev.target.value
+            if (onTyping?.(val) === false) return
             setState(val)
             if (typing // change state as the user is typing
                 || document.activeElement !== ev.target) // autofill ongoing, don't wait onBlur event, just go
