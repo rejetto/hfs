@@ -209,6 +209,20 @@ ul.dir {
                 display:inline-block;
             }
         }
+        &.page-separator {
+            border-top: 4px dashed var(--button-bg);
+            margin-top: 1em;
+            padding-top: 1em;
+            position: relative;
+            &::before {
+                content: "Page " attr(label);
+                position: absolute;
+                top: -.8em;
+                background: var(--bg);
+                padding: 0 .5em;
+                font-size: smaller;
+            }
+        }
     }
 }
 
@@ -271,6 +285,7 @@ button label {
         flex: 1;
         background: var(--button-bg);
         text-align: center;
+        white-space: nowrap;
     }
 }
 
