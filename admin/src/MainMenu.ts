@@ -48,35 +48,35 @@ let version: any // cache 'version', as it won't change at runtime, while the Dr
 export default function Menu({ onSelect }: { onSelect: ()=>void }) {
     const [status] = useApi(!version && 'get_status')
     version ||= status?.version?.replace('-', ' ')
-    return h(List, {
-        sx:{
-            pr: 1, bgcolor: 'primary.main', color: 'primary.contrastText', minHeight: '100%', boxSizing: 'border-box',
-            maxHeight: '100vh', // avoid reserving extra space for the final logo
-            display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
-        }
-    },
-        h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'flex-end' },
-            h(Typography, { variant:'h3' }, 'HFS'),
-            h(Box, { pb: 1, fontSize: 'small' }, version),
-        ),
-    mainMenu.map(it =>
-            h(ListItemButton, {
-                key: it.path,
-                to: it.path,
-                component: NavLink,
-                onClick: onSelect,
-                // @ts-ignore
-                style: ({ isActive }) => isActive ? { textDecoration: 'underline' } : {},
-                children: undefined, // shut up ts
-            },
-                it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText' } }, h(it.icon)),
-                h(ListItemText, { primary: getMenuLabel(it) })
-            ) ),
-        h('img', { src: 'hfs-logo.svg', style: {
-            opacity: .7, bottom: 0, marginLeft: 'auto', marginRight: 'auto', flex: 1,
-                maxWidth: '80%', // using 'width' produces huge image on safari
-                height: 0, // trick: without this the flex doesn't work
-        } }),
+    return h(Box, { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%', },
+        h(List, {
+            sx:{
+                pr: 1, color: 'primary.contrastText',
+                height: '100vh', // grow as screen permits, so we know the extra space for the logo
+                overflowY: 'auto', // ...and account for clipping
+                position: 'sticky', top: 0, // be independent (scrolling-wise)
+                display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
+            }
+        },
+            h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'flex-end' },
+                h(Typography, { variant:'h3' }, 'HFS'),
+                h(Box, { pb: 1, fontSize: 'small' }, version),
+            ),
+            mainMenu.map(it =>
+                h(ListItemButton, {
+                    key: it.path,
+                    to: it.path,
+                    component: NavLink,
+                    onClick: onSelect,
+                    // @ts-ignore
+                    style: ({ isActive }) => isActive ? { textDecoration: 'underline' } : {},
+                    children: undefined, // shut up ts
+                },
+                    it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText' } }, h(it.icon)),
+                    h(ListItemText, { primary: getMenuLabel(it) })
+                ) ),
+            h(Box, { sx: { flex: 1, opacity: .7, background: 'url(hfs-logo.svg) no-repeat bottom', backgroundSize: 'contain', margin: 2 } }),
+        )
     )
 }
 

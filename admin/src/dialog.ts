@@ -76,7 +76,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
 }
 
 export function useDialogBarColors() {
-    return useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#aaa', color: '#444', }
+    return useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
 }
 
 type AlertType = 'error' | 'warning' | 'info' | 'success'
