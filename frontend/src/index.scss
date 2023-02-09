@@ -1,4 +1,6 @@
 :root {
+    height: 100dvh; /* workarounded chrome109-mobile's problem with sticky-bottom bar moving when scrolling */
+
     --bg: #fff;
     --text: #555;
     --faint-contrast: #0002;
