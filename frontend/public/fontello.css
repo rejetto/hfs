@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'fontello';
-  src: url('fontello.woff2?13171865') format('woff2');
+  src: url('fontello.woff2?1378305') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
@@ -10,7 +10,7 @@
 @media screen and (-webkit-min-device-pixel-ratio:0) {
   @font-face {
     font-family: 'fontello';
-    src: url('../font/fontello.svg?13171865#fontello') format('svg');
+    src: url('../font/fontello.svg?1378305#fontello') format('svg');
   }
 }
 */
@@ -62,7 +62,9 @@
 .fa-user:before { content: '\e80a'; } /* '' */
 .fa-home:before { content: '\e80b'; } /* '' */
 .fa-key:before { content: '\e80c'; } /* '' */
+.fa-to-start:before { content: '\e80e'; } /* '' */
 .fa-retweet:before { content: '\e80f'; } /* '' */
+.fa-to-end:before { content: '\e810'; } /* '' */
 .fa-cancel-circled:before { content: '\e811'; } /* '' */
 .fa-search:before { content: '\e813'; } /* '' */
 .fa-logout:before { content: '\e814'; } /* '' */
@@ -74,4 +76,4 @@
 .fa-unlink:before { content: '\f127'; } /* '' */
 .fa-level-up:before { content: '\f148'; } /* '' */
 .fa-file-archive:before { content: '\f1c6'; } /* '' */
-.fa-trash:before { content: '\f1f8'; } /* '' */
+.fa-trash:before { content: '\e80d'; } /* '' */

@@ -1,7 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Link, useLocation } from 'react-router-dom'
-import { createElement as h, Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+    createElement as h,
+    Fragment,
+    memo,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState
+} from 'react'
 import { domOn, formatBytes, hError, hfsEvent, hIcon, isMobile } from './misc'
 import { Checkbox, Html, Spinner } from './components'
 import { Head } from './Head'
@@ -65,7 +74,15 @@ function FilesList() {
 
     const ref = useRef<HTMLElement>()
 
-    const pageChange = useCallback((i: number) => {
+    const [goBottom, setGoBottom] = useState(false)
+    useEffect(() => {
+        if (!goBottom) return
+        setGoBottom(false)
+        window.scrollTo(0, document.body.scrollHeight)
+    }, [goBottom])
+    const pageChange = useCallback((i: number, pleaseGoBottom?: boolean) => {
+        if (pleaseGoBottom)
+            setGoBottom(true)
         if (i < page || i > page + extraPages)
             return setPage(i)
         i -= page + 1
@@ -100,21 +117,28 @@ interface PagingProps {
     nPages: number
     current: number
     pageSize: number
-    pageChange:(newPage:number) => void
+    pageChange:(newPage:number, goBottom?:boolean) => void
 }
 const Paging = memo(({ nPages, current, pageSize, pageChange }: PagingProps) => {
     const ref = useRef<HTMLElement>()
-    const pages = []
-    for (let i=0; i<nPages; i++)
-        pages.push(h('button', {
-            ...i===current && { className:'toggled', ref },
-            //@ts-ignore
-            onClick(){
-                pageChange(i)
-            }
-        }, i*pageSize || "Page 1"))
     useEffect(() => ref.current?.scrollIntoView({ block: 'nearest' }), [current])
-    return h('div', { id:'paging' }, ...pages)
+    return h('div', { id:'paging' },
+        h('button', {
+            className: !current ? 'toggled' : undefined,
+            onClick() { pageChange(0) },
+        }, hIcon('to-start')),
+        h('div', { id: 'paging-middle' },  // using sticky first/last would prevent scrollIntoView from working
+            _.range(1, nPages).map(i =>
+                h('button', {
+                    key: i,
+                    ...i === current && { className: 'toggled', ref },
+                    onClick: () => pageChange(i),
+                }, i * pageSize) )
+        ),
+        h('button', {
+            onClick(){ pageChange(nPages-1, true) }
+        }, hIcon('to-end')),
+    )
 })
 
 function useMidnight() {

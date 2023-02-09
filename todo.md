@@ -1,6 +1,5 @@
 # To do
 - frontend: new-folder button in upload
-- frontend: button to reach the bottom of the list
 - admin/fs: check if source exists when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin

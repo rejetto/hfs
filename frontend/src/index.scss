@@ -87,7 +87,7 @@ button {
     cursor: pointer;
 }
 button.toggled {
-    opacity: .6;
+    filter: brightness(.6);
 }
 button, .breadcrumb { /* consistent focus color */
     &:focus-visible {
@@ -215,7 +215,7 @@ ul.dir {
             padding-top: 1em;
             position: relative;
             &::before {
-                content: "Page " attr(label);
+                content: attr(label);
                 position: absolute;
                 top: -.8em;
                 background: var(--bg);
@@ -275,17 +275,33 @@ button label {
 }
 
 #paging {
-    display: flex;
     position: sticky;
     bottom: 0;
+    display: flex;
+    gap: .2em;
     background: var(--bg);
-    gap: .5em;
-    overflow-x: auto;
-    &>button {
+    &,&>button {
+        box-shadow: 0 0 .3em .3em var(--bg);
+        z-index: 1; /* make shadow visible also when page-first button is not selected */
+    }
+    padding: 0 0.2em 0.2em;
+    & #paging-middle {
+        display: flex;
+        gap: .5em;
         flex: 1;
+        overflow-x: auto;
+    }
+    & *::-webkit-scrollbar { height: 8px; } /* keep this thin */
+    & #paging-middle>button {
+        flex: 1;
+        padding-top: 0; padding-bottom: 0; /* reduce vertically in case a horizontal scrolling bar is needed */
+    }
+    & button {
+        min-width: 2.5em;
         background: var(--button-bg);
         text-align: center;
         white-space: nowrap;
+        padding: .5em; /* fit more buttons on screen */
     }
 }
 
