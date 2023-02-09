@@ -178,7 +178,7 @@ ul.dir {
     & li {
         display: block;
         list-style-type: none;
-        margin-bottom: 0.3em;
+        margin-bottom: 0.1em;
         padding: 0.3em;
         border-top: 1px solid var(--button-bg);
 
@@ -199,14 +199,14 @@ ul.dir {
         & .entry-props {
             float: right;
             font-size: 90%;
-            margin-left: 12px;
-            margin-top: 0.2em;
+            margin-left: 4px;
+            margin-top: 0.3em;
+            font-variant-numeric: tabular-nums; /* trick to get stuff aligned */
 
-            & .icon {
-                margin:0 .3em;
-            }
-            & .entry-size {
+            & .entry-size-unit {
                 display:inline-block;
+                margin-left: .3em;
+                width: 1.5em;
             }
         }
         &.page-separator {

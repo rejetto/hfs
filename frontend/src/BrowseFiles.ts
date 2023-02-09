@@ -192,7 +192,7 @@ function fixUrl(s:string) {
     return s.replace(/[#%]/g, encodeURIComponent)
 }
 
-const EntryProps = memo(function(entry: DirEntry & { midnight: Date }) {
+const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
     const { t, s } = entry
     const today = t && t > entry.midnight
     const shortTs = isMobile()
@@ -200,10 +200,7 @@ const EntryProps = memo(function(entry: DirEntry & { midnight: Date }) {
         [entry])
     return h('div', { className: 'entry-props' },
         h(Html, { code, className: 'add-props' }),
-        s !== undefined && h(Fragment, {},
-            h('span', { className: 'entry-size' }, formatBytes(s)),
-            " — ",
-        ),
+        h(EntrySize, { s }),
         t && h('span', {
             className: 'entry-ts',
             title: today || !shortTs ? null : t.toLocaleString(),
@@ -212,5 +209,15 @@ const EntryProps = memo(function(entry: DirEntry & { midnight: Date }) {
                     alertDialog("Full timestamp:\n" + t.toLocaleString()).then()
             }
         }, !shortTs ? t.toLocaleString() : today ? t.toLocaleTimeString() : t.toLocaleDateString()),
+    )
+})
+
+const EntrySize = memo(({ s }: { s: DirEntry['s']  }) => {
+    if (s === undefined) return null
+    const a = formatBytes(s).split(' ')
+    return h(Fragment, {},
+        h('span', { className: 'entry-size' }, a[0],
+            h('span', { className: 'entry-size-unit' }, a[1])),
+        " — ",
     )
 })
