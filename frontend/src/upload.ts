@@ -63,7 +63,7 @@ export function showUpload() {
             doneByte: 0,
         })
     const close = newDialog({
-        dialogProps: { style: { minWidth: 'min(20em, 100vw - 1em)' } },
+        dialogProps: { style: { minHeight: '6em', minWidth: 'min(20em, 100vw - 1em)' } },
         title: "Upload",
         icon: () => hIcon('upload'),
         Content,
@@ -82,15 +82,15 @@ export function showUpload() {
 
         return h(FlexV, { props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
             h(Flex, { gap: '.5em', flexWrap: 'wrap', justifyContent: 'center', position: 'sticky', top: -4, background: 'var(--bg)', boxShadow: '0 3px 3px #000' },
-                can_upload && h('button',{ onClick: () => selectFiles() }, "Add file(s)"),
-                can_upload && h('button',{ onClick: () => selectFiles(true) }, "Add folder"),
-                files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
+                can_upload && h('button', { onClick: () => selectFiles() }, "Add file(s)"),
+                can_upload && h('button', { onClick: () => selectFiles(true) }, "Add folder"),
                 files.length > 0 &&  h('button', {
                     onClick() {
                         enqueue(files)
                         setFiles([])
                     }
                 }, `Send ${files.length} file(s), ${formatBytes(files.reduce((a, f) => a + f.size, 0))}`),
+                files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
             ),
             h(FilesList, {
                 files,

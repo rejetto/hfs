@@ -91,17 +91,19 @@ function FilesList() {
         el?.scrollIntoView({ block: 'center' })
     }, [page, extraPages])
 
+    const msgInstead = !list.length ? (!loading && (stoppedSearch ? "Stopped before finding anything" : "Nothing here"))
+        : filteredList && !filteredList.length && "No match for this filter"
+
     return h(Fragment, {},
         h('ul', { ref, className: 'dir', ...acceptDropFiles(can_upload && enqueue) },
-            !list.length ? (!loading && (stoppedSearch ? "Stopped before finding anything" : "Nothing here"))
-                : filteredList && !filteredList.length ? "No match for this filter"
-                    : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry: DirEntry, idx) =>
-                        h(Entry, {
-                            key: entry.n,
-                            midnight,
-                            separator: idx > 0 && !(idx % pageSize) ? String(offset + idx) : undefined,
-                            ...entry
-                        })),
+            msgInstead ? h('p', {}, msgInstead)
+                : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry: DirEntry, idx) =>
+                    h(Entry, {
+                        key: entry.n,
+                        midnight,
+                        separator: idx > 0 && !(idx % pageSize) ? String(offset + idx) : undefined,
+                        ...entry
+                    })),
             loading && h(Spinner),
         ),
         total > pageSize && h(Paging, {

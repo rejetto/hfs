@@ -63,6 +63,7 @@ input[type=checkbox] {
 label input[type=checkbox] {
     margin-right: .8em;
 }
+select { text-align: center; } /* it is surely cooler on the options dialog */
 
 .hidden { display: none !important }
 
@@ -174,6 +175,7 @@ ul.dir {
     padding: 0;
     margin: 0;
     clear: both;
+    &>p { text-align: center; }
     & li {
         display: block;
         list-style-type: none;
