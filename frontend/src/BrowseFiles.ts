@@ -122,6 +122,10 @@ interface PagingProps {
     pageChange:(newPage:number, goBottom?:boolean) => void
 }
 const Paging = memo(({ nPages, current, pageSize, pageChange }: PagingProps) => {
+    useEffect(() => {
+        document.body.style.overflowY = 'scroll'
+        return () => { document.body.style.overflowY = '' }
+    }, [])
     const ref = useRef<HTMLElement>()
     useEffect(() => ref.current?.scrollIntoView({ block: 'nearest' }), [current])
     return h('div', { id:'paging' },
