@@ -3,8 +3,9 @@
 
     --bg: #fff;
     --text: #555;
-    --faint-contrast: #0002;
-    --mild-contrast: #0005;
+    --ghost-contrast: #8882;
+    --faint-contrast: #8884;
+    --mild-contrast: #8886;
     --good-contrast: #000a;
     --button-bg: #68a;
     --button-text: #fff;
@@ -12,8 +13,6 @@
     .theme-dark {
         --bg: #000;
         --text: #999;
-        --faint-contrast: #fff2;
-        --mild-contrast: #fff5;
         --good-contrast: #fffa;
         --button-bg: #345;
         --button-text: #999;
@@ -178,9 +177,9 @@ ul.dir {
     & li {
         display: block;
         list-style-type: none;
-        margin-bottom: 0.1em;
-        padding: 0.3em;
-        border-top: 1px solid var(--button-bg);
+        padding: 0.3em 0.3em 0.4em;
+        border-bottom: 1px solid var(--faint-contrast);
+        &:nth-of-type(odd) { background-color: var(--ghost-contrast); }
 
         & input[type=checkbox] {
             margin: 0 .8em;
@@ -210,17 +209,20 @@ ul.dir {
             }
         }
         &.page-separator {
-            border-top: 4px dashed var(--button-bg);
             margin-top: 1em;
-            padding-top: 1em;
             position: relative;
             &::before {
                 content: attr(label);
                 position: absolute;
-                top: -.8em;
+                top: -1.5em;
+                width: 50%;
+                padding-left: 50%;
                 background: var(--bg);
-                padding: 0 .5em;
+                background: linear-gradient(0deg, var(--bg) 40%, var(--button-bg) 50%, var(--bg) 60%);
                 font-size: smaller;
+                margin-left: -0.3em;
+                filter: brightness(.7);
+                text-shadow: 0 0 6px var(--bg);
             }
         }
     }
@@ -335,7 +337,7 @@ button label {
 /* Works on Firefox */
 * {
     scrollbar-width: thin;
-    scrollbar-color: var(--button-bg) var(--faint-contrast);
+    scrollbar-color: var(--button-bg) var(--ghost-contrast);
 }
 
 /* Works on Chrome, Edge, and Safari */
@@ -343,15 +345,16 @@ button label {
     width: 12px;
 }
 *::-webkit-scrollbar-track {
-    background: var(--faint-contrast);
+    background: var(--ghost-contrast);
 }
 *::-webkit-scrollbar-thumb {
     background-color: var(--button-bg);
     border-radius: 20px;
-    border: 1px solid var(--faint-contrast)
+    border: 1px solid var(--ghost-contrast)
 }
 
 @media (max-width: 42em) {
+    :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }
     #menu-bar, #filter-bar {
         & button label { display: none } /* icons only */
