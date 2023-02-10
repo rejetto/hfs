@@ -3,7 +3,6 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import pathLib from 'path'
 import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
@@ -27,6 +26,7 @@ import events from './events'
 import { readFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
+import { dirname, resolve } from 'path'
 
 export const PATH = 'plugins'
 export const DISABLING_POSTFIX = '-disabled'
@@ -95,10 +95,9 @@ export function pluginsMiddleware(): Koa.Middleware {
         if (!ctx.pluginStopped) {
             if (path.startsWith(PLUGINS_PUB_URI)) {
                 const a = path.substring(PLUGINS_PUB_URI.length).split('/')
-                if (plugins.hasOwnProperty(a[0]!)) { // do it only if the plugin is loaded
-                    a.splice(1, 0, 'public')
-                    await serveFile(PATH + '/' + a.join('/'), 'auto')(ctx, next)
-                }
+                const name = a.shift()!
+                if (plugins.hasOwnProperty(name)) // do it only if the plugin is loaded
+                    await serveFile(plugins[name]!.folder + '/public/' + a.join('/'), 'auto')(ctx, next)
             }
             await next()
         }
@@ -114,7 +113,7 @@ type OnDirEntry = (params:OnDirEntryParams) => void | false
 export class Plugin {
     started = new Date()
 
-    constructor(readonly id:string, private readonly data:any, private unwatch:()=>void){
+    constructor(readonly id:string, readonly folder:string, private readonly data:any, private unwatch:()=>void){
         if (!data) throw 'invalid data'
         if (plugins[id])
             throw "unload first: " + id
@@ -218,7 +217,7 @@ export async function rescan() {
         found.push(id)
         if (plugins[id]) // already loaded
             continue
-        const module = pathLib.resolve(f)
+        const module = resolve(f)
         const { unwatch } = watchLoad(f, async () => {
             try {
                 const alreadyRunning = plugins[id]
@@ -260,7 +259,7 @@ export async function rescan() {
                     getHfsConfig: getConfig,
                 })
                 Object.assign(data, res)
-                const plugin = new Plugin(id, data, unwatch)
+                const plugin = new Plugin(id, dirname(module), data, unwatch)
                 if (alreadyRunning)
                     events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
                 else {
