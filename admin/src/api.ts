@@ -46,10 +46,12 @@ export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) {
                 console.debug('API', cmd, params, '>>', json)
                 return json
             })
-        const msg = await res.text() || 'Failed API ' + cmd
+        let msg = await res.text() || 'Failed API ' + cmd
         console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
-        if (res.status === 401)
+        if (res.status === 401) {
             state.loginRequired = try_(() => JSON.parse(msg)?.any) !== false || 403
+            msg = "Unauthorized"
+        }
         throw new ApiError(res.status, msg)
     }, err => {
         if (err?.message?.includes('fetch'))
