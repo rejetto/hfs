@@ -60,7 +60,12 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                 useEffect(() => {
                     setTimeout(() => usrRef.current?.focus()) // setTimeout workarounds problem due to double-mount while in dev
                 }, [])
-                return h('form', {},
+                return h('form', {
+                    onSubmit(ev:any) {
+                        ev.preventDefault()
+                        go()
+                    }
+                },
                     h('div', { className: 'field' },
                         h('label', { htmlFor: 'username' }, "Username"),
                         h('input', {
@@ -83,7 +88,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                         }),
                     ),
                     h('div', { style: { textAlign: 'right' } },
-                        h('button', { onClick: go }, "Continue")),
+                        h('button', { type: 'submit' }, "Continue")),
                 )
 
                 function onKeyDown(ev: KeyboardEvent) {
