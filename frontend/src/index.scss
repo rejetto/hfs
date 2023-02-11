@@ -282,7 +282,7 @@ button label {
     position: sticky;
     bottom: 0;
     display: flex;
-    gap: .2em;
+    gap: .1em;
     background: var(--bg);
     &,&>button {
         box-shadow: 0 0 .3em .3em var(--bg);
@@ -301,7 +301,6 @@ button label {
         padding-top: 0; padding-bottom: 0; /* reduce vertically in case a horizontal scrolling bar is needed */
     }
     & button {
-        min-width: 2.5em;
         background: var(--button-bg);
         text-align: center;
         white-space: nowrap;
