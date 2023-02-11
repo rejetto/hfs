@@ -36,14 +36,14 @@ export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNo
         }
         return _.defaults(ret, defaultPerms)
     }, [parent])
-    const showCanSee = (values.can_read ?? inheritedPerms.can_read) === true
     const showTimestamps = hasSource && Boolean(values.ctime)
     const barColors = useDialogBarColors()
 
     const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
     if (element || !data)
         return element
-    const accounts = data.list
+    const allAccounts = data.list
+    const can_read = (values.can_read ?? inheritedPerms.can_read)
 
     return h(Form, {
         values,
@@ -84,7 +84,8 @@ export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNo
                 placeholder: "Not on disk, this is a virtual folder",
             },
             perm('can_read', "Who can download", "Note: who can't download won't see it in the list"),
-            showCanSee && perm('can_see', "Who can see", "You can hide and keep it downloadable if you have a direct link"),
+            can_read && perm('can_see', "Who can see", "You can hide and keep it downloadable if you have a direct link",
+                { accounts: Array.isArray(can_read) ? allAccounts.filter(x => can_read.includes(x.username)) : undefined }),
             isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source"),
             hasSource && !realFolder && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: 4, label: 'Created', toField: formatTimestamp },
@@ -100,7 +101,7 @@ export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNo
         ]
     })
 
-    function perm(perm: keyof typeof inheritedPerms, label: string, helperText='', props={}) {
+    function perm(perm: keyof typeof inheritedPerms, label: string, helperText='', { accounts=allAccounts, ...props }={}) {
         return { k: perm, lg: 6, comp: WhoField, parent, accounts, label, inherit: inheritedPerms[perm], helperText, ...props }
     }
 }
