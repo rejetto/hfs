@@ -17,7 +17,7 @@ export default function addFiles() {
             const under = getUnder()
             return h(Fragment, {},
                 h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } },
-                    "Selected elements will be added to virtual path " + (under || '(home)')),
+                    "Selected elements will be added under " + (under || '(home)')),
                 h(FilePicker, {
                     async onSelect(sel) {
                         const errs = onlyTruthy(await Promise.all(sel.map(source =>

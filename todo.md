@@ -6,6 +6,7 @@
 - fix: cannot switch off https and switch on http at the same time 
 - admin/monitor: show user-agent
 - admin: check + update
+- multilanguage (i18n)
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - generation of links to give access to a file
   - an admin page where you can pick a file or folder(zip), and a link is generated
@@ -24,6 +25,7 @@
 - admin/fs: support insert/delete key
 - admin/fs: button "copy url to clipboard"
 - admin/monitor: show some info on what folder is browsing
+- admin/fs: navigate file picker with keyboard
 - plugin: list of IPs seen
 - admin: in a group, show linked accounts
 - admin: warn in case of items with same name
