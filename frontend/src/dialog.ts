@@ -28,7 +28,7 @@ export async function promptDialog(msg: string, { def, type, ...rest }:PromptOpt
                 inp.value = def
         },[])
         return h('form', {},
-             h('label', { htmlFor: 'input' }, msg),
+            h('label', { htmlFor: 'input' }, msg),
             h('input', {
                 ref,
                 type,

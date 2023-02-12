@@ -35,7 +35,7 @@ export function MenuPanel() {
             h(LoginButton),
             h(MenuButton, {
                 icon: 'filter',
-                label: "Filter list",
+                label: "Filter",
                 tooltip: "Show only elements matching text you type. Works on list already got from the server. Also enables selection of files, for selective \"Download zip\".",
                 toggled: showFilter,
                 onClick() {
@@ -99,9 +99,9 @@ export function MenuPanel() {
             }
         } : {
             icon: 'search',
-            label: "Search deep",
+            label: "Search",
             async onClick() {
-                state.remoteSearch = await promptDialog('Search for...') || ''
+                state.remoteSearch = await promptDialog("Search this folder and sub-folders") || ''
             }
         }
     }
