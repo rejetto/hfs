@@ -139,3 +139,7 @@ export async function prepareFolder(path: string, dirnameIt=true) {
         return false
     }
 }
+
+export function isValidFileName(name: string) {
+    return !/^\.\.?$|[/:*?"<>|\\]/.test(name)
+}

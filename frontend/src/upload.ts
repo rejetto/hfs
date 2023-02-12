@@ -2,12 +2,12 @@
 
 import { createElement as h, useMemo, useState } from 'react'
 import { Flex, FlexV } from './components'
-import { DialogCloser, formatBytes, hIcon, newDialog, prefix } from './misc'
+import { closeDialog, DialogCloser, formatBytes, hIcon, newDialog, prefix } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
-import { alertDialog, confirmDialog } from './dialog'
+import { alertDialog, confirmDialog, promptDialog } from './dialog'
 import { reloadList } from './useFetchList'
-import { getNotification } from './api'
+import { apiCall, getNotification } from './api'
 import { useSnapState } from './state'
 import { Link } from 'react-router-dom'
 
@@ -63,7 +63,7 @@ export function showUpload() {
             doneByte: 0,
         })
     const close = newDialog({
-        dialogProps: { style: { minHeight: '6em', minWidth: 'min(20em, 100vw - 1em)' } },
+        dialogProps: { style: { minWidth: 'min(20em, 100vw - 1em)' } },
         title: "Upload",
         icon: () => hIcon('upload'),
         Content,
@@ -81,16 +81,19 @@ export function showUpload() {
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
 
         return h(FlexV, { props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
-            h(Flex, { gap: '.5em', flexWrap: 'wrap', justifyContent: 'center', position: 'sticky', top: -4, background: 'var(--bg)', boxShadow: '0 3px 3px #000' },
-                can_upload && h('button', { onClick: () => selectFiles() }, "Add file(s)"),
-                can_upload && h('button', { onClick: () => selectFiles(true) }, "Add folder"),
-                files.length > 0 &&  h('button', {
-                    onClick() {
-                        enqueue(files)
-                        setFiles([])
-                    }
-                }, `Send ${files.length} file(s), ${formatBytes(files.reduce((a, f) => a + f.size, 0))}`),
-                files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
+            h(FlexV, { position: 'sticky', top: -4, background: 'var(--bg)' },
+                h(Flex, { justifyContent: 'center', flexWrap: 'wrap', },
+                    can_upload && h('button', { onClick: () => selectFiles() }, "Pick files"),
+                    can_upload && h('button', { onClick: () => selectFiles(true) }, "Pick folder"),
+                    files.length > 0 &&  h('button', {
+                        onClick() {
+                            enqueue(files)
+                            setFiles([])
+                        }
+                    }, `Send ${files.length} files, ${formatBytes(files.reduce((a, f) => a + f.size, 0))}`),
+                    files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
+                    can_upload && h('button', { onClick: createFolder }, "Create folder"),
+                ),
             ),
             h(FilesList, {
                 files,
@@ -327,5 +330,26 @@ export function acceptDropFiles(cb: false | ((files:File[]) => void)) {
             ev.preventDefault()
             cb && cb(Array.from(ev.dataTransfer!.files))
         },
+    }
+}
+
+async function createFolder() {
+    const name = await promptDialog("Enter folder name")
+    if (!name) return
+    const path = location.pathname
+    try {
+        await apiCall('create_folder', { path, name })
+        reloadList()
+        return alertDialog(h(() =>
+            h(FlexV, {},
+                h('div', {}, "Successfully created"),
+                h(Link, { to: path + name + '/', onClick() {
+                    closeDialog()
+                    closeDialog()
+                } }, "Enter the folder"),
+            )))
+    }
+    catch(e: any) {
+        await alertDialog(e.code === 409 ? "Folder with same name already exists" : e)
     }
 }

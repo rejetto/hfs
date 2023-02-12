@@ -8,7 +8,7 @@ import { dirname, join, resolve } from 'path'
 import { dirStream, isWindowsDrive, objSameKeys } from './misc'
 import {
     IS_WINDOWS,
-    HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE
+    HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
 } from './const'
 import { isMatch } from 'micromatch'
 import { getDrives } from './util-os'
