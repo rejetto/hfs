@@ -52,7 +52,7 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
         h(List, {
             sx:{
                 pr: 1, color: 'primary.contrastText',
-                height: '100vh', // grow as screen permits, so we know the extra space for the logo
+                height: '100vh', boxSizing: 'border-box', // grow as screen permits, so we know the extra space for the logo
                 overflowY: 'auto', // ...and account for clipping
                 position: 'sticky', top: 0, // be independent (scrolling-wise)
                 display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
