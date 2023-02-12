@@ -48,13 +48,14 @@ body, input {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-input, select {
+input:not([type=checkbox]), select {
     padding: 0.3em 0.4em;
     border-radius: 0.5em;
     background: var(--bg);
     border-color: var(--mild-contrast);
     color: var(--good-contrast);
     max-width: 100%; box-sizing: border-box; // avoid scrolling
+    width: 100%;
 }
 input[type=checkbox] {
     transform: scale(1.7);
@@ -165,9 +166,9 @@ header {
     display: flex;
     align-items: center;
     gap: .3em;
-    margin: 0.3em 0 0.1em;
+    margin: 0.2em 0 0;
     padding-left: 11px;
-    & input[type=checkbox] { margin-right: .7em }
+    & input[type=checkbox] { margin-right: .7em; margin-top: .5em; }
 }
 
 ul.dir {

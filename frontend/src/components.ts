@@ -7,7 +7,7 @@ export function Spinner() {
     return hIcon('spinner', { className:'spinner' })
 }
 
-export function Flex({ gap='1em', vert=false, children=null, props={}, ...rest }) {
+export function Flex({ gap='.8em', vert=false, children=null, props={}, ...rest }) {
     return h('div', {
         style: {
             display: 'flex',
