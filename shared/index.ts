@@ -22,7 +22,7 @@ export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
         ++i
     }
     n /= prevMul
-    const ns = !i || isNaN(digits) ? _.round(n, isNaN(digits) ? 1 : digits) // _.round will avoid useless fractional zeros when `digits is unspecified or no multiplier was used
+    const ns = !i || isNaN(digits) ? _.round(n, isNaN(digits) ? (n >= 100 ? 0 : 1) : digits) // _.round will avoid useless fractional zeros when `digits is unspecified or no multiplier was used
         : n.toFixed(digits)
     return ns + ' ' + (x[i]||'') + post
 } // formatBytes
