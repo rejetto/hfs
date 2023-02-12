@@ -15,8 +15,10 @@ import {
     Web
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
-import { VfsNode, Who } from './VfsPage'
-import { iconTooltip, isWindowsDrive, onlyTruthy } from './misc'
+import { reloadVfs, VfsNode, Who } from './VfsPage'
+import { iconTooltip, isWindowsDrive, onlyTruthy, pathJoin, basename } from './misc'
+import { apiCall } from './api'
+import { alertDialog, confirmDialog } from './dialog'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
@@ -25,14 +27,17 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
     const { vfs, selectedFiles } = useSnapState()
     const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
+    const dragging = useRef<string>()
     const ref = useRef<HTMLElement>()
     if (!vfs)
         return null
+    const treeId = 'vfs'
     return h(TreeView, {
         ref,
         expanded,
         selected,
         multiSelect: true,
+        id: treeId,
         sx: {
             overflowX: 'auto',
             maxWidth: ref.current && `calc(100vw - ${16 + ref.current.offsetLeft}px)`, // limit possible horizontal scrolling to this element
@@ -56,7 +61,28 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
         if (folder && !isWindowsDrive(source) && source === name) // we need a way to show that the name we are displaying is a source in this ambiguous case, so we add a redundant ./
             source = './' + source
         return h(TreeItem, {
+            ref(el: any) { // workaround to permit drag&drop with mui5's tree
+                el?.addEventListener('focusin', (e: any) => e.stopImmediatePropagation())
+            },
             label: h(Box, {
+                draggable: !isRoot,
+                onDragStart() {
+                    dragging.current = id
+                },
+                onDragOver(ev) {
+                    if (!folder) return
+                    const src = dragging.current
+                    if (src?.startsWith(id) && !src.slice(id.length + 1).includes('/')) return // src must be not me or my parent
+                    ev.preventDefault()
+                },
+                async onDrop() {
+                    const from = dragging.current
+                    if (!from) return
+                    if (await confirmDialog(`Moving ${from} under ${id}`))
+                        apiCall('move_vfs', { from, parent: id }).then(() => {
+                            reloadVfs([ pathJoin(id, basename(from)) ])
+                        }, alertDialog)
+                },
                 sx: {
                     display: 'flex',
                     gap: '.5em',

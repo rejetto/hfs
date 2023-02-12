@@ -61,6 +61,25 @@ const apis: ApiHandlers = {
         }
     },
 
+    async move_vfs({ from, parent }) {
+        if (from <= '/' || !parent)
+            return new ApiError(HTTP_BAD_REQUEST)
+        const fromNode = await urlToNodeOriginal(from)
+        if (!fromNode)
+            return new ApiError(HTTP_NOT_FOUND, 'from not found')
+        const parentNode = await urlToNodeOriginal(parent)
+        if (!parentNode)
+            return new ApiError(HTTP_NOT_FOUND, 'parent not found')
+        const name = getNodeName(fromNode)
+        if (parentNode.children?.find(x => name === getNodeName(x)))
+            return new ApiError(HTTP_CONFLICT, 'item with same name already present in destination')
+        const oldParent = await urlToNodeOriginal(dirname(from))
+        _.pull(oldParent!.children!, fromNode)
+        ;(parentNode.children ||= []).push(fromNode)
+        await saveVfs()
+        return {}
+    },
+
     async set_vfs({ uri, props }) {
         const n = await urlToNodeOriginal(uri)
         if (!n)
@@ -76,12 +95,12 @@ const apis: ApiHandlers = {
         return n
     },
 
-    async add_vfs({ under, source, name }) {
-        const n = under ? await urlToNodeOriginal(under) : vfs
+    async add_vfs({ parent, source, name }) {
+        const n = parent ? await urlToNodeOriginal(parent) : vfs
         if (!n)
-            return new ApiError(HTTP_NOT_FOUND, 'invalid under')
+            return new ApiError(HTTP_NOT_FOUND, 'invalid parent')
         if (n.isTemp || !await nodeIsDirectory(n))
-            return new ApiError(HTTP_NOT_ACCEPTABLE, 'invalid under')
+            return new ApiError(HTTP_NOT_ACCEPTABLE, 'invalid parent')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
         const a = n.children || (n.children = [])

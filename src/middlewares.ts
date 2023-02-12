@@ -8,7 +8,7 @@ import {
     BUILD_TIMESTAMP,
     DEV,
     SESSION_DURATION,
-    HTTP_FORBIDDEN, HTTP_NOT_FOUND,
+    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs } from './vfs'
@@ -155,14 +155,14 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
         if (DEV && proxy && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))
             proxy = ''
         if (dirTraversal(decodeURI(ctx.path)))
-            return ctx.status = 418
+            return ctx.status = HTTP_FOOL
         if (applyBlock(ctx.socket, ctx.ip))
             return
         proxyDetected ||= proxy > ''
         ctx.state.proxiedFor = proxy
     }
     catch {
-        return ctx.status = 418
+        return ctx.status = HTTP_FOOL
     }
     return next()
 }

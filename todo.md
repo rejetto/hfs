@@ -21,7 +21,6 @@
 - admin/fs: sort items
 - admin/fs: render virtual folders differently
 - admin/config: hide advanced settings
-- admin/fs: drag&drop to move items around
 - admin/fs: support insert/delete key
 - admin/fs: button "copy url to clipboard"
 - admin/monitor: show some info on what folder is browsing

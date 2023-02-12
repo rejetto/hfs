@@ -93,11 +93,11 @@ export function typedKeys<T extends {}>(o: T) {
     return Object.keys(o) as (keyof T)[]
 }
 
-export function dirname(s: string) {
+export function basename(s: string) {
     let i = s.lastIndexOf('/')
     if (i < 0)
         i = s.lastIndexOf('\\')
-    return i < 0 ? '' : s.slice(0, i)
+    return i < 0 ? s : s.slice(i)
 }
 
 export function isAbsolutePath(s: string) {
