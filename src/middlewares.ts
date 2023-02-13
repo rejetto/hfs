@@ -8,7 +8,7 @@ import {
     BUILD_TIMESTAMP,
     DEV,
     SESSION_DURATION,
-    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL,
+    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, API_URI,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs } from './vfs'
@@ -199,7 +199,8 @@ async function srpCheck(username: string, password: string) {
 
 // unify get/post parameters, with JSON decoding to not be limited to strings
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
-    ctx.params = ctx.method === 'POST' ? tryJson(await stream2string(ctx.req))
+    ctx.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
+        ? tryJson(await stream2string(ctx.req))
         : objSameKeys(ctx.query, x => Array.isArray(x) ? x : tryJson(x))
     await next()
 }
