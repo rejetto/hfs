@@ -28,8 +28,14 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         const csrf = ctx.cookies.get('csrf')
         // we don't rely on SameSite cookie option because it's https-only
-        let res = csrf && csrf !== ctx.params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
-            : await apiFun(ctx.params || {}, ctx)
+        let res
+        try {
+            res = csrf && csrf !== ctx.params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
+                : await apiFun(ctx.params || {}, ctx)
+        }
+        catch(e) {
+            res = e
+        }
         if (isAsyncGenerator(res))
             res = asyncGeneratorToReadable(res)
         if (res instanceof Readable) { // Readable, we'll go SSE-mode
@@ -44,7 +50,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             return ctx.status = res.status
         }
         if (res instanceof Error) { // generic exception
-            ctx.body = String(res)
+            ctx.body = res.message || String(res)
             return ctx.status = HTTP_BAD_REQUEST
         }
         ctx.body = res

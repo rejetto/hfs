@@ -272,6 +272,10 @@ button label {
 .dialog-content {
     padding: .2em; /* give space for focus outline */
 }
+.dialog-alert .dialog-content {
+    text-Align: center;
+    & p { text-Align: left; display: inline-block; }
+}
 
 .dialog {
     min-width: 10em;

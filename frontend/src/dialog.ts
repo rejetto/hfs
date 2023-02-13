@@ -60,7 +60,7 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
         type = 'error'
     }
     return new Promise(resolve => newDialog({
-        className: 'dialog-alert-'+type,
+        className: 'dialog-alert dialog-alert-'+type,
         title: _.capitalize(type),
         icon: '!',
         onClose: resolve,

@@ -15,12 +15,12 @@ export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) 
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: params && JSON.stringify(params),
-    }).then(res => {
+    }).then(async res => {
         stop?.()
         if (res.ok)
             return res.json()
-        const msg = `Failed API ${cmd}: ${res.statusText}`
-        console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
+        const msg = await res.text() || `Failed API ${cmd}: ${res.statusText}`
+        console.warn(msg, params ? ' ' + JSON.stringify(params) : '')
         throw new ApiError(res.status, msg)
     }, err => {
         stop?.()
