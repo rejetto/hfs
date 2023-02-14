@@ -217,14 +217,10 @@ ul.dir {
             &::before {
                 content: attr(label);
                 position: absolute;
-                top: -1.5em;
-                width: 50%;
-                padding-left: 50%;
-                background: linear-gradient(0deg, var(--bg) 40%, var(--button-bg) 40%, var(--bg) 50%);
+                top: -1.8em;
                 font-size: smaller;
-                margin-left: -0.3em;
-                opacity: .8;
-                text-shadow: 0 0 6px var(--bg);
+                margin-left: calc(50% - 1em);
+                opacity: .9;
             }
         }
     }
@@ -273,8 +269,8 @@ button label {
     padding: .2em; /* give space for focus outline */
 }
 .dialog-alert .dialog-content {
-    text-Align: center;
-    & p { text-Align: left; display: inline-block; }
+    text-align: center;
+    & p { text-align: left; display: inline-block; }
 }
 
 .dialog {
