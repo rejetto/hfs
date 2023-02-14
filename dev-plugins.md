@@ -146,11 +146,11 @@ There you'll find `HFS.onEvent` function that is the base of communication.
 `onEvent(eventName:string, callback: (object) => any)` your callback will be called on the specified event.
 Depending on the event you'll have an object with parameters in it, and may return some output. Refer to the specific event for further information.
 
-This is a list of available frontend events, with respective parameters and output.
+This is a list of available frontend events, with respective object parameter and output.
 
 - `additionalEntryProps`
     - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-props` container.
-    - parameters `{ entry: Entry }`
+    - parameter `{ entry: Entry }`
 
       The `Entry` type is an object with the following properties:
         - `n: string` name of the entry, including relative path in some cases.
@@ -158,7 +158,11 @@ This is a list of available frontend events, with respective parameters and outp
         - `t?: Date` generic timestamp, combination of creation-time and modified-time.
         - `c?: Date` creation-time.
         - `m?: Date` modified-time.
-    - output `string | void`
+    - output `string | falsy`
+- `afterEntryName`
+    - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
+    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - output `string | falsy`
 
 ## Publish your plug-in
 
@@ -179,6 +183,8 @@ HFS will scan through them in alphabetical order searching for a compatible one.
 
 ## API version history
 
+- 5 (v0.33.0)
+  - event.afterEntryName
 - 4.1 (v0.23.4)
   - config.type:array added $width, $column and fixed height 
 - 4 (v0.23.0)

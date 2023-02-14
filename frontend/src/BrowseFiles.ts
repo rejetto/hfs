@@ -189,6 +189,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
                 h('a', { href }, !containerDir && hIcon('file'),  name)
             ),
+        useEntryCustomCode('afterEntryName', entry),
         h(EntryProps, entry),
         h('div', { style:{ clear:'both' } })
     )
@@ -198,14 +199,18 @@ function fixUrl(s:string) {
     return s.replace(/[#%]/g, encodeURIComponent)
 }
 
+function useEntryCustomCode(name: string, entry: DirEntry) {
+    const code = useMemo(()=> hfsEvent(name, { entry }).filter(Boolean).join(''),
+        [entry])
+    return h(Html, { code, className: name })
+}
+
 const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
     const { t, s } = entry
     const today = t && t > entry.midnight
     const shortTs = isMobile()
-    const code = useMemo(()=> hfsEvent('additionalEntryProps', { entry }).join(''),
-        [entry])
     return h('div', { className: 'entry-props' },
-        h(Html, { code, className: 'add-props' }),
+        useEntryCustomCode('additionalEntryProps', entry),
         h(EntrySize, { s }),
         t && h('span', {
             className: 'entry-ts',
