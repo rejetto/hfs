@@ -141,12 +141,29 @@ The following information applies to the default front-end, and may not apply to
 
 ### Javascript
 Once your script is loaded into the frontend (via `frontend_js`), you will have access to the `HFS` object in the global scope.
-There you'll find `HFS.onEvent` function that is the base of communication.
 
-`onEvent(eventName:string, callback: (object) => any)` your callback will be called on the specified event.
-Depending on the event you'll have an object with parameters in it, and may return some output. Refer to the specific event for further information.
+API at this level is done with frontend-events, that you can handle by calling
 
-This is a list of available frontend events, with respective object parameter and output.
+```typescript
+HFS.onEvent(eventName, callback)
+
+//type callback = (parameters: object, tools: object) => any
+``` 
+
+Parameters of your callback and meaning of returned value varies with the event name.
+Refer to the specific event for further information.
+Tools are extra data and functions to help you:
+- `React` whole React object, as for require('react')
+- `h` shortcut for React.createElement
+- `state` object with many values in it. [Refer here for details](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts).
+
+Some frontend-events can return Html, which can be expressed in several ways
+- as string, containing markup
+- as DOM Nodes, as for document.createElement()
+- as ReactElement
+- null, undefined, false and empty-string will just be discarded 
+
+This is a list of available frontend-events, with respective object parameter and output.
 
 - `additionalEntryProps`
     - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-props` container.
@@ -158,11 +175,11 @@ This is a list of available frontend events, with respective object parameter an
         - `t?: Date` generic timestamp, combination of creation-time and modified-time.
         - `c?: Date` creation-time.
         - `m?: Date` modified-time.
-    - output `string | falsy`
+    - output `Html`
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
     - parameter `{ entry: Entry }` (refer above for Entry object)
-    - output `string | falsy`
+    - output `Html`
 
 ## Publish your plug-in
 

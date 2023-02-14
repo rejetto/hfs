@@ -1,10 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h } from 'react'
+import React, { createElement as h } from 'react'
 import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
 import { Dict } from '@hfs/shared'
+import { state } from './state'
 export * from '@hfs/shared'
 
 export function hIcon(name: string, props?:any) {
@@ -38,16 +39,17 @@ export function working() {
 
 export function hfsEvent(name: string, params?:Dict) {
     const output: any[] = []
-    document.dispatchEvent(new CustomEvent('hfs.'+name, { detail:{ params, output } }))
+    document.dispatchEvent(new CustomEvent('hfs.'+name, { detail: { params, output } }))
     return output
 }
 
 const HFS: any = (window as any).HFS = {}
 
-HFS.onEvent = (name: string, cb: (params:any, output:any) => any) => {
+HFS.onEvent = (name: string, cb: (params:any, tools: any, output:any) => any) => {
+    const tools = { h, React, state }
     document.addEventListener('hfs.' + name, ev => {
         const { params, output } = (ev as CustomEvent).detail
-        const res = cb(params, output)
+        const res = cb(params, tools, output)
         if (res !== undefined && Array.isArray(output))
             output.push(res)
     })
