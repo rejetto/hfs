@@ -180,8 +180,8 @@ Valid keys in a node are:
     - `"*"`: any account can, i.e. anyone who logged in.
     - `[ frank, peter ]`: the list of accounts who can.
 - `can_see`: specify who can see this entry. Even if a user can download you can still make the file not appear in the list.
+  Remember that to see in the list you must also be able to download (read), or else you won't see it anyway. Value is a `WhoCan` descriptor, refer above.
 - `can_upload` specify who can upload. Applies to folders with a source. Default is none. 
-  Remember that to see in the list you must also be able to download, or else you won't see it anyway. Value is a `WhoCan` descriptor, refer above.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
   masks:
