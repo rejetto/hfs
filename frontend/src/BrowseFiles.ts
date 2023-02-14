@@ -11,8 +11,8 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, hError, hfsEvent, hIcon, isMobile } from './misc'
-import { Checkbox, Html, Spinner } from './components'
+import { domOn, formatBytes, hError, hIcon, isMobile } from './misc'
+import { Checkbox, Html, Spinner, useCustomCode } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import { alertDialog } from './dialog'
@@ -35,6 +35,7 @@ export function BrowseFiles() {
     return useAuthorized() && h(Fragment, {},
         h(Html, { code: serverConfig?.custom_header }),
         h(Head),
+        useCustomCode('afterHead'),
         hError(error)
         || h(list ? FilesList : Spinner))
 }
@@ -189,7 +190,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
                 h('a', { href }, !containerDir && hIcon('file'),  name)
             ),
-        useEntryCustomCode('afterEntryName', entry),
+        useCustomCode('afterEntryName', { entry }),
         h(EntryProps, entry),
         h('div'),
     )
@@ -199,18 +200,13 @@ function fixUrl(s:string) {
     return s.replace(/[#%]/g, encodeURIComponent)
 }
 
-function useEntryCustomCode(name: string, entry: DirEntry) {
-    const code = useMemo(()=> hfsEvent(name, { entry }).filter(Boolean).join(''),
-        [entry])
-    return h(Html, { code, className: name })
-}
 
 const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
     const { t, s } = entry
     const today = t && t > entry.midnight
     const shortTs = isMobile()
     return h('div', { className: 'entry-props' },
-        useEntryCustomCode('additionalEntryProps', entry),
+        useCustomCode('additionalEntryProps', { entry }),
         h(EntrySize, { s }),
         t && h('span', {
             className: 'entry-ts',

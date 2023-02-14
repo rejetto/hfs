@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, useMemo } from 'react'
 import { formatBytes, hIcon, prefix } from './misc'
-import { Spinner } from './components'
+import { Spinner, useCustomCode } from './components'
 import { useSnapState } from './state'
 import { MenuPanel } from './menu'
 import { Breadcrumbs } from './Breadcrumbs'
@@ -11,6 +11,7 @@ import { FilterBar } from './FilterBar'
 export function Head() {
     return h('header', {},
         h(MenuPanel),
+        useCustomCode('afterMenuBar'),
         h(Breadcrumbs),
         h(FolderStats),
         h(FilterBar),

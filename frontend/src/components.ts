@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { hIcon } from './misc'
+import { hfsEvent, hIcon } from './misc'
 import { createElement as h, HTMLAttributes, ReactNode, useMemo } from 'react'
 
 export function Spinner() {
@@ -51,4 +51,10 @@ export function Html({ code, ...rest }:{ code:string } & HTMLAttributes<any>) {
     if (!code)
         return null
     return h('span', { ...rest, dangerouslySetInnerHTML: o })
+}
+
+export function useCustomCode(name: string, props={}) {
+    const code = useMemo(()=> hfsEvent(name, props).filter(x => x === 0 || x).join(''),
+        Object.values(props))
+    return h(Html, { code, className: name })
 }
