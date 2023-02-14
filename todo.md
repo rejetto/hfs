@@ -25,6 +25,7 @@
 - admin/monitor: show some info on what folder is browsing
 - admin/fs: navigate file picker with keyboard
 - plugin: list of IPs seen
+- plugin: automatic redirection from http to https
 - admin: in a group, show linked accounts
 - admin: warn in case of items with same name
 - command line help --help
