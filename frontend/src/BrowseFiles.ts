@@ -191,7 +191,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
             ),
         useEntryCustomCode('afterEntryName', entry),
         h(EntryProps, entry),
-        h('div', { style:{ clear:'both' } })
+        h('div'),
     )
 })
 

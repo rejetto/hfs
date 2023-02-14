@@ -211,6 +211,7 @@ ul.dir {
                 width: 1.5em;
             }
         }
+        &>div:last-of-type { clear:both }
         &.page-separator {
             margin-top: 1em;
             position: relative;
