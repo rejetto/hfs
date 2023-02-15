@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, useEffect } from 'react'
+import { createElement as h, useEffect, useMemo } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
 import { hIcon, prefix, useStateMounted } from './misc'
 import { loginDialog } from './login'
@@ -28,15 +28,15 @@ export function MenuPanel() {
         setTimeout(() => setStarted1secAgo(true), 1000)
     }, [stopSearch, setStarted1secAgo])
 
-    //TODO do something for list > 63KB as it hit the url limit (1kb reserved for the rest for the url)
-    const list = Object.keys(selected).map(s => s.endsWith('/') ? s.slice(0,-1) : s).join('*')
+    // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
+    const list = useMemo(() => Object.keys(selected).map(s => s.endsWith('/') ? s.slice(0,-1) : s).join('*'), [selected])
     return h('div', { id: 'menu-panel' },
         h('div', { id: 'menu-bar' },
             h(LoginButton),
             h(MenuButton, {
-                icon: 'filter',
-                label: "Filter",
-                tooltip: "Show only elements matching text you type. Works on list already got from the server. Also enables selection of files, for selective \"Download zip\".",
+                icon: 'check',
+                label: "Select",
+                tooltip: `Selection applies to "Download zip", but you can also filter the list`,
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
