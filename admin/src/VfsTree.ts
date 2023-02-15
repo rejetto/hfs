@@ -83,16 +83,23 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                     alignItems: 'center',
                 }
             },
-                isRoot ? iconTooltip(Home, "home, or root if you like")
-                    : folder ? iconTooltip(FolderIcon, "Folder")
-                        : iconTooltip(FileIcon, "File"),
-                node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
-                node.can_upload !== undefined ? iconTooltip(Upload, "Upload permission")
-                    : !isRoot && !node.source && iconTooltip(Cloud, "Virtual (no source)"),
-                isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
-                isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
-                node.default && iconTooltip(Web, "Act as website"),
-                node.masks && iconTooltip(TheaterComedy, "Masks"),
+                h(Box, { display: 'flex', flex: 0, },
+                    isRoot ? iconTooltip(Home, "home, or root if you like")
+                        : folder ? iconTooltip(FolderIcon, "Folder")
+                            : iconTooltip(FileIcon, "File"),
+                    // attributes
+                    h(Box, { sx: {
+                        flex: 0, ml: '2px', '&>*': { fontSize: '87%' },
+                        display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto',
+                    } },
+                        node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
+                        node.can_upload !== undefined ? iconTooltip(Upload, "Upload permission")
+                            : !isRoot && !node.source && iconTooltip(Cloud, "Virtual (no source)"),
+                        isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
+                        isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
+                        node.default && iconTooltip(Web, "Act as website"),
+                        node.masks && iconTooltip(TheaterComedy, "Masks"),
+                    ),                ),
                 isRoot ? "Home"
                     // special rendering if the whole source is not too long, and the name was not customized
                     : source?.length! < 45 && source?.endsWith(name) ? h('span', {},
