@@ -149,8 +149,10 @@ header {
 .breadcrumb:nth-child(-n+3) .icon {
     padding: 0 0.2em;
 }
-#folder-stats {
+#folder-stats, #filter-bar>span {
     font-size: 90%;
+}
+#folder-stats {
     margin: 0.4em 0 0 0.5em;
     float: right;
     & .icon {
@@ -159,16 +161,15 @@ header {
 }
 #filter {
     flex: 1;
-    margin: 0.2em auto;
     box-sizing: border-box;
 }
 #filter-bar {
     display: flex;
     align-items: center;
-    gap: .3em;
+    gap: .8em;
     margin: 0.2em 0 0;
     padding-left: 11px;
-    & input[type=checkbox] { margin-right: .7em; margin-top: .5em; }
+    & input[type=checkbox] { margin-top: .5em; }
 }
 
 ul.dir {
@@ -362,7 +363,7 @@ button label {
         & button label { display: none } /* icons only */
     }
     #filter-bar {
-        margin: 0.2em 0;
+        margin-top: 0.4em;
     }
     #filter-bar button { /* make it same size of top bar */
         width: 17.6vw;

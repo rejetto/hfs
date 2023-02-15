@@ -4,7 +4,7 @@ import { useDebounce } from 'use-debounce'
 import { Checkbox } from './components'
 
 export function FilterBar() {
-    const { patternFilter, showFilter } = useSnapState()
+    const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
     const [all, setAll] = useState(false)
     const [filter, setFilter] = useState(patternFilter)
     useEffect(() => setAll(false), [patternFilter]) // reset on change
@@ -13,6 +13,8 @@ export function FilterBar() {
 
     if (!showFilter)
         return null
+    const sel = Object.keys(selected).length
+    const fil = filteredList?.length
     return h('div', { id: 'filter-bar' },
         h(Checkbox, {
             value: all,
@@ -41,5 +43,9 @@ export function FilterBar() {
                 setFilter(ev.target.value)
             }
         }),
+        h('span', {}, [
+            sel && `${sel} selected`,
+            fil !== undefined && fil < list.length && `${fil} filtered`,
+        ].filter(Boolean).join(', ') ),
     )
 }
