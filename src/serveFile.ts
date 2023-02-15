@@ -76,7 +76,7 @@ export function serveFile(source:string, mime?:string, content?: string | Buffer
             const range = getRange(ctx, stats.size)
             ctx.body = createReadStream(source, range)
         }
-        catch {
+        catch (e: any) {
             return ctx.status = HTTP_NOT_FOUND
         }
     }

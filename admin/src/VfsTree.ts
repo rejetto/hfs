@@ -5,7 +5,7 @@ import { createElement as h, ReactElement, useRef, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/lab'
 import {
     ChevronRight, ExpandMore, TheaterComedy, Folder, Home,
-    InsertDriveFileOutlined, Lock, RemoveRedEye, Web, Upload, Cloud, Delete
+    InsertDriveFileOutlined, Lock, RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode, Who } from './VfsPage'
@@ -99,7 +99,9 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                         isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
                         node.default && iconTooltip(Web, "Act as website"),
                         node.masks && iconTooltip(TheaterComedy, "Masks"),
-                    ),                ),
+                        node.size === -1 && iconTooltip(HighlightOff, "Source missing")
+                    ),
+                ),
                 isRoot ? "Home"
                     // special rendering if the whole source is not too long, and the name was not customized
                     : source?.length! < 45 && source?.endsWith(name) ? h('span', {},

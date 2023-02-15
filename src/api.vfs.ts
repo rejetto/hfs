@@ -12,6 +12,7 @@ import {
 } from './const'
 import { isMatch } from 'micromatch'
 import { getDrives } from './util-os'
+import { Stats } from 'fs'
 
 type VfsAdmin = {
     type?: string,
@@ -37,25 +38,20 @@ const apis: ApiHandlers = {
         }
 
         async function recur(node: VfsNode): Promise<VfsAdmin> {
-            const dir = await nodeIsDirectory(node)
-            const stats: Pick<VfsAdmin, 'size' | 'ctime' | 'mtime'> = {}
-            try {
-                if (!dir)
-                    Object.assign(stats, _.pick(await stat(node.source!), ['size', 'ctime', 'mtime']))
-            }
-            catch {
-                stats.size = -1
-            }
-            if (stats && Number(stats.mtime) === Number(stats.ctime))
-                delete stats.mtime
+            const stats: false | Stats = Boolean(node.source) && await stat(node.source!).catch(e => false)
+            const isDir = !node.source || stats && stats.isDirectory()
+            const copyStats: Pick<VfsAdmin, 'size' | 'ctime' | 'mtime'> = stats ? _.pick(stats, ['size', 'ctime', 'mtime'])
+                : { size: node.source ? -1 : undefined }
+            if (copyStats.mtime && Number(copyStats.mtime) === Number(copyStats.ctime))
+                delete copyStats.mtime
             const isRoot = node === vfs
             return {
-                ...stats,
+                ...copyStats,
                 ...node,
-                website: dir && node.source && await stat(join(node.source, 'index.html')).then(() => true, () => undefined)
+                website: isDir && node.source && await stat(join(node.source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
                 name: isRoot ? undefined : getNodeName(node),
-                type: dir ? 'folder' : undefined,
+                type: isDir ? 'folder' : undefined,
                 children: node.children && await Promise.all(node.children.map(recur)),
             }
         }
