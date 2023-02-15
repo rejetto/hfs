@@ -1,5 +1,5 @@
 exports.description = "Counts downloads for each file, and displays the total in the list"
-exports.version = 2 // comply to new async init/unload
+exports.version = 3 // stylizable
 exports.apiRequired = 3
 
 exports.init = async api => {
@@ -28,7 +28,8 @@ exports.init = async api => {
     }
 
     return {
-        frontend_js: 'hits.js',
+        frontend_js: 'main.js',
+        frontend_css: 'style.css',
         unload: () => save.flush(), // we may have pending savings
         middleware: (ctx) =>
             () => { // execute after other middlewares are done
