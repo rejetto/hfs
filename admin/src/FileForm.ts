@@ -20,7 +20,7 @@ export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNo
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
-        setValues(Object.assign({ can_see: null, can_read: null, can_upload: null }, rest))
+        setValues(Object.assign({ can_see: null, can_read: null, can_upload: null, can_delete: null }, rest))
     }, [file]) //eslint-disable-line
 
     const { source } = file
@@ -87,6 +87,7 @@ export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNo
             can_read && perm('can_see', "Who can see", "You can hide and keep it downloadable if you have a direct link",
                 { accounts: Array.isArray(can_read) ? allAccounts.filter(x => can_read.includes(x.username)) : undefined }),
             isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source"),
+            isDir && perm('can_delete', "Who can delete", hasSource ? '' : "Works only on folders with source"),
             hasSource && !realFolder && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: 4, label: 'Created', toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: 4, label: 'Modified', toField: formatTimestamp },

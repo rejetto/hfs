@@ -8,6 +8,18 @@ import { Dict } from '@hfs/shared'
 import { state } from './state'
 export * from '@hfs/shared'
 
+export const ERRORS: Record<number, string> = {
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not found",
+    500: "Server error",
+}
+
+export function err2msg(err: number | Error) {
+    return typeof err === 'number' ? ERRORS[err]
+        : (ERRORS[(err as any).code] || err.message || String(err))
+}
+
 export function hIcon(name: string, props?:any) {
     return h(Icon, { name, ...props })
 }

@@ -8,6 +8,7 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
+import { ERRORS } from './misc'
 
 const API = 'file_list'
 
@@ -42,6 +43,7 @@ export default function useFetchList() {
         state.loading = true
         state.error = undefined
         state.can_upload = false
+        state.can_delete = false
         // buffering entries is necessary against burst of events that will hang the browser
         const buffer: DirList = []
         const flush = () => {
@@ -67,7 +69,7 @@ export default function useFetchList() {
                 case 'msg':
                     data.forEach(async (entry: any) => {
                         if (entry.props)
-                            return Object.assign(state, _.pick(entry.props, ['can_upload']))
+                            return Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete']))
                         if (entry.add)
                             return buffer.push(entry.add)
                         const { error } = entry
@@ -98,11 +100,6 @@ export default function useFetchList() {
             src.close()
         }
     }, [desiredPath, search, snap.username, snap.listReloader, snap.loginRequired])
-}
-
-const ERRORS = {
-    401: "Unauthorized",
-    404: "Not found",
 }
 
 export function reloadList() {

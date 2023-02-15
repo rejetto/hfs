@@ -155,6 +155,7 @@ export interface VfsPerms {
     can_see?: Who
     can_read?: Who
     can_upload?: Who
+    can_delete?: Who
 }
 export interface VfsNode extends VfsPerms {
     id: string

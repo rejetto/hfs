@@ -41,7 +41,7 @@ export function BrowseFiles() {
 }
 
 function FilesList() {
-    const { filteredList, list, loading, stoppedSearch, can_upload } = useSnapState()
+    const { filteredList, list, loading, stoppedSearch, can_upload, can_delete } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
     const pageSize = 100
     const [page, setPage] = useState(0)

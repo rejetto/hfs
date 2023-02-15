@@ -182,6 +182,7 @@ Valid keys in a node are:
 - `can_see`: specify who can see this entry. Even if a user can download you can still make the file not appear in the list.
   Remember that to see in the list you must also be able to download (read), or else you won't see it anyway. Value is a `WhoCan` descriptor, refer above.
 - `can_upload` specify who can upload. Applies to folders with a source. Default is none. 
+- `can_delete` specify who can delete. Applies to folders with a source. Default is none.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
   masks:

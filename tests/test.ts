@@ -3,7 +3,7 @@ import { wrapper } from 'axios-cookiejar-support'
 import { CookieJar } from 'tough-cookie'
 import { Done } from 'mocha'
 import { srpSequence } from '@hfs/shared/srp'
-import { createReadStream, rmSync, unlinkSync } from 'fs'
+import { createReadStream, rmSync } from 'fs'
 import { join } from 'path'
 /*
 import { PORT, srv } from '../src'

@@ -25,6 +25,7 @@ interface VfsPerm {
     can_read: Who
     can_see: Who // use this to hide something you can_read
     can_upload: Who
+    can_delete: Who
 }
 
 type Masks = Record<string, VfsNode>
@@ -46,6 +47,7 @@ export const defaultPerms: VfsPerm = {
     can_see: WHO_ANYONE,
     can_read: WHO_ANYONE,
     can_upload: WHO_NO_ONE,
+    can_delete: WHO_NO_ONE,
 }
 
 export const MIME_AUTO = 'auto'

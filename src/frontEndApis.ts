@@ -7,9 +7,16 @@ import { defineConfig } from './config'
 import events from './events'
 import Koa from 'koa'
 import { dirTraversal, isValidFileName } from './util-files'
-import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_FOUND } from './const'
+import {
+    HTTP_BAD_REQUEST,
+    HTTP_CONFLICT,
+    HTTP_FORBIDDEN,
+    HTTP_NOT_FOUND,
+    HTTP_SERVER_ERROR,
+    HTTP_UNAUTHORIZED
+} from './const'
 import { hasPermission, urlToNode } from './vfs'
-import { mkdir } from 'fs/promises'
+import { mkdir, rm } from 'fs/promises'
 import { join } from 'path'
 
 const customHeader = defineConfig('custom_header')
@@ -23,6 +30,7 @@ export const frontEndApis: ApiHandlers = {
     },
 
     get_notifications({ channel }, ctx) {
+        apiAssertTypes({ string: { channel } })
         const list = new SendListReadable()
         list.ready() // on chrome109 EventSource doesn't emit 'open' until something is sent
         return list.events(ctx, {
@@ -33,9 +41,10 @@ export const frontEndApis: ApiHandlers = {
     },
 
     async create_folder({ path, name }, ctx) {
+        apiAssertTypes({ string: { path, name } })
         if (!isValidFileName(name) || dirTraversal(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
-        const parentNode = await urlToNode(path)
+        const parentNode = await urlToNode(path, ctx)
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
         const { source } = parentNode
@@ -50,6 +59,24 @@ export const frontEndApis: ApiHandlers = {
         }
     },
 
+    async del({ path }, ctx) {
+        apiAssertTypes({ string: { path } })
+        const node = await urlToNode(path, ctx)
+        if (!node)
+            throw new ApiError(HTTP_NOT_FOUND)
+        if (!node.source)
+            throw new ApiError(HTTP_FORBIDDEN)
+        if (!hasPermission(node, 'can_delete', ctx))
+            throw new ApiError(HTTP_UNAUTHORIZED)
+        try {
+            await rm(node.source, { recursive: true })
+            return {}
+        }
+        catch (e: any) {
+            throw new ApiError(e.code || HTTP_SERVER_ERROR, e)
+        }
+    },
+
 }
 
 export function notifyClient(ctx: Koa.Context, name: string, data: any) {
@@ -59,3 +86,10 @@ export function notifyClient(ctx: Koa.Context, name: string, data: any) {
 }
 
 const NOTIFICATION_PREFIX = 'notificationChannel:'
+
+function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: any  } }) {
+    for (const [type,params] of Object.entries(paramsByType))
+        for (const [name,val] of Object.entries(params))
+            if (typeof val !== type)
+                throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
+}

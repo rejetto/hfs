@@ -24,6 +24,7 @@ function Content() {
         h(MenuButton, {
             icon: 'password',
             label: "Change password",
+            onClickAnimation: false,
             async onClick() {
                 const pwd = await promptDialog("Enter new password", { type: 'password' })
                 if (!pwd) return

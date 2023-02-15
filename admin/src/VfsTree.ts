@@ -5,7 +5,7 @@ import { createElement as h, ReactElement, useRef, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/lab'
 import {
     ChevronRight, ExpandMore, TheaterComedy, Folder, Home,
-    InsertDriveFileOutlined, Lock, RemoveRedEye, Web, Upload, Cloud
+    InsertDriveFileOutlined, Lock, RemoveRedEye, Web, Upload, Cloud, Delete
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode, Who } from './VfsPage'
@@ -86,7 +86,8 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 isRoot ? iconTooltip(Home, "home, or root if you like")
                     : folder ? iconTooltip(FolderIcon, "Folder")
                         : iconTooltip(FileIcon, "File"),
-                node.can_upload ? iconTooltip(Upload, "Upload permission")
+                node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
+                node.can_upload !== undefined ? iconTooltip(Upload, "Upload permission")
                     : !isRoot && !node.source && iconTooltip(Cloud, "Virtual (no source)"),
                 isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
                 isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),

@@ -27,14 +27,15 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = hasPermission(node, 'can_upload', ctx)
+    const can_delete = hasPermission(node, 'can_delete', ctx)
     if (!sse)
         return {
-            can_upload,
+            can_upload, can_delete,
             list: await asyncGeneratorToArray(produceEntries())
         }
     setTimeout(async () => {
-        if (can_upload)
-            list.custom({ props: { can_upload } })
+        if (can_upload || can_delete)
+            list.custom({ props: { can_upload, can_delete } })
         for await (const entry of produceEntries())
             list.add(entry)
         list.close()
