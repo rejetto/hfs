@@ -42,8 +42,8 @@ export default function useFetchList() {
         state.selected = {}
         state.loading = true
         state.error = undefined
-        state.can_upload = false
-        state.can_delete = false
+        state.can_upload = undefined
+        state.can_delete = undefined
         // buffering entries is necessary against burst of events that will hang the browser
         const buffer: DirList = []
         const flush = () => {
@@ -70,6 +70,8 @@ export default function useFetchList() {
                     data.forEach(async (entry: any) => {
                         if (entry.props)
                             return Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete']))
+                        state.can_upload ??= false
+                        state.can_delete ??= false
                         if (entry.add)
                             return buffer.push(entry.add)
                         const { error } = entry

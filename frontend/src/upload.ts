@@ -320,7 +320,7 @@ function abortCurrentUpload() {
     req?.abort()
 }
 
-export function acceptDropFiles(cb: false | ((files:File[]) => void)) {
+export function acceptDropFiles(cb: false | undefined | ((files:File[]) => void)) {
     return {
         onDragOver(ev: DragEvent) {
             ev.preventDefault()

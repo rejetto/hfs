@@ -28,11 +28,11 @@ export const state = proxy<{
     serverConfig?: any,
     loginRequired?: boolean, // force user to login before proceeding
     messageOnly?: string, // no gui, just show this message
-    can_upload: boolean
-    can_delete: boolean
+    can_upload?: boolean
+    can_delete?: boolean
 }>({
-    can_delete: false,
-    can_upload: false,
+    can_delete: undefined,
+    can_upload: undefined,
     iconsClass: '',
     username: '',
     list: [],

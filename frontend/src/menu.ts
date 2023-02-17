@@ -39,6 +39,13 @@ export function MenuPanel() {
 
     // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
     const list = useMemo(() => Object.keys(selected).map(s => s.endsWith('/') ? s.slice(0,-1) : s).join('*'), [selected])
+
+    // avoid useless dom changes while we are still waiting for necessary data
+    const [changingButton, setChangingButton] = useState('')
+    useEffect(() => {
+        if (can_upload !== undefined)
+            setChangingButton(showFilter && can_delete ? 'delete' : (can_upload || qs.length > 0) ? 'upload' : '')
+    }, [showFilter, can_delete, can_upload, qs.length])
     return h('div', { id: 'menu-panel' },
         h('div', { id: 'menu-bar' },
             h(LoginButton),
@@ -51,12 +58,12 @@ export function MenuPanel() {
                     state.showFilter = !showFilter
                 }
             }),
-            h(MenuButton, showFilter && can_delete ? {
+            h(MenuButton, changingButton === 'delete' ? {
                 icon: 'trash',
                 label: "Delete",
                 className: 'show-sliding',
                 onClick: () => deleteFiles(Object.keys(selected), pathname)
-            } : (can_upload || qs.length > 0) ? {
+            } : changingButton === 'upload' ? {
                 icon: 'upload',
                 label: "Upload",
                 className: 'show-sliding ' + (uploading ? 'ani-working' : ''),
