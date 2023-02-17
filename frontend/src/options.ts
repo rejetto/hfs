@@ -43,6 +43,12 @@ export function showOptions (){
                     state.foldersFirst = v
                 }
             }, "Folders first"),
+            h(Checkbox, {
+                value: snap.sortNumerics,
+                onChange(v) {
+                    state.sortNumerics = v
+                }
+            }, "Numeric names"),
 
             h(Select, {
                 options: ['', 'light', 'dark'].map(s => ({ label: "theme: " + (s || "auto"), value: s })),

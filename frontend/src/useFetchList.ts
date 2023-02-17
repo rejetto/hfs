@@ -111,7 +111,7 @@ export function reloadList() {
 const { compare:localCompare } = new Intl.Collator(navigator.language)
 
 function sort(list: DirList) {
-    const { sortBy, foldersFirst } = state
+    const { sortBy, foldersFirst, sortNumerics } = state
     // optimization: precalculate string comparisons
     const bySize = sortBy === 'size'
     const byExt = sortBy === 'extension'
@@ -119,12 +119,13 @@ function sort(list: DirList) {
     const invert = state.invertOrder ? -1 : 1
     return list.sort((a,b) =>
         foldersFirst && -compare(a.isFolder, b.isFolder)
-        || invert*(bySize ? compare(a.s||0, b.s||0)
+        || invert * (bySize ? compare(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
                 : byTime ? compare(a.t, b.t)
                     : 0
         )
-        || invert*localCompare(a.n, b.n) // fallback to name/path
+        || sortNumerics && (invert * compare(parseFloat(a.n), parseFloat(b.n)))
+        || invert * localCompare(a.n, b.n) // fallback to name/path
     )
 }
 
@@ -148,6 +149,7 @@ const sortAgain = _.debounce(()=> state.list = sort(state.list), 100)
 subscribeKey(state, 'sortBy', sortAgain)
 subscribeKey(state, 'invertOrder', sortAgain)
 subscribeKey(state, 'foldersFirst', sortAgain)
+subscribeKey(state, 'sortNumerics', sortAgain)
 
 subscribeKey(state, 'patternFilter', v => {
     if (!v)

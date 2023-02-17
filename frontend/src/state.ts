@@ -23,6 +23,7 @@ export const state = proxy<{
     sortBy: string,
     invertOrder: boolean,
     foldersFirst: boolean,
+    sortNumerics: boolean,
     theme: string,
     adminUrl?: string,
     serverConfig?: any,
@@ -46,6 +47,7 @@ export const state = proxy<{
     sortBy: 'name',
     invertOrder: false,
     foldersFirst: true,
+    sortNumerics: false,
     theme: '',
 })
 
@@ -54,7 +56,7 @@ export function useSnapState() {
 }
 
 const SETTINGS_KEY = 'hfs_settings'
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'invertOrder', 'foldersFirst', 'theme']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'sortNumerics', 'invertOrder', 'foldersFirst', 'theme']
 
 loadSettings()
 for (const k of SETTINGS_TO_STORE)
