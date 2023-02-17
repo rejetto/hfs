@@ -6,7 +6,7 @@ import { Readable } from 'stream'
 import { asyncGeneratorToReadable, onOff } from './misc'
 import events from './events'
 import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
-import _, { DebouncedFunc } from 'lodash'
+import _ from 'lodash'
 
 export class ApiError extends Error {
     constructor(public status:number, message?:string | Error | object) {
@@ -66,7 +66,7 @@ type SendListFunc<T> = (list:SendListReadable<T>) => void
 export class SendListReadable<T> extends Readable {
     protected lastError: string | number | undefined
     protected buffer: any[] = []
-    protected processBuffer: DebouncedFunc<any>
+    protected processBuffer: _.DebouncedFunc<any>
     constructor({ addAtStart, doAtStart, bufferTime }:{ bufferTime?: number, addAtStart?: T[], doAtStart?: SendListFunc<T> }={}) {
         super({ objectMode: true, read(){} })
         if (!bufferTime)

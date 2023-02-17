@@ -11,11 +11,9 @@ export function FilterBar() {
 
     ;[state.patternFilter] = useDebounce(showFilter ? filter : '', 300)
 
-    if (!showFilter)
-        return null
     const sel = Object.keys(selected).length
     const fil = filteredList?.length
-    return h('div', { id: 'filter-bar' },
+    return h('div', { id: 'filter-bar', className: showFilter ? 'show-sliding' : 'before-sliding' },
         h(Checkbox, {
             value: all,
             onChange(){

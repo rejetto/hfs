@@ -185,6 +185,7 @@ header {
     gap: .8em;
     margin: 0.2em 0 0;
     padding-left: 11px;
+    height: 1.8em; /* necessary to animate displaying */
     & input[type=checkbox] { margin-top: .5em; }
 }
 
