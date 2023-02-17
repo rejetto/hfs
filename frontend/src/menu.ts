@@ -32,7 +32,7 @@ export function MenuPanel() {
     const { pathname } = useLocation()
 
     useEffect(() => {
-        if (localStorage.warn_can_delete) return
+        if (!can_delete || localStorage.warn_can_delete) return
         localStorage.warn_can_delete = 1
         alertDialog("To delete, first click Select").then()
     }, [can_delete])
