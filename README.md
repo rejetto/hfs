@@ -36,6 +36,7 @@ You won't find all previous features here (yet), but still we got:
 - resumable downloads
 - resumable uploads
 - download folders as zip archive
+- remote delete
 - simple website serving
 - plug-ins
 - log file

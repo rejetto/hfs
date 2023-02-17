@@ -34,7 +34,6 @@
 - log filter plugin
 - admin: improve masks editor
 - admin: warn before changing page if we have unsaved changes
-- publish to npm (so people can "npm install hfs")
 - frontend search supporting masks
 - remove seconds from time
 - plugin: upload quota per-account (possibly inheriting), and a default
