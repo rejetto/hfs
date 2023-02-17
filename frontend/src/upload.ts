@@ -82,18 +82,19 @@ export function showUpload() {
 
         return h(FlexV, { props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
             h(FlexV, { position: 'sticky', top: -4, background: 'var(--bg)' },
-                h(Flex, { justifyContent: 'center', flexWrap: 'wrap', },
-                    can_upload && h('button', { onClick: () => selectFiles() }, "Pick files"),
-                    can_upload && h('button', { onClick: () => selectFiles(true) }, "Pick folder"),
-                    files.length > 0 &&  h('button', {
-                        onClick() {
-                            enqueue(files)
-                            setFiles([])
-                        }
-                    }, `Send ${files.length} files, ${formatBytes(files.reduce((a, f) => a + f.size, 0))}`),
-                    files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
-                    can_upload && h('button', { onClick: createFolder }, "Create folder"),
-                ),
+                !can_upload ? "No upload permission for the current folder"
+                    : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', },
+                        h('button', { onClick: () => selectFiles() }, "Pick files"),
+                        h('button', { onClick: () => selectFiles(true) }, "Pick folder"),
+                        files.length > 0 &&  h('button', {
+                            onClick() {
+                                enqueue(files)
+                                setFiles([])
+                            }
+                        }, `Send ${files.length} files, ${formatBytes(files.reduce((a, f) => a + f.size, 0))}`),
+                        files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
+                        h('button', { onClick: createFolder }, "Create folder"),
+                    ),
             ),
             h(FilesList, {
                 files,
