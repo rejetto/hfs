@@ -24,6 +24,7 @@
         }
         .dialog-backdrop { background: #333b; }
         .error-msg { color: #b88; background-color: #623; }
+        button.toggled { color: #eee; }
     }
 }
 body {
@@ -88,7 +89,8 @@ button {
     cursor: pointer;
 }
 button.toggled {
-    filter: brightness(.8);
+    color: #444;
+    text-shadow: 0 0 2px var(--good-contrast);
 }
 button, .breadcrumb { /* consistent focus color */
     &:focus-visible {
@@ -184,9 +186,10 @@ header {
     align-items: center;
     gap: .8em;
     margin: 0.2em 0 0;
-    padding-left: 11px;
+    padding: 2px 0 1px 11px;
     height: 1.8em; /* necessary to animate displaying */
     & input[type=checkbox] { margin-top: .5em; }
+    & span:empty { display:none } /* avoid flex-gap */
 }
 
 ul.dir {
@@ -304,11 +307,13 @@ button label {
     gap: .1em;
     background: var(--bg);
     &,&>button {
-        box-shadow: 0 0 .3em .3em var(--bg);
+        box-shadow: 0 0 .3em .3em #0003;
         z-index: 1; /* make shadow visible also when page-first button is not selected */
     }
     padding: 0 0.2em 0.2em;
     & #paging-middle {
+        padding: 0 0.5em;
+        margin: 0 -0.3em;
         display: flex;
         gap: .5em;
         flex: 1;
