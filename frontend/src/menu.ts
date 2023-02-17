@@ -50,6 +50,7 @@ export function MenuPanel() {
         h('div', { id: 'menu-bar' },
             h(LoginButton),
             h(MenuButton, {
+                id: 'select-button',
                 icon: 'check',
                 label: "Select",
                 tooltip: `Selection applies to "Zip" and "Delete" (when available), but you can also filter the list`,
@@ -59,11 +60,13 @@ export function MenuPanel() {
                 }
             }),
             h(MenuButton, changingButton === 'delete' ? {
+                id: 'delete-button',
                 icon: 'trash',
                 label: "Delete",
                 className: 'show-sliding',
                 onClick: () => deleteFiles(Object.keys(selected), pathname)
             } : changingButton === 'upload' ? {
+                id: 'upload-button',
                 icon: 'upload',
                 label: "Upload",
                 className: 'show-sliding ' + (uploading ? 'ani-working' : ''),
@@ -71,11 +74,13 @@ export function MenuPanel() {
             } : { icon: '', label: '', className: 'before-sliding' }),
             h(MenuButton, getSearchProps()),
             h(MenuButton, {
+                id: 'options-button',
                 icon: 'settings',
                 label: 'Options',
                 onClick: showOptions
             }),
             h(MenuLink, {
+                id: 'zip-button',
                 icon: 'archive',
                 label: "Zip",
                 tooltip: list ? "Download selected elements as a single zip file"
@@ -105,6 +110,7 @@ export function MenuPanel() {
 
     function getSearchProps() {
         return stopSearch && started1secAgo ? {
+            id: 'search-stop-button',
             icon: 'stop',
             label: 'Stop list',
             className: 'ani-working',
@@ -113,12 +119,14 @@ export function MenuPanel() {
                 state.stoppedSearch = true
             }
         } : state.remoteSearch && !stopSearch ? {
+            id: 'search-clear-button',
             icon: 'search_off',
             label: 'Clear search',
             onClick() {
                 state.remoteSearch = ''
             }
         } : {
+            id: 'search-button',
             icon: 'search',
             label: "Search",
             onClickAnimation: false,
@@ -171,10 +179,12 @@ function LoginButton() {
     const snap = useSnapState()
     const navigate = useNavigate()
     return MenuButton(snap.username ? {
+        id: 'user-button',
         icon: 'user',
         label: snap.username,
         onClick: showUserPanel
     } : {
+        id: 'login-button',
         icon: 'login',
         label: 'Login',
         onClickAnimation: false,
