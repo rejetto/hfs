@@ -30,7 +30,7 @@ export * from '@hfs/shared/dialogs'
 dialogsDefaults.Container = function Container(d:DialogOptions) {
     const ref = useRef<HTMLElement>()
     const { width, height } = useWindowSize()
-    const mobile = Math.min(width, height) < 500
+    const mobile = width > 0 && Math.min(width, height) < 500
     useEffect(()=> {
         const h = setTimeout(() => {
             const el = ref.current

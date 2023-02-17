@@ -80,6 +80,11 @@ export function try_(cb: () => any, onException?: (e:any) => any) {
         return onException?.(e)
     }
 }
+
+export function with_<T,RT>(par:T, cb: (par:T) => RT) {
+    return cb(par)
+}
+
 export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: WindowEventMap[K]) => void, { target=window }={}) {
     target.addEventListener(eventName, cb)
     return () => target.removeEventListener(eventName, cb)

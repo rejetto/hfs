@@ -5,7 +5,7 @@ import { createElement as h, useEffect, useRef } from 'react';
 import { apiCall, useApi, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh } from '@mui/icons-material'
-import { Dict, modifiedSx } from './misc'
+import { Dict, modifiedSx, with_ } from './misc'
 import { subscribeKey } from 'valtio/utils'
 import {
     Form,
@@ -225,18 +225,18 @@ function ServerPort({ label, value, onChange, getApi, status, suggestedPort=1, e
 }
 
 function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
-    const yesno = !value || value==='-'
+    const yesNo = !value || value==='-'
     const example = 'example.com'
     return h(Box, { display: 'flex' },
         h(SelectField as Field<string>, {
             label,
-            value: yesno ? value : example,
+            value: yesNo ? value : example,
             options: { "allow all": '', "forbid all": '-', "allow some": example, },
             onChange,
             error,
-            sx: yesno ? undefined : { maxWidth: '11em' },
+            sx: yesNo ? undefined : { maxWidth: '11em' },
         }),
-        !yesno && h(StringField, {
+        !yesNo && h(StringField, {
             label: "Domain to allow",
             value,
             placeholder: 'example.com',
@@ -309,8 +309,3 @@ async function makeCert(attributes: Record<string, string>) {
         private_key: pki.privateKeyToPem(keys.privateKey),
     }
 }
-
-export function with_<T,RT>(par:T, cb: (par:T) => RT) {
-    return cb(par)
-}
-
