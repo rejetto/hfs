@@ -51,7 +51,7 @@ export default function HomePage() {
         ),
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
         !account?.adminActualAccess && entry('', md("On _localhost_ you don't need to login"),
-            SOLUTION_SEP, h(InLink, { to:'accounts' }, "to access from another computer create an account with /admin/ permission") ),
+            SOLUTION_SEP, h(InLink, { to:'accounts' }, md("to access from another computer create an account with /admin/ permission")) ),
         proxyWarning(cfg, status) && entry('warning', "A proxy was detected but none is configured",
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure you can ", h(Button, {
