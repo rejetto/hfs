@@ -117,6 +117,22 @@ header {
     z-index: 1; /* necessary to not be covered by checkboxes */
 }
 
+.before-sliding {
+    width: 0 !important;
+    flex: 0 !important;
+    margin: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    transition: all .5s;
+}
+.show-sliding {
+    transition: all .5s;
+    overflow: clip;
+    flex: 1;
+    white-space: nowrap;
+}
+
 .ani-working { animation:1s blink infinite }
 
 @keyframes blink {
@@ -237,7 +253,7 @@ ul.dir {
     justify-content: space-evenly;
     flex-wrap: wrap;
     &>* {
-        flex: auto;
+        flex: 1;
         margin: 0.1em;
     }
     & button { /* no need for horizontal padding as we are using flex to grow */

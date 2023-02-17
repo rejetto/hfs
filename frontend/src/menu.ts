@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
+import { ComponentPropsWithoutRef, createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
 import { err2msg, hError, hIcon, onlyTruthy, prefix, useStateMounted } from './misc'
 import { loginDialog } from './login'
@@ -42,26 +42,26 @@ export function MenuPanel() {
     return h('div', { id: 'menu-panel' },
         h('div', { id: 'menu-bar' },
             h(LoginButton),
-            showFilter && can_delete ? h(MenuButton, {
-                    icon: 'trash',
-                    label: "Delete",
-                    onClick: () => deleteFiles(Object.keys(selected), pathname)
-                })
-                : (can_upload || qs.length > 0) && h(MenuButton, {
-                icon: 'upload',
-                label: "Upload",
-                className: uploading && 'ani-working',
-                onClick: showUpload,
-            }),
             h(MenuButton, {
                 icon: 'check',
                 label: "Select",
-                tooltip: `Selection applies to "Download zip", but you can also filter the list`,
+                tooltip: `Selection applies to "Zip" and "Delete" (when available), but you can also filter the list`,
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
                 }
             }),
+            h(MenuButton, showFilter && can_delete ? {
+                icon: 'trash',
+                label: "Delete",
+                className: 'show-sliding',
+                onClick: () => deleteFiles(Object.keys(selected), pathname)
+            } : (can_upload || qs.length > 0) ? {
+                icon: 'upload',
+                label: "Upload",
+                className: 'show-sliding ' + (uploading ? 'ani-working' : ''),
+                onClick: showUpload,
+            } : { icon: '', label: '', className: 'before-sliding' }),
             h(MenuButton, getSearchProps()),
             h(MenuButton, {
                 icon: 'settings',
@@ -70,7 +70,7 @@ export function MenuPanel() {
             }),
             h(MenuLink, {
                 icon: 'archive',
-                label: "Download zip",
+                label: "Zip",
                 tooltip: list ? "Download selected elements as a single zip file"
                     : "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded.",
                 href: '?'+String(new URLSearchParams(_.pickBy({
@@ -85,7 +85,7 @@ export function MenuPanel() {
                             onClick() {
                                 state.showFilter = true
                                 closeDialog(false)
-                                return alertDialog("Use checkboxes to select the files, then you can use Download-zip again")
+                                return alertDialog("Use checkboxes to select the files, then you can use Zip again")
                             },
                         }, "Select some files"),
                     }
@@ -122,17 +122,17 @@ export function MenuPanel() {
     }
 }
 
-interface MenuButtonProps {
+interface MenuButtonProps extends ComponentPropsWithoutRef<"button"> {
     icon: string,
     label: string,
     tooltip?: string,
     toggled?: boolean,
     className?: string,
-    onClick?: () => void
+    onClick?: () => unknown
     onClickAnimation?: boolean
 }
 
-export function MenuButton({ icon, label, tooltip, toggled, onClick, onClickAnimation, className = '' }: MenuButtonProps) {
+export function MenuButton({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: MenuButtonProps) {
     const [working, setWorking] = useState(false)
     return h('button', {
         title: tooltip || label,
@@ -142,7 +142,8 @@ export function MenuButton({ icon, label, tooltip, toggled, onClick, onClickAnim
                 setWorking(true)
             Promise.resolve(onClick()).finally(() => setWorking(false))
         },
-        className: [className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' ')
+        className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
+        ...rest,
     }, hIcon(icon), h('label', {}, label) )
 }
 
