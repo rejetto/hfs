@@ -20,6 +20,7 @@ import useFetchList from './useFetchList'
 import useAuthorized from './useAuthorized'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
+import { useI18N } from './i18n'
 
 export function usePath() {
     return decodeURI(useLocation().pathname)
@@ -92,8 +93,10 @@ function FilesList() {
         el?.scrollIntoView({ block: 'center' })
     }, [page, extraPages])
 
-    const msgInstead = !list.length ? (!loading && (stoppedSearch ? "Stopped before finding anything" : "Nothing here"))
-        : filteredList && !filteredList.length && "No match for this filter"
+    const {t} = useI18N()
+
+    const msgInstead = !list.length ? (!loading && (stoppedSearch ? t('stopped_before', "Stopped before finding anything") : t('empty_list', "Nothing here")))
+        : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
 
     return h(Fragment, {},
         h('ul', { ref, className: 'dir', ...acceptDropFiles(can_upload && enqueue) },
@@ -202,20 +205,21 @@ function fixUrl(s:string) {
 
 
 const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
-    const { t, s } = entry
-    const today = t && t > entry.midnight
+    const { t: time, s } = entry
+    const today = time && time > entry.midnight
     const shortTs = isMobile()
+    const {t} = useI18N()
     return h('div', { className: 'entry-props' },
         useCustomCode('additionalEntryProps', { entry }),
         h(EntrySize, { s }),
-        t && h('span', {
+        time && h('span', {
             className: 'entry-ts',
             title: today || !shortTs ? null : t.toLocaleString(),
             onClick() { // mobile has no hover
                 if (shortTs)
-                    alertDialog("Full timestamp:\n" + t.toLocaleString()).then()
+                    alertDialog(t`Full timestamp:` + "\n" + t.toLocaleString()).then()
             }
-        }, !shortTs ? t.toLocaleString() : today ? t.toLocaleTimeString() : t.toLocaleDateString()),
+        }, !shortTs ? time.toLocaleString() : today ? time.toLocaleTimeString() : time.toLocaleDateString()),
     )
 })
 

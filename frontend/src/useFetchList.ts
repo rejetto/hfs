@@ -9,6 +9,7 @@ import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
 import { ERRORS } from './misc'
+import { t } from './i18n'
 
 const API = 'file_list'
 
@@ -57,7 +58,7 @@ export default function useFetchList() {
             switch (type) {
                 case 'error':
                     state.stopSearch?.()
-                    state.error = "connection error"
+                    state.error = t`connection error`
                     lastReq.current = null
                     return
                 case 'closed':
@@ -76,7 +77,7 @@ export default function useFetchList() {
                             return buffer.push(entry.add)
                         const { error } = entry
                         if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
-                            state.messageOnly = "Your download should now start"
+                            state.messageOnly = t('upload_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
                             return
                         }
@@ -84,7 +85,7 @@ export default function useFetchList() {
                             state.stopSearch?.()
                             state.error = (ERRORS as any)[error] || String(error)
                             if (error === 401)
-                                await alertDialog("This account has no access, try another", 'warning')
+                                await alertDialog(t('wrong_account', "This account has no access, try another"), 'warning')
                             state.loginRequired = error === 401
                             lastReq.current = null
                             return

@@ -2,12 +2,14 @@ import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'use-debounce'
 import { Checkbox } from './components'
+import { useI18N } from './i18n'
 
 export function FilterBar() {
     const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
     const [all, setAll] = useState(false)
     const [filter, setFilter] = useState(patternFilter)
     useEffect(() => setAll(false), [patternFilter]) // reset on change
+    const {t} = useI18N()
 
     ;[state.patternFilter] = useDebounce(showFilter ? filter : '', 300)
 
@@ -33,7 +35,7 @@ export function FilterBar() {
         }),
         h('input', {
             id: 'filter',
-            placeholder: "Type here to filter the list below",
+            placeholder: t('filter_placeholder', "Type here to filter the list below"),
             autoComplete: 'off',
             value: filter,
             autoFocus: true,
@@ -42,8 +44,8 @@ export function FilterBar() {
             }
         }),
         h('span', {}, [
-            sel && `${sel} selected`,
-            fil !== undefined && fil < list.length && `${fil} filtered`,
+            sel && t('select_count', { n:sel }, "{n} selected"),
+            fil !== undefined && fil < list.length && t('filter_count', {n:fil}, "{n} filtered"),
         ].filter(Boolean).join(', ') ),
     )
 }

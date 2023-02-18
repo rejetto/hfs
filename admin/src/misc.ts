@@ -7,7 +7,7 @@ import { SxProps } from '@mui/system'
 import { SvgIconComponent } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { apiCall } from './api'
-import { onlyTruthy, useStateMounted } from '@hfs/shared'
+import { findFirst, onlyTruthy, useStateMounted } from '@hfs/shared'
 export * from '@hfs/shared'
 
 export function spinner() {
@@ -109,14 +109,6 @@ export function pathJoin(...args: any[]) {
     const good = onlyTruthy(args.map(x => x == null ? '' : String(x)))
     return good.map((x, i) => i === good.length-1 || x.endsWith('\\') || x.endsWith('/') ? x : x + delimiter)
         .join('')
-}
-
-export function findFirst<I=any, O=any>(a: I[], cb:(v:I)=>O): any {
-    for (const x of a) {
-        const ret = cb(x)
-        if (ret !== undefined)
-            return ret
-    }
 }
 
 export function xlate(input: any, table: Record<string, any>) {

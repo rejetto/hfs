@@ -8,51 +8,50 @@ import { apiCall } from './api'
 import { logout } from './login'
 import { MenuButton } from './menu'
 import { hIcon } from './misc'
+import { t } from './i18n'
 
 export default function showUserPanel() {
     newDialog({
-        title: "User panel",
+        title: t`User panel`,
         icon: () => hIcon('user'),
-        Content
+        Content() {
+            const snap = useSnapState()
+            return h('div', { id: 'user-panel' },
+                h('div', {}, t`Username`, ': ', snap.username),
+                h(MenuButton, {
+                    icon: 'password',
+                    label: t`Change password`,
+                    onClickAnimation: false,
+                    async onClick() {
+                        const pwd = await promptDialog(t('enter_pass', "Enter new password"), { type: 'password' })
+                        if (!pwd) return
+                        const check = await promptDialog(t('enter_pass2', "RE-enter same new password"), { type: 'password' })
+                        if (!check) return
+                        if (check !== pwd)
+                            return alertDialog(t('pass2_mismatch', "The second password you entered did not match the first. Procedure aborted."), 'warning')
+                        const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
+                        const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
+                        try {
+                            await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }).catch(e => {
+                                if (e.code !== 406) // 406 = server was configured to support clear text authentication
+                                    throw e
+                                return apiCall('change_password', { newPassword: pwd }) // unencrypted version
+                            })
+                            return alertDialog(t`Password changed`)
+                        }
+                        catch(e) {
+                            return alertDialog(e as Error)
+                        }
+                    }
+                }),
+                h(MenuButton, {
+                    icon: 'logout',
+                    label: t`Logout`,
+                    onClick() {
+                        logout().then(closeDialog, alertDialog)
+                    }
+                })
+            )
+        }
     })
-}
-
-function Content() {
-    const snap = useSnapState()
-    return h('div', { id: 'user-panel' },
-        h('div', {}, "User: " + snap.username),
-        h(MenuButton, {
-            icon: 'password',
-            label: "Change password",
-            onClickAnimation: false,
-            async onClick() {
-                const pwd = await promptDialog("Enter new password", { type: 'password' })
-                if (!pwd) return
-                const check = await promptDialog("RE-enter new password", { type: 'password' })
-                if (!check) return
-                if (check !== pwd)
-                    return alertDialog("The second password you entered did not match the first. Procedure aborted.", 'warning')
-                const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-                const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
-                try {
-                    await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }).catch(e => {
-                        if (e.code !== 406) // 406 = server was configured to support clear text authentication
-                            throw e
-                        return apiCall('change_password', { newPassword: pwd }) // unencrypted version
-                    })
-                    return alertDialog("Password changed")
-                }
-                catch(e) {
-                    return alertDialog(e as Error)
-                }
-            }
-        }),
-        h(MenuButton, {
-            icon: 'logout',
-            label: "Logout",
-            onClick() {
-                logout().then(closeDialog, alertDialog)
-            }
-        })
-    )
 }

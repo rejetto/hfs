@@ -9,6 +9,8 @@ export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
 
+export const urlParams = Object.fromEntries(new URLSearchParams(window.location.search).entries())
+
 const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
 export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
     if (isNaN(Number(n)) || n < 0)
@@ -88,4 +90,13 @@ export function with_<T,RT>(par:T, cb: (par:T) => RT) {
 export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: WindowEventMap[K]) => void, { target=window }={}) {
     target.addEventListener(eventName, cb)
     return () => target.removeEventListener(eventName, cb)
+}
+
+
+export function findFirst<I=any, O=any>(a: I[], cb:(v:I)=>O): any {
+    for (const x of a) {
+        const ret = cb(x)
+        if (ret !== undefined)
+            return ret
+    }
 }

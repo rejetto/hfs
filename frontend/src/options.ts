@@ -6,11 +6,12 @@ import { createElement as h } from 'react'
 import { Checkbox, FlexV, Select } from './components'
 import { hIcon } from './misc'
 import { MenuLink } from './menu'
+import { t } from './i18n'
 
 export function showOptions (){
     const options = ['name', 'extension', 'size', 'time']
     const close = newDialog({
-        title: "Options",
+        title: t`Options`,
         icon: () => hIcon('settings'),
         Content
     })
@@ -20,38 +21,38 @@ export function showOptions (){
         return h(FlexV, {},
             snap.adminUrl && h(MenuLink, {
                 icon: 'admin',
-                label: "Admin-panel",
+                label: t`Admin-panel`,
                 href: snap.adminUrl,
                 target: 'admin',
             }),
-            h('div', {}, "Sort by"),
+            h('div', {}, t`Sort by`),
             options.map(x => h('button',{
                 key: x,
                 onClick(){
                     close(state.sortBy = x)
                 }
-            }, x, ' ', snap.sortBy===x && hIcon('check'))),
+            }, t(x), ' ', snap.sortBy===x && hIcon('check'))),
             h(Checkbox, {
                 value: snap.invertOrder,
                 onChange(v) {
                     state.invertOrder = v
                 }
-            }, "Invert order"),
+            }, t`Invert order`),
             h(Checkbox, {
                 value: snap.foldersFirst,
                 onChange(v) {
                     state.foldersFirst = v
                 }
-            }, "Folders first"),
+            }, t`Folders first`),
             h(Checkbox, {
                 value: snap.sortNumerics,
                 onChange(v) {
                     state.sortNumerics = v
                 }
-            }, "Numeric names"),
+            }, t`Numeric names`),
 
             h(Select, {
-                options: ['', 'light', 'dark'].map(s => ({ label: "theme: " + (s || "auto"), value: s })),
+                options: ['', 'light', 'dark'].map(s => ({ label: t`theme:` + ' ' + t(s || "auto"), value: s })),
                 value: snap.theme,
                 onChange(v) {
                     state.theme = v

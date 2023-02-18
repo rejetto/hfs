@@ -1,2 +1,1 @@
-.download-counter::before { content: "Hits: " }
 .download-counter::after { content: " — " }

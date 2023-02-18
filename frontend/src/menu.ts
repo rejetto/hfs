@@ -14,6 +14,7 @@ import { showUpload, uploadState } from './upload'
 import { useSnapshot } from 'valtio'
 import { apiCall } from './api'
 import { reloadList } from './useFetchList'
+import { t, useI18N } from './i18n'
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, stoppedSearch, selected, can_upload, can_delete } = useSnapState()
@@ -22,6 +23,8 @@ export function MenuPanel() {
         if (!showFilter)
             state.selected = {}
     }, [showFilter])
+
+    const {t} = useI18N()
 
     const [started1secAgo, setStarted1secAgo] = useStateMounted(false)
     useEffect(() => {
@@ -34,7 +37,7 @@ export function MenuPanel() {
     useEffect(() => {
         if (!can_delete || localStorage.warn_can_delete) return
         localStorage.warn_can_delete = 1
-        alertDialog("To delete, first click Select").then()
+        alertDialog(t('delete_hint', "To delete, first click Select")).then()
     }, [can_delete])
 
     // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
@@ -52,8 +55,8 @@ export function MenuPanel() {
             h(MenuButton, {
                 id: 'select-button',
                 icon: 'check',
-                label: "Select",
-                tooltip: `Selection applies to "Zip" and "Delete" (when available), but you can also filter the list`,
+                label: t`Select`,
+                tooltip: t('select_tooltip', 0, `Selection applies to "Zip" and "Delete" (when available), but you can also filter the list`),
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
@@ -62,13 +65,13 @@ export function MenuPanel() {
             h(MenuButton, changingButton === 'delete' ? {
                 id: 'delete-button',
                 icon: 'trash',
-                label: "Delete",
+                label: t`Delete`,
                 className: 'show-sliding',
                 onClick: () => deleteFiles(Object.keys(selected), pathname)
             } : changingButton === 'upload' ? {
                 id: 'upload-button',
                 icon: 'upload',
-                label: "Upload",
+                label: t`Upload`,
                 className: 'show-sliding ' + (uploading ? 'ani-working' : ''),
                 onClick: showUpload,
             } : { icon: '', label: '', className: 'before-sliding' }),
@@ -76,43 +79,44 @@ export function MenuPanel() {
             h(MenuButton, {
                 id: 'options-button',
                 icon: 'settings',
-                label: 'Options',
+                label: t`Options`,
                 onClick: showOptions
             }),
             h(MenuLink, {
                 id: 'zip-button',
                 icon: 'archive',
-                label: "Zip",
-                tooltip: list ? "Download selected elements as a single zip file"
-                    : "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded.",
+                label: t`Zip`,
+                tooltip: list ? t('zip_tooltip_selected', "Download selected elements as a single zip file")
+                    : t('zip_tooltip_whole', "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded."),
                 href: '?'+String(new URLSearchParams(_.pickBy({
                     get: 'zip',
                     search: remoteSearch,
                     list
                 }))),
                 ...!list && {
-                    confirm: remoteSearch ? 'Download ALL results of this search as ZIP archive?' : 'Download WHOLE folder as ZIP archive?',
+                    confirm: remoteSearch ? t('zip_confirm_search', "Download ALL results of this search as ZIP archive?")
+                        : t('zip_confirm_folder', "Download WHOLE folder as ZIP archive?"),
                     confirmOptions: {
                         afterButtons: h('button', {
                             onClick() {
                                 state.showFilter = true
                                 closeDialog(false)
-                                return alertDialog("Use checkboxes to select the files, then you can use Zip again")
+                                return alertDialog(t('zip_checkboxes', "Use checkboxes to select the files, then you can use Zip again"))
                             },
-                        }, "Select some files"),
+                        }, t`Select some files`),
                     }
                 }
             }),
         ),
         remoteSearch && h('div', { id: 'searched' },
-            (stopSearch ? 'Searching' : 'Searched') + ': ' + remoteSearch + prefix(' (', stoppedSearch && 'interrupted', ')')),
+            (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', stoppedSearch && t`interrupted`, ')')),
     )
 
     function getSearchProps() {
         return stopSearch && started1secAgo ? {
             id: 'search-stop-button',
             icon: 'stop',
-            label: 'Stop list',
+            label: t`Stop list`,
             className: 'ani-working',
             onClick() {
                 stopSearch()
@@ -121,17 +125,17 @@ export function MenuPanel() {
         } : state.remoteSearch && !stopSearch ? {
             id: 'search-clear-button',
             icon: 'search_off',
-            label: 'Clear search',
+            label: t`Clear search`,
             onClick() {
                 state.remoteSearch = ''
             }
         } : {
             id: 'search-button',
             icon: 'search',
-            label: "Search",
+            label: t`Search`,
             onClickAnimation: false,
             async onClick() {
-                state.remoteSearch = await promptDialog("Search this folder and sub-folders") || ''
+                state.remoteSearch = await promptDialog(t('search_msg', 0, `Search this folder and sub-folders`)) || ''
             }
         }
     }
@@ -178,6 +182,7 @@ export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: Men
 function LoginButton() {
     const snap = useSnapState()
     const navigate = useNavigate()
+    const {t} = useI18N()
     return MenuButton(snap.username ? {
         id: 'user-button',
         icon: 'user',
@@ -186,7 +191,7 @@ function LoginButton() {
     } : {
         id: 'login-button',
         icon: 'login',
-        label: 'Login',
+        label: t`Login`,
         onClickAnimation: false,
         onClick: () => loginDialog(navigate),
     })
@@ -195,22 +200,25 @@ function LoginButton() {
 async function deleteFiles(uris: string[], root: string) {
     const n = uris.length
     if (!n) {
-        alertDialog("Select something to delete").then()
+        alertDialog(t('delete_select', 0, `Select something to delete`)).then()
         return
     }
-    if (!await confirmDialog(`Delete ${n} item(s)?`)) return
+    if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?"))) return
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
         apiCall('del', { path: root + uri }).then(() => null, err => ({ uri, err }))
     )))
     reloadList()
     const e = errors.length
     alertDialog(h(Fragment, {},
-        `Deletion: ${n - e} completed`,
-        e > 0 && `, ${e} failed`,
+        t('delete_completed', {n: n-e}, "Deletion: {n} completed"),
+        e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
         h('div', { style: { textAlign: 'left', marginTop: '1em', } },
-            ...errors.map(e => h(Fragment, {},
-                hError(err2msg(e.err) + ': ' + e.uri),
-            ))
+            ...errors.map(e => {
+                const msg = err2msg(e.err)
+                return h(Fragment, {},
+                    hError(t(msg) + ': ' + e.uri),
+                )
+            })
         )
     )).then()
 }

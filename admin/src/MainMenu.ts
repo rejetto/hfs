@@ -22,8 +22,8 @@ import AccountsPage from './AccountsPage';
 import HomePage from './HomePage'
 import LogoutPage from './LogoutPage';
 import LogsPage from './LogsPage';
-import { useApi } from './api'
 import PluginsPage from './PluginsPage';
+import { useApi } from './api'
 
 interface MenuEntry {
     path: string
@@ -34,7 +34,7 @@ interface MenuEntry {
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '', icon: Public, label: 'Home', title: "Admin panel", comp: HomePage },
+    { path: '', icon: Public, label: "Home", title: "Admin panel", comp: HomePage },
     { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
     { path: 'configuration', icon: Settings, comp: ConfigPage },

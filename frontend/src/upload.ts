@@ -10,6 +10,7 @@ import { reloadList } from './useFetchList'
 import { apiCall, getNotification } from './api'
 import { useSnapState } from './state'
 import { Link } from 'react-router-dom'
+import { t } from './i18n'
 
 export const uploadState = proxy<{
     done: number
@@ -64,7 +65,7 @@ export function showUpload() {
         })
     const close = newDialog({
         dialogProps: { style: { minWidth: 'min(20em, 100vw - 1em)' } },
-        title: "Upload",
+        title: t`Upload`,
         icon: () => hIcon('upload'),
         Content,
         onClose() {
@@ -79,21 +80,22 @@ export function showUpload() {
         const { qs, done, doneByte, paused, errors, eta } = useSnapshot(uploadState)
         const { can_upload } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
+        const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
 
         return h(FlexV, { props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
             h(FlexV, { position: 'sticky', top: -4, background: 'var(--bg)' },
-                !can_upload ? "No upload permission for the current folder"
+                !can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', },
-                        h('button', { onClick: () => selectFiles() }, "Pick files"),
-                        h('button', { onClick: () => selectFiles(true) }, "Pick folder"),
+                        h('button', { onClick: () => selectFiles() }, t`Pick files`),
+                        h('button', { onClick: () => selectFiles(true) }, t`Pick folder`),
                         files.length > 0 &&  h('button', {
                             onClick() {
                                 enqueue(files)
                                 setFiles([])
                             }
-                        }, `Send ${files.length} files, ${formatBytes(files.reduce((a, f) => a + f.size, 0))}`),
-                        files.length > 1 && h('button', { onClick() { setFiles([]) } }, "Clear"),
-                        h('button', { onClick: createFolder }, "Create folder"),
+                        }, t('send_files', { n: files.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
+                        files.length > 1 && h('button', { onClick() { setFiles([]) } }, t`Clear`),
+                        h('button', { onClick: createFolder }, t`Create folder`),
                     ),
             ),
             h(FilesList, {
@@ -186,13 +188,13 @@ function formatPerc(p: number) {
     return (p*100).toFixed(1) + '%'
 }
 
-function formatTime(t: number, decimals=0, length=Infinity) {
-    t /= 1000
-    const ret = [(t % 1).toFixed(decimals).slice(1)]
+function formatTime(time: number, decimals=0, length=Infinity) {
+    time /= 1000
+    const ret = [(time % 1).toFixed(decimals).slice(1)]
     for (const [c,mod,pad] of [['s', 60, 2], ['m', 60, 2], ['h', 24], ['d', 36], ['y', 1 ]] as [string,number,number|undefined][]) {
-        ret.push( _.padStart(String(t % mod | 0), pad || 0,'0') + c )
-        t /= mod
-        if (t < 1) break
+        ret.push( _.padStart(String(time % mod | 0), pad || 0,'0') + c )
+        time /= mod
+        if (time < 1) break
     }
     return ret.slice(-length).reverse().join('')
 }
@@ -245,7 +247,7 @@ async function startUpload(f: File, to: string, resume=0) {
         if (!resuming)
             next()
     }
-    req.onerror = () => alertDialog("Couldn't upload " + f.name)
+    req.onerror = () => alertDialog(t('failed_upload', f, "Couldn't upload {name}"))
     let lastProgress = 0
     req.upload.onprogress = (e:any) => {
         uploadState.partial = e.loaded + resume
@@ -270,7 +272,7 @@ async function startUpload(f: File, to: string, resume=0) {
                     const {expires} = data
                     const timeout = typeof expires !== 'number' ? 0
                         : (Number(new Date(expires)) - Date.now()) / 1000
-                    const msg = `Resume upload? (${formatPerc(size/f.size)} = ${formatBytes(size)})`
+                    const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/f.size)} = ${formatBytes(size)})`
                     if (!await confirmDialog(msg, { timeout, getClose: x => closeResumeDialog=x })) return
                     if (uploading !== uploadState.uploading) return // too late
                     resuming = true
@@ -290,10 +292,10 @@ async function startUpload(f: File, to: string, resume=0) {
     function error(status: number) {
         if (uploadState.errors++) return
         const ERRORS = {
-            413: "file too large",
+            413: t`file too large`,
         }
         const specifier = (ERRORS as any)[status]
-        alertDialog("Upload error" + prefix(': ', specifier), 'error').then()
+        alertDialog(t`Upload error` + prefix(': ', specifier), 'error').then()
     }
 
     function done() {
@@ -335,7 +337,7 @@ export function acceptDropFiles(cb: false | undefined | ((files:File[]) => void)
 }
 
 async function createFolder() {
-    const name = await promptDialog("Enter folder name")
+    const name = await promptDialog(t`Enter folder name`)
     if (!name) return
     const path = location.pathname
     try {
@@ -343,14 +345,14 @@ async function createFolder() {
         reloadList()
         return alertDialog(h(() =>
             h(FlexV, {},
-                h('div', {}, "Successfully created"),
+                h('div', {}, t`Successfully created`),
                 h(Link, { to: path + name + '/', onClick() {
                     closeDialog()
                     closeDialog()
-                } }, "Enter the folder"),
+                } }, t('enter_folder', "Enter the folder")),
             )))
     }
     catch(e: any) {
-        await alertDialog(e.code === 409 ? "Folder with same name already exists" : e)
+        await alertDialog(e.code === 409 ? t('folder_exists', "Folder with same name already exists") : e)
     }
 }

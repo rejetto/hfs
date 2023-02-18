@@ -156,6 +156,7 @@ Tools are extra data and functions to help you:
 - `React` whole React object, as for require('react')
 - `h` shortcut for React.createElement
 - `state` object with many values in it. [Refer here for details](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts).
+- `t` translator function
 
 Some frontend-events can return Html, which can be expressed in several ways
 - as string, containing markup

@@ -5,6 +5,7 @@ import './dialog.css'
 import { newDialog, closeDialog, DialogOptions, DialogCloser } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'
+import { t } from './i18n'
 export * from '@hfs/shared/dialogs'
 
 interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string }
@@ -43,7 +44,7 @@ export async function promptDialog(msg: string, { def, type, ...rest }:PromptOpt
                 }
             }),
             h('div', { style: { textAlign: 'right', marginTop: '.8em' } },
-                h('button', {  onClick: go }, "Continue")),
+                h('button', {  onClick: go }, t`Continue`)),
         )
 
         function go() {
@@ -61,7 +62,7 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
     }
     return new Promise(resolve => newDialog({
         className: 'dialog-alert dialog-alert-'+type,
-        title: _.capitalize(type),
+        title: t(_.capitalize(type)),
         icon: '!',
         onClose: resolve,
         Content
@@ -114,10 +115,10 @@ export async function confirmDialog(msg: ReactElement | string, options: Confirm
                 h('a', {
                     href,
                     onClick() { closeDialog(true) },
-                }, h('button', {}, "Confirm", timeoutConfirm && missingText)),
+                }, h('button', {}, t`Confirm`, timeoutConfirm && missingText)),
                 h('button', {
                     onClick() { closeDialog(false) },
-                }, "Don't", !timeoutConfirm && missingText),
+                }, t`Don't`, !timeoutConfirm && missingText),
                 afterButtons,
             )
         )

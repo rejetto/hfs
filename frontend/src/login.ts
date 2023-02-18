@@ -6,6 +6,7 @@ import { alertDialog, newDialog } from './dialog'
 import { hIcon, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
 import { createElement as h, useEffect, useRef } from 'react'
+import { t, tComponent, useI18N } from './i18n'
 
 async function login(username:string, password:string) {
     const stopWorking = working()
@@ -16,10 +17,10 @@ async function login(username:string, password:string) {
         return res
     }, (err: any) => {
         stopWorking()
-        throw Error(err.message === 'trust' ? "Login aborted: server identity cannot be trusted"
-            : err.code === 401 ? "Invalid credentials"
-                : err.code === 409 ? "Cookies not working - login failed"
-                    : err.message)
+        throw Error(err.message === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
+            : err.code === 401 ? t('login_bad_credentials', "Invalid credentials")
+                : err.code === 409 ? t('login_bad_cookies', "Cookies not working - login failed")
+                    : t(err.message))
     })
 }
 
@@ -53,13 +54,14 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
             className: 'dialog-login',
             icon: () => hIcon('login'),
             onClose: resolve,
-            title: "Login",
+            title: tComponent("Login"),
             Content() {
                 const usrRef = useRef<HTMLInputElement>()
                 const pwdRef = useRef<HTMLInputElement>()
                 useEffect(() => {
                     setTimeout(() => usrRef.current?.focus()) // setTimeout workarounds problem due to double-mount while in dev
                 }, [])
+                const {t} = useI18N() // this dialog can be displayed before anything else, accessing protected folder, and needs to be rendered after languages loading
                 return h('form', {
                     onSubmit(ev:any) {
                         ev.preventDefault()
@@ -67,7 +69,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                     }
                 },
                     h('div', { className: 'field' },
-                        h('label', { htmlFor: 'username' }, "Username"),
+                        h('label', { htmlFor: 'username' }, t`Username`),
                         h('input', {
                             ref: usrRef,
                             name: 'username',
@@ -77,7 +79,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                         }),
                     ),
                     h('div', { className: 'field' },
-                        h('label', { htmlFor: 'password' }, "Password"),
+                        h('label', { htmlFor: 'password' }, t`Password`),
                         h('input', {
                             ref: pwdRef,
                             name: 'password',
@@ -88,7 +90,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                         }),
                     ),
                     h('div', { style: { textAlign: 'right' } },
-                        h('button', { type: 'submit' }, "Continue")),
+                        h('button', { type: 'submit' }, t`Continue`)),
                 )
 
                 function onKeyDown(ev: KeyboardEvent) {
