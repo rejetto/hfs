@@ -1,19 +1,21 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dict, Falsy, getCookie, working } from './misc'
 
 const PREFIX = '/~/api/'
 
 interface ApiCallOptions { noModal?:true }
-export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) : Promise<any> {
+export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) {
     const stop = options.noModal ? undefined : working()
     const csrf = getCsrf()
     if (csrf)
         params = { csrf, ...params }
-    return fetch(PREFIX+cmd, {
+    const controller = new AbortController()
+    return Object.assign(fetch(PREFIX+cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
+        signal: controller.signal,
         body: params && JSON.stringify(params),
     }).then(async res => {
         stop?.()
@@ -27,6 +29,10 @@ export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) 
         if (err?.message?.includes('fetch'))
             throw Error("Network error")
         throw err
+    }), {
+        abort() {
+            controller.abort('cancel')
+        }
     })
 }
 
@@ -36,12 +42,14 @@ export class ApiError extends Error {
     }
 }
 
-export function useApi(cmd: string | Falsy, params?: object) : any {
+export function useApi(cmd: string | Falsy, params?: Dict, options: ApiCallOptions={}) : any {
     const [x, setX] = useState()
+    const loadingRef = useRef<ReturnType<typeof apiCall>>()
     useEffect(()=>{
+        loadingRef.current?.abort()
         setX(undefined)
         if (cmd)
-            apiCall(cmd, params).then(setX, setX)
+            (loadingRef.current = apiCall(cmd, params, options)).then(setX, setX)
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
     return x
 }
