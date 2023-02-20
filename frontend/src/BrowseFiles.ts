@@ -33,16 +33,17 @@ export type DirList = DirEntry[]
 export function BrowseFiles() {
     useFetchList()
     const { error, list, serverConfig } = useSnapState()
+    const afterHead = useCustomCode('afterHead')
     return useAuthorized() && h(Fragment, {},
         h(Html, { code: serverConfig?.custom_header }),
         h(Head),
-        useCustomCode('afterHead'),
+        afterHead,
         hError(error)
         || h(list ? FilesList : Spinner))
 }
 
 function FilesList() {
-    const { filteredList, list, loading, stoppedSearch, can_upload, can_delete } = useSnapState()
+    const { filteredList, list, loading, stoppedSearch, can_upload } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
     const pageSize = 100
     const [page, setPage] = useState(0)
