@@ -90,9 +90,9 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         original: child,
         isTemp: true,
     }
-    inheritFromParent(parent, ret)
     inheritMasks(ret, parent, name)
     applyMasks(ret, parent, name)
+    inheritFromParent(parent, ret)
     if (child)  // yes
         return urlToNode(rest, ctx, ret, getRest)
     // not in the tree, we can see consider continuing on the disk
@@ -190,8 +190,8 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         // we basename for depth>0 where we already have the rest of the path in the parent's url, and would be duplicated
         const virtualBasename = basename(name)
         item.isTemp = true
-        inheritFromParent(parent, item)
         applyMasks(item, parent, virtualBasename)
+        inheritFromParent(parent, item)
         if (ctx && !hasPermission(item, 'can_see', ctx))
             return
         yield item
@@ -219,7 +219,7 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
         else if (k.startsWith(virtualBasename+'/'))
             o[k.slice(virtualBasename.length+1)] = v
     if (Object.keys(o).length)
-        item.masks = o
+        item.masks = _.defaults(item.masks, o)
 }
 
 function renameUnderPath(rename:undefined | Record<string,string>, path: string) {
