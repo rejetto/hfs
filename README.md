@@ -196,11 +196,10 @@ Valid keys in a node are:
 - `can_delete` specify who can delete. Applies to folders with a source. Default is none.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
-  masks:
-    "**/*.mp3":
-      can_read: false
-    "*.jpg|*.png": 
-      mime: auto
+  "**/*.mp3":
+    can_read: false
+  "*.jpg|*.png": 
+    mime: auto
   ```
 
 Permissions set on an inner element will override inherited permissions. This means that you can restrict access to folder1,

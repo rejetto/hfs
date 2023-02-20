@@ -89,7 +89,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                             : iconTooltip(FileIcon, "File"),
                     // attributes
                     h(Box, { sx: {
-                        flex: 0, ml: '2px', '&>*': { fontSize: '87%' },
+                        flex: 0, ml: '2px', my: '2px', '&>*': { fontSize: '87%', opacity: .6, mt: '-2px' },
                         display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto',
                     } },
                         node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
