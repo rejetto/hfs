@@ -16,7 +16,7 @@ import { Delete } from '@mui/icons-material'
 
 interface Account { username: string }
 
-export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNode, defaultPerms: VfsPerms, addToBar?: ReactNode }) {
+export default function FileForm({ file, anyMask, defaultPerms, addToBar }: { file: VfsNode, anyMask?: boolean, defaultPerms: VfsPerms, addToBar?: ReactNode }) {
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -104,7 +104,8 @@ export default function FileForm({ file, defaultPerms, addToBar }: { file: VfsNo
     })
 
     function perm(perm: keyof typeof inheritedPerms, label: string, helperText='', { accounts=allAccounts, ...props }={}) {
-        return { k: perm, lg: 6, comp: WhoField, parent, accounts, label, inherit: inheritedPerms[perm], helperText, ...props }
+        return { showInherited: anyMask, // with masks, you may need to set a permission to override the mask
+            k: perm, lg: 6, comp: WhoField, parent, accounts, label, inherit: inheritedPerms[perm], helperText, ...props }
     }
 }
 
@@ -113,7 +114,7 @@ function formatTimestamp(x: string) {
 }
 
 interface WhoFieldProps extends FieldProps<Who> { accounts: Account[] }
-function WhoField({ value, onChange, parent, inherit, accounts, helperText, ...rest }: WhoFieldProps) {
+function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, ...rest }: WhoFieldProps) {
     const options = useMemo(() =>
         onlyTruthy([
             { value: null, label: (parent ? "Same as parent: " : "Default: " ) + who2desc(inherit) },
@@ -121,7 +122,8 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, ...r
             { value: false },
             { value: '*' },
             { value: [], label: "Select accounts" },
-        ].map(x => (x.value === value || x.value !== inherit) // don't offer inherited value twice, unless it was already selected
+        // don't offer inherited value twice, unless it was already selected, or it is forced
+        ].map(x => (x.value === value || showInherited || x.value !== inherit)
             && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
     [inherit, parent, value])
 
