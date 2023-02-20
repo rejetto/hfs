@@ -203,10 +203,10 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
 function applyMasks(item: VfsNode, parent: VfsNode, virtualBasename: string) {
     const { masks } = parent
     if (!masks) return
-    for (const k in masks)
+    for (const [k,v] of Object.entries(masks))
         if (k.startsWith('**/') && isMatch(virtualBasename, k.slice(3))
         || !k.includes('/') && isMatch(virtualBasename, k))
-            Object.assign(item, masks[k])
+            _.defaults(item, v)
 }
 
 function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
