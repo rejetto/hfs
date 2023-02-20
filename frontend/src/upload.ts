@@ -2,7 +2,7 @@
 
 import { createElement as h, useMemo, useState } from 'react'
 import { Flex, FlexV } from './components'
-import { closeDialog, DialogCloser, formatBytes, hIcon, newDialog, prefix } from './misc'
+import { closeDialog, DialogCloser, formatBytes, hIcon, newDialog, prefix, selectFiles } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -86,8 +86,8 @@ export function showUpload() {
             h(FlexV, { position: 'sticky', top: -4, background: 'var(--bg)' },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', },
-                        h('button', { onClick: () => selectFiles() }, t`Pick files`),
-                        h('button', { onClick: () => selectFiles(true) }, t`Pick folder`),
+                        h('button', { onClick: () => pickFiles() }, t`Pick files`),
+                        h('button', { onClick: () => pickFiles(true) }, t`Pick folder`),
                         files.length > 0 &&  h('button', {
                             onClick() {
                                 enqueue(files)
@@ -134,16 +134,8 @@ export function showUpload() {
             )
         )
 
-        function selectFiles(folder=false) {
-            const el = Object.assign(document.createElement('input'), {
-                type: 'file',
-                name: 'file',
-                multiple: true,
-                webkitdirectory: folder,
-            })
-            el.addEventListener('change', () =>
-                setFiles([ ...files, ...el.files ||[] ] ))
-            el.click()
+        function pickFiles(folder=false) {
+            selectFiles(list => setFiles([ ...files, ...list ||[] ] ), { folder })
         }
     }
 

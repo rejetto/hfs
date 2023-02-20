@@ -11,6 +11,7 @@ import {
     Monitor,
     Public,
     Settings,
+    Translate,
     SvgIconComponent
 } from '@mui/icons-material'
 import _ from 'lodash'
@@ -21,6 +22,7 @@ import VfsPage from './VfsPage';
 import AccountsPage from './AccountsPage';
 import HomePage from './HomePage'
 import LogoutPage from './LogoutPage';
+import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
 import { useApi } from './api'
@@ -40,6 +42,7 @@ export const mainMenu: MenuEntry[] = [
     { path: 'configuration', icon: Settings, comp: ConfigPage },
     { path: 'monitoring', icon: Monitor, comp: MonitorPage },
     { path: 'logs', icon: History, comp: LogsPage },
+    { path: 'language', icon: Translate, comp: LangPage },
     { path: 'plugins', icon: Extension, comp: PluginsPage },
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]

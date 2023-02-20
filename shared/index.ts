@@ -100,3 +100,27 @@ export function findFirst<I=any, O=any>(a: I[], cb:(v:I)=>O): any {
             return ret
     }
 }
+
+export function selectFiles(cb: (list: FileList | null)=>void, { multiple=true, folder=false }={}) {
+    const el = Object.assign(document.createElement('input'), {
+        type: 'file',
+        name: 'file',
+        multiple: multiple,
+        webkitdirectory: folder,
+    })
+    el.addEventListener('change', () =>
+        cb(el.files))
+    el.click()
+}
+
+export function readFile(f: File) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.addEventListener('load', (event) => {
+            if (!event.target)
+                return reject()
+            resolve(event.target.result)
+        })
+        reader.readAsText(f)
+    })
+}

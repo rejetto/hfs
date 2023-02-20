@@ -42,6 +42,7 @@ You won't find all previous features here (yet), but still we got:
 - log file
 - speed throttler
 - admin web interface
+- multi-language front-end
 - virtual hosting (plug-in)
 - anti-brute-force (plug-in)
 
@@ -80,6 +81,15 @@ If you want to run HFS as a service
     - run `npx qckwinsvc2 uninstall name="HFS"`
     - run `npm -g update hfs`
     - run the service installation again
+
+## Internationalization
+
+It is possible to show the Front-end in other languages.
+In the Languages section of the Admin-panel you'll be able to install lang files.
+You can find some of these files at https://github.com/rejetto/hfs/tree/main/langs
+To download a file: open it, right-click on the "Raw" button, Save.
+
+Files must be named `hfs-lang-CODE.json` (lowercase), where `CODE` is the ISO code for your language (e.g. pt-br for Brazilian).
 
 ## Plug-ins
 

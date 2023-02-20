@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useCallback, useEffect, useMemo, useRef } from 'react'
+import { createElement as h, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Dict, err2msg, Falsy, getCookie, IconBtn, spinner, useStateMounted, wantArray } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
@@ -165,6 +165,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
     const [connecting, setConnecting] = useStateMounted(true)
     const [loading, setLoading] = useStateMounted(false)
     const [initializing, setInitializing] = useStateMounted(true)
+    const [reloader, setReloader] = useState(0)
     const idRef = useRef(0)
     useEffect(() => {
         if (!cmd) return
@@ -257,8 +258,12 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
             setLoading(false)
             apply.flush()
         }
-    }, [cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, props, loading, error, initializing, connecting, setList, updateList }
+    }, [reloader, cmd, JSON.stringify(params)]) //eslint-disable-line
+    return { list, props, loading, error, initializing, connecting, setList, updateList, reload }
+
+    function reload() {
+        setReloader(x => x + 1)
+    }
 
     function updateList(cb: (toModify: Draft<typeof list>) => void) {
         setList(produce(list, x => {

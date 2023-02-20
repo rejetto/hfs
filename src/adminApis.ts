@@ -19,6 +19,7 @@ import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
 import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
+import langApis from './api.lang'
 import { getConnections } from './connections'
 import { debounceAsync, isLocalHost, onOff, wait } from './misc'
 import _ from 'lodash'
@@ -39,6 +40,7 @@ export const adminApis: ApiHandlers = {
     ...accountsApis,
     ...pluginsApis,
     ...monitorApis,
+    ...langApis,
 
     async set_config({ values: v }) {
         if (v) {
