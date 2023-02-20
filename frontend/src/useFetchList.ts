@@ -84,8 +84,8 @@ export default function useFetchList() {
                         if (error) {
                             state.stopSearch?.()
                             state.error = (ERRORS as any)[error] || String(error)
-                            if (error === 401)
-                                await alertDialog(t('wrong_account', "This account has no access, try another"), 'warning')
+                            if (error === 401 && snap.username)
+                                await alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
                             state.loginRequired = error === 401
                             lastReq.current = null
                             return
