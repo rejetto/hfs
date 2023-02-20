@@ -58,7 +58,7 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
     ctx.set('etag', '')
     return body
         .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + filesUri)
-        .replace('<link rel="icon"/>', `<link rel="icon" href="${favicon.get() ? '/favicon.ico' : 'data;'}" />`)
+        .replace('<link rel="icon"/>', `<link rel="icon" href="${favicon.get() ? '/favicon.ico' : 'data:;'}" />`)
         .replace('_HFS_SESSION_', session instanceof ApiError ? 'null' : JSON.stringify(session))
         // replacing this text allow us to avoid injecting in frontends that don't support plugins. Don't use a <--comment--> or it will be removed by webpack
         .replace('_HFS_PLUGINS_', pluginsInjection)
