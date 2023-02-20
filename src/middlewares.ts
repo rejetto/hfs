@@ -119,7 +119,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const canRead = hasPermission(node, 'can_read', ctx)
     const isFolder = await nodeIsDirectory(node)
     if (isFolder && !path.endsWith('/'))
-        return ctx.redirect(path + '/')
+        return ctx.redirect(ctx.originalUrl + '/')
     if (canRead && !isFolder)
         return node.source ? serveFileNode(node)(ctx,next)
             : next()
