@@ -306,7 +306,7 @@ async function startUpload(f: File, to: string, resume=0) {
         if (!qs[0].files.length)
             qs.shift()
         if (qs.length) return
-        reloadList()
+        setTimeout(reloadList, 500) // workaround: reloading too quickly can meet the new file still with its temp name
         reloadOnClose = false
     }
 }
