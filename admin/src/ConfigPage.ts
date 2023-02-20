@@ -104,7 +104,7 @@ export default function ConfigPage() {
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
             },
             { k: 'open_browser_at_start', comp: BoolField },
-            { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections",
+            { k: 'localhost_admin', comp: BoolField, sm: 12, md: 6, label: "Admin access for localhost connections",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "To access Admin without entering credentials"
             },
@@ -126,6 +126,8 @@ export default function ConfigPage() {
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'favicon', comp: FileField, sm: 6, md: 6, fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
                 helperText: "The icon associated to your website" },
+            { k: 'dont_overwrite_uploading', comp: BoolField, md: 4, label: "Don't overwrite uploading",
+                helperText: "Files will be numbered to avoid overwriting" },
             { k: 'custom_header', multiline: true, sm: 12, md: 6, sx: { '& textarea': { fontFamily: 'monospace' } },
                 helperText: "Any HTML code here will be displayed on top of the Frontend"
             },

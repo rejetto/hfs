@@ -7,7 +7,7 @@ import {
     HTTP_SERVER_ERROR,
     HTTP_UNAUTHORIZED
 } from './const'
-import { basename, dirname, join } from 'path'
+import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import { Callback, try_ } from './misc'
 import { notifyClient } from './frontEndApis'
@@ -16,6 +16,7 @@ import { getFreeDiskSync } from './util-os'
 
 export const deleteUnfinishedUploadsAfter = defineConfig('delete_unfinished_uploads_after')
 export const minAvailableMb = defineConfig('min_available_mb', 100)
+const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
 
 const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
 
@@ -64,12 +65,21 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     }
     cancelDeletion(tempName)
     ret.on('close', () => {
-        if (!ctx.req.aborted)
-            return fs.rename(tempName, fullPath, err => {
-                err && console.error("couldn't rename temp to", fullPath, String(err))
+        if (!ctx.req.aborted) {
+            let dest = fullPath
+            if (dontOverwriteUploading.get() && fs.existsSync(dest)) {
+                const ext = extname(dest)
+                const base = dest.slice(0, -ext.length)
+                let i = 1
+                do dest = `${base} (${i++})${ext}`
+                while (fs.existsSync(dest))
+            }
+            return fs.rename(tempName, dest, err => {
+                err && console.error("couldn't rename temp to", dest, String(err))
                 if (resumable)
                     delayedDelete(resumable, 0)
             })
+        }
         if (resumable) // we don't want to be left with 2 temp files
             return delayedDelete(tempName, 0)
         const sec = deleteUnfinishedUploadsAfter.get()
