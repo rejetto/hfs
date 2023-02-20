@@ -19,7 +19,7 @@ import {
     useState
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
-import { newDialog, closeDialog, dialogsDefaults, DialogOptions } from '@hfs/shared'
+import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn } from './misc'
 import { Flex } from '@hfs/frontend/src/components'
@@ -61,7 +61,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
                 ...useDialogBarColors()
             }
         },
-            h(Box, { flex:1, minWidth: 40 }, d.title),
+            h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
             h(IconBtn, { icon: Close, tooltip: "close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {

@@ -12,7 +12,7 @@ export interface DialogOptions {
     closableContent?: string | ReactNode,
     reserveClosing?: true
     noFrame?: boolean
-    title?: string
+    title?: ReactNode | FunctionComponent
     padding?: boolean
     dialogProps?: Record<string, any>,
 
@@ -63,11 +63,15 @@ function Dialog(d:DialogOptions) {
                         onClick() { closeDialog() }
                     }, d.closableContent),
                 d.icon && h('div', { className: 'dialog-icon dialog-type' },
-                    typeof d.icon === 'function' ? h(d.icon) : d.icon),
-                h('div', { className: 'dialog-title' }, d.title),
+                    componentOrNode(d.icon)),
+                h('div', { className: 'dialog-title' }, componentOrNode(d.title)),
                 h('div', { className: 'dialog-content' }, h(d.Content || 'div'))
             )
     )
+}
+
+export function componentOrNode(x: ReactNode | FunctionComponent) {
+    return typeof x === 'function' ? h(x) : x
 }
 
 function onKeyDown(ev:any) {
