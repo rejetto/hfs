@@ -97,6 +97,7 @@ button, .breadcrumb { /* consistent focus color */
         outline: 3px solid var(--focus-color);
     }
 }
+a>button { width:100% } /* link buttons, fill parent space */
 input, select, ul a {
     &:focus-visible {
         border-radius: .3em;
@@ -264,7 +265,6 @@ ul.dir {
         padding-left: 0;
         padding-right: 0;
     }
-    &>a>button { width:100% } /* occupy whole available space */
 }
 #searched {
     margin: .2em;
