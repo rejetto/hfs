@@ -81,6 +81,9 @@ const apis: ApiHandlers = {
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
         props = pickProps(props, ['name','source','masks','default', ...Object.keys(defaultPerms)])
+        const parent = await urlToNodeOriginal(dirname(uri))
+        if (parent?.children?.find(x => getNodeName(x) === props.name))
+            return new ApiError(HTTP_CONFLICT, 'name already present')
         props = objSameKeys(props, v => v === null ? undefined : v) // null is a way to serialize undefined, that will restore default values
         if (props.masks && typeof props.masks !== 'object')
             delete props.masks
