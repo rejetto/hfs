@@ -215,10 +215,9 @@ const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
         h(EntrySize, { s }),
         time && h('span', {
             className: 'entry-ts',
-            title: today || !shortTs ? null : t.toLocaleString(),
             onClick() { // mobile has no hover
                 if (shortTs)
-                    alertDialog(t`Full timestamp:` + "\n" + t.toLocaleString()).then()
+                    alertDialog(t`Full timestamp:` + "\n" + time.toLocaleString()).then()
             }
         }, !shortTs ? time.toLocaleString() : today ? time.toLocaleTimeString() : time.toLocaleDateString()),
     )
