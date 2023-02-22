@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useMemo, useState } from 'react'
+import { createElement as h, Fragment, useMemo, useState } from 'react'
 import { Flex, FlexV } from './components'
 import { closeDialog, DialogCloser, formatBytes, hIcon, newDialog, prefix, selectFiles } from './misc'
 import _ from 'lodash'
@@ -55,6 +55,7 @@ setInterval(() => {
 }, 1000)
 
 let reloadOnClose = false
+let uploadDialogIsOpen = false
 
 export function showUpload() {
     if (!uploadState.qs.length)
@@ -63,12 +64,14 @@ export function showUpload() {
             done: 0,
             doneByte: 0,
         })
+    uploadDialogIsOpen = true
     const close = newDialog({
         dialogProps: { style: { minWidth: 'min(20em, 100vw - 1em)' } },
         title: t`Upload`,
         icon: () => hIcon('upload'),
         Content,
         onClose() {
+            uploadDialogIsOpen = false
             if (!reloadOnClose) return
             reloadOnClose = false
             reloadList()
@@ -77,7 +80,7 @@ export function showUpload() {
 
     function Content(){
         const [files, setFiles] = useState([] as File[])
-        const { qs, done, doneByte, paused, errors, eta } = useSnapshot(uploadState)
+        const { qs, paused, eta } = useSnapshot(uploadState)
         const { can_upload } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
@@ -104,7 +107,7 @@ export function showUpload() {
                     setFiles(files.filter(x => x !== f))
                 }
             }),
-            [done && `${done} finished (${formatBytes(doneByte)})`, errors && `${errors} failed`].filter(Boolean).join(' – '),
+            h(UploadStatus),
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
                     `${_.sumBy(qs, q => q.files.length)} in queue${prefix(', ', etaStr)}`,
@@ -308,7 +311,16 @@ async function startUpload(f: File, to: string, resume=0) {
         if (qs.length) return
         setTimeout(reloadList, 500) // workaround: reloading too quickly can meet the new file still with its temp name
         reloadOnClose = false
+        if (!uploadDialogIsOpen)
+            alertDialog(h('div', {}, t`Upload terminated`, h('div', {}, h(UploadStatus))), 'info')
     }
+}
+
+function UploadStatus() {
+    const { done, doneByte, errors } = useSnapshot(uploadState)
+    return h(Fragment, {},
+        [done && `${done} finished (${formatBytes(doneByte)})`, errors && `${errors} failed`].filter(Boolean).join(' – '),
+    )
 }
 
 function abortCurrentUpload() {

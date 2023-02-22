@@ -1,6 +1,7 @@
 {
     "author": "Massimo Melina",
-    "version": 1,
+    "version": 1.1,
+    "hfs_version": "0.36.0",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -90,6 +91,8 @@
         "Forbidden": "Vietato",
         "Not found": "Non trovato",
         "Server error": "Errore del server",
+
+        "Upload terminated": "Upload concluso",
 
         "Hits: ": "D#"
     }
