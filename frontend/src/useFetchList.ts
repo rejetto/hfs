@@ -34,7 +34,7 @@ export default function useFetchList() {
             return
         }
 
-        const baseParams = { path:desiredPath, search, sse:true, omit:'c' }
+        const baseParams = { path: encodeURI(desiredPath), search, sse:true, omit:'c' }
         if (_.isEqual(baseParams, lastReq.current)) return
         lastReq.current = baseParams
 
