@@ -99,10 +99,10 @@ const apis: ApiHandlers = {
             return new ApiError(HTTP_NOT_ACCEPTABLE, 'invalid parent')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
-        const a = n.children || (n.children = [])
-        if (source && a.find(x => x.source === source))
+        n.children ||= []
+        if (n.children.find(x => x.source === source || getNodeName(x) === name))
             return new ApiError(HTTP_CONFLICT, 'already present')
-        a.unshift({ source, name })
+        n.children.unshift({ source, name })
         await saveVfs()
         return {}
     },
