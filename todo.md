@@ -1,11 +1,14 @@
 # To do
+- blacklist of plugins (as a temporary measure until GitHub's intervention)
+- admin: warn in case of items with same name
+- admin/fs: button "copy url to clipboard"
+- frontend search supporting masks
+- plugin: list of IPs seen
 - admin/fs: check if source exists when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin
 - fix: cannot switch off https and switch on http at the same time 
-- admin/monitor: show user-agent
 - admin: check + update
-- multilanguage (i18n)
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - generation of links to give access to a file
   - an admin page where you can pick a file or folder(zip), and a link is generated
@@ -15,17 +18,13 @@
   - show public ip use, https://github.com/sindresorhus/public-ip
   - configure router with upnp. If it fails, suggest a guide. https://github.com/indutny/node-nat-upnp
   - offer ddns registration/update
-- blacklist of plugins (as a temporary measure until GitHub's intervention)
 - admin/fs: sort items
 - admin/config: hide advanced settings
 - admin/fs: support insert/delete key
-- admin/fs: button "copy url to clipboard"
 - admin/monitor: show some info on what folder is browsing
 - admin/fs: navigate file picker with keyboard
-- plugin: list of IPs seen
 - plugin: automatic redirection from http to https
 - admin: in a group, show linked accounts
-- admin: warn in case of items with same name
 - command line help --help
 - plugin download-counter: expose results on admin
 - whitelist di ip
@@ -34,7 +33,6 @@
 - log filter plugin
 - admin: improve masks editor
 - admin: warn before changing page if we have unsaved changes
-- frontend search supporting masks
 - remove seconds from time
 - plugin: upload quota per-account (possibly inheriting), and a default
 - plugin: make letsencrypt easier

@@ -79,6 +79,7 @@ const apis: ApiHandlers = {
         function fromCtx(ctx?: Koa.Context) {
             return ctx && {
                 user: getCurrentUsername(ctx),
+                agent: getBrowser(ctx.get('user-agent')),
                 archive: ctx.state.archive,
                 path: (ctx.fileSource || ctx.state.archive) && ctx.path  // only for downloading files
             }
@@ -106,4 +107,38 @@ function getConnAddress(conn: Connection) {
         ip: conn.ip,
         port: conn.socket.remotePort,
     }
+}
+
+function getBrowser(agent: string) {
+    for (const [name,re] of Object.entries(BROWSERS))
+        if (re.test(agent))
+            return name
+    return ''
+}
+const BROWSERS = {
+    YaBrowser: /yabrowser/i,
+    AlamoFire: /alamofire/i,
+    Edge: /edge|edga|edgios|edg/i,
+    PhantomJS: /phantomjs/i,
+    Konqueror: /konqueror/i,
+    Amaya: /amaya/i,
+    Epiphany: /epiphany/i,
+    SeaMonkey: /seamonkey/i,
+    Flock: /flock/i,
+    OmniWeb: /omniweb/i,
+    Opera: /opera|OPR\//i,
+    Chromium: /chromium/i,
+    Facebook: /FBA[NV]/,
+    Chrome: /chrome|crios/i,
+    WinJs: /msapphost/i,
+    IE: /msie|trident/i,
+    Firefox: /firefox|fxios/i,
+    Safari: /safari/i,
+    PS5: /playstation 5/i,
+    PS4: /playstation 4/i,
+    PS3: /playstation 3/i,
+    PSP: /playstation portable/i,
+    PS: /playstation/i,
+    Xbox: /xbox/i,
+    UC: /UCBrowser/i,
 }

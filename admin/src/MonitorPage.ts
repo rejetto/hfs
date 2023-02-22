@@ -144,6 +144,10 @@ function Connections() {
             valueFormatter: ({ value }) => formatBytes(value as number)
         },
         {
+            field: 'agent',
+            headerName: "Agent",
+        },
+        {
             field: "Actions",
             width: 80,
             align: 'center',
