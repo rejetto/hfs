@@ -44,8 +44,8 @@ export const HTTP_FOOL = 418
 export const HTTP_SERVER_ERROR = 500
 
 export const IS_WINDOWS = process.platform === 'win32'
-const IS_BINARY = !basename(process.argv0).includes('node') // this won't be node if pkg was used
-export const APP_PATH = dirname(IS_BINARY ? process.argv0 : __dirname)
+export const IS_BINARY = !basename(process.execPath).includes('node') // this won't be node if pkg was used
+export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname)
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()
@@ -57,7 +57,7 @@ console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
 if (argv.cwd)
     process.chdir(argv.cwd)
-else if (!process.argv0.endsWith('.exe')) { // still considering whether to use this behavior with Windows users, who may be less accustomed to it
+else if (!process.execPath.endsWith('.exe')) { // still considering whether to use this behavior with Windows users, who may be less accustomed to it
     const dir = join(homedir(), '.hfs')
     try { mkdirSync(dir) }
     catch(e: any) {

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { getRepoInfo } from './github'
-import { argv, IS_WINDOWS, VERSION } from './const'
+import { argv, IS_BINARY, IS_WINDOWS, VERSION } from './const'
 import { basename, dirname, join } from 'path'
 import { spawn } from 'child_process'
 import { httpsStream, onProcessExit, unzip } from './misc'
@@ -19,7 +19,7 @@ export async function getUpdate() {
 }
 
 export async function update() {
-    if (process.argv0.endsWith('node'))
+    if (!IS_BINARY)
         throw "only binary versions are supported for now"
     const update = await getUpdate()
     const assetSearch = ({ win32: 'windows', darwin: 'mac', linux: 'linux' } as any)[process.platform]
@@ -30,7 +30,7 @@ export async function update() {
         throw "asset not found"
     const url = asset.browser_download_url
     console.log("downloading", url)
-    const bin = process.argv0
+    const bin = process.execPath
     const binPath = dirname(bin)
     const binFile = basename(bin)
     const newBinFile = 'new-' + binFile
@@ -63,7 +63,7 @@ export async function update() {
 }
 
 if (argv.updating) { // we were launched with a temporary name, restore original name to avoid breaking references
-    const bin = process.argv0
+    const bin = process.execPath
     renameSync(bin, join(dirname(bin), argv.updating))
     console.log("renamed binary file to", argv.updating)
 }
