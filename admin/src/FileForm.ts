@@ -2,21 +2,38 @@
 
 import { state } from './state'
 import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
-import { Alert } from '@mui/material'
-import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField } from '@hfs/mui-grid-form'
+import { Alert, Box, MenuItem, MenuList, } from '@mui/material'
+import {
+    BoolField,
+    DisplayField,
+    Field,
+    FieldProps,
+    Form,
+    MultiSelectField,
+    SelectField,
+    StringField
+} from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { formatBytes, IconBtn, isEqualLax, modifiedSx, onlyTruthy } from './misc'
+import { formatBytes, IconBtn, isEqualLax, modifiedSx, newDialog, onlyTruthy } from './misc'
 import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Delete } from '@mui/icons-material'
+import { ContentCopy, Delete, Edit } from '@mui/icons-material'
 
 interface Account { username: string }
 
-export default function FileForm({ file, anyMask, defaultPerms, addToBar }: { file: VfsNode, anyMask?: boolean, defaultPerms: VfsPerms, addToBar?: ReactNode }) {
+interface FileFormProps {
+    file: VfsNode
+    anyMask?: boolean
+    defaultPerms: VfsPerms
+    addToBar?: ReactNode
+    urls: string[] | false
+}
+
+export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }: FileFormProps) {
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -49,6 +66,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar }: { fi
     return h(Form, {
         values,
         set(v, k) {
+            if (k === 'link') return
             setValues({ ...values, [k]: v })
         },
         barSx: { gap: 2, width: '100%', ...barColors },
@@ -81,6 +99,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar }: { fi
         fields: [
             isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : { k: 'name', required: true, helperText: source && "You can decide a name that's different from the one on your disk" },
+            { k: 'id', comp: LinkField, urls },
             { k: 'source', label: "Source on disk", comp: FileField, files: !isDir, folders: isDir, multiline: true,
                 placeholder: "Not on disk, this is a virtual folder",
             },
@@ -154,4 +173,65 @@ function who2desc(who: any) {
             : who === '*' ? "any account (login required)"
                 : Array.isArray(who) ? who.join(', ')
                     : "*UNKNOWN*" + JSON.stringify(who)
+}
+
+interface LinkFieldProps extends FieldProps<string> {
+    urls: string[]
+}
+function LinkField({ value, urls, }: LinkFieldProps) {
+    const { data, error, reload } = useApiEx('get_config', { only: ['base_url'] })
+    const base = data?.base_url
+    const link = (base || (urls ? urls[0] : '')) + encodeURI(value||'')
+    return h(Box, { display: 'flex', },
+        h(DisplayField, {
+            label: "Link", value: link,
+            error,
+            end: h(Box, {},
+                h(IconBtn, {
+                    icon: ContentCopy,
+                    title: "Copy",
+                    onClick: () => navigator.clipboard.writeText(link)
+                }),
+                h(IconBtn, {
+                    icon: Edit,
+                    title: "Change",
+                    onClick: edit,
+                }),
+            )
+        }),
+    )
+
+    function edit() {
+        const proto = new URL(urls[0]).protocol + '//'
+        newDialog({
+            title: "Change link",
+            onClose: reload,
+            Content() {
+                const [v, setV] = useState(base)
+                return h(Box, { display: 'flex', flexDirection: 'column' },
+                    h(Box, { mb: 2 }, "You can choose a different base address for your links"),
+                    h(MenuList, {},
+                        urls.map(u => h(MenuItem, {
+                            key: u,
+                            selected: u === v,
+                            onClick: () => set(u),
+                        }, u))
+                    ),
+                    h(StringField, {
+                        label: "Custom address",
+                        helperText: "Use this field if you need to enter a different address",
+                        value: urls.includes(v) ? '' : v.slice(proto.length),
+                        onChange: v => set(proto + v),
+                        start: proto,
+                        sx: { mt: 2 }
+                    }),
+                )
+
+                async function set(u: string) {
+                    await apiCall('set_config', { values: { base_url: u } })
+                    setV(u)
+                }
+            }
+        })
+    }
 }

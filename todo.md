@@ -1,7 +1,6 @@
 # To do
 - blacklist of plugins (as a temporary measure until GitHub's intervention)
 - admin: warn in case of items with same name
-- admin/fs: button "copy url to clipboard"
 - frontend search supporting masks
 - plugin: list of IPs seen
 - admin/fs: check if source exists when set

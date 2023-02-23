@@ -38,6 +38,13 @@ export default function VfsPage() {
     }, [vfs])
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
+    const [status] = useApi(window.location.host === 'localhost' && 'get_status')
+    const urls = useMemo(() =>
+        typeof status === 'object' && _.sortBy(
+            Object.values(status.urls?.https || status.urls?.http || {}) as string[],
+            url => url.includes('[')
+        ),
+        [status])
 
     function close() {
         state.selectedFiles = []
@@ -52,6 +59,7 @@ export default function VfsPage() {
                 }),
                 defaultPerms: data?.defaultPerms as VfsPerms,
                 anyMask,
+                urls,
                 file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
             })
             : h(Fragment, {},
@@ -101,14 +109,6 @@ export default function VfsPage() {
         }
 
     }, [data, id2node])
-    const [status] = useApi(window.location.host === 'localhost' && 'get_status')
-    const urls = useMemo(() =>
-        typeof status === 'object'
-            && _.sortBy(
-                onlyTruthy(Object.values(status.urls?.https || status.urls?.http || {}).map(u => typeof u === 'string' && u)),
-                url => url.includes('[')
-            ),
-        [status])
     if (element) {
         id2node.clear()
         return element
