@@ -2,7 +2,7 @@
 
 import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
 import { FieldProps } from '.'
-import { InputAdornment, TextField } from '@mui/material'
+import { Autocomplete, InputAdornment, TextField } from '@mui/material'
 
 interface StringProps extends FieldProps<string> {
     typing?: boolean
@@ -13,7 +13,7 @@ interface StringProps extends FieldProps<string> {
     start?: ReactNode
     end?: ReactNode
 }
-export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, onTyping, ...props }: StringProps) {
+export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, onTyping, suggestions, ...props }: StringProps) {
     const normalized = value ?? ''
     getApi?.({
         getError() {
@@ -30,7 +30,7 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
         setState(normalized)
         lastChange.current = normalized
     }, [normalized])
-    return h(TextField, {
+    const render = (params: any) => h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
         ...props,
@@ -58,7 +58,10 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
             endAdornment: end && h(InputAdornment, { position: 'end' }, end),
             ...props.InputProps,
         },
+        ...params,
     })
+    return !suggestions ? render(null)
+        : h(Autocomplete, { freeSolo: true, options: suggestions, renderInput: render })
 
     function go(event: any, val: string=state) {
         const newV = val.trim()
