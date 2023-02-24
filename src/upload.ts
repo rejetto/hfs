@@ -27,13 +27,16 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
     const reqSize = Number(ctx.headers["content-length"])
-    if (min && reqSize)
+    if (reqSize)
         try {
-            if (reqSize > getFreeDiskSync(dir) - min)
+            const free = getFreeDiskSync(dir)
+            if (typeof free !== 'number' || isNaN(free))
+                throw ''
+            if (reqSize > getFreeDiskSync(dir) - (min || 0))
                 return fail(HTTP_PAYLOAD_TOO_LARGE)
         }
-        catch(e) {
-            console.warn("can't check disk size", String(e))
+        catch(e: any) {
+            console.warn("can't check disk size", e.message || String(e))
         }
     fs.mkdirSync(dir, { recursive: true })
     const keepName = basename(fullPath).slice(-200)
