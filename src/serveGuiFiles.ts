@@ -18,6 +18,8 @@ import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
 import { getOrSet, newObj, onlyTruthy } from './misc'
 import { favicon, title } from './adminApis'
+import { subscribe } from 'valtio'
+import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
 
 // in case of dev env we have our static files within the 'dist' folder'
@@ -25,7 +27,8 @@ const DEV_STATIC = process.env.DEV ? 'dist/' : ''
 
 function serveStatic(uri: string): Koa.Middleware {
     const folder = uri.slice(2,-1) // we know folder is very similar to uri
-    const cache: Record<string, Promise<string>> = {}
+    let cache: Record<string, Promise<string>> = {}
+    subscribe(customHtmlState, () => cache = {}) // reset cache at every change
     return async (ctx, next) => {
         if(ctx.method === 'OPTIONS') {
             ctx.status = HTTP_NO_CONTENT
@@ -82,7 +85,7 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
         configs = getPluginInfo(name).onFrontendConfig?.(configs) || configs
         return !_.isEmpty(configs) && [name, configs]
     })))
-    return body
+    let ret = body
         .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + filesUri)
         .replace('<HFS/>', () => `
             ${!isFrontend ? '' : `
@@ -94,8 +97,10 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
                 VERSION,
                 API_VERSION,
                 session: session instanceof ApiError ? null : session,
-                plugins
-            }, null, 4)}
+                plugins,
+                customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
+                    ['top','bottom']), // excluding sections we apply in this phase  
+        }, null, 4)}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
             </script>
             <style>
@@ -107,6 +112,11 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
             ${css.map(uri => `<link rel='stylesheet' type='text/css' href='${uri}'/>`).join('\n')}
             ${js.map(uri => `<script defer src='${uri}'></script>`).join('\n')}
         `)
+    if (isFrontend)
+        ret = ret
+            .replace('<body>', '<body>' + getSection('top'))
+            .replace('</body>', getSection('bottom') + '</body>')
+    return ret
 }
 
 function serializeCss(v: any) {

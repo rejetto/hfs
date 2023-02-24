@@ -20,7 +20,7 @@ export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
 }
 
-export function prefix(pre:string, v:string|number, post:string='') {
+export function prefix(pre:string, v:string|number|undefined, post:string='') {
     return v ? pre+v+post : ''
 }
 

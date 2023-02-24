@@ -54,12 +54,14 @@ export function Html({ code, ...rest }:{ code:string } & HTMLAttributes<any>) {
 }
 
 export function useCustomCode(name: string, props={}) {
-    const code = useMemo(()=>
-        hfsEvent(name, props)
+    const code = useMemo(() => {
+        const ret = hfsEvent(name, props)
             .filter(x => x === 0 || x)
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
                 : typeof x === 'string' ? h(Html, { key, code: x })
-                    : h('div', { key }, x)),
-        Object.values(props))
+                    : h('div', { key }, x))
+        ret.push((window as any).HFS.customHtml[name] || null)
+        return ret
+    }, Object.values(props))
     return h(Fragment, { children: code })
 }

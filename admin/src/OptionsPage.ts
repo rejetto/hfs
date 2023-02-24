@@ -128,9 +128,6 @@ export default function OptionsPage() {
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'custom_header', multiline: true, sm: 12, md: 6, sx: { '& textarea': { fontFamily: 'monospace' } },
-                helperText: "Any HTML code here will be displayed on top of the Frontend"
-            },
             { k: 'mime', comp: StringStringField,
                 keyLabel: "Files", keyWidth: 7,
                 valueLabel: "Mime type", valueWidth: 4

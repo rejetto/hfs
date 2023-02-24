@@ -165,7 +165,6 @@ an *env* called `HFS_CONFIG`. Any relative path provided is relative to the *cwd
   Syntax supports, other than simple address, `*` as wildcard and CIDR format.
 - `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration.
 - `enable_plugins` if a plugin is not present here, it won't run. Defaults is `[ antibrute ]`.
-- `custom_header` provide HTML code to be put at the top of your Frontend. Default is none.
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
 - `keep_unfinished_uploads` should unfinished uploads be deleted immediately when interrupted. Default is true.

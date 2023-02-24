@@ -20,7 +20,7 @@ import { mkdir, readFile, rm } from 'fs/promises'
 import { join } from 'path'
 import { wantArray } from './misc'
 
-const customHeader = defineConfig('custom_header')
+export const customHeader = defineConfig<string | undefined>('custom_header')
 
 export const frontEndApis: ApiHandlers = {
     file_list,
