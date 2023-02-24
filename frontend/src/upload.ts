@@ -246,7 +246,7 @@ async function startUpload(f: File, to: string, resume=0) {
         if (!resuming)
             next()
     }
-    req.onerror = () => alertDialog(t('failed_upload', f, "Couldn't upload {name}"))
+    req.onerror = () => error(0)
     let lastProgress = 0
     req.upload.onprogress = (e:any) => {
         uploadState.partial = e.loaded + resume
@@ -294,7 +294,7 @@ async function startUpload(f: File, to: string, resume=0) {
             413: t`file too large`,
         }
         const specifier = (ERRORS as any)[status]
-        alertDialog(t`Upload error` + prefix(': ', specifier), 'error').then()
+        alertDialog(t('failed_upload', f, "Couldn't upload {name}") + prefix(': ', specifier), 'error').then()
     }
 
     function done() {
