@@ -113,13 +113,16 @@ export function selectFiles(cb: (list: FileList | null)=>void, { multiple=true, 
     el.click()
 }
 
-export function readFile(f: File) {
+export function readFile(f: File | Blob) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.addEventListener('load', (event) => {
-            if (!event.target)
-                return reject()
+            if (!event.target || f.size && !event.target.result)
+                return reject('cannot read')
             resolve(event.target.result)
+        })
+        reader.addEventListener('error', () => {
+            reject(reader.error)
         })
         reader.readAsText(f)
     })
