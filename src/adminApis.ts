@@ -155,6 +155,7 @@ for (const [k, was] of Object.entries(adminApis))
 
 export const localhostAdmin = defineConfig('localhost_admin', true)
 export const favicon = defineConfig<string>('favicon')
+export const title = defineConfig('title', "File server")
 
 export function ctxAdminAccess(ctx: Koa.Context) {
     return !ctx.state.proxiedFor // we consider localhost_admin only if no proxy is detected

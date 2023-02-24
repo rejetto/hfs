@@ -107,9 +107,8 @@ export default function ConfigPage() {
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "To access Admin without entering credentials"
             },
-            { k: 'dont_overwrite_uploading', comp: BoolField, label: "Don't overwrite uploading",
-                helperText: "Files will be numbered to avoid overwriting" },
-            { k: 'favicon', comp: FileField, fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
+            { k: 'title', helperText: "You can see this in the tab of your browser" },
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
                 helperText: "The icon associated to your website" },
             { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
             { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log", helperText: "If you want errors in a different log" },
@@ -121,6 +120,8 @@ export default function ConfigPage() {
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
             { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer },
+            { k: 'dont_overwrite_uploading', comp: BoolField, label: "Don't overwrite uploading",
+                helperText: "Files will be numbered to avoid overwriting" },
             { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",
                 helperText: "Leave empty to never delete" },
             { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
