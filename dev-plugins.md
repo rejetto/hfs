@@ -181,6 +181,9 @@ This is a list of available frontend-events, with respective object parameter an
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
     - parameter `{ entry: Entry }` (refer above for Entry object)
     - output `Html`
+- `beforeHeader` & `afterHeader`
+    - use this to produce content that should go right before/after the `header` part
+    - output `Html`
 
 ## Publish your plug-in
 

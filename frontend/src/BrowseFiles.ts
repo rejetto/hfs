@@ -33,11 +33,13 @@ export type DirList = DirEntry[]
 export function BrowseFiles() {
     useFetchList()
     const { error, list, serverConfig } = useSnapState()
-    const afterHead = useCustomCode('afterHead')
+    const afterHeader = useCustomCode('afterHeader')
+    const beforeHeader = useCustomCode('beforeHeader')
     return useAuthorized() && h(Fragment, {},
         h(Html, { code: serverConfig?.custom_header }),
+        beforeHeader,
         h(Head),
-        afterHead,
+        afterHeader,
         hError(error)
         || h(list ? FilesList : Spinner))
 }
