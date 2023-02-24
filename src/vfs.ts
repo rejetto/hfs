@@ -149,7 +149,8 @@ export async function nodeIsDirectory(node: VfsNode) {
 }
 
 export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context): boolean {
-    return matchWho(node[perm] ?? defaultPerms[perm], ctx)
+    return (node.source || perm !== 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
+        && matchWho(node[perm] ?? defaultPerms[perm], ctx)
         && (perm !== 'can_see' || hasPermission(node, 'can_read', ctx)) // can_see is used to hide something you nonetheless can_read, so you MUST also can_read
 }
 

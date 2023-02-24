@@ -48,11 +48,10 @@ export const frontEndApis: ApiHandlers = {
         const parentNode = await urlToNode(path, ctx)
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
-        const { source } = parentNode
-        if (!source || !hasPermission(parentNode, 'can_upload', ctx))
+        if (!hasPermission(parentNode, 'can_upload', ctx))
             return new ApiError(HTTP_FORBIDDEN)
         try {
-            await mkdir(join(source, name))
+            await mkdir(join(parentNode.source!, name))
             return {}
         }
         catch(e:any) {
