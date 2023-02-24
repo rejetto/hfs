@@ -189,7 +189,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 delete state.selected[relativePath]
             },
         }),
-        isFolder ? h(Link, { to: base+href }, hIcon('folder'), relativePath)
+        isFolder ? h(Link, { to: base+href }, hIcon('folder'), relativePath.slice(0,-1))
             : h(Fragment, {},
                 containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
                 h('a', { href }, !containerDir && hIcon('file'),  name)
