@@ -57,13 +57,17 @@ setInterval(() => {
 let reloadOnClose = false
 let uploadDialogIsOpen = false
 
+function resetCounters() {
+    Object.assign(uploadState, {
+        errors: 0,
+        done: 0,
+        doneByte: 0,
+    })
+}
+
 export function showUpload() {
     if (!uploadState.qs.length)
-        Object.assign(uploadState, {
-            errors: 0,
-            done: 0,
-            doneByte: 0,
-        })
+        resetCounters()
     uploadDialogIsOpen = true
     const close = newDialog({
         dialogProps: { style: { minWidth: 'min(20em, 100vw - 1em)' } },
@@ -313,6 +317,7 @@ async function startUpload(f: File, to: string, resume=0) {
         reloadOnClose = false
         if (!uploadDialogIsOpen)
             alertDialog(h('div', {}, t`Upload terminated`, h('div', {}, h(UploadStatus))), 'info')
+                .finally(resetCounters)
     }
 }
 
