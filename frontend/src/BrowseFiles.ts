@@ -217,6 +217,7 @@ const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
     const today = time && time > entry.midnight
     const shortTs = isMobile()
     const {t} = useI18N()
+    const dd = '2-digit'
     return h('div', { className: 'entry-props' },
         useCustomCode('additionalEntryProps', { entry }),
         h(EntrySize, { s }),
@@ -226,7 +227,10 @@ const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
                 if (shortTs)
                     alertDialog(t`Full timestamp:` + "\n" + time.toLocaleString()).then()
             }
-        }, !shortTs ? time.toLocaleString() : today ? time.toLocaleTimeString() : time.toLocaleDateString()),
+        }, time.toLocaleString(navigator.language, {
+            ...!shortTs || !today ? { year: shortTs ? dd : 'numeric', month: dd, day: dd } : null,
+            ...!shortTs || today ? { hour: dd, minute: dd } : null,
+        })),
     )
 })
 
