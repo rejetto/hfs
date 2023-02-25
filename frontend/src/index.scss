@@ -8,7 +8,7 @@
     --mild-contrast: #8886;
     --good-contrast: #000a;
     --button-bg: #68a;
-    --button-text: #fff;
+    --button-text: #eaeaea;
     --focus-color: #468;
     .theme-dark {
         --bg: #000;
@@ -89,8 +89,8 @@ button {
     cursor: pointer;
 }
 button.toggled {
-    color: #444;
-    text-shadow: 0 0 2px var(--good-contrast);
+    color: #fff;
+    text-shadow: 0 0 3px #fff;
 }
 button, .breadcrumb { /* consistent focus color */
     &:focus-visible {
@@ -228,9 +228,7 @@ ul.dir {
             font-variant-numeric: tabular-nums; /* trick to get stuff aligned */
 
             & .entry-size-unit {
-                display:inline-block;
                 margin-left: .3em;
-                width: 1.5em;
             }
         }
         &>div:last-of-type { clear:both }
@@ -249,10 +247,6 @@ ul.dir {
     }
 }
 
-#menu-panel {
-    margin-bottom: 0.2em;
-
-}
 #menu-bar {
     display: flex;
     justify-content: space-evenly;
@@ -296,7 +290,7 @@ button label {
 }
 
 .dialog {
-    min-width: 10em;
+    min-width: 11em;
     --color: var(--button-bg);
 }
 
@@ -306,11 +300,9 @@ button label {
     display: flex;
     gap: .1em;
     background: var(--bg);
-    &,&>button {
-        box-shadow: 0 0 .3em .3em #0003;
-        z-index: 1; /* make shadow visible also when page-first button is not selected */
-    }
     padding: 0 0.2em 0.2em;
+    &>button { z-index: 1; }
+    & button { box-shadow: 0 0 .3em .3em #0003; }
     & #paging-middle {
         padding: 0 0.5em;
         margin: 0 -0.3em;
@@ -319,7 +311,6 @@ button label {
         flex: 1;
         overflow-x: auto;
     }
-    & *::-webkit-scrollbar { height: 8px; } /* keep this thin */
     & #paging-middle>button {
         flex: 1;
         padding-top: 0; padding-bottom: 0; /* reduce vertically in case a horizontal scrolling bar is needed */
@@ -359,25 +350,27 @@ button label {
     }
 }
 
-/* Works on Firefox */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--button-bg) var(--ghost-contrast);
-}
+@media (min-width: 2em) {
+    body {
+        /* Works on Firefox */
+        & {
+            scrollbar-width: thin;
+            scrollbar-color: var(--button-bg) var(--ghost-contrast);
+        }
 
-/* Works on Chrome, Edge, and Safari */
-*::-webkit-scrollbar {
-    width: 12px;
+        /* Works on Chrome, Edge, and Safari */
+        &::-webkit-scrollbar {
+            width: 12px;
+        }
+        &::-webkit-scrollbar-track {
+            background: var(--ghost-contrast);
+        }
+        &::-webkit-scrollbar-thumb {
+            background-color: var(--button-bg);
+            border-radius: 20px;
+            border: 1px solid var(--ghost-contrast)
+        }    }
 }
-*::-webkit-scrollbar-track {
-    background: var(--ghost-contrast);
-}
-*::-webkit-scrollbar-thumb {
-    background-color: var(--button-bg);
-    border-radius: 20px;
-    border: 1px solid var(--ghost-contrast)
-}
-
 @media (max-width: 42em) {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }

@@ -18,20 +18,23 @@ export function showOptions (){
 
     function Content(){
         const snap = useSnapState()
-        return h(FlexV, {},
+        return h(FlexV, { gap: '1.2em' },
             snap.adminUrl && h(MenuLink, {
                 icon: 'admin',
                 label: t`Admin-panel`,
                 href: snap.adminUrl,
                 target: 'admin',
             }),
-            h('div', {}, t`Sort by`),
-            options.map(x => h('button',{
-                key: x,
-                onClick(){
-                    close(state.sortBy = x)
-                }
-            }, t(x), ' ', snap.sortBy===x && hIcon('check'))),
+            h(FlexV, { gap: '.5em' },
+                h('div', {}, t`Sort by`),
+                options.map(x => h('button',{
+                    key: x,
+                    className: snap.sortBy === x ? 'toggled' : undefined,
+                    onClick(){
+                        close(state.sortBy = x)
+                    }
+                }, t(x)))
+            ),
             h(Checkbox, {
                 value: snap.invertOrder,
                 onChange(v) {

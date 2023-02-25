@@ -70,7 +70,7 @@ export function showUpload() {
         resetCounters()
     uploadDialogIsOpen = true
     const close = newDialog({
-        dialogProps: { style: { minWidth: 'min(20em, 100vw - 1em)' } },
+        dialogProps: { style: { minHeight: '6em', minWidth: 'min(20em, 100vw - 1em)' } },
         title: t`Upload`,
         icon: () => hIcon('upload'),
         Content,
@@ -92,7 +92,7 @@ export function showUpload() {
         return h(FlexV, { props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
             h(FlexV, { position: 'sticky', top: -4, background: 'var(--bg)' },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
-                    : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', },
+                    : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', marginTop: '1em' },
                         h('button', { onClick: () => pickFiles() }, t`Pick files`),
                         h('button', { onClick: () => pickFiles(true) }, t`Pick folder`),
                         files.length > 0 &&  h('button', {

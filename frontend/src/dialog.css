@@ -18,7 +18,9 @@
     position: relative;
     margin: 0 3vw;
     overflow: hidden;
-    max-height: calc(100vh - 2em)
+    max-height: calc(100vh - 2em);
+    display: flex;
+    justify-content: center;
 }
 .dialog-icon {
     color: #fff;
@@ -31,8 +33,9 @@
     border-radius: .8em 0;
 }
 .dialog-title {
-    margin-top: -.7em;
+    margin-top: -.4em;
     font-size: 110%;
+    position: absolute;  /* avoid moving content down */
 }
 .dialog-icon ~ .dialog-title {
     text-align: center;
@@ -74,13 +77,10 @@
     --color: #822;
 }
 
-@media (max-width: 50em) {
-    .dialog-closer {
-        font-size: 120%
-    }
-    .dialog-icon ~ .dialog-content {
-        margin-top: 2em;
-    }
+@media (max-width: 42em) {
+    .dialog-icon { font-size: 120% }
+    .dialog-icon ~ .dialog-content { margin-top: 2.5em; } /* account for larger top icons */
+    .dialog-title { margin-top: -0.2em; }
 }
 
 .dialog-prompt label {
