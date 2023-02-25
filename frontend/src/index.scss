@@ -10,6 +10,7 @@
     --button-bg: #68a;
     --button-text: #eaeaea;
     --focus-color: #468;
+    --separator: " – ";
     .theme-dark {
         --bg: #000;
         --text: #999;
@@ -323,9 +324,9 @@ button label {
     }
 }
 
-.upload-progress::before {
-    content: " – ";
-}
+.upload-progress::before { content: var(--separator); }
+.entry-size::after { content: var(--separator) }
+
 .upload-progress {
     min-width: 4em;
     display: inline-block;

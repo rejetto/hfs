@@ -237,9 +237,6 @@ const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
 const EntrySize = memo(({ s }: { s: DirEntry['s']  }) => {
     if (s === undefined) return null
     const a = formatBytes(s).split(' ')
-    return h(Fragment, {},
-        h('span', { className: 'entry-size' }, a[0],
-            h('span', { className: 'entry-size-unit' }, a[1])),
-        " — ",
-    )
+    return h('span', { className: 'entry-size' }, a[0],
+        h('span', { className: 'entry-size-unit' }, a[1]))
 })
