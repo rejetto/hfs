@@ -56,14 +56,14 @@ export function hfsEvent(name: string, params?:Dict) {
     return output
 }
 
-const HFS: any = (window as any).HFS = {}
-
-HFS.onEvent = (name: string, cb: (params:any, tools: any, output:any) => any) => {
-    const tools = { h, React, state, t }
-    document.addEventListener('hfs.' + name, ev => {
-        const { params, output } = (ev as CustomEvent).detail
-        const res = cb(params, tools, output)
-        if (res !== undefined && Array.isArray(output))
-            output.push(res)
-    })
-}
+Object.assign((window as any).HFS ||= {}, {
+    onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
+        const tools = { h, React, state, t }
+        document.addEventListener('hfs.' + name, ev => {
+            const { params, output } = (ev as CustomEvent).detail
+            const res = cb(params, tools, output)
+            if (res !== undefined && Array.isArray(output))
+                output.push(res)
+        })
+    }
+})

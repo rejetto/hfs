@@ -67,8 +67,7 @@ async function login(username: string, password: string) {
     sessionRefresher(res)
 }
 
-// @ts-ignore
-sessionRefresher(window.SESSION)
+sessionRefresher((window as any).HFS.session)
 
 function sessionRefresher(response: any) {
     if (!response) return
