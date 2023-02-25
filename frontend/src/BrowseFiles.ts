@@ -51,6 +51,7 @@ function FilesList() {
     const [page, setPage] = useState(0)
     const [extraPages, setExtraPages] = useState(0)
     const [scrolledPages, setScrolledPages] = useState(0)
+    const [atBottom, setAtBottom] = useState(false)
     const offset = page * pageSize
     const theList = filteredList || list
     const total = theList.length
@@ -67,6 +68,7 @@ function FilesList() {
             const i = _.findLastIndex(document.querySelectorAll('.' + PAGE_SEPARATOR_CLASS), el =>
                 el.getBoundingClientRect().top <= window.innerHeight/2)
             setScrolledPages(i + 1)
+            setAtBottom(window.innerHeight + Math.ceil(window.scrollY) >= document.body.offsetHeight)
         }, 200),
         [])
     useEffect(() => domOn('scroll', () => {
@@ -116,6 +118,7 @@ function FilesList() {
         total > pageSize && h(Paging, {
             nPages,
             current: page + scrolledPages,
+            atBottom,
             pageSize,
             pageChange,
         })
@@ -125,10 +128,11 @@ function FilesList() {
 interface PagingProps {
     nPages: number
     current: number
+    atBottom: boolean
     pageSize: number
     pageChange:(newPage:number, goBottom?:boolean) => void
 }
-const Paging = memo(({ nPages, current, pageSize, pageChange }: PagingProps) => {
+const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: PagingProps) => {
     useEffect(() => {
         document.body.style.overflowY = 'scroll'
         return () => { document.body.style.overflowY = '' }
@@ -149,6 +153,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange }: PagingProps) => 
                 }, i * pageSize) )
         ),
         h('button', {
+            className: atBottom ? 'toggled' : undefined,
             onClick(){ pageChange(nPages-1, true) }
         }, hIcon('to-end')),
     )
