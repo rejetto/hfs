@@ -12,12 +12,13 @@ import {
     VERSION
 } from './const'
 import { serveFile } from './serveFile'
-import { mapPlugins } from './plugins'
+import { getPluginConfigFields, mapPlugins, pluginsConfig } from './plugins'
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { getOrSet } from './misc'
+import { getOrSet, objSameKeys, onlyTruthy } from './misc'
 import { favicon, title } from './adminApis'
+import _ from 'lodash'
 
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
@@ -84,6 +85,14 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
                 VERSION,
                 API_VERSION,
                 session: session instanceof ApiError ? null : session,
+                // expose plugins' configs that were declared with 'frontend' attribute 
+                plugins: Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
+                    const configs = objSameKeys(getPluginConfigFields(name), (v,k,skip) =>
+                        !v.frontend ? skip() :
+                            (pluginsConfig.get()?.[name]?.[k] ?? pl.getData().config?.[k]?.defaultValue)
+                    )
+                    return !_.isEmpty(configs) && [name, configs]
+                })))  
             }, null, 4)}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
             </script>

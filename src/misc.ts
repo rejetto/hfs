@@ -32,8 +32,18 @@ export function setHidden<T, ADD>(dest: T, src: ADD) {
     }))) as T & ADD
 }
 
-export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>any) {
-    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
+export function objSameKeys<S extends object,VR=any>(
+    src: S,
+    newValue: (value:Truthy<S[keyof S]>, key:keyof S, skip:()=>void)=>any
+) {
+    let skipped = false
+    const pairs = Object.entries(src).map( ([k,v]) => {
+        skipped = false
+        const newV = newValue(v, k as keyof S, skip)
+        return !skipped && [k, newV]
+    })
+    return Object.fromEntries(pairs.filter(Boolean)) as { [K in keyof S]:VR }
+    function skip() { skipped = true }
 }
 
 export function wait(ms: number) {

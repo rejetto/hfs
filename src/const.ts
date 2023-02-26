@@ -17,7 +17,7 @@ export const VERSION = pkg.version
 export const DAY = 86_400_000
 export const SESSION_DURATION = DAY
 
-export const API_VERSION = 5 // afterEntryName
+export const API_VERSION = 6 // config.frontend
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise is made equal to API_VERSION
 
 export const SPECIAL_URI = '/~/'

@@ -76,6 +76,7 @@ Currently, these properties are supported:
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
+- `frontend: boolean` expose this setting on the frontend, so that javascript can access it as HFS.plugins[PLUGIN_NAME][CONFIG_KEY]
 
 Based on `type`, other properties are supported:
 - `string`
