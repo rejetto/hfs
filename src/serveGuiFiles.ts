@@ -2,7 +2,15 @@
 
 import Koa from 'koa'
 import fs from 'fs/promises'
-import { HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, PLUGINS_PUB_URI } from './const'
+import {
+    API_VERSION,
+    FRONTEND_URI,
+    HTTP_METHOD_NOT_ALLOWED,
+    HTTP_NO_CONTENT,
+    HTTP_NOT_FOUND,
+    PLUGINS_PUB_URI,
+    VERSION
+} from './const'
 import { serveFile } from './serveFile'
 import { mapPlugins } from './plugins'
 import { refresh_session } from './api.auth'
@@ -56,13 +64,32 @@ function adjustBundlerLinks(path: string, uri: string, data: string | Buffer) {
 async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
     const session = await refresh_session({}, ctx)
     ctx.set('etag', '')
+
+    const isFrontend = filesUri === FRONTEND_URI
+
+    const css = mapPlugins((plug,k) =>
+        (isFrontend ? plug.frontend_css : null)?.map(f => PLUGINS_PUB_URI + k + '/' + f)).flat().filter(Boolean)
+    const js = mapPlugins((plug,k) =>
+        (isFrontend ? plug.frontend_js : null)?.map(f => PLUGINS_PUB_URI + k + '/' + f)).flat().filter(Boolean)
+
     return body
         .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + filesUri)
-        .replace('<link rel="icon"/>', `<link rel="icon" href="${favicon.get() ? '/favicon.ico' : 'data:;'}" />`)
-        .replace('_HFS_TITLE_', title.get())
-        .replace('_HFS_SESSION_', session instanceof ApiError ? 'null' : JSON.stringify(session))
-        // replacing this text allow us to avoid injecting in frontends that don't support plugins. Don't use a <--comment--> or it will be removed by webpack
-        .replace('_HFS_PLUGINS_', pluginsInjection)
+        .replace('<HFS/>', () => `
+            ${!isFrontend ? '' : `
+                <title>${title.get()}</title>
+                <link rel="icon" href="${favicon.get() ? '/favicon.ico' : 'data:;'}" />
+            `}
+            <script>
+            HFS = ${JSON.stringify({
+                VERSION,
+                API_VERSION,
+                session: session instanceof ApiError ? null : session,
+            }, null, 4)}
+            document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
+            </script>
+            ${css.map(uri => `<link rel='stylesheet' type='text/css' href='${uri}'/>`).join('\n')}
+            ${js.map(uri => `<script defer src='${uri}'></script>`).join('\n')}
+        `)
 }
 
 function serveProxied(port: string | undefined, uri: string) { // used for development only
@@ -82,15 +109,6 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
     return function() { //@ts-ignore
         return proxy.apply(this,arguments)
     }
-}
-
-function pluginsInjection() {
-    const css = mapPlugins((plug,k) =>
-        plug.frontend_css?.map(f => PLUGINS_PUB_URI + k + '/' + f)).flat().filter(Boolean)
-    const js = mapPlugins((plug,k) =>
-        plug.frontend_js?.map(f => PLUGINS_PUB_URI + k + '/' + f)).flat().filter(Boolean)
-    return css.map(uri => `\n<link rel='stylesheet' type='text/css' href='${uri}'/>`).join('')
-        + js.map(uri => `\n<script defer src='${uri}'></script>`).join('')
 }
 
 export function serveGuiFiles(proxyPort:string | undefined, uri:string) {
