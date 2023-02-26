@@ -17,7 +17,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 ## How does it work
 
-- run HFS on your computer, configuration page automatically shows up
+- run HFS on your computer, administration page automatically shows up
 - select what files and folders you want to be accessible
 - possibly create accounts and limit access to files
 - access those files from a phone or another computer just using a browser

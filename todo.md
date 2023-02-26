@@ -32,7 +32,7 @@
 - log filter plugin
 - admin: improve masks editor
 - admin: warn before changing page if we have unsaved changes
-- remove seconds from time
+- plugin: comments
 - plugin: upload quota per-account (possibly inheriting), and a default
 - plugin: make letsencrypt easier
   - could be just automatic detection of files by certbot
