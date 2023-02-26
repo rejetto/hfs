@@ -66,7 +66,8 @@ export default function HomePage() {
                 h('li',{}, `configure FRP with type=http (best solution)`),
                 h('li',{}, md(`configure FRP to connect to HFS _not_ with 127.0.0.1 (safe, but you won't see users' IPs)`)),
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
-            ))
+            )),
+        entry('', h(Link, { target: 'support', href: 'https://github.com/rejetto/hfs/discussions' }, "Get support")),
     )
 }
 
