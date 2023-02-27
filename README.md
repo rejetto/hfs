@@ -1,4 +1,4 @@
-# HFS: HTTP File Server
+# HFS: HTTP File Server (version 3)
 
 ![logo and motto](hfs-logo-color-motto.svg)
 
@@ -13,10 +13,7 @@ HFS is the best way via web to access or share files from your disk.
 - **Watch** all activities in real-time.
 - **Control bandwidth**, decide how much to give.
 
-This project is in an early stage, few things are missing, but it already rocks!
-
 This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
-You won't find all previous features here (yet), but still we got:
 
 ## How does it work
 
