@@ -11,7 +11,7 @@ import {
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { objSameKeys, onOff, wait } from './misc'
+import { newObj, onOff, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
@@ -70,7 +70,7 @@ const apis: ApiHandlers = {
         return {
             enabled: enablePlugins.get().includes(id),
             config: {
-                ...objSameKeys(getPluginConfigFields(id) ||{}, v => v?.defaultValue),
+                ...newObj(getPluginConfigFields(id) ||{}, v => v?.defaultValue),
                 ...pluginsConfig.get()[id]
             }
         }

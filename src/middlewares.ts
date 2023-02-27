@@ -12,7 +12,7 @@ import {
 } from './const'
 import { FRONTEND_URI } from './const'
 import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs } from './vfs'
-import { dirTraversal, objSameKeys, stream2string, tryJson } from './misc'
+import { dirTraversal, newObj, stream2string, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -201,6 +201,6 @@ async function srpCheck(username: string, password: string) {
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
     ctx.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
         ? tryJson(await stream2string(ctx.req))
-        : objSameKeys(ctx.query, x => Array.isArray(x) ? x : tryJson(x))
+        : newObj(ctx.query, x => Array.isArray(x) ? x : tryJson(x))
     await next()
 }

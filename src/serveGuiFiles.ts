@@ -12,11 +12,11 @@ import {
     VERSION
 } from './const'
 import { serveFile } from './serveFile'
-import { getPluginConfigFields, mapPlugins, pluginsConfig } from './plugins'
+import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { getOrSet, objSameKeys, onlyTruthy } from './misc'
+import { getOrSet, newObj, onlyTruthy } from './misc'
 import { favicon, title } from './adminApis'
 import _ from 'lodash'
 
@@ -73,6 +73,15 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
     const js = mapPlugins((plug,k) =>
         (isFrontend ? plug.frontend_js : null)?.map(f => PLUGINS_PUB_URI + k + '/' + f)).flat().filter(Boolean)
 
+    // expose plugins' configs that are declared with 'frontend' attribute
+    const plugins = Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
+        let configs = newObj(getPluginConfigFields(name), (v, k, skip) =>
+            !v.frontend ? skip() :
+                (pluginsConfig.get()?.[name]?.[k] ?? pl.getData().config?.[k]?.defaultValue)
+        )
+        configs = getPluginInfo(name).onFrontendConfig?.(configs) || configs
+        return !_.isEmpty(configs) && [name, configs]
+    })))
     return body
         .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + filesUri)
         .replace('<HFS/>', () => `
@@ -85,20 +94,24 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
                 VERSION,
                 API_VERSION,
                 session: session instanceof ApiError ? null : session,
-                // expose plugins' configs that were declared with 'frontend' attribute 
-                plugins: Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
-                    const configs = objSameKeys(getPluginConfigFields(name), (v,k,skip) =>
-                        !v.frontend ? skip() :
-                            (pluginsConfig.get()?.[name]?.[k] ?? pl.getData().config?.[k]?.defaultValue)
-                    )
-                    return !_.isEmpty(configs) && [name, configs]
-                })))  
+                plugins
             }, null, 4)}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
             </script>
+            <style>
+            :root {
+                ${_.map(plugins, (configs, pluginName) => 
+                    _.map(configs, (v,k) => `--${pluginName}-${k}: ${serializeCss(v)};`).join('\n')).join('')}
+            }
+            </style>
             ${css.map(uri => `<link rel='stylesheet' type='text/css' href='${uri}'/>`).join('\n')}
             ${js.map(uri => `<script defer src='${uri}'></script>`).join('\n')}
         `)
+}
+
+function serializeCss(v: any) {
+    return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}|rgba?\(.+\)$/.test(v) ? v
+        : JSON.stringify(v)
 }
 
 function serveProxied(port: string | undefined, uri: string) { // used for development only
