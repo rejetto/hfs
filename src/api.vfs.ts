@@ -5,7 +5,7 @@ import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, join, resolve } from 'path'
-import { dirStream, isWindowsDrive, objSameKeys } from './misc'
+import { dirStream, isWindowsDrive, newObj } from './misc'
 import {
     IS_WINDOWS,
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
@@ -86,7 +86,7 @@ const apis: ApiHandlers = {
             if (parent?.children?.find(x => getNodeName(x) === props.name))
                 return new ApiError(HTTP_CONFLICT, 'name already present')
         }
-        props = objSameKeys(props, v => v === null ? undefined : v) // null is a way to serialize undefined, that will restore default values
+        props = newObj(props, v => v === null ? undefined : v) // null is a way to serialize undefined, that will restore default values
         if (props.masks && typeof props.masks !== 'object')
             delete props.masks
         Object.assign(n, props)

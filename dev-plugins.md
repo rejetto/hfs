@@ -68,6 +68,7 @@ All the following properties are essentially optional.
   When necessary your plugin will read its value using `api.getConfig('message')`.
 
 - `configDialog: FormDialog` object to override dialog options. Please refer to sources for details.
+- `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to front-end 
 
 ### FieldDescriptor
 
@@ -76,7 +77,8 @@ Currently, these properties are supported:
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
-- `frontend: boolean` expose this setting on the frontend, so that javascript can access it as HFS.plugins[PLUGIN_NAME][CONFIG_KEY]
+- `frontend: boolean` expose this setting on the frontend, so that javascript can access it as
+   `HFS.plugins[PLUGIN_NAME][CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`
 
 Based on `type`, other properties are supported:
 - `string`

@@ -5,7 +5,7 @@ import { APP_PATH, argv, ORIGINAL_CWD } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { debounceAsync, same, objSameKeys, onOff, wait, with_ } from './misc'
+import { debounceAsync, same, newObj, onOff, wait, with_ } from './misc'
 import { copyFileSync, existsSync, renameSync, statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
@@ -99,7 +99,7 @@ export function getConfig(k:string) {
 }
 
 export function getWholeConfig({ omit, only }: { omit?:string[], only?:string[] }) {
-    const defs = objSameKeys(configProps, x => x.defaultValue)
+    const defs = newObj(configProps, x => x.defaultValue)
     let copy = _.defaults({}, state, defs)
     if (omit?.length)
         copy = _.omit(copy, omit)
@@ -111,7 +111,7 @@ export function getWholeConfig({ omit, only }: { omit?:string[], only?:string[] 
 // pass a value to `save` to force saving decision, or leave undefined for auto. Passing false will also reset previously loaded configs.
 export function setConfig(newCfg: Record<string,any>, save?: boolean) {
     if (!started) { // first time we consider also CLI args
-        const argCfg = _.pickBy(objSameKeys(configProps, (x,k) => argv[k]), x => x !== undefined)
+        const argCfg = _.pickBy(newObj(configProps, (x, k) => argv[k]), x => x !== undefined)
         if (! _.isEmpty(argCfg)) {
             saveConfigAsap().then() // don't set `save` argument, as it would interfere below at check `save===false`
             Object.assign(newCfg, argCfg)
