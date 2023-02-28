@@ -139,6 +139,9 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
     }, [])
     const ref = useRef<HTMLElement>()
     useEffect(() => ref.current?.scrollIntoView({ block: 'nearest' }), [current])
+    const shrink = nPages > 20
+    const from = _.floor(current, -1)
+    const to = from + 10
     return h('div', { id:'paging' },
         h('button', {
             className: !current ? 'toggled' : undefined,
@@ -146,11 +149,12 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
         }, hIcon('to-start')),
         h('div', { id: 'paging-middle' },  // using sticky first/last would prevent scrollIntoView from working
             _.range(1, nPages).map(i =>
-                h('button', {
-                    key: i,
-                    ...i === current && { className: 'toggled', ref },
-                    onClick: () => pageChange(i),
-                }, i * pageSize) )
+                (!shrink || !(i%10) || (i >= from && i < to)) // if shrinking, we show thousands or hundreds for current thousand
+                    && h('button', {
+                        key: i,
+                        ...i === current && { className: 'toggled', ref },
+                        onClick: () => pageChange(i),
+                    }, shrink && !(i%10) ? (i/10) + 'K' : i * pageSize) )
         ),
         h('button', {
             className: atBottom ? 'toggled' : undefined,
