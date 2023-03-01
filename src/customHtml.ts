@@ -4,6 +4,11 @@ import { prefix } from './misc'
 import { customHeader } from './frontEndApis'
 import { watchLoad } from './watchLoad'
 import { proxy } from 'valtio'
+import Dict = NodeJS.Dict
+import { writeFile } from 'fs/promises'
+
+export const customHtmlSections: ReadonlyArray<string> = ['top', 'bottom', 'beforeHeader', 'afterHeader',
+    'afterMenuBar', 'afterEntryName']
 
 export const customHtmlState = proxy<{
     sections: Map<string,string>
@@ -38,3 +43,11 @@ export function getSection(name: string) {
     return customHtmlState.sections.get(name) || ''
 }
 
+export async function saveCustomHtml(sections: Dict<string>) {
+    const text = Object.entries(sections).filter(([k,v]) => v?.trim()).map(([k,v]) => `[${k}]\n${v}\n\n`).join('')
+    await writeFile(FILE, text)
+    customHtmlState.sections.clear()
+    for (const [k,v] of Object.entries(sections))
+        if (v)
+            customHtmlState.sections.set(k, v)
+}

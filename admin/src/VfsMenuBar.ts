@@ -6,7 +6,7 @@ import { Add, Refresh } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import addFiles, { addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
-import { IconBtn } from './misc'
+import { IconBtn, reloadBtn } from './misc'
 
 export default function VfsMenuBar() {
     return h(Box, {
@@ -29,6 +29,6 @@ export default function VfsMenuBar() {
                 { children: "virtual folder", onClick: addVirtual  }
             ]
         }, "Add"),
-        h(IconBtn, { icon: Refresh, title: "Reload", onClick(){ reloadVfs() } }),
+        reloadBtn(() => reloadVfs()),
     )
 }

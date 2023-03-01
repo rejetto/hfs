@@ -4,7 +4,7 @@ import { createElement as h, useState, useEffect, Fragment } from "react"
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Close, Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
-import { IconBtn, iconTooltip, newDialog, useBreakpoint } from './misc'
+import { IconBtn, iconTooltip, newDialog, reloadBtn, useBreakpoint } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
@@ -103,7 +103,7 @@ export default function AccountsPage() {
                         { children: "group", onClick: () => setSel('new-group') }
                     ]
                 }, "Add"),
-                h(IconBtn, { icon: Refresh, title: "Reload", onClick: reload }),
+                reloadBtn(reload),
                 list?.length! > 0 && h(Typography, { p: 1 }, `${list!.length} account(s)`),
             ) ),
         h(Grid, { item: true, md: 5 },

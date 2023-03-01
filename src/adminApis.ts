@@ -31,6 +31,7 @@ import * as readline from 'readline'
 import { loggers } from './log'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
 
 export const adminApis: ApiHandlers = {
 
@@ -57,6 +58,20 @@ export const adminApis: ApiHandlers = {
     },
 
     get_config: getWholeConfig,
+
+    get_custom_html() {
+        return {
+            sections: Object.fromEntries([
+                ...customHtmlSections.map(k => [k,'']),
+                ...customHtmlState.sections
+            ])
+        }
+    },
+
+    async set_custom_html({ sections }) {
+        await saveCustomHtml(sections)
+        return {}
+    },
 
     async get_status() {
         return {

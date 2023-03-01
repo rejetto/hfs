@@ -12,6 +12,7 @@ import {
     Public,
     Settings,
     Translate,
+    Code,
     SvgIconComponent
 } from '@mui/icons-material'
 import _ from 'lodash'
@@ -26,6 +27,7 @@ import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
 import { useApi } from './api'
+import CustomHtmlPage from './CustomHtmlPage';
 
 interface MenuEntry {
     path: string
@@ -44,6 +46,7 @@ export const mainMenu: MenuEntry[] = [
     { path: 'logs', icon: History, comp: LogsPage },
     { path: 'language', icon: Translate, comp: LangPage },
     { path: 'plugins', icon: Extension, comp: PluginsPage },
+    { path: 'html', icon: Code, label: "Custom HTML", comp: CustomHtmlPage },
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
 
@@ -75,8 +78,8 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                     style: ({ isActive }) => isActive ? { textDecoration: 'underline' } : {},
                     children: undefined, // shut up ts
                 },
-                    it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText' } }, h(it.icon)),
-                    h(ListItemText, { primary: getMenuLabel(it) })
+                    it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
+                    h(ListItemText, { sx: { whiteSpace: 'nowrap' }, primary: getMenuLabel(it) })
                 ) ),
             h(Box, { sx: { flex: 1, opacity: .7, background: 'url(hfs-logo.svg) no-repeat bottom', backgroundSize: 'contain', margin: 2 } }),
         )

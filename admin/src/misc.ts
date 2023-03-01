@@ -4,7 +4,7 @@ import { createElement as h, FC, ReactNode } from 'react'
 import { Box, Breakpoint, CircularProgress, IconButton, Link, Tooltip, useMediaQuery } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { SxProps } from '@mui/system'
-import { SvgIconComponent } from '@mui/icons-material'
+import { Refresh, SvgIconComponent } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { apiCall } from './api'
 import { findFirst, onlyTruthy, useStateMounted } from '@hfs/shared'
@@ -129,5 +129,14 @@ export function err2msg(code: string) {
 
 export function wantArray<T>(x?: void | T | T[]) {
     return x == null ? [] : Array.isArray(x) ? x : [x]
+}
+
+export function reloadBtn(onClick: any, props?: any) {
+    return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
+}
+
+const isMac = navigator.platform.match('Mac')
+export function isCtrlKey(ev: React.KeyboardEvent) {
+    return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }
 
