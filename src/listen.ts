@@ -178,12 +178,21 @@ function stopServer(srv: http.Server) {
     })
 }
 
-export function getStatus() {
+export async function getServerStatus() {
     return {
-        httpSrv,
-        httpsSrv,
+        http: await serverStatus(httpSrv, portCfg.get()),
+        https: await serverStatus(httpsSrv, httpsPortCfg.get()),
     }
-}
+
+    async function serverStatus(h: typeof httpSrv, configuredPort?: number) {
+        const busy = await h.busy
+        await wait(0) // simple trick to wait for also .error to be updated. If this trickery becomes necessary elsewhere, then we should make also error a Promise.
+        return {
+            ..._.pick(h, ['listening', 'error']),
+            busy,
+            port: (h?.address() as any)?.port || configuredPort,
+        }
+    }}
 
 const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
