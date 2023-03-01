@@ -8,7 +8,7 @@ import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { useSnapState } from './state'
 import { confirmDialog } from './dialog'
-import { isCertError, isKeyError, makeCertAndSave } from './ConfigPage'
+import { isCertError, isKeyError, makeCertAndSave } from './OptionsPage'
 import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 
@@ -88,8 +88,8 @@ function fsLink(text=`File System page`) {
     return h(InLink, { to:'fs' }, text)
 }
 
-function cfgLink(text=`Configuration page`) {
-    return h(InLink, { to:'configuration' }, text)
+function cfgLink(text=`Options page`) {
+    return h(InLink, { to: 'options' }, text)
 }
 
 export function proxyWarning(cfg: any, status: any) {

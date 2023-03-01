@@ -17,7 +17,7 @@ import {
 import _ from 'lodash'
 import { NavLink } from 'react-router-dom'
 import MonitorPage from './MonitorPage'
-import ConfigPage from './ConfigPage';
+import OptionsPage from './OptionsPage';
 import VfsPage from './VfsPage';
 import AccountsPage from './AccountsPage';
 import HomePage from './HomePage'
@@ -39,7 +39,7 @@ export const mainMenu: MenuEntry[] = [
     { path: '', icon: Public, label: "Home", title: "Admin panel", comp: HomePage },
     { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
-    { path: 'configuration', icon: Settings, comp: ConfigPage },
+    { path: 'options', icon: Settings, comp: OptionsPage },
     { path: 'monitoring', icon: Monitor, comp: MonitorPage },
     { path: 'logs', icon: History, comp: LogsPage },
     { path: 'language', icon: Translate, comp: LangPage },

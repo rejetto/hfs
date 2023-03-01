@@ -73,12 +73,12 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                         }),
                         h(IconBtn, {
                             icon: Settings,
-                            title: "Configuration",
-                            disabled: !config && "No configuration available for this plugin",
+                            title: "Options",
+                            disabled: !config && "No options available for this plugin",
                             async onClick() {
                                 const pl = await apiCall('get_plugin', { id })
                                 const values = await formDialog({
-                                    title: `${id} configuration`,
+                                    title: `${id} options`,
                                     fields: [
                                         h(Box, {}, row.description),
                                         ...makeFields(config)

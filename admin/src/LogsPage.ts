@@ -5,7 +5,7 @@ import { Tab, Tabs } from '@mui/material'
 import { useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
 import { formatBytes } from '@hfs/shared'
-import { logLabels } from './ConfigPage'
+import { logLabels } from './OptionsPage'
 import { typedKeys } from './misc';
 
 export default function LogsPage() {

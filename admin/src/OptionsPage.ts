@@ -36,7 +36,7 @@ export const logLabels = {
     error_log: "Access error log file"
 }
 
-export default function ConfigPage() {
+export default function OptionsPage() {
     const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
     let snap = useSnapState()
     const { changes } = useSnapshot(pageState)
