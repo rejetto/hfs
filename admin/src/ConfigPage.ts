@@ -146,17 +146,33 @@ export default function ConfigPage() {
         if (_.isEmpty(changes))
             return toast("Nothing to save")
         const loc = window.location
-        const newPort = loc.protocol === 'http:' ? changes.port : changes.https_port
-        if (newPort <= 0 && !await confirmDialog("You are switching off the server port and you will be disconnected"))
+        const keys = ['port','https_port']
+        if (keys.every(k => changes[k] !== undefined))
+            return alertDialog("You cannot change both http and https port at once. Please, do one, save, and then do the other.", 'warning')
+        const working = [status?.http?.listening, status?.https?.listening]
+        const onHttps = location.protocol === 'https:'
+        if (onHttps) {
+            keys.reverse()
+            working.reverse()
+        }
+        const newPort = changes[keys[0]]
+        const otherPort = values[keys[1]]
+        const otherIsReliable = otherPort > 0 && working[1]
+        const otherProtocol = onHttps ? 'http' : 'https'
+        if (newPort < 0 && !otherIsReliable)
+            return alertDialog("You cannot switch off this port unless you have a working fixed port for " + otherProtocol, 'warning')
+        if (newPort === 0 && !otherIsReliable)
+            return alertDialog("You cannot randomize this port unless you have a working fixed port for " + otherProtocol, 'warning')
+        if (newPort > 0 && !await confirmDialog("You are changing the port and you may be disconnected"))
             return
-        else if (newPort > 0 && !await confirmDialog("You are changing the port and you may be disconnected"))
-            return
-        if (loc.protocol === 'https:' && ('cert' in changes || 'private_key' in changes) && !await confirmDialog("You may disrupt https service, kicking you out"))
+        if (onHttps && ('cert' in changes || 'private_key' in changes) && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
         await apiCall('set_config', { values: changes })
-        if (newPort > 0) {
+        if (newPort !== undefined) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
-            return window.location.href = loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
+            // we have to jump protocol also in case of random port, because we want people to know their port while using GUI
+            return window.location.href = newPort <= 0 ? (onHttps ? 'http:' : 'https:') + '//' + loc.hostname + ':' + otherPort + loc.pathname
+                : loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
         }
         setTimeout(reloadStatus, 'port' in changes || 'https_port' in changes ? 1000 : 0) // give some time to consider new ports
         Object.assign(loaded!, changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
