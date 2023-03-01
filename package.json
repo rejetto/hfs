@@ -59,7 +59,7 @@
   },
   "dependencies": {
     "@koa/router": "^10.1.1",
-    "@node-rs/crc32": "^1.5.1",
+    "@node-rs/crc32": "^1.6.0",
     "basic-auth": "^2.0.1",
     "buffer-crc32": "^0.2.13",
     "cidr-tools": "^4.3.0",
