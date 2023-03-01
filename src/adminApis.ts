@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { defineConfig, getWholeConfig, setConfig } from './config'
-import { getStatus, getUrls, httpsPortCfg, portCfg } from './listen'
+import { getServerStatus, getUrls } from './listen'
 import {
     API_VERSION,
     BUILD_TIMESTAMP,
@@ -11,9 +11,8 @@ import {
     IS_WINDOWS,
     VERSION,
     HTTP_UNAUTHORIZED,
-    HTTP_FORBIDDEN,
     HTTP_NOT_FOUND,
-    HTTP_BAD_REQUEST
+    HTTP_BAD_REQUEST, HTTP_SERVER_ERROR
 } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
@@ -21,8 +20,7 @@ import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import { getConnections } from './connections'
-import { debounceAsync, isLocalHost, onOff, wait } from './misc'
-import _ from 'lodash'
+import { debounceAsync, isLocalHost, onOff, waitFor } from './misc'
 import events from './events'
 import { anyAccountCanLoginAdmin, getFromAccount } from './perm'
 import Koa from 'koa'
@@ -44,12 +42,16 @@ export const adminApis: ApiHandlers = {
 
     async set_config({ values: v }) {
         if (v) {
-            const st = getStatus()
-            const noHttp = (v.port ?? portCfg.get()) < 0 || !st.httpSrv.listening
-            const noHttps = (v.https_port ?? httpsPortCfg.get()) < 0 || !st.httpsSrv.listening
-            if (noHttp && noHttps)
-                return new ApiError(HTTP_FORBIDDEN, "You cannot switch off both http and https ports")
             await setConfig(v)
+            if (v.port === 0 || v.https_port === 0)
+                return await waitFor(async () => {
+                    const st = await getServerStatus()
+                    // wait for all random ports to be done, so we communicate new numbers
+                    if ((v.port !== 0 || st.http.listening)
+                    && (v.https_port !== 0 || st.https.listening))
+                        return st
+                }, { timeout: 1000 })
+                    ?? new ApiError(HTTP_SERVER_ERROR, "something went wrong changing ports")
         }
         return {}
     },
@@ -57,30 +59,18 @@ export const adminApis: ApiHandlers = {
     get_config: getWholeConfig,
 
     async get_status() {
-        const st = getStatus()
         return {
             started: HFS_STARTED,
             build: BUILD_TIMESTAMP,
             version: VERSION,
             apiVersion: API_VERSION,
             compatibleApiVersion: COMPATIBLE_API_VERSION,
-            http: await serverStatus(st.httpSrv, portCfg.get()),
-            https: await serverStatus(st.httpsSrv, httpsPortCfg.get()),
+            ...await getServerStatus(),
             urls: getUrls(),
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
                 && await frpDebounced(),
-        }
-
-        async function serverStatus(h: typeof st.httpSrv, configuredPort?: number) {
-            const busy = await h.busy
-            await wait(0) // simple trick to wait for also .error to be updated. If this trickery becomes necessary elsewhere, then we should make also error a Promise.
-            return {
-                ..._.pick(h, ['listening', 'error']),
-                busy,
-                port: (h?.address() as any)?.port || configuredPort,
-            }
         }
     },
 

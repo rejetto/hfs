@@ -54,6 +54,18 @@ export function wait(ms: number) {
     return new Promise(res=> setTimeout(res,ms))
 }
 
+export async function waitFor<T>(cb: ()=> T, { interval=200, timeout=Infinity }={}) {
+    const started = Date.now()
+    while (1) {
+        const res = await cb()
+        if (res)
+            return res
+        if (Date.now() - started >= timeout)
+            return
+        await wait(interval)
+    }
+}
+
 export function wantArray<T>(x?: void | T | T[]) {
     return x == null ? [] : Array.isArray(x) ? x : [x]
 }
