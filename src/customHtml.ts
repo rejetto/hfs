@@ -8,7 +8,7 @@ import Dict = NodeJS.Dict
 import { writeFile } from 'fs/promises'
 
 export const customHtmlSections: ReadonlyArray<string> = ['top', 'bottom', 'beforeHeader', 'afterHeader',
-    'afterMenuBar', 'afterEntryName']
+    'afterMenuBar', 'afterEntryName', 'afterList']
 
 export const customHtmlState = proxy<{
     sections: Map<string,string>

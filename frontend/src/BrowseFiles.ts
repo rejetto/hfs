@@ -39,6 +39,7 @@ export function BrowseFiles() {
         h(CustomCode, { name: 'afterHeader' }),
         hError(error)
         || h(list ? FilesList : Spinner),
+        h(CustomCode, { name: 'afterList' }),
     )
 }
 
