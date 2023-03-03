@@ -88,6 +88,9 @@ To download a file: open it, right-click on the "Raw" button, Save.
 
 Files must be named `hfs-lang-CODE.json` (lowercase), where `CODE` is the ISO code for your language (e.g. pt-br for Brazilian).
 
+Translation is applied automatically based on the configuration of the visitor's browser.
+[Check the language configuration of your browser](https://gtranslate.io/detect-browser-language).
+
 ## Plug-ins
 
 To install a plugin you just copy its folder inside `plugins` folder.
