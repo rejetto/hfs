@@ -12,7 +12,7 @@ import {
     useState
 } from 'react'
 import { domOn, formatBytes, hError, hIcon, isMobile } from './misc'
-import { Checkbox, Html, Spinner, useCustomCode } from './components'
+import { Checkbox, CustomCode, Html, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import { alertDialog } from './dialog'
@@ -32,16 +32,14 @@ export type DirList = DirEntry[]
 
 export function BrowseFiles() {
     useFetchList()
-    const { error, list, serverConfig } = useSnapState()
-    const afterHeader = useCustomCode('afterHeader')
-    const beforeHeader = useCustomCode('beforeHeader')
+    const { error, list } = useSnapState()
     return useAuthorized() && h(Fragment, {},
-        h(Html, { code: serverConfig?.custom_header }),
-        beforeHeader,
+        h(CustomCode, { name: 'beforeHeader' }),
         h(Head),
-        afterHeader,
+        h(CustomCode, { name: 'afterHeader' }),
         hError(error)
-        || h(list ? FilesList : Spinner))
+        || h(list ? FilesList : Spinner),
+    )
 }
 
 function FilesList() {
@@ -205,7 +203,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
                 h('a', { href }, !containerDir && hIcon('file'),  name)
             ),
-        useCustomCode('afterEntryName', { entry }),
+        h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h(EntryProps, entry),
         h('div'),
     )
@@ -223,7 +221,7 @@ const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
     const {t} = useI18N()
     const dd = '2-digit'
     return h('div', { className: 'entry-props' },
-        useCustomCode('additionalEntryProps', { entry }),
+        h(CustomCode, { name: 'additionalEntryProps', props: { entry } }),
         h(EntrySize, { s }),
         time && h('span', {
             className: 'entry-ts',

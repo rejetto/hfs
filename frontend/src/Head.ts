@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, useMemo } from 'react'
 import { formatBytes, hIcon } from './misc'
-import { Spinner, useCustomCode } from './components'
+import { CustomCode, Spinner } from './components'
 import { useSnapState } from './state'
 import { MenuPanel } from './menu'
 import { Breadcrumbs } from './Breadcrumbs'
@@ -12,7 +12,7 @@ import { useI18N } from './i18n'
 export function Head() {
     return h('header', {},
         h(MenuPanel),
-        useCustomCode('afterMenuBar'),
+        h(CustomCode, { name: 'afterMenuBar' }),
         h(Breadcrumbs),
         h(FolderStats),
         h(FilterBar),
