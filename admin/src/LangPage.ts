@@ -15,7 +15,7 @@ export default function LangPage() {
         return error
     return h(Fragment, {},
         h(Alert, { severity: 'info' }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
-        h(Alert, { severity: 'info' }, "The front-end will automatically apply translation based on the language of the browser. You can force loading of a specific language by appending ?lang=CODE to the URL."),
+        h(Alert, { severity: 'info' }, "The front-end will automatically apply translation based on the language of the browser. You can force a specific language to load by appending by appending ?lang=CODE to the URL."),
         h(Box, { mb: 1 },
             h(Button, { variant: 'contained', startIcon: h(Upload), onClick: add }, "Add"),
         ),
