@@ -1,6 +1,6 @@
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
-import { useDebounce } from 'use-debounce'
+import { useDebounce } from 'usehooks-ts'
 import { Checkbox } from './components'
 import { useI18N } from './i18n'
 
