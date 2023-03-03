@@ -16,7 +16,6 @@
     "react-router-dom": "^6.1.1",
     "talkr": "^3.3.9",
     "tssrp6a": "^3.0.0",
-    "use-debounce": "^7.0.1",
     "usehooks-ts": "^2.6.0",
     "valtio": "^1.2.7",
     "web-vitals": "^2.1.4"
