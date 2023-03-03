@@ -71,6 +71,6 @@ export default function LangPage() {
             await apiCall('add_langs', { langs })
             reload()
             toast("Loaded")
-        })
+        }, { accept: '.json' })
     }
 }
