@@ -101,10 +101,11 @@ export function findFirst<I=any, O=any>(a: I[], cb:(v:I)=>O): any {
     }
 }
 
-export function selectFiles(cb: (list: FileList | null)=>void, { multiple=true, folder=false }={}) {
+export function selectFiles(cb: (list: FileList | null)=>void, { accept='', multiple=true, folder=false }={}) {
     const el = Object.assign(document.createElement('input'), {
         type: 'file',
         name: 'file',
+        accept,
         multiple: multiple,
         webkitdirectory: folder,
     })
