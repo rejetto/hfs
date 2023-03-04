@@ -69,7 +69,7 @@
     "koa": "^2.13.4",
     "koa-compress": "^5.1.0",
     "koa-mount": "^4.0.0",
-    "koa-session": "^6.2.0",
+    "koa-session": "^6.4.0",
     "limiter": "^2.1.0",
     "lodash": "^4.17.21",
     "minimist": "^1.2.6",
