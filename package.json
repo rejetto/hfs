@@ -63,7 +63,7 @@
     "basic-auth": "^2.0.1",
     "buffer-crc32": "^0.2.13",
     "cidr-tools": "^4.3.0",
-    "fast-glob": "^3.2.7",
+    "fast-glob": "^3.2.12",
     "find-process": "^1.4.7",
     "formidable": "^2.1.1",
     "koa": "^2.13.4",
