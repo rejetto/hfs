@@ -26,7 +26,6 @@ export const state = proxy<{
     sortNumerics: boolean,
     theme: string,
     adminUrl?: string,
-    serverConfig?: any,
     loginRequired?: boolean, // force user to login before proceeding
     messageOnly?: string, // no gui, just show this message
     can_upload?: boolean
@@ -61,11 +60,6 @@ const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'sortNumerics', 'in
 loadSettings()
 for (const k of SETTINGS_TO_STORE)
     subscribeKey(state, k, storeSettings)
-
-// load server config
-setTimeout(() =>
-    apiCall('config', {}, { noModal: true }).then(res =>
-        state.serverConfig = res) )
 
 function loadSettings() {
     const json = localStorage.getItem(SETTINGS_KEY)

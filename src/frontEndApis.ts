@@ -26,10 +26,6 @@ export const frontEndApis: ApiHandlers = {
     file_list,
     ...api_auth,
 
-    config() {
-        return Object.fromEntries([customHeader].map(x => [x.key(), x.get()]))
-    },
-
     get_notifications({ channel }, ctx) {
         apiAssertTypes({ string: { channel } })
         const list = new SendListReadable()
