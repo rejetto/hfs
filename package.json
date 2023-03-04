@@ -76,7 +76,7 @@
     "open": "^8.4.0",
     "tssrp6a": "^3.0.0",
     "unzip-stream": "^0.3.1",
-    "yaml": "^2.0.0-10"
+    "yaml": "^2.2.1"
   },
   "devDependencies": {
     "@types/archiver": "^5.1.1",
