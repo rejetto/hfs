@@ -111,7 +111,7 @@ function makeFields(config: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
         if (!_.isPlainObject(o))
             return o
-        let { type, defaultValue, fields, ...rest } = o
+        let { type, defaultValue, fields, frontend, ...rest } = o
         const comp = (type2comp as any)[type] as Field<any> | undefined
         if (comp === ArrayField)
             fields = makeFields(fields)
