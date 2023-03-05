@@ -147,10 +147,8 @@ function compare(a:any, b:any) {
 
 // update list on sorting criteria
 const sortAgain = _.debounce(()=> state.list = sort(state.list), 100)
-subscribeKey(state, 'sortBy', sortAgain)
-subscribeKey(state, 'invertOrder', sortAgain)
-subscribeKey(state, 'foldersFirst', sortAgain)
-subscribeKey(state, 'sortNumerics', sortAgain)
+for (const k of [ 'sortBy', 'invertOrder', 'foldersFirst', 'sortNumerics'] as const)
+    subscribeKey(state, k, sortAgain)
 
 subscribeKey(state, 'patternFilter', v => {
     if (!v)
