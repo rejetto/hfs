@@ -6,7 +6,6 @@ import { apiCall, useApi, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh, Warning } from '@mui/icons-material'
 import { Dict, modifiedSx, with_ } from './misc'
-import { subscribeKey } from 'valtio/utils'
 import {
     Form,
     BoolField,
@@ -21,7 +20,7 @@ import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
-import { proxy, useSnapshot } from 'valtio'
+import { proxy, subscribe, useSnapshot } from 'valtio'
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
@@ -29,7 +28,11 @@ const pageState = proxy({
     changes: {} as Dict
 })
 
-subscribeKey(state, 'config', recalculateChanges)
+//subscribeKey is not working (anymore) on nested changes
+subscribe(state, (ops) => {
+    if (ops.some(op => op[1][0] === 'config'))
+        recalculateChanges()
+})
 
 export const logLabels = {
     log: "Access log file",
@@ -38,7 +41,7 @@ export const logLabels = {
 
 export default function OptionsPage() {
     const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
-    let snap = useSnapState()
+    const snap = useSnapState()
     const { changes } = useSnapshot(pageState)
     const statusApi  = useApiEx(data && 'get_status')
     const status = statusApi.data
