@@ -79,7 +79,7 @@ async function apiGithub(uri: string) {
     return JSON.parse(res.body)
 }
 
-export async function* searchPlugins(text: string) {
+export async function* searchPlugins(text='') {
     const res = await apiGithub('search/repositories?q=topic:hfs-plugin+' + encodeURI(text))
     for (const it of res.items) {
         const repo = it.full_name
