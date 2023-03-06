@@ -21,7 +21,7 @@ import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { ContentCopy, Delete, Edit } from '@mui/icons-material'
+import { Check, ContentCopy, Delete, Edit } from '@mui/icons-material'
 
 interface Account { username: string }
 
@@ -180,7 +180,7 @@ interface LinkFieldProps extends FieldProps<string> {
 }
 function LinkField({ value, urls, }: LinkFieldProps) {
     const { data, error, reload } = useApiEx('get_config', { only: ['base_url'] })
-    const base = data?.base_url
+    const base: string | undefined = data?.base_url
     const link = (base || (urls ? urls[0] : '')) + encodeURI(value||'')
     return h(Box, { display: 'flex', },
         h(DisplayField, {
@@ -215,12 +215,12 @@ function LinkField({ value, urls, }: LinkFieldProps) {
                             key: u,
                             selected: u === v,
                             onClick: () => set(u),
-                        }, u))
+                        }, u, u === v && h(Check, { sx: { ml: 2 } })))
                     ),
                     h(StringField, {
                         label: "Custom address",
                         helperText: "Use this field if you need to enter a different address",
-                        value: urls.includes(v) ? '' : v.slice(proto.length),
+                        value: !v || urls.includes(v) ? '' : v.slice(proto.length),
                         onChange: v => set(proto + v),
                         start: proto,
                         sx: { mt: 2 }

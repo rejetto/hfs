@@ -38,7 +38,7 @@ export default function VfsPage() {
     }, [vfs])
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
-    const [status] = useApi(window.location.host === 'localhost' && 'get_status')
+    const [status] = useApi('get_status')
     const urls = useMemo(() =>
         typeof status === 'object' && _.sortBy(
             Object.values(status.urls?.https || status.urls?.http || {}) as string[],
