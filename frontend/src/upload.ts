@@ -223,7 +223,7 @@ let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource
-let closeResumeDialog: DialogCloser | undefined
+let closeLast: DialogCloser | undefined
 
 async function startUpload(f: File, to: string, resume=0) {
     let resuming = false
@@ -234,6 +234,7 @@ async function startUpload(f: File, to: string, resume=0) {
     req.onloadend = () => {
         if (req?.readyState !== 4) return
         const status = overrideStatus || req.status
+        closeLast?.()
         if (status) // 0 = user-aborted
             if (status >= 400)
                 error(status)
@@ -267,8 +268,9 @@ async function startUpload(f: File, to: string, resume=0) {
                     const {expires} = data
                     const timeout = typeof expires !== 'number' ? 0
                         : (Number(new Date(expires)) - Date.now()) / 1000
+                    closeLast?.()
                     const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/f.size)} = ${formatBytes(size)})`
-                    if (!await confirmDialog(msg, { timeout, getClose: x => closeResumeDialog=x })) return
+                    if (!await confirmDialog(msg, { timeout, getClose: x => closeLast=x })) return
                     if (uploading !== uploadState.uploading) return // too late
                     resuming = true
                     abortCurrentUpload()
@@ -290,7 +292,9 @@ async function startUpload(f: File, to: string, resume=0) {
             413: t`file too large`,
         }
         const specifier = (ERRORS as any)[status]
-        alertDialog(t('failed_upload', f, "Couldn't upload {name}") + prefix(': ', specifier), 'error').then()
+        const msg = t('failed_upload', f, "Couldn't upload {name}") + prefix(': ', specifier)
+        closeLast?.()
+        return alertDialog(msg, 'error', { getClose: x => closeLast=x })
     }
 
     function done() {
@@ -300,7 +304,6 @@ async function startUpload(f: File, to: string, resume=0) {
     }
 
     function next() {
-        closeResumeDialog?.()
         uploadState.uploading = undefined
         uploadState.partial = 0
         const { qs } = uploadState

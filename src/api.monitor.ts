@@ -13,10 +13,14 @@ const apis: ApiHandlers = {
     async disconnect({ ip, port, wait }) {
         const match = _.matches({ ip, port })
         const c = getConnections().find(c => match(getConnAddress(c)))
-        const waiter = pendingPromise<void>()
-        c?.socket.end(waiter.resolve)
-        if (wait)
-            await waiter
+        if (c) {
+            const waiter = pendingPromise<void>()
+            c.socket.end(waiter.resolve)
+            c.ctx?.res.end()
+            c.ctx?.req.socket.end('')
+            if (wait)
+                await waiter
+        }
         return { result: Boolean(c) }
     },
 

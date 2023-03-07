@@ -55,18 +55,18 @@ export async function promptDialog(msg: string, { def, type, ...rest }:PromptOpt
 
 type AlertType = 'error' | 'warning' | 'info'
 
-export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info') {
+export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', { getClose=_.noop }={}) {
     if (msg instanceof Error) {
         msg = msg.message
         type = 'error'
     }
-    return new Promise(resolve => newDialog({
+    return new Promise(resolve => getClose(newDialog({
         className: 'dialog-alert dialog-alert-'+type,
         title: t(_.capitalize(type)),
         icon: '!',
         onClose: resolve,
         Content
-    }))
+    })))
 
     function Content(){
         if (typeof msg === 'string' || msg instanceof Error)
