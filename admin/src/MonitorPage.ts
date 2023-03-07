@@ -3,10 +3,10 @@
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip } from '@mui/icons-material'
+import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip, Upload } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
-import { formatBytes, IconBtn, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
+import { formatBytes, IconBtn, IconProgress, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { GridColumns } from '@mui/x-data-grid/models/colDef/gridColDef'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
@@ -33,6 +33,7 @@ function MoreInfo() {
         md && pair('https', { label: "HTTPS", render: port }),
         sm && pair('connections'),
         pair('sent', { render: formatBytes, minWidth: '4em' }),
+        sm && pair('got', { render: formatBytes, minWidth: '4em' }),
         pair('outSpeed', { label: "Output speed", render: formatSpeed }),
     )
 
@@ -117,8 +118,12 @@ function Connections() {
                         h(Box, { ml: 2, color: 'text.secondary' }, value)
                     )
                 const i = value?.lastIndexOf('/')
-                return h(Fragment, {}, value.slice(i + 1),
-                    i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i)))
+                return h(Fragment, {},
+                    row.uploadProgress !== undefined
+                        && h(IconProgress, { icon: Upload, progress: row.uploadProgress, sx: { mr: 1 } }),
+                    value.slice(i + 1),
+                    i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i))
+                )
             }
         },
         {
@@ -135,13 +140,13 @@ function Connections() {
             field: 'outSpeed',
             headerName: "Speed",
             type: 'number',
-            valueFormatter: ({ value }) => formatSpeed(value)
+            renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0))
         },
         {
             field: 'sent',
             headerName: "Total",
             type: 'number',
-            valueFormatter: ({ value }) => formatBytes(value as number)
+            renderCell: ({ value, row}) => formatBytes(Math.max(value||0, row.got||0))
         },
         {
             field: 'agent',
@@ -176,7 +181,7 @@ function Connections() {
                 fullWidth: false,
                 value: filtered,
                 onChange: setFiltered as any,
-                options: { "Show only downloads": true, "Show all connections": false }
+                options: { "Show only files": true, "Show all connections": false }
             }),
 
             h(Box, { flex: 1 }),

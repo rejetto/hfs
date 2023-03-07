@@ -48,7 +48,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     const DELAY = 1000
     const update = _.debounce(() => {
         const ts = conn[SymThrStr] as ThrottledStream
-        const outSpeed = roundKb(ts.getSpeed())
+        const outSpeed = roundSpeed(ts.getSpeed())
         updateConnection(conn, { outSpeed, sent: ts.getBytesSent() })
         /* in case this stream stands still for a while (before the end), we'll have neither 'sent' or 'close' events,
         * so who will take care to updateConnection? This artificial next-call will ensure just that */
@@ -77,7 +77,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         ctx.response.length = bak
 }
 
-function roundKb(n: number) {
+export function roundSpeed(n: number) {
     return _.round(n, 1) || _.round(n, 3) // further precision if necessary
 }
 
@@ -97,8 +97,8 @@ setInterval(() => {
     lastSent = totalSent
     const deltaGotKb = (totalGot - lastGot) / 1000
     lastGot = totalGot
-    totalOutSpeed = roundKb(deltaSentKb / past)
-    totalInSpeed = roundKb(deltaGotKb / past)
+    totalOutSpeed = roundSpeed(deltaSentKb / past)
+    totalInSpeed = roundSpeed(deltaGotKb / past)
 }, 1000)
 
 events.on('connection', (c: Connection) =>

@@ -81,7 +81,9 @@ const apis: ApiHandlers = {
                 user: getCurrentUsername(ctx),
                 agent: getBrowser(ctx.get('user-agent')),
                 archive: ctx.state.archive,
-                path: (ctx.fileSource || ctx.state.archive) && ctx.path  // only for downloading files
+                upload: ctx.state.uploadProgress,
+                path: ctx.state.uploadPath
+                    || (ctx.fileSource || ctx.state.archive) && ctx.path  // only uploads and downloads
             }
         }
     },

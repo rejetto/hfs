@@ -1,13 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, FC, ReactNode } from 'react'
+import { createElement as h, FC, Fragment, ReactNode } from 'react'
 import { Box, Breakpoint, CircularProgress, IconButton, Link, Tooltip, useMediaQuery } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { SxProps } from '@mui/system'
 import { Refresh, SvgIconComponent } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { apiCall } from './api'
-import { findFirst, onlyTruthy, useStateMounted } from '@hfs/shared'
+import { findFirst, formatPerc, onlyTruthy, useStateMounted } from '@hfs/shared'
 export * from '@hfs/shared'
 
 export function spinner() {
@@ -140,3 +140,17 @@ export function isCtrlKey(ev: React.KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }
 
+export function IconProgress({ icon, progress, sx }: { icon: SvgIconComponent, progress: number, sx?: SxProps }) {
+    return h(Fragment, {},
+        h(icon, { sx: { position:'absolute', ml: '4px' } }),
+        h(Tooltip, {
+            title: formatPerc(progress),
+            children: h(CircularProgress, {
+                value: progress*100,
+                variant: 'determinate',
+                size: 32,
+                sx,
+            }),
+        }),
+    )
+}

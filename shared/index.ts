@@ -128,3 +128,7 @@ export function readFile(f: File | Blob) {
         reader.readAsText(f)
     })
 }
+
+export function formatPerc(p: number) {
+    return (p*100).toFixed(1) + '%'
+}

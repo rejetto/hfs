@@ -13,6 +13,9 @@ import { Callback, try_ } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getFreeDiskSync } from './util-os'
+import { socket2connection, updateConnection } from './connections'
+import { roundSpeed } from './throttler'
+import _ from 'lodash'
 
 export const deleteUnfinishedUploadsAfter = defineConfig('delete_unfinished_uploads_after')
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -67,7 +70,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         tempName = resumable
     }
     cancelDeletion(tempName)
-    ret.on('close', () => {
+    trackProgress()
+    ret.once('close', () => {
         if (!ctx.req.aborted) {
             let dest = fullPath
             if (dontOverwriteUploading.get() && fs.existsSync(dest)) {
@@ -90,6 +94,24 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         delayedDelete(tempName, sec)
     })
     return ret
+
+    function trackProgress() {
+        let lastGot = 0
+        let lastGotTime = 0
+        const conn = socket2connection(ctx.socket)
+        if (!conn) return ()=>{}
+        ctx.state.uploadPath = ctx.path + path
+        updateConnection(conn, { ctx })
+        const h = setInterval(() => {
+            const now = Date.now()
+            const got = ret.bytesWritten
+            const inSpeed = roundSpeed((got - lastGot) / (now - lastGotTime))
+            lastGot = got
+            lastGotTime = now
+            updateConnection(conn, { inSpeed, got, uploadProgress: _.round(got / reqSize, 3) })
+        }, 1000)
+        ret.once('close', () => clearInterval(h) )
+    }
 
     function delayedDelete(path: string, secs: number, cb?: Callback) {
         clearTimeout(waitingToBeDeleted[path])

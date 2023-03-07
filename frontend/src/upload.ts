@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
 import { Flex, FlexV } from './components'
-import { closeDialog, DialogCloser, formatBytes, hIcon, newDialog, prefix, selectFiles } from './misc'
+import { closeDialog, DialogCloser, formatBytes, formatPerc, hIcon, newDialog, prefix, selectFiles } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -181,10 +181,6 @@ function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...pr
         },
         icon.length > 1 ? hIcon(icon) : icon
     )
-}
-
-function formatPerc(p: number) {
-    return (p*100).toFixed(1) + '%'
 }
 
 function formatTime(time: number, decimals=0, length=Infinity) {
