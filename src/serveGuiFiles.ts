@@ -87,7 +87,7 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
     })))
     let ret = body
         .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + filesUri)
-        .replace('<HFS/>', () => `
+        .replace('</head>', () => `
             ${!isFrontend ? '' : `
                 <title>${title.get()}</title>
                 <link rel="icon" href="${favicon.get() ? '/favicon.ico' : 'data:;'}" />
@@ -111,7 +111,7 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
             </style>
             ${css.map(uri => `<link rel='stylesheet' type='text/css' href='${uri}'/>`).join('\n')}
             ${js.map(uri => `<script defer src='${uri}'></script>`).join('\n')}
-        `)
+        </head>`)
     if (isFrontend)
         ret = ret
             .replace('<body>', '<body>' + getSection('top'))
