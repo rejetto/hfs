@@ -4,8 +4,8 @@ import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import _ from 'lodash'
 import glob from 'fast-glob'
 import { readFile, rm, writeFile } from 'fs/promises'
-import { dirTraversal, isValidFileName } from './util-files'
-import { HTTP_BAD_REQUEST, HTTP_SERVER_ERROR } from './const'
+import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './const'
+import { tryJson } from './misc'
 
 const PREFIX = 'hfs-lang-'
 const SUFFIX = '.json'
@@ -45,7 +45,11 @@ const apis: ApiHandlers = {
             if (code.endsWith(SUFFIX)) // filename, actually
                 code = code.slice(PREFIX.length, -SUFFIX.length)
             validateCode(code)
-            await writeFile(code2file(code), String(content), 'utf8')
+            const fn = code2file(code)
+            const s = content = String(content)
+            if (!tryJson(s))
+                return new ApiError(HTTP_NOT_ACCEPTABLE, "bad content for file " + fn)
+            await writeFile(fn, s, 'utf8')
         }
         return {}
     }
@@ -59,6 +63,6 @@ function code2file(code: string) {
 }
 
 function validateCode(code: string) {
-    if (!isValidFileName(code) || dirTraversal(code))
-        throw new ApiError(HTTP_BAD_REQUEST, 'bad code')
+    if (!/^(\w\w)(-\w\w)*$/.test(code))
+        throw new ApiError(HTTP_BAD_REQUEST, 'bad code/filename')
 }

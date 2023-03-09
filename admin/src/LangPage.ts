@@ -7,7 +7,7 @@ import { Alert, Box, Button } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
 import { IconBtn, readFile, selectFiles } from './misc'
 import _ from 'lodash'
-import { toast } from './dialog'
+import { alertDialog, toast } from './dialog'
 
 export default function LangPage() {
     const { list, error, connecting, reload } = useApiList('get_langs', undefined, { addId: true })
@@ -68,9 +68,14 @@ export default function LangPage() {
             const langs: any = {}
             for (const f of list)
                 langs[f.name] = await readFile(f)
-            await apiCall('add_langs', { langs })
-            reload()
-            toast("Loaded")
+            try {
+                await apiCall('add_langs', { langs })
+                reload()
+                toast("Loaded")
+            }
+            catch (e: any) {
+                await alertDialog(e)
+            }
         }, { accept: '.json' })
     }
 }
