@@ -28,6 +28,7 @@
     "dist-modules": "cp package*.json dist && cd dist && npm ci --omit=dev && npm run dist-crclib && rm package-lock.json && cd .. && node prune_modules",
     "dist-crclib": "npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc @node-rs/crc32-darwin-arm64 @node-rs/crc32-darwin-x64  ",
     "dist-win": "cp package*.json dist && cd dist && npm ci --omit=dev && npm i -f --no-save --omit=dev @node-rs/crc32-win32 && pkg . -C gzip -t node16-win-x64",
+    "dist-mac": "cp package*.json dist && cd dist && npm ci --omit=dev && pkg . -C gzip -t node16-macos-arm64",
     "dist-node": "npm run dist-modules && cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-* *.log logs"
   },
   "engines": {
