@@ -98,7 +98,7 @@ onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal
 export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {
     let already = false
     for (const e of events)
-        emitter.on(e, (...args) => {
+        emitter.once(e, (...args) => {
             if (already) return
             already = true
             cb(...args)

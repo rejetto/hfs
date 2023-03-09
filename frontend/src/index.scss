@@ -370,7 +370,8 @@ button label {
             background-color: var(--button-bg);
             border-radius: 20px;
             border: 1px solid var(--ghost-contrast)
-        }    }
+        }
+    }
 }
 @media (max-width: 42em) {
     :root { --ghost-contrast: #8883; } /* phones have different curve */

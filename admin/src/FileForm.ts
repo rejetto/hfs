@@ -14,7 +14,7 @@ import {
     StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { formatBytes, IconBtn, isEqualLax, modifiedSx, newDialog, onlyTruthy } from './misc'
+import { formatBytes, IconBtn, isEqualLax, modifiedSx, newDialog, onlyTruthy, prefix } from './misc'
 import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -218,10 +218,11 @@ function LinkField({ value, urls, }: LinkFieldProps) {
                         }, u, u === v && h(Check, { sx: { ml: 2 } })))
                     ),
                     h(StringField, {
-                        label: "Custom address",
-                        helperText: "Use this field if you need to enter a different address",
+                        label: "Custom IP or domain",
+                        helperText: md("You can type any address but *you* are responsible to make the address work.\nThis functionality is just to help you copy the link in case you have a domain or a complex network configuration."),
                         value: !v || urls.includes(v) ? '' : v.slice(proto.length),
-                        onChange: v => set(proto + v),
+                        onChange: v => set(prefix(proto, v)),
+                        onTyping: v => /^[-\w.[\]:]*$/.test(v),
                         start: proto,
                         sx: { mt: 2 }
                     }),
