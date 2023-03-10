@@ -1,9 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { useEffect, useRef, useState } from 'react';
-import { Dict, Falsy, getCookie, working } from './misc'
+import { Dict, Falsy, getCookie, getPrefixUrl, working } from './misc'
 
-const PREFIX = '/~/api/'
+const PREFIX = getPrefixUrl() + '/~/api/'
 
 interface ApiCallOptions { noModal?:true }
 export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) {
@@ -12,7 +12,7 @@ export function apiCall(cmd: string, params?: Dict, options: ApiCallOptions={}) 
     if (csrf)
         params = { csrf, ...params }
     const controller = new AbortController()
-    return Object.assign(fetch(PREFIX+cmd, {
+    return Object.assign(fetch(PREFIX + cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         signal: controller.signal,

@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, onOff } from './misc'
+import { asyncGeneratorToReadable, onOff, removeStarting } from './misc'
 import events from './events'
 import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
 import _ from 'lodash'
@@ -30,8 +30,10 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         // we don't rely on SameSite cookie option because it's https-only
         let res
         try {
-            res = csrf && csrf !== ctx.params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
-                : await apiFun(ctx.params || {}, ctx)
+            if (params.path)
+                params.path = removeStarting(ctx.state.revProxyPath, params.path)
+            res = csrf && csrf !== params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
+                : await apiFun(params || {}, ctx)
         }
         catch(e) {
             res = e

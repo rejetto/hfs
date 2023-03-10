@@ -12,7 +12,7 @@ import {
     useState
 } from 'react'
 import { domOn, formatBytes, hError, hIcon, isMobile } from './misc'
-import { Checkbox, CustomCode, Html, Spinner } from './components'
+import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import { alertDialog } from './dialog'
@@ -182,7 +182,7 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) => {
     let { n: relativePath, isFolder, separator } = entry
-    const base = usePath()
+    const base = useLocation().pathname
     const { showFilter, selected } = useSnapState()
     const href = fixUrl(relativePath)
     const containerDir = isFolder ? '' : relativePath.substring(0, relativePath.lastIndexOf('/')+1)

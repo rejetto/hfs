@@ -20,6 +20,10 @@ export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub
 }
 
+export function removeStarting(sub: string, s: string) {
+    return s.startsWith(sub) ? s.slice(sub.length) : s
+}
+
 export function prefix(pre:string, v:string|number|undefined, post:string='') {
     return v ? pre+v+post : ''
 }

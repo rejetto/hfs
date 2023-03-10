@@ -84,7 +84,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (path.startsWith(FRONTEND_URI))
         return serveFrontendPrefixed(ctx,next)
     if (path+'/' === ADMIN_URI)
-        return ctx.redirect(ADMIN_URI)
+        return ctx.redirect(ctx.state.revProxyPath + ADMIN_URI)
     if (path.startsWith(ADMIN_URI))
         return serveAdminPrefixed(ctx,next)
     if (ctx.method === 'PUT') { // curl -T file url/
@@ -119,7 +119,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const canRead = hasPermission(node, 'can_read', ctx)
     const isFolder = await nodeIsDirectory(node)
     if (isFolder && !path.endsWith('/'))
-        return ctx.redirect(ctx.originalUrl + '/')
+        return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl + '/')
     if (canRead && !isFolder)
         return node.source ? serveFileNode(node)(ctx,next)
             : next()
@@ -175,6 +175,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     // calculate these once and for all
     ctx.state.account = await getHttpAccount(ctx) ?? getAccount(ctx.session?.username, false)
     const conn = ctx.state.connection = socket2connection(ctx.socket)
+    ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
     await next()
     if (conn)
         updateConnection(conn, { ctx })

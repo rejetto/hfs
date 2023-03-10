@@ -2,20 +2,21 @@
 
 import { Link, useLocation } from 'react-router-dom'
 import { createElement as h, Fragment, ReactElement } from 'react'
-import { hIcon } from './misc'
+import { getPrefixUrl, hIcon } from './misc'
 import { state } from './state'
 import { reloadList } from './useFetchList'
 import { useI18N } from './i18n'
 
 export function Breadcrumbs() {
-    const currentPath = useLocation().pathname.slice(1,-1)
-    let prev = ''
-    const parent = currentPath.split('/').slice(0,-1).join('/')+'/'
-    const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev = prev + x + '/', decodeURIComponent(x)]) : []
+    const base = getPrefixUrl() + '/'
+    const currentPath = useLocation().pathname.slice(base.length,-1)
+    const parent = base + currentPath.slice(0, currentPath.lastIndexOf('/') + 1)
+    let prev = base
+    const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev += x + '/', decodeURIComponent(x)]) : []
     const {t}  = useI18N()
     return h(Fragment, {},
         h(Breadcrumb, { label: hIcon('parent', { alt: t`parent folder` }), path: parent }),
-        h(Breadcrumb, { current: !currentPath, label: hIcon('home', { alt: t`home` }) }),
+        h(Breadcrumb, { label: hIcon('home', { alt: t`home` }), path: base, current: !currentPath }),
         breadcrumbs.map(([path,label]) =>
             h(Breadcrumb, {
                 key: path,

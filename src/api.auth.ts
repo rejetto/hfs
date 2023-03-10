@@ -128,7 +128,7 @@ export const logout: ApiHandler = async ({}, ctx) => {
 export const refresh_session: ApiHandler = async ({}, ctx) => {
     return !ctx.session ? new ApiError(HTTP_SERVER_ERROR) : {
         username: getCurrentUsername(ctx),
-        adminUrl: ctxAdminAccess(ctx) ? ADMIN_URI : undefined,
+        adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
         ...makeExp(),
     }
 }

@@ -3,7 +3,7 @@
 import { apiCall } from './api'
 import { state } from './state'
 import { alertDialog, newDialog } from './dialog'
-import { hIcon, srpSequence, working } from './misc'
+import { getPrefixUrl, hIcon, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
 import { createElement as h, useEffect, useRef } from 'react'
 import { t, tComponent, useI18N } from './i18n'
@@ -109,7 +109,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                         const res = await login(usr, pwd)
                         closeDialog()
                         if (res?.redirect)
-                            navigate(res.redirect)
+                            navigate(getPrefixUrl() + res.redirect)
                     } catch (err: any) {
                         await alertDialog(err)
                         usrRef.current?.focus()

@@ -27,7 +27,7 @@ exports.init = api => {
                 if (!ctx.path.startsWith(api.const.API_URI) || ctx.params.path === undefined) return
                 let { referer } = ctx.headers
                 referer &&= new URL(referer).pathname
-                if (referer?.startsWith(api.const.ADMIN_URI)) return
+                if (referer?.startsWith(ctx.state.revProxyPath + api.const.ADMIN_URI)) return
                 toModify = ctx.params
             }
             const hosts = api.getConfig('hosts')

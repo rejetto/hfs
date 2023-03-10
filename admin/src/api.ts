@@ -22,7 +22,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     return { data, error, reload, loading, element }
 }
 
-const PREFIX = '/~/api/'
+const PREFIX = (window as any).HFS?.prefixUrl + '/~/api/'
 
 const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute

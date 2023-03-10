@@ -202,12 +202,13 @@ function LinkField({ value, urls, }: LinkFieldProps) {
     )
 
     function edit() {
-        const proto = new URL(urls[0]).protocol + '//'
+        const startingProto = new URL(base || urls[0]).protocol + '//'
         newDialog({
             title: "Change link",
             onClose: reload,
             Content() {
                 const [v, setV] = useState(base)
+                const [proto, setProto] = useState(startingProto)
                 return h(Box, { display: 'flex', flexDirection: 'column' },
                     h(Box, { mb: 2 }, "You can choose a different base address for your links"),
                     h(MenuList, {},
@@ -222,13 +223,21 @@ function LinkField({ value, urls, }: LinkFieldProps) {
                         helperText: md("You can type any address but *you* are responsible to make the address work.\nThis functionality is just to help you copy the link in case you have a domain or a complex network configuration."),
                         value: !v || urls.includes(v) ? '' : v.slice(proto.length),
                         onChange: v => set(prefix(proto, v)),
-                        onTyping: v => /^[-\w.[\]:]*$/.test(v),
-                        start: proto,
+                        start: h(SelectField as Field<string>, {
+                            value: proto,
+                            onChange: setProto,
+                            options: ['http://','https://'],
+                            size: 'small',
+                            variant: 'standard',
+                            sx: { '& .MuiSelect-select': { pt: '1px', pb: 0 } },
+                        }),
                         sx: { mt: 2 }
                     }),
                 )
 
                 async function set(u: string) {
+                    if (u.endsWith('/'))
+                        u = u.slice(0, -1)
                     await apiCall('set_config', { values: { base_url: u } })
                     setV(u)
                 }

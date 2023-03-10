@@ -67,3 +67,12 @@ Object.assign((window as any).HFS ||= {}, {
         })
     }
 })
+
+export function getHFS() {
+    return (window as any).HFS
+}
+
+export function getPrefixUrl() {
+    return getHFS().prefixUrl
+}
+

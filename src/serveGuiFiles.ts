@@ -21,6 +21,7 @@ import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio'
 import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
+import { getWholeConfig } from './config'
 
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
@@ -42,14 +43,14 @@ function serveStatic(uri: string): Koa.Middleware {
         const content = await getOrSet(cache, ctx.path, async () => {
             const data = await fs.readFile(fullPath).catch(() => null)
             return serveApp || !data ? data
-                : adjustBundlerLinks(ctx.path, uri, data)
+                : adjustBundlerLinks(ctx, uri, data)
         })
         if (content === null)
             return ctx.status = HTTP_NOT_FOUND
         if (!serveApp)
             return serveFile(fullPath, 'auto', content)(ctx, next)
         // we don't cache the index as it's small and may prevent plugins change to apply
-        ctx.body = await treatIndex(ctx, String(content), uri)
+        ctx.body = await treatIndex(ctx, uri, String(content))
         ctx.type = 'html'
         ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     }
@@ -59,22 +60,23 @@ function shouldServeApp(ctx: Koa.Context) {
     return ctx.state.serveApp ||= ctx.path.endsWith('/')
 }
 
-function adjustBundlerLinks(path: string, uri: string, data: string | Buffer) {
-    const ext = extname(path)
+function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer) {
+    const ext = extname(ctx.path)
     return ext && !ext.match(/\.(css|html|js|ts|scss)/) ? data
-        : String(data).replace(/((?:import | from )['"])\//g, `$1${uri}`)
+        : String(data).replace(/((?:import | from )['"])\//g, `$1${ctx.state.revProxyPath}${uri}`)
 }
 
-async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
+async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const session = await refresh_session({}, ctx)
     ctx.set('etag', '')
 
     const isFrontend = filesUri === FRONTEND_URI
 
+    const pub = ctx.state.revProxyPath + PLUGINS_PUB_URI
     const css = mapPlugins((plug,k) =>
-        (isFrontend ? plug.frontend_css : null)?.map(f => PLUGINS_PUB_URI + k + '/' + f)).flat().filter(Boolean)
+        (isFrontend ? plug.frontend_css : null)?.map(f => pub + k + '/' + f)).flat().filter(Boolean)
     const js = mapPlugins((plug,k) =>
-        (isFrontend ? plug.frontend_js : null)?.map(f => PLUGINS_PUB_URI + k + '/' + f)).flat().filter(Boolean)
+        (isFrontend ? plug.frontend_js : null)?.map(f => pub + k + '/' + f)).flat().filter(Boolean)
 
     // expose plugins' configs that are declared with 'frontend' attribute
     const plugins = Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
@@ -86,7 +88,7 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
         return !_.isEmpty(configs) && [name, configs]
     })))
     let ret = body
-        .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + filesUri)
+        .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
         .replace('</head>', () => `
             ${!isFrontend ? '' : `
                 <title>${title.get()}</title>
@@ -98,6 +100,7 @@ async function treatIndex(ctx: Koa.Context, body: string, filesUri: string) {
                 API_VERSION,
                 session: session instanceof ApiError ? null : session,
                 plugins,
+                prefixUrl: ctx.state.revProxyPath,
                 customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
                     ['top','bottom']), // excluding sections we apply in this phase  
         }, null, 4)}
@@ -134,8 +137,8 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
             proxyReqPathResolver: (ctx) =>
                 shouldServeApp(ctx) ? '/' : ctx.path,
             userResDecorator(res, data, ctx) {
-                return shouldServeApp(ctx) ? treatIndex(ctx, String(data), uri)
-                    : adjustBundlerLinks(ctx.path, uri, data)
+                return shouldServeApp(ctx) ? treatIndex(ctx, uri, String(data))
+                    : adjustBundlerLinks(ctx, uri, data)
             }
         }) )
     return function() { //@ts-ignore
