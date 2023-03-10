@@ -75,6 +75,8 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
 
     if (bak)
         ctx.response.length = bak
+    ts.once('end', () => // in case of compressed response, we offer calculation of real size
+        ctx.state.length = ts.getBytesSent())
 }
 
 export function roundSpeed(n: number) {
