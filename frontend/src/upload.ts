@@ -323,7 +323,10 @@ async function startUpload(f: File, to: string, resume=0) {
 function UploadStatus() {
     const { done, doneByte, errors } = useSnapshot(uploadState)
     return h(Fragment, {},
-        [done && `${done} finished (${formatBytes(doneByte)})`, errors && `${errors} failed`].filter(Boolean).join(' – '),
+        [
+            done && t('upload_finished', { n: done, size: formatBytes(doneByte) }, "{n} finished ({size})"),
+            errors && t('upload_errors', { n: errors }, "{n} failed")
+        ].filter(Boolean).join(' – ')
     )
 }
 
