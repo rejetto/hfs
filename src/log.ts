@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import Koa from 'koa'
-import { Writable } from 'stream'
+import { once, Writable } from 'stream'
 import { defineConfig } from './config'
 import { createWriteStream, renameSync } from 'fs'
 import * as util from 'util'
@@ -64,13 +64,13 @@ const logRotation = defineConfig('log_rotation', 'weekly')
 export function log(): Koa.Middleware {
     const debounce = _.debounce(cb => cb(), 1000)
     return async (ctx, next) => {  // wrapping in a function will make it use current 'mw' value
+        const now = new Date()
         await next()
         const isError = ctx.status >= 400
         const logger = isError && accessErrorLog || accessLogger
         const rotate = logRotation.get()?.[0]
         let { stream, last, path } = logger
         if (!stream) return
-        const now = new Date()
         const a = now.toString().split(' ')
         logger.last = now
         if (rotate && last) { // rotation enabled and a file exists?
