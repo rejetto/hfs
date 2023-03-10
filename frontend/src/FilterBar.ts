@@ -11,7 +11,7 @@ export function FilterBar() {
     useEffect(() => setAll(false), [patternFilter]) // reset on change
     const {t} = useI18N()
 
-    ;[state.patternFilter] = useDebounce(showFilter ? filter : '', 300)
+    state.patternFilter = useDebounce(showFilter ? filter : '', 300)
 
     const sel = Object.keys(selected).length
     const fil = filteredList?.length
