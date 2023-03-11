@@ -10,6 +10,7 @@ import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
 import { ERRORS } from './misc'
 import { t } from './i18n'
+import { useNavigate } from 'react-router-dom'
 
 const API = 'file_list'
 
@@ -20,6 +21,7 @@ export default function useFetchList() {
     const lastPath = useRef('')
     const lastReq = useRef<any>()
     const isMounted = useIsMounted()
+    const navigate = useNavigate()
     useEffect(()=>{
         if (snap.loginRequired) return
         const previous = lastPath.current
@@ -69,12 +71,6 @@ export default function useFetchList() {
                     return
                 case 'msg':
                     data.forEach(async (entry: any) => {
-                        if (entry.props)
-                            return Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete']))
-                        state.can_upload ??= false
-                        state.can_delete ??= false
-                        if (entry.add)
-                            return buffer.push(entry.add)
                         const { error } = entry
                         if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
                             state.messageOnly = t('upload_starting', "Your download should now start")
@@ -90,6 +86,14 @@ export default function useFetchList() {
                             lastReq.current = null
                             return
                         }
+                        if (!desiredPath.endsWith('/'))  // now we know it was a folder for sure
+                            return navigate(desiredPath + '/')
+                        if (entry.props)
+                            return Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete']))
+                        state.can_upload ??= false
+                        state.can_delete ??= false
+                        if (entry.add)
+                            return buffer.push(entry.add)
                     })
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()
