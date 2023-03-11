@@ -83,7 +83,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return next()
     if (path.startsWith(FRONTEND_URI))
         return serveFrontendPrefixed(ctx,next)
-    if (path+'/' === ADMIN_URI)
+    if (path.length === ADMIN_URI.length - 1 && ADMIN_URI.startsWith(path))
         return ctx.redirect(ctx.state.revProxyPath + ADMIN_URI)
     if (path.startsWith(ADMIN_URI))
         return serveAdminPrefixed(ctx,next)
