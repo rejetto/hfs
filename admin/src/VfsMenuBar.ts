@@ -2,11 +2,11 @@
 
 import { createElement as h } from 'react'
 import { Box } from '@mui/material'
-import { Add, Refresh } from '@mui/icons-material'
+import { Add } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import addFiles, { addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
-import { IconBtn, reloadBtn } from './misc'
+import { reloadBtn } from './misc'
 
 export default function VfsMenuBar() {
     return h(Box, {

@@ -14,14 +14,14 @@ export default function addFiles() {
         title: "Add files or folders",
         dialogProps: { sx:{ minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content() {
-            const under = getUnder()
+            const parent = getParent()
             return h(Fragment, {},
                 h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } },
-                    "Selected elements will be added under " + (under || '(home)')),
+                    "Selected elements will be added under " + (parent || '(home)')),
                 h(FilePicker, {
                     async onSelect(sel) {
                         const errs = onlyTruthy(await Promise.all(sel.map(source =>
-                            apiCall('add_vfs', { under, source }).then(() => null, e => [source,e.message]) )))
+                            apiCall('add_vfs', { parent, source }).then(() => null, e => [source,e.message]) )))
                         if (errs.length)
                             await alertDialog(h(Box, {},
                                 "Some elements have been rejected",
@@ -43,9 +43,9 @@ export async function addVirtual() {
     try {
         const name = await promptDialog("Enter folder name")
         if (!name) return
-        const under = getUnder()
-        await apiCall('add_vfs', { under, name })
-        reloadVfs([ (under||'') + '/' + name ])
+        const parent = getParent()
+        await apiCall('add_vfs', { parent, name })
+        reloadVfs([ (parent||'') + '/' + name ])
         await alertDialog(`Folder "${name}" created`, 'success')
     }
     catch(e) {
@@ -53,7 +53,7 @@ export async function addVirtual() {
     }
 }
 
-function getUnder() {
+function getParent() {
     let f: VfsNode | undefined = state.selectedFiles[0]
     if (!f)
         return ''
