@@ -76,7 +76,7 @@ export function getPluginConfigFields(id: string) {
 
 export function pluginsMiddleware(): Koa.Middleware {
     return async (ctx, next) => {
-        const after = []
+        const after: Dict<CallMeAfter> = {}
         // run middleware plugins
         for (const [id,pl] of Object.entries(plugins))
             try {
@@ -84,11 +84,10 @@ export function pluginsMiddleware(): Koa.Middleware {
                 if (res === true)
                     ctx.pluginStopped = true
                 if (typeof res === 'function')
-                    after.push(res)
+                    after[id] = res
             }
             catch(e){
-                console.log('error middleware plugin', id, String(e))
-                console.debug(e)
+                printError(id, e)
             }
         // expose public plugins' files
         const { path } = ctx
@@ -102,8 +101,14 @@ export function pluginsMiddleware(): Koa.Middleware {
             }
             await next()
         }
-        for (const f of after)
-            await f()
+        for (const [id,f] of Object.entries(after))
+            try { await f() }
+            catch (e) { printError(id, e) }
+    }
+
+    function printError(id: string, e: any) {
+        console.log('error middleware plugin', id, String(e))
+        console.debug(e)
     }
 }
 
@@ -170,7 +175,7 @@ export class Plugin {
 
 type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
 type Stop = true
-type CallMeAfter = ()=>void
+type CallMeAfter = ()=>any
 
 export interface AvailablePlugin {
     id: string
