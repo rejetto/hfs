@@ -105,7 +105,7 @@ const apis: ApiHandlers = {
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
         n.children ||= []
-        if (n.children.find(x => x.source === source || getNodeName(x) === name))
+        if (n.children.find(x => source && source === x.source || getNodeName(x) === name))
             return new ApiError(HTTP_CONFLICT, 'already present')
         n.children.unshift({ source, name })
         await saveVfs()
