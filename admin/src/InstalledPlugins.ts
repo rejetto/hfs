@@ -24,7 +24,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         columnVisibilityModel: {
             started: !updates,
         },
-        localeText: updates && { noRowsLabel: "No updates available. Only online plugins are checked." },
+        localeText: updates && { noRowsLabel: `No updates available. Only plugins available on "search online" are checked.` },
         columns: [
             {
                 field: 'id',
