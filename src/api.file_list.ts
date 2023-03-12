@@ -18,7 +18,9 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
     if (node.default)
-        return (sse ? list.custom : _.identity)({ redirect: path }) // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
+        return (sse ? list.custom : _.identity)({ // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
+            redirect: path // tell the browser to access the folder (instead of using this api), so it will get the default file
+        })
     if (!await nodeIsDirectory(node))
         return fail(HTTP_METHOD_NOT_ALLOWED)
     offset = Number(offset)
