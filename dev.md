@@ -31,9 +31,6 @@ Alternatively you can run a development server, just be sure to load config from
 
 # Known problems
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
-- vite's building of react-projects (frontend & admin) produce non-working apps
-  - console shows exceptions on any hook invocation
-  - the problem seems to be related to libs being built with a separate instance of react 
 
 # Guidelines
 
