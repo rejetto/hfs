@@ -23,7 +23,7 @@ type Who = typeof WHO_ANYONE
 
 interface VfsPerm {
     can_read: Who
-    can_see: Who // use this to hide something you can_read
+    can_see: Who
     can_upload: Who
     can_delete: Who
 }
@@ -151,7 +151,6 @@ export async function nodeIsDirectory(node: VfsNode) {
 export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context): boolean {
     return (node.source || perm !== 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
         && matchWho(node[perm] ?? defaultPerms[perm], ctx)
-        && (perm !== 'can_see' || hasPermission(node, 'can_read', ctx)) // can_see is used to hide something you nonetheless can_read, so you MUST also can_read
 }
 
 export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {

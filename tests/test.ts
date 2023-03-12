@@ -66,7 +66,7 @@ describe('basics', () => {
     it('cantSeeThisButChildren.children', reqList('/cantSeeThisButChildren', { inList:['hi/'] }))
 
     it('protectFromAbove', req('/protectFromAbove/child/alfa.txt', 403))
-    it('protectFromAbove.list', reqList('/protectFromAbove/child/', { outList:['alfa.txt'] }))
+    it('protectFromAbove.list', reqList('/protectFromAbove/child/', { inList:['alfa.txt'] }))
 
     const zipSize = 13010
     const zipOfs = 5000

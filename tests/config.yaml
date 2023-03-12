@@ -46,8 +46,10 @@ vfs:
       source: tests
       masks:
         page:
+          can_see: false
           can_read: false
         page/*:
+          can_see: true
           can_read: true
     - name: cantReadPageAlt
       source: tests
