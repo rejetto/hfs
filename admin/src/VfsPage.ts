@@ -101,7 +101,7 @@ export default function VfsPage() {
         // calculate id and parent fields, and builds the map id2node
         function recur(node: VfsNode, pre='', parent: VfsNode|undefined=undefined) {
             node.parent = parent
-            node.id = prefix(pre, node.name) || '/' // root
+            node.id = prefix(pre, encodeURIComponent(node.name)) || '/' // root
             id2node.set(node.id, node)
             if (!node.children) return
             for (const n of node.children)
