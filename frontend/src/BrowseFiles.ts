@@ -145,7 +145,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
         h('button', {
             className: !current ? 'toggled' : undefined,
             onClick() { pageChange(0) },
-        }, hIcon('to-start')),
+        }, hIcon('to_start')),
         h('div', { id: 'paging-middle' },  // using sticky first/last would prevent scrollIntoView from working
             _.range(1, nPages).map(i =>
                 (!shrink || !(i%10) || (i >= from && i < to)) // if shrinking, we show thousands or hundreds for current thousand
@@ -158,7 +158,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
         h('button', {
             className: atBottom ? 'toggled' : undefined,
             onClick(){ pageChange(nPages-1, true) }
-        }, hIcon('to-end')),
+        }, hIcon('to_end')),
     )
 })
 
@@ -202,7 +202,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         isFolder ? h(Link, { to: base+href }, hIcon('folder'), relativePath.slice(0,-1))
             : h(Fragment, {},
                 containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
-                h('a', { href }, !containerDir && hIcon('file'),  name)
+                h('a', { href }, !containerDir && hIcon('file'), name)
             ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h(EntryProps, entry),

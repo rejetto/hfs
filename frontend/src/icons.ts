@@ -4,25 +4,28 @@ import { state, useSnapState } from './state'
 import { createElement as h, memo } from 'react'
 
 const SYS_ICONS = {
-    login: 'user:👤',
-    user: 'user:👤',
-    filter: ':✂',
-    search: ':🔍',
-    search_off: 'cancel:❌',
-    stop: ':⏹️',
-    settings: 'cog:⚙',
-    archive: 'file-archive:📦',
-    logout: ':🚪',
-    home: ':🏠',
-    parent: 'level-up mirror:⬆',
-    folder: ':📂',
-    file: 'doc:📄',
-    spinner: 'spin6 spinner:🎲',
-    password: 'key:🗝️',
-    download: ':📥',
-    invert: 'retweet:🙃',
-    admin: 'crown:👑',
-    check: ':✔️',
+    login: '👤:user',
+    user: '👤:user',
+    filter: '✂',
+    search: '🔍',
+    search_off: '❌:cancel',
+    stop: '⏹️',
+    settings: '⚙:cog',
+    archive: '📦',
+    logout: '🚪',
+    home: '🏠',
+    parent: '⬅:level-up mirror',
+    folder: '📂',
+    file: '📄:doc',
+    spinner: '🎲:spin6 spinner',
+    password: '🗝️:key',
+    download: '⬇️',
+    upload: '⬆️',
+    invert: '🙃:retweet',
+    admin: '👑:crown',
+    check: '✔️',
+    to_start: '◀',
+    to_end: '▶',
 }
 
 document.fonts.ready.then(async ()=> {
@@ -33,8 +36,7 @@ document.fonts.ready.then(async ()=> {
 })
 
 export const Icon = memo(({ name, alt, className='', ...props }: { name:string, className?:string, alt?:string, style?:any }) => {
-    // @ts-ignore
-    const [clazz,emoji] = (SYS_ICONS[name] || name).split(':')
+    const [emoji,clazz] = ((SYS_ICONS as any)[name] || name).split(':')
     const { iconsClass } = useSnapState()
     className += ' icon ' + (iconsClass ? 'fa-'+(clazz||name) : 'emoji')
     return h('span',{

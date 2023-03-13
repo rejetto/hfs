@@ -22,7 +22,7 @@ export function err2msg(err: number | Error) {
 }
 
 export function hIcon(name: string, props?:any) {
-    return h(Icon, { name, ...props })
+    return h(Icon, { name, alt: name, ...props })
 }
 
 export function hError(err: Error | string | undefined) {

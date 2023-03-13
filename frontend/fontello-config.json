@@ -7,24 +7,6 @@
   "ascent": 850,
   "glyphs": [
     {
-      "uid": "43ab845088317bd348dee1d975700c48",
-      "css": "check-circled",
-      "code": 59393,
-      "src": "fontawesome"
-    },
-    {
-      "uid": "9a76bc135eac17d2c8b8ad4a5774fc87",
-      "css": "download",
-      "code": 59396,
-      "src": "fontawesome"
-    },
-    {
-      "uid": "eeec3208c90b7b48e804919d0d2d4a41",
-      "css": "upload",
-      "code": 59397,
-      "src": "fontawesome"
-    },
-    {
       "uid": "d35a1d35efeb784d1dc9ac18b9b6c2b6",
       "css": "edit",
       "code": 59399,
@@ -55,12 +37,6 @@
       "src": "fontawesome"
     },
     {
-      "uid": "0f4cae16f34ae243a6144c18a003f2d8",
-      "css": "cancel-circled",
-      "code": 59409,
-      "src": "fontawesome"
-    },
-    {
       "uid": "559647a6f430b3aeadbecd67194451dd",
       "css": "menu",
       "code": 61641,
@@ -68,13 +44,13 @@
     },
     {
       "uid": "ab95e1351ebaec5850101097cbf7097f",
-      "css": "quote-left",
+      "css": "quote",
       "code": 61709,
       "src": "fontawesome"
     },
     {
       "uid": "e80ae555c1413a4ec18b33fb348b4049",
-      "css": "file-archive",
+      "css": "archive",
       "code": 61894,
       "src": "fontawesome"
     },
@@ -163,16 +139,34 @@
       "src": "fontawesome"
     },
     {
+      "uid": "c47efa0e3e74f6ba4c2562c1258fff1f",
+      "css": "to_end",
+      "code": 59408,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "348b04ea17f646fbc6a46e20ebe4fe12",
+      "css": "download",
+      "code": 61486,
+      "src": "mfglabs"
+    },
+    {
+      "uid": "ce06b5805120d0c2f8d60cd3f1a4fdb5",
+      "css": "play",
+      "code": 59396,
+      "src": "fontawesome"
+    },
+    {
       "uid": "12052b30d23a1a70d6b32962d5464cae",
-      "css": "to-start",
+      "css": "to_start",
       "code": 59406,
       "src": "fontawesome"
     },
     {
-      "uid": "c47efa0e3e74f6ba4c2562c1258fff1f",
-      "css": "to-end",
-      "code": 59408,
-      "src": "fontawesome"
+      "uid": "4f3b31017c63ba04dc4f78ce7a8f02b1",
+      "css": "upload",
+      "code": 61487,
+      "src": "mfglabs"
     }
   ]
 }
