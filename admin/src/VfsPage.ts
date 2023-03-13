@@ -89,8 +89,8 @@ export default function VfsPage() {
         id2node.clear()
         const { root } = data
         if (!root) return
-        recur(root) // this must be done before state change that would cause Tree to render and expecting id2node
         root.isRoot = true
+        recur(root) // this must be done before state change that would cause Tree to render and expecting id2node
         state.vfs = root
         // refresh objects of selectedFiles
         const ids = selectOnReload || state.selectedFiles.map(x => x.id)
@@ -99,13 +99,13 @@ export default function VfsPage() {
             id2node.get(id)))
 
         // calculate id and parent fields, and builds the map id2node
-        function recur(node: VfsNode, pre='', parent: VfsNode|undefined=undefined) {
+        function recur(node: VfsNode, pre='/', parent: VfsNode|undefined=undefined) {
             node.parent = parent
-            node.id = prefix(pre, encodeURIComponent(node.name)) || '/' // root
+            node.id = node.isRoot ? '/' : prefix(pre, encodeURIComponent(node.name), node.type === 'folder' ? '/' : '')
             id2node.set(node.id, node)
             if (!node.children) return
             for (const n of node.children)
-                recur(n, (pre && node.id) + '/', node)
+                recur(n, node.id, node)
         }
 
     }, [data, id2node])

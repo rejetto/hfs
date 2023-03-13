@@ -65,6 +65,12 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
     return child
 }
 
+export function isSameFilenameAs(name: string) {
+    const lc = name.toLowerCase()
+    return (other: string | VfsNode) =>
+        lc === (typeof other === 'string' ? other : getNodeName(other)).toLowerCase()
+}
+
 export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=vfs, getRest?: (rest: string) => any) : Promise<VfsNode | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')
@@ -80,10 +86,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         return
     }
     // does the tree node have a child that goes by this name?
-    const sameName = !IS_WINDOWS ? (x:string) => x === name // easy
-        : with_(name.toLowerCase(), lc =>
-            (x: string) => x.toLowerCase() === lc)
-    const child = parent.children?.find(x => sameName(getNodeName(x)))
+    const child = parent.children?.find(isSameFilenameAs(name))
 
     const ret: VfsNode = {
         ...child,

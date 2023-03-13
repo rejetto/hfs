@@ -177,10 +177,10 @@ function who2desc(who: any) {
 interface LinkFieldProps extends FieldProps<string> {
     urls: string[]
 }
-function LinkField({ value, urls, }: LinkFieldProps) {
+function LinkField({ value, urls }: LinkFieldProps) {
     const { data, error, reload } = useApiEx('get_config', { only: ['base_url'] })
     const base: string | undefined = data?.base_url
-    const link = (base || (urls ? urls[0] : '')) + encodeURI(value||'')
+    const link = (base || (urls ? urls[0] : '')) + value
     return h(Box, { display: 'flex', },
         h(DisplayField, {
             label: "Link", value: link,

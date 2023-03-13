@@ -55,10 +55,9 @@ export async function addVirtual() {
 
 function getParent() {
     let f: VfsNode | undefined = state.selectedFiles[0]
-    if (!f)
+    if (!f || f.isRoot)
         return ''
     if (f.type !== 'folder')
         f = f.parent
-    const { id } = f!
-    return id === '/' ? '' : id
+    return f?.id || ''
 }

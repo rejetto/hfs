@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { defaultPerms, getNodeName, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode } from './vfs'
+import { defaultPerms, getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
@@ -105,7 +105,8 @@ const apis: ApiHandlers = {
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
         n.children ||= []
-        if (n.children.find(x => source && source === x.source || getNodeName(x) === name))
+        const sameName = isSameFilenameAs(name)
+        if (n.children.find(x => source && source === x.source || sameName(x)))
             return new ApiError(HTTP_CONFLICT, 'already present')
         n.children.unshift({ source, name })
         await saveVfs()
