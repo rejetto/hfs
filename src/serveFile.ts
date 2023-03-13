@@ -52,6 +52,8 @@ export function serveFile(source:string, mime?:string, content?: string | Buffer
         if (!source)
             return
         const fn = path.basename(source)
+        if (ctx.params.dl !== undefined) // please, download
+            ctx.attachment(fn)
         mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && isMatch(fn, k)) // isMatch throws on an empty string
         if (mime === MIME_AUTO)
             mime = mimetypes.lookup(source) || ''

@@ -201,8 +201,9 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         }),
         isFolder ? h(Link, { to: base+href }, hIcon('folder'), relativePath.slice(0,-1))
             : h(Fragment, {},
-                containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, hIcon('file'), containerDir ),
-                h('a', { href }, !containerDir && hIcon('file'), name)
+                h('a', { href: href + '?dl' }, hIcon('download')),
+                containerDir && h(Link, { to: base + fixUrl(containerDir), className:'container-folder' }, containerDir),
+                h('a', { href }, name)
             ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h(EntryProps, entry),

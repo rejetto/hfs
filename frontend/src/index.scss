@@ -211,13 +211,14 @@ ul.dir {
             margin: 0 .8em;
         }
         & a {
-            word-break: break-word;
-            padding-right: 0.3em;
-
+            &:last-of-type {
+                word-break: break-word;
+                padding-right: 0.3em;
+            }
             & .icon {
                 margin-right: .3em;
             }
-            &.container-folder:hover {
+            &:hover {
                 text-decoration: underline;
             }
         }
