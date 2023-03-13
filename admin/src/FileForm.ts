@@ -84,7 +84,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         save: {
             sx: modifiedSx(!isEqualLax(values, file)),
             async onClick() {
-                const props = { ...values }
+                const props = _.omit(values, ['ctime','mtime','size','id'])
                 if (!props.masks)
                     props.masks = null // undefined cannot be serialized
                 await apiCall('set_vfs', {

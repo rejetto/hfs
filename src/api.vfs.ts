@@ -72,6 +72,8 @@ const apis: ApiHandlers = {
             return new ApiError(HTTP_CONFLICT, 'item with same name already present in destination')
         const oldParent = await urlToNodeOriginal(dirname(from))
         _.pull(oldParent!.children!, fromNode)
+        if (_.isEmpty(oldParent!.children))
+            delete oldParent!.children
         ;(parentNode.children ||= []).push(fromNode)
         await saveVfs()
         return {}
