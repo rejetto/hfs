@@ -48,7 +48,8 @@ const apis: ApiHandlers = {
             return {
                 ...copyStats,
                 ...node,
-                website: isDir && node.source && await stat(join(node.source, 'index.html')).then(() => true, () => undefined)
+                website: Boolean(node.children?.find(isSameFilenameAs('index.html')))
+                    || isDir && node.source && await stat(join(node.source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
                 name: isRoot ? undefined : getNodeName(node),
                 type: isDir ? 'folder' : undefined,
