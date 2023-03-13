@@ -6,7 +6,6 @@
 - admin/fs: check if source exists when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin
-- fix: cannot switch off https and switch on http at the same time 
 - admin: check + update
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - generation of links to give access to a file
