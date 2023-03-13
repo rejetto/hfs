@@ -121,7 +121,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (isFolder && !path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl + '/')
     if (canRead && !isFolder)
-        return node.source ? serveFileNode(node)(ctx,next)
+        return node.source ? serveFileNode(ctx, node)
             : next()
     if (!canRead) {
         ctx.status = cantReadStatusCode(node)
@@ -140,7 +140,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (node.default) {
         const def = await urlToNode(path + node.default, ctx)
         return !def ? next()
-            : hasPermission(def, 'can_read', ctx) ? serveFileNode(def)(ctx, next)
+            : hasPermission(def, 'can_read', ctx) ? serveFileNode(ctx, def)
             : ctx.status = cantReadStatusCode(def)
     }
     return serveFrontendFiles(ctx, next)

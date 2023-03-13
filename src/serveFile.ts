@@ -21,28 +21,26 @@ import { promisify } from 'util'
 
 const allowedReferer = defineConfig('allowed_referer', '')
 
-export function serveFileNode(node: VfsNode) : Koa.Middleware {
+export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const { source, mime } = node
     const name = getNodeName(node)
     const mimeString = typeof mime === 'string' ? mime
         : _.find(mime, (val,mask) => isMatch(name, mask))
-    return (ctx, next) => {
-       const allowed = allowedReferer.get()
-        if (allowed) {
-            const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
-            if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
-            && !isMatch(ref, allowed))
-                return ctx.status = HTTP_FORBIDDEN
+   const allowed = allowedReferer.get()
+    if (allowed) {
+        const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
+        if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
+        && !isMatch(ref, allowed))
+            return ctx.status = HTTP_FORBIDDEN
 
-            function host() {
-                const s = ctx.get('host')
-                return s[0] === '[' ? s.slice(1, s.indexOf(']')) : s?.split(':')[0]
-            }
+        function host() {
+            const s = ctx.get('host')
+            return s[0] === '[' ? s.slice(1, s.indexOf(']')) : s?.split(':')[0]
         }
-
-        ctx.vfsNode = node // useful to tell service files from files shared by the user
-        return serveFile(ctx, source||'', mimeString)
     }
+
+    ctx.vfsNode = node // useful to tell service files from files shared by the user
+    return serveFile(ctx, source||'', mimeString)
 }
 
 const mimeCfg = defineConfig<Record<string,string>>('mime', { '*': 'auto' })
