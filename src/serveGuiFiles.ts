@@ -48,7 +48,7 @@ function serveStatic(uri: string): Koa.Middleware {
         if (content === null)
             return ctx.status = HTTP_NOT_FOUND
         if (!serveApp)
-            return serveFile(fullPath, 'auto', content)(ctx, next)
+            return serveFile(ctx, fullPath, 'auto', content)
         // we don't cache the index as it's small and may prevent plugins change to apply
         ctx.body = await treatIndex(ctx, uri, String(content))
         ctx.type = 'html'

@@ -41,46 +41,44 @@ export function serveFileNode(node: VfsNode) : Koa.Middleware {
         }
 
         ctx.vfsNode = node // useful to tell service files from files shared by the user
-        return serveFile(source||'', mimeString)(ctx, next)
+        return serveFile(ctx, source||'', mimeString)
     }
 }
 
 const mimeCfg = defineConfig<Record<string,string>>('mime', { '*': 'auto' })
 
-export function serveFile(source:string, mime?:string, content?: string | Buffer) : Koa.Middleware {
-    return async (ctx) => {
-        if (!source)
-            return
-        const fn = path.basename(source)
-        if (ctx.params.dl !== undefined) // please, download
-            ctx.attachment(fn)
-        mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && isMatch(fn, k)) // isMatch throws on an empty string
-        if (mime === MIME_AUTO)
-            mime = mimetypes.lookup(source) || ''
-        if (mime)
-            ctx.type = mime
-        if (ctx.method === 'OPTIONS') {
-            ctx.status = HTTP_NO_CONTENT
-            ctx.set({ Allow: 'OPTIONS, GET, HEAD' })
-            return
-        }
-        if (ctx.method !== 'GET')
-            return ctx.status = HTTP_METHOD_NOT_ALLOWED
-        try {
-            const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
-            ctx.set('Last-Modified', stats.mtime.toUTCString())
-            ctx.fileSource = source
-            ctx.status = HTTP_OK
-            if (ctx.fresh)
-                return ctx.status = HTTP_NOT_MODIFIED
-            if (content !== undefined)
-                return ctx.body = content
-            const range = getRange(ctx, stats.size)
-            ctx.body = createReadStream(source, range)
-        }
-        catch (e: any) {
-            return ctx.status = HTTP_NOT_FOUND
-        }
+export async function serveFile(ctx: Koa.Context, source:string, mime?:string, content?: string | Buffer) {
+    if (!source)
+        return
+    const fn = path.basename(source)
+    if (ctx.params.dl !== undefined) // please, download
+        ctx.attachment(fn)
+    mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && isMatch(fn, k)) // isMatch throws on an empty string
+    if (mime === MIME_AUTO)
+        mime = mimetypes.lookup(source) || ''
+    if (mime)
+        ctx.type = mime
+    if (ctx.method === 'OPTIONS') {
+        ctx.status = HTTP_NO_CONTENT
+        ctx.set({ Allow: 'OPTIONS, GET, HEAD' })
+        return
+    }
+    if (ctx.method !== 'GET')
+        return ctx.status = HTTP_METHOD_NOT_ALLOWED
+    try {
+        const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
+        ctx.set('Last-Modified', stats.mtime.toUTCString())
+        ctx.fileSource = source
+        ctx.status = HTTP_OK
+        if (ctx.fresh)
+            return ctx.status = HTTP_NOT_MODIFIED
+        if (content !== undefined)
+            return ctx.body = content
+        const range = getRange(ctx, stats.size)
+        ctx.body = createReadStream(source, range)
+    }
+    catch (e: any) {
+        return ctx.status = HTTP_NOT_FOUND
     }
 }
 

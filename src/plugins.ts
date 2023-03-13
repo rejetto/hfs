@@ -96,7 +96,7 @@ export function pluginsMiddleware(): Koa.Middleware {
                 const a = path.substring(PLUGINS_PUB_URI.length).split('/')
                 const name = a.shift()!
                 if (plugins.hasOwnProperty(name)) // do it only if the plugin is loaded
-                    await serveFile(plugins[name]!.folder + '/public/' + a.join('/'), 'auto')(ctx, next)
+                    await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), 'auto')
                 return
             }
             await next()
