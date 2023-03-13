@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall } from './api'
-import { state } from './state'
+import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
 import { getPrefixUrl, hIcon, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
@@ -47,12 +47,17 @@ export function logout(){
     })
 }
 
+export let closeLoginDialog: undefined | (() => void)
 export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
+    if (closeLoginDialog) return
     return new Promise(resolve => {
-        const closeDialog = newDialog({
+        const closeDialog = closeLoginDialog = newDialog({
             className: 'dialog-login',
             icon: () => hIcon('login'),
-            onClose: resolve,
+            onClose(v) {
+                resolve(v)
+                closeLoginDialog = undefined
+            },
             title: tComponent("Login"),
             Content() {
                 const usrRef = useRef<HTMLInputElement>()
@@ -120,3 +125,19 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
         })
     })
 }
+
+export function useAuthorized() {
+    const { loginRequired } = useSnapState()
+    const navigate = useNavigate()
+    useEffect(() => {
+        (async () => {
+            if (!loginRequired)
+                return closeLoginDialog?.()
+            if (closeLoginDialog) return
+            while (state.loginRequired)
+                await loginDialog(navigate).then()
+        })()
+    }, [loginRequired, navigate])
+    return loginRequired ? null : true
+}
+

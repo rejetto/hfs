@@ -23,7 +23,6 @@ export default function useFetchList() {
     const isMounted = useIsMounted()
     const navigate = useNavigate()
     useEffect(()=>{
-        if (snap.loginRequired) return
         const previous = lastPath.current
         lastPath.current = desiredPath
         if (previous !== desiredPath) {
@@ -70,6 +69,7 @@ export default function useFetchList() {
                     lastReq.current = undefined
                     return
                 case 'msg':
+                    state.loginRequired = false
                     data.forEach(async (entry: any) => {
                         const { error } = entry
                         if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
