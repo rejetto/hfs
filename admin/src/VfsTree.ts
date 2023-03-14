@@ -99,7 +99,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                         isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
                         node.default && iconTooltip(Web, "Act as website"),
                         node.masks && iconTooltip(TheaterComedy, "Masks"),
-                        node.size === -1 && iconTooltip(HighlightOff, "Source missing")
+                        node.size === -1 && iconTooltip(HighlightOff, "Source not found")
                     ),
                 ),
                 isRoot ? "Home"
