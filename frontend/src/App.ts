@@ -1,18 +1,25 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { BrowserRouter, Route, Routes } from "react-router-dom"
-import { createElement as h } from 'react'
+import { createElement as h, useState } from 'react'
 import { BrowseFiles } from "./BrowseFiles"
 import { Dialogs } from './dialog'
 import useTheme from "./useTheme"
 import { useSnapState } from './state'
 import { I18Nprovider } from './i18n'
+import { useEventListener } from 'usehooks-ts'
 
 function App() {
     useTheme()
+    // wait for all plugins to be loaded
+    const [ready, setReady] = useState(document.readyState === 'complete')
+    useEventListener('load', () => setReady(true))
+
     const { messageOnly } = useSnapState()
     if (messageOnly)
         return h('h1', { style: { textAlign: 'center'} }, messageOnly)
+    if (!ready)
+        return h('div', {}, '...')
     return h(I18Nprovider, {},
         h(BrowserRouter, {},
             h(Routes, {},
