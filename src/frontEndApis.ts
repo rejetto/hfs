@@ -76,17 +76,16 @@ export const frontEndApis: ApiHandlers = {
     async load_lang({ lang }) {
         const ret: any = {}
         const langs = wantArray(lang)
-        const tried: string[] = []
         for (let k of langs) {
             k = k.toLowerCase()
-            while (1) {
-                if (tried.includes(k)) break
-                tried.push(k)
-                try { ret[k] = JSON.parse(await readFile(`hfs-lang-${k}.json`, 'utf8')) }
-                catch {}
-                const i = k.lastIndexOf('-')
-                if (ret[k] || i < 0) break
-                k = k.slice(0, i)
+            try { ret[k] = JSON.parse(await readFile(`hfs-lang-${k}.json`, 'utf8')) }
+            catch {
+                while (1) {
+                    k = k.substring(0, k.lastIndexOf('-'))
+                    if (!k) break
+                    if (!langs.includes(k))
+                        langs.push(k)
+                }
             }
         }
         return ret
