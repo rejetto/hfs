@@ -43,15 +43,16 @@ export class ApiError extends Error {
 }
 
 export function useApi(cmd: string | Falsy, params?: Dict, options: ApiCallOptions={}) : any {
-    const [x, setX] = useState()
+    const [ret, setRet] = useState()
     const loadingRef = useRef<ReturnType<typeof apiCall>>()
     useEffect(()=>{
         loadingRef.current?.abort()
-        setX(undefined)
-        if (cmd)
-            (loadingRef.current = apiCall(cmd, params, options)).then(setX, setX)
+        setRet(undefined)
+        if (!cmd) return
+        const p = loadingRef.current = apiCall(cmd, params, options)
+        p.then(setRet, setRet)
     }, [cmd, JSON.stringify(params)]) //eslint-disable-line
-    return x
+    return ret
 }
 
 type EventHandler = (type:string, data?:any) => void
