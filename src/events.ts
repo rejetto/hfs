@@ -3,4 +3,4 @@
 import EventEmitter from 'events'
 
 // app-wide events
-export default new EventEmitter()
+export default new EventEmitter().setMaxListeners(100)
