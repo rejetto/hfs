@@ -11,7 +11,7 @@ import {
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { newObj, onOff, wait } from './misc'
+import { Callback, newObj, onOff, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
@@ -80,6 +80,10 @@ const apis: ApiHandlers = {
         return new SendListReadable({
             async doAtStart(list) {
                 try {
+                    // avoid creating N listeners on ctx.req, and getting a warning
+                    const undo: Callback[] = []
+                    ctx.req.once('close', () => undo.forEach(x => x()))
+
                     const folder2repo = getFolder2repo()
                     for await (const pl of searchPlugins(text)) {
                         const repo = pl.id
@@ -91,7 +95,7 @@ const apis: ApiHandlers = {
                         })
                         list.add(pl)
                         // watch for events about this plugin, until this request is closed
-                        ctx.req.on('close', onOff(events, {
+                        undo.push(onOff(events, {
                             pluginInstalled: p => {
                                 if (p.repo === repo)
                                     list.update({ id: repo }, { installed: true })
