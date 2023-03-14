@@ -96,6 +96,8 @@
         "upload_finished": "{n,plural, one{Загружен #} other{Загружено #}}",
         "upload_errors": "Ошибка загрузки",
 
-        "Hits: ": "↓"
+        "Hits: ": "↓",
+
+        "Password": "Пароль"
     }
 }
