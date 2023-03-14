@@ -1,5 +1,5 @@
 exports.description = "Counts downloads for each file, and displays the total in the list"
-exports.version = 3 // stylizable
+exports.version = 3.1 // removed "hits" word
 exports.apiRequired = 3
 
 exports.init = async api => {
