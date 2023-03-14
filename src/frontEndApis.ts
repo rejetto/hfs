@@ -73,11 +73,12 @@ export const frontEndApis: ApiHandlers = {
         }
     },
 
-    async load_lang({ lang }) {
+    async load_lang({ lang, embedded }) {
         const ret: any = {}
         const langs = wantArray(lang)
         for (let k of langs) {
             k = k.toLowerCase()
+            if (k === embedded) break
             try { ret[k] = JSON.parse(await readFile(`hfs-lang-${k}.json`, 'utf8')) }
             catch {
                 while (1) {

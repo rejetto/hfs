@@ -26,7 +26,7 @@ export function tComponent(...par: Parameters<typeof t>) {
 export function I18Nprovider({ embedded='en', ...props }) {
     const langs = urlParams.lang?.split(',') || navigator.languages
     state.embedded = embedded
-    let all = useApi(langs[0] !== 'en' && 'load_lang', { lang: langs }, { noModal: true })
+    let all = useApi(langs[0] !== embedded && 'load_lang', { embedded, lang: langs }, { noModal: true })
     useEffect(() => {
         if (all instanceof Error)
             all = undefined
