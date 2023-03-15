@@ -56,7 +56,7 @@ export function MenuPanel() {
                 id: 'select-button',
                 icon: 'check',
                 label: t`Select`,
-                tooltip: t('select_tooltip', 0, `Selection applies to "Zip" and "Delete" (when available), but you can also filter the list`),
+                tooltip: t('select_tooltip', `Selection applies to "Zip" and "Delete" (when available), but you can also filter the list`),
                 toggled: showFilter,
                 onClick() {
                     state.showFilter = !showFilter
@@ -135,7 +135,7 @@ export function MenuPanel() {
             label: t`Search`,
             onClickAnimation: false,
             async onClick() {
-                state.remoteSearch = await promptDialog(t('search_msg', 0, `Search this folder and sub-folders`)) || ''
+                state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders")) || ''
             }
         }
     }
@@ -200,7 +200,7 @@ function LoginButton() {
 async function deleteFiles(uris: string[], root: string) {
     const n = uris.length
     if (!n) {
-        alertDialog(t('delete_select', 0, `Select something to delete`)).then()
+        alertDialog(t('delete_select', "Select something to delete")).then()
         return
     }
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?"))) return

@@ -61,9 +61,9 @@ If you don't like this behavior, disable it in the Admin-panel or enter this con
 
 If your system is not Windows/Linux/Mac, you can try this alternative version:
 
-0. [install node.js](https://nodejs.org)
-1. execute: `sudo npm -g i hfs`
-2. launch: `hfs`
+1. [install node.js](https://nodejs.org)
+2. execute: `sudo npm -g i hfs`
+3. launch: `hfs`
 
 Configuration and other files will be stored in `%HOME%/.vfs`
 
@@ -85,9 +85,10 @@ If you want to run HFS as a service
 It is possible to show the Front-end in other languages.
 In the Languages section of the Admin-panel you'll be able to install lang files.
 You can find some of these files at https://github.com/rejetto/hfs/tree/main/langs
+Files are named `hfs-lang-CODE.json`, where `CODE` is the ISO code for your language (e.g. pt-br for Brazilian).
 To download a file: open it, right-click on the "Raw" button, Save.
 
-Files must be named `hfs-lang-CODE.json` (lowercase), where `CODE` is the ISO code for your language (e.g. pt-br for Brazilian).
+If your language is missing, please consider [translating yourself](#translate-to-your-language). 
 
 Translation is applied automatically based on the configuration of the visitor's browser.
 [Check the language configuration of your browser](https://gtranslate.io/detect-browser-language).
@@ -254,7 +255,50 @@ This is enough, but you may want to configure generated links accordingly:
 - go to Admin-panel > Shared files > Home > Link
 - click the change button (right side of the field)
 - enter the final URL of your proxy including the location
-    
+
+## Contribute
+
+There are several ways to contribute
+
+### Report bugs
+
+It's very important to report bugs.
+If you see something you are quite sure it's a problem, then [open an issue](https://github.com/rejetto/hfs/issues/new?labels=bug&template=bug_report.md).
+If you are not so sure, don't worry, we'll discuss it.
+
+### Suggest ideas
+
+Share your ideas of what you think would make this tool better.
+Don't expect everything to be done, tho, as this project is made on a voluntary basis,
+and also because the project could become too complex (too many features).
+
+Anyway, secondary features may be implemented by plugins instead. Yours may be an idea for a plugin. 
+
+### Translate to your language
+
+First, check if your language is already available, looking at [this list](https://github.com/rejetto/hfs/tree/main/langs).
+
+If your language is missing, [download then english file](https://raw.githubusercontent.com/rejetto/hfs/main/langs/hfs-lang-en.json) as a starting point.
+Rename the file changing the "en" part with [your language's 2-letter code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes). 
+
+The file syntax is JSON, and the translation syntax is ICU. When you see curly braces like `{n}`,
+that's a variable, like a number, always changing. Commands within curly braces MUST NOT be translated,
+like `plural`.
+
+The way plural works in your language is probably different from english, so if you don't get the results you need,
+you may need to make some changes.
+[Refer to this guide](https://formatjs.io/docs/core-concepts/icu-syntax/#plural-format) to know your options.
+
+Always check your file is working good before submitting.
+When you are sure it's good, you can publish it. The easiest way is to [open an issue](https://github.com/rejetto/hfs/issues/new)
+and attach your file (you may need to zip it, first).
+We will include it in our folder.
+
+### Submit your code
+
+If you'd like to make a change yourself in the code, please first open an "issue" or "discussion" about it,
+so we'll try to cooperate and understand what's the best path for it.
+
 ## License
 
 [GPLv3](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
