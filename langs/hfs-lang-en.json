@@ -38,7 +38,6 @@
         "Login": "Login",
         "Username": "Username",
         "Password": "Password",
-        "Continue": "Continue",
         "login_untrusted": "Login aborted: server identity cannot be trusted",
         "login_bad_credentials": "Invalid credentials",
         "login_bad_cookies": "Cookies not working - login failed",
