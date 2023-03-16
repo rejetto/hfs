@@ -102,7 +102,9 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     }
     if (ctx.originalUrl === '/favicon.ico' && favicon.get()) // originalUrl to not be subject to changes (vhosting plugin)
         return serveFile(ctx, favicon.get())
-    const node = await urlToNode(path, ctx)
+    let node = await urlToNode(path, ctx)
+    if (node?.default && (path.endsWith('/') || !node.default.match(/\.html?$/i))) // final/ needed on browser to make resource urls correctly
+        node = await urlToNode(node.default, ctx, node)
     if (!node)
         return ctx.status = HTTP_NOT_FOUND
     if (ctx.method === 'POST') { // curl -F upload=@file url/
@@ -121,7 +123,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             || statusCodeForMissingPerm(node, 'can_read', ctx)
             || serveFileNode(ctx, node)
     if (!path.endsWith('/'))
-        return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl + '/')
+        return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
         if (ctx.status === HTTP_FORBIDDEN)
             return
@@ -132,15 +134,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return serveFrontendFiles(ctx, next)
     }
     ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
-    const { get } = ctx.query
-    if (get === 'zip')
-        return await zipStreamFromFolder(node, ctx)
-    if (!node.default)
-        return serveFrontendFiles(ctx, next)
-    const defNode = await urlToNode(path + node.default, ctx)
-    if (defNode)
-        statusCodeForMissingPerm(defNode, 'can_read', ctx) || serveFileNode(ctx, defNode)
-    await next()
+    return ctx.query.get === 'zip' ? zipStreamFromFolder(node, ctx)
+        : serveFrontendFiles(ctx, next)
 }
 
 let proxyDetected = false

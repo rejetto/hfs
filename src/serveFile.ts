@@ -49,7 +49,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
     if (!source)
         return
     const fn = path.basename(source)
-    if (ctx.params.dl !== undefined) // please, download
+    if ('dl' in ctx.params) // please, download
         ctx.attachment(fn)
     mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && isMatch(fn, k)) // isMatch throws on an empty string
     if (mime === MIME_AUTO)

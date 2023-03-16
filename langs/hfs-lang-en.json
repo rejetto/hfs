@@ -89,6 +89,7 @@
         "Don't": "Don't",
         "Warning": "Warning",
         "Error": "Error",
+        "Info": "Info",
 
         "Unauthorized": "Unauthorized",
         "Forbidden": "Forbidden",
@@ -100,8 +101,6 @@
         "upload_finished": "{n} finished ({size})",
         "upload_errors": "{n} failed",
 
-        "download counter": "download counter",
-        
-        "Info": "Info"
+        "download counter": "download counter"
     }
 }

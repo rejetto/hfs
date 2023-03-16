@@ -36,22 +36,27 @@ export function setHidden<T, ADD>(dest: T, src: ADD) {
     }))) as T & ADD
 }
 
-export function newObj<S extends object,VR=any>(
+export function newObj<S extends (object | undefined | null),VR=any>(
     src: S,
-    newValue: (value:Truthy<S[keyof S]>, key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true)=>any
+    returnNewValue: (value:Truthy<S[keyof S]>, key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true, depth: number) => any,
+    recur: boolean | number=false
 ) {
     if (!src)
         return {}
     const pairs = Object.entries(src).map( ([k,v]) => {
         if (typeof k === 'symbol') return
         let _k: undefined | typeof k = k
-        const newV = newValue(v, k as Exclude<keyof S, symbol>, (newK) => {
+        const curDepth = typeof recur === 'number' ? recur : 0
+        let newV = returnNewValue(v, k as Exclude<keyof S, symbol>, (newK) => {
             _k = newK
             return true // for convenient expression concatenation
-        })
+        }, curDepth)
+        if ((recur !== false || returnNewValue.length === 4) // if callback is using depth parameter, then it wants recursion
+        && _.isPlainObject(newV)) // is it recurrable?
+            newV = newObj(newV, returnNewValue, curDepth + 1)
         return _k !== undefined && [_k, newV]
     })
-    return Object.fromEntries(onlyTruthy(pairs)) as { [K in keyof S]:VR }
+    return Object.fromEntries(onlyTruthy(pairs)) as S extends undefined | null ? S : { [K in keyof S]:VR }
 }
 
 export function wait(ms: number) {

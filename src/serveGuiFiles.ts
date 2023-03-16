@@ -30,7 +30,7 @@ function serveStatic(uri: string): Koa.Middleware {
     const folder = uri.slice(2,-1) // we know folder is very similar to uri
     let cache: Record<string, Promise<string>> = {}
     subscribe(customHtmlState, () => cache = {}) // reset cache at every change
-    return async (ctx, next) => {
+    return async (ctx) => {
         if(ctx.method === 'OPTIONS') {
             ctx.status = HTTP_NO_CONTENT
             ctx.set({ Allow: 'OPTIONS, GET' })

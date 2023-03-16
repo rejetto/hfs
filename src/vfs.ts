@@ -265,9 +265,9 @@ function renameUnderPath(rename:undefined | Record<string,string>, path: string)
 function matchWho(who: Who, ctx: Koa.Context) {
     return who === WHO_ANYONE
         || who === WHO_ANY_ACCOUNT && Boolean(ctx.state.account)
-        || Array.isArray(who) && (() => // check if I or any ancestor match `who`, but cache ancestors' usernames inside context state
-            getOrSet(ctx.state, 'usernames', () => getCurrentUsernameExpanded(ctx)).some((u:string) =>
-                who.includes(u) ))()
+        || Array.isArray(who) // check if I or any ancestor match `who`, but cache ancestors' usernames inside context state
+            && getOrSet(ctx.state, 'usernames', () => getCurrentUsernameExpanded(ctx)).some((u:string) =>
+                who.includes(u) )
 }
 
 events.on('accountRenamed', (from, to) => {
