@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs from 'fs/promises'
-import { basename, join, resolve } from 'path'
+import { basename, dirname, join, resolve } from 'path'
 import { isMatch } from 'micromatch'
 import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
 import Koa from 'koa'
@@ -175,26 +175,44 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
     const took = prefixPath ? undefined : new Set()
     if (children)
         for (const child of children) {
-            const name = prefixPath + getNodeName(child)
+            const nodeName = getNodeName(child)
+            const name = prefixPath + nodeName
             took?.add(name)
-            yield* workItem({
-                ...child,
-                name,
-            }, depth > 0 && await nodeIsDirectory(child).catch(() => false))
+            const item = { ...child, name }
+            if (!canSee(item)) continue
+            yield item
+            if (!depth || !await nodeIsDirectory(child).catch(() => false)) continue
+            inheritMasks(item, parent,  nodeName)
+            if (!ctx || hasPermission(item, 'can_list', ctx)) // check perm before recursion
+                yield* walkNode(item, ctx, depth - 1, name + '/')
         }
     if (!source)
         return
     try {
-        for await (const path of dirStream(source, depth)) {
+        let lastDir = prefixPath.slice(0, -1) || '.'
+        const map = new Map()
+        map.set(lastDir, parent)
+        // it's important to keep using dirStream in deep-mode, as it is manyfold faster (it parallelizes)
+        for await (const [path, isDir] of dirStream(source, depth)) {
             if (ctx?.req.aborted)
                 return
             const name = prefixPath + (parent.rename?.[path] || path)
             if (took?.has(name)) continue
-            yield* workItem({
+            if (depth) {
+                const dir = dirname(name)
+                if (dir !== lastDir)
+                    parent = map.get(lastDir = dir)
+            }
+
+            const item = {
                 name,
                 source: join(source, path),
                 rename: renameUnderPath(parent.rename, path),
-            })
+            }
+            if (!canSee(item)) continue
+            if (isDir)
+                map.set(name, item)
+            yield item
         }
     }
     catch(e) {
@@ -202,20 +220,13 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
     }
 
     // item will be changed, so be sure to pass a temp node
-    async function* workItem(item: VfsNode, recur=false) {
-        const name = getNodeName(item)
-        // we basename for depth>0 where we already have the rest of the path in the parent's url, and would be duplicated
-        const virtualBasename = basename(name)
-        item.isTemp = true
-        applyMasks(item, parent, virtualBasename)
+     function canSee(item: VfsNode) {
+         // we basename for depth>0 where we already have the rest of the path in the parent's url, and would be duplicated
+        applyMasks(item, parent, basename(getNodeName(item)))
         inheritFromParent(parent, item)
-        if (ctx && !hasPermission(item, 'can_see', ctx))
-            return
-        yield item
-        if (!recur) return
-        inheritMasks(item, parent, virtualBasename)
-        if (!ctx || hasPermission(item, 'can_list', ctx)) // check perm before recursion
-            yield* walkNode(item, ctx, depth - 1, name + '/')
+        if (ctx && !hasPermission(item, 'can_see', ctx)) return
+        item.isTemp = true
+        return item
     }
 
     function masksCouldGivePermission(masks: Masks | undefined) {

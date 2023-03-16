@@ -168,21 +168,21 @@ const apis: ApiHandlers = {
         }
         try {
             path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
-            for await (const name of dirStream(path)) {
+            for await (const [name, isDir] of dirStream(path)) {
                 if (ctx.req.aborted)
                     return
                 try {
-                    const stats = await stat(join(path, name))
-                    if (stats.isFile())
+                    if (!isDir)
                         if (!files || fileMask && !isMatch(name, fileMask))
                             continue
+                    const stats = await stat(join(path, name))
                     yield {
                         add: {
                             n: name,
                             s: stats.size,
                             c: stats.ctime,
                             m: stats.mtime,
-                            k: stats.isDirectory() ? 'd' : undefined,
+                            k: isDir ? 'd' : undefined,
                         }
                     }
                 }

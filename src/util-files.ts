@@ -94,10 +94,11 @@ export async function* dirStream(path: string, deep?: number) {
     const skip = await getItemsToSkip(path)
     for await (const entry of dirStream) {
         let { path, dirent } = entry as any
-        if (!dirent.isDirectory() && !dirent.isFile()) continue
+        const isDir = dirent.isDirectory()
+        if (!isDir && !dirent.isFile()) continue
         path = String(path)
         if (!skip?.includes(path))
-            yield path
+            yield [path, isDir]
     }
 
     async function getItemsToSkip(path: string) {
