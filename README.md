@@ -260,45 +260,31 @@ This is enough, but you may want to configure generated links accordingly:
 
 There are several ways to contribute
 
-### Report bugs
+- [Report bugs](https://github.com/rejetto/hfs/issues/new?labels=bug&template=bug_report.md)
 
-It's very important to report bugs.
-If you see something you are quite sure it's a problem, then [open an issue](https://github.com/rejetto/hfs/issues/new?labels=bug&template=bug_report.md).
-If you are not so sure, don't worry, we'll discuss it.
+  It's very important to report bugs, and if you are not so sure about it, don't worry, we'll discuss it.
+  If you find important security problems, please [contact us privately](mailto:a@rejetto.com) so that we can publish a fix before
+  the problem is disclosed, for the safety of other users.  
 
-### Suggest ideas
+- [Translate to your language](https://github.com/rejetto/hfs/wiki/Translation).
 
-Share your ideas of what you think would make this tool better.
-Don't expect everything to be done, tho, as this project is made on a voluntary basis,
-and also because the project could become too complex (too many features).
+- [Suggest ideas](https://github.com/rejetto/hfs/discussions)
 
-Anyway, secondary features may be implemented by plugins instead. Yours may be an idea for a plugin. 
+  While the project should not become too complex, yours may be an idea for a plugin.
 
-### Translate to your language
+- Submit your code
 
-First, check if your language is already available, looking at [this list](https://github.com/rejetto/hfs/tree/main/langs).
+  If you'd like to make a change yourself in the code, please first open an "issue" or "discussion" about it,
+  so we'll try to cooperate and understand what's the best path for it.
 
-If your language is missing, [download then english file](https://raw.githubusercontent.com/rejetto/hfs/main/langs/hfs-lang-en.json) as a starting point.
-Rename the file changing the "en" part with [your language's 2-letter code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes). 
+- [Make a plugin](https://github.com/rejetto/hfs/blob/main/dev-plugins.md)
 
-The file syntax is JSON, and the translation syntax is ICU. When you see curly braces like `{n}`,
-that's a variable, like a number, always changing. Commands within curly braces MUST NOT be translated,
-like `plural`.
+  A plugin can change the look (a theme), and/or introduce a new functionality.
 
-The way plural works in your language is probably different from english, so if you don't get the results you need,
-you may need to make some changes.
-[Refer to this guide](https://formatjs.io/docs/core-concepts/icu-syntax/#plural-format) to know your options.
+## More
 
-Always check your file is working good before submitting.
-When you are sure it's good, you can publish it. The easiest way is to [open an issue](https://github.com/rejetto/hfs/issues/new)
-and attach your file (you may need to zip it, first).
-We will include it in our folder.
+- [Build yourself](https://github.com/rejetto/hfs/blob/main/dev.md)
 
-### Submit your code
+- [License](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
 
-If you'd like to make a change yourself in the code, please first open an "issue" or "discussion" about it,
-so we'll try to cooperate and understand what's the best path for it.
-
-## License
-
-[GPLv3](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
+- [To-do list](https://github.com/rejetto/hfs/blob/main/todo.md) 
