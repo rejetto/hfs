@@ -6,7 +6,7 @@ import { alertDialog, newDialog } from './dialog'
 import { getPrefixUrl, hIcon, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
 import { createElement as h, useEffect, useRef } from 'react'
-import { t, tComponent, useI18N } from './i18n'
+import { t, useI18N } from './i18n'
 
 async function login(username:string, password:string) {
     const stopWorking = working()
@@ -58,7 +58,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                 resolve(v)
                 closeLoginDialog = undefined
             },
-            title: tComponent("Login"),
+            title: t`Login`,
             Content() {
                 const usrRef = useRef<HTMLInputElement>()
                 const pwdRef = useRef<HTMLInputElement>()

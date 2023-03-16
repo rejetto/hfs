@@ -14,15 +14,6 @@ export function useI18N() {
     return { t }
 }
 
-// useful for imperative react contexts, that need to be rendered
-export function tComponent(...par: Parameters<typeof t>) {
-    return () => {
-        const {t} = useI18N()
-        return h(Fragment, {}, t(...par))
-    }
-}
-
-
 export function I18Nprovider({ embedded='en', ...props }) {
     const langs = urlParams.lang?.split(',') || navigator.languages
     state.embedded = embedded
