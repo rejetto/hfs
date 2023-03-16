@@ -24,10 +24,14 @@ vfs:
           mime: png
           source: tests/page/gpl.png
         - name: page
-          default: index.html
           source: tests/page
+          default: index.html
     - name: for-admins
       can_read:
+        - admins
+      can_list:
+        - admins
+      can_see:
         - admins
       children:
         - name: upload
@@ -42,31 +46,29 @@ vfs:
           rename:
             alfa.txt: renamed1
             page/gpl.png: renamed2
-    - name: cantReadPage
+    - name: cantListPage
       source: tests
       masks:
         page:
           can_see: false
-          can_read: false
-        page/*:
-          can_see: true
-          can_read: true
-    - name: cantReadPageAlt
+          can_list: false
+    - name: cantListPageAlt
       source: tests
       masks:
         page:
-          can_read: false
-          masks:
-            "**/*":
-              can_read: true
-    - name: cantReadPageRecursive
+          can_see: false
+        "**/*":
+          can_list: false
+    - name: cantReadPage
       source: tests
       masks:
-        page:
+        (page|*.ts|*.yaml):
           can_read: false
+          can_list: false
     - name: cantReadRealFolder
       source: tests
       can_read: false
+      can_list: false
     - name: cantSeeThis
       can_see: "*"
       children:

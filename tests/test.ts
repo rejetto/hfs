@@ -27,7 +27,7 @@ describe('basics', () => {
     it('force slash', req('/f1', 302))
     it('list', reqList('/f1/', { inList:['f2/', 'page'] }))
     it('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
-    it('search root', reqList('/', { inList:['cantReadPage/'], outList:['cantReadPage/page/'] }, { search:'page' }))
+    it('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
     it('download', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
     it('download.partial', req('/f1/f2/alfa.txt', /a[^d]+$/, { // only "abc" is expected
         headers: { Range: 'bytes=0-2' }
@@ -42,16 +42,17 @@ describe('basics', () => {
     it('missing perm', req('/for-admins/', 401))
     it('missing perm.file', req('/for-admins/alfa.txt', 401))
 
-    it('forbidden list', req('/cantReadPage/page/', 403))
-    it('forbidden list.api', reqList('/cantReadPage/page/', 403))
-    it('forbidden list.cant see', reqList('/cantReadPage/', { outList:['page/'] }))
-    it('forbidden list.but readable file', req('/cantReadPage/page/gpl.png', 200))
-    it('forbidden list.alternative method', reqList('/cantReadPageAlt/page/', 403))
-    it('forbidden list.alternative method readable file', req('/cantReadPageAlt/page/gpl.png', 200))
+    it('forbidden list', req('/cantListPage/page/', 403))
+    it('forbidden list.api', reqList('/cantListPage/page/', 403))
+    it('forbidden list.cant see', reqList('/cantListPage/', { outList:['page/'] }))
+    it('forbidden list.but readable file', req('/cantListPage/page/gpl.png', 200))
+    it('forbidden list.alternative method', reqList('/cantListPageAlt/page/', 403))
+    it('forbidden list.alternative method readable file', req('/cantListPageAlt/page/gpl.png', 200))
 
-    it('cantReadPageRecursive', reqList('/cantReadPageRecursive/page', 403))
-    it('cantReadPageRecursive.file', req('/cantReadPageRecursive/page/gpl.png', 403))
-    it('cantReadPageRecursive.parent', reqList('/cantReadPageRecursive', 200))
+    it('cantReadPage', reqList('/cantReadPage/page', 403))
+    it('cantReadPage.zip', req('/cantReadPage/page/?get=zip', 403, { method:'HEAD' }))
+    it('cantReadPage.file', req('/cantReadPage/page/gpl.png', 403))
+    it('cantReadPage.parent', reqList('/cantReadPage', 200))
     it('cantReadRealFolder', reqList('/cantReadRealFolder', 403))
     it('cantReadRealFolder.file', req('/cantReadRealFolder/page/gpl.png', 403))
 
@@ -75,6 +76,7 @@ describe('basics', () => {
     it('zip.partial.resume', req('/f1/?get=zip', { re:/^C3/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
     it('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
     it('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt*renamed', { empty: true, length:118 }, { method:'HEAD' }))
+    it('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 120 }, { method:'HEAD' }))
     it('login', reqApi('login', { username, password }, 406)) // by default, we don't support clear-text login
 
     it('referer', req('/f1/page/gpl.png', 403, {
