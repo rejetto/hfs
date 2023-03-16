@@ -11,6 +11,7 @@ import { basename, dirname } from 'path'
 import { getRange } from './serveFile'
 import { HTTP_OK } from './const'
 
+// expects 'node' to have had permissions checked by caller
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.status = HTTP_OK
     ctx.mime = 'zip'
@@ -19,14 +20,15 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const name = list?.length === 1 ? basename(list[0]!) : getNodeName(node)
     ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
-    const walker = !list ? walkNode(node, ctx, Infinity)
+    const walker = !list ? walkNode(node, ctx, Infinity, '', 'can_read')
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const el of list) {
                 const subNode = await urlToNode(el, ctx, node)
-                if (!subNode || !hasPermission(subNode,'can_read',ctx))
+                if (!subNode)
                     continue
-                if (await nodeIsDirectory(subNode)) {// a directory needs to walked
-                    yield* walkNode(subNode, ctx, Infinity, el + '/')
+                if (await nodeIsDirectory(subNode)) { // a directory needs to walked
+                    if (hasPermission(subNode, 'can_list',ctx))
+                        yield* walkNode(subNode, ctx, Infinity, el + '/', 'can_read')
                     continue
                 }
                 let folder = dirname(el)
@@ -35,6 +37,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
             }
         })()
     const mappedWalker = filterMapGenerator(walker, async (el:VfsNode) => {
+        if (!hasPermission(el, 'can_read', ctx)) return // the fact you see it doesn't mean you can read it
         const { source } = el
         const name = getNodeName(el)
         if (!source || ctx.req.aborted || !filter(name))

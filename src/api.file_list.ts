@@ -1,6 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { cantReadStatusCode, getNodeName, hasPermission, nodeIsDirectory, urlToNode, VfsNode, walkNode } from './vfs'
+import {
+    getNodeName,
+    hasPermission,
+    nodeIsDirectory,
+    statusCodeForMissingPerm,
+    urlToNode,
+    VfsNode,
+    walkNode
+} from './vfs'
 import { ApiError, ApiHandler, SendListReadable } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
@@ -13,8 +21,9 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     const list = new SendListReadable()
     if (!node)
         return fail(HTTP_NOT_FOUND)
-    if (!hasPermission(node,'can_read',ctx))
-        return fail(cantReadStatusCode(node))
+    const res = statusCodeForMissingPerm(node,'can_list',ctx)
+    if (res)
+        return fail(res)
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
     if (node.default)
@@ -47,8 +56,7 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     function fail(code: any) {
         if (!sse)
             return new ApiError(code)
-        list.error(code)
-        list.close()
+        list.error(code, true)
         return list
     }
 

@@ -1,11 +1,9 @@
-import { hasPermission, VfsNode } from './vfs'
+import { statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
-    HTTP_FORBIDDEN,
     HTTP_PAYLOAD_TOO_LARGE,
     HTTP_RANGE_NOT_SATISFIABLE,
     HTTP_SERVER_ERROR,
-    HTTP_UNAUTHORIZED
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
@@ -24,8 +22,9 @@ const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
 const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
 
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
-    if (!hasPermission(base, 'can_upload', ctx))
-        return fail(base.can_upload === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED)
+    const res = statusCodeForMissingPerm(base, 'can_upload', ctx)
+    if (res)
+        return fail(res)
     const fullPath = join(base.source!, path)
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)

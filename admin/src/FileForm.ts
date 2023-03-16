@@ -14,7 +14,7 @@ import {
     StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { formatBytes, IconBtn, isEqualLax, modifiedSx, newDialog, onlyTruthy, prefix } from './misc'
+import { formatBytes, IconBtn, isEqualLax, modifiedSx, newDialog, objSameKeys, onlyTruthy, prefix } from './misc'
 import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -37,7 +37,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
-        setValues(Object.assign({ can_see: null, can_read: null, can_upload: null, can_delete: null }, rest))
+        setValues(Object.assign(objSameKeys(defaultPerms, () => null), rest))
     }, [file]) //eslint-disable-line
 
     const { source } = file
@@ -60,8 +60,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
     const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
     if (element || !data)
         return element
-    const allAccounts = data.list
-    const can_read = (values.can_read ?? inheritedPerms.can_read)
+    const accounts = data.list
 
     return h(Form, {
         values,
@@ -104,9 +103,10 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
                 placeholder: "Not on disk, this is a virtual folder",
             },
             perm('can_read', "Who can download", "Who can see but not download will be asked to login"),
-            perm('can_see', "Who can see", "You can hide and keep it downloadable if you have a direct link"),
+            perm('can_see', "Who can see", "If you don't see, you may download with a direct link"),
+            isDir && perm('can_list', "Who can list", "Permission to see content of folders"),
             isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source"),
-            isDir && perm('can_delete', "Who can delete", hasSource ? '' : "Works only on folders with source"),
+            isDir && perm('can_delete', "Who can delete", hasSource ? '' : "Works only on folders with source", { lg: 12 }),
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: 'Created', toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: 'Modified', toField: formatTimestamp },
@@ -121,7 +121,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         ]
     })
 
-    function perm(perm: keyof typeof inheritedPerms, label: string, helperText='', { accounts=allAccounts, ...props }={}) {
+    function perm(perm: keyof typeof inheritedPerms, label: string, helperText='', props: Partial<WhoFieldProps>={}) {
         return { showInherited: anyMask, // with masks, you may need to set a permission to override the mask
             k: perm, lg: 6, comp: WhoField, parent, accounts, label, inherit: inheritedPerms[perm], helperText, ...props }
     }

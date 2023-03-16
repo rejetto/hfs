@@ -11,7 +11,7 @@ import {
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, API_URI,
 } from './const'
 import { FRONTEND_URI } from './const'
-import { cantReadStatusCode, hasPermission, nodeIsDirectory, urlToNode, vfs } from './vfs'
+import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs } from './vfs'
 import { dirTraversal, newObj, stream2string, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
@@ -116,15 +116,13 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         await once(form, 'end').catch(()=> {})
         return
     }
-    const canRead = hasPermission(node, 'can_read', ctx)
-    const isFolder = await nodeIsDirectory(node)
-    if (isFolder && !path.endsWith('/'))
+    if (!await nodeIsDirectory(node))
+        return !node.source && await next()
+            || statusCodeForMissingPerm(node, 'can_read', ctx)
+            || serveFileNode(ctx, node)
+    if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl + '/')
-    if (canRead && !isFolder)
-        return node.source ? serveFileNode(ctx, node)
-            : next()
-    if (!canRead) {
-        ctx.status = cantReadStatusCode(node)
+    if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
         if (ctx.status === HTTP_FORBIDDEN)
             return
         const browserDetected = ctx.get('Upgrade-Insecure-Requests') || ctx.get('Sec-Fetch-Mode') // ugh, heuristics
@@ -137,13 +135,12 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { get } = ctx.query
     if (get === 'zip')
         return await zipStreamFromFolder(node, ctx)
-    if (node.default) {
-        const def = await urlToNode(path + node.default, ctx)
-        return !def ? next()
-            : hasPermission(def, 'can_read', ctx) ? serveFileNode(ctx, def)
-            : ctx.status = cantReadStatusCode(def)
-    }
-    return serveFrontendFiles(ctx, next)
+    if (!node.default)
+        return serveFrontendFiles(ctx, next)
+    const defNode = await urlToNode(path + node.default, ctx)
+    if (defNode)
+        statusCodeForMissingPerm(defNode, 'can_read', ctx) || serveFileNode(ctx, defNode)
+    await next()
 }
 
 let proxyDetected = false

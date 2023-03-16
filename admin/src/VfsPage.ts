@@ -161,6 +161,7 @@ export async function deleteFiles() {
 export interface VfsPerms {
     can_see?: Who
     can_read?: Who
+    can_list?: Who
     can_upload?: Who
     can_delete?: Who
 }

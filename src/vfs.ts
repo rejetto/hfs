@@ -7,16 +7,15 @@ import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
-import { HTTP_FOOL, HTTP_FORBIDDEN, IS_WINDOWS, HTTP_UNAUTHORIZED } from './const'
+import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './const'
 import events from './events'
 import { getCurrentUsernameExpanded } from './perm'
-import { with_ } from './misc'
 
 const WHO_ANYONE = true
 const WHO_NO_ONE = false
 const WHO_ANY_ACCOUNT = '*'
 type AccountList = string[]
-type Who = typeof WHO_ANYONE
+export type Who = typeof WHO_ANYONE
     | typeof WHO_NO_ONE
     | typeof WHO_ANY_ACCOUNT
     | AccountList
@@ -24,6 +23,7 @@ type Who = typeof WHO_ANYONE
 interface VfsPerm {
     can_read: Who
     can_see: Who
+    can_list: Who
     can_upload: Who
     can_delete: Who
 }
@@ -46,6 +46,7 @@ export interface VfsNode extends Partial<VfsPerm> {
 export const defaultPerms: VfsPerm = {
     can_see: WHO_ANYONE,
     can_read: WHO_ANYONE,
+    can_list: WHO_ANYONE,
     can_upload: WHO_NO_ONE,
     can_delete: WHO_NO_ONE,
 }
@@ -156,7 +157,20 @@ export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Conte
         && matchWho(node[perm] ?? defaultPerms[perm], ctx)
 }
 
-export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string=''): AsyncIterableIterator<VfsNode> {
+export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context) {
+    if (hasPermission(node, perm, ctx))
+        return false
+    return ctx.status = node[perm] === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED
+}
+
+// it's responsibility of the caller to verify you have list permission on parent, as callers have different needs.
+// Too many parameters: consider object, but benchmark against degraded recursion on huge folders.
+export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string='', requiredPerm?: keyof VfsPerm): AsyncIterableIterator<VfsNode> {
+    if (requiredPerm && ctx
+    && !hasPermission(parent, requiredPerm, ctx)
+    && !masksCouldGivePermission(parent.masks))
+        return // no permission, no reason to continue
+
     const { children, source } = parent
     const took = prefixPath ? undefined : new Set()
     if (children)
@@ -200,8 +214,22 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         yield item
         if (!recur) return
         inheritMasks(item, parent, virtualBasename)
-        yield* walkNode(item, ctx, depth - 1, name + '/')
+        if (!ctx || hasPermission(item, 'can_list', ctx)) // check perm before recursion
+            yield* walkNode(item, ctx, depth - 1, name + '/')
     }
+
+    function masksCouldGivePermission(masks: Masks | undefined) {
+        if (!masks) return false
+        for (const [,props] of Object.entries(masks)) {
+            const v = props[requiredPerm!]
+            if (v && (!ctx || matchWho(v, ctx))) // without ctx we can't say, so it could
+                return true
+            if (masksCouldGivePermission(props.masks))
+                return true
+        }
+        return false
+    }
+
 }
 function applyMasks(item: VfsNode, parent: VfsNode, virtualBasename: string) {
     const { masks } = parent
@@ -240,10 +268,6 @@ function matchWho(who: Who, ctx: Koa.Context) {
         || Array.isArray(who) && (() => // check if I or any ancestor match `who`, but cache ancestors' usernames inside context state
             getOrSet(ctx.state, 'usernames', () => getCurrentUsernameExpanded(ctx)).some((u:string) =>
                 who.includes(u) ))()
-}
-
-export function cantReadStatusCode(node: VfsNode) {
-    return node.can_read === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED
 }
 
 events.on('accountRenamed', (from, to) => {
