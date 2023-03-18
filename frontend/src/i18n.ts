@@ -27,9 +27,10 @@ export function I18Nprovider({ embedded='en', ...props }) {
     return h(Fragment, props)
 }
 
-export function t(keyOrTpl: string | TemplateStringsArray, params?: any, def?: string) {
+export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: any, def?: string) {
     // memoize?
-    const key = typeof keyOrTpl === 'string' ? keyOrTpl : (def ??= keyOrTpl[0])
+    const keys = isTemplateStringsArray(keyOrTpl) ? [(def ??= keyOrTpl[0] as string)]
+        : Array.isArray(keyOrTpl) ? keyOrTpl : [keyOrTpl]
     if (typeof params === 'string' && !def) {
         def = params
         params = null
@@ -38,14 +39,17 @@ export function t(keyOrTpl: string | TemplateStringsArray, params?: any, def?: s
     let selectedLang = '' // keep track of where we find the translation
     const { langs, embedded } = state
     if (loaded) {
-        found = findFirst(langs, lang => loaded[selectedLang=lang]?.translate?.[key])
-        if (!found && selectedLang && langs[0] !== embedded && !warns.has(key)) {
-            warns.add(key)
-            console.debug("miss i18n:", key)
+        for (const key of keys) {
+            found = findFirst(langs, lang => loaded[selectedLang=lang]?.translate?.[key])
+            if (found) break
+            if (selectedLang && langs[0] !== embedded && !warns.has(key)) {
+                warns.add(key)
+                console.debug("miss i18n:", key)
+            }
         }
     }
     if (!found) {
-        found = def || key
+        found = def || keys[0]
         selectedLang = embedded
     }
     return Array.from(tokenizer(found)).map(([s,inside]) => {
@@ -104,4 +108,8 @@ function* tokenizer(s:string): Generator<[string,boolean]> {
         yield [s.slice(open + 1, ofs-1), true]
     }
     yield [s.slice(ofs), false]
+}
+
+function isTemplateStringsArray(x: any): x is TemplateStringsArray {
+    return x?.raw && Array.isArray(x)
 }
