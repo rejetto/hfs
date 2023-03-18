@@ -93,8 +93,8 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                         display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto',
                     } },
                         node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
-                        node.can_upload !== undefined ? iconTooltip(Upload, "Upload permission")
-                            : !isRoot && !node.source && iconTooltip(Cloud, "Virtual (no source)"),
+                        node.can_upload !== undefined && iconTooltip(Upload, "Upload permission"),
+                        !isRoot && !node.source && iconTooltip(Cloud, "Virtual (no source)"),
                         isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
                         isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
                         node.default && iconTooltip(Web, "Act as website"),
