@@ -7,6 +7,7 @@ import { Icon } from './icons'
 import { Dict } from '@hfs/shared'
 import { state } from './state'
 import { t } from './i18n'
+import _ from 'lodash'
 export * from '@hfs/shared'
 
 export const ERRORS: Record<number, string> = {
@@ -58,7 +59,7 @@ export function hfsEvent(name: string, params?:Dict) {
 
 Object.assign((window as any).HFS ||= {}, {
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
-        const tools = { h, React, state, t }
+        const tools = { h, React, state, t, _ }
         document.addEventListener('hfs.' + name, ev => {
             const { params, output } = (ev as CustomEvent).detail
             const res = cb(params, tools, output)

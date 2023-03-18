@@ -156,10 +156,11 @@ HFS.onEvent(eventName, callback)
 Parameters of your callback and meaning of returned value varies with the event name.
 Refer to the specific event for further information.
 Tools are extra data and functions to help you:
-- `React` whole React object, as for require('react')
+- `React` whole React object, as for `require('react')` (JSX syntax is not supported here)
 - `h` shortcut for React.createElement
-- `state` object with many values in it. [Refer here for details](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts).
-- `t` translator function
+- `state` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
+- `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
+- `_` [lodash library](https://lodash.com/docs/)
 
 Some frontend-events can return Html, which can be expressed in several ways
 - as string, containing markup
