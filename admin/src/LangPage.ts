@@ -10,7 +10,7 @@ import _ from 'lodash'
 import { alertDialog, toast } from './dialog'
 
 export default function LangPage() {
-    const { list, error, connecting, reload } = useApiList('get_langs', undefined, { addId: true })
+    const { list, error, connecting, reload } = useApiList('list_langs', undefined, { addId: true })
     if (error)
         return error
     return h(Fragment, {},

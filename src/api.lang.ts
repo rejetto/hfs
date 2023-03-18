@@ -12,7 +12,7 @@ const SUFFIX = '.json'
 
 const apis: ApiHandlers = {
 
-    get_langs() {
+    list_langs() {
         return new SendListReadable({
             doAtStart: async list => {
                 for await (let name of glob.stream(code2file('*'))) {
