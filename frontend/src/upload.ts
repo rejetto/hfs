@@ -315,8 +315,13 @@ async function startUpload(f: File, to: string, resume=0) {
         setTimeout(reloadList, 500) // workaround: reloading too quickly can meet the new file still with its temp name
         reloadOnClose = false
         if (!uploadDialogIsOpen)
-            alertDialog(h('div', {}, t`Upload terminated`, h('div', {}, h(UploadStatus))), 'info')
-                .finally(resetCounters)
+            alertDialog(
+                h('div', {},
+                    t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
+                    h('div', {}, h(UploadStatus))
+                ),
+                'info'
+            ).finally(resetCounters)
     }
 }
 

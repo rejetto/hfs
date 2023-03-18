@@ -96,7 +96,7 @@
         "Server error": "Ошибка сервера",
 
         "Upload": "Загрузить",
-        "Upload terminated": "Загрузка отменена",
+        "upload_concluded": "Загрузка отменена",
         "upload_finished": "{n,plural, one{Загружен # файл} few{Загружено # файла} other{Загружено # файлов}} ({size})",
         "upload_errors": "Не удалось загрузить {n,plural, one{# файл} few{# файла} other{# файлов}}",
 

@@ -91,7 +91,7 @@
         "Not found": "Non trovato",
         "Server error": "Errore del server",
 
-        "Upload terminated": "Upload concluso",
+        "upload_concluded": "Upload concluso",
         "upload_finished": "{n,plural, one{# riuscito} other{# riusciti}} ({size})",
         "upload_errors": "{n,plural, one{# fallito} other{# falliti}}",
 
