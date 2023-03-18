@@ -198,7 +198,9 @@ Be sure to also fill the "description" field, especially with words that people 
 The files intended to be installed must go in a folder named `dist`.
 You can keep other files outside.
 
-You can refer to this dummy plugin for reference https://github.com/rejetto/demo-plugin .
+You can refer to these published plugins for reference, like
+- https://github.com/rejetto/simple-player/
+- https://github.com/rejetto/theme-example/
 
 Published plugins are required to specify the `apiRequired` property.
 
