@@ -97,9 +97,11 @@
 
         "Upload": "Загрузить",
         "Upload terminated": "Загрузка отменена",
-        "upload_finished": "{n,plural, one{Загружен # файл} few{Загружно # файла} other{Загружено # файлов}} ({size})",
+        "upload_finished": "{n,plural, one{Загружен # файл} few{Загружено # файла} other{Загружено # файлов}} ({size})",
         "upload_errors": "Не удалось загрузить {n,plural, one{# файл} few{# файла} other{# файлов}}",
 
-        "download counter": "Количество скачиваний"
+        "download counter": "Количество скачиваний",
+
+        "Info": "Информация"
     }
 }
