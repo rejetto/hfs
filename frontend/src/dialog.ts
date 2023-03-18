@@ -75,7 +75,7 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
     }
 }
 
-export interface ConfirmOptions {
+export interface ConfirmOptions extends Partial<DialogOptions> {
     href?: string
     afterButtons?: ReactNode
     timeout?: number
@@ -83,7 +83,7 @@ export interface ConfirmOptions {
     getClose?: (cb: DialogCloser) => unknown
 }
 export async function confirmDialog(msg: ReactElement | string, options: ConfirmOptions={}) : Promise<unknown> {
-    const { href, afterButtons, timeout, timeoutConfirm=false, getClose=_.noop } = options
+    const { href, afterButtons, timeout, timeoutConfirm=false, getClose=_.noop, ...rest } = options
     if (typeof msg === 'string')
         msg = h('p', {}, msg)
     return new Promise(resolve =>
@@ -91,6 +91,7 @@ export async function confirmDialog(msg: ReactElement | string, options: Confirm
             className: 'dialog-confirm',
             icon: '?',
             onClose: resolve,
+            ...rest,
             Content
         })) )
 

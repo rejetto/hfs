@@ -135,7 +135,7 @@ export function MenuPanel() {
             label: t`Search`,
             onClickAnimation: false,
             async onClick() {
-                state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders")) || ''
+                state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders"), { title: t`Search` }) || ''
             }
         }
     }
@@ -174,7 +174,7 @@ export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: Men
         async onClick(ev) {
             if (!confirm) return
             ev.preventDefault()
-            await confirmDialog(confirm, { href, ...confirmOptions })
+            await confirmDialog(confirm, { href, title: t`Confirm`, ...confirmOptions })
         }
     }, h(MenuButton, rest))
 }
