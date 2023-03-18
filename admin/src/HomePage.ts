@@ -79,7 +79,7 @@ function entry(color: Color, ...content: any[]) {
             color: th => color && th.palette[color]?.main,
         },
         h(({ success: CheckCircle, info: Info, '': Info, warning: Warning, error: Error })[color], {
-            sx: { mb: '-3px', mr: 1 }
+            sx: { mb: '-3px', mr: 1, color: color ? undefined : 'primary.main' }
         }),
         ...content)
 }
