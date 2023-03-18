@@ -21,7 +21,6 @@ import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio'
 import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
-import { getWholeConfig } from './config'
 
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
