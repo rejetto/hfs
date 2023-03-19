@@ -89,6 +89,7 @@
         "Don't": "Нет",
         "Warning": "Внимание",
         "Error": "Ошибка",
+        "Info": "Информация",
 
         "Unauthorized": "Вход не выполнен",
         "Forbidden": "Запрещено",
@@ -100,8 +101,6 @@
         "upload_finished": "{n,plural, one{Загружен # файл} few{Загружено # файла} other{Загружено # файлов}} ({size})",
         "upload_errors": "Не удалось загрузить {n,plural, one{# файл} few{# файла} other{# файлов}}",
 
-        "download counter": "Количество скачиваний",
-
-        "Info": "Информация"
+        "download counter": "Количество скачиваний"
     }
 }
