@@ -287,14 +287,18 @@ export async function makeCertAndSave() {
         return alertDialog("Retry this procedure on localhost", 'warning')
     const res = await formDialog<{ commonName: string }>({
         title: "We'll generate a basic certificate for you",
-        fields: [
-            h(Box, { display: 'flex', gap: 1, alignItems: 'center' }, h(Warning), "This certificate is just one click away, but will issue a warning on the browser"),
-            { k: 'commonName', label: "Enter a domain, or leave empty" }
-        ],
-        save: { children: "Continue" },
-        barSx: { gap: 1 },
-        addToBar: [ h(Link, { target: 'cert', href: 'https://letsencrypt.org/' }, h(Button, {}, "Get better certificate")) ],
-
+        form: {
+            fields: [
+                h(Box, { display: 'flex', gap: 1, alignItems: 'center' },
+                    h(Warning), "This certificate is just one click away, but will issue a warning on the browser"),
+                { k: 'commonName', label: "Enter a domain, or leave empty" }
+            ],
+            save: { children: "Continue" },
+            barSx: { gap: 1 },
+            addToBar: [
+                h(Link, { target: 'cert', href: 'https://letsencrypt.org/' }, h(Button, {}, "Get better certificate"))
+            ],
+        }
     })
     if (!res) return
     const close = waitDialog()

@@ -6,14 +6,13 @@ import {
     CircularProgress,
     Dialog as MuiDialog,
     DialogContent,
-    DialogProps,
     DialogTitle,
     IconButton
 } from '@mui/material'
 import {
-    createElement as h, Fragment,
+    createElement as h, Dispatch, Fragment,
     isValidElement,
-    ReactElement,
+    ReactElement, SetStateAction,
     useEffect,
     useRef,
     useState
@@ -141,39 +140,43 @@ export async function confirmDialog(msg: string | ReactElement, { href }: Confir
     }
 }
 
-type FormDialog<T> = Pick<DialogProps, 'fullScreen' | 'title'>
-    & Pick<DialogOptions, 'dialogProps'>
-    & Omit<FormProps<T>, 'values' | 'save' | 'set'>
-    & Partial<Pick<FormProps<T>, 'values' | 'save'>>
+type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
+    & Partial<Pick<FormProps<T>, 'save'>>
     & {
-    onChange?: (values:Partial<T>, extra: { setValues: React.Dispatch<React.SetStateAction<Partial<T>>> }) => void,
-    before?: any
-}
-export async function formDialog<T>({ fullScreen, title, onChange, before, ...props }: FormDialog<T>) : Promise<T> {
+        onChange?: (values:Partial<T>, extra: { setValues: Dispatch<SetStateAction<Partial<T>>> }) => void,
+        before?: any
+    }
+export async function formDialog<T>(
+    { form, values, ...options }: Omit<DialogOptions, 'Content'> & {
+        values?: Partial<T>,
+        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>),
+    },
+) : Promise<T> {
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
         icon: '?',
         onClose: resolve,
-        title,
+        ...options,
         Content
     }) )
 
     function Content() {
-        const [values, setValues] = useState<Partial<T>>(props.values||{})
+        const [curValues, setCurValues] = useState<Partial<T>>(values||{})
+        const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
         return h(Fragment, {},
             before,
             h(Form, {
                 ...props,
-                values,
+                values: curValues,
                 set(v, k) {
-                    const newV = { ...values, [k]: v }
-                    setValues(newV)
-                    onChange?.(newV, { setValues })
+                    const newV = { ...curValues, [k]: v }
+                    setCurValues(newV)
+                    onChange?.(newV, { setValues: setCurValues })
                 },
                 save: {
                     ...props.save,
                     onClick() {
-                        closeDialog(values)
+                        closeDialog(curValues)
                     }
                 }
             })
@@ -182,8 +185,7 @@ export async function formDialog<T>({ fullScreen, title, onChange, before, ...pr
 }
 
 export async function promptDialog(msg: string, props:any={}) : Promise<string | undefined> {
-    return formDialog<{ text: string }>({
-        ...props,
+    return formDialog<{ text: string }>({ ...props, form: {
         fields: [
             { k: 'text', label: null, autoFocus: true,
                 before: h(Box, { mb: 2 }, msg),
@@ -201,7 +203,7 @@ export async function promptDialog(msg: string, props:any={}) : Promise<string |
             h(Button, { onClick: closeDialog }, "Cancel"),
             ...props.addToBar||[],
         ]
-    }).then(values => values?.text)
+    } }).then(values => values?.text)
 }
 
 export function waitDialog() {

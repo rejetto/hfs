@@ -33,7 +33,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                         icon: Add,
                         title: "Add",
                         onClick: (event:any) =>
-                            formDialog({ fields }).then(o => // @ts-ignore
+                            formDialog({ form: { fields } }).then(o => // @ts-ignore
                                 o && onChange([...value||[], o], { was: value, event }))
                     })
                 },
@@ -44,7 +44,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                             icon: Edit,
                             title: "Modify",
                             onClick: (event:any) =>
-                                formDialog({ fields, values: row }).then(newRec => {
+                                formDialog<T>({ values: row, form: { fields } }).then(newRec => {
                                     if (!newRec) return
                                     const newValue = value!.map((oldRec, i) => i === $idx ? newRec : oldRec)
                                     onChange(newValue, { was: value, event })
