@@ -9,6 +9,8 @@ export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
 
+(window as any)._ = _
+
 export const urlParams = Object.fromEntries(new URLSearchParams(window.location.search).entries())
 
 const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
@@ -114,13 +116,14 @@ export function selectFiles(cb: (list: FileList | null)=>void, { accept='', mult
     el.click()
 }
 
-export function readFile(f: File | Blob) {
+export function readFile(f: File | Blob): Promise<string | undefined> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.addEventListener('load', (event) => {
             if (!event.target || f.size && !event.target.result)
                 return reject('cannot read')
-            resolve(event.target.result)
+            const {result} = event.target
+            resolve(result?.toString())
         })
         reader.addEventListener('error', () => {
             reject(reader.error)
