@@ -42,6 +42,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
         })
         return () => clearTimeout(h)
     }, [ref.current])
+    const titleSx = useDialogBarColors() // don't move this hook inside the return. When closing+showing at once it throws about rendering with fewer hooks.
     d = { ...dialogsDefaults, ...d }
     const { sx, root, ...rest } = d.dialogProps||{}
     dialogsDefaults.dialogProps = { fullScreen: mobile, sx: { overflow:'initial' } }
@@ -57,7 +58,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
             sx: {
                 position: 'sticky', top: 0, py: 1, pr: 1, zIndex: 2, boxShadow: '0 0 8px #0004',
                 display: 'flex', alignItems: 'center',
-                ...useDialogBarColors()
+                ...titleSx
             }
         },
             h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
