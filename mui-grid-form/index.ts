@@ -249,5 +249,6 @@ export function Form<Values extends Dict>({
 }
 
 export function labelFromKey(k: string) {
-    return _.capitalize(k.replace(/_/g, ' '))
+    return _.upperFirst(k.indexOf('_') > 0 ? k.replace(/_/g, ' ')
+        : k.replace(/([a-z])([A-Z])/g, (all,a,b) => a + ' ' + b.toLowerCase()))
 }

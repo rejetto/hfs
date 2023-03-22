@@ -63,7 +63,7 @@ export function BoolField({ label='', value, onChange, getApi, helperText, error
         checked: state,
         ...props,
         onChange(event) {
-            onChange(event.target.checked, { event, was: value })
+            onChange((event.target as any).checked, { event, was: value })
         }
     })
     return h(Box, { ml: 1, mt: 1, sx: error ? { color: 'error.main', outlineOffset: 6, outline: '1px solid' } : undefined },
