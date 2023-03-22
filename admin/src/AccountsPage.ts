@@ -3,7 +3,7 @@
 import { createElement as h, useState, useEffect, Fragment } from "react"
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Close, Delete, Group, MilitaryTech, Person, PersonAdd, Refresh } from '@mui/icons-material'
+import { Close, Delete, Group, MilitaryTech, Person, PersonAdd } from '@mui/icons-material'
 import { IconBtn, iconTooltip, newDialog, reloadBtn, useBreakpoint } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import MenuButton from './MenuButton'
@@ -13,6 +13,7 @@ import _ from 'lodash'
 import { Flex } from '@hfs/frontend/src/components'
 import { alertDialog, confirmDialog } from './dialog'
 import { useSnapState } from './state'
+import { importAccountsCsv } from './importAccountsCsv'
 
 export interface Account {
     username: string
@@ -35,11 +36,6 @@ export default function AccountsPage() {
     }, [data]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
     const list: Account[] | undefined = data?.list
     const selectedAccount = selectionMode && _.find(list, { username: sel[0] })
-
-    function close() {
-        setSel([])
-    }
-
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
 
@@ -100,7 +96,8 @@ export default function AccountsPage() {
                     startIcon: h(PersonAdd),
                     items: [
                         { children: "user", onClick: () => setSel('new-user') },
-                        { children: "group", onClick: () => setSel('new-group') }
+                        { children: "group", onClick: () => setSel('new-group') },
+                        { children: "from CSV", onClick: () => importAccountsCsv(reload) },
                     ]
                 }, "Add"),
                 reloadBtn(reload),
@@ -142,6 +139,10 @@ export default function AccountsPage() {
         isSideBreakpoint && sideContent && h(Grid, { item: true, md: 7 },
             h(Card, {}, h(CardContent, {}, sideContent) )),
     )
+
+    function close() {
+        setSel([])
+    }
 
     async function deleteAccounts() {
         if (sel.length > _.pull(sel, username).length)

@@ -50,15 +50,19 @@ const apis: ApiHandlers = {
             changes.admin = undefined
         else if (admin !== undefined && typeof admin !== 'boolean')
             return new ApiError(HTTP_BAD_REQUEST, "invalid admin")
-        const acc = setAccount(username, changes)
+        const acc = getAccount(username)
+        if (!acc)
+            return new ApiError(HTTP_BAD_REQUEST)
+        setAccount(acc, changes)
         if (changes.username && ctx.session)
             ctx.session.username = changes.username
-        return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
+        return _.pick(acc, 'username')
     },
 
-    add_account({ username, ...rest }) {
-        if (getAccount(username))
-            return new ApiError(HTTP_CONFLICT)
+    add_account({ overwrite, username, ...rest }) {
+        const existing = getAccount(username)
+        if (existing)
+            return overwrite ? setAccount(existing, rest) : new ApiError(HTTP_CONFLICT)
         const acc = addAccount(username, rest)
         return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
     },

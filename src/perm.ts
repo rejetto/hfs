@@ -142,17 +142,14 @@ export function addAccount(username: string, props: Partial<Account>) {
     return copy
 }
 
-export function setAccount(username: string, changes: Partial<Account>) {
-    const acc = getAccount(username)
-    if (!acc)
-        return false
+export function setAccount(acc: Account, changes: Partial<Account>) {
     const rest = _.pick(changes, assignableProps)
     for (const [k,v] of Object.entries(rest))
         if (!v)
             rest[k as keyof Account] = undefined
     Object.assign(acc, rest)
     if (changes.username)
-        renameAccount(username, changes.username)
+        renameAccount(acc.username, changes.username)
     saveAccountsAsap()
     return acc
 }

@@ -96,7 +96,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     })
 }
 
-async function apiNewPassword(username: string, password: string) {
+export async function apiNewPassword(username: string, password: string) {
     const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
     const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
     return apiCall('change_srp_others', { username, salt: String(res.s), verifier: String(res.v) }).catch(e => {
