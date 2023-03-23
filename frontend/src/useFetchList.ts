@@ -12,7 +12,7 @@ import { ERRORS } from './misc'
 import { t } from './i18n'
 import { useNavigate } from 'react-router-dom'
 
-const API = 'file_list'
+const RELOADER_PROP = Symbol('reloader')
 
 export default function useFetchList() {
     const snap = useSnapState()
@@ -35,7 +35,13 @@ export default function useFetchList() {
             return
         }
 
-        const baseParams = { path: encodeURI(desiredPath), search, sse:true, omit:'c' }
+        const baseParams = {
+            path: encodeURI(desiredPath),
+            search,
+            sse: true,
+            omit: 'c',
+            [RELOADER_PROP]: snap.listReloader, // symbol, so it won't be serialized, but will force reloading
+        }
         if (_.isEqual(baseParams, lastReq.current)) return
         lastReq.current = baseParams
 
@@ -54,7 +60,7 @@ export default function useFetchList() {
                 state.list = sort([...state.list, ...chunk.map(precalculate)])
         }
         const timer = setInterval(flush, 1000)
-        const src = apiEvents(API, baseParams, (type, data) => {
+        const src = apiEvents('file_list', baseParams, (type, data) => {
             if (!isMounted()) return
             switch (type) {
                 case 'error':
@@ -66,7 +72,6 @@ export default function useFetchList() {
                     flush()
                     state.stopSearch?.()
                     state.loading = false
-                    lastReq.current = undefined
                     return
                 case 'msg':
                     state.loginRequired = false
