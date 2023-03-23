@@ -75,31 +75,33 @@ export default function useFetchList() {
                     return
                 case 'msg':
                     state.loginRequired = false
-                    data.forEach(async (entry: any) => {
+                    for (const entry of data) {
                         const { error } = entry
                         if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
                             state.messageOnly = t('upload_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
-                            return
+                            continue
                         }
                         if (error) {
                             state.stopSearch?.()
                             state.error = (ERRORS as any)[error] || String(error)
                             if (error === 401 && snap.username)
-                                await alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
+                                alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
                             state.loginRequired = error === 401
                             lastReq.current = null
-                            return
+                            continue
                         }
                         if (!desiredPath.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(desiredPath + '/')
-                        if (entry.props)
-                            return Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete']))
+                        if (entry.props) {
+                            Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete']))
+                            continue
+                        }
                         state.can_upload ??= false
                         state.can_delete ??= false
                         if (entry.add)
-                            return buffer.push(entry.add)
-                    })
+                            buffer.push(entry.add)
+                    }
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()
             }
