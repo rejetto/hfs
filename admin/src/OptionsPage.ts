@@ -39,6 +39,8 @@ export const logLabels = {
     error_log: "Access error log file"
 }
 
+const NetmaskField = StringField
+
 export default function OptionsPage() {
     const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
     const snap = useSnapState()
@@ -129,6 +131,9 @@ export default function OptionsPage() {
                 helperText: "Leave empty to never delete" },
             { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
+            { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
+                helperText: "IP address of browser machine. Wildcards supported."
+            },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'mime', comp: StringStringField,
@@ -260,7 +265,7 @@ function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
             placeholder: 'example.com',
             onChange,
             error,
-            helperText: "Masks supported"
+            helperText: "Wildcards supported"
         })
     )
 }

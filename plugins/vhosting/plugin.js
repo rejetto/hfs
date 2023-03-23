@@ -7,7 +7,7 @@ exports.config = {
         label: '',
         type: 'array',
         fields: {
-            host: { label: "Domain", helperText: "Masks supported: domain.*|other.*" },
+            host: { label: "Domain", helperText: "Wildcards supported: domain.*|other.*" },
             root: { helperText: "Root path in VFS" },
         }
     },

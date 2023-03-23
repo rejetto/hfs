@@ -28,7 +28,7 @@ import { basename, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
 import { uploadWriter } from './upload'
-import { favicon } from './adminApis'
+import { allowAdmin, favicon } from './adminApis'
 
 export const gzipper = compress({
     threshold: 2048,
@@ -86,7 +86,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (path.length === ADMIN_URI.length - 1 && ADMIN_URI.startsWith(path))
         return ctx.redirect(ctx.state.revProxyPath + ADMIN_URI)
     if (path.startsWith(ADMIN_URI))
-        return serveAdminPrefixed(ctx,next)
+        return allowAdmin(ctx) ? serveAdminPrefixed(ctx,next)
+            : (ctx.status = HTTP_FORBIDDEN)
     if (ctx.method === 'PUT') { // curl -T file url/
         const decPath = decodeURI(path)
         let rest = basename(decPath)

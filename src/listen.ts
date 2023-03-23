@@ -11,7 +11,7 @@ import open from 'open'
 import { debounceAsync, onlyTruthy, wait } from './misc'
 import { ADMIN_URI, DEV } from './const'
 import findProcess from 'find-process'
-import { anyAccountCanLoginAdmin } from './perm'
+import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }

@@ -188,7 +188,3 @@ export function accountCanLogin(account: Account) {
 export function accountCanLoginAdmin(account: Account) {
     return accountCanLogin(account) && Boolean(getFromAccount(account, a => a.admin))
 }
-
-export function anyAccountCanLoginAdmin() {
-    return Boolean(_.find(accountsConfig.get(), accountCanLoginAdmin))
-}

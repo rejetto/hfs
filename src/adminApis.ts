@@ -10,9 +10,7 @@ import {
     HFS_STARTED,
     IS_WINDOWS,
     VERSION,
-    HTTP_UNAUTHORIZED,
-    HTTP_NOT_FOUND,
-    HTTP_BAD_REQUEST, HTTP_SERVER_ERROR
+    HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_FORBIDDEN
 } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
@@ -20,9 +18,9 @@ import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import { getConnections } from './connections'
-import { debounceAsync, isLocalHost, onOff, waitFor } from './misc'
+import { debounceAsync, isLocalHost, matchesNet, onOff, waitFor } from './misc'
 import events from './events'
-import { anyAccountCanLoginAdmin, getFromAccount } from './perm'
+import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
 import Koa from 'koa'
 import { getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
@@ -32,6 +30,7 @@ import { loggers } from './log'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
+import _ from 'lodash'
 
 export const adminApis: ApiHandlers = {
 
@@ -150,6 +149,8 @@ export const adminApis: ApiHandlers = {
 
 for (const [k, was] of Object.entries(adminApis))
     adminApis[k] = (params, ctx) => {
+        if (!allowAdmin(ctx))
+            return new ApiError(HTTP_FORBIDDEN)
         if (ctxAdminAccess(ctx))
             return was(params, ctx)
         const props = { any: anyAccountCanLoginAdmin() }
@@ -159,6 +160,7 @@ for (const [k, was] of Object.entries(adminApis))
     }
 
 export const localhostAdmin = defineConfig('localhost_admin', true)
+export const adminNet = defineConfig('admin_net', '')
 export const favicon = defineConfig<string>('favicon')
 export const title = defineConfig('title', "File server")
 
@@ -173,3 +175,11 @@ const frpDebounced = debounceAsync(async () => {
     const { stdout } = await promisify(execFile)('tasklist', ['/fi','imagename eq frpc.exe','/nh'])
     return stdout.includes('frpc')
 })
+
+export function anyAccountCanLoginAdmin() {
+    return Boolean(_.find(accountsConfig.get(), accountCanLoginAdmin))
+}
+
+export function allowAdmin(ctx: Koa.Context) {
+    return matchesNet(ctx, adminNet.get(), true)
+}

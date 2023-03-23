@@ -11,6 +11,7 @@ export * from './util-generators'
 export * from './util-files'
 import debounceAsync from './debounceAsync'
 import { Readable } from 'stream'
+import { isMatch } from 'micromatch'
 export { debounceAsync }
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
@@ -169,6 +170,18 @@ export function with_<T,RT>(par:T, cb: (par:T) => RT) {
 export function isLocalHost(c: Connection | Koa.Context) {
     const ip = c.socket.remoteAddress // don't use Context.ip as it is subject to proxied ips, and that's no use for localhost detection
     return ip && (ip === '::1' || ip.endsWith('127.0.0.1'))
+}
+
+export function matchesNet(ip: Koa.Context | string, mask: string, emptyReturns=false) {
+    if (!mask)
+        return emptyReturns
+    if (typeof ip !== 'string')
+        ip = ip.ip
+    return matches(ip, mask)
+}
+
+function matches(s: string, mask: string) {
+    return isMatch(s, '(' + mask + ')') // adding () will allow us to use the pipe at root level
 }
 
 export function same(a: any, b: any) {
