@@ -18,7 +18,7 @@ exports.config = {
 }
 
 exports.init = api => {
-    const { isMatch } = api.require('micromatch')
+    const { matches } = api.require('./misc')
     return {
         middleware(ctx) {
             let toModify = ctx
@@ -33,7 +33,7 @@ exports.init = api => {
             const hosts = api.getConfig('hosts')
             if (!hosts?.length) return
             for (const row of hosts)
-                if (isMatch(ctx.host, row.host)) {
+                if (matches(ctx.host, row.host)) {
                     toModify.path = row.root + toModify.path
                     return
                 }

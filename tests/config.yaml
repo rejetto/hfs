@@ -62,7 +62,7 @@ vfs:
     - name: cantReadPage
       source: tests
       masks:
-        (page|*.ts|*.yaml):
+        page|*.ts|*.yaml:
           can_read: false
           can_list: false
     - name: cantReadRealFolder

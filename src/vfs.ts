@@ -2,8 +2,7 @@
 
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
-import { isMatch } from 'micromatch'
-import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
+import { matches, dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
@@ -246,8 +245,8 @@ function applyMasks(item: VfsNode, parent: VfsNode, virtualBasename: string) {
     const { masks } = parent
     if (!masks) return
     for (const [k,v] of Object.entries(masks))
-        if (k.startsWith('**/') && isMatch(virtualBasename, k.slice(3))
-        || !k.includes('/') && isMatch(virtualBasename, k))
+        if (k.startsWith('**/') && matches(virtualBasename, k.slice(3))
+        || !k.includes('/') && matches(virtualBasename, k))
             _.defaults(item, v)
 }
 

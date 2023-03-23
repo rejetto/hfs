@@ -5,12 +5,11 @@ import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, join, resolve } from 'path'
-import { dirStream, isWindowsDrive, newObj } from './misc'
+import { dirStream, isWindowsDrive, matches, newObj } from './misc'
 import {
     IS_WINDOWS,
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
 } from './const'
-import { isMatch } from 'micromatch'
 import { getDrives } from './util-os'
 import { Stats } from 'fs'
 
@@ -173,7 +172,7 @@ const apis: ApiHandlers = {
                     return
                 try {
                     if (!isDir)
-                        if (!files || fileMask && !isMatch(name, fileMask))
+                        if (!files || fileMask && !matches(name, fileMask))
                             continue
                     const stats = await stat(join(path, name))
                     yield {

@@ -172,15 +172,15 @@ export function isLocalHost(c: Connection | Koa.Context) {
     return ip && (ip === '::1' || ip.endsWith('127.0.0.1'))
 }
 
-export function matchesNet(ip: Koa.Context | string, mask: string, emptyReturns=false) {
-    if (!mask)
-        return emptyReturns
+export function matchesNet(ip: Koa.Context | string, mask: string, emptyMaskReturns=false) {
     if (typeof ip !== 'string')
         ip = ip.ip
-    return matches(ip, mask)
+    return matches(ip, mask, emptyMaskReturns)
 }
 
-function matches(s: string, mask: string) {
+export function matches(s: string, mask: string, emptyMaskReturns=false) {
+    if (!mask)
+        return emptyMaskReturns
     return isMatch(s, '(' + mask + ')') // adding () will allow us to use the pipe at root level
 }
 

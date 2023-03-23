@@ -14,7 +14,7 @@ import {
 import { getNodeName, MIME_AUTO, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { isMatch } from 'micromatch'
+import { matches } from './misc'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
@@ -25,12 +25,12 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const { source, mime } = node
     const name = getNodeName(node)
     const mimeString = typeof mime === 'string' ? mime
-        : _.find(mime, (val,mask) => isMatch(name, mask))
+        : _.find(mime, (val,mask) => matches(name, mask))
    const allowed = allowedReferer.get()
     if (allowed) {
         const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
         if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
-        && !isMatch(ref, allowed))
+        && !matches(ref, allowed))
             return ctx.status = HTTP_FORBIDDEN
 
         function host() {
@@ -51,7 +51,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
     const fn = path.basename(source)
     if ('dl' in ctx.params) // please, download
         ctx.attachment(fn)
-    mime = mime ?? _.find(mimeCfg.get(), (v,k) => k>'' && isMatch(fn, k)) // isMatch throws on an empty string
+    mime = mime ?? _.find(mimeCfg.get(), (v,k) => matches(fn, k, ))
     if (mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''
     if (mime)
