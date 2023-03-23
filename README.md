@@ -165,6 +165,10 @@ This is enough, but you may want to configure generated links accordingly:
 - click the change button (right side of the field)
 - enter the final URL of your proxy including the location
 
+## Hidden features
+
+- Going to address `#LOGIN` will bring up the login dialog
+
 ## Contribute
 
 There are several ways to contribute

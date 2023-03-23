@@ -128,6 +128,8 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
 
 export function useAuthorized() {
     const { loginRequired } = useSnapState()
+    if (location.hash === '#LOGIN')
+        state.loginRequired = true
     const navigate = useNavigate()
     useEffect(() => {
         (async () => {
