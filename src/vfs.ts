@@ -80,7 +80,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     if (!name)
         return parent
     const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, url.endsWith('/') ? -1 : undefined)
-    if (dirTraversal(name) || /[\/]/.test(name)) {
+    if (dirTraversal(name) || /[\\/]/.test(name)) {
         if (ctx)
             ctx.status = HTTP_FOOL
         return
