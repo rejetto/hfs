@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { ComponentPropsWithoutRef, createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
-import { err2msg, hError, hIcon, onlyTruthy, prefix, useStateMounted } from './misc'
+import { err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -213,12 +213,7 @@ async function deleteFiles(uris: string[], root: string) {
         t('delete_completed', {n: n-e}, "Deletion: {n} completed"),
         e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
         h('div', { style: { textAlign: 'left', marginTop: '1em', } },
-            ...errors.map(e => {
-                const msg = err2msg(e.err)
-                return h(Fragment, {},
-                    hError(t(msg) + ': ' + e.uri),
-                )
-            })
+            ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + e.uri }))
         )
     )).then()
 }

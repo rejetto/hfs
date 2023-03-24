@@ -3,7 +3,6 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { apiCall } from './api'
 import { DirList } from './BrowseFiles'
 
 export const state = proxy<{

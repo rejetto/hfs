@@ -29,11 +29,12 @@ import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
 import { uploadWriter } from './upload'
 import { allowAdmin, favicon } from './adminApis'
+import { constants } from 'zlib'
 
 export const gzipper = compress({
     threshold: 2048,
-    gzip: { flush: require('zlib').constants.Z_SYNC_FLUSH },
-    deflate: { flush: require('zlib').constants.Z_SYNC_FLUSH },
+    gzip: { flush: constants.Z_SYNC_FLUSH },
+    deflate: { flush: constants.Z_SYNC_FLUSH },
     br: false, // disable brotli
     filter(type) {
         return /text|javascript|style/i.test(type)
@@ -72,12 +73,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (DEV && path.startsWith('/node_modules/')) {
         let { referer } = ctx.headers
         referer &&= new URL(referer).pathname
-        if (referer) {
-            if (referer.startsWith(ADMIN_URI))
-                return serveAdminFiles(ctx, next)
-            if (referer.startsWith(FRONTEND_URI))
-                return serveFrontendFiles(ctx, next)
-        }
+        return referer?.startsWith(ADMIN_URI) ? serveAdminFiles(ctx, next)
+            : serveFrontendFiles(ctx, next)
     }
     if (ctx.body)
         return next()

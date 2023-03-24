@@ -127,10 +127,6 @@ export function err2msg(code: string) {
     }[code] || code
 }
 
-export function wantArray<T>(x?: void | T | T[]) {
-    return x == null ? [] : Array.isArray(x) ? x : [x]
-}
-
 export function reloadBtn(onClick: any, props?: any) {
     return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
 }

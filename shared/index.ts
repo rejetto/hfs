@@ -135,3 +135,7 @@ export function readFile(f: File | Blob): Promise<string | undefined> {
 export function formatPerc(p: number) {
     return (p*100).toFixed(1) + '%'
 }
+
+export function wantArray<T>(x?: void | T | T[]) {
+    return x == null ? [] : Array.isArray(x) ? x : [x]
+}

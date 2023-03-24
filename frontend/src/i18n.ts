@@ -2,7 +2,6 @@ import { findFirst, urlParams } from './misc'
 import { createElement as h, Fragment, useEffect } from 'react'
 import { useApi } from './api'
 import { proxy, useSnapshot } from 'valtio'
-import _ from 'lodash'
 
 const state = proxy<{ langs: string[], embedded: string }>({ embedded: '', langs: [] })
 const warns = new Set() // avoid duplicates
@@ -55,6 +54,7 @@ export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: a
     return Array.from(tokenizer(found)).map(([s,inside]) => {
         if (!inside) return s
         const [k,cmd,rest] = s.split(',')
+        if (!params) throw "missing params on " + keys[0]
         const v = params[k]
         if (cmd === 'plural')
             return plural(v, rest)

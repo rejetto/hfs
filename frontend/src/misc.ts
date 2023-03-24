@@ -23,11 +23,12 @@ export function err2msg(err: number | Error) {
 }
 
 export function hIcon(name: string, props?:any) {
-    return h(Icon, { name, alt: name, ...props })
+    return h(Icon, { name, ...props })
 }
 
-export function hError(err: Error | string | undefined) {
-    return err && h('div', { className:'error-msg' }, typeof err === 'string' ? err : err.message)
+export function ErrorMsg({ err }: { err: Error | string | undefined }) {
+    return err ? h('div', { className:'error-msg' }, typeof err === 'string' ? err : err.message)
+        : null
 }
 
 export function isMobile() {
@@ -60,12 +61,16 @@ export function hfsEvent(name: string, params?:Dict) {
 Object.assign((window as any).HFS ||= {}, {
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
         const tools = { h, React, state, t, _ }
-        document.addEventListener('hfs.' + name, ev => {
+        const key = 'hfs.' + name
+        document.addEventListener(key, wrapper)
+        return () => document.removeEventListener(key, wrapper)
+
+        function wrapper(ev: Event) {
             const { params, output } = (ev as CustomEvent).detail
             const res = cb(params, tools, output)
             if (res !== undefined && Array.isArray(output))
                 output.push(res)
-        })
+        }
     }
 })
 

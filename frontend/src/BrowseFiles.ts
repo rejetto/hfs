@@ -11,7 +11,7 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, hError, hIcon, isMobile } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, isMobile } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
@@ -32,13 +32,12 @@ export type DirList = DirEntry[]
 
 export function BrowseFiles() {
     useFetchList()
-    const { error, list } = useSnapState()
+    const { error } = useSnapState()
     return useAuthorized() && h(Fragment, {},
         h(CustomCode, { name: 'beforeHeader' }),
         h(Head),
         h(CustomCode, { name: 'afterHeader' }),
-        hError(error)
-        || h(list ? FilesList : Spinner),
+        error ? h(ErrorMsg, { err: error }) : h(FilesList),
         h(CustomCode, { name: 'afterList' }),
     )
 }
