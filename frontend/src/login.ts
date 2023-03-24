@@ -48,9 +48,11 @@ export function logout(){
 }
 
 export let closeLoginDialog: undefined | (() => void)
+let lastPromise: Promise<any>
 export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
-    if (closeLoginDialog) return
-    return new Promise(resolve => {
+    return lastPromise = new Promise(resolve => {
+        if (closeLoginDialog)
+            return lastPromise
         const closeDialog = closeLoginDialog = newDialog({
             className: 'dialog-login',
             icon: () => hIcon('login'),
@@ -137,7 +139,7 @@ export function useAuthorized() {
                 return closeLoginDialog?.()
             if (closeLoginDialog) return
             while (state.loginRequired)
-                await loginDialog(navigate).then()
+                await loginDialog(navigate)
         })()
     }, [loginRequired, navigate])
     return loginRequired ? null : true
