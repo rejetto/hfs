@@ -197,13 +197,14 @@ function LoginButton() {
     })
 }
 
-async function deleteFiles(uris: string[], root: string) {
+export async function deleteFiles(uris: string[], root: string='') {
     const n = uris.length
     if (!n) {
         alertDialog(t('delete_select', "Select something to delete")).then()
         return
     }
-    if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?"))) return
+    if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
+        return false
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
         apiCall('del', { path: root + uri }).then(() => null, err => ({ uri, err }))
     )))

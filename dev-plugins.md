@@ -188,7 +188,17 @@ This is a list of available frontend-events, with respective object parameter an
 - `beforeHeader` & `afterHeader`
     - use this to produce content that should go right before/after the `header` part
     - output `Html`
-
+- `fileMenu`
+    - add your entries to the menu.
+    - parameter `{ entry: Entry }`
+    - output `FileMenuEntry | FileMenuEntry[]`
+      ```typescript
+      interface FileMenuEntry { 
+          label: ReactNode, icon?: string, href?: string, 
+          onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
+          //...rest is transfered to <a> element 
+      }
+      ```
 ## Publish your plug-in
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.

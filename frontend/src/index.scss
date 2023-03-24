@@ -11,6 +11,7 @@
     --button-text: #eaeaea;
     --focus-color: #468;
     --separator: " – ";
+    .highlightedText { color: #0006; text-shadow: 0 0 3px #0006; }
     .theme-dark {
         --bg: #000;
         --text: #999;
@@ -18,6 +19,7 @@
         --button-bg: #345;
         --button-text: #999;
         color-scheme: dark;
+        .highlightedText { color: #fff; text-shadow: 0 0 3px #fff; }
         a { color:#8ac; }
         .dialog-closer { background: #633 }
         .dialog-icon { color: #ccc;
@@ -349,6 +351,20 @@ button label {
         display: block;
         margin-bottom: .5em;
         margin-left: .1em;
+    }
+}
+
+.file-menu {
+    padding-top: .5em;
+    border-top: 1px solid var(--faint-contrast);
+    margin-top: 1em;
+
+    display: flex;
+    flex-direction: column;
+    & a {
+        padding: .5em 0;
+        & .icon { margin-right: 0.5em; }
+        &:hover { @extend .highlightedText }
     }
 }
 

@@ -11,7 +11,7 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, ErrorMsg, hIcon, isMobile } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
@@ -21,6 +21,7 @@ import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { useI18N } from './i18n'
+import { deleteFiles } from './menu'
 
 export function usePath() {
     return decodeURI(useLocation().pathname)
@@ -182,13 +183,14 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) => {
     let { n: relativePath, isFolder, separator } = entry
     const base = useLocation().pathname
-    const { showFilter, selected } = useSnapState()
+    const { showFilter, selected, can_delete } = useSnapState()
     const href = fixUrl(relativePath)
     const containerDir = isFolder ? '' : relativePath.substring(0, relativePath.lastIndexOf('/')+1)
     const name = relativePath.substring(containerDir.length)
     let className = isFolder ? 'folder' : 'file'
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
+    const ico = hIcon(isFolder ? 'folder' : 'file')
     return h('li', { className, label: separator },
         showFilter && h(Checkbox, {
             value: selected[relativePath],
@@ -198,16 +200,48 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 delete state.selected[relativePath]
             },
         }),
-        isFolder ? h(Link, { to: base+href }, hIcon('folder'), relativePath.slice(0,-1))
+        isFolder ? h(Link, { to: base+href }, ico, relativePath.slice(0,-1))
             : h(Fragment, {},
-                h('a', { href: href + '?dl' }, hIcon('download')),
-                containerDir && h(Link, { to: base + fixUrl(containerDir), className:'container-folder' }, containerDir),
-                h('a', { href }, name)
+                containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, ico, containerDir ),
+                h('a', { href, onClick: openFileMenu }, !containerDir && ico, name)
             ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h(EntryProps, entry),
         h('div'),
     )
+
+    function openFileMenu(ev: Event) {
+        ev.preventDefault()
+        const menu = [
+            { label: "Open", href, target: '_blank', icon: 'play' },
+            { label: "Download", href: href + '?dl', icon: 'download' },
+            can_delete &&  { label: "Delete", icon: 'trash', onClick: () => deleteFiles([href], base) }
+        ]
+        hfsEvent('fileMenu', { entry, menu })
+        const close = newDialog({
+            title: "File menu",
+            icon: () => ico,
+            Content() {
+                const {t} = useI18N()
+                return h(Fragment, {},
+                    t("Name: {name}", { name }),
+                    h('div', { className: 'file-menu' },
+                        menu.map((e: any, i) => !e?.label ? null :
+                            h('a', {
+                                key: i,
+                                href: e.href || '#',
+                                ..._.omit(e, ['label', 'icon', 'href', 'onClick']),
+                                async onClick() {
+                                    if ((await e.onClick?.()) !== false)
+                                        close()
+                                }
+                            }, hIcon(e.icon || 'file'), e.label )
+                        )
+                    )
+                )
+            }
+        })
+    }
 })
 
 function fixUrl(s:string) {
