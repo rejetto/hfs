@@ -18,13 +18,9 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     let retry: NodeJS.Timeout
     let saving: Promise<unknown> | undefined
     let last: string | undefined
-    init().then(ok => ok || failedOnFirstAttempt?.())
+    install(true)
     return {
-        unwatch(){
-            watcher?.close()
-            clearTimeout(retry)
-            watcher = undefined
-        },
+        unwatch: uninstall,
         save(...args:Parameters<WriteFile>) {
             return Promise.resolve(saving).then(() => // wait in case another is ongoing
                 saving = fs.writeFile(...args).finally(() => // save but also keep track of the current operation
@@ -32,35 +28,43 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         }
     }
 
-    async function init() {
+    function install(first=false) {
         try {
-            debounced().then()
             watcher = watch(path, ()=> {
                 if (!saving)
                     debounced().then()
             })
-            return true // used actually just by the first invocation
+            debounced().catch(x=>x)
         }
         catch(e) {
-            retry = setTimeout(init, 3_000) // manual watching until watch is successful
+            retry = setTimeout(install, 3_000) // manual watching until watch is successful
+            if (first)
+                failedOnFirstAttempt?.()
         }
+    }
+
+    function uninstall() {
+        watcher?.close()
+        clearTimeout(retry)
+        watcher = undefined
     }
 
     async function load(){
         if (doing) return
         doing = true
         try {
-            const text = await readFileBusy(path)
+            const text = await readFileBusy(path).catch(e => { // ignore read errors
+                if (e.code === 'EPERM')
+                    console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
+                return ''
+            })
             if (text === last)
                 return
             last = text
             console.debug('loaded', path)
-            const parsed = path.endsWith('.yaml') ? yaml.parse(text) : text
-            await parser(parsed)
-        }
-        catch (e: any) { // ignore read errors
-            if (e.code === 'EPERM')
-                console.error("missing permissions on file", path) // warn user, who could be clueless about this problem
+            uninstall(); install() // reinstall, as the original file could have been renamed. We watch by the name.
+            const decoded = path.endsWith('.yaml') ? yaml.parse(text) : text
+            await parser(decoded)
         }
         finally {
             doing = false

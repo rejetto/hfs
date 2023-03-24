@@ -7,14 +7,14 @@ import cidr from 'cidr-tools'
 import _ from 'lodash'
 import { Socket } from 'net'
 
+type BlockFun = (x: string) => boolean
+let blockFunctions: BlockFun[] = [] // "compiled" versions of the rules in config.block
+
 defineConfig<string[]>('block', []).sub(rules => {
     compileBlock(rules)
     for (const { socket, ip } of getConnections())
         applyBlock(socket, ip)
 })
-
-type BlockFun = (x: string) => boolean
-let blockFunctions: BlockFun[] = [] // "compiled" versions of the rules in config.block
 
 function compileBlock(rules: any) {
     blockFunctions = !Array.isArray(rules) ? []
