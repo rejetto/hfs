@@ -94,7 +94,7 @@ export default function useFetchList() {
                         if (!desiredPath.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(desiredPath + '/')
                         if (entry.props) {
-                            Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete']))
+                            Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete', 'accept']))
                             continue
                         }
                         state.can_upload ??= false

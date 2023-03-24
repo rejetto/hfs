@@ -39,14 +39,12 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = hasPermission(node, 'can_upload', ctx)
     const can_delete = hasPermission(node, 'can_delete', ctx)
+    const props = { can_upload, can_delete, accept: node.accept }
     if (!sse)
-        return {
-            can_upload, can_delete,
-            list: await asyncGeneratorToArray(produceEntries())
-        }
+        return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {
         if (can_upload || can_delete)
-            list.custom({ props: { can_upload, can_delete } })
+            list.custom({ props })
         for await (const entry of produceEntries())
             list.add(entry)
         list.close()

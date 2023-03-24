@@ -29,13 +29,11 @@ export const state = proxy<{
     messageOnly?: string, // no gui, just show this message
     can_upload?: boolean
     can_delete?: boolean
+    accept?: string
 }>({
-    can_delete: undefined,
-    can_upload: undefined,
     iconsClass: '',
     username: '',
     list: [],
-    filteredList: undefined,
     loading: false,
     listReloader: 0,
     patternFilter: '',

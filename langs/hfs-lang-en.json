@@ -100,6 +100,7 @@
         "upload_concluded": "Upload concluded:",
         "upload_finished": "{n} finished ({size})",
         "upload_errors": "{n} failed",
+        "upload_file_rejected": "Some files were not accepted",
 
         "download counter": "download counter"
     }

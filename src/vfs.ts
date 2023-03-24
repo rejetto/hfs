@@ -37,6 +37,7 @@ export interface VfsNode extends Partial<VfsPerm> {
     mime?: string | Record<string,string>
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
+    accept?: string
     // fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
@@ -53,15 +54,13 @@ export const defaultPerms: VfsPerm = {
 export const MIME_AUTO = 'auto'
 
 function inheritFromParent(parent: VfsNode, child: VfsNode) {
-    for (const k of typedKeys(defaultPerms)) {
-        const v = parent[k]
-        if (v !== undefined)
-            child[k] ??= v
-    }
+    for (const k of typedKeys(defaultPerms))
+        child[k] ??= parent[k]
     if (typeof parent.mime === 'object' && typeof child.mime === 'object')
         _.defaults(child.mime, parent.mime)
     else
-        child.mime ||= parent.mime
+        child.mime ??= parent.mime
+    child.accept ??= parent.accept
     return child
 }
 

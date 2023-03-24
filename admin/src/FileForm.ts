@@ -2,7 +2,7 @@
 
 import { state } from './state'
 import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
-import { Alert, Box, MenuItem, MenuList, } from '@mui/material'
+import { Alert, Box, Link, MenuItem, MenuList, } from '@mui/material'
 import {
     BoolField,
     DisplayField,
@@ -33,6 +33,8 @@ interface FileFormProps {
     urls: string[] | false
 }
 
+const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
+
 export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }: FileFormProps) {
     const { parent, children, isRoot, ...rest } = file
     const [values, setValues] = useState(rest)
@@ -55,6 +57,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
     }, [parent])
     const showTimestamps = hasSource && Boolean(values.ctime)
     const showSize = hasSource && !realFolder
+    const showAccept = file.accept! > '' || isDir && (file.can_upload ?? inheritedPerms.can_upload)
     const barColors = useDialogBarColors()
 
     const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
@@ -105,8 +108,10 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
             perm('can_read', "Who can download", "Who can see but not download will be asked to login"),
             perm('can_see', "Who can see", "If you don't see, you may download with a direct link"),
             isDir && perm('can_list', "Who can list", "Permission to see content of folders"),
-            isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source"),
-            isDir && perm('can_delete', "Who can delete", hasSource ? '' : "Works only on folders with source", { lg: 12 }),
+            isDir && perm('can_delete', "Who can delete", hasSource ? '' : "Works only on folders with source"),
+            isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source", { lg: showAccept ? 6 : 12 }),
+            showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything",
+                helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip"), lg: 6 },
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: 'Created', toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: 'Modified', toField: formatTimestamp },

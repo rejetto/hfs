@@ -179,6 +179,7 @@ export interface VfsNode extends VfsPerms {
     website?: true
     masks?: any
     isRoot?: true
+    accept?: string
 }
 
 const WHO_ANYONE = true

@@ -8,7 +8,7 @@ import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall, getNotification } from './api'
-import { useSnapState } from './state'
+import { state, useSnapState } from './state'
 import { Link } from 'react-router-dom'
 import { t } from './i18n'
 
@@ -85,7 +85,7 @@ export function showUpload() {
     function Content(){
         const [files, setFiles] = useState([] as File[])
         const { qs, paused, eta } = useSnapshot(uploadState)
-        const { can_upload } = useSnapState()
+        const { can_upload, accept } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
 
@@ -93,8 +93,8 @@ export function showUpload() {
             h(FlexV, { position: 'sticky', top: -4, background: 'var(--bg)' },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', marginTop: '1em' },
-                        h('button', { onClick: () => pickFiles() }, t`Pick files`),
-                        h('button', { onClick: () => pickFiles(true) }, t`Pick folder`),
+                        h('button', { onClick: () => pickFiles({ accept: normalizeAccept(accept) }) }, t`Pick files`),
+                        !accept && h('button', { onClick: () => pickFiles({ folder: true }) }, t`Pick folder`),
                         files.length > 0 &&  h('button', {
                             onClick() {
                                 enqueue(files)
@@ -141,8 +141,8 @@ export function showUpload() {
             )
         )
 
-        function pickFiles(folder=false) {
-            selectFiles(list => setFiles([ ...files, ...list ||[] ] ), { folder })
+        function pickFiles(options: Parameters<typeof selectFiles>[1]) {
+            selectFiles(list => setFiles([ ...files, ...list ||[] ] ), options)
         }
     }
 
@@ -207,16 +207,32 @@ subscribe(uploadState, () => {
         startUpload(cur.files[0], cur.to).then()
 })
 
-export function enqueue(files: File[]) {
-    const to = location.pathname
-    const ready = _.find(uploadState.qs, { to })
-    if (!ready)
-        return uploadState.qs.push({ to, files: files.map(ref) })
-    _.remove(ready.files, f => { // avoid duplicates
+export async function enqueue(files: File[]) {
+    if (_.remove(files, f => !simulateBrowserAccept(f)).length)
+        await alertDialog(t('upload_file_rejected', "Some files were not accepted"), 'warning')
+
+    _.remove(files, f => { // avoid duplicates
         const match = path(f)
-        return Boolean(_.find(files, x => match === path(x)))
+        return Boolean(_.find(files, x => x !== f && match === path(x)))
     })
-    ready.files.push(...files.map(ref))
+    if (!files.length) return
+    const to = location.pathname
+    _.find(uploadState.qs, { to })?.files.push(...files.map(ref))
+        || uploadState.qs.push({ to, files: files.map(ref) })
+
+    function simulateBrowserAccept(f: File) {
+        const { accept } = state
+        if (!accept) return true
+        return normalizeAccept(accept)!.split(/ *[|,] */).some(pattern =>
+            pattern.startsWith('.') ? f.name.endsWith(pattern)
+                : f.type.match(pattern.replace('*', '.*'))
+        )
+    }
+
+}
+
+function normalizeAccept(accept?: string) {
+    return accept?.replace(/\|/g, ',').replace(/ +/g, '')
 }
 
 let req: XMLHttpRequest | undefined
