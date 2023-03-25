@@ -21,6 +21,7 @@ import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio'
 import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
+import { defineConfig } from './config'
 
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
@@ -101,8 +102,9 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 plugins,
                 prefixUrl: ctx.state.revProxyPath,
                 customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
-                    ['top','bottom']), // excluding sections we apply in this phase  
-        }, null, 4)}
+                    ['top','bottom']), // excluding sections we apply in this phase
+                fileMenuOnLink: fileMenuOnLink.get()
+            }, null, 4)}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
             </script>
             <style>
@@ -148,3 +150,5 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
 export function serveGuiFiles(proxyPort:string | undefined, uri:string) {
     return serveProxied(proxyPort, uri) || serveStatic(uri)
 }
+
+const fileMenuOnLink = defineConfig('file_menu_on_link', true)

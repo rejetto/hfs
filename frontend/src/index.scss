@@ -109,6 +109,13 @@ input, select, ul a {
     }
 }
 
+.icon-button {
+    font-size: 0.7em;
+    padding: 0.2em 0.4em;
+    margin-left: 0.4em;
+    vertical-align: bottom;
+}
+
 .error-msg {
     background-color: #faa;
     color: #833;
@@ -224,17 +231,25 @@ ul.dir {
                 text-decoration: underline;
             }
         }
-        & .entry-props {
+        & .entry-panel {
             float: right;
-            font-size: 90%;
-            margin-left: 4px;
             margin-top: 0.3em;
-            font-variant-numeric: tabular-nums; /* trick to get stuff aligned */
+            display: flex;
+            align-items: center;
+            & .file-menu-button {
+                @extend .icon-button;
+            }
+            & .entry-props {
+                font-size: 90%;
+                margin-left: 4px;
+                font-variant-numeric: tabular-nums; /* trick to get stuff aligned */
 
-            & .entry-size-unit {
-                margin-left: .3em;
+                & .entry-size-unit {
+                    margin-left: .3em;
+                }
             }
         }
+
         &>div:last-of-type { clear:both }
         &.page-separator {
             margin-top: 1em;

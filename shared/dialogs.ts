@@ -14,7 +14,8 @@ export interface DialogOptions {
     noFrame?: boolean
     title?: ReactNode | FunctionComponent
     padding?: boolean
-    dialogProps?: Record<string, any>,
+    position?: [number, number]
+    dialogProps?: Record<string, any>
 
     Container?: FunctionComponent<DialogOptions>
 }
@@ -52,6 +53,10 @@ function Dialog(d:DialogOptions) {
         d.noFrame ? h(d.Content || 'div')
             : h('div', {
                     className: 'dialog',
+                    style: {
+                        ...position(),
+                        ...d.dialogProps?.style,
+                    },
                     onClick(ev:any){
                         ev.stopPropagation()
                     },
@@ -68,6 +73,17 @@ function Dialog(d:DialogOptions) {
                 h('div', { className: 'dialog-content' }, h(d.Content || 'div'))
             )
     )
+
+    function position() {
+        const { innerWidth: w, innerHeight: h } = window
+        const pos = d.position
+        return pos && {
+            margin: '1em',
+            position: 'absolute',
+            ...pos[0] < w / 2 ? { left: pos[0] } : { right: w - pos[0] },
+            ...pos[1] < h / 2 ? { top: pos[1] } : { bottom: h - pos[1] },
+        }
+    }
 }
 
 export function componentOrNode(x: ReactNode | FunctionComponent) {

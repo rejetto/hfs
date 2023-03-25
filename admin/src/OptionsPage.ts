@@ -107,10 +107,15 @@ export default function OptionsPage() {
             values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
             },
-            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", helperText: "Browser is automatically launched with HFS" },
-            { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections",
+            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", md: 4,
+                helperText: "Browser is automatically launched with HFS"
+            },
+            { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections", md: 5,
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "To access Admin without entering credentials"
+            },
+            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", sm: 12, md: 3,
+                options: { "by clicking on file name": true, "by dedicated button": false  }
             },
             { k: 'title', helperText: "You can see this in the tab of your browser" },
             { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
@@ -118,7 +123,7 @@ export default function OptionsPage() {
             { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
             { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log", helperText: "If you want errors in a different log" },
             { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
-                helperText: "To avoid an endlessly-growing single log file, you can opt for rotation"
+                helperText: "To avoid an endlessly-growing single log file"
             },
             { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, label: "How many HTTP proxies between this server and users?",
                 error: proxyWarning(values, status),

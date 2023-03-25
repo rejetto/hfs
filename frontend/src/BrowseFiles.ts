@@ -11,7 +11,7 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent, getHFS } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
@@ -191,6 +191,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = hIcon(isFolder ? 'folder' : 'file')
+    const menuOnLink = getHFS().fileMenuOnLink
     return h('li', { className, label: separator },
         showFilter && h(Checkbox, {
             value: selected[relativePath],
@@ -200,20 +201,29 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 delete state.selected[relativePath]
             },
         }),
-        isFolder ? h(Link, { to: base+href }, ico, relativePath.slice(0,-1))
+        isFolder ? h(Link, { to: base + href }, ico, relativePath.slice(0,-1))
             : h(Fragment, {},
                 containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, ico, containerDir ),
-                h('a', { href, onClick: openFileMenu }, !containerDir && ico, name)
+                h('a', {
+                    href,
+                    onClick(ev: Event) {
+                        if (!menuOnLink) return
+                        ev.preventDefault()
+                        openFileMenu(ev)
+                    }
+                }, !containerDir && ico, name)
             ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
-        h(EntryProps, entry),
+        h('div', { className: 'entry-panel' },
+            h(EntryProps, entry),
+            !menuOnLink && h('button', { className: 'file-menu-button', onClick: openFileMenu }, hIcon('menu')),
+        ),
         h('div'),
     )
 
     function openFileMenu(ev: Event) {
-        ev.preventDefault()
         const menu = [
-            { label: "Open", href, target: '_blank', icon: 'play' },
+            menuOnLink && { label: "Open", href, target: '_blank', icon: 'play' },
             { label: "Download", href: href + '?dl', icon: 'download' },
             can_delete &&  { label: "Delete", icon: 'trash', onClick: () => deleteFiles([href], base) }
         ]
@@ -221,6 +231,8 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         const close = newDialog({
             title: "File menu",
             icon: () => ico,
+            position: isMobile() ? undefined
+                : [ev.pageX, ev.pageY] as [number, number],
             Content() {
                 const {t} = useI18N()
                 return h(Fragment, {},
