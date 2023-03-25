@@ -27,15 +27,15 @@
     background-color: var(--color);
     position: absolute;
     top: 0;
-    width: 1.8em;
-    height: 1.7em;
+    width: 2em;
+    height: 1.8em;
     text-align: center;
     border-radius: .8em 0;
 }
 .dialog-title {
-    font-size: 110%;
+    font-size: 120%;
     position: absolute;  /* avoid moving content down */
-    top: 2px;
+    top: 5px;
 }
 .dialog-icon ~ .dialog-title {
     text-align: center;
@@ -53,7 +53,7 @@
     left: 0;
     top: 0;
     overflow: hidden;
-    line-height: 1.7em;
+    line-height: 1.8em;
     opacity: .8; /* render the idea that's not a button */
 }
 .dialog-content {
