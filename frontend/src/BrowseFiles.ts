@@ -235,7 +235,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
             title: "File menu",
             icon: () => ico,
             position: isMobile() ? undefined
-                : [ev.pageX, ev.pageY] as [number, number],
+                : [ev.pageX, ev.pageY - window.scrollY] as [number, number],
             Content() {
                 const {t} = useI18N()
                 return h(Fragment, {},
