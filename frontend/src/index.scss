@@ -75,6 +75,19 @@ select { text-align: center; } /* it is surely cooler on the options dialog */
 .icon {
     font-size: 1.2em;
 }
+.emoji-icon {
+    display: inline-block;
+    width: 1.4em;
+    text-align: center;
+}
+.file-icon {
+    @extend .emoji-icon;
+    height: 1em;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: text-bottom;
+}
 
 .icon.mirror:before { transform: scaleX(-1); }
 a {

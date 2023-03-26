@@ -11,7 +11,7 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent, getHFS } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent, getHFS, wantArray } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
@@ -227,7 +227,9 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
             { label: "Download", href: href + '?dl', icon: 'download' },
             can_delete &&  { label: "Delete", icon: 'trash', onClick: () => deleteFiles([href], base) }
         ]
-        hfsEvent('fileMenu', { entry, menu })
+        const res = hfsEvent('fileMenu', { entry })
+        if (res)
+            menu.push(...res.flat())
         const close = newDialog({
             title: "File menu",
             icon: () => ico,

@@ -35,14 +35,19 @@ document.fonts.ready.then(async ()=> {
         state.iconsClass = ' ' // with fontello we don't need an additional class (unlike google material icons), but the empty space will cause reload
 })
 
-export const Icon = memo(({ name, alt, className='', ...props }: { name:string, className?:string, alt?:string, style?:any }) => {
+interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
+export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
     const [emoji,clazz] = ((SYS_ICONS as any)[name] || name).split(':')
     const { iconsClass } = useSnapState()
-    className += ' icon ' + (iconsClass ? 'fa-'+(clazz||name) : 'emoji')
+    className += ' icon'
+    const nameIsEmoji = name.length <= 2
+    const nameIsFile = name.includes('.')
+    className += nameIsEmoji ? ' emoji-icon' : nameIsFile ? ' file-icon' : iconsClass ? ' fa-'+(clazz||name) : ' emoji'
     return h('span',{
-        ...props,
         'aria-label': alt,
         role: 'img',
+        ...props,
+        ...nameIsFile ? { style: { backgroundImage: `url(${JSON.stringify(name)})`, ...props?.style } } : undefined,
         className,
-    }, iconsClass ? null : (emoji||'#'))
+    }, nameIsEmoji ? name : iconsClass ? null : (emoji||'#'))
 })

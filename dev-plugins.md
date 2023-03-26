@@ -194,9 +194,11 @@ This is a list of available frontend-events, with respective object parameter an
     - output `FileMenuEntry | FileMenuEntry[]`
       ```typescript
       interface FileMenuEntry { 
-          label: ReactNode, icon?: string, href?: string, 
+          label: ReactNode,
+          href?: string, // use this if you want your entry to be a link
+          icon?: string, // supports: emoji, name from a limited set
           onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
-          //...rest is transfered to <a> element 
+          //...rest is transfered to <a> element, for example 'target', or 'title' 
       }
       ```
 ## Publish your plug-in
