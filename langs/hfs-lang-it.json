@@ -94,6 +94,7 @@
         "upload_concluded": "Upload concluso",
         "upload_finished": "{n,plural, one{# riuscito} other{# riusciti}} ({size})",
         "upload_errors": "{n,plural, one{# fallito} other{# falliti}}",
+        "upload_file_rejected": "Alcuni file non sono stati accettati",
 
         "download counter": "download conteggiati"
     }
