@@ -209,7 +209,10 @@ export async function rescan() {
     const found = []
     const foundDisabled: typeof availablePlugins = {}
     const MASK = PATH + '/*/plugin.js' // be sure to not use path.join as fast-glob doesn't work with \
-    for (const f of await glob([adjustStaticPathForGlob(APP_PATH) + '/' + MASK, MASK])) {
+    const pluginSources = [MASK]
+    if (APP_PATH !== process.cwd())
+        pluginSources.push(adjustStaticPathForGlob(APP_PATH) + '/' + MASK)
+    for (const f of await glob(pluginSources)) {
         const id = f.split('/').slice(-2)[0]!
         if (id.endsWith(DISABLING_POSTFIX)) continue
         if (!enablePlugins.get().includes(id)) {
