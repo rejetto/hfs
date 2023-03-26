@@ -97,11 +97,11 @@ Translation is applied automatically based on the configuration of the visitor's
 
 ## Plug-ins
 
-To install a plugin you just copy its folder inside `plugins` folder.
+You can use the Admin-panel to manage your plugins and install new ones.
 
-Delete it to uninstall.
+Under the hood, installing a plugin just means copying its folder inside `plugins` folder. Deleting will uninstall it.
 
-HFS will ignore all folders with `-disabled` at the end of the name.
+HFS will ignore all plugin folders with `-disabled` at the end of the name.
 
 ## Why you should upgrade from HFS 2.x to 3
 
