@@ -206,10 +206,9 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, ico, containerDir ),
                 h('a', {
                     href,
-                    onClick(ev: Event) {
-                        if (!menuOnLink) return
-                        ev.preventDefault()
-                        openFileMenu(ev)
+                    onClick(ev: MouseEvent) {
+                        if (menuOnLink)
+                            openFileMenu(ev)
                     }
                 }, !containerDir && ico, name)
             ),
@@ -221,7 +220,9 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         h('div'),
     )
 
-    function openFileMenu(ev: Event) {
+    function openFileMenu(ev: MouseEvent) {
+        if (ev.altKey || ev.ctrlKey || ev.metaKey) return
+        ev.preventDefault()
         const menu = [
             menuOnLink && { label: "Open", href, target: '_blank', icon: 'play' },
             { label: "Download", href: href + '?dl', icon: 'download' },
