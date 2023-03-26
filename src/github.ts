@@ -86,8 +86,10 @@ export async function* searchPlugins(text='') {
         let pl = await readOnlinePlugin(it)
         if (!pl.apiRequired) continue // mandatory field
         if (pl.badApi) { // we try other branches (starting with 'api')
-            const branches: string[] = (await apiGithub('repos/' + it.full_name + '/branches'))
-                .map((x: any) => x.name).filter((x: string) => x.startsWith('api')).sort()
+            const res = await apiGithub('repos/' + it.full_name + '/branches')
+            const branches: string[] = res.map((x: any) => x?.name)
+                .filter((x: any) => typeof x === 'string' && x.startsWith('api'))
+                .sort().reverse()
             for (const branch of branches) {
                 pl = await readOnlinePlugin(it, branch)
                 if (!pl.apiRequired)

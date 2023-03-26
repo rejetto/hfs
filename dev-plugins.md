@@ -218,7 +218,7 @@ Published plugins are required to specify the `apiRequired` property.
 
 It is possible to publish different versions of the plugin to be compatible with different versions of HFS.
 To do that, just have your other versions in branches with name starting with `api`.
-HFS will scan through them in alphabetical order searching for a compatible one. 
+HFS will scan through them in inverted alphabetical order searching for a compatible one. 
 
 ## API version history
 
