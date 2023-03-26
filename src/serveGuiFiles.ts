@@ -9,7 +9,8 @@ import {
     HTTP_NO_CONTENT,
     HTTP_NOT_FOUND,
     PLUGINS_PUB_URI,
-    VERSION
+    VERSION,
+    SPECIAL_URI
 } from './const'
 import { serveFile } from './serveFile'
 import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
@@ -98,6 +99,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
             HFS = ${JSON.stringify({
                 VERSION,
                 API_VERSION,
+                SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
                 session: session instanceof ApiError ? null : session,
                 plugins,
                 prefixUrl: ctx.state.revProxyPath,

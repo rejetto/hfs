@@ -222,6 +222,11 @@ HFS will scan through them in alphabetical order searching for a compatible one.
 
 ## API version history
 
+- 7 (v0.42.0)
+  - event.fileMenu
+  - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
+- 6 (v0.38.0)
+  - config.frontend
 - 5 (v0.33.0)
   - event.afterEntryName
 - 4.1 (v0.23.4)
