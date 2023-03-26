@@ -1,6 +1,6 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 1.7,
+    "version": 1.8,
     "hfs_version": "0.40.1",
     "translate": {
         "Select": "Выбор",
@@ -100,6 +100,7 @@
         "upload_concluded": "Загрузка окончена:",
         "upload_finished": "{n,plural, one{Загружен # файл} few{Загружено # файла} other{Загружено # файлов}} ({size})",
         "upload_errors": "Не удалось загрузить {n,plural, one{# файл} few{# файла} other{# файлов}}",
+        "upload_file_rejected": "Некоторые файлы не были приняты",
 
         "download counter": "Количество скачиваний"
     }
