@@ -8,6 +8,7 @@ import useTheme from "./useTheme"
 import { useSnapState } from './state'
 import { I18Nprovider } from './i18n'
 import { useEventListener } from 'usehooks-ts'
+import { Spinner } from "./components"
 
 function App() {
     useTheme()
@@ -19,7 +20,7 @@ function App() {
     if (messageOnly)
         return h('h1', { style: { textAlign: 'center'} }, messageOnly)
     if (!ready)
-        return h('div', {}, '...')
+        return h(Spinner)
     return h(I18Nprovider, {},
         h(BrowserRouter, {},
             h(Routes, {},

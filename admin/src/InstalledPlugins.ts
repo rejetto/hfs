@@ -75,6 +75,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                             icon: Settings,
                             title: "Options",
                             disabled: !config && "No options available for this plugin",
+                            progress: false,
                             async onClick() {
                                 const pl = await apiCall('get_plugin', { id })
                                 const values = await formDialog({
