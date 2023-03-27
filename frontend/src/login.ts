@@ -5,7 +5,7 @@ import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
 import { getPrefixUrl, hIcon, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
-import { createElement as h, useEffect, useRef } from 'react'
+import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
 
 async function login(username:string, password:string) {
@@ -60,7 +60,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                 resolve(v)
                 closeLoginDialog = undefined
             },
-            title: t`Login`,
+            title: () => h(Fragment, {}, useI18N().t(`Login`)), // this dialog could be displayed before the language has been loaded
             Content() {
                 const usrRef = useRef<HTMLInputElement>()
                 const pwdRef = useRef<HTMLInputElement>()
@@ -145,3 +145,7 @@ export function useAuthorized() {
     return loginRequired ? null : true
 }
 
+function tElement(s: string) {
+    const {t} = useI18N()
+    return t(s)
+}
