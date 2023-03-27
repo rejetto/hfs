@@ -206,7 +206,7 @@ export const pluginsConfig = defineConfig('plugins_config', {} as Record<string,
 
 export async function rescan() {
     console.debug('scanning plugins')
-    const found = []
+    const found: string[] = []
     const foundDisabled: typeof availablePlugins = {}
     const MASK = PATH + '/*/plugin.js' // be sure to not use path.join as fast-glob doesn't work with \
     const pluginSources = [MASK]
@@ -223,65 +223,10 @@ export async function rescan() {
             catch {}
             continue
         }
-        found.push(id)
-        if (plugins[id]) // already loaded
+        if (found.includes(id)) // not twice
             continue
-        const module = resolve(f)
-        const { unwatch } = watchLoad(f, async () => {
-            try {
-                const alreadyRunning = plugins[id]
-                console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
-                const { init, ...data } = await import(module)
-                delete data.default
-                deleteModule(require.resolve(module)) // avoid caching at next import
-                calculateBadApi(data)
-                if (data.badApi)
-                    console.log("plugin", id, data.badApi)
-
-                await alreadyRunning?.unload(true)
-                console.debug("starting plugin", id)
-                const res = await init?.call(null, {
-                    srcDir: __dirname,
-                    const: Const,
-                    require,
-                    getConnections,
-                    events,
-                    log(...args: any[]) {
-                        console.log('plugin', id, ':', ...args)
-                    },
-                    getConfig: (cfgKey: string) =>
-                        pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue,
-                    setConfig: (cfgKey: string, value: any) =>
-                        setPluginConfig(id, { [cfgKey]: value }),
-                    subscribeConfig(cfgKey: string, cb: Callback<any>) {
-                        let last = this.getConfig(cfgKey)
-                        cb(last)
-                        return pluginsConfig.sub(() => {
-                            const now = this.getConfig(cfgKey)
-                            if (same(now, last)) return
-                            try { cb(last = now) }
-                            catch(e){
-                                console.log('plugin', id, String(e))
-                            }
-                        })
-                    },
-                    getHfsConfig: getConfig,
-                })
-                Object.assign(data, res)
-                const plugin = new Plugin(id, dirname(module), data, unwatch)
-                if (alreadyRunning)
-                    events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
-                else {
-                    const wasInstalled = availablePlugins[id]
-                    if (wasInstalled)
-                        delete availablePlugins[id]
-                    events.emit(wasInstalled ? 'pluginStarted' : 'pluginInstalled', plugin)
-                }
-
-            } catch (e) {
-                console.log("plugin error:", e)
-            }
-        })
+        found.push(id)
+        loadPlugin(id, f)
     }
     for (const [id,p] of Object.entries(foundDisabled)) {
         const a = availablePlugins[id]
@@ -300,6 +245,65 @@ export async function rescan() {
     for (const [id,p] of Object.entries(plugins))
         if (!found.includes(id))
             await p.unload()
+}
+
+function loadPlugin(id: string, path: string) {
+    const module = resolve(path)
+    const { unwatch } = watchLoad(path, async () => {
+        try {
+            const alreadyRunning = plugins[id]
+            console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
+            const { init, ...data } = await import(module)
+            delete data.default
+            deleteModule(require.resolve(module)) // avoid caching at next import
+            calculateBadApi(data)
+            if (data.badApi)
+                console.log("plugin", id, data.badApi)
+
+            await alreadyRunning?.unload(true)
+            console.debug("starting plugin", id)
+            const res = await init?.call(null, {
+                srcDir: __dirname,
+                const: Const,
+                require,
+                getConnections,
+                events,
+                log(...args: any[]) {
+                    console.log('plugin', id, ':', ...args)
+                },
+                getConfig: (cfgKey: string) =>
+                    pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue,
+                setConfig: (cfgKey: string, value: any) =>
+                    setPluginConfig(id, { [cfgKey]: value }),
+                subscribeConfig(cfgKey: string, cb: Callback<any>) {
+                    let last = this.getConfig(cfgKey)
+                    cb(last)
+                    return pluginsConfig.sub(() => {
+                        const now = this.getConfig(cfgKey)
+                        if (same(now, last)) return
+                        try { cb(last = now) }
+                        catch(e){
+                            console.log('plugin', id, String(e))
+                        }
+                    })
+                },
+                getHfsConfig: getConfig,
+            })
+            Object.assign(data, res)
+            const plugin = new Plugin(id, dirname(module), data, unwatch)
+            if (alreadyRunning)
+                events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
+            else {
+                const wasInstalled = availablePlugins[id]
+                if (wasInstalled)
+                    delete availablePlugins[id]
+                events.emit(wasInstalled ? 'pluginStarted' : 'pluginInstalled', plugin)
+            }
+
+        } catch (e) {
+            console.log("plugin error:", e)
+        }
+    })
 }
 
 function deleteModule(id: string) {
