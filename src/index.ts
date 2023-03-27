@@ -48,6 +48,7 @@ function errorHandler(err:Error & { code:string, path:string }) {
     if (DEV && code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out dev stuff
     if (code === 'ECANCELED' || code === 'ECONNRESET' || code === 'ECONNABORTED'  || code === 'EPIPE'
         || code === 'ERR_STREAM_WRITE_AFTER_END' // happens disconnecting uploads, don't care
+        || code === 'HPE_INVALID_METHOD' // cannot serve you like that
         || code === 'HPE_INVALID_EOF_STATE') return // someone interrupted, don't care
     console.error('server error', err)
 }
