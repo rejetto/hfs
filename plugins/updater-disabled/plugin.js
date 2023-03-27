@@ -1,8 +1,11 @@
 /*
-this plugin is currently experimental and working only with exe version.
+This plugin is currently experimental and working only with exe version.
 Its capability is to offer automatic restart when an update is available in the form of hfs.exe-new file.
+
+Tip: In my case I'm uploading "hfs.exe-new" over ftp, and it's a bit slow, so to avoid the plugin to catch
+    an unfinished file, I do the upload using a temporary name, and only when it's done I rename it to "hfs.exe-new".
 */
-exports.version = 0.1
+exports.version = 0.2
 exports.description = "automatic restart when an update is available in the form of hfs.exe-new file"
 exports.apiRequired = 3 // api.log
 
@@ -12,7 +15,7 @@ const BATCH = `@echo off
 :loop
 setlocal
 SET hfs_updater=1
-hfs
+hfs %*
 endlocal
 if exist hfs.exe-new (
   move /y hfs.exe hfs.exe-old
