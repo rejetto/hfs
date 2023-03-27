@@ -7,6 +7,7 @@ import { getPrefixUrl, hIcon, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
+import { reloadList } from './useFetchList'
 
 async function login(username:string, password:string) {
     const stopWorking = working()
@@ -40,10 +41,10 @@ function sessionRefresher(response: any) {
 
 export function logout(){
     return apiCall('logout').catch(res => {
-        if (res.code === 401) // we expect 401
-            state.username = ''
-        else
+        if (res.code !== 401) // we expect 401
             throw res
+        state.username = ''
+        reloadList()
     })
 }
 
