@@ -94,7 +94,7 @@ export function showUpload() {
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', marginTop: '1em' },
                         h('button', { onClick: () => pickFiles({ accept: normalizeAccept(accept) }) }, t`Pick files`),
-                        !accept && h('button', { onClick: () => pickFiles({ folder: true }) }, t`Pick folder`),
+                        h('button', { onClick: () => pickFiles({ folder: true }) }, t`Pick folder`),
                         files.length > 0 &&  h('button', {
                             onClick() {
                                 enqueue(files)
@@ -142,7 +142,9 @@ export function showUpload() {
         )
 
         function pickFiles(options: Parameters<typeof selectFiles>[1]) {
-            selectFiles(list => setFiles([ ...files, ...list ||[] ] ), options)
+            selectFiles(list => {
+                setFiles([...files, ...Array.from(list || []).filter(simulateBrowserAccept)])
+            }, options)
         }
     }
 
@@ -219,16 +221,15 @@ export async function enqueue(files: File[]) {
     const to = location.pathname
     _.find(uploadState.qs, { to })?.files.push(...files.map(ref))
         || uploadState.qs.push({ to, files: files.map(ref) })
+}
 
-    function simulateBrowserAccept(f: File) {
-        const { accept } = state
-        if (!accept) return true
-        return normalizeAccept(accept)!.split(/ *[|,] */).some(pattern =>
-            pattern.startsWith('.') ? f.name.endsWith(pattern)
-                : f.type.match(pattern.replace('*', '.*'))
-        )
-    }
-
+function simulateBrowserAccept(f: File) {
+    const { accept } = state
+    if (!accept) return true
+    return normalizeAccept(accept)!.split(/ *[|,] */).some(pattern =>
+        pattern.startsWith('.') ? f.name.endsWith(pattern)
+            : f.type.match(pattern.replace('*', '.*'))
+    )
 }
 
 function normalizeAccept(accept?: string) {
