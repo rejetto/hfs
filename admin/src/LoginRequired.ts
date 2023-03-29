@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, Fragment, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { Center } from './misc'
 import { Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
@@ -23,8 +23,12 @@ export function LoginRequired({ children }: any) {
 function LoginForm() {
     const [values, setValues] = useState({ username: '', password: '' })
     const [error, setError] = useState('')
+    const formRef = useRef<HTMLFormElement>()
+    const empty = formRef.current?.querySelector('input[value=""]')
+    useEffect(() => (empty as any)?.focus?.(), [empty])
     return h(Center, {},
         h(Form, {
+            formRef,
             values,
             set(v, k) {
                 setValues({ ...values, [k]: v })
