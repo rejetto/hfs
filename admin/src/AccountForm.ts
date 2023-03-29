@@ -69,7 +69,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
         save: {
             sx: modifiedSx( !isEqualLax(values, account)),
             async onClick() {
-                const { password='', password2, adminActualAccess, ...withoutPassword } = values
+                const { password='', password2, adminActualAccess, hasPassword, ...withoutPassword } = values
                 const { username } = values
                 if (add) {
                     const got = await apiCall('add_account', withoutPassword)

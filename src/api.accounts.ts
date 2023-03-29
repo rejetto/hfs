@@ -54,8 +54,8 @@ const apis: ApiHandlers = {
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
         setAccount(acc, changes)
-        if (changes.username && ctx.session)
-            ctx.session.username = changes.username
+        if (changes.username && ctx.session?.username === username)
+            ctx.session!.username = changes.username
         return _.pick(acc, 'username')
     },
 
