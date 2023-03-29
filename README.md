@@ -64,12 +64,11 @@ If you don't like this behavior, disable it in the Admin-panel or enter this con
 If your system is not Windows/Linux/Mac, you can try this alternative version:
 
 1. [install node.js](https://nodejs.org)
-2. execute: `sudo npm -g i hfs`
-3. launch: `hfs`
+2. execute at command line `npx hfs@latest`
+
+The `@latest` part is optional, and ensures that you are always up to date.
 
 Configuration and other files will be stored in `%HOME%/.vfs`
-
-With this installation method, you can update with `sudo npm -g update hfs` .
 
 ### Service
 
