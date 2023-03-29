@@ -172,6 +172,7 @@ export function Form<Values extends Dict>({
                         const { xs=12, sm, md, lg, xl, comp=StringField, before, after,
                             fromField, toField, // don't propagate
                             ...rest } = field
+                        Object.assign(rest, { name: k })
                         return h(Grid, { key: k || idx, item: true, xs, sm, md, lg, xl },
                             before,
                             isValidElement(comp) ? comp : h(comp, rest),
