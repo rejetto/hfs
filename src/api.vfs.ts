@@ -4,7 +4,7 @@ import { defaultPerms, getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, 
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { dirname, join, resolve } from 'path'
+import { dirname, extname, join, resolve } from 'path'
 import { dirStream, isWindowsDrive, matches, newObj } from './misc'
 import {
     IS_WINDOWS,
@@ -106,15 +106,17 @@ const apis: ApiHandlers = {
             return new ApiError(HTTP_NOT_ACCEPTABLE, 'invalid parent')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
-        else if (source === '/')
-            name ||= 'root'
+        let tryName = getNodeName({ name, source })
+        const ext = extname(tryName)
+        const noExt = ext ? tryName.slice(0, -ext.length) : tryName
+        let idx = 2
+        while (n.children?.find(isSameFilenameAs(tryName)))
+            tryName = `${noExt} ${idx++}${ext}`
+        name = tryName
         n.children ||= []
-        const sameName = name && isSameFilenameAs(name)
-        if (n.children.find(x => source && source === x.source || sameName?.(x)))
-            return new ApiError(HTTP_CONFLICT, 'already present')
         n.children.unshift({ source, name })
         await saveVfs()
-        return {}
+        return { name }
     },
 
     async del_vfs({ uris }) {

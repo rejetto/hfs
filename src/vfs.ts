@@ -133,16 +133,18 @@ export function saveVfs() {
 }
 
 export function getNodeName(node: VfsNode) {
-    const { name, source: s } = node
+    const { name, source } = node
     if (name)
         return name
-    if (!s)
+    if (!source)
         return '' // should happen only for root
-    if (/^[a-zA-Z]:\\?$/.test(s))
-        return s.slice(0, 2) // exclude trailing slash
-    const base = basename(s)
+    if (source === '/')
+        return 'root'
+    if (/^[a-zA-Z]:\\?$/.test(source))
+        return source.slice(0, 2) // exclude trailing slash
+    const base = basename(source)
     if (/^[./\\]*$/.test(base)) // if empty or special-chars-only
-        return basename(resolve(s)) // resolve to try to get more
+        return basename(resolve(source)) // resolve to try to get more
     return base
 }
 
