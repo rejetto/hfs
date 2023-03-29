@@ -106,6 +106,8 @@ const apis: ApiHandlers = {
             return new ApiError(HTTP_NOT_ACCEPTABLE, 'invalid parent')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
+        else if (source === '/')
+            name ||= 'root'
         n.children ||= []
         const sameName = name && isSameFilenameAs(name)
         if (n.children.find(x => source && source === x.source || sameName?.(x)))
