@@ -3,8 +3,8 @@
 import { hfsEvent, hIcon } from './misc'
 import { createElement as h, Fragment, HTMLAttributes, isValidElement, ReactNode, useMemo } from 'react'
 
-export function Spinner() {
-    return hIcon('spinner', { className:'spinner' })
+export function Spinner(props: any) {
+    return hIcon('spinner', { className:'spinner', ...props })
 }
 
 export function Flex({ gap='.8em', vert=false, children=null, props={}, ...rest }) {
