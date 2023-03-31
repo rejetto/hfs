@@ -83,8 +83,8 @@ const considerHttps = debounceAsync(async () => {
 })
 
 
-const cert = defineConfig<string>('cert')
-const privateKey = defineConfig<string>('private_key')
+const cert = defineConfig('cert', '')
+const privateKey = defineConfig('private_key', '')
 const httpsNeeds = [cert, privateKey]
 const httpsOptions = { cert: '', private_key: '' }
 type HttpsKeys = keyof typeof httpsOptions

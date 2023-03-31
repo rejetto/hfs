@@ -26,7 +26,7 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const name = getNodeName(node)
     const mimeString = typeof mime === 'string' ? mime
         : _.find(mime, (val,mask) => matches(name, mask))
-   const allowed = allowedReferer.get()
+    const allowed = allowedReferer.get()
     if (allowed) {
         const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
         if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
@@ -51,7 +51,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
     const fn = path.basename(source)
     if ('dl' in ctx.params) // please, download
         ctx.attachment(fn)
-    mime = mime ?? _.find(mimeCfg.get(), (v,k) => matches(fn, k, ))
+    mime = mime ?? _.find(mimeCfg.get(), (v,k) => matches(fn, k))
     if (mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''
     if (mime)

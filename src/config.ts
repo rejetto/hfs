@@ -53,9 +53,13 @@ const { save } = watchLoad(path, values => setConfig(values||{}, false), {
 interface ConfigProps<T> {
     defaultValue?: T,
 }
-export function defineConfig<T>(k: string, defaultValue?: T) {
+export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler: ((v: T) => CT)=_.identity) {
     configProps[k] = { defaultValue }
     type Updater = (currentValue:T) => T
+    let compiled: CT = compiler(defaultValue)
+    if (compiler)
+        subscribeConfig(k, (v:T) =>
+            compiled = compiler(v) )
     return {
         key() {
             return k
@@ -71,7 +75,8 @@ export function defineConfig<T>(k: string, defaultValue?: T) {
                 this.set((v as Updater)(this.get()))
             else
                 setConfig1(k, v)
-        }
+        },
+        compiled: () => compiled
     }
 }
 

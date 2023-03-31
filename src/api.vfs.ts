@@ -5,7 +5,7 @@ import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, isWindowsDrive, matches, newObj } from './misc'
+import { dirStream, isWindowsDrive, makeMatcher, newObj } from './misc'
 import {
     IS_WINDOWS,
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
@@ -170,13 +170,14 @@ const apis: ApiHandlers = {
             return
         }
         try {
+            const matching = makeMatcher(fileMask)
             path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
             for await (const [name, isDir] of dirStream(path)) {
                 if (ctx.req.aborted)
                     return
                 try {
                     if (!isDir)
-                        if (!files || fileMask && !matches(name, fileMask))
+                        if (!files || fileMask && !matching(name))
                             continue
                     const stats = await stat(join(path, name))
                     yield {

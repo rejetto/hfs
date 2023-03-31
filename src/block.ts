@@ -5,18 +5,18 @@ import { getConnections, normalizeIp } from './connections'
 import { makeNetMatcher, onlyTruthy } from './misc'
 import { Socket } from 'net'
 
-type BlockFun = (x: string) => boolean
-let blockFunctions: BlockFun[] = [] // "compiled" versions of the rules in config.block
+interface BlockingRule { ip: string }
 
-defineConfig<string[]>('block', []).sub(rules => {
-    blockFunctions = !Array.isArray(rules) ? []
-        : onlyTruthy(rules.map((rule: any) => rule?.ip && makeNetMatcher(rule.ip)))
+const block = defineConfig('block', [] as BlockingRule[], rules => {
+    const ret = !Array.isArray(rules) ? []
+        : onlyTruthy(rules.map(rule => makeNetMatcher(rule.ip, true)))
     // reapply new block to existing connections
     for (const { socket, ip } of getConnections())
         applyBlock(socket, ip)
+    return ret
 })
 
 export function applyBlock(socket: Socket, ip=normalizeIp(socket.remoteAddress||'')) {
-    if (ip && blockFunctions.find(rule => rule(ip)))
+    if (ip && block.compiled().find(rule => rule(ip)))
         return socket.destroy()
 }

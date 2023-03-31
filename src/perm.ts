@@ -50,7 +50,7 @@ export function saveSrpInfo(account:Account, salt:string | bigint, verifier: str
     account.srp = String(salt) + '|' + String(verifier)
 }
 
-export const allowClearTextLogin = defineConfig('allow_clear_text_login')
+export const allowClearTextLogin = defineConfig('allow_clear_text_login', false)
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 

@@ -18,7 +18,7 @@ import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import { getConnections } from './connections'
-import { debounceAsync, isLocalHost, matchesNet, onOff, waitFor } from './misc'
+import { debounceAsync, isLocalHost, makeNetMatcher, onOff, waitFor } from './misc'
 import events from './events'
 import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
 import Koa from 'koa'
@@ -160,8 +160,8 @@ for (const [k, was] of Object.entries(adminApis))
     }
 
 export const localhostAdmin = defineConfig('localhost_admin', true)
-export const adminNet = defineConfig('admin_net', '')
-export const favicon = defineConfig<string>('favicon')
+export const adminNet = defineConfig('admin_net', '', v => makeNetMatcher(v, true) )
+export const favicon = defineConfig('favicon', '')
 export const title = defineConfig('title', "File server")
 
 export function ctxAdminAccess(ctx: Koa.Context) {
@@ -181,5 +181,5 @@ export function anyAccountCanLoginAdmin() {
 }
 
 export function allowAdmin(ctx: Koa.Context) {
-    return matchesNet(ctx, adminNet.get(), true)
+    return adminNet.compiled()(ctx.ip)
 }

@@ -22,7 +22,7 @@ if (!existsSync(FILE))
     events.once('config ready', () => {
         const legacy = prefix('[beforeHeader]\n', customHeader.get())
         writeFileSync(FILE, legacy)
-        customHeader.set(undefined) // get rid of it
+        customHeader.set('') // get rid of it
     })
 watchLoad(FILE, data => {
     const re = /^\[(\w+)] *$/gm
