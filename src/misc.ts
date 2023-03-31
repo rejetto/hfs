@@ -11,7 +11,8 @@ export * from './util-generators'
 export * from './util-files'
 import debounceAsync from './debounceAsync'
 import { Readable } from 'stream'
-import { isMatch } from 'micromatch'
+import { isMatch, matcher } from 'micromatch'
+import cidr from 'cidr-tools'
 export { debounceAsync }
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
@@ -175,7 +176,12 @@ export function isLocalHost(c: Connection | Koa.Context) {
 export function matchesNet(ip: Koa.Context | string, mask: string, emptyMaskReturns=false) {
     if (typeof ip !== 'string')
         ip = ip.ip
-    return matches(ip, mask, emptyMaskReturns)
+    return mask ? makeNetMatcher(mask)(ip) : emptyMaskReturns
+}
+
+export function makeNetMatcher(mask: string) {
+    return mask.includes('/') ? (ip: string) => cidr.contains(mask, ip)
+        : matcher(mask)
 }
 
 export function matches(s: string, mask: string, emptyMaskReturns=false) {
