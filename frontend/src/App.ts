@@ -20,7 +20,7 @@ function App() {
     if (messageOnly)
         return h('h1', { style: { textAlign: 'center'} }, messageOnly)
     if (!ready)
-        return h(Spinner)
+        return h(Spinner, { style: { marginTop: '1em' } })
     return h(I18Nprovider, {},
         h(BrowserRouter, {},
             h(Routes, {},
