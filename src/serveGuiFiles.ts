@@ -106,7 +106,8 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
                     ['top','bottom']), // excluding sections we apply in this phase
                 fileMenuOnLink: fileMenuOnLink.get()
-            }, null, 4)}
+            }, null, 4)
+            .replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
             </script>
             <style>
