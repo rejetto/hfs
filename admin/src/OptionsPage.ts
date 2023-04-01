@@ -64,6 +64,7 @@ export default function OptionsPage() {
         placeholder: "no limit",
         md: 3,
     }
+    const httpsEnabled = values.https_port >= 0
     return h(Form, {
         sx: { maxWidth: '60em' },
         values,
@@ -91,30 +92,33 @@ export default function OptionsPage() {
             { k: 'port', comp: ServerPort, md: 3, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
             { k: 'https_port', comp: ServerPort, md: 3, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
-                    if (v >= 0 && values.https_port < 0 && !values.cert)
+                    if (v >= 0 && !httpsEnabled && !values.cert)
                         suggestMakingCert()
                     return v
                 }
             },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
-            values.https_port >= 0 && { k: 'cert', comp: FileField, label: "HTTPS certificate file",
+            httpsEnabled && values.port >= 0 && { k: 'force_https', comp: BoolField, md: 4, label: "Force HTTPS",
+                helperText: "Not applied to localhost"
+            },
+            httpsEnabled && { k: 'cert', comp: FileField, md: 4, label: "HTTPS certificate file",
                 ...with_(status?.https.error, e => isCertError(e) ? { 
                     error: true, 
                     helperText: [e, ' - ', h(Link, { key: 'fix', sx: { cursor: 'pointer' }, onClick: makeCertAndSave }, "make one")] 
                 } : null)
             },
-            values.https_port >= 0 && { k: 'private_key', comp: FileField, label: "HTTPS private key file",
+            httpsEnabled && { k: 'private_key', comp: FileField, md: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
             },
             { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", md: 4,
                 helperText: "Browser is automatically launched with HFS"
             },
-            { k: 'localhost_admin', comp: BoolField, label: "Admin access for localhost connections", md: 5,
+            { k: 'localhost_admin', comp: BoolField, label: "Unprotected admin on localhost", md: 4,
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
-                helperText: "To access Admin without entering credentials"
+                helperText: "Access Admin-panel without entering credentials"
             },
-            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", sm: 12, md: 3,
+            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", sm: 12, md: 4,
                 options: { "by clicking on file name": true, "by dedicated button": false  }
             },
             { k: 'title', helperText: "You can see this in the tab of your browser" },

@@ -12,7 +12,7 @@ import {
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs } from './vfs'
-import { dirTraversal, newObj, stream2string, tryJson } from './misc'
+import { dirTraversal, isLocalHost, newObj, stream2string, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -30,6 +30,10 @@ import formidable from 'formidable'
 import { uploadWriter } from './upload'
 import { allowAdmin, favicon } from './adminApis'
 import { constants } from 'zlib'
+import { getHttpsWorkingPort } from './listen'
+import { defineConfig } from './config'
+
+const forceHttps = defineConfig('force_https', true)
 
 export const gzipper = compress({
     threshold: 2048,
@@ -78,6 +82,14 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     }
     if (ctx.body)
         return next()
+    if (!ctx.secure && forceHttps.get() && getHttpsWorkingPort() && !isLocalHost(ctx)) {
+        const { URL } = ctx
+        URL.protocol = 'https'
+        URL.port = getHttpsWorkingPort()
+        ctx.status = 307 // this ensures the client doesn't switch to a simpler GET request
+        return ctx.redirect(URL.href)
+    }
+
     if (path.startsWith(FRONTEND_URI))
         return serveFrontendPrefixed(ctx,next)
     if (path.length === ADMIN_URI.length - 1 && ADMIN_URI.startsWith(path))

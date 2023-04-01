@@ -20,6 +20,10 @@ let httpsSrv: http.Server & ServerExtra
 
 const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
 
+export function getHttpsWorkingPort() {
+    return httpsSrv.listening && (httpsSrv.address() as any)?.port
+}
+
 export const portCfg = defineConfig<number>('port', 80)
 portCfg.sub(async port => {
     while (!app)
