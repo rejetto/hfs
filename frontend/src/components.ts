@@ -47,23 +47,22 @@ export function Select({ onChange, value, options, ...props }:SelectProps) {
 }
 
 export function Html({ code, ...rest }:{ code:string } & HTMLAttributes<any>) {
-    const o = useMemo(() => ({ __html: code }), [code])
-    if (!code)
-        return null
-    return h('span', { ...rest, dangerouslySetInnerHTML: o })
+    return !code ? null : h('span', { ...rest, ref(x) {
+        if (x)
+            x.append(document.createRange().createContextualFragment(code))
+    } })
 }
 
 export function CustomCode({ name, props }: any) {
-    const code = useMemo(() => {
+    return h(Fragment, {}, useMemo(() => {
         const ret = hfsEvent(name, props)
             .filter(x => x === 0 || x)
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
                 : typeof x === 'string' ? h(Html, { key, code: x })
-                    : h('div', { key }, x))
+                    : h('span', { key }, x))
         const html = (window as any).HFS.customHtml[name]
         if (html && html.trim())
             ret.push(h(Html, { key: 'x', code: html }))
         return ret
-    }, props ? Object.values(props) : [])
-    return h(Fragment, { children: code })
+    }, props ? Object.values(props) : []))
 }
