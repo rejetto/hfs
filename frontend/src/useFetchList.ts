@@ -3,16 +3,20 @@
 import { state, useSnapState } from './state'
 import { useEffect, useRef } from 'react'
 import { apiEvents } from './api'
-import { DirEntry, DirList, usePath } from './BrowseFiles'
+import { DirEntry, DirList } from './BrowseFiles'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
 import { ERRORS } from './misc'
 import { t } from './i18n'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const RELOADER_PROP = Symbol('reloader')
+
+export function usePath() {
+    return useLocation().pathname
+}
 
 export default function useFetchList() {
     const snap = useSnapState()
@@ -36,7 +40,7 @@ export default function useFetchList() {
         }
 
         const baseParams = {
-            path: encodeURI(desiredPath),
+            path: desiredPath,
             search,
             sse: true,
             omit: 'c',

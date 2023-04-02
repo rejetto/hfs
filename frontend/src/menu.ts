@@ -7,13 +7,13 @@ import { err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted } from '.
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import _ from 'lodash'
 import { closeDialog } from '@hfs/shared/dialogs'
 import { showUpload, uploadState } from './upload'
 import { useSnapshot } from 'valtio'
 import { apiCall } from './api'
-import { reloadList } from './useFetchList'
+import { reloadList, usePath } from './useFetchList'
 import { t, useI18N } from './i18n'
 
 export function MenuPanel() {
@@ -32,7 +32,7 @@ export function MenuPanel() {
         setStarted1secAgo(false)
         setTimeout(() => setStarted1secAgo(true), 1000)
     }, [stopSearch, setStarted1secAgo])
-    const { pathname } = useLocation()
+    const pathname = usePath()
 
     useEffect(() => {
         if (!can_delete || localStorage.warn_can_delete) return

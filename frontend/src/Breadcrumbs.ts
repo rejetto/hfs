@@ -1,15 +1,15 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { createElement as h, Fragment, ReactElement } from 'react'
 import { getPrefixUrl, hIcon } from './misc'
 import { state } from './state'
-import { reloadList } from './useFetchList'
+import { usePath, reloadList } from './useFetchList'
 import { useI18N } from './i18n'
 
 export function Breadcrumbs() {
     const base = getPrefixUrl() + '/'
-    const currentPath = useLocation().pathname.slice(base.length,-1)
+    const currentPath = usePath().slice(base.length,-1)
     const parent = base + currentPath.slice(0, currentPath.lastIndexOf('/') + 1)
     let prev = base
     const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev += x + '/', decodeURIComponent(x)]) : []

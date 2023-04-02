@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
     createElement as h,
     Fragment,
@@ -11,21 +11,17 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent, getHFS, wantArray } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent, getHFS } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import { alertDialog } from './dialog'
-import useFetchList from './useFetchList'
+import useFetchList, { usePath } from './useFetchList'
 import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { deleteFiles } from './menu'
-
-export function usePath() {
-    return decodeURI(useLocation().pathname)
-}
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string,
     ext:string, isFolder:boolean, t?:Date } // we memoize these value for speed
@@ -182,7 +178,7 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) => {
     let { n: relativePath, isFolder, separator } = entry
-    const base = useLocation().pathname
+    const base = usePath()
     const { showFilter, selected, can_delete } = useSnapState()
     const href = fixUrl(relativePath)
     const containerDir = isFolder ? '' : relativePath.substring(0, relativePath.lastIndexOf('/')+1)
