@@ -107,6 +107,7 @@
         "File menu": "File menu",
         "Name:": "Name:",
         "file_open": "Open",
-        "Download": "Download"
+        "Download": "Download",
+        "Missing permission": "Missing permission"
     }
 }

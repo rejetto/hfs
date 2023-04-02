@@ -23,9 +23,11 @@ import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { deleteFiles } from './menu'
 
-export interface DirEntry { n:string, s?:number, m?:string, c?:string,
+export interface DirEntry { n:string, s?:number, m?:string, c?:string, p?:string,
     name: string, uri: string, ext:string, isFolder:boolean, t?:Date } // we memoize these value for speed
 export type DirList = DirEntry[]
+
+const MISSING_PERM = "Missing permission"
 
 export function BrowseFiles() {
     useFetchList()
@@ -237,6 +239,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                     h('dl', { className: 'file-dialog-properties' },
                         h('dt', {}, t`Name:`), h('dd', {}, name),
                     ),
+                    entry.p && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                     h('div', { className: 'file-menu' },
                         menu.map((e: any, i) => !e?.label ? null :
                             h('a', {
@@ -264,6 +267,7 @@ const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
     const dd = '2-digit'
     return h('div', { className: 'entry-props' },
         h(CustomCode, { name: 'additionalEntryProps', props: { entry } }),
+        entry.p && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),
         time && h('span', {
             className: 'entry-ts',

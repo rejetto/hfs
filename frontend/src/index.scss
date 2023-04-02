@@ -383,8 +383,11 @@ button label {
     }
 }
 
+.miss-perm  { margin: .3em }
+
 .file-dialog-properties {
     word-break: break-word;
+    line-height: 1.5em;
     & dd { margin-left: 1.5em; }
 }
 .file-menu {

@@ -15,6 +15,7 @@ import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, pattern2filter } from './misc'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
+import Koa from 'koa'
 
 export const file_list: ApiHandler = async ({ path, offset, limit, search, omit, sse }, ctx) => {
     let node = await urlToNode(path || '/', ctx)
@@ -63,7 +64,7 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
             if (ctx.aborted) break
             if (!filter(getNodeName(sub)))
                 continue
-            const entry = await nodeToDirEntry(sub)
+            const entry = await nodeToDirEntry(ctx, sub)
             if (!entry)
                 continue
             const cbParams = { entry, ctx, listPath:path, node:sub }
@@ -92,9 +93,9 @@ export const file_list: ApiHandler = async ({ path, offset, limit, search, omit,
     }
 }
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date }
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string }
 
-async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
+async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
     let { source, default:def } = node
     const name = getNodeName(node)
     if (!source)
@@ -110,6 +111,9 @@ async function nodeToDirEntry(node: VfsNode): Promise<DirEntry | null> {
             c: ctime,
             m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
             s: folder ? undefined : st.size,
+            p: ((hasPermission(node, 'can_read', ctx) ? '' : 'R')
+                + (hasPermission(node, 'can_list', ctx) ? '' : 'L'))
+                || undefined
         }
     }
     catch {
