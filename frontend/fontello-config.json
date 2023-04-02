@@ -79,12 +79,6 @@
       "src": "fontawesome"
     },
     {
-      "uid": "dea706a9bd3144316ce37406ec10f469",
-      "css": "level-up",
-      "code": 61768,
-      "src": "fontawesome"
-    },
-    {
       "uid": "1b5a5d7b7e3c71437f5a26befdd045ed",
       "css": "doc",
       "code": 59394,
@@ -167,6 +161,42 @@
       "css": "upload",
       "code": 61487,
       "src": "mfglabs"
+    },
+    {
+      "uid": "7480a298ce334eef70193895e799c3fd",
+      "css": "audio",
+      "code": 59393,
+      "src": "elusive"
+    },
+    {
+      "uid": "e7ab5637425cce7dd2176302ddaf1c08",
+      "css": "music",
+      "code": 59397,
+      "src": "elusive"
+    },
+    {
+      "uid": "381da2c2f7fd51f8de877c044d7f439d",
+      "css": "picture",
+      "code": 59409,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "dc3f1d5b1d006f7f7b3b6295eccab9da",
+      "css": "camera",
+      "code": 59410,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "0f99ab40ab0b4d64a74f2d0deeb03e42",
+      "css": "video",
+      "code": 59413,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "555ef8c86832e686fef85f7af2eb7cde",
+      "css": "left",
+      "code": 59414,
+      "src": "fontawesome"
     }
   ]
 }

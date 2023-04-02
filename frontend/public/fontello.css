@@ -1,6 +1,7 @@
 @font-face {
   font-family: 'fontello';
-  src: url('fontello.woff2?66723712') format('woff2');  font-weight: normal;
+  src: url('fontello.woff2?19258766') format('woff2');  font-weight: normal;
+  font-weight: normal;
   font-style: normal;
 }
 /* Chrome hack: SVG is rendered more smooth in Windozze. 100% magic, uncomment if you need it. */
@@ -9,7 +10,7 @@
 @media screen and (-webkit-min-device-pixel-ratio:0) {
   @font-face {
     font-family: 'fontello';
-    src: url('../font/fontello.svg?66723712#fontello') format('svg');
+    src: url('../font/fontello.svg?19258766#fontello') format('svg');
   }
 }
 */
@@ -49,9 +50,11 @@
 }
 
 .fa-cog:before { content: '\e800'; } /* '' */
+.fa-audio:before { content: '\e801'; } /* '' */
 .fa-doc:before { content: '\e802'; } /* '' */
 .fa-stop:before { content: '\e803'; } /* '' */
 .fa-play:before { content: '\e804'; } /* '' */
+.fa-music:before { content: '\e805'; } /* '' */
 .fa-cancel:before { content: '\e806'; } /* '' */
 .fa-edit:before { content: '\e807'; } /* '' */
 .fa-check:before { content: '\e808'; } /* '' */
@@ -63,8 +66,12 @@
 .fa-to_start:before { content: '\e80e'; } /* '' */
 .fa-retweet:before { content: '\e80f'; } /* '' */
 .fa-to_end:before { content: '\e810'; } /* '' */
+.fa-picture:before { content: '\e811'; } /* '' */
+.fa-camera:before { content: '\e812'; } /* '' */
 .fa-search:before { content: '\e813'; } /* '' */
 .fa-logout:before { content: '\e814'; } /* '' */
+.fa-video:before { content: '\e815'; } /* '' */
+.fa-left:before { content: '\e816'; } /* '' */
 .fa-spin6:before { content: '\e839'; } /* '' */
 .fa-crown:before { content: '\e844'; } /* '' */
 .fa-download:before { content: '\f02e'; } /* '' */
@@ -73,5 +80,4 @@
 .fa-menu:before { content: '\f0c9'; } /* '' */
 .fa-quote:before { content: '\f10d'; } /* '' */
 .fa-unlink:before { content: '\f127'; } /* '' */
-.fa-level-up:before { content: '\f148'; } /* '' */
 .fa-archive:before { content: '\f1c6'; } /* '' */

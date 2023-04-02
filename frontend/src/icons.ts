@@ -14,7 +14,7 @@ const SYS_ICONS = {
     archive: '📦',
     logout: '🚪',
     home: '🏠',
-    parent: '⬅:level-up mirror',
+    parent: '⬅:left',
     folder: '📂',
     file: '📄:doc',
     spinner: '🎲:spin6 spinner',
