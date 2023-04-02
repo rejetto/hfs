@@ -16,7 +16,7 @@ import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import { alertDialog } from './dialog'
-import useFetchList, { usePath } from './useFetchList'
+import useFetchList, { pathDecode, usePath } from './useFetchList'
 import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
@@ -24,7 +24,7 @@ import { t, useI18N } from './i18n'
 import { deleteFiles } from './menu'
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string,
-    ext:string, isFolder:boolean, t?:Date } // we memoize these value for speed
+    name: string, uri: string, ext:string, isFolder:boolean, t?:Date } // we memoize these value for speed
 export type DirList = DirEntry[]
 
 export function BrowseFiles() {
@@ -177,12 +177,10 @@ function useMidnight() {
 const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) => {
-    let { n: relativePath, isFolder, separator } = entry
+    const { name, uri, isFolder, separator } = entry
     const base = usePath()
     const { showFilter, selected, can_delete } = useSnapState()
-    const href = fixUrl(relativePath)
-    const containerDir = isFolder ? '' : relativePath.substring(0, relativePath.lastIndexOf('/')+1)
-    const name = relativePath.substring(containerDir.length)
+    const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     let className = isFolder ? 'folder' : 'file'
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
@@ -190,18 +188,18 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
     const menuOnLink = getHFS().fileMenuOnLink
     return h('li', { className, label: separator },
         showFilter && h(Checkbox, {
-            value: selected[relativePath],
+            value: selected[uri],
             onChange(v){
                 if (v)
-                    return state.selected[relativePath] = true
-                delete state.selected[relativePath]
+                    return state.selected[uri] = true
+                delete state.selected[uri]
             },
         }),
-        isFolder ? h(Link, { to: base + href }, ico, relativePath.slice(0,-1))
+        isFolder ? h(Link, { to: base + uri }, ico, entry.n.slice(0,-1))
             : h(Fragment, {},
-                containerDir && h(Link, { to: base+fixUrl(containerDir), className:'container-folder' }, ico, containerDir ),
+                containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, pathDecode(containerDir) ),
                 h('a', {
-                    href,
+                    href: uri,
                     onClick(ev: MouseEvent) {
                         if (menuOnLink)
                             openFileMenu(ev)
@@ -220,9 +218,9 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
         const menu = [
-            menuOnLink && { label: t('file_open', "Open"), href, target: '_blank', icon: 'play' },
-            { label: t`Download`, href: href + '?dl', icon: 'download' },
-            can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([href], base) }
+            menuOnLink && { label: t('file_open', "Open"), href: uri, target: '_blank', icon: 'play' },
+            { label: t`Download`, href: uri + '?dl', icon: 'download' },
+            can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
         ]
         const res = hfsEvent('fileMenu', { entry })
         if (res)
@@ -254,11 +252,6 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         })
     }
 })
-
-function fixUrl(s:string) {
-    return s.replace(/[#%]/g, encodeURIComponent)
-}
-
 
 const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
     const { t: time, s } = entry

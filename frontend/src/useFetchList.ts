@@ -18,6 +18,14 @@ export function usePath() {
     return useLocation().pathname
 }
 
+export function pathEncode(s: string) {
+    return encodeURI(s).replace(/#/g, encodeURIComponent)
+}
+
+export function pathDecode(s: string) {
+    return decodeURI(s).replace(/%23/g, '#')
+}
+
 export default function useFetchList() {
     const snap = useSnapState()
     const desiredPath = usePath()
@@ -103,8 +111,12 @@ export default function useFetchList() {
                         }
                         state.can_upload ??= false
                         state.can_delete ??= false
-                        if (entry.add)
-                            buffer.push(entry.add)
+                        const { add } = entry
+                        if (add) {
+                            add.uri = pathEncode(add.n)
+                            add.name = add.n.slice(add.n.lastIndexOf('/')+1)
+                            buffer.push(add)
+                        }
                     }
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()

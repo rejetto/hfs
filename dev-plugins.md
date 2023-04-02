@@ -175,7 +175,9 @@ This is a list of available frontend-events, with respective object parameter an
     - parameter `{ entry: Entry }`
 
       The `Entry` type is an object with the following properties:
-        - `n: string` name of the entry, including relative path in some cases.
+        - `name: string` name of the entry.
+        - `n: string` name of the entry, including relative path when searched in sub-folders.
+        - `uri: string` relative url of the entry.
         - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
         - `t?: Date` generic timestamp, combination of creation-time and modified-time.
         - `c?: Date` creation-time.
@@ -222,6 +224,9 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 ## API version history
 
+- 8 (v0.43.0)
+  - entry.name & .uri
+  - tools.dialogLib
 - 7 (v0.42.0)
   - event.fileMenu
   - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
