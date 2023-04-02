@@ -7,6 +7,7 @@ import { Icon } from './icons'
 import { Dict } from '@hfs/shared'
 import { state } from './state'
 import { t } from './i18n'
+import * as dialogLib from './dialog'
 import _ from 'lodash'
 export * from '@hfs/shared'
 
@@ -60,7 +61,7 @@ export function hfsEvent(name: string, params?:Dict) {
 
 Object.assign((window as any).HFS ||= {}, {
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
-        const tools = { h, React, state, t, _ }
+        const tools = { h, React, state, t, _, dialogLib }
         const key = 'hfs.' + name
         document.addEventListener(key, wrapper)
         return () => document.removeEventListener(key, wrapper)

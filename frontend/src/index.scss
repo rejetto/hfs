@@ -383,6 +383,10 @@ button label {
     }
 }
 
+.file-dialog-properties {
+    word-break: break-word;
+    & dd { margin-left: 1.5em; }
+}
 .file-menu {
     padding-top: .5em;
     border-top: 1px solid var(--faint-contrast);

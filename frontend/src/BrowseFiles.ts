@@ -227,13 +227,16 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
             menu.push(...res.flat())
         const close = newDialog({
             title: t`File menu`,
+            className: 'file-dialog',
             icon: () => ico,
             position: isMobile() ? undefined
                 : [ev.pageX, ev.pageY - window.scrollY] as [number, number],
             Content() {
                 const {t} = useI18N()
                 return h(Fragment, {},
-                    t("Name: {name}", { name }),
+                    h('dl', { className: 'file-dialog-properties' },
+                        h('dt', {}, t`Name:`), h('dd', {}, name),
+                    ),
                     h('div', { className: 'file-menu' },
                         menu.map((e: any, i) => !e?.label ? null :
                             h('a', {
