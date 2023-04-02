@@ -15,8 +15,8 @@ export function Breadcrumbs() {
     const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev += x + '/', decodeURIComponent(x)]) : []
     const {t}  = useI18N()
     return h(Fragment, {},
-        h(Breadcrumb, { label: hIcon('parent', { alt: t`parent folder` }), path: parent }),
-        h(Breadcrumb, { label: hIcon('home', { alt: t`home` }), path: base, current: !currentPath }),
+        h(Breadcrumb, { label: hIcon('parent', { title: t`parent folder` }), path: parent }),
+        h(Breadcrumb, { label: hIcon('home', { title: t`home` }), path: base, current: !currentPath }),
         breadcrumbs.map(([path,label]) =>
             h(Breadcrumb, {
                 key: path,
