@@ -1,7 +1,7 @@
 {
     "author": "YOUR NAME HERE",
     "version": 1.0,
-    "hfs_version": "0.40.1",
+    "hfs_version": "0.43.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -102,6 +102,11 @@
         "upload_errors": "{n} failed",
         "upload_file_rejected": "Some files were not accepted",
 
-        "download counter": "download counter"
+        "download counter": "download counter",
+
+        "File menu": "File menu",
+        "Name: {name}": "Name: {name}",
+        "file_open": "Open",
+        "Download": "Download"
     }
 }

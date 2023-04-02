@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
-    "version": 1.4,
-    "hfs_version": "0.40.1",
+    "version": 1.5,
+    "hfs_version": "0.43.0",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -96,6 +96,11 @@
         "upload_errors": "{n,plural, one{# fallito} other{# falliti}}",
         "upload_file_rejected": "Alcuni file non sono stati accettati",
 
-        "download counter": "download conteggiati"
+        "download counter": "download conteggiati",
+
+        "File menu": "Menu file",
+        "Name: {name}": "Nome: {name}",
+        "file_open": "Apri",
+        "Download": "Download"
     }
 }

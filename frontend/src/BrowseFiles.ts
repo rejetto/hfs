@@ -20,7 +20,7 @@ import useFetchList from './useFetchList'
 import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
-import { useI18N } from './i18n'
+import { t, useI18N } from './i18n'
 import { deleteFiles } from './menu'
 
 export function usePath() {
@@ -224,15 +224,15 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
         const menu = [
-            menuOnLink && { label: "Open", href, target: '_blank', icon: 'play' },
-            { label: "Download", href: href + '?dl', icon: 'download' },
-            can_delete &&  { label: "Delete", icon: 'trash', onClick: () => deleteFiles([href], base) }
+            menuOnLink && { label: t('file_open', "Open"), href, target: '_blank', icon: 'play' },
+            { label: t`Download`, href: href + '?dl', icon: 'download' },
+            can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([href], base) }
         ]
         const res = hfsEvent('fileMenu', { entry })
         if (res)
             menu.push(...res.flat())
         const close = newDialog({
-            title: "File menu",
+            title: t`File menu`,
             icon: () => ico,
             position: isMobile() ? undefined
                 : [ev.pageX, ev.pageY - window.scrollY] as [number, number],
