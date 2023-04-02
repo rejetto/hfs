@@ -15,6 +15,7 @@ async function login(username:string, password:string) {
         stopWorking()
         sessionRefresher(res)
         state.loginRequired = false
+        reloadList()
         return res
     }, (err: any) => {
         stopWorking()
