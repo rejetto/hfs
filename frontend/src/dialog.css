@@ -36,6 +36,13 @@
     font-size: 120%;
     position: absolute;  /* avoid moving content down */
     top: 5px;
+    padding: 0 0.5em; /* avoid reaching margins */
+}
+.dialog-closer ~ .dialog-title {
+    margin-right: 2em;
+}
+.dialog-type ~ .dialog-title {
+    margin-left: 2em;
 }
 .dialog-icon ~ .dialog-title {
     text-align: center;

@@ -385,6 +385,8 @@ button label {
 
 .miss-perm  { margin: .3em }
 
+.file-dialog .dialog-content { min-width: calc(100% - 1em); } /* effective and nicer on short names  */
+.file-dialog .dialog { min-width: 13em; } /* more room for title */
 .file-dialog-properties {
     word-break: break-word;
     line-height: 1.5em;
