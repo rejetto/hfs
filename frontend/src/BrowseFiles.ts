@@ -12,7 +12,7 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent, getHFS } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent, getHFS, dontBotherWithKeys } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
@@ -189,6 +189,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = hIcon(isFolder ? 'folder' : 'file')
     const menuOnLink = getHFS().fileMenuOnLink
+    const onClick = menuOnLink && openFileMenu || undefined
     return h('li', { className, label: separator },
         showFilter && h(Checkbox, {
             value: selected[uri],
@@ -198,16 +199,10 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 delete state.selected[uri]
             },
         }),
-        isFolder ? h(Link, { to: base + uri }, ico, entry.n.slice(0,-1))
+        isFolder ? h(Link, { to: base + uri, onClick }, ico, entry.n.slice(0,-1))
             : h(Fragment, {},
                 containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, pathDecode(containerDir) ),
-                h('a', {
-                    href: uri,
-                    onClick(ev: MouseEvent) {
-                        if (menuOnLink)
-                            openFileMenu(ev)
-                    }
-                }, !containerDir && ico, name)
+                h('a', { href: uri, onClick }, !containerDir && ico, name)
             ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
@@ -220,9 +215,12 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
     function openFileMenu(ev: MouseEvent) {
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
+        const OPEN_ICON = 'play'
+        const OPEN_LABEL = t('file_open', "Open")
         const menu = [
-            menuOnLink && { label: t('file_open', "Open"), href: uri, target: '_blank', icon: 'play' },
-            { label: t`Download`, href: uri + '?dl', icon: 'download' },
+            menuOnLink && (isFolder ? h(Link, { to: base + uri, onClick: () => close() }, hIcon(OPEN_ICON), OPEN_LABEL)
+                : { label: OPEN_LABEL, href: uri, target: isFolder ? undefined : '_blank', icon: OPEN_ICON }),
+            { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
             can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
         ]
         const props = [
@@ -241,24 +239,26 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 const {t} = useI18N()
                 return h(Fragment, {},
                     h('dl', { className: 'file-dialog-properties' },
-                        props.map(prop => isValidElement(prop) ? prop
+                        dontBotherWithKeys(props.map(prop => isValidElement(prop) ? prop
                             : Array.isArray(prop) ? h(Fragment, {}, h('dt', {}, prop[0]), h('dd', {}, prop[1]))
                                 : null
-                        )
+                        ))
                     ),
                     entry.p && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                     h('div', { className: 'file-menu' },
-                        menu.map((e: any, i) => !e?.label ? null :
-                            h('a', {
-                                key: i,
-                                href: e.href || '#',
-                                ..._.omit(e, ['label', 'icon', 'href', 'onClick']),
-                                async onClick() {
-                                    if ((await e.onClick?.()) !== false)
-                                        close()
-                                }
-                            }, hIcon(e.icon || 'file'), e.label )
-                        )
+                        dontBotherWithKeys(menu.map((e: any, i) =>
+                            isValidElement(e) ? e
+                                : !e?.label ? null :
+                                    h('a', {
+                                        key: i,
+                                        href: e.href || '#',
+                                        ..._.omit(e, ['label', 'icon', 'href', 'onClick']),
+                                        async onClick() {
+                                            if ((await e.onClick?.()) !== false)
+                                                close()
+                                        }
+                                    }, hIcon(e.icon || 'file'), e.label )
+                        ))
                     )
                 )
             }
