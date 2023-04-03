@@ -182,6 +182,7 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) => {
     const { name, uri, isFolder, separator } = entry
     const base = usePath()
+    const [menuBtn, setMenuBtn] = useState(false)
     const { showFilter, selected, can_delete } = useSnapState()
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     let className = isFolder ? 'folder' : 'file'
@@ -199,7 +200,15 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 delete state.selected[uri]
             },
         }),
-        isFolder ? h(Link, { to: base + uri, onClick }, ico, entry.n.slice(0,-1))
+        isFolder
+            ? h('span', menuOnLink && { // container to handle mouse over for both children. Not using ternary because of ts
+                style: menuBtn ? { padding: '1em', margin: '-1em' } : {}, // add margin to avoid leaving the state unintentionally
+                onMouseEnter(){ setMenuBtn(true) },
+                onMouseLeave(){ setMenuBtn(false) },
+            } || {},
+                h(Link, { to: base + uri, onClick: menuOnLink && isMobile() ? onClick : undefined }, ico, entry.n.slice(0,-1)),
+                menuBtn && h('button', { className: 'popup-menu-button', onClick: openFileMenu }, hIcon('menu'), t`Menu`)
+            )
             : h(Fragment, {},
                 containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, pathDecode(containerDir) ),
                 h('a', { href: uri, onClick }, !containerDir && ico, name)

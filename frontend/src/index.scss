@@ -103,6 +103,7 @@ button {
     border-radius: 0.3em;
     vertical-align: middle;
     cursor: pointer;
+    &:hover { outline: 1px solid var(--mild-contrast); }
 }
 button.toggled {
     color: #fff;
@@ -150,10 +151,10 @@ header {
     height: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
-    transition: all .5s;
+    transition: flex .5s;
 }
 .show-sliding {
-    transition: all .5s;
+    transition: flex .5s;
     overflow: clip;
     flex: 1;
     white-space: nowrap;
@@ -384,6 +385,11 @@ button label {
 }
 
 .miss-perm  { margin: .3em }
+
+.popup-menu-button {
+    font-size: .8em; padding: .2em .3em; position: absolute; opacity: .8;
+    &:hover { opacity: 1 }
+}
 
 .file-dialog .dialog-content { min-width: calc(100% - 1em); } /* effective and nicer on short names  */
 .file-dialog .dialog { min-width: 13em; } /* more room for title */
