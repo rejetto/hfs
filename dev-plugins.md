@@ -192,7 +192,7 @@ This is a list of available frontend-events, with respective object parameter an
     - output `Html`
 - `fileMenu`
     - add your entries to the menu.
-    - parameter `{ entry: Entry }`
+    - parameter `{ entry: Entry, menu: FileMenuEntry[], props: FileMenuProp[] }`
     - output `FileMenuEntry | FileMenuEntry[]`
       ```typescript
       interface FileMenuEntry { 
@@ -202,6 +202,7 @@ This is a list of available frontend-events, with respective object parameter an
           onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
           //...rest is transfered to <a> element, for example 'target', or 'title' 
       }
+      type FileMenuProp = [ReactNode,ReactNode] | ReactElement
       ```
 ## Publish your plug-in
 

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import {
     createElement as h,
     Fragment,
+    isValidElement,
     memo,
     useCallback,
     useEffect,
@@ -224,7 +225,10 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
             { label: t`Download`, href: uri + '?dl', icon: 'download' },
             can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
         ]
-        const res = hfsEvent('fileMenu', { entry })
+        const props = [
+            [t(`Name`), name]
+        ]
+        const res = hfsEvent('fileMenu', { entry, menu, props })
         if (res)
             menu.push(...res.flat())
         const close = newDialog({
@@ -237,7 +241,10 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 const {t} = useI18N()
                 return h(Fragment, {},
                     h('dl', { className: 'file-dialog-properties' },
-                        h('dt', {}, t`Name:`), h('dd', {}, name),
+                        props.map(prop => isValidElement(prop) ? prop
+                            : Array.isArray(prop) ? h(Fragment, {}, h('dt', {}, prop[0]), h('dd', {}, prop[1]))
+                                : null
+                        )
                     ),
                     entry.p && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                     h('div', { className: 'file-menu' },

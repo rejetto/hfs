@@ -104,7 +104,7 @@
 
         "download counter": "Количество скачиваний",
         "File menu": "Меню файла",
-        "Name: {name}": "Имя: {name}",
+        "Name": "Имя",
         "file_open": "Открыть",
         "Download": "Скачать",
         "Missing permission": "Отсутствует доступ"

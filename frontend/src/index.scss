@@ -388,6 +388,7 @@ button label {
 .file-dialog-properties {
     word-break: break-word;
     line-height: 1.5em;
+    & dt { font-weight: bold; }
     & dd { margin-left: 1.5em; }
 }
 .file-menu {
