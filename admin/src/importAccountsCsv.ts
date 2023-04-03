@@ -22,6 +22,7 @@ export async function importAccountsCsv(cb?: () => void) {
             usernameColumn: 1,
             passwordColumn: 2,
             groupColumn: 3,
+            redirectColumn: 4,
             overwriteExistingAccounts: false,
         }
         const cfg = await formDialog<typeof initialConfig>({
@@ -35,9 +36,10 @@ export async function importAccountsCsv(cb?: () => void) {
                     save: { startIcon: h(Upload), children: 'Go' },
                     fields: [
                         h(Box, { p: 1 }, "Total lines:", rows.length),
-                        { k: 'skipFirstLines', comp: NumberField, min: 0, max: rows.length-1, typing: true,
-                            helperText: h(Fragment, {}, "First line: ", h('code', {}, row) ),
+                        { k: 'skipFirstLines', comp: NumberField, min: 0, max: rows.length-1, typing: true, md: 6,
+                            helperText: h(Fragment, {}, "First line: ", h('code', {}, row.join(', ')) ),
                         },
+                        { k: 'overwriteExistingAccounts', comp: BoolField, md: 6 },
                         { k: 'usernameColumn', ...colField,
                             helperText: h(Fragment, {}, "First username: ", rec.u),
                         },
@@ -47,7 +49,9 @@ export async function importAccountsCsv(cb?: () => void) {
                         { k: 'groupColumn', ...colField,
                             helperText: h(Fragment, {}, "First group: ", rec.g),
                         },
-                        { k: 'overwriteExistingAccounts', comp: BoolField, xs: 6 },
+                        { k: 'redirectColumn', ...colField,
+                            helperText: h(Fragment, {}, "First redirect: ", rec.r),
+                        },
                     ],
                 }
             },
@@ -80,6 +84,7 @@ export async function importAccountsCsv(cb?: () => void) {
                                 await apiCall('add_account', {
                                     username: rec.u,
                                     belongs: rec.g?.split(','),
+                                    redirect: rec.r,
                                     overwrite: cfg.overwriteExistingAccounts
                                 }).then(() => {
                                     if (rec.p)
@@ -117,6 +122,7 @@ export async function importAccountsCsv(cb?: () => void) {
                 u: row[config.usernameColumn - 1],
                 p: row[config.passwordColumn - 1],
                 g: row[config.groupColumn - 1],
+                r: row[config.redirectColumn - 1],
             }
         }
     }, { multiple: false, accept: '.csv' })
