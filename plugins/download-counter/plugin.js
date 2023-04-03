@@ -1,6 +1,10 @@
-exports.description = "Counts downloads for each file, and displays the total in the list"
-exports.version = 3.1 // removed "hits" word
-exports.apiRequired = 3
+exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
+exports.version = 4 // config.where
+exports.apiRequired = 6
+
+exports.config = {
+    where: { frontend: true, type: 'select', options: ['list', 'menu'] }
+}
 
 exports.init = async api => {
     const _ = api.require('lodash')
