@@ -98,7 +98,7 @@ export default function useFetchList() {
                             state.stopSearch?.()
                             state.error = (ERRORS as any)[error] || String(error)
                             if (error === 401 && snap.username)
-                                alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
+                                alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning').then()
                             state.loginRequired = error === 401
                             lastReq.current = null
                             continue
@@ -114,7 +114,7 @@ export default function useFetchList() {
                         const { add } = entry
                         if (add) {
                             add.uri = pathEncode(add.n)
-                            add.name = add.n.slice(add.n.lastIndexOf('/')+1)
+                            add.name = add.n.slice(add.n.lastIndexOf('/', -1) +1, add.isFolder ? -1 : Infinity)
                             buffer.push(add)
                         }
                     }
