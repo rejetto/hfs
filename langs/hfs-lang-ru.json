@@ -106,6 +106,7 @@
         "File menu": "Меню файла",
         "Name: {name}": "Имя: {name}",
         "file_open": "Открыть",
-        "Download": "Скачать"
+        "Download": "Скачать",
+        "Missing permission": "Отсутствует доступ"
     }
 }
