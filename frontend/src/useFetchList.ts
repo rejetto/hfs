@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { useEffect, useRef } from 'react'
 import { apiEvents } from './api'
-import { DirEntry, DirList } from './BrowseFiles'
+import { DirList } from './BrowseFiles'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
@@ -69,7 +69,7 @@ export default function useFetchList() {
         const flush = () => {
             const chunk = buffer.splice(0, Infinity)
             if (chunk.length)
-                state.list = sort([...state.list, ...chunk.map(precalculate)])
+                state.list = sort([...state.list, ...chunk])
         }
         const timer = setInterval(flush, 1000)
         const src = apiEvents('file_list', baseParams, (type, data) => {
@@ -114,7 +114,16 @@ export default function useFetchList() {
                         const { add } = entry
                         if (add) {
                             add.uri = pathEncode(add.n)
+                            add.isFolder = add.n.endsWith('/')
+                            if (add.isFolder) {
+                                const i = add.n.lastIndexOf('.') + 1
+                                add.ext = i ? add.n.substring(i) : ''
+                            }
+                            const t = add.m || add.c
+                            if (t)
+                                add.t = new Date(t)
                             add.name = add.n.slice(add.n.lastIndexOf('/', -1) +1, add.isFolder ? -1 : Infinity)
+
                             buffer.push(add)
                         }
                     }
@@ -155,16 +164,6 @@ function sort(list: DirList) {
         || sortNumerics && (invert * compare(parseFloat(a.n), parseFloat(b.n)))
         || invert * localCompare(a.n, b.n) // fallback to name/path
     )
-}
-
-function precalculate(rec:DirEntry) {
-    const i = rec.n.lastIndexOf('.') + 1
-    rec.ext = i ? rec.n.substring(i) : ''
-    rec.isFolder = rec.n.endsWith('/')
-    const t = rec.m || rec.c
-    if (t)
-        rec.t = new Date(t)
-    return rec
 }
 
 // generic comparison

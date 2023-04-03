@@ -139,3 +139,8 @@ export function formatPerc(p: number) {
 export function wantArray<T>(x?: void | T | T[]) {
     return x == null ? [] : Array.isArray(x) ? x : [x]
 }
+
+export function _log(...args: any[]) {
+    console.log('**', ...args)
+    return args[args.length-1]
+}
