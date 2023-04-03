@@ -89,7 +89,7 @@ You can find some of these files at https://github.com/rejetto/hfs/tree/main/lan
 Files are named `hfs-lang-CODE.json`, where `CODE` is the ISO code for your language (e.g. pt-br for Brazilian).
 To download a file: open it, right-click on the "Raw" button, Save.
 
-If your language is missing, please consider [translating yourself](#translate-to-your-language). 
+If your language is missing, please consider [translating yourself](https://github.com/rejetto/hfs/wiki/Translation). 
 
 Translation is applied automatically based on the configuration of the visitor's browser.
 [Check the language configuration of your browser](https://gtranslate.io/detect-browser-language).
