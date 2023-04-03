@@ -230,7 +230,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         if (res)
             menu.push(...res.flat())
         const close = newDialog({
-            title: t`File menu`,
+            title: isFolder ? t`Folder menu` : t`File menu`,
             className: 'file-dialog',
             icon: () => ico,
             position: isMobile() ? undefined
