@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, getCookie, IconBtn, spinner, useStateMounted, wantArray } from './misc'
+import { Dict, err2msg, Falsy, getCookie, IconBtn, pendingPromise, spinner, useStateMounted, wantArray } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
@@ -76,6 +76,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
     const [err, setErr] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef<ReturnType<typeof apiCall>>()
+    const reloadingRef = useRef<any>()
     useEffect(()=>{
         loadingRef.current?.abort()
         setRet(undefined)
@@ -91,8 +92,11 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
                 req.abort()
             }
         })
+        reloadingRef.current?.resolve(wholePromise)
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
-    const reload = useCallback(()=> loadingRef.current || setForcer(v => v+1), [setForcer])
+    const reload = useCallback(() => loadingRef.current
+        || setForcer(v => v+1) || (reloadingRef.current = pendingPromise()),
+        [setForcer])
     return [ret, err, reload]
 }
 

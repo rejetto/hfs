@@ -32,6 +32,7 @@ This file contains details the configuration files.
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
 - `keep_unfinished_uploads` should unfinished uploads be deleted immediately when interrupted. Default is true.
 - `favicon` path to file to be used as favicon. Default is none.
+- `force_lang` force translation for frontend. Default is none, meaning *let browser decide*.
 
 #### Virtual File System (VFS)
 

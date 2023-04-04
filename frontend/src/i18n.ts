@@ -1,4 +1,4 @@
-import { findFirst, urlParams } from './misc'
+import { findFirst, getHFS, urlParams } from './misc'
 import { createElement as h, Fragment, useEffect } from 'react'
 import { useApi } from './api'
 import { proxy, useSnapshot } from 'valtio'
@@ -16,7 +16,8 @@ export function useI18N() {
 export function I18Nprovider({ embedded='en', ...props }) {
     const langs = urlParams.lang?.split(',') || navigator.languages
     state.embedded = embedded
-    let all = useApi(langs[0] !== embedded && 'load_lang', { embedded, lang: langs }, { noModal: true })
+    let all = useApi(!getHFS().lang && langs[0] !== embedded && 'load_lang', { embedded, lang: langs }, { noModal: true })
+        ?? getHFS().lang
     useEffect(() => {
         if (all instanceof Error)
             all = undefined

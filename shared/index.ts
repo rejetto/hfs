@@ -144,3 +144,11 @@ export function _log(...args: any[]) {
     console.log('**', ...args)
     return args[args.length-1]
 }
+
+type PendingPromise<T> = Promise<T> & { resolve: (value: T) => void, reject: (reason?: any) => void }
+export function pendingPromise<T>() {
+    let takeOut
+    const ret = new Promise<T>((resolve, reject) =>
+        takeOut = { resolve, reject })
+    return Object.assign(ret, takeOut) as PendingPromise<T>
+}
