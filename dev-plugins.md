@@ -67,7 +67,7 @@ All the following properties are essentially optional.
     ```
   When necessary your plugin will read its value using `api.getConfig('message')`.
 
-- `configDialog: FormDialog` object to override dialog options. Please refer to sources for details.
+- `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
 - `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to front-end 
 
 ### FieldDescriptor

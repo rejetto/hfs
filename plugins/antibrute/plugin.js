@@ -7,7 +7,7 @@ exports.config = {
     max: { type: 'number', min: 1, defaultValue: 60, helperText: "Max seconds to delay before next login is allowed" },
 }
 exports.configDialog = {
-    maxWidth: '25em',
+    maxWidth: 'xs',
 }
 
 const byIp = {}

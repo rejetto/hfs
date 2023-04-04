@@ -82,13 +82,11 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                                 const values = await formDialog({
                                     title: `${id} options`,
                                     form: {
-                                        fields: [
-                                            h(Box, {}, row.description),
-                                            ...makeFields(config)
-                                        ],
+                                        before: h(Box, { mx: 2, mb: 3 }, row.description),
+                                        fields: makeFields(config),
                                     },
                                     values: pl.config,
-                                    ...row.configDialog,
+                                    dialogProps: row.configDialog,
                                 })
                                 if (!values || _.isEqual(pl.config, values)) return
                                 await apiCall('set_plugin', { id, config: values })

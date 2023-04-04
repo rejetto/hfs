@@ -5,6 +5,9 @@ exports.apiRequired = 6
 exports.config = {
     where: { frontend: true, type: 'select', options: ['list', 'menu'] }
 }
+exports.configDialog = {
+    sx: { maxWidth: '20em' },
+}
 
 exports.init = async api => {
     const _ = api.require('lodash')
