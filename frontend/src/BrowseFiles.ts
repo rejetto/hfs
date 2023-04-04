@@ -191,6 +191,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
     const ico = hIcon(isFolder ? 'folder' : 'file')
     const menuOnLink = getHFS().fileMenuOnLink
     const onClick = menuOnLink && openFileMenu || undefined
+    const mobile = isMobile()
     return h('li', { className, label: separator },
         showFilter && h(Checkbox, {
             value: selected[uri],
@@ -201,12 +202,12 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
             },
         }),
         isFolder
-            ? h('span', menuOnLink && { // container to handle mouse over for both children. Not using ternary because of ts
+            ? h('span', menuOnLink && !mobile && { // container to handle mouse over for both children. Not using ternary because of ts
                 style: menuBtn ? { padding: '1em', margin: '-1em' } : {}, // add margin to avoid leaving the state unintentionally
                 onMouseEnter(){ setMenuBtn(true) },
                 onMouseLeave(){ setMenuBtn(false) },
             } || {},
-                h(Link, { to: base + uri, onClick: menuOnLink && isMobile() ? onClick : undefined }, ico, entry.n.slice(0,-1)),
+                h(Link, { to: base + uri }, ico, entry.n.slice(0,-1)),
                 menuBtn && h('button', { className: 'popup-menu-button', onClick: openFileMenu }, hIcon('menu'), t`Menu`)
             )
             : h(Fragment, {},
@@ -216,7 +217,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
             h(EntryProps, entry),
-            !menuOnLink && h('button', { className: 'file-menu-button', onClick: openFileMenu }, hIcon('menu')),
+            (!menuOnLink || isFolder && mobile) && h('button', { className: 'file-menu-button', onClick: openFileMenu }, hIcon('menu')),
         ),
         h('div'),
     )
