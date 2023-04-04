@@ -74,7 +74,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                         h(IconBtn, {
                             icon: Settings,
                             title: "Options",
-                            disabled: !config && "No options available for this plugin",
+                            disabled: !row.started && "Start plugin to access options"
+                                || !config && "No options available for this plugin",
                             progress: false,
                             async onClick() {
                                 const pl = await apiCall('get_plugin', { id })
