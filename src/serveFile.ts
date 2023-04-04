@@ -40,6 +40,8 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     }
 
     ctx.vfsNode = node // useful to tell service files from files shared by the user
+    if ('dl' in ctx.params) // please, download
+        ctx.attachment(name)
     return serveFile(ctx, source||'', mimeString)
 }
 
@@ -49,8 +51,6 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
     if (!source)
         return
     const fn = path.basename(source)
-    if ('dl' in ctx.params) // please, download
-        ctx.attachment(fn)
     mime = mime ?? _.find(mimeCfg.get(), (v,k) => matches(fn, k))
     if (mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''
