@@ -23,7 +23,7 @@ import { subscribe } from 'valtio'
 import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig } from './config'
-import { getLangData } from './api.lang'
+import { getLangData } from './lang'
 
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
