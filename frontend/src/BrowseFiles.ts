@@ -227,10 +227,12 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         ev.preventDefault()
         const OPEN_ICON = 'play'
         const OPEN_LABEL = t('file_open', "Open")
+        const couldRead = entry.p !== (isFolder ? 'l' : 'r')
         const menu = [
-            menuOnLink && (isFolder ? h(Link, { to: base + uri, onClick: () => close() }, hIcon(OPEN_ICON), OPEN_LABEL)
-                : { label: OPEN_LABEL, href: uri, target: isFolder ? undefined : '_blank', icon: OPEN_ICON }),
-            { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+            couldRead && menuOnLink
+                && (isFolder ? h(Link, { to: base + uri, onClick: () => close() }, hIcon(OPEN_ICON), OPEN_LABEL)
+                    : { label: OPEN_LABEL, href: uri, target: isFolder ? undefined : '_blank', icon: OPEN_ICON }),
+            couldRead && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
             can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
         ]
         const props = [

@@ -401,14 +401,16 @@ button label {
     & dd { margin-left: 1.5em; }
 }
 .file-menu {
-    padding-top: .5em;
-    border-top: 1px solid var(--faint-contrast);
     margin-top: 1em;
 
     display: flex;
     flex-direction: column;
     & a {
         padding: .5em 0;
+        &:first-child {
+            padding-top: 1em;
+            border-top: 1px solid var(--faint-contrast);
+        }
         & .icon { margin-right: 0.5em; }
         &:hover { @extend .highlightedText }
     }

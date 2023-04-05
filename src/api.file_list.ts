@@ -6,8 +6,8 @@ import {
     nodeIsDirectory,
     statusCodeForMissingPerm,
     urlToNode,
-    VfsNode,
-    walkNode
+    VfsNode, VfsPerm,
+    walkNode, WHO_NO_ONE
 } from './vfs'
 import { ApiError, ApiHandler, SendListReadable } from './apiMiddleware'
 import { stat } from 'fs/promises'
@@ -111,12 +111,17 @@ async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry
             c: ctime,
             m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
             s: folder ? undefined : st.size,
-            p: ((hasPermission(node, 'can_read', ctx) ? '' : 'R')
-                + (hasPermission(node, 'can_list', ctx) ? '' : 'L'))
+            p: (['can_read', 'can_list'] as (keyof VfsPerm)[]).map(perm2letter).join('')
                 || undefined
         }
     }
     catch {
         return null
+    }
+
+    function perm2letter(k: keyof VfsPerm) {
+        return node[k] === WHO_NO_ONE ? k[4]!
+            : hasPermission(node, k, ctx) ? ''
+                :  k[4]!.toUpperCase()
     }
 }

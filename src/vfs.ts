@@ -10,16 +10,16 @@ import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './const'
 import events from './events'
 import { getCurrentUsernameExpanded } from './perm'
 
-const WHO_ANYONE = true
-const WHO_NO_ONE = false
-const WHO_ANY_ACCOUNT = '*'
+export const WHO_ANYONE = true
+export const WHO_NO_ONE = false
+export const WHO_ANY_ACCOUNT = '*'
 type AccountList = string[]
 export type Who = typeof WHO_ANYONE
     | typeof WHO_NO_ONE
     | typeof WHO_ANY_ACCOUNT
     | AccountList
 
-interface VfsPerm {
+export interface VfsPerm {
     can_read: Who
     can_see: Who
     can_list: Who
