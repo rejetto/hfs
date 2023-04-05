@@ -5,12 +5,14 @@ import _ from 'lodash'
 import glob from 'fast-glob'
 import { readFile, rm, writeFile } from 'fs/promises'
 import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './const'
-import { tryJson } from './misc'
+import { tryJson, wantArray } from './misc'
 import { defineConfig } from './config'
 import { watchLoad } from './watchLoad'
+import Koa from 'koa'
 
 const PREFIX = 'hfs-lang-'
 const SUFFIX = '.json'
+const EMBEDDED = 'en'
 
 const apis: ApiHandlers = {
 
@@ -69,8 +71,28 @@ function validateCode(code: string) {
         throw new ApiError(HTTP_BAD_REQUEST, 'bad code/filename')
 }
 
-export function getForceLangData() {
-    return forceLangData
+export async function getLangData(ctx: Koa.Context) {
+    if (forceLangData)
+        return forceLangData
+    const ret: any = {}
+    const csv = String(ctx.query.lang||'') || ctx.get('Accept-Language') || ''
+    const langs = wantArray(csv.split(',').map(x => x.toLowerCase()))
+    let i = 0
+    while (i < langs.length) {
+        let k = langs[i] || '' // shut up ts
+        if (!k || k === EMBEDDED) break
+        try { ret[k!] = JSON.parse(await readFile(`hfs-lang-${k}.json`, 'utf8')) }
+        catch {
+            do { k = k.substring(0, k.lastIndexOf('-'))
+            } while (k && langs.includes(k))
+            if (k) {
+                langs[i] = k // overwrite and retry
+                continue
+            }
+        }
+        i++
+    }
+    return ret
 }
 
 let forceLangData: any

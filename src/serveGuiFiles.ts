@@ -23,8 +23,7 @@ import { subscribe } from 'valtio'
 import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig } from './config'
-import { watchLoad } from './watchLoad'
-import { getForceLangData } from './api.lang'
+import { getLangData } from './api.lang'
 
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
@@ -90,6 +89,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
         configs = getPluginInfo(name).onFrontendConfig?.(configs) || configs
         return !_.isEmpty(configs) && [name, configs]
     })))
+    const lang = await getLangData(ctx)
     let ret = body
         .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
         .replace('</head>', () => `
@@ -108,7 +108,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
                     ['top','bottom']), // excluding sections we apply in this phase
                 fileMenuOnLink: fileMenuOnLink.get(),
-                lang: getForceLangData()
+                lang
             }, null, 4)
             .replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')

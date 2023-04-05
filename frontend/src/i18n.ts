@@ -14,16 +14,9 @@ export function useI18N() {
 }
 
 export function I18Nprovider({ embedded='en', ...props }) {
-    const langs = urlParams.lang?.split(',') || navigator.languages
+    loaded = getHFS().lang
     state.embedded = embedded
-    let all = useApi(!getHFS().lang && langs[0] !== embedded && 'load_lang', { embedded, lang: langs }, { noModal: true })
-        ?? getHFS().lang
-    useEffect(() => {
-        if (all instanceof Error)
-            all = undefined
-        state.langs = Object.keys(all||{})
-        loaded = all
-    }, [all])
+    state.langs = Object.keys(loaded||{})
     return h(Fragment, props)
 }
 

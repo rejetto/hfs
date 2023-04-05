@@ -16,9 +16,8 @@ import {
     HTTP_UNAUTHORIZED
 } from './const'
 import { hasPermission, urlToNode } from './vfs'
-import { mkdir, readFile, rm } from 'fs/promises'
+import { mkdir, rm } from 'fs/promises'
 import { join } from 'path'
-import { wantArray } from './misc'
 
 export const customHeader = defineConfig('custom_header', '')
 
@@ -72,27 +71,6 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(e.code || HTTP_SERVER_ERROR, e)
         }
     },
-
-    async load_lang({ lang, embedded }) {
-        const ret: any = {}
-        const langs = wantArray(lang).map(x => x.toLowerCase())
-        let i = 0
-        while (i < langs.length) {
-            let x = langs[i]
-            if (x === embedded) break
-            try { ret[x] = JSON.parse(await readFile(`hfs-lang-${x}.json`, 'utf8')) }
-            catch {
-                do { x = x.substring(0, x.lastIndexOf('-'))
-                } while (x && langs.includes(x))
-                if (x) {
-                    langs[i] = x // overwrite and retry
-                    continue
-                }
-            }
-            i++
-        }
-        return ret
-    }
 
 }
 
