@@ -27,12 +27,18 @@ This file contains details the configuration files.
     ```
   Syntax supports, other than simple address, `*` as wildcard and CIDR format.
 - `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration.
-- `enable_plugins` if a plugin is not present here, it won't run. Defaults is `[ antibrute ]`.
+- `enable_plugins` if a plugin is not present in this list, it won't run. Defaults is `[ antibrute ]`.
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
 - `proxies` number of proxies between server and clients to be trusted about providing clients' IP addresses. Default is 0.
 - `keep_unfinished_uploads` should unfinished uploads be deleted immediately when interrupted. Default is true.
 - `favicon` path to file to be used as favicon. Default is none.
+- `force_https` redirect http traffic to https. Requires https to be working. Default is false.
 - `force_lang` force translation for frontend. Default is none, meaning *let browser decide*.
+- `admin_net` net-mask specifying what addresses are allowed to access Admin-panel. Default is any.
+- `title` text displayed in the tab of your browser. Default is "File server".
+- `file_menu_on_link` if to display file-menu when clicking on link, or have a dedicated button instead. Default is true.
+- `min_available_mb` refuse to accept uploads if available disk space is below this threshold. Default is 100.
+- `dont_overwrite_uploading` uploading a file with name already present in the folder will be renamed if this is enabled. Default is false.  
 
 #### Virtual File System (VFS)
 
