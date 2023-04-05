@@ -165,7 +165,8 @@ This is enough, but you may want to configure generated links accordingly:
 
 ## Hidden features
 
-- Going to address `#LOGIN` will bring up the login dialog
+- Appending `#LOGIN` to address will bring up the login dialog
+- Appending ?lang=CODE to address will force a specific language
 
 ## Contribute
 

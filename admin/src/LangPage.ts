@@ -17,7 +17,6 @@ export default function LangPage() {
     const large = useBreakpoint('md')
     return h(Fragment, {},
         large && h(Alert, { severity: 'info' }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
-        large && h(Alert, { severity: 'info' }, "You can force a specific language to load by appending by appending ?lang=CODE to the URL."),
         h(Box, { mt: 1, maxWidth: '40em', flex: 1, display: 'flex', flexDirection: 'column' },
             h(Box, { mb: 1, display: 'flex' },
                 h(Button, { variant: 'contained', startIcon: h(Upload), onClick: add }, "Add"),
