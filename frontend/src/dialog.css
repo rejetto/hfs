@@ -20,6 +20,7 @@
     overflow: hidden;
     max-height: calc(100vh - 2em);
     display: flex;
+    flex-direction: column;
     justify-content: center;
 }
 .dialog-icon {
@@ -34,8 +35,7 @@
 }
 .dialog-title {
     font-size: 120%;
-    position: absolute;  /* avoid moving content down */
-    top: 5px;
+    margin-top: -.4em;
     padding: 0 0.5em; /* avoid reaching margins */
 }
 .dialog-closer ~ .dialog-title {
@@ -87,7 +87,7 @@
 @media (max-width: 42em) {
     .dialog-icon { font-size: 120% }
     .dialog-icon ~ .dialog-content { margin-top: 2.5em; } /* account for larger top icons */
-    .dialog-title { top: 5px; }
+    .dialog-title { margin-top: -.2em; }
 }
 
 .dialog-prompt label {
