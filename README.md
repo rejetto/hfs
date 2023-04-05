@@ -84,15 +84,12 @@ If you want to run HFS as a service
 ## Internationalization
 
 It is possible to show the Front-end in other languages.
-In the Languages section of the Admin-panel you'll be able to install lang files.
-You can find some of these files at https://github.com/rejetto/hfs/tree/main/langs
-Files are named `hfs-lang-CODE.json`, where `CODE` is the ISO code for your language (e.g. pt-br for Brazilian).
-To download a file: open it, right-click on the "Raw" button, Save.
+Translation for some languages is already provided. If you find an error, consider reporting it
+or [editing the source file](https://github.com/rejetto/hfs/tree/main/src/langs). 
+
+In the Languages section of the Admin-panel you can install additional language files.
 
 If your language is missing, please consider [translating yourself](https://github.com/rejetto/hfs/wiki/Translation). 
-
-Translation is applied automatically based on the configuration of the visitor's browser.
-[Check the language configuration of your browser](https://gtranslate.io/detect-browser-language).
 
 ## Plug-ins
 

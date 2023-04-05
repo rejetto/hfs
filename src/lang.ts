@@ -6,7 +6,7 @@ import { watchLoad } from './watchLoad'
 
 const PREFIX = 'hfs-lang-'
 const SUFFIX = '.json'
-const EMBEDDED = 'en'
+const EMBEDDED_LANGUAGE = 'en'
 
 export function code2file(code: string) {
     return PREFIX + code.toLowerCase() + SUFFIX
@@ -25,14 +25,18 @@ export async function getLangData(ctx: Koa.Context) {
     let i = 0
     while (i < langs.length) {
         let k = langs[i] || '' // shut up ts
-        if (!k || k === EMBEDDED) break
+        if (!k || k === EMBEDDED_LANGUAGE) break
         try { ret[k!] = JSON.parse(await readFile(`hfs-lang-${k}.json`, 'utf8')) }
         catch {
-            do { k = k.substring(0, k.lastIndexOf('-'))
-            } while (k && langs.includes(k))
-            if (k) {
-                langs[i] = k // overwrite and retry
-                continue
+            if (k in EMBEDDED_TRANSLATIONS)
+                ret[k] = EMBEDDED_TRANSLATIONS[k as keyof typeof EMBEDDED_TRANSLATIONS]
+            else {
+                do { k = k.substring(0, k.lastIndexOf('-'))
+                } while (k && langs.includes(k))
+                if (k) {
+                    langs[i] = k // overwrite and retry
+                    continue
+                }
             }
         }
         i++
@@ -51,4 +55,19 @@ defineConfig('force_lang', '', v => {
     })
     undo = res.unwatch
 })
+
+
+import lang_it from './langs/hfs-lang-it.json'
+import lang_zh from './langs/hfs-lang-zh.json'
+import lang_ru from './langs/hfs-lang-ru.json'
+import lang_sr from './langs/hfs-lang-sr.json'
+import lang_ko from './langs/hfs-lang-ko.json'
+
+export const EMBEDDED_TRANSLATIONS = {
+    it: lang_it,
+    zh: lang_zh,
+    ru: lang_ru,
+    sr: lang_sr,
+    ko: lang_ko,
+}
 

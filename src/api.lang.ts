@@ -6,7 +6,7 @@ import glob from 'fast-glob'
 import { readFile, rm, writeFile } from 'fs/promises'
 import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './const'
 import { tryJson } from './misc'
-import { code2file, file2code } from './lang'
+import { code2file, EMBEDDED_TRANSLATIONS, file2code } from './lang'
 
 const apis: ApiHandlers = {
 
@@ -22,6 +22,8 @@ const apis: ApiHandlers = {
                     }
                     catch {}
                 }
+                for (const [code, data] of Object.entries(EMBEDDED_TRANSLATIONS))
+                    list.add({ code, embedded: true, ..._.omit(data, 'translate') })
                 list.close()
             }
         })

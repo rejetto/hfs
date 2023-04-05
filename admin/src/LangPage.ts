@@ -22,7 +22,7 @@ export default function LangPage() {
             h(Box, { mb: 1, display: 'flex' },
                 h(Button, { variant: 'contained', startIcon: h(Upload), onClick: add }, "Add"),
                 h(Box, { flex: 1 }),
-                h(ForceLang, { langs: list.map(x => x.code) }),
+                h(ForceLang, { langs: _.uniq(list.map(x => x.code)) }),
             ),
             h(DataGrid, {
                 loading: connecting,
@@ -39,6 +39,10 @@ export default function LangPage() {
                         width: 80,
                     },
                     {
+                        field: 'hfs_version',
+                        headerName: "HFS version",
+                    },
+                    {
                         field: 'author',
                         flex: 1,
                     },
@@ -49,7 +53,7 @@ export default function LangPage() {
                         hideSortIcons: true,
                         disableColumnMenu: true,
                         renderCell({ row }) {
-                            return h('div', {},
+                            return row.embedded ? "Embedded" : h('div', {},
                                 h(IconBtn, {
                                     icon: Delete,
                                     title: "Delete",

@@ -4,7 +4,7 @@
     "hfs_version": "0.42.3",
     "translate": {
         "Select": "선택",
-        "n_files": "{n,개의 파일,{# file} other{# files}}",
+        "n_files": "{n,plural,one{1개의 파일} =2 =3{파일 #개} other{#개 파일}}",
         "n_folders": "{n,개의 폴더,{# folder} other{# folders}}",
         "filter_count": "{n,개, {# filtered} other{# filtered}}",
         "select_count": "{n,개, {# selected} other{# selected}}",
