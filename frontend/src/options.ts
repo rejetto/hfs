@@ -12,6 +12,7 @@ export function showOptions (){
     const options = ['name', 'extension', 'size', 'time']
     const close = newDialog({
         title: t`Options`,
+        className: 'options-dialog',
         icon: () => hIcon('settings'),
         Content
     })

@@ -13,6 +13,7 @@ import { t } from './i18n'
 export default function showUserPanel() {
     newDialog({
         title: t`User panel`,
+        className: 'user-dialog',
         icon: () => hIcon('user'),
         Content() {
             const snap = useSnapState()

@@ -70,7 +70,7 @@ export function showUpload() {
         resetCounters()
     uploadDialogIsOpen = true
     const close = newDialog({
-        dialogProps: { style: { minHeight: '6em', minWidth: 'min(20em, 100vw - 1em)' } },
+        dialogProps: { id: 'upload-dialog', style: { minHeight: '6em', minWidth: 'min(20em, 100vw - 1em)' } },
         title: t`Upload`,
         icon: () => hIcon('upload'),
         Content,
@@ -93,16 +93,23 @@ export function showUpload() {
             h(FlexV, { position: 'sticky', top: -4, background: 'var(--bg)' },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', marginTop: '1em' },
-                        h('button', { onClick: () => pickFiles({ accept: normalizeAccept(accept) }) }, t`Pick files`),
-                        h('button', { onClick: () => pickFiles({ folder: true }) }, t`Pick folder`),
+                        h('button', {
+                            className: 'upload-files',
+                            onClick: () => pickFiles({ accept: normalizeAccept(accept) })
+                        }, t`Pick files`),
+                        h('button', {
+                            className: 'upload-folder',
+                            onClick: () => pickFiles({ folder: true })
+                        }, t`Pick folder`),
                         files.length > 0 &&  h('button', {
+                            className: 'upload-send',
                             onClick() {
                                 enqueue(files)
                                 setFiles([])
                             }
                         }, t('send_files', { n: files.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
                         files.length > 1 && h('button', { onClick() { setFiles([]) } }, t`Clear`),
-                        h('button', { onClick: createFolder }, t`Create folder`),
+                        h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
                     ),
             ),
             h(FilesList, {

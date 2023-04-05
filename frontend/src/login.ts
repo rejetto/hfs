@@ -56,7 +56,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
         if (closeLoginDialog)
             return lastPromise
         const closeDialog = closeLoginDialog = newDialog({
-            className: 'dialog-login',
+            className: 'login-dialog dialog-login',
             icon: () => hIcon('login'),
             onClose(v) {
                 resolve(v)
