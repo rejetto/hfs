@@ -103,7 +103,9 @@
         "upload_file_rejected": "Некоторые файлы не были приняты",
 
         "download counter": "Количество скачиваний",
+
         "File menu": "Меню файла",
+        "Folder menu": "Меню папки",
         "Name": "Имя",
         "file_open": "Открыть",
         "Download": "Скачать",
