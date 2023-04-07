@@ -95,9 +95,9 @@ export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: Win
 }
 
 
-export function findFirst<I=any, O=any>(a: I[], cb:(v:I)=>O): any {
-    for (const x of a) {
-        const ret = cb(x)
+export function findFirst<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string | number)=>O): any {
+    if (a) for (const k in a) {
+        const ret = cb((a as any)[k] as I, k)
         if (ret !== undefined)
             return ret
     }

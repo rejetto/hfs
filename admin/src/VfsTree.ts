@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode, Who } from './VfsPage'
-import { iconTooltip, isWindowsDrive, onlyTruthy, pathJoin, basename } from './misc'
+import { iconTooltip, isWindowsDrive, onlyTruthy } from './misc'
 import { apiCall } from './api'
 import { alertDialog, confirmDialog } from './dialog'
 
@@ -73,7 +73,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                     if (!from) return
                     if (await confirmDialog(`Moving ${from} under ${id}`))
                         apiCall('move_vfs', { from, parent: id }).then(() => {
-                            reloadVfs([ pathJoin(id, basename(from)) ])
+                            reloadVfs([ id + from.slice(1 + from.lastIndexOf('/', from.length-2)) ])
                         }, alertDialog)
                 },
                 sx: {

@@ -93,24 +93,6 @@ export function typedKeys<T extends {}>(o: T) {
     return Object.keys(o) as (keyof T)[]
 }
 
-export function basename(s: string) {
-    let i = s.lastIndexOf('/')
-    if (i < 0)
-        i = s.lastIndexOf('\\')
-    return i < 0 ? s : s.slice(i)
-}
-
-export function isAbsolutePath(s: string) {
-    return s && (s[0] === '/' || isWindowsDrive(s.slice(0,2)))
-}
-
-export function pathJoin(...args: any[]) {
-    const delimiter = findFirst(args, x => /\\|\//.exec('\\a/b')?.[0])
-    const good = onlyTruthy(args.map(x => x == null ? '' : String(x)))
-    return good.map((x, i) => i === good.length-1 || x.endsWith('\\') || x.endsWith('/') ? x : x + delimiter)
-        .join('')
-}
-
 export function xlate(input: any, table: Record<string, any>) {
     return table[input] ?? input
 }
