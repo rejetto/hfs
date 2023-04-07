@@ -17,7 +17,7 @@ type AccountList = string[]
 export type Who = typeof WHO_ANYONE
     | typeof WHO_NO_ONE
     | typeof WHO_ANY_ACCOUNT
-    | AccountList
+    | AccountList // empty array shouldn't be used to keep the type boolean-able
 
 export interface VfsPerm {
     can_read: Who
@@ -166,11 +166,6 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx
 // it's responsibility of the caller to verify you have list permission on parent, as callers have different needs.
 // Too many parameters: consider object, but benchmark against degraded recursion on huge folders.
 export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string='', requiredPerm?: keyof VfsPerm): AsyncIterableIterator<VfsNode> {
-    if (requiredPerm && ctx
-    && !hasPermission(parent, requiredPerm, ctx)
-    && !masksCouldGivePermission(parent.masks))
-        return // no permission, no reason to continue
-
     const { children, source } = parent
     const took = prefixPath ? undefined : new Set()
     if (children)
@@ -188,6 +183,11 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         }
     if (!source)
         return
+    if (requiredPerm && ctx // no permission, no reason to continue (at least for dynamic elements)
+    && !hasPermission(parent, requiredPerm, ctx)
+    && !masksCouldGivePermission(parent.masks, requiredPerm))
+        return
+
     try {
         let lastDir = prefixPath.slice(0, -1) || '.'
         const map = new Map()
