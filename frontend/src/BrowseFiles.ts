@@ -227,12 +227,13 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
         ev.preventDefault()
         const OPEN_ICON = 'play'
         const OPEN_LABEL = t('file_open', "Open")
-        const couldRead = entry.p !== (isFolder ? 'l' : 'r')
+        const couldOpen = !entry.p?.includes(isFolder ? 'l' : 'r')  // to open we need list for folders and read for files
+        const couldDownload = !entry.p?.includes('r') && (!isFolder || !entry.p?.includes('l')) // folders needs list as well
         const menu = [
-            couldRead && menuOnLink
-                && (isFolder ? h(Link, { to: base + uri, onClick: () => close() }, hIcon(OPEN_ICON), OPEN_LABEL)
+            menuOnLink && couldOpen && (
+                isFolder ? h(Link, { to: base + uri, onClick: () => close() }, hIcon(OPEN_ICON), OPEN_LABEL)
                     : { label: OPEN_LABEL, href: uri, target: isFolder ? undefined : '_blank', icon: OPEN_ICON }),
-            couldRead && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+            couldDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
             can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
         ]
         const props = [
@@ -256,7 +257,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                                 : null
                         ))
                     ),
-                    entry.p && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
+                    !couldOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                     h('div', { className: 'file-menu' },
                         dontBotherWithKeys(menu.map((e: any, i) =>
                             isValidElement(e) ? e
@@ -286,7 +287,7 @@ const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
     const dd = '2-digit'
     return h('div', { className: 'entry-props' },
         h(CustomCode, { name: 'additionalEntryProps', props: { entry } }),
-        entry.p && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
+        entry.p?.match(entry.isFolder ? /l/i : /r/i) && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),
         time && h('span', {
             className: 'entry-ts',
