@@ -228,20 +228,13 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         item.isTemp = true
         return item
     }
-
-    function masksCouldGivePermission(masks: Masks | undefined) {
-        if (!masks) return false
-        for (const [,props] of Object.entries(masks)) {
-            const v = props[requiredPerm!]
-            if (v && (!ctx || matchWho(v, ctx))) // without ctx we can't say, so it could
-                return true
-            if (masksCouldGivePermission(props.masks))
-                return true
-        }
-        return false
-    }
-
 }
+
+export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof VfsPerm): boolean {
+    return masks !== undefined && Object.values(masks).some(props =>
+        props[perm] || masksCouldGivePermission(props.masks, perm))
+}
+
 function applyMasks(item: VfsNode, parent: VfsNode, virtualBasename: string) {
     const { masks } = parent
     if (!masks) return

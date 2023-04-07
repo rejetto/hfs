@@ -3,11 +3,13 @@
 import {
     getNodeName,
     hasPermission,
+    masksCouldGivePermission,
     nodeIsDirectory,
     statusCodeForMissingPerm,
     urlToNode,
-    VfsNode, VfsPerm,
-    walkNode, WHO_NO_ONE
+    VfsNode,
+    walkNode,
+    WHO_NO_ONE
 } from './vfs'
 import { ApiError, ApiHandler, SendListReadable } from './apiMiddleware'
 import { stat } from 'fs/promises'
@@ -106,22 +108,27 @@ async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry
         const st = await stat(source)
         const folder = st.isDirectory()
         const { ctime, mtime } = st
+        const pl = node.can_list === WHO_NO_ONE ? 'l'
+            : !hasPermission(node, 'can_list', ctx) ? 'L'
+                : ''
+        // no download here, but maybe inside?
+        const pr = node.can_read === WHO_NO_ONE && !(folder && filesInsideCould()) ? 'r'
+            : !hasPermission(node, 'can_read', ctx) ? 'R'
+                : ''
         return {
             n: name + (folder ? '/' : ''),
             c: ctime,
             m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
             s: folder ? undefined : st.size,
-            p: (['can_read', 'can_list'] as (keyof VfsPerm)[]).map(perm2letter).join('')
-                || undefined
+            p: (pr + pl) || undefined
         }
     }
     catch {
         return null
     }
 
-    function perm2letter(k: keyof VfsPerm) {
-        return node[k] === WHO_NO_ONE ? k[4]!
-            : hasPermission(node, k, ctx) ? ''
-                :  k[4]!.toUpperCase()
+    function filesInsideCould(n: VfsNode=node): boolean | undefined {
+        return masksCouldGivePermission(n.masks, 'can_read')
+            || n.children?.some(c => c.can_read || filesInsideCould(c)) // we count on the boolean-compliant nature of the permission type here
     }
 }
