@@ -5,6 +5,7 @@ import { Done } from 'mocha'
 import { srpSequence } from '@hfs/shared/srp'
 import { createReadStream, rmSync } from 'fs'
 import { join } from 'path'
+import _ from 'lodash'
 /*
 import { PORT, srv } from '../src'
 
@@ -49,10 +50,20 @@ describe('basics', () => {
     it('forbidden list.alternative method', reqList('/cantListPageAlt/page/', 403))
     it('forbidden list.alternative method readable file', req('/cantListPageAlt/page/gpl.png', 200))
 
+    it('cantListBut', reqList('/cantListBut/', 403))
+    it('cantListBut.parent', reqList('/', { permInList: { 'cantListBut/': 'l' } }))
+    it('cantListBut.child masked', reqList('/cantListBut/page', 200))
+
+    it('cantReadBut', reqList('/cantReadBut/', 200))
+    it('cantReadBut.can', req('/cantReadBut/alfa.txt', 200))
+    it('cantReadBut.parent', reqList('/', { permInList: { 'cantReadBut/': '!r' } }))
+    it('cantReadButChild', req('/cantReadButChild/alfa.txt', 401))
+    it('cantReadButChild.parent', reqList('/', { permInList: { 'cantReadButChild/': 'R' } }))
+
     it('cantReadPage', reqList('/cantReadPage/page', 403))
     it('cantReadPage.zip', req('/cantReadPage/page/?get=zip', 403, { method:'HEAD' }))
     it('cantReadPage.file', req('/cantReadPage/page/gpl.png', 403))
-    it('cantReadPage.parent', reqList('/cantReadPage', 200))
+    it('cantReadPage.parent', reqList('/cantReadPage', { permInList: { 'page/': 'lr' } }))
     it('cantReadRealFolder', reqList('/cantReadRealFolder', 403))
     it('cantReadRealFolder.file', req('/cantReadRealFolder/page/gpl.png', 403))
 
@@ -111,8 +122,9 @@ function testUpload(name: string, tester: Tester, path = 'temp/') {
     }))
 }
 
+type TesterFunction = ((data: any, fullResponse: any) => boolean)
 type Tester = number
-    | ((data: any, fullResponse: any) => boolean | Error)
+    | TesterFunction
     | RegExp
     | {
         mime?: string
@@ -120,8 +132,10 @@ type Tester = number
         re?: RegExp
         inList?: string[]
         outList?: string[]
+        permInList?: Record<string, string>
         empty?: true
         length?: number
+        cb?: TesterFunction
     }
 
 function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<any>={}) {
@@ -147,18 +161,25 @@ function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<
             if (typeof test === 'number')
                 test = { status: test }
             if (typeof test === 'object') {
-                const { status, mime, re, inList, outList, length } = test
+                const { status, mime, re, inList, outList, length, permInList } = test
                 const gotMime = res.headers?.['content-type']
                 const gotStatus = (res.status|| res.response.status)
                 const gotLength = res.headers?.['content-length']
-                const err = mime && !gotMime?.startsWith(mime) ? 'expected mime ' + mime + ' got ' + gotMime
-                    : status && gotStatus !== status ? 'expected status ' + status + ' got ' + gotStatus
-                    : re && !(typeof res.data === 'string' && re.test(res.data)) ? 'expected content '+String(re)+' got '+res.data
-                    : inList && !inList.every(x => isInList(res.data, x)) ? 'expected in list '+inList
-                    : outList && !outList.every(x => !isInList(res.data, x)) ? 'expected not in list '+outList
-                    : test.empty && res.data ? 'expected empty body'
-                    : length !== undefined && gotLength !== String(length) ? "expected content-length " + length + " got " + gotLength
-                    : ''
+                const err = mime && !gotMime?.startsWith(mime) && 'expected mime ' + mime + ' got ' + gotMime
+                    || status && gotStatus !== status && 'expected status ' + status + ' got ' + gotStatus
+                    || re && !(typeof res.data === 'string' && re.test(res.data)) && 'expected content '+String(re)+' got '+res.data
+                    || inList && !inList.every(x => isInList(res.data, x)) && 'expected in list '+inList
+                    || outList && !outList.every(x => !isInList(res.data, x)) && 'expected not in list '+outList
+                    || permInList && findFirst(permInList, (v, k) => {
+                        const got = _.find(res.data.list, { n: k })?.p
+                        const negate = v[0] === '!'
+                        return findFirst(v.slice(negate ? 1 : 0).split(''), char =>
+                            got?.includes(char) === negate ? `expected perm ${v} on ${k}, got ${got}` : undefined)
+                    })
+                    || test.empty && res.data && 'expected empty body'
+                    || length !== undefined && gotLength !== String(length) && "expected content-length " + length + " got " + gotLength
+                    || test.cb?.(res.data, res) === false && 'error'
+                    || ''
                 return done(err && Error(err))
             }
             const ok = test(res.data, res)
@@ -181,4 +202,12 @@ function reqList(path:string, tester:Tester, params?: object) {
 
 function isInList(res:any, name:string) {
     return Array.isArray(res?.list) && Boolean((res.list as any[]).find(x => x.n===name))
+}
+
+export function findFirst<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string | number)=>O): any {
+    if (a) for (const k in a) {
+        const ret = cb((a as any)[k] as I, k)
+        if (ret !== undefined)
+            return ret
+    }
 }

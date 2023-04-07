@@ -46,6 +46,25 @@ vfs:
           rename:
             alfa.txt: renamed1
             page/gpl.png: renamed2
+    - name: cantListBut
+      source: tests
+      can_list: false
+      masks:
+        "*":
+          can_list: true
+    - name: cantReadBut
+      source: tests
+      can_read: false
+      masks:
+        "*":
+          can_read: true
+    - name: cantReadButChild
+      source: tests
+      can_read: false
+      children:
+        - source: tests/alfa.txt
+          can_read:
+            - rejetto
     - name: cantListPage
       source: tests
       masks:
