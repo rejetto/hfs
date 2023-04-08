@@ -78,7 +78,7 @@ Currently, these properties are supported:
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
 - `frontend: boolean` expose this setting on the frontend, so that javascript can access it as
-   `HFS.plugins[PLUGIN_NAME][CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`
+   `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`
 
 Based on `type`, other properties are supported:
 - `string`
@@ -228,6 +228,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 - 8 (v0.43.0)
   - entry.name & .uri
   - tools.dialogLib
+  - HFS.getPluginConfig()
 - 7 (v0.42.0)
   - event.fileMenu
   - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,

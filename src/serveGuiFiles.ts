@@ -75,10 +75,6 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const isFrontend = filesUri === FRONTEND_URI
 
     const pub = ctx.state.revProxyPath + PLUGINS_PUB_URI
-    const css = mapPlugins((plug,k) =>
-        (isFrontend ? plug.frontend_css : null)?.map(f => pub + k + '/' + f)).flat().filter(Boolean)
-    const js = mapPlugins((plug,k) =>
-        (isFrontend ? plug.frontend_js : null)?.map(f => pub + k + '/' + f)).flat().filter(Boolean)
 
     // expose plugins' configs that are declared with 'frontend' attribute
     const plugins = Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
@@ -112,6 +108,9 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
             }, null, 4)
             .replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
+            HFS.getPluginKey = () => document.currentScript?.getAttribute('plugin')
+                || console.error("this function must be called at the very top of your file")
+            HFS.getPluginConfig = () => HFS.plugins[HFS.getPluginKey()]
             </script>
             <style>
             :root {
@@ -119,8 +118,14 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     _.map(configs, (v,k) => `--${pluginName}-${k}: ${serializeCss(v)};`).join('\n')).join('')}
             }
             </style>
-            ${css.map(uri => `<link rel='stylesheet' type='text/css' href='${uri}'/>`).join('\n')}
-            ${js.map(uri => `<script defer src='${uri}'></script>`).join('\n')}
+            ${!isFrontend ? '' : mapPlugins((plug,k) =>
+                plug.frontend_css?.map(f => 
+                    `<link rel='stylesheet' type='text/css' href='${pub + k + '/' + f}' plugin=${JSON.stringify(k)}/>`))
+                .flat().filter(Boolean).join('\n')}
+            ${!isFrontend ? '' : mapPlugins((plug,k) =>
+                plug.frontend_js?.map(f => 
+                    `<script defer plugin=${JSON.stringify(k)} src='${pub + k + '/' + f}'></script>`))
+                .flat().filter(Boolean).join('\n')}
         </head>`)
     if (isFrontend)
         ret = ret

@@ -1,6 +1,6 @@
 exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
 exports.version = 4 // config.where
-exports.apiRequired = 6
+exports.apiRequired = 8
 
 exports.config = {
     where: { frontend: true, type: 'select', options: ['list', 'menu'] }
