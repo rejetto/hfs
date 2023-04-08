@@ -5,9 +5,9 @@
     "translate": {
         "Select": "선택",
         "n_files": "{n,plural,one{1개의 파일} =2 =3{파일 #개} other{#개 파일}}",
-        "n_folders": "{n,개의 폴더,{# folder} other{# folders}}",
-        "filter_count": "{n,개, {# filtered} other{# filtered}}",
-        "select_count": "{n,개, {# selected} other{# selected}}",
+        "n_folders": "{n,plural,one{1 폴더} =2 =3 =4 {#개의 폴더} other{#개 폴더}",
+        "filter_count": "{n}개 통과",
+        "select_count": "{n}선정",
         "filter_placeholder": "아래 목록을 필터링하려면 여기에 입력하세요.",
         "Select some files": "파일선택",
         "zip_checkboxes": "파일을 선택한 후 압축하기를 클릭해 주세요.",
