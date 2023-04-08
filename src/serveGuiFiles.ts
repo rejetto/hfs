@@ -53,8 +53,6 @@ function serveStatic(uri: string): Koa.Middleware {
             return serveFile(ctx, fullPath, 'auto', content)
         // we don't cache the index as it's small and may prevent plugins change to apply
         ctx.body = await treatIndex(ctx, uri, String(content))
-        ctx.type = 'html'
-        ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     }
 }
 
@@ -71,6 +69,8 @@ function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer
 async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const session = await refresh_session({}, ctx)
     ctx.set('etag', '')
+    ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
+    ctx.type = 'html'
 
     const isFrontend = filesUri === FRONTEND_URI
 
