@@ -22,7 +22,7 @@ export function Breadcrumbs() {
                 key: path,
                 path,
                 label,
-                current: path === currentPath+'/',
+                current: path.slice(1,-1) === currentPath,
             }) )
     )
 }
