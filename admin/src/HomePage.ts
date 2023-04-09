@@ -12,6 +12,8 @@ import { isCertError, isKeyError, makeCertAndSave } from './OptionsPage'
 import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 
+export const REPO_URL = 'https://github.com/rejetto/hfs/'
+
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
 export default function HomePage() {
@@ -54,20 +56,23 @@ export default function HomePage() {
             SOLUTION_SEP, h(InLink, { to:'accounts' }, md("to access from another computer create an account with /admin/ permission")) ),
         proxyWarning(cfg, status) && entry('warning', "A proxy was detected but none is configured",
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
-                SOLUTION_SEP, "unless you are sure you can ", h(Button, {
+                SOLUTION_SEP, "unless you are sure and you can ", h(Button, {
+                    size: 'small',
                     async onClick() {
                         if (await confirmDialog("Go on only if you know what you are doing")
                         && await apiCall('set_config', { values: { ignore_proxies: true } }))
                             reloadCfg()
                     }
-                }, "ignore this warning")),
+                }, "ignore this warning"),
+                SOLUTION_SEP, h(Link, { target: 'help', href: REPO_URL + 'wiki/Proxy-warning' }, "Explanation")
+        ),
         status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
             h('ol',{},
                 h('li',{}, `configure FRP with type=http (best solution)`),
                 h('li',{}, md(`configure FRP to connect to HFS _not_ with 127.0.0.1 (safe, but you won't see users' IPs)`)),
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
             )),
-        entry('', h(Link, { target: 'support', href: 'https://github.com/rejetto/hfs/discussions' }, "Get support")),
+        entry('', h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "Get support")),
     )
 }
 
