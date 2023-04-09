@@ -22,7 +22,7 @@ export default function HomePage() {
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Dict<ServerStatus>>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const [account] = useApi<Account>(username && 'get_account')
-    const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
+    const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies'] })
     const { list: plugins } = useApiList('get_plugins')
     if (statusEl || !status)
         return statusEl
@@ -98,5 +98,5 @@ function cfgLink(text=`Options page`) {
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return cfg && !cfg.proxies && !cfg.ignore_proxies && status?.proxyDetected
+    return cfg && !cfg.proxies && status?.proxyDetected
 }

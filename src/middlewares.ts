@@ -4,11 +4,11 @@ import compress from 'koa-compress'
 import Koa from 'koa'
 import session from 'koa-session'
 import {
-    ADMIN_URI,
+    ADMIN_URI, API_URI,
     BUILD_TIMESTAMP,
-    DEV,
+    DEV, DAY,
     SESSION_DURATION,
-    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, API_URI,
+    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs } from './vfs'
@@ -34,6 +34,7 @@ import { getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
 
 const forceHttps = defineConfig('force_https', true)
+const ignoreProxies = defineConfig('ignore_proxies', false)
 
 export const gzipper = compress({
     threshold: 2048,
@@ -148,20 +149,21 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         : serveFrontendFiles(ctx, next)
 }
 
-let proxyDetected = false
+let proxyDetected: undefined | Koa.Context
 export const someSecurity: Koa.Middleware = async (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
     try {
-        let proxy = ctx.get('X-Forwarded-For')
-        // we have some dev-proxies to ignore
-        if (DEV && proxy && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))
-            proxy = ''
         if (dirTraversal(decodeURI(ctx.path)))
             return ctx.status = HTTP_FOOL
         if (applyBlock(ctx.socket, ctx.ip))
             return
-        proxyDetected ||= proxy > ''
-        ctx.state.proxiedFor = proxy
+
+        if (!ctx.ips.length && ctx.get('X-Forwarded-For') // empty ctx.ips implies we didn't configure for proxies
+        // we have some dev-proxies to ignore
+        && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
+            proxyDetected = ctx
+            ctx.state.when = new Date()
+        }
     }
     catch {
         return ctx.status = HTTP_FOOL
@@ -169,9 +171,12 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     return next()
 }
 
-// this is only about http proxies
+// limited to http proxies
 export function getProxyDetected() {
-    return proxyDetected
+    if (proxyDetected?.state.when < Date.now() - DAY)
+        proxyDetected = undefined
+    return !ignoreProxies.get() && proxyDetected
+        && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
 }
 export const prepareState: Koa.Middleware = async (ctx, next) => {
     // calculate these once and for all
