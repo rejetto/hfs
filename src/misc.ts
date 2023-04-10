@@ -180,12 +180,12 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
 }
 
 export function makeMatcher(mask: string, emptyMaskReturns=false) {
-    return mask ? matcher('(' + mask + ')') // adding () will allow us to use the pipe at root level
+    return mask ? matcher(mask.replace(/^(!)?/, '$1(') + ')') // adding () will allow us to use the pipe at root level
         : () => emptyMaskReturns
 }
 
 export function matches(s: string, mask: string, emptyMaskReturns=false) {
-    return makeMatcher('(' + mask + ')', emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
+    return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
 }
 
 export function same(a: any, b: any) {

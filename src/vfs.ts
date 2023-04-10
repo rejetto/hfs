@@ -251,14 +251,14 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
     const { masks } = parent
     if (!masks) return
     const o: Masks = {}
-    for (const [k,v] of Object.entries(masks))
-        if (k.startsWith('**')) {
+    for (const [k,v] of Object.entries(masks)) {
+        const neg = k[0] === '!' && k[1] !== '(' ? '!' : ''
+        const withoutNeg = neg ? k.slice(1) : k
+        if (withoutNeg.startsWith('**'))
             o[k] = v
-            if (k[3] === '/' )
-                o[k.slice(3)] = v
-        }
-        else if (k.startsWith(virtualBasename+'/'))
-            o[k.slice(virtualBasename.length+1)] = v
+        else if (withoutNeg.startsWith(virtualBasename + '/'))
+            o[neg + withoutNeg.slice(virtualBasename.length + 1)] = v
+    }
     if (Object.keys(o).length)
         item.masks = _.defaults(item.masks, o)
 }

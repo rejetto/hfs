@@ -3,7 +3,7 @@ vfs:
   mime:
     "*": auto
   masks:
-    tests/page/*.html:
+    "!tests/page/*.png":
       mime: text/plain
     protectFromAbove/child/*.txt:
       can_read: false
