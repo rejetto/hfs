@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Box, Button, FormHelperText, Link } from '@mui/material';
-import { createElement as h, useEffect, useRef } from 'react';
+import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApi, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh, Warning } from '@mui/icons-material'
@@ -18,7 +18,7 @@ import {
 } from '@hfs/mui-grid-form';
 import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
-import { proxyWarning } from './HomePage'
+import { proxyWarning, REPO_URL } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 
@@ -141,7 +141,7 @@ export default function OptionsPage() {
             { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
-                helperText: "IP address of browser machine. Wildcards supported."
+                helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
             },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
@@ -274,9 +274,13 @@ function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
             placeholder: 'example.com',
             onChange,
             error,
-            helperText: "Wildcards supported"
+            helperText: h(WildcardsSupported)
         })
     )
+}
+
+function WildcardsSupported() {
+    return h(Link, { target: 'help', href: REPO_URL + 'wiki/Wildcards' }, "Wildcards supported")
 }
 
 function suggestMakingCert() {
