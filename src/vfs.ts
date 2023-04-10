@@ -2,7 +2,7 @@
 
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
-import { matches, dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys } from './misc'
+import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys, makeMatcher } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
@@ -96,7 +96,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         isTemp: true,
     }
     inheritMasks(ret, parent, name)
-    applyMasks(ret, parent, name)
+    parentMaskApplier(parent)(ret, name)
     inheritFromParent(parent, ret)
     if (child)  // yes
         return urlToNode(rest, ctx, ret, getRest)
@@ -171,6 +171,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx
 export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string='', requiredPerm?: keyof VfsPerm): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
     const took = prefixPath ? undefined : new Set()
+    const maskApplier = parentMaskApplier(parent)
     if (children)
         for (const child of children) {
             const nodeName = getNodeName(child)
@@ -225,7 +226,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
     // item will be changed, so be sure to pass a temp node
      function canSee(item: VfsNode) {
          // we basename for depth>0 where we already have the rest of the path in the parent's url, and would be duplicated
-        applyMasks(item, parent, basename(getNodeName(item)))
+        maskApplier(item, basename(getNodeName(item)))
         inheritFromParent(parent, item)
         if (ctx && !hasPermission(item, 'can_see', ctx)) return
         item.isTemp = true
@@ -238,13 +239,18 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
         props[perm] || masksCouldGivePermission(props.masks, perm))
 }
 
-function applyMasks(item: VfsNode, parent: VfsNode, virtualBasename: string) {
-    const { masks } = parent
-    if (!masks) return
-    for (const [k,v] of Object.entries(masks))
-        if (k.startsWith('**/') && matches(virtualBasename, k.slice(3))
-        || !k.includes('/') && matches(virtualBasename, k))
-            _.defaults(item, v)
+function parentMaskApplier(parent: VfsNode) {
+    const matchers = Object.entries(parent.masks || {}).map(([k, v]) => {
+        k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : ''
+        if (!k) return
+        const m = makeMatcher(k)
+        return [m, v] as [typeof m, typeof v]
+    })
+    return (item: VfsNode, virtualBasename: string) => {
+        for (const entry of matchers)
+            if (entry?.[0]?.(virtualBasename))
+                _.defaults(item, entry[1])
+    }
 }
 
 function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
