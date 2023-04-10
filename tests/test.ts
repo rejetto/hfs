@@ -48,7 +48,7 @@ describe('basics', () => {
     it('forbidden list.cant see', reqList('/cantListPage/', { outList:['page/'] }))
     it('forbidden list.but readable file', req('/cantListPage/page/gpl.png', 200))
     it('forbidden list.alternative method', reqList('/cantListPageAlt/page/', 403))
-    it('forbidden list.alternative method readable file', req('/cantListPageAlt/page/gpl.png', 200))
+    it('forbidden list.match **', req('/cantListPageAlt/page/gpl.png', 401))
 
     it('cantListBut', reqList('/cantListBut/', 403))
     it('cantListBut.parent', reqList('/', { permInList: { 'cantListBut/': 'l' } }))

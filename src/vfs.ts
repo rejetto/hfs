@@ -54,8 +54,11 @@ export const defaultPerms: VfsPerm = {
 export const MIME_AUTO = 'auto'
 
 function inheritFromParent(parent: VfsNode, child: VfsNode) {
-    for (const k of typedKeys(defaultPerms))
-        child[k] ??= parent[k]
+    for (const k of typedKeys(defaultPerms)) {
+        const v = parent[k]
+        if (v !== undefined)  // small optimization: don't expand the object
+            child[k] ??= v
+    }
     if (typeof parent.mime === 'object' && typeof child.mime === 'object')
         _.defaults(child.mime, parent.mime)
     else
@@ -249,8 +252,11 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
     if (!masks) return
     const o: Masks = {}
     for (const [k,v] of Object.entries(masks))
-        if (k.startsWith('**/'))
-            o[k.slice(3)] = v
+        if (k.startsWith('**')) {
+            o[k] = v
+            if (k[3] === '/' )
+                o[k.slice(3)] = v
+        }
         else if (k.startsWith(virtualBasename+'/'))
             o[k.slice(virtualBasename.length+1)] = v
     if (Object.keys(o).length)

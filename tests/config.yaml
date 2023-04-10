@@ -78,6 +78,9 @@ vfs:
           can_see: false
         "**/*":
           can_list: false
+        "**.png":
+          can_read:
+            - rejetto
     - name: cantReadPage
       source: tests
       masks:
