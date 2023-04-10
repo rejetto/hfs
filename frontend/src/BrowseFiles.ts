@@ -184,8 +184,11 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
     const base = usePath()
     const [menuBtn, setMenuBtn] = useState(false)
     const { showFilter, selected, can_delete } = useSnapState()
+    const cantOpen = entry.p?.includes(isFolder ? 'l' : 'r')  // to open we need list for folders and read for files
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     let className = isFolder ? 'folder' : 'file'
+    if (cantOpen)
+        className += ' cant-open'
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = hIcon(isFolder ? 'folder' : 'file')
@@ -214,7 +217,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                 containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, pathDecode(containerDir) ),
                 h('a', { href: uri, onClick }, !containerDir && ico, name)
             ),
-        h(CustomCode, { name: 'afterEntryName', props: { entry } }),
+        h(CustomCode, { name: 'afterEntryName', props: { entry, cantOpen } }),
         h('div', { className: 'entry-panel' },
             h(EntryProps, entry),
             (!menuOnLink || isFolder && mobile) && h('button', { className: 'file-menu-button', onClick: openFileMenu }, hIcon('menu')),
@@ -225,15 +228,14 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
     function openFileMenu(ev: MouseEvent) {
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
+        const cantDownload = cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
         const OPEN_ICON = 'play'
         const OPEN_LABEL = t('file_open', "Open")
-        const couldOpen = !entry.p?.includes(isFolder ? 'l' : 'r')  // to open we need list for folders and read for files
-        const couldDownload = !entry.p?.includes('r') && (!isFolder || !entry.p?.includes('l')) // folders needs list as well
         const menu = [
-            menuOnLink && couldOpen && (
+            menuOnLink && !cantOpen && (
                 isFolder ? h(Link, { to: base + uri, onClick: () => close() }, hIcon(OPEN_ICON), OPEN_LABEL)
                     : { label: OPEN_LABEL, href: uri, target: isFolder ? undefined : '_blank', icon: OPEN_ICON }),
-            couldDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+            !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
             can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
         ]
         const props = [
@@ -257,7 +259,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                                 : null
                         ))
                     ),
-                    !couldOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
+                    !cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                     h('div', { className: 'file-menu' },
                         dontBotherWithKeys(menu.map((e: any, i) =>
                             isValidElement(e) ? e

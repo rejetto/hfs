@@ -185,7 +185,7 @@ This is a list of available frontend-events, with respective object parameter an
     - output `Html`
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - parameter `{ entry: Entry, cantOpen: boolean }` (refer above for Entry object)
     - output `Html`
 - `beforeHeader` & `afterHeader`
     - use this to produce content that should go right before/after the `header` part
@@ -225,6 +225,8 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 ## API version history
 
+- 8.1 (v0.44.0)
+  - afterEntryname.cantOpen
 - 8 (v0.43.0)
   - entry.name & .uri
   - tools.dialogLib
