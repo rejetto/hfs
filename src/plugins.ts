@@ -226,7 +226,8 @@ export async function rescan() {
         if (found.includes(id)) // not twice
             continue
         found.push(id)
-        loadPlugin(id, f)
+        if (!plugins[id]) // already loaded
+            loadPlugin(id, f)
     }
     for (const [id,p] of Object.entries(foundDisabled)) {
         const a = availablePlugins[id]

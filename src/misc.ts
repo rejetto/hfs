@@ -11,7 +11,7 @@ export * from './util-generators'
 export * from './util-files'
 import debounceAsync from './debounceAsync'
 import { Readable } from 'stream'
-import { isMatch, matcher } from 'micromatch'
+import { matcher } from 'micromatch'
 import cidr from 'cidr-tools'
 export { debounceAsync }
 
