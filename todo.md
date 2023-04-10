@@ -1,5 +1,4 @@
 # To do
-- log filter option (skip localhost by default)
 - blacklist of plugins (as a temporary measure until GitHub's intervention)
 - admin: warn in case of items with same name
 - frontend search supporting masks

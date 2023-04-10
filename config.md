@@ -7,6 +7,7 @@ This file contains details the configuration files.
 - `log_rotation` frequency of log rotation. Accepted values are `daily`, `weekly`, `monthly`, or empty string to disable. Default is `weekly`.
 - `error_log` path of the log file for errors. Default is `error.log`.
 - `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
+- `dont_log_net` don't include in log entries if IP matches this network mask. Default is `127.0.0.1|::1`.
 - `accounts` list of accounts. For details see the dedicated following section.
 - `mime` command what mime-type to be returned with some files.
   E.g.: `"*.jpg": image/jpeg`

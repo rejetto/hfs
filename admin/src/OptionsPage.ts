@@ -125,9 +125,14 @@ export default function OptionsPage() {
             { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
                 helperText: "The icon associated to your website" },
             { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
-            { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log", helperText: "If you want errors in a different log" },
-            { k: 'log_rotation', comp: SelectField, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
-                helperText: "To avoid an endlessly-growing single log file"
+            { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log",
+                helperText: "If you want errors in a different log"
+            },
+            { k: 'log_rotation', comp: SelectField, md: 3, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
+                helperText: "To keep log-files smaller"
+            },
+            { k: 'dont_log_net', comp: NetmaskField, label: "Don't log address", md: 3, placeholder: "no exception",
+                helperText: h(WildcardsSupported)
             },
             { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, label: "How many HTTP proxies between this server and users?",
                 error: proxyWarning(values, status),
