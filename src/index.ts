@@ -4,7 +4,7 @@
 import Koa from 'koa'
 import mount from 'koa-mount'
 import { apiMiddleware } from './apiMiddleware'
-import { API_URI, DEV } from './const'
+import { API_URI, DEV, SESSION_DURATION } from './const'
 import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
@@ -12,7 +12,6 @@ import { throttler } from './throttler'
 import {
     headRequests,
     gzipper,
-    sessions,
     serveGuiAndSharedFiles,
     someSecurity,
     prepareState,
@@ -25,13 +24,14 @@ import { defineConfig } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
 import { randomId } from './misc'
+import session from 'koa-session'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints
 
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',') || [randomId(30)]
 export const app = new Koa({ keys })
 app.use(someSecurity)
-    .use(sessions(app))
+    .use(session({ key: 'hfs_$id', signed: true, rolling: true, maxAge: SESSION_DURATION }, app))
     .use(prepareState)
     .use(headRequests)
     .use(log())

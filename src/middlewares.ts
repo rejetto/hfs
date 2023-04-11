@@ -2,12 +2,10 @@
 
 import compress from 'koa-compress'
 import Koa from 'koa'
-import session from 'koa-session'
 import {
     ADMIN_URI, API_URI,
     BUILD_TIMESTAMP,
     DEV, DAY,
-    SESSION_DURATION,
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL,
 } from './const'
 import { FRONTEND_URI } from './const'
@@ -59,13 +57,6 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
     if (length)
         ctx.response.length = length
 }
-
-export const sessions = (app: Koa) => session({
-    key: 'hfs_$id',
-    signed: true,
-    rolling: true,
-    maxAge: SESSION_DURATION,
-}, app)
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
