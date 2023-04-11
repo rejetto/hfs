@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
 import { reloadList } from './useFetchList'
+import { CustomCode } from './components'
 
 async function login(username:string, password:string) {
     const stopWorking = working()
@@ -76,6 +77,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                         go()
                     }
                 },
+                    h(CustomCode, { name: 'beforeLogin' }),
                     h('div', { className: 'field' },
                         h('label', { htmlFor: 'username' }, t`Username`),
                         h('input', {

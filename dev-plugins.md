@@ -190,6 +190,9 @@ This is a list of available frontend-events, with respective object parameter an
 - `beforeHeader` & `afterHeader`
     - use this to produce content that should go right before/after the `header` part
     - output `Html`
+- `beforeLogin`
+    - no parameter
+    - output `Html`
 - `fileMenu`
     - add your entries to the menu.
     - parameter `{ entry: Entry, menu: FileMenuEntry[], props: FileMenuProp[] }`
