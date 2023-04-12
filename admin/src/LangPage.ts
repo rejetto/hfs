@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useEffect, useState } from 'react';
+import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
 import { apiCall, useApiEx, useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
 import { Alert, Box, Button } from '@mui/material'
@@ -12,16 +12,15 @@ import { Field, SelectField } from '@hfs/mui-grid-form';
 
 export default function LangPage() {
     const { list, error, connecting, reload } = useApiList('list_langs', undefined, { addId: true })
-    if (error)
-        return error
+    const langs = useMemo(() => ['en', ..._.uniq(list.map(x => x.code))], [list])
     const large = useBreakpoint('md')
-    return h(Fragment, {},
+    return error || h(Fragment, {},
         large && h(Alert, { severity: 'info' }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
         h(Box, { mt: 1, maxWidth: '40em', flex: 1, display: 'flex', flexDirection: 'column' },
             h(Box, { mb: 1, display: 'flex' },
                 h(Button, { variant: 'contained', startIcon: h(Upload), onClick: add }, "Add"),
                 h(Box, { flex: 1 }),
-                h(ForceLang, { langs: _.uniq(list.map(x => x.code)) }),
+                h(ForceLang, { langs }),
             ),
             h(DataGrid, {
                 loading: connecting,

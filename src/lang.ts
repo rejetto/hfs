@@ -17,10 +17,11 @@ export function file2code(fn: string) {
 }
 
 export async function getLangData(ctx: Koa.Context) {
-    if (forceLangData)
+    const param = String(ctx.query.lang || '')
+    if (!param && forceLangData)
         return forceLangData
     const ret: any = {}
-    const csv = String(ctx.query.lang||'') || ctx.get('Accept-Language') || ''
+    const csv = param || ctx.get('Accept-Language') || ''
     const langs = wantArray(csv.split(',').map(x => x.toLowerCase()))
     let i = 0
     while (i < langs.length) {
@@ -48,8 +49,9 @@ let forceLangData: any
 let undo: any
 defineConfig('force_lang', '', v => {
     undo?.()
-    forceLangData = undefined
-    if (!v) return
+    if (!v)
+        return forceLangData = undefined
+    forceLangData = {} // necessary to make the embedded language work
     const res = watchLoad(code2file(v), data => {
         forceLangData = { [v]: JSON.parse(data) }
     })
