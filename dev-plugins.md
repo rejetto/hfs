@@ -142,25 +142,32 @@ Each plug-in can have a `public` folder, and its files will be accessible at `/~
 
 The following information applies to the default front-end, and may not apply to a custom one.
 
-### Javascript
 Once your script is loaded into the frontend (via `frontend_js`), you will have access to the `HFS` object in the global scope.
+
+The HFS objects contains many properties:
+- `onEvent` this is the main API function inside the frontend. Refer to dedicated section below.  
+- `apiCall`
+- `reloadList`
+- `logout`
+- `state` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
+- `React` whole React object, as for `require('react')` (JSX syntax is not supported here)
+- `h` shortcut for React.createElement
+- `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
+- `_` [lodash library](https://lodash.com/docs/)
+
+### Front-end API events
 
 API at this level is done with frontend-events, that you can handle by calling
 
 ```typescript
 HFS.onEvent(eventName, callback)
 
-//type callback = (parameters: object, tools: object) => any
+//type callback = (parameters: object, HFS: object) => any
 ``` 
 
 Parameters of your callback and meaning of returned value varies with the event name.
 Refer to the specific event for further information.
-Tools are extra data and functions to help you:
-- `React` whole React object, as for `require('react')` (JSX syntax is not supported here)
-- `h` shortcut for React.createElement
-- `state` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
-- `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
-- `_` [lodash library](https://lodash.com/docs/)
+HFS object is the same you access globally. Here just for legacy, consider it deprecated.
 
 Some frontend-events can return Html, which can be expressed in several ways
 - as string, containing markup
@@ -230,6 +237,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 - 8.1 (v0.44.0)
   - afterEntryname.cantOpen
+  - HFS.apiCall, reloadList, logout
 - 8 (v0.43.0)
   - entry.name & .uri
   - tools.dialogLib

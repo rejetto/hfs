@@ -9,6 +9,9 @@ import { state } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
 import _ from 'lodash'
+import { apiCall } from './api'
+import { reloadList } from './useFetchList'
+import { logout } from './login'
 export * from '@hfs/shared'
 
 export const ERRORS: Record<number, string> = {
@@ -55,9 +58,10 @@ export function hfsEvent(name: string, params?:Dict) {
     return output
 }
 
+const tools = { h, React, state, t, _, dialogLib, apiCall, reloadList, logout }
 Object.assign((window as any).HFS ||= {}, {
+    ...tools,
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
-        const tools = { h, React, state, t, _, dialogLib }
         const key = 'hfs.' + name
         document.addEventListener(key, wrapper)
         return () => document.removeEventListener(key, wrapper)
