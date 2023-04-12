@@ -22,6 +22,7 @@ export default function showUserPanel() {
                 h(MenuButton, {
                     icon: 'password',
                     label: t`Change password`,
+                    id: 'change-password',
                     onClickAnimation: false,
                     async onClick() {
                         const pwd = await promptDialog(t('enter_pass', "Enter new password"), { type: 'password' })
@@ -48,6 +49,7 @@ export default function showUserPanel() {
                 h(MenuButton, {
                     icon: 'logout',
                     label: t`Logout`,
+                    id: 'logout',
                     onClick() {
                         logout().then(closeDialog, alertDialog)
                     }
