@@ -32,10 +32,6 @@ export function ErrorMsg({ err }: { err: Error | string | undefined }) {
         : null
 }
 
-export function isMobile() {
-    return window.innerWidth < 800
-}
-
 let isWorking = false // we want the 'working' thing to be singleton
 export function working() {
     if (isWorking)

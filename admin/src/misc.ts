@@ -7,7 +7,7 @@ import { SxProps } from '@mui/system'
 import { Refresh, SvgIconComponent } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { apiCall } from './api'
-import { findFirst, formatPerc, onlyTruthy, useStateMounted } from '@hfs/shared'
+import { formatPerc, useStateMounted } from '@hfs/shared'
 export * from '@hfs/shared'
 
 export function spinner() {
@@ -131,4 +131,16 @@ export function IconProgress({ icon, progress, sx }: { icon: SvgIconComponent, p
             }),
         }),
     )
+}
+
+export function Flex({ gap='.8em', vert=false, children=null, props={}, ...rest }) {
+    return h(Box, {
+        sx: {
+            display: 'flex',
+            gap,
+            flexDirection: vert ? 'column' : undefined,
+            ...rest,
+        },
+        ...props
+    }, children)
 }

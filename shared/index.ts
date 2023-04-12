@@ -152,3 +152,7 @@ export function pendingPromise<T>() {
         takeOut = { resolve, reject })
     return Object.assign(ret, takeOut) as PendingPromise<T>
 }
+
+export function isMobile() {
+    return window.innerWidth < 800
+}

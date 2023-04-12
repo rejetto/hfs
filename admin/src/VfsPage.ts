@@ -21,7 +21,7 @@ import { AlertProps } from '@mui/material/Alert/Alert'
 import FileForm from './FileForm'
 import { Close, Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
-import { Flex } from '@hfs/frontend/src/components'
+import { Flex } from './misc'
 
 let selectOnReload: string[] | undefined
 

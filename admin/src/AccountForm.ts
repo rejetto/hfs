@@ -9,7 +9,7 @@ import { IconBtn, isEqualLax, modifiedSx } from './misc'
 import { Account, account2icon } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { Delete } from '@mui/icons-material'
-import { isMobile } from '@hfs/frontend/src/misc'
+import { isMobile } from './misc'
 
 interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
 export default function AccountForm({ account, done, groups, addToBar, reload }: FormProps) {
