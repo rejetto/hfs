@@ -3,7 +3,9 @@ exports.version = 4 // config.where
 exports.apiRequired = 8
 
 exports.config = {
-    where: { frontend: true, type: 'select', options: ['list', 'menu'] }
+    where: { frontend: true, type: 'select', defaultValue: 'menu',
+        options: ['list', { value: 'menu', label: "file menu" }],
+    }
 }
 exports.configDialog = {
     sx: { maxWidth: '20em' },
