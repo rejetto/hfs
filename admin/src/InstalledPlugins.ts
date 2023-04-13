@@ -2,10 +2,10 @@
 
 import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment } from 'react'
-import { Alert, Box, Tooltip } from '@mui/material'
+import { Alert, Box, Link, Tooltip } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import { Delete, Error, GitHub, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { IconBtn, xlate } from './misc'
+import { IconBtn, prefix, xlate } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
@@ -32,11 +32,15 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 flex: .3,
                 minWidth: 150,
                 renderCell({ row, value }) {
-                    return h(Fragment, {},
+                    const href = prefix('https://github.com/', row.repo)
+                    const children = [
+                        typeof row.badApi === 'string' && h(Tooltip, {
+                            title: row.badApi,
+                            children: h(Error, { fontSize: 'small', color: 'warning', sx: { ml: -.5, mr: .5 } })
+                        }),
                         value,
-                        typeof row.badApi === 'string' && h(Tooltip, { title: row.badApi, children: h(Error, { color: 'warning', sx: { ml: 1 } }) }),
-                        repoLink(row.repo),
-                    )
+                    ]
+                    return !href ? children : h(Link, { href, target: 'plugin' }, ...children)
                 }
             },
             {
