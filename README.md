@@ -163,6 +163,13 @@ This is enough, but you may want to configure generated links accordingly:
 - click the change button (right side of the field)
 - enter the final URL of your proxy including the location
 
+## Security
+
+While this project focuses on ease of use, we care about security.
+- HTTPS support
+- Passwords are not saved, and user password is safe even logging in without https thanks to [SRP](https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol)
+- Automated tests ran on every release 
+
 ## Hidden features
 
 - Appending `#LOGIN` to address will bring up the login dialog
