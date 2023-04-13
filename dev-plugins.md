@@ -162,7 +162,7 @@ API at this level is done with frontend-events, that you can handle by calling
 ```typescript
 HFS.onEvent(eventName, callback)
 
-//type callback = (parameters: object, HFS: object) => any
+//type callback = (parameters: object) => any
 ``` 
 
 Parameters of your callback and meaning of returned value varies with the event name.
@@ -239,7 +239,8 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 - 8.1 (v0.44.0)
   - entry.cantOpen
-  - HFS.apiCall, reloadList, logout
+  - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib
+  - second parameter of onEvent is now deprecated
 - 8 (v0.43.0)
   - entry.name & .uri
   - tools.dialogLib
