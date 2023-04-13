@@ -139,6 +139,21 @@ an *env* called `HFS_CONFIG`. Any relative path provided is relative to the *cwd
 
 [Check details about config file format](https://github.com/rejetto/hfs/blob/main/config.md). 
 
+## Security
+
+While this project focuses on ease of use, we care about security.
+- HTTPS support
+- Passwords are not saved, and user password is safe even logging in without https thanks to [SRP](https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol)
+- Automated tests ran on every release, including libraries audit
+- No default admin password
+
+Some actions you can take for improved security:
+- use https, better if using a proper certificate, even free with [Letsencrypt](https://letsencrypt.org/).
+- have a domain (ddns is ok too), start vhosting plugin, configure your domain, enable "Block requests that are not using any of the domains above"
+- install/start rejetto/antidos plugin. Tweak configuration if necessary.
+- start antibrute plugin (it's started by default)
+- disable "unprotected admin on localhost"
+
 ## Reverse proxy
 
 HFS can work behind a reverse proxy. Configuration depends on what software you use, but this is an example using nginx
