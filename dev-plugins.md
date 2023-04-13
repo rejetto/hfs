@@ -189,10 +189,12 @@ This is a list of available frontend-events, with respective object parameter an
         - `t?: Date` generic timestamp, combination of creation-time and modified-time.
         - `c?: Date` creation-time.
         - `m?: Date` modified-time.
+        - `p?: string` permissions missing
+        - `cantOpen: boolean` true if current user has no permission to open this entry
     - output `Html`
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
-    - parameter `{ entry: Entry, cantOpen: boolean }` (refer above for Entry object)
+    - parameter `{ entry: Entry }` (refer above for Entry object)
     - output `Html`
 - `beforeHeader` & `afterHeader`
     - use this to produce content that should go right before/after the `header` part
@@ -236,7 +238,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 ## API version history
 
 - 8.1 (v0.44.0)
-  - afterEntryname.cantOpen
+  - entry.cantOpen
   - HFS.apiCall, reloadList, logout
 - 8 (v0.43.0)
   - entry.name & .uri
