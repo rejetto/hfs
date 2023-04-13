@@ -3,6 +3,7 @@ import { wantArray } from './misc'
 import { readFile } from 'fs/promises'
 import { defineConfig } from './config'
 import { watchLoad } from './watchLoad'
+import EMBEDDED_TRANSLATIONS from './langs/embedded'
 
 const PREFIX = 'hfs-lang-'
 const SUFFIX = '.json'
@@ -57,19 +58,4 @@ defineConfig('force_lang', '', v => {
     })
     undo = res.unwatch
 })
-
-
-import lang_it from './langs/hfs-lang-it.json'
-import lang_zh from './langs/hfs-lang-zh.json'
-import lang_ru from './langs/hfs-lang-ru.json'
-import lang_sr from './langs/hfs-lang-sr.json'
-import lang_ko from './langs/hfs-lang-ko.json'
-
-export const EMBEDDED_TRANSLATIONS = {
-    it: lang_it,
-    zh: lang_zh,
-    ru: lang_ru,
-    sr: lang_sr,
-    ko: lang_ko,
-}
 
