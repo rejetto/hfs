@@ -25,7 +25,7 @@ import { t, useI18N } from './i18n'
 import { deleteFiles } from './menu'
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string, p?:string,
-    name: string, uri: string, ext:string, isFolder:boolean, t?:Date } // we memoize these value for speed
+    name: string, uri: string, ext:string, isFolder:boolean, t?:Date, cantOpen: boolean } // we memoize these value for speed
 export type DirList = DirEntry[]
 
 const MISSING_PERM = "Missing permission"
@@ -109,7 +109,7 @@ function FilesList() {
                         key: entry.n,
                         midnight,
                         separator: idx > 0 && !(idx % pageSize) ? String(offset + idx) : undefined,
-                        ...entry
+                        entry,
                     })),
             loading && h(Spinner),
         ),
@@ -179,15 +179,15 @@ function useMidnight() {
 
 const PAGE_SEPARATOR_CLASS = 'page-separator'
 
-const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) => {
-    const { name, uri, isFolder, separator } = entry
+interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
+const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
+    const { uri, isFolder } = entry
     const base = usePath()
     const [menuBtn, setMenuBtn] = useState(false)
     const { showFilter, selected, can_delete } = useSnapState()
-    const cantOpen = entry.p?.includes(isFolder ? 'l' : 'r')  // to open we need list for folders and read for files
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     let className = isFolder ? 'folder' : 'file'
-    if (cantOpen)
+    if (entry.cantOpen)
         className += ' cant-open'
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
@@ -215,11 +215,11 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
             )
             : h(Fragment, {},
                 containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, pathDecode(containerDir) ),
-                h('a', { href: uri, onClick }, !containerDir && ico, name)
+                h('a', { href: uri, onClick }, !containerDir && ico, entry.name)
             ),
-        h(CustomCode, { name: 'afterEntryName', props: { entry, cantOpen } }),
+        h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
-            h(EntryProps, entry),
+            h(EntryProps, { entry, midnight }),
             (!menuOnLink || isFolder && mobile) && h('button', { className: 'file-menu-button', onClick: openFileMenu }, hIcon('menu')),
         ),
         h('div'),
@@ -228,18 +228,18 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
     function openFileMenu(ev: MouseEvent) {
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
-        const cantDownload = cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
+        const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
         const OPEN_ICON = 'play'
         const OPEN_LABEL = t('file_open', "Open")
         const menu = [
-            menuOnLink && !cantOpen && (
+            menuOnLink && !entry.cantOpen && (
                 isFolder ? h(Link, { to: base + uri, onClick: () => close() }, hIcon(OPEN_ICON), OPEN_LABEL)
                     : { label: OPEN_LABEL, href: uri, target: isFolder ? undefined : '_blank', icon: OPEN_ICON }),
             !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
             can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
         ]
         const props = [
-            [t(`Name`), name]
+            [t(`Name`), entry.name]
         ]
         const res = hfsEvent('fileMenu', { entry, menu, props })
         if (res)
@@ -259,7 +259,7 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
                                 : null
                         ))
                     ),
-                    !cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
+                    entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                     h('div', { className: 'file-menu' },
                         dontBotherWithKeys(menu.map((e: any, i) =>
                             isValidElement(e) ? e
@@ -281,9 +281,9 @@ const Entry = memo((entry: DirEntry & { midnight: Date, separator?: string }) =>
     }
 })
 
-const EntryProps = memo((entry: DirEntry & { midnight: Date }) => {
+const EntryProps = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
     const { t: time, s } = entry
-    const today = time && time > entry.midnight
+    const today = time && time > midnight
     const shortTs = isMobile()
     const {t} = useI18N()
     const dd = '2-digit'
