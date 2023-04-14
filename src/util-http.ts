@@ -20,13 +20,15 @@ export function httpsString(url: string, options:RequestOptions={}): Promise<Inc
 
 export function httpsStream(url: string, options:RequestOptions={}): Promise<IncomingMessage> {
     return new Promise((resolve, reject) => {
-        https.request(url, options, res => {
+        const req = https.request(url, options, res => {
             if (!res.statusCode || res.statusCode >= 400)
-                throw res
+                return reject(new Error(String(res.statusCode), { cause: res }))
             if (res.statusCode === HTTP_TEMPORARY_REDIRECT && res.headers.location)
                 return resolve(httpsStream(res.headers.location, options))
             resolve(res)
-        }).on('error', reject).end()
+        }).on('error', e => {
+            reject((req as any).res || e)
+        }).end()
     })
 }
 

@@ -11,7 +11,7 @@ import events from './events'
 import _ from 'lodash'
 import { prepareFolder } from './util-files'
 import { getCurrentUsername } from './perm'
-import { makeNetMatcher } from './misc'
+import { makeNetMatcher, tryJson } from './misc'
 
 class Logger {
     stream?: Writable
@@ -127,8 +127,7 @@ debugLogFile.on('open', () => {
     const was = console.error
     console.error = function(...args: any[]) {
         was.apply(this, args)
-        const params = args.map(x =>
-            typeof x === 'string' ? x : JSON.stringify(x)).join(' ')
-        debugLogFile.write(new Date().toLocaleString() + ': ' + params + '\n')
+        args = args.map(x => typeof x === 'string' ? x : (tryJson(x) ?? String(x)))
+        debugLogFile.write(new Date().toLocaleString() + ': ' + args.join(' ') + '\n')
     }
 }).on('error', () => console.log("cannot create debug.log"))
