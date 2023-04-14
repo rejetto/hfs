@@ -281,33 +281,32 @@ async function startUpload(f: File, to: string, resume=0) {
     req.send(form)
 
     async function subscribeNotifications() {
-        if (!notificationChannel) {
-            notificationChannel = 'upload-' + Math.random().toString(36).slice(2)
-            notificationSource = await getNotification(notificationChannel, async (name, data) => {
-                const {uploading} = uploadState
-                if (!uploading) return
-                if (name === 'upload.resumable') {
-                    const size = data?.[path(uploading)]
-                    if (!size || size > f.size) return
-                    const {expires} = data
-                    const timeout = typeof expires !== 'number' ? 0
-                        : (Number(new Date(expires)) - Date.now()) / 1000
-                    closeLast?.()
-                    const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/f.size)} = ${formatBytes(size)})`
-                    if (!await confirmDialog(msg, { timeout, getClose: x => closeLast=x })) return
-                    if (uploading !== uploadState.uploading) return // too late
-                    resuming = true
+        if (notificationChannel) return
+        notificationChannel = 'upload-' + Math.random().toString(36).slice(2)
+        notificationSource = await getNotification(notificationChannel, async (name, data) => {
+            const {uploading} = uploadState
+            if (!uploading) return
+            if (name === 'upload.resumable') {
+                const size = data?.[path(uploading)]
+                if (!size || size > f.size) return
+                const {expires} = data
+                const timeout = typeof expires !== 'number' ? 0
+                    : (Number(new Date(expires)) - Date.now()) / 1000
+                closeLast?.()
+                const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/f.size)} = ${formatBytes(size)})`
+                if (!await confirmDialog(msg, { timeout, getClose: x => closeLast=x })) return
+                if (uploading !== uploadState.uploading) return // too late
+                resuming = true
+                abortCurrentUpload()
+                return startUpload(f, to, size)
+            }
+            if (name === 'upload.status') {
+                overrideStatus = data?.[path(uploading)]
+                if (overrideStatus >= 400)
                     abortCurrentUpload()
-                    return startUpload(f, to, size)
-                }
-                if (name === 'upload.status') {
-                    overrideStatus = data?.[path(uploading)]
-                    if (overrideStatus >= 400)
-                        abortCurrentUpload()
-                    return
-                }
-            })
-        }
+                return
+            }
+        })
     }
 
     function error(status: number) {

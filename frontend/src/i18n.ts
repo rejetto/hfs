@@ -1,6 +1,5 @@
-import { findFirst, getHFS, urlParams } from './misc'
-import { createElement as h, Fragment, useEffect } from 'react'
-import { useApi } from './api'
+import { findFirst, getHFS } from './misc'
+import { createElement as h, Fragment } from 'react'
 import { proxy, useSnapshot } from 'valtio'
 
 const state = proxy<{ langs: string[], embedded: string }>({ embedded: '', langs: [] })

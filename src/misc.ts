@@ -164,6 +164,10 @@ export function typedKeys<T extends {}>(o: T) {
     return Object.keys(o) as (keyof T)[]
 }
 
+export function hasProp<T extends object>(obj: T, key: PropertyKey): key is keyof T {
+    return key in obj;
+}
+
 export function with_<T,RT>(par:T, cb: (par:T) => RT) {
     return cb(par)
 }

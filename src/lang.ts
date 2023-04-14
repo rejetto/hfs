@@ -1,5 +1,5 @@
 import Koa from 'koa'
-import { wantArray } from './misc'
+import { hasProp, wantArray } from './misc'
 import { readFile } from 'fs/promises'
 import { defineConfig } from './config'
 import { watchLoad } from './watchLoad'
@@ -30,8 +30,8 @@ export async function getLangData(ctx: Koa.Context) {
         if (!k || k === EMBEDDED_LANGUAGE) break
         try { ret[k!] = JSON.parse(await readFile(`hfs-lang-${k}.json`, 'utf8')) }
         catch {
-            if (k in EMBEDDED_TRANSLATIONS)
-                ret[k] = EMBEDDED_TRANSLATIONS[k as keyof typeof EMBEDDED_TRANSLATIONS]
+            if (hasProp(EMBEDDED_TRANSLATIONS, k))
+                ret[k] = EMBEDDED_TRANSLATIONS[k]
             else {
                 do { k = k.substring(0, k.lastIndexOf('-'))
                 } while (k && langs.includes(k))

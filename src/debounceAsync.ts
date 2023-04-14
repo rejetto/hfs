@@ -22,7 +22,7 @@ export default function debounceAsync<CB extends (...args: any[]) => Promise<R>,
 
     async function debouncer(...args:any[]) {
         if (runningCallback)
-            return await runningCallback
+            return runningCallback
         whoIsWaiting = args
         waitingSince ||= Date.now()
         const waitingCap = maxWait - (Date.now() - (waitingSince || started))
@@ -33,7 +33,7 @@ export default function debounceAsync<CB extends (...args: any[]) => Promise<R>,
             return void(waitingSince = 0)
         if (whoIsWaiting !== args) // another fresher call is waiting
             return runningDebouncer
-        return await exec()
+        return exec()
     }
 
     async function exec() {
@@ -42,7 +42,7 @@ export default function debounceAsync<CB extends (...args: any[]) => Promise<R>,
         started = Date.now()
         try {
             runningCallback = callback.apply(null, whoIsWaiting)
-            return await runningCallback
+            return await runningCallback // await necessary to go-finally at the right time and even on exceptions
         }
         finally {
             whoIsWaiting = undefined
