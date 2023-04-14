@@ -2,7 +2,7 @@
 
 import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
 import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
-import { Box } from '@mui/material'
+import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import { IconBtn, isEqualLax, modifiedSx } from './misc'
@@ -59,9 +59,11 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 helperText: "To access THIS interface you are using right now",
                 ...!account.admin && account.adminActualAccess && { value: true, helperText: "This permission is inherited" },
             },
-            { k: 'belongs', comp: MultiSelectField, label: "Inherits from", options: belongsOptions,
-                helperText: "Specify groups to inherit permissions from."
-                    + (belongsOptions.length ? '' : " There are no groups available, create one first.")
+            group && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
+            { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions,
+                helperText: "Specify groups to inherit permissions from"
+                    + (!group ? '' : ". A group can inherit from another group")
+                    + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
             { k: 'redirect', helperText: "If you want this account to be redirected to a specific folder/address at login time" },
         ],
