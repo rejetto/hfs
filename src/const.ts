@@ -20,6 +20,8 @@ export const SESSION_DURATION = Number(process.env.SESSION_DURATION) * 1000 || D
 export const API_VERSION = 8 // entry.uri + script.plugin
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise is made equal to API_VERSION
 
+export const HFS_REPO = 'rejetto/hfs'
+
 export const SPECIAL_URI = '/~/'
 export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
 export const ADMIN_URI = SPECIAL_URI + 'admin/'

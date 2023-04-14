@@ -7,7 +7,7 @@ import { getAvailablePlugins, mapPlugins, parsePluginSource, PATH as PLUGINS_PAT
 import unzipper from 'unzip-stream'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
-import { HTTP_BAD_REQUEST, HTTP_CONFLICT } from './const'
+import { DAY, HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT } from './const'
 
 const DIST_ROOT = 'dist/'
 
@@ -51,12 +51,14 @@ export function getRepoInfo(id: string) {
     return apiGithub('repos/'+id)
 }
 
+export function readGithubFile(uri: string) {
+    return httpsString('https://raw.githubusercontent.com/' + uri)
+        .then(res => res.body)
+}
+
 export async function readOnlinePlugin(repoInfo: { full_name: string, default_branch: string }, branch='') {
-    const url = `https://raw.githubusercontent.com/${repoInfo.full_name}/${branch || repoInfo.default_branch}/${DIST_ROOT}plugin.js`
-    const res = await httpsString(url)
-    if (!res.ok)
-        throw res.statusCode
-    const pl = parsePluginSource(repoInfo.full_name, res.body) // use 'repo' as 'id' client-side
+    const res = await readGithubFile(`${repoInfo.full_name}/${branch || repoInfo.default_branch}/${DIST_ROOT}plugin.js`)
+    const pl = parsePluginSource(repoInfo.full_name, res) // use 'repo' as 'id' client-side
     pl.branch = branch || undefined
     return pl
 }
@@ -80,9 +82,11 @@ async function apiGithub(uri: string) {
 }
 
 export async function* searchPlugins(text='') {
+    const projectInfo = await getProjectInfo()
     const res = await apiGithub('search/repositories?q=topic:hfs-plugin+' + encodeURI(text))
     for (const it of res.items) {
         const repo = it.full_name
+        if (projectInfo?.plugins_blacklist?.includes(repo)) continue
         let pl = await readOnlinePlugin(it)
         if (!pl.apiRequired) continue // mandatory field
         if (pl.badApi) { // we try other branches (starting with 'api')
@@ -106,4 +110,16 @@ export async function* searchPlugins(text='') {
         }, _.pick(it, ['pushed_at', 'stargazers_count']))
         yield pl
     }
+}
+
+// centralized hosted information, to be used as little as possible
+let cache
+export function getProjectInfo() {
+    return cache ||= readGithubFile(HFS_REPO + '/main/central.json').then(x => {
+        if (!x) throw x // go catch
+        setTimeout(() => cache = null, DAY) // invalidate cache
+        return JSON.parse(x)
+    }).catch(() => { // schedule next attempt
+        setTimeout(() => cache = null, 10_000)
+    })
 }

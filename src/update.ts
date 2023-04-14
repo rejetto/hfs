@@ -1,15 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { getRepoInfo } from './github'
-import { argv, IS_BINARY, IS_WINDOWS, VERSION } from './const'
+import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, VERSION } from './const'
 import { basename, dirname, join } from 'path'
 import { spawn } from 'child_process'
 import { httpsStream, onProcessExit, unzip } from './misc'
 import { renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, stat } from 'fs/promises'
-
-const HFS_REPO = 'rejetto/hfs'
 
 export async function getUpdate() {
     const [latest] = await getRepoInfo(HFS_REPO + '/releases?per_page=1')
