@@ -14,12 +14,16 @@ export function useMyTheme() {
         palette: lightMode || {
             mode: 'dark',
             text: { primary: '#bbb' },
-            primary: { main: '#469' },
+            primary: { main: '#469', light: '#68c' },
+            secondary: { main: '#969' },
         },
         typography: {
             fontFamily: 'Roboto, "Noto sans", "Segoe UI", "San Francisco", "Helvetica Neue", Arial, sans-serif'
         },
         components: {
+            MuiLink: {
+                defaultProps: lightMode || { color: 'primary.light' }, // primary.main too dark for dark theme
+            },
             MuiTextField: {
                 defaultProps: { variant: 'filled' },
                 styleOverrides: lightMode || {
