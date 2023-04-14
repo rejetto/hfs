@@ -162,7 +162,7 @@ export function Form<Values extends Dict>({
                             field.helperText = !field.helperText ? errMsg
                                 : h(Fragment, {},
                                     h('span', { style: { borderBottom: '1px solid' } }, errMsg),
-                                    h('br'), field.helperText
+                                    h(Box, { color: 'text.primary' }, field.helperText),
                                 )
                         if (field.label === undefined)
                             field.label = labelFromKey(k)
