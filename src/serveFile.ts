@@ -40,7 +40,7 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     }
 
     ctx.vfsNode = node // useful to tell service files from files shared by the user
-    if ('dl' in ctx.params) // please, download
+    if ('dl' in ctx.query) // please, download
         ctx.attachment(name)
     return serveFile(ctx, source||'', mimeString)
 }
