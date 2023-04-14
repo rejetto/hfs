@@ -48,7 +48,7 @@ export default function useFetchList() {
         }
 
         const baseParams = {
-            path: desiredPath,
+            uri: desiredPath,
             search,
             sse: true,
             omit: 'c',

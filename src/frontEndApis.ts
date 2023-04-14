@@ -36,11 +36,11 @@ export const frontEndApis: ApiHandlers = {
         })
     },
 
-    async create_folder({ path, name }, ctx) {
-        apiAssertTypes({ string: { path, name } })
+    async create_folder({ uri, name }, ctx) {
+        apiAssertTypes({ string: { uri, name } })
         if (!isValidFileName(name) || dirTraversal(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
-        const parentNode = await urlToNode(path, ctx)
+        const parentNode = await urlToNode(uri, ctx)
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
         if (!hasPermission(parentNode, 'can_upload', ctx))
@@ -54,9 +54,9 @@ export const frontEndApis: ApiHandlers = {
         }
     },
 
-    async del({ path }, ctx) {
-        apiAssertTypes({ string: { path } })
-        const node = await urlToNode(path, ctx)
+    async del({ uri }, ctx) {
+        apiAssertTypes({ string: { uri } })
+        const node = await urlToNode(uri, ctx)
         if (!node)
             throw new ApiError(HTTP_NOT_FOUND)
         if (!node.source)

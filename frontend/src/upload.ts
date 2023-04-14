@@ -379,14 +379,14 @@ export function acceptDropFiles(cb: false | undefined | ((files:File[]) => void)
 async function createFolder() {
     const name = await promptDialog(t`Enter folder name`)
     if (!name) return
-    const path = location.pathname
+    const uri = location.pathname
     try {
-        await apiCall('create_folder', { path, name })
+        await apiCall('create_folder', { uri, name })
         reloadList()
         return alertDialog(h(() =>
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
-                h(Link, { to: path + name + '/', onClick() {
+                h(Link, { to: uri + name + '/', onClick() {
                     closeDialog()
                     closeDialog()
                 } }, t('enter_folder', "Enter the folder")),

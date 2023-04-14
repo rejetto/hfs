@@ -21,26 +21,32 @@ exports.init = api => {
     const { matches } = api.require('./misc')
     return {
         middleware(ctx) {
-            let toModify = ctx
+            let params // undefined if we are not going to work on api parameters
             if (ctx.path.startsWith(api.const.SPECIAL_URI)) { // special uris should be excluded...
                 // ...unless it's a frontend api with a path param
-                if (!ctx.path.startsWith(api.const.API_URI) || ctx.params.path === undefined) return
+                if (!ctx.path.startsWith(api.const.API_URI)) return
                 let { referer } = ctx.headers
                 referer &&= new URL(referer).pathname
-                if (referer?.startsWith(ctx.state.revProxyPath + api.const.ADMIN_URI)) return
-                toModify = ctx.params
+                if (referer?.startsWith(ctx.state.revProxyPath + api.const.ADMIN_URI)) return // exclude apis for admin-panel
+                params = ctx.params
             }
+
             const hosts = api.getConfig('hosts')
             if (!hosts?.length) return
-            for (const row of hosts)
-                if (matches(ctx.host, row.host)) {
-                    toModify.path = row.root + toModify.path
-                    return
+            const row = hosts?.find(x => matches(ctx.host, x.host))
+            if (!row) {
+                if (api.getConfig('mandatory')) {
+                    ctx.socket.destroy()
+                    return true
                 }
-            if (api.getConfig('mandatory')) {
-                ctx.socket.destroy()
-                return true
+                return
             }
+            if (!params)
+                ctx.path = row.root + ctx.path
+            else
+                for (const [k,v] of Object.entries(params))
+                    if (k.startsWith('uri'))
+                        params[k] = row.root + v
         }
     }
 }

@@ -196,8 +196,8 @@ function reqApi(api: string, params: object, test:Tester) {
     return req(API+api, test, { data: params })
 }
 
-function reqList(path:string, tester:Tester, params?: object) {
-    return reqApi('file_list', { path, ...params }, tester)
+function reqList(uri:string, tester:Tester, params?: object) {
+    return reqApi('file_list', { uri, ...params }, tester)
 }
 
 function isInList(res:any, name:string) {

@@ -47,8 +47,8 @@ exports.init = async api => {
                 counters[path] = counters[path] + 1 || 1
                 save()
             },
-        onDirEntry: ({ entry, listPath }) => {
-            const path = listPath + entry.n
+        onDirEntry: ({ entry, listUri }) => {
+            const path = listUri + entry.n
             const n = counters[path]
             if (n)
                 entry.hits = n

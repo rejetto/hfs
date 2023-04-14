@@ -30,8 +30,9 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         // we don't rely on SameSite cookie option because it's https-only
         let res
         try {
-            if (params.path)
-                params.path = removeStarting(ctx.state.revProxyPath, params.path)
+            for (const [k,v] of Object.entries(params))
+                if (k.startsWith('uri') && typeof v === 'string')
+                    params[k] = removeStarting(ctx.state.revProxyPath, v)
             res = csrf && csrf !== params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
                 : await apiFun(params || {}, ctx)
         }
