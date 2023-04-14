@@ -8,7 +8,7 @@ import { Download, Search } from '@mui/icons-material'
 import { confirmDialog } from './dialog'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
-import { repoLink, showError, startPlugin, UpdateButton } from './InstalledPlugins'
+import { renderName, showError, startPlugin, UpdateButton } from './InstalledPlugins'
 import { state, useSnapState } from './state'
 import _ from 'lodash'
 import md from './md'
@@ -39,6 +39,7 @@ export default function OnlinePlugins() {
                     field: 'id',
                     headerName: "name",
                     flex: 1,
+                    renderCell: renderName,
                 },
                 {
                     field: 'version',
@@ -73,7 +74,6 @@ export default function OnlinePlugins() {
                     renderCell({ row }) {
                         const { id, branch } = row
                         return h('div', {},
-                            repoLink(id),
                             row.update ? h(UpdateButton, {
                                 id,
                                 then() {
