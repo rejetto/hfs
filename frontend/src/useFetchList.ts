@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { useEffect, useRef } from 'react'
-import { apiEvents } from './api'
+import { apiEvents } from '@hfs/shared/api'
 import { DirList } from './BrowseFiles'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'

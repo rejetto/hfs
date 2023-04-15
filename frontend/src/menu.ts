@@ -12,7 +12,7 @@ import _ from 'lodash'
 import { closeDialog } from '@hfs/shared/dialogs'
 import { showUpload, uploadState } from './upload'
 import { useSnapshot } from 'valtio'
-import { apiCall } from './api'
+import { apiCall } from '@hfs/shared/api'
 import { reloadList, usePath } from './useFetchList'
 import { t, useI18N } from './i18n'
 

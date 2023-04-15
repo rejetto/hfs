@@ -156,3 +156,11 @@ export function pendingPromise<T>() {
 export function isMobile() {
     return window.innerWidth < 800
 }
+
+export function getHFS() {
+    return (window as any).HFS
+}
+
+export function getPrefixUrl() {
+    return getHFS().prefixUrl
+}

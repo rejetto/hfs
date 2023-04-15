@@ -9,7 +9,7 @@ import { state } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
 import _ from 'lodash'
-import { apiCall } from './api'
+import { apiCall, setDefaultApiCallOptions } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { logout } from './login'
 export * from '@hfs/shared'
@@ -75,11 +75,4 @@ Object.assign((window as any).HFS ||= {}, {
     }
 })
 
-export function getHFS() {
-    return (window as any).HFS
-}
-
-export function getPrefixUrl() {
-    return getHFS().prefixUrl
-}
-
+setDefaultApiCallOptions({ modal: working })

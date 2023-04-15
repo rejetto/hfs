@@ -46,7 +46,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
         fields: [
             { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, xl: group ? 12 : 4,
                 getError: v => v !== account.username && apiCall('get_account', { username: v })
-                    .then(got => got.username === account.username ? "usernames are case-insensitive" : "already used", () => false),
+                    .then(got => got?.username === account.username ? "usernames are case-insensitive" : "already used", () => false),
             },
             !group && { k: 'password', md: 6, xl: 4, type: 'password', autoComplete: 'new-password', required: add,
                 label: add ? "Password" : "Change password"
@@ -81,7 +81,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                             apiCall('del_account', { username }).then() // best effort, don't wait
                             throw e
                         }
-                    done(got.username)
+                    done(got?.username)
                     toast("Account created", 'success')
                     return
                 }
@@ -92,7 +92,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 if (password)
                     await apiNewPassword(username, password)
                 setTimeout(() => toast("Account modified", 'success'), 1) // workaround: showing a dialog at this point is causing a crash if we are in a dialog
-                done(got.username) // username may have been changed, so we pass it back
+                done(got?.username) // username may have been changed, so we pass it back
             }
         }
     })

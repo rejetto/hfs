@@ -1,13 +1,23 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, getCookie, IconBtn, pendingPromise, spinner, useStateMounted, wantArray } from './misc'
+import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
+import { Dict, err2msg, Falsy, IconBtn, spinner, useStateMounted, wantArray } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
 import { Refresh } from '@mui/icons-material'
 import produce, { Draft } from 'immer'
-import { try_ } from './misc'
+import { ApiError, apiEvents, setDefaultApiCallOptions, useApi } from '@hfs/shared/api'
+export * from '@hfs/shared/api'
+
+setDefaultApiCallOptions({
+    async onResponse(res: Response, body: any) {
+        if (res.status === 401) {
+            state.loginRequired = body?.any !== false || 403
+            throw new ApiError(res.status, "Unauthorized")
+        }
+    }
+})
 
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     const [data, error, reload] = useApi<T>(...args)
@@ -20,147 +30,6 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
                         : null,
         [error, cmd, loading, reload])
     return { data, error, reload, loading, element }
-}
-
-const PREFIX = (window as any).HFS?.prefixUrl + '/~/api/'
-
-const timeoutByApi: Dict = {
-    loginSrp1: 90, // support antibrute
-    get_status: 20 // can be lengthy on slow machines because of the find-process-on-busy-port feature
-}
-export function apiCall(cmd: string, params?: Dict, { timeout=undefined }={}) {
-    const csrf = getCsrf()
-    if (csrf)
-        params = { csrf, ...params }
-
-    const controller = new AbortController()
-    if (timeout !== false)
-        setTimeout(() => controller.abort('timeout'), 1000*(timeoutByApi[cmd] ?? timeout ?? 10))
-    return Object.assign(fetch(PREFIX+cmd, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        signal: controller.signal,
-        body: params && JSON.stringify(params),
-    }).then(async res => {
-        if (res.ok)
-            return res.json().then(json => {
-                console.debug('API', cmd, params, '>>', json)
-                return json
-            })
-        let msg = await res.text() || 'Failed API ' + cmd
-        console.warn(msg + (params ? ' ' + JSON.stringify(params) : ''))
-        if (res.status === 401) {
-            state.loginRequired = try_(() => JSON.parse(msg)?.any) !== false || 403
-            msg = "Unauthorized"
-        }
-        throw new ApiError(res.status, msg)
-    }, err => {
-        if (err?.message?.includes('fetch'))
-            throw Error("Network error")
-        throw err
-    }), {
-        abort() {
-            controller.abort('cancel')
-        }
-    })
-}
-
-export class ApiError extends Error {
-    constructor(readonly code:number, message: string) {
-        super(message);
-    }
-}
-
-export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undefined, undefined | Error, ()=>void] {
-    const [ret, setRet] = useStateMounted<T | undefined>(undefined)
-    const [err, setErr] = useStateMounted<Error | undefined>(undefined)
-    const [forcer, setForcer] = useStateMounted(0)
-    const loadingRef = useRef<ReturnType<typeof apiCall>>()
-    const reloadingRef = useRef<any>()
-    useEffect(()=>{
-        loadingRef.current?.abort()
-        setRet(undefined)
-        setErr(undefined)
-        if (!cmd) return
-        let aborted = false
-        const req = apiCall(cmd, params)
-        const wholePromise = req.then(x => aborted || setRet(x), x => aborted || setErr(x))
-            .finally(()=> loadingRef.current = undefined)
-        loadingRef.current = Object.assign(wholePromise, {
-            abort() {
-                aborted = true
-                req.abort()
-            }
-        })
-        reloadingRef.current?.resolve(wholePromise)
-    }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
-    const reload = useCallback(() => loadingRef.current
-        || setForcer(v => v+1) || (reloadingRef.current = pendingPromise()),
-        [setForcer])
-    return [ret, err, reload]
-}
-
-type EventHandler = (type:string, data?:any) => void
-
-export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
-    console.debug('API EVENTS', cmd, params)
-    const csrf = getCsrf()
-    const processed: Record<string,string> = { csrf: csrf && JSON.stringify(csrf) }
-    for (const k in params) {
-        const v = params[k]
-        if (v === undefined) continue
-        processed[k] = JSON.stringify(v)
-    }
-    const source = new EventSource(PREFIX + cmd + '?' + new URLSearchParams(processed))
-    source.onopen = () => cb('connected')
-    source.onerror = err => cb('error', err)
-    source.onmessage = ({ data }) => {
-        if (!data) {
-            cb('closed')
-            return source.close()
-        }
-        try { data = JSON.parse(data) }
-        catch {
-            return cb('string', data)
-        }
-        console.debug('SSE msg', data)
-        cb('msg', data)
-    }
-    return source
-}
-
-function getCsrf() {
-    return getCookie('csrf')
-}
-
-export function useApiEvents(cmd: string, params: Dict={}) {
-    const [data, setData] = useStateMounted<any>(undefined)
-    const [error, setError] = useStateMounted<any>(undefined)
-    const [loading, setLoading] = useStateMounted(false)
-    useEffect(() => {
-        const src = apiEvents(cmd, params, (type, data) => {
-            switch (type) {
-                case 'error':
-                    setError("Connection error")
-                    return stop()
-                case 'closed':
-                    return stop()
-                case 'msg':
-                    if (src?.readyState === src?.CLOSED)
-                        return stop()
-                    return setData(data)
-            }
-        })
-        return () => {
-            src.close()
-            stop()
-        }
-
-        function stop() {
-            setLoading(false)
-        }
-    }, [cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { data, loading, error }
 }
 
 export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=false, map=((x:any)=>x) }={}) {

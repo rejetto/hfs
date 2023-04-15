@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { apiCall } from './api'
+import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
 import { getPrefixUrl, hIcon, srpSequence, working } from './misc'
