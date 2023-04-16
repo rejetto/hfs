@@ -66,6 +66,9 @@ Valid keys in a node are:
 - `can_delete` specify who can delete. Applies to folders with a source. Default is none.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
+  myfile.txt:
+    can_see: false
+    can_read: false
   "**/*.mp3":
     can_read: false
   "*.jpg|*.png": 
