@@ -88,7 +88,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const lang = await getLangData(ctx)
     let ret = body
         .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
-        .replace('</head>', () => `
+        .replace('<body>', () => `<body>
             ${!isFrontend ? '' : `
                 <title>${title.get()}</title>
                 <link rel="icon" href="${favicon.get() ? '/favicon.ico' : 'data:;'}" />
@@ -126,7 +126,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 plug.frontend_js?.map(f => 
                     `<script defer plugin=${JSON.stringify(k)} src='${pub + k + '/' + f}'></script>`))
                 .flat().filter(Boolean).join('\n')}
-        </head>`)
+        `)
     if (isFrontend)
         ret = ret
             .replace('<body>', '<body>' + getSection('top'))
