@@ -31,7 +31,7 @@
     }
 }
 body {
-    background: var(--bg);
+    background-color: var(--bg);
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
         'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
@@ -139,7 +139,7 @@ input, select, ul a {
 header {
     position: sticky;
     top: 0;
-    background: var(--bg);
+    background-color: var(--bg);
     padding: .2em;
     z-index: 1; /* necessary to not be covered by checkboxes */
 }
@@ -334,7 +334,7 @@ button label {
     bottom: 0;
     display: flex;
     gap: .1em;
-    background: var(--bg);
+    background-color: var(--bg);
     padding: 0 0.2em 0.2em;
     &>button { z-index: 1; }
     & button { box-shadow: 0 0 .3em .3em #0003; }
