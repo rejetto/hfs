@@ -94,7 +94,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
                     props,
                 })
                 if (props.name !== file.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
-                    state.selectedFiles[0].id = file.id.slice(0, -file.name.length) + props.name
+                    state.selectedFiles[0].id = file.parent!.id + props.name + (isDir ? '/' : '')
                 reloadVfs()
             }
         },
