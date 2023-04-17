@@ -5,7 +5,7 @@ import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, isWindowsDrive, makeMatcher, newObj } from './misc'
+import { dirStream, isWindowsDrive, makeMatcher } from './misc'
 import {
     IS_WINDOWS,
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
@@ -32,15 +32,16 @@ const apis: ApiHandlers = {
 
     async get_vfs() {
         return {
-            root: vfs && await recur(vfs),
+            root: await recur(vfs),
             defaultPerms,
         }
 
         async function recur(node: VfsNode): Promise<VfsAdmin> {
-            const stats: false | Stats = Boolean(node.source) && await stat(node.source!).catch(e => false)
-            const isDir = !node.source || stats && stats.isDirectory()
+            const { source } = node
+            const stats: false | Stats = Boolean(source) && await stat(source!).catch(() => false)
+            const isDir = !source || stats && stats.isDirectory()
             const copyStats: Pick<VfsAdmin, 'size' | 'ctime' | 'mtime'> = stats ? _.pick(stats, ['size', 'ctime', 'mtime'])
-                : { size: node.source ? -1 : undefined }
+                : { size: source ? -1 : undefined }
             if (copyStats.mtime && Number(copyStats.mtime) === Number(copyStats.ctime))
                 delete copyStats.mtime
             const isRoot = node === vfs
@@ -48,7 +49,7 @@ const apis: ApiHandlers = {
                 ...copyStats,
                 ...node,
                 website: Boolean(node.children?.find(isSameFilenameAs('index.html')))
-                    || isDir && node.source && await stat(join(node.source, 'index.html')).then(() => true, () => undefined)
+                    || isDir && source && await stat(join(source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
                 name: isRoot ? undefined : getNodeName(node),
                 type: isDir ? 'folder' : undefined,
@@ -58,11 +59,13 @@ const apis: ApiHandlers = {
     },
 
     async move_vfs({ from, parent }) {
-        if (from <= '/' || !parent)
+        if (!from || !parent)
             return new ApiError(HTTP_BAD_REQUEST)
         const fromNode = await urlToNodeOriginal(from)
         if (!fromNode)
             return new ApiError(HTTP_NOT_FOUND, 'from not found')
+        if (fromNode === vfs)
+            return new ApiError(HTTP_BAD_REQUEST, 'from is root')
         const parentNode = await urlToNodeOriginal(parent)
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
@@ -82,39 +85,39 @@ const apis: ApiHandlers = {
         const n = await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
-        props = pickProps(props, ['name','source','masks','default', 'accept', ...Object.keys(defaultPerms)])
+        props = pickProps(props, ['name','source','masks','default','accept', ...Object.keys(defaultPerms)]) // sanitize
         if (props.name && props.name !== getNodeName(n)) {
             const parent = await urlToNodeOriginal(dirname(uri))
             if (parent?.children?.find(x => getNodeName(x) === props.name))
                 return new ApiError(HTTP_CONFLICT, 'name already present')
         }
-        props = newObj(props, v => v === null ? undefined : v) // null is a way to serialize undefined, that will restore default values
         if (props.masks && typeof props.masks !== 'object')
             delete props.masks
         Object.assign(n, props)
-        if (getNodeName(_.omit(n, ['name'])) === n.name)  // name only if necessary
-            n.name = undefined
+        simplifyName(n)
         await saveVfs()
         return n
     },
 
     async add_vfs({ parent, source, name }) {
-        const n = parent ? await urlToNodeOriginal(parent) : vfs
-        if (!n)
-            return new ApiError(HTTP_NOT_FOUND, 'invalid parent')
-        if (n.isTemp || !await nodeIsDirectory(n))
-            return new ApiError(HTTP_NOT_ACCEPTABLE, 'invalid parent')
+        if (!source && !name)
+            return new ApiError(HTTP_BAD_REQUEST, 'name or source required')
+        parent = parent ? await urlToNodeOriginal(parent) : vfs
+        if (!parent)
+            return new ApiError(HTTP_NOT_FOUND, 'parent not found')
+        if (!await nodeIsDirectory(parent))
+            return new ApiError(HTTP_NOT_ACCEPTABLE, 'parent not a folder')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
-        let tryName = getNodeName({ name, source })
-        const ext = extname(tryName)
-        const noExt = ext ? tryName.slice(0, -ext.length) : tryName
+        const child = { source, name }
+        name = getNodeName(child) // could be not given as input
+        const ext = extname(name)
+        const noExt = ext ? name.slice(0, -ext.length) : name
         let idx = 2
-        while (n.children?.find(isSameFilenameAs(tryName)))
-            tryName = `${noExt} ${idx++}${ext}`
-        name = tryName
-        n.children ||= []
-        n.children.unshift({ source, name })
+        while (parent.children?.find(isSameFilenameAs(name)))
+            name = `${noExt} ${idx++}${ext}`
+        child.name = name
+        ;(parent.children ||= []).unshift({ source, name })
         await saveVfs()
         return { name }
     },
@@ -209,4 +212,10 @@ function pickProps(o: any, keys: string[]) {
             if (k in o)
                 ret[k] = o[k] === null || o[k] === '' ? undefined : o[k]
     return ret
+}
+
+function simplifyName(node: VfsNode) {
+    const { name, ...noName } = node
+    if (getNodeName(noName) === name)
+        delete node.name
 }
