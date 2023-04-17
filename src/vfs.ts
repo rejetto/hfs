@@ -17,6 +17,7 @@ type AccountList = string[]
 export type Who = typeof WHO_ANYONE
     | typeof WHO_NO_ONE
     | typeof WHO_ANY_ACCOUNT
+    | keyof VfsPerm
     | AccountList // empty array shouldn't be used to keep the type boolean-able
 
 export interface VfsPerm {
@@ -44,9 +45,9 @@ export interface VfsNode extends Partial<VfsPerm> {
 }
 
 export const defaultPerms: VfsPerm = {
-    can_see: WHO_ANYONE,
+    can_see: 'can_read',
     can_read: WHO_ANYONE,
-    can_list: WHO_ANYONE,
+    can_list: 'can_read',
     can_upload: WHO_NO_ONE,
     can_delete: WHO_NO_ONE,
 }
@@ -156,14 +157,39 @@ export async function nodeIsDirectory(node: VfsNode) {
 }
 
 export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context): boolean {
-    return (node.source || perm !== 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
-        && matchWho(node[perm] ?? defaultPerms[perm], ctx)
+   return !statusCodeForMissingPerm(node, perm, ctx, false)
 }
 
-export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context) {
-    if (hasPermission(node, perm, ctx))
-        return false
-    return ctx.status = node[perm] === false ? HTTP_FORBIDDEN : HTTP_UNAUTHORIZED
+export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context, assign=true) {
+    const ret = getCode()
+    if (ret && assign)
+        ctx.status = ret
+    return ret
+
+    function getCode() {
+        if (!node.source && perm === 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
+            return HTTP_FORBIDDEN
+        // calculate value of permission resolving references to other permissions, avoiding infinite loop
+        let who: Who
+        let max = Object.keys(defaultPerms).length
+        do {
+            who = node[perm] ?? defaultPerms[perm]
+            if (!max-- || typeof who !== 'string' || who === WHO_ANY_ACCOUNT)
+                break
+            perm = who
+        } while (1)
+
+        if (Array.isArray(who)) {
+            const arr = who // shut up ts
+            // check if I or any ancestor match `who`, but cache ancestors' usernames inside context state
+            const some = getOrSet(ctx.state, 'usernames', () => getCurrentUsernameExpanded(ctx))
+                .some((u: string) => arr.includes(u))
+            return some ? 0 : HTTP_UNAUTHORIZED
+        }
+        return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
+            : who === WHO_ANY_ACCOUNT ? (ctx.state.account ? 0 : HTTP_UNAUTHORIZED)
+                : (() => { throw Error('invalid permission: ' + who) })()
+    }
 }
 
 // it's responsibility of the caller to verify you have list permission on parent, as callers have different needs.
@@ -276,14 +302,6 @@ function renameUnderPath(rename:undefined | Record<string,string>, path: string)
         [k.startsWith(match) ? k.slice(match.length) : '', v]))
     delete rename['']
     return _.isEmpty(rename) ? undefined : rename
-}
-
-function matchWho(who: Who, ctx: Koa.Context) {
-    return who === WHO_ANYONE
-        || who === WHO_ANY_ACCOUNT && Boolean(ctx.state.account)
-        || Array.isArray(who) // check if I or any ancestor match `who`, but cache ancestors' usernames inside context state
-            && getOrSet(ctx.state, 'usernames', () => getCurrentUsernameExpanded(ctx)).some((u:string) =>
-                who.includes(u) )
 }
 
 events.on('accountRenamed', (from, to) => {

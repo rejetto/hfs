@@ -104,11 +104,11 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
             { k: 'source', label: "Source on disk", comp: FileField, files: !isDir, folders: isDir, multiline: true,
                 placeholder: "Not on disk, this is a virtual folder",
             },
-            perm('can_read', "Who can download", "Who can see but not download will be asked to login"),
-            perm('can_see', "Who can see", "If you don't see, you may download with a direct link"),
-            isDir && perm('can_list', "Who can list", "Permission to see content of folders"),
-            isDir && perm('can_delete', "Who can delete", hasSource ? '' : "Works only on folders with source"),
-            isDir && perm('can_upload', "Who can upload", hasSource ? '' : "Works only on folders with source", { lg: showAccept ? 6 : 12 }),
+            perm('can_read', "Who can see but not download will be asked to login"),
+            perm('can_see', "If you don't see, you may download with a direct link"),
+            isDir && perm('can_list', "Permission to see content of folders"),
+            isDir && perm('can_delete', hasSource ? '' : "Works only on folders with source"),
+            isDir && perm('can_upload', hasSource ? '' : "Works only on folders with source", { lg: showAccept ? 6 : 12 }),
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything",
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip"), lg: 6 },
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
@@ -125,24 +125,37 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         ]
     })
 
-    function perm(perm: keyof typeof inheritedPerms, label: string, helperText='', props: Partial<WhoFieldProps>={}) {
-        return { showInherited: anyMask, // with masks, you may need to set a permission to override the mask
-            k: perm, lg: 6, comp: WhoField, parent, accounts, label, inherit: inheritedPerms[perm], helperText, ...props }
+    function perm(perm: keyof typeof inheritedPerms, helperText='', props: Partial<WhoFieldProps>={}) {
+        return {
+            showInherited: anyMask, // with masks, you may need to set a permission to override the mask
+            otherPerms: _.without(Object.keys(defaultPerms), perm).map(x => ({ value: x, label: "As " +perm2word(x) })),
+            k: perm, lg: 6, comp: WhoField, parent, accounts, helperText,
+            label: "Who can " + perm2word(perm),
+            inherit: inheritedPerms[perm],
+            ...props
+        }
     }
+
+}
+
+function perm2word(perm: string) {
+    const word = perm.split('_')[1]
+    return word === 'read' ? 'download' : word
 }
 
 function formatTimestamp(x: string) {
     return x ? new Date(x).toLocaleString() : '-'
 }
 
-interface WhoFieldProps extends FieldProps<Who> { accounts: Account[] }
-function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, ...rest }: WhoFieldProps) {
+interface WhoFieldProps extends FieldProps<Who> { accounts: Account[], otherPerms: any[] }
+function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, otherPerms, ...rest }: WhoFieldProps) {
     const options = useMemo(() =>
         onlyTruthy([
-            { value: null, label: (parent ? "Same as parent: " : "Default: " ) + who2desc(inherit) },
+            { value: null, label: (parent ? "As parent: " : "Default: " ) + who2desc(inherit) },
             { value: true },
             { value: false },
             { value: '*' },
+            ...otherPerms,
             { value: [], label: "Select accounts" },
         // don't offer inherited value twice, unless it was already selected, or it is forced
         ].map(x => (x.value === value || showInherited || x.value !== inherit)
@@ -175,7 +188,8 @@ function who2desc(who: any) {
         : who === true ? "anyone"
             : who === '*' ? "any account (login required)"
                 : Array.isArray(who) ? who.join(', ')
-                    : "*UNKNOWN*" + JSON.stringify(who)
+                    : typeof who === 'string' ? "as " + perm2word(who)
+                        : "*UNKNOWN*" + JSON.stringify(who)
 }
 
 interface LinkFieldProps extends FieldProps<string> {

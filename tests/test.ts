@@ -54,7 +54,7 @@ describe('basics', () => {
     it('cantListBut.parent', reqList('/', { permInList: { 'cantListBut/': 'l' } }))
     it('cantListBut.child masked', reqList('/cantListBut/page', 200))
 
-    it('cantReadBut', reqList('/cantReadBut/', 200))
+    it('cantReadBut', reqList('/cantReadBut/', 403))
     it('cantReadBut.can', req('/cantReadBut/alfa.txt', 200))
     it('cantReadBut.parent', reqList('/', { permInList: { 'cantReadBut/': '!r' } }))
     it('cantReadButChild', req('/cantReadButChild/alfa.txt', 401))

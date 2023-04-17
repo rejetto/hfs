@@ -22,9 +22,8 @@ const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
 const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
 
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
-    const res = statusCodeForMissingPerm(base, 'can_upload', ctx)
-    if (res)
-        return fail(res)
+    if (statusCodeForMissingPerm(base, 'can_upload', ctx))
+        return fail()
     const fullPath = join(base.source!, path)
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
@@ -125,8 +124,9 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         delete waitingToBeDeleted[path]
     }
 
-    function fail(status: number) {
-        ctx.status = status
+    function fail(status?: number) {
+        if (status)
+            ctx.status = status
         notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
     }
 }

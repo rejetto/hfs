@@ -24,9 +24,8 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, omit, 
     const list = new SendListReadable()
     if (!node)
         return fail(HTTP_NOT_FOUND)
-    const res = statusCodeForMissingPerm(node,'can_list',ctx)
-    if (res)
-        return fail(res)
+    if (statusCodeForMissingPerm(node,'can_list',ctx))
+        return fail()
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
     if (node.default)
@@ -54,7 +53,7 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, omit, 
     })
     return list
 
-    function fail(code: any) {
+    function fail(code=ctx.status) {
         if (!sse)
             return new ApiError(code)
         list.error(code, true)

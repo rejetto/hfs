@@ -13,6 +13,7 @@ vfs:
         - name: child
           children:
             - source: tests/alfa.txt
+              can_see: true
             - name: renamed
               source: tests/alfa.txt
     - name: f1
