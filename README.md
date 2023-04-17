@@ -61,7 +61,7 @@ If you don't like this behavior, disable it in the Admin-panel or enter this con
 
 ### Other systems
 
-If your system is not Windows/Linux/Mac, you can try this alternative version:
+If your system is not Windows/Linux/Mac or you just don't want to run the binaries, you can try this alternative version:
 
 1. [install node.js](https://nodejs.org)
 2. execute at command line `npx hfs@latest`
@@ -72,14 +72,38 @@ Configuration and other files will be stored in `%HOME%/.vfs`
 
 ### Service
 
-If you want to run HFS as a service
-- if you installed with `npm` on Windows 
-  - service installation
-      - run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
-  - service update 
-    - run `npx qckwinsvc2 uninstall name="HFS"`
-    - run `npm -g update hfs`
-    - run the service installation again
+If you want to run HFS at boot (as a service), we suggest the following methods
+
+#### On Linux 
+1. [install node.js](https://nodejs.org)
+2. create a file `/etc/systemd/system/hfs.service` with this content
+  ```
+  [Unit]
+  Description=HFS
+  After=network.target
+  
+  [Service]
+  Type=simple
+  Restart=always
+  ExecStart=/usr/bin/npx -y hfs@latest
+  
+  [Install]
+  WantedBy=multi-user.target
+  ```
+3. run `sudo systemctl daemon-reload && sudo systemctl enable hfs && sudo systemctl start hfs && sudo systemctl status hfs`
+
+NB: update will be attempted at each restart
+
+#### On Windows
+
+1. [install node.js](https://nodejs.org)
+2. run `npm -g i hfs`
+3. run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
+  
+To update 
+- run `npx qckwinsvc2 uninstall name="HFS"`
+- run `npm -g update hfs`
+- run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
 
 ## Internationalization
 
