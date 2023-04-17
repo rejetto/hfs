@@ -164,3 +164,7 @@ export function getHFS() {
 export function getPrefixUrl() {
     return getHFS().prefixUrl
 }
+
+export function basename(path: string) {
+    return path.slice(path.lastIndexOf('/') + 1 || path.lastIndexOf('\\') + 1)
+}

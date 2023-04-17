@@ -14,7 +14,7 @@ import {
     StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { formatBytes, IconBtn, isEqualLax, modifiedSx, newDialog, objSameKeys, onlyTruthy, prefix } from './misc'
+import { basename, formatBytes, IconBtn, isEqualLax, modifiedSx, newDialog, objSameKeys, onlyTruthy, prefix } from './misc'
 import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -69,7 +69,9 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         values,
         set(v, k) {
             if (k === 'link') return
-            setValues({ ...values, [k]: v })
+            const nameIsVirtual = k === 'source' && values.source?.endsWith(values.name)
+            const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
+            setValues({ ...values, name, [k]: v })
         },
         barSx: { gap: 2, width: '100%', ...barColors },
         stickyBar: true,
@@ -84,15 +86,12 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         ],
         onError: alertDialog,
         save: {
-            sx: modifiedSx(!isEqualLax(values, file)),
+            sx: modifiedSx(!isEqualLax(values, rest)),
             async onClick() {
                 const props = _.omit(values, ['ctime','mtime','size','id'])
                 if (!props.masks)
                     props.masks = null // undefined cannot be serialized
-                await apiCall('set_vfs', {
-                    uri: values.id,
-                    props,
-                })
+                await apiCall('set_vfs', { uri: values.id, props })
                 if (props.name !== file.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
                     state.selectedFiles[0].id = file.parent!.id + props.name + (isDir ? '/' : '')
                 reloadVfs()
@@ -100,7 +99,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         },
         fields: [
             isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
-                : { k: 'name', required: true, helperText: source && "You can decide a name that's different from the one on your disk" },
+                : { k: 'name', required: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
             { k: 'id', comp: LinkField, urls },
             { k: 'source', label: "Source on disk", comp: FileField, files: !isDir, folders: isDir, multiline: true,
                 placeholder: "Not on disk, this is a virtual folder",
