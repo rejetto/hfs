@@ -47,12 +47,10 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
     }
 
     function recur(node: Readonly<VfsNode>): ReactElement {
-        let { id, name, source, isRoot } = node
+        let { id, name, isRoot } = node
         if (!id)
             debugger
         const folder = node.type === 'folder'
-        if (folder && !isWindowsDrive(source) && source === name) // we need a way to show that the name we are displaying is a source in this ambiguous case, so we add a redundant ./
-            source = './' + source
         return h(TreeItem, {
             ref(el: any) { // workaround to permit drag&drop with mui5's tree
                 el?.addEventListener('focusin', (e: any) => e.stopImmediatePropagation())
@@ -102,13 +100,17 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                         node.size === -1 && iconTooltip(HighlightOff, "Source not found")
                     ),
                 ),
-                isRoot ? "Home"
-                    // special rendering if the whole source is not too long, and the name was not customized
-                    : source?.length! < 45 && source?.endsWith(name) ? h('span', {},
-                        h('span', { style: { opacity: .4 } }, source.slice(0,-name.length)),
-                        h('span', {}, source.slice(-name.length)),
-                    )
-                    : h(Box, { lineHeight: '1.2em' }, name)
+                isRoot ? "Home" : (() => { // special rendering if the whole source is not too long, and the name was not customized
+                    const ps = node.parent?.source
+                    const { source } = node
+                    const rel = ps && source?.startsWith(ps) ? '.' + source.slice(ps.length) : source
+                    return !rel || !source?.endsWith(name) || rel.length > 45
+                        ? h(Box, { lineHeight: '1.2em' }, name)
+                        : h('span', {},
+                            h('span', { style: { opacity: .4 } }, rel.slice(0,-name.length)),
+                            rel.slice(-name.length),
+                        )
+                })()
             ),
             key: name,
             collapseIcon: h(ExpandMore, {
