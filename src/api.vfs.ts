@@ -1,6 +1,17 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { defaultPerms, getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode } from './vfs'
+import {
+    defaultPerms,
+    getNodeName,
+    isSameFilenameAs,
+    nodeIsDirectory,
+    saveVfs,
+    urlToNode,
+    vfs,
+    VfsNode,
+    PERM_KEYS,
+    applyParentToChild
+} from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
@@ -19,6 +30,7 @@ type VfsAdmin = {
     ctime?: Date,
     mtime?: Date,
     website?: true,
+    byMasks?: any
     children?: VfsAdmin[]
 } & Omit<VfsNode, 'type' | 'children'>
 
@@ -32,11 +44,11 @@ const apis: ApiHandlers = {
 
     async get_vfs() {
         return {
-            root: await recur(vfs),
+            root: await recur(),
             defaultPerms,
         }
 
-        async function recur(node: VfsNode): Promise<VfsAdmin> {
+        async function recur(node=vfs): Promise<VfsAdmin> {
             const { source } = node
             const stats: false | Stats = Boolean(source) && await stat(source!).catch(() => false)
             const isDir = !source || stats && stats.isDirectory()
@@ -44,16 +56,23 @@ const apis: ApiHandlers = {
                 : { size: source ? -1 : undefined }
             if (copyStats.mtime && Number(copyStats.mtime) === Number(copyStats.ctime))
                 delete copyStats.mtime
-            const isRoot = node === vfs
+            let byMasks = node.original && _.pickBy(node, (v,k) =>
+                v !== (node.original as any)[k] // something is changing me...
+                && v !== (node.parent as any)[k] // ...and it's not inheritance...
+                && PERM_KEYS.includes(k)) // ...must be masks. Please limit this to perms
+            if (_.isEmpty(byMasks))
+                byMasks = undefined
             return {
                 ...copyStats,
-                ...node,
+                ...node.original || node,
+                byMasks,
                 website: Boolean(node.children?.find(isSameFilenameAs('index.html')))
                     || isDir && source && await stat(join(source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
-                name: isRoot ? undefined : getNodeName(node),
+                name: node === vfs ? undefined : getNodeName(node),
                 type: isDir ? 'folder' : undefined,
-                children: node.children && await Promise.all(node.children.map(recur)),
+                children: node.children && await Promise.all(node.children.map(async original =>
+                    recur(applyParentToChild(original, node)) ))
             }
         }
     },
@@ -85,7 +104,7 @@ const apis: ApiHandlers = {
         const n = await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
-        props = pickProps(props, ['name','source','masks','default','accept', ...Object.keys(defaultPerms)]) // sanitize
+        props = pickProps(props, ['name','source','masks','default','accept', ...PERM_KEYS]) // sanitize
         if (props.name && props.name !== getNodeName(n)) {
             const parent = await urlToNodeOriginal(dirname(uri))
             if (parent?.children?.find(x => getNodeName(x) === props.name))

@@ -42,6 +42,7 @@ export interface VfsNode extends Partial<VfsPerm> {
     // fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
+    parent?: VfsNode // available when original is available
 }
 
 export const defaultPerms: VfsPerm = {
@@ -51,6 +52,8 @@ export const defaultPerms: VfsPerm = {
     can_upload: WHO_NO_ONE,
     can_delete: WHO_NO_ONE,
 }
+
+export const PERM_KEYS = Object.keys(defaultPerms)
 
 export const MIME_AUTO = 'auto'
 
@@ -74,6 +77,20 @@ export function isSameFilenameAs(name: string) {
         lc === (typeof other === 'string' ? other : getNodeName(other)).toLowerCase()
 }
 
+export function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
+    const ret: VfsNode = {
+        ...child,
+        original: child,
+        isTemp: true,
+        parent,
+    }
+    name ||= child ? getNodeName(child) : ''
+    inheritMasks(ret, parent, name)
+    parentMaskApplier(parent)(ret, name)
+    inheritFromParent(parent, ret)
+    return ret
+}
+
 export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=vfs, getRest?: (rest: string) => any) : Promise<VfsNode | undefined> {
     let initialSlashes = 0
     while (url[initialSlashes] === '/')
@@ -92,14 +109,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     const child = parent.children?.find(isSameFilenameAs(name))
     if (!child && !parent.source) return // on tree or on disk
 
-    const ret: VfsNode = {
-        ...child,
-        original: child,
-        isTemp: true,
-    }
-    inheritMasks(ret, parent, name)
-    parentMaskApplier(parent)(ret, name)
-    inheritFromParent(parent, ret)
+    const ret = applyParentToChild(child, parent, name)
     if (child)  // yes
         return urlToNode(rest, ctx, ret, getRest)
     let onDisk = name
@@ -170,7 +180,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx
             return HTTP_FORBIDDEN
         // calculate value of permission resolving references to other permissions, avoiding infinite loop
         let who: Who
-        let max = Object.keys(defaultPerms).length
+        let max = PERM_KEYS.length
         do {
             who = node[perm] ?? defaultPerms[perm]
             if (!max-- || typeof who !== 'string' || who === WHO_ANY_ACCOUNT)
@@ -264,17 +274,24 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
         props[perm] || masksCouldGivePermission(props.masks, perm))
 }
 
-function parentMaskApplier(parent: VfsNode) {
+export function parentMaskApplier(parent: VfsNode) {
     const matchers = Object.entries(parent.masks || {}).map(([k, v]) => {
         k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : ''
         if (!k) return
         const m = makeMatcher(k)
         return [m, v] as [typeof m, typeof v]
     })
-    return (item: VfsNode, virtualBasename: string) => {
-        for (const entry of matchers)
-            if (entry?.[0]?.(virtualBasename))
-                _.defaults(item, entry[1])
+    return (item: VfsNode, virtualBasename?: string) => {
+        if (virtualBasename === undefined)
+            virtualBasename = getNodeName(item)
+        for (const entry of matchers) {
+            if (!entry) continue
+            const [matcher, mods] = entry
+            if (!matcher(virtualBasename)) continue
+            if (item.masks)
+                item.masks = _.merge(_.cloneDeep(mods.masks), item.masks) // item.masks must take precedence
+            _.defaults(item, mods)
+        }
     }
 }
 

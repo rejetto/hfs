@@ -36,7 +36,7 @@ interface FileFormProps {
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
 export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }: FileFormProps) {
-    const { parent, children, isRoot, ...rest } = file
+    const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
         setValues(Object.assign(objSameKeys(defaultPerms, () => null), rest))
@@ -50,7 +50,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         const ret = {}
         let run = parent
         while (run) {
-            _.defaults(ret, run)
+            _.defaults(ret, run, run.byMasks)
             run = run.parent
         }
         return _.defaults(ret, defaultPerms)
@@ -132,6 +132,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
             k: perm, lg: 6, comp: WhoField, parent, accounts, helperText,
             label: "Who can " + perm2word(perm),
             inherit: inheritedPerms[perm],
+            byMasks: byMasks?.[perm],
             ...props
         }
     }
@@ -148,10 +149,12 @@ function formatTimestamp(x: string) {
 }
 
 interface WhoFieldProps extends FieldProps<Who> { accounts: Account[], otherPerms: any[] }
-function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, otherPerms, ...rest }: WhoFieldProps) {
+function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, otherPerms, byMasks, ...rest }: WhoFieldProps) {
+    const defaultLabel = (byMasks !== undefined ? "As per mask: " : parent !== undefined ? "As parent: " : "Default: " )
+        + who2desc(byMasks ?? inherit)
     const options = useMemo(() =>
         onlyTruthy([
-            { value: null, label: (parent ? "As parent: " : "Default: " ) + who2desc(inherit) },
+            { value: null, label: defaultLabel },
             { value: true },
             { value: false },
             { value: '*' },

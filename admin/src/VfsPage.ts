@@ -178,6 +178,7 @@ export interface VfsNode extends VfsPerms {
     parent?: VfsNode
     website?: true
     masks?: any
+    byMasks?: VfsPerms
     isRoot?: true
     accept?: string
 }
