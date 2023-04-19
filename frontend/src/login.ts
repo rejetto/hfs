@@ -9,6 +9,7 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
 import { reloadList } from './useFetchList'
 import { CustomCode } from './components'
+import _ from 'lodash'
 
 async function login(username:string, password:string) {
     const stopWorking = working()
@@ -36,7 +37,7 @@ function sessionRefresher(response: any) {
     state.adminUrl = adminUrl
     if (!username || !exp) return
     const delta = new Date(exp).getTime() - Date.now()
-    const t = Math.min(delta - 30_000, 600_000)
+    const t = _.clamp(delta - 30_000, 5_000, 600_000)
     console.debug('session refresh in', Math.round(t/1000))
     setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
 }
