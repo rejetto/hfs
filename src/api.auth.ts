@@ -19,9 +19,11 @@ import Koa from 'koa'
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
 import { ctxAdminAccess } from './adminApis'
 import { prepareState } from './middlewares'
+import { defineConfig } from './config'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
+const keepSessionAlive = defineConfig('keep_session_alive', true)
 
 // centralized log-in state
 async function loggedIn(ctx:Koa.Context, username: string | false) {
@@ -40,7 +42,8 @@ async function loggedIn(ctx:Koa.Context, username: string | false) {
 }
 
 function makeExp() {
-    return { exp: new Date(Date.now() + SESSION_DURATION) }
+    return !keepSessionAlive.get() ? undefined
+        : { exp: new Date(Date.now() + SESSION_DURATION) }
 }
 
 export const login: ApiHandler = async ({ username, password }, ctx) => {

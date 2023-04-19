@@ -39,7 +39,8 @@ This file contains details the configuration files.
 - `title` text displayed in the tab of your browser. Default is "File server".
 - `file_menu_on_link` if to display file-menu when clicking on link, or have a dedicated button instead. Default is true.
 - `min_available_mb` refuse to accept uploads if available disk space is below this threshold. Default is 100.
-- `dont_overwrite_uploading` uploading a file with name already present in the folder will be renamed if this is enabled. Default is false.  
+- `dont_overwrite_uploading` uploading a file with name already present in the folder will be renamed if this is enabled. Default is false.
+- `keep_session_alive` keeps you logged in while the page is left open and the computer is on. Default is true.
 
 #### Virtual File System (VFS)
 

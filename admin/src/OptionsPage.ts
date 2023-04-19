@@ -145,11 +145,12 @@ export default function OptionsPage() {
                 helperText: "Leave empty to never delete" },
             { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
-            { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
-                helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
-            },
+            { k: 'keep_session_alive', comp: BoolField, helperText: "Keeps you logged in while the page is left open and the computer is on" },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address", md: 12,
+                helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
+            },
             { k: 'mime', comp: StringStringField,
                 keyLabel: "Files", keyWidth: 7,
                 valueLabel: "Mime type", valueWidth: 4
