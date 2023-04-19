@@ -288,6 +288,8 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
         const withoutNeg = neg ? k.slice(1) : k
         if (withoutNeg.startsWith('**'))
             o[k] = v
+        else if (withoutNeg.startsWith('*/'))
+            o[neg + withoutNeg.slice(2)] = v
         else if (withoutNeg.startsWith(virtualBasename + '/'))
             o[neg + withoutNeg.slice(virtualBasename.length + 1)] = v
     }
