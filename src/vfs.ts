@@ -90,6 +90,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     }
     // does the tree node have a child that goes by this name?
     const child = parent.children?.find(isSameFilenameAs(name))
+    if (!child && !parent.source) return // on tree or on disk
 
     const ret: VfsNode = {
         ...child,
@@ -101,8 +102,6 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     inheritFromParent(parent, ret)
     if (child)  // yes
         return urlToNode(rest, ctx, ret, getRest)
-    // not in the tree, we can see consider continuing on the disk
-    if (!parent.source) return // but then we need the current node to be linked to the disk, otherwise, we give up
     let onDisk = name
     if (parent.rename) { // reverse the mapping
         for (const [from, to] of Object.entries(parent.rename))
@@ -112,7 +111,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
             }
         ret.rename = renameUnderPath(parent.rename, name)
     }
-    ret.source = enforceFinal('/', parent.source) + onDisk
+    ret.source = enforceFinal('/', parent.source!) + onDisk
     if (parent.default)
         inheritFromParent({ mime: { '*': MIME_AUTO } }, ret)
     if (rest)
