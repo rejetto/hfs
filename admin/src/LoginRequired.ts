@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { Center } from './misc'
+import { Center, getHFS } from './misc'
 import { Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
 import { srpSequence } from '@hfs/shared'
@@ -71,7 +71,7 @@ async function login(username: string, password: string) {
     sessionRefresher(res)
 }
 
-sessionRefresher((window as any).HFS.session)
+sessionRefresher(getHFS().session)
 
 function sessionRefresher(response: any) {
     if (!response) return

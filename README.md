@@ -206,7 +206,7 @@ This is enough, but you may want to configure generated links accordingly:
 
 - Appending `#LOGIN` to address will bring up the login dialog
 - Appending ?lang=CODE to address will force a specific language
-- env `SESSION_DURATION` can be set to any number of seconds, or to "session" to make it expire when session/browser is closed
+- env `SESSION_DURATION` can be set to any number of seconds. Default is 1 day.
 
 ## Contribute
 

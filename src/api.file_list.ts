@@ -20,7 +20,7 @@ import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } 
 import Koa from 'koa'
 
 export const file_list: ApiHandler = async ({ uri, offset, limit, search, omit, sse }, ctx) => {
-    let node = await urlToNode( uri || '/', ctx)
+    const node = await urlToNode( uri || '/', ctx)
     const list = new SendListReadable()
     if (!node)
         return fail(HTTP_NOT_FOUND)

@@ -3,7 +3,7 @@
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
-import { getPrefixUrl, hIcon, srpSequence, working } from './misc'
+import { getHFS, getPrefixUrl, hIcon, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
@@ -27,7 +27,7 @@ async function login(username:string, password:string) {
     })
 }
 
-sessionRefresher((window as any).HFS.session)
+sessionRefresher(getHFS().session)
 
 function sessionRefresher(response: any) {
     if (!response) return

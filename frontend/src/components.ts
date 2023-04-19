@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { hfsEvent, hIcon } from './misc'
+import { getHFS, hfsEvent, hIcon } from './misc'
 import { createElement as h, Fragment, HTMLAttributes, isValidElement, ReactNode, useMemo } from 'react'
 
 export function Spinner(props: any) {
@@ -60,8 +60,8 @@ export function CustomCode({ name, props }: any) {
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
                 : typeof x === 'string' ? h(Html, { key, code: x })
                     : h('span', { key }, x))
-        const html = (window as any).HFS.customHtml[name]
-        if (html && html.trim())
+        const html = getHFS().customHtml[name]
+        if (html?.trim?.())
             ret.push(h(Html, { key: 'x', code: html }))
         return ret
     }, props ? Object.values(props) : []))
