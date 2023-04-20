@@ -3,12 +3,13 @@ import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
 import { Checkbox } from './components'
 import { useI18N } from './i18n'
+import { usePath } from './useFetchList'
 
 export function FilterBar() {
     const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
     const [all, setAll] = useState(false)
     const [filter, setFilter] = useState(patternFilter)
-    useEffect(() => setAll(false), [patternFilter]) // reset on change
+    useEffect(() => setAll(false), [patternFilter, usePath()]) // reset on change
     const {t} = useI18N()
 
     state.patternFilter = useDebounce(showFilter ? filter : '', 300)
