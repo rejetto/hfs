@@ -22,16 +22,16 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const filter = pattern2filter(String(ctx.query.search||''))
     const walker = !list ? walkNode(node, ctx, Infinity, '', 'can_read')
         : (async function*(): AsyncIterableIterator<VfsNode> {
-            for await (const el of list) {
-                const subNode = await urlToNode(el, ctx, node)
+            for await (const uri of list) {
+                const subNode = await urlToNode(uri, ctx, node)
                 if (!subNode)
                     continue
                 if (await nodeIsDirectory(subNode)) { // a directory needs to walked
                     if (hasPermission(subNode, 'can_list',ctx))
-                        yield* walkNode(subNode, ctx, Infinity, el + '/', 'can_read')
+                        yield* walkNode(subNode, ctx, Infinity, uri + '/', 'can_read')
                     continue
                 }
-                let folder = dirname(el)
+                let folder = dirname(decodeURIComponent(uri)) // decodeURI() won't account for %23=#
                 folder = folder === '.' ? '' : folder + '/'
                 yield { ...subNode, name: folder + getNodeName(subNode) } // reflect relative path in archive, otherwise way may have name-clashes
             }
