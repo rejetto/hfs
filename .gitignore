@@ -8,5 +8,6 @@ counters.yaml
 *.log*
 self.*
 config.yaml
+custom.html
 accounts.yaml
 .DS_Store
