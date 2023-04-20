@@ -17,7 +17,7 @@ export const state = proxy<{
     listReloader: number,
     patternFilter: string,
     showFilter: boolean,
-    selected: Record<string,true>, // by using an object instead of an array, Entry components are not rendered when others get selected
+    selected: { [uri:string]: true }, // by using an object instead of an array, Entry components are not rendered when others get selected
     remoteSearch: string,
     sortBy: string,
     invertOrder: boolean,

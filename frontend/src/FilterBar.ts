@@ -21,13 +21,13 @@ export function FilterBar() {
             onChange(){
                 const will = !all
                 const sel = state.selected
-                for (const { n } of state.filteredList || state.list) {
-                    const was = sel[n]
+                for (const { uri } of state.filteredList || state.list) {
+                    const was = sel[uri]
                     if (was === will) continue
                     if (was)
-                        delete sel[n]
+                        delete sel[uri]
                     else
-                        sel[n] = true
+                        sel[uri] = true
                 }
 
                 setAll(will)
