@@ -17,7 +17,7 @@ import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
 import { alertDialog } from './dialog'
-import useFetchList, { pathDecode, usePath } from './useFetchList'
+import useFetchList, { usePath } from './useFetchList'
 import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
@@ -186,6 +186,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const [menuBtn, setMenuBtn] = useState(false)
     const { showFilter, selected, can_delete } = useSnapState()
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
+    const containerName = containerDir && entry.n.slice(0, -entry.name.length)
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
@@ -214,7 +215,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 menuBtn && h('button', { className: 'popup-menu-button', onClick: openFileMenu }, hIcon('menu'), t`Menu`)
             )
             : h(Fragment, {},
-                containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, pathDecode(containerDir) ),
+                containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, containerName),
                 h('a', { href: uri, onClick }, !containerDir && ico, entry.name)
             ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
