@@ -2,7 +2,7 @@
     const config = HFS.getPluginConfig()
 
     const inMenu = config.where === 'menu'
-    HFS.onEvent('additionalEntryProps', ({ entry: { hits } }) =>
+    HFS.onEvent('additionalEntryDetails', ({ entry: { hits } }) =>
         hits && !inMenu && `<span class="download-counter" title="${HFS.t`download counter`}">${hits}</span>`)
 
     HFS.onEvent('fileMenu', ({ entry, props }) => {

@@ -177,8 +177,8 @@ Some frontend-events can return Html, which can be expressed in several ways
 
 This is a list of available frontend-events, with respective object parameter and output.
 
-- `additionalEntryProps`
-    - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-props` container.
+- `additionalEntryDetails`
+    - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
     - parameter `{ entry: Entry }`
 
       The `Entry` type is an object with the following properties:
@@ -241,6 +241,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
   - entry.cantOpen
   - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib
   - second parameter of onEvent is now deprecated
+  - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
 - 8 (v0.43.0)
   - entry.name & .uri
   - tools.dialogLib

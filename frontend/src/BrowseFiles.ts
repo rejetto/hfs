@@ -219,7 +219,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
             ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
-            h(EntryProps, { entry, midnight }),
+            h(EntryDetails, { entry, midnight }),
             (!menuOnLink || isFolder && mobile) && h('button', { className: 'file-menu-button', onClick: openFileMenu }, hIcon('menu')),
         ),
         h('div'),
@@ -281,14 +281,14 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     }
 })
 
-const EntryProps = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
+const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
     const { t: time, s } = entry
     const today = time && time > midnight
     const shortTs = isMobile()
     const {t} = useI18N()
     const dd = '2-digit'
-    return h('div', { className: 'entry-props' },
-        h(CustomCode, { name: 'additionalEntryProps', props: { entry } }),
+    return h('div', { className: 'entry-props entry-details' }, // entry-props is legacy
+        h(CustomCode, { name: 'additionalEntryDetails', props: { entry } }),
         entry.p?.match(entry.isFolder ? /l/i : /r/i) && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),
         time && h('span', {
