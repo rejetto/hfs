@@ -316,17 +316,15 @@ function deleteModule(id: string) {
             for (const child of wantArray(cache[k]?.children))
                 getOrSet(requiredBy, child.id, ()=> [] as string[]).push(k)
     const deleted: string[] = []
-    recur(id)
-
-    function recur(id: string) {
-        let mod = cache[id]
+    ;(function deleteCache(id: string) {
+        const mod = cache[id]
         if (!mod) return
         delete cache[id]
         deleted.push(id)
         for (const child of mod.children)
             if (! _.difference(requiredBy[child.id], deleted).length)
-                recur(child.id)
-    }
+                deleteCache(child.id)
+    })(id)
 }
 
 onProcessExit(() =>

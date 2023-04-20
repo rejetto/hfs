@@ -53,7 +53,7 @@ export const defaultPerms: VfsPerm = {
     can_delete: WHO_NO_ONE,
 }
 
-export const PERM_KEYS = Object.keys(defaultPerms)
+export const PERM_KEYS = typedKeys(defaultPerms)
 
 export const MIME_AUTO = 'auto'
 
@@ -323,19 +323,17 @@ function renameUnderPath(rename:undefined | Record<string,string>, path: string)
 }
 
 events.on('accountRenamed', (from, to) => {
-    recur(vfs)
-    saveVfs()
-
-    function recur(n: VfsNode) {
-        for (const k of typedKeys(defaultPerms))
-            replace(n[k])
+    ;(function renameInNode(n: VfsNode) {
+        for (const k of PERM_KEYS)
+            renameInPerm(n[k])
 
         if (n.masks)
-            Object.values(n.masks).forEach(recur)
-        n.children?.forEach(recur)
-    }
+            Object.values(n.masks).forEach(renameInNode)
+        n.children?.forEach(renameInNode)
+    })(vfs)
+    saveVfs()
 
-    function replace(a?: Who) {
+    function renameInPerm(a?: Who) {
         if (!Array.isArray(a)) return
         for (let i=0; i < a.length; i++)
             if (a[i] === from)

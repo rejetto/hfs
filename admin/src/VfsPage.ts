@@ -30,12 +30,11 @@ export default function VfsPage() {
     const { vfs, selectedFiles } = useSnapState()
     const { data, reload, element } = useApiEx('get_vfs')
     useMemo(() => vfs || reload(), [vfs, reload])
-    const anyMask = useMemo(() => {
-        return recur(vfs)
-        function recur(node: typeof vfs) {
-            return !_.isEmpty(node?.masks) || node?.children?.some(recur)
-        }
-    }, [vfs])
+    const anyMask = useMemo(() =>
+        (function someMask(node: typeof vfs) {
+            return !_.isEmpty(node?.masks) || node?.children?.some(someMask)
+        })(vfs),
+        [vfs])
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
     const [status] = useApi('get_status')

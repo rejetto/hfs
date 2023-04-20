@@ -59,7 +59,7 @@ const apis: ApiHandlers = {
             let byMasks = node.original && _.pickBy(node, (v,k) =>
                 v !== (node.original as any)[k] // something is changing me...
                 && v !== (node.parent as any)[k] // ...and it's not inheritance...
-                && PERM_KEYS.includes(k)) // ...must be masks. Please limit this to perms
+                && PERM_KEYS.includes(k as any)) // ...must be masks. Please limit this to perms
             if (_.isEmpty(byMasks))
                 byMasks = undefined
             return {
