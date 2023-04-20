@@ -207,6 +207,7 @@ This is enough, but you may want to configure generated links accordingly:
 - Appending `#LOGIN` to address will bring up the login dialog
 - Appending ?lang=CODE to address will force a specific language
 - env `SESSION_DURATION` can be set to any number of seconds. Default is 1 day.
+- right/ctrl/command click on toggle-all checkbox will invert each checkbox state
 
 ## Contribute
 

@@ -1,7 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { getHFS, hfsEvent, hIcon } from './misc'
-import { createElement as h, Fragment, HTMLAttributes, isValidElement, ReactNode, useMemo } from 'react'
+import {
+    ChangeEvent,
+    createElement as h,
+    Fragment,
+    HTMLAttributes,
+    InputHTMLAttributes,
+    isValidElement,
+    ReactNode,
+    useMemo
+} from 'react'
 
 export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
@@ -23,11 +32,15 @@ export function FlexV(props:any) {
     return h(Flex, { vert:true, ...props })
 }
 
-interface CheckboxProps { children?:ReactNode, value:any, onChange?:(v:boolean)=>void }
-export function Checkbox({ onChange, value, children, ...props }:CheckboxProps) {
-    const ret = h('input',{
+interface CheckboxProps extends Omit<Partial<InputHTMLAttributes<any>>, 'onChange'> {
+    children?: ReactNode,
+    value: any,
+    onChange?: (v: boolean, ev: ChangeEvent) => void
+}
+export function Checkbox({ onChange, value, children, ...props }: CheckboxProps) {
+    const ret = h('input', {
         type: 'checkbox',
-        onChange: ev => onChange?.(Boolean(ev.target.checked)),
+        onChange: ev => onChange?.(Boolean(ev.target.checked), ev),
         checked: Boolean(value),
         value: 1,
         ...props

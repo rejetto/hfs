@@ -4,6 +4,7 @@ import { useDebounce } from 'usehooks-ts'
 import { Checkbox } from './components'
 import { useI18N } from './i18n'
 import { usePath } from './useFetchList'
+import { with_ } from './misc'
 
 export function FilterBar() {
     const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
@@ -19,19 +20,13 @@ export function FilterBar() {
     return h('div', { id: 'filter-bar', className: showFilter ? 'show-sliding' : 'before-sliding' },
         h(Checkbox, {
             value: all,
-            onChange(){
-                const will = !all
-                const sel = state.selected
-                for (const { uri } of state.filteredList || state.list) {
-                    const was = sel[uri]
-                    if (was === will) continue
-                    if (was)
-                        delete sel[uri]
-                    else
-                        sel[uri] = true
-                }
-
-                setAll(will)
+            onContextMenu(ev) {
+                ev.preventDefault()
+                select(undefined)
+            },
+            onChange(v, ev){
+                const toggle = with_(ev.nativeEvent as any, v => v.ctrlKey || v.metaKey)
+                select(toggle ? undefined : v)
             },
         }),
         h('input', {
@@ -49,4 +44,18 @@ export function FilterBar() {
             fil !== undefined && fil < list.length && t('filter_count', {n:fil}, "{n} filtered"),
         ].filter(Boolean).join(', ') ),
     )
+
+    function select(will: boolean | undefined) {
+        const sel = state.selected
+        for (const { uri } of state.filteredList || state.list) {
+            const was = sel[uri] || false
+            if (was === will) continue
+            if (was)
+                delete sel[uri]
+            else
+                sel[uri] = true
+        }
+        if (will !== undefined)
+            setAll(will)
+    }
 }
