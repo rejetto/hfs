@@ -8,8 +8,8 @@ import { useInterval } from 'usehooks-ts'
 import { t } from './i18n'
 export * from '@hfs/shared/dialogs'
 
-interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string }
-export async function promptDialog(msg: string, { def, type, ...rest }:PromptOptions={}) : Promise<string | null> {
+interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string, trim?: boolean }
+export async function promptDialog(msg: string, { def, type, trim=true, ...rest }:PromptOptions={}) : Promise<string | null> {
     return new Promise(resolve => newDialog({
         className: 'dialog-prompt',
         icon: '?',
@@ -48,7 +48,10 @@ export async function promptDialog(msg: string, { def, type, ...rest }:PromptOpt
         )
 
         function go() {
-            closeDialog(ref.current?.value)
+            let res = ref.current?.value
+            if (trim)
+                res = res?.trim()
+            closeDialog(res)
         }
     }
 }
