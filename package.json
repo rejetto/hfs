@@ -20,7 +20,7 @@
     "build-frontend": "npm run build --workspace=frontend",
     "build-admin": "npm run build --workspace=admin",
     "server-for-test": "node dist/src --cwd . --config tests && rm custom.html",
-    "server-for-test-dev": "cross-env DEV=1 nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src -- --cwd . --config tests",
+    "server-for-test-dev": "cross-env DEV=1 FRONTEND_PROXY=3005 ADMIN_PROXY=3006 nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src -- --cwd . --config tests",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "pub": "cd dist && npm publish",
     "dist": "npm run build-all && npm run dist-bin",
