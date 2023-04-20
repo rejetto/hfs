@@ -162,7 +162,7 @@ export function getHFS() {
 }
 
 export function getPrefixUrl() {
-    return getHFS().prefixUrl
+    return getHFS().prefixUrl || ''
 }
 
 export function basename(path: string) {

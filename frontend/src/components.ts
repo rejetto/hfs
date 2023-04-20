@@ -60,7 +60,7 @@ export function CustomCode({ name, props }: any) {
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
                 : typeof x === 'string' ? h(Html, { key, code: x })
                     : h('span', { key }, x))
-        const html = getHFS().customHtml[name]
+        const html = getHFS().customHtml?.[name]
         if (html?.trim?.())
             ret.push(h(Html, { key: 'x', code: html }))
         return ret
