@@ -15,7 +15,7 @@ import { socket2connection, updateConnection } from './connections'
 import { roundSpeed } from './throttler'
 import _ from 'lodash'
 
-export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', undefined)
+export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
 const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
 
