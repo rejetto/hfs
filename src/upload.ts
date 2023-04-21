@@ -37,7 +37,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 return fail(HTTP_PAYLOAD_TOO_LARGE)
         }
         catch(e: any) {
-            console.warn("can't check disk size", e.message || String(e))
+            console.warn("can't check disk size:", e.message || String(e))
         }
     fs.mkdirSync(dir, { recursive: true })
     const keepName = basename(fullPath).slice(-200)

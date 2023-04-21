@@ -220,14 +220,14 @@ export async function enqueue(files: File[]) {
     if (_.remove(files, f => !simulateBrowserAccept(f)).length)
         await alertDialog(t('upload_file_rejected', "Some files were not accepted"), 'warning')
 
-    _.remove(files, f => { // avoid duplicates
-        const match = path(f)
-        return Boolean(_.find(files, x => x !== f && match === path(x)))
-    })
+    files = _.uniqBy(files, path)
     if (!files.length) return
     const to = location.pathname
-    _.find(uploadState.qs, { to })?.files.push(...files.map(ref))
-        || uploadState.qs.push({ to, files: files.map(ref) })
+    const q = _.find(uploadState.qs, { to })
+    if (!q)
+        return uploadState.qs.push({ to, files: files.map(ref) })
+    const missing = _.differenceBy(files, q.files, path)
+    q.files.push(...missing.map(ref))
 }
 
 function simulateBrowserAccept(f: File) {
