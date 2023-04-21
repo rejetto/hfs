@@ -135,11 +135,13 @@ input, select, ul a {
     color: #833;
     padding: .5em 1em;
 }
-
+.hide-back {
+    background-color: var(--bg);
+}
 header {
+    @extend .hide-back;
     position: sticky;
     top: 0;
-    background-color: var(--bg);
     padding: .2em;
     z-index: 1; /* necessary to not be covered by checkboxes */
 }
@@ -358,6 +360,11 @@ button label {
     }
 }
 
+.upload-toolbar {
+    @extend .hide-back;
+    position: sticky;
+    top: -4px;
+}
 .upload-progress::before { content: var(--separator); }
 .entry-size::after { content: var(--separator) }
 

@@ -89,10 +89,10 @@ export function showUpload() {
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
 
-        return h(FlexV, { props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
-            h(FlexV, { position: 'sticky', top: -4, background: 'var(--bg)' },
+        return h(FlexV, { gap: 0, props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
+            h(FlexV, { props: { className: 'upload-toolbar' } },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
-                    : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', marginTop: '1em' },
+                    : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', margin: '1em 0' },
                         h('button', {
                             className: 'upload-files',
                             onClick: () => pickFiles({ accept: normalizeAccept(accept) })
