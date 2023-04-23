@@ -2,7 +2,17 @@
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
 import { Flex, FlexV } from './components'
-import { closeDialog, DialogCloser, formatBytes, formatPerc, hIcon, newDialog, prefix, selectFiles } from './misc'
+import {
+    closeDialog,
+    DialogCloser,
+    formatBytes,
+    formatPerc,
+    hIcon,
+    isMobile,
+    newDialog,
+    prefix,
+    selectFiles
+} from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -97,7 +107,7 @@ export function showUpload() {
                             className: 'upload-files',
                             onClick: () => pickFiles({ accept: normalizeAccept(accept) })
                         }, t`Pick files`),
-                        h('button', {
+                        !isMobile() && h('button', {
                             className: 'upload-folder',
                             onClick: () => pickFiles({ folder: true })
                         }, t`Pick folder`),
