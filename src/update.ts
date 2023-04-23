@@ -62,6 +62,14 @@ export async function update() {
 
 if (argv.updating) { // we were launched with a temporary name, restore original name to avoid breaking references
     const bin = process.execPath
-    renameSync(bin, join(dirname(bin), argv.updating))
+    const dest = join(dirname(bin), argv.updating)
+    renameSync(bin, dest)
     console.log("renamed binary file to", argv.updating)
+    // have to relaunch with new name, or otherwise next update will fail with EBUSY on hfs.exe
+    onProcessExit(() => {
+        spawn(dest, [], { detached: true, shell: true })
+            .on('error', console.error)
+    })
+    console.log('restarting')
+    process.exit()
 }
