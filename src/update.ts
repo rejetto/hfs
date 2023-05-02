@@ -49,7 +49,7 @@ export async function update() {
             catch {}
             renameSync(bin, oldBin)
             console.log("launching new version in background", newBinFile)
-            spawn(newBin, ['--updating', binFile], { detached: true, shell: true })
+            spawn(newBin, ['--updating', binFile], { detached: true, shell: true, stdio:'inherit' })
                 .on('error', console.error)
         })
         console.log('quitting')
@@ -67,7 +67,7 @@ if (argv.updating) { // we were launched with a temporary name, restore original
     console.log("renamed binary file to", argv.updating)
     // have to relaunch with new name, or otherwise next update will fail with EBUSY on hfs.exe
     onProcessExit(() => {
-        spawn(dest, [], { detached: true, shell: true })
+        spawn(dest, [], { detached: true, shell: true, stdio:'inherit' })
             .on('error', console.error)
     })
     console.log('restarting')
