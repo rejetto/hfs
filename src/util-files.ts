@@ -16,11 +16,6 @@ export async function isDirectory(path: string) {
     catch { return false }
 }
 
-export async function isFile(path: string) {
-    try { return (await fs.stat(path)).isFile() }
-    catch { return false }
-}
-
 export async function readFileBusy(path: string): Promise<string> {
     return fs.readFile(path, 'utf8').catch(e => {
         if ((e as any)?.code !== 'EBUSY')
