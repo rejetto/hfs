@@ -5,9 +5,10 @@ import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, VERSION } from './const'
 import { basename, dirname, join } from 'path'
 import { spawn } from 'child_process'
 import { httpsStream, onProcessExit, unzip } from './misc'
-import { renameSync, unlinkSync } from 'fs'
+import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { chmod, stat } from 'fs/promises'
+import { access, chmod, stat } from 'fs/promises'
+import { Readable } from 'stream'
 
 export async function getUpdate() {
     const [latest] = await getRepoInfo(HFS_REPO + '/releases?per_page=1')
@@ -19,22 +20,28 @@ export async function getUpdate() {
 export async function update() {
     if (!IS_BINARY)
         throw "only binary versions are supported for now"
-    const update = await getUpdate()
-    const assetSearch = ({ win32: 'windows', darwin: 'mac', linux: 'linux' } as any)[process.platform]
-    if (!assetSearch)
-        throw "this feature doesn't support your platform: " + process.platform
-    const asset = update.assets.find((x: any) => x.name.endsWith('.zip') && x.name.includes(assetSearch))
-    if (!asset)
-        throw "asset not found"
-    const url = asset.browser_download_url
-    console.log("downloading", url)
+    const ZIP = 'hfs-update.zip' // update from file takes precedence over net
+    let updateSource: Readable | undefined = await access(ZIP).then(() => createReadStream(ZIP), () => undefined)
+    if (!updateSource) {
+        const update = await getUpdate()
+        const assetSearch = ({ win32: 'windows', darwin: 'mac', linux: 'linux' } as any)[process.platform]
+        if (!assetSearch)
+            throw "this feature doesn't support your platform: " + process.platform
+        const asset = update.assets.find((x: any) => x.name.endsWith('.zip') && x.name.includes(assetSearch))
+        if (!asset)
+            throw "asset not found"
+        const url = asset.browser_download_url
+        console.log("downloading", url)
+        updateSource = await httpsStream(url)
+    }
+
     const bin = process.execPath
     const binPath = dirname(bin)
     const binFile = basename(bin)
     const newBinFile = 'new-' + binFile
     pluginsWatcher.pause()
     try {
-        await unzip(await httpsStream(url), path =>
+        await unzip(updateSource, path =>
             join(binPath, path === binFile ? newBinFile : path))
         const newBin = join(binPath, newBinFile)
         if (!IS_WINDOWS) {
