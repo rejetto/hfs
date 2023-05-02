@@ -2,7 +2,7 @@
 
 import fs from 'fs/promises'
 import { wait } from './misc'
-import { createWriteStream, watch } from 'fs'
+import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
@@ -136,6 +136,16 @@ export async function prepareFolder(path: string, dirnameIt=true) {
     catch {
         return false
     }
+}
+
+export function createFileWithPath(path: string, options?: Parameters<typeof createWriteStream>[1]) {
+    const folder = dirname(path)
+    if (!isWindowsDrive(folder))
+        try { mkdirSync(folder, { recursive: true }) }
+        catch {
+            return
+        }
+    return createWriteStream(path, options)
 }
 
 export function isValidFileName(name: string) {

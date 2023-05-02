@@ -8,7 +8,7 @@ import * as util from 'util'
 import { stat } from 'fs/promises'
 import { DAY } from './const'
 import _ from 'lodash'
-import { prepareFolder } from './util-files'
+import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './perm'
 import { makeNetMatcher, tryJson } from './misc'
 
@@ -38,8 +38,8 @@ class Logger {
     }
 
     reopen() {
-        return this.stream = createWriteStream(this.path, { flags: 'a' })
-            .on('error', () => this.stream = undefined)
+        return this.stream = createFileWithPath(this.path, { flags: 'a' })
+            ?.on('error', () => this.stream = undefined)
     }
 }
 
