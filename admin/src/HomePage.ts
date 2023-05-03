@@ -3,7 +3,7 @@
 import { createElement as h } from 'react'
 import { Box, Button, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApi, useApiEx, useApiList } from './api'
-import { Dict, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy } from './misc'
+import { dontBotherWithKeys, InLink, objSameKeys, onlyTruthy } from './misc'
 import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { useSnapState } from './state'
@@ -11,15 +11,17 @@ import { confirmDialog } from './dialog'
 import { isCertError, isKeyError, makeCertAndSave } from './OptionsPage'
 import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
+import _ from 'lodash'
 
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
+interface Status { http: ServerStatus, https: ServerStatus, frpDetected: boolean }
 
 export default function HomePage() {
     const SOLUTION_SEP = " — "
     const { username } = useSnapState()
-    const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Dict<ServerStatus>>('get_status')
+    const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const [account] = useApi<Account>(username && 'get_account')
     const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies'] })
@@ -30,10 +32,11 @@ export default function HomePage() {
     const goSecure = !http?.listening && https?.listening ? 's' : ''
     const srv = goSecure ? https : (http?.listening && http)
     const href = srv && `http${goSecure}://`+window.location.hostname + (srv.port === (goSecure ? 443 : 80) ? '' : ':'+srv.port)
-    const errorMap = objSameKeys(status, v =>
+    const serverStatus = _.pick(status, ['http', 'https'])
+    const serverErrors = objSameKeys(serverStatus, v =>
         v.busy ? [`port ${v.port} already used by ${v.busy}${SOLUTION_SEP}choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
             : v.error )
-    const errors = errorMap && onlyTruthy(Object.entries(errorMap).map(([k,v]) =>
+    const errors = serverErrors && onlyTruthy(Object.entries(serverErrors).map(([k,v]) =>
         v && [md(`Protocol _${k}_ cannot work: `), v,
             (isCertError(v) || isKeyError(v)) && [
                 SOLUTION_SEP, h(Link, { sx: { cursor: 'pointer' }, onClick() { makeCertAndSave().then(reloadCfg).then(reloadStatus) } }, "make one"),
@@ -48,7 +51,7 @@ export default function HomePage() {
                 : entry('', md("This is Admin-panel, where you manage your server. Access your files on "),
                     h(Link, { target:'frontend', href: '/' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
         !href && entry('warning', "Frontend unreachable: ",
-            ['http','https'].map(k => k + " " + (errorMap[k] ? "is in error" : "is off")).join(', '),
+            _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
             !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
         ),
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
