@@ -105,7 +105,7 @@ for (const cfg of httpsNeeds) {
         unwatch = watchLoad(v, data => {
             httpsOptions[k] = data
             considerHttps()
-        }).unwatch
+        }, { immediateFirst: true }).unwatch
         await considerHttps()
     })
 }

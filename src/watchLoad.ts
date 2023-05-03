@@ -7,11 +7,11 @@ import { debounceAsync, readFileBusy } from './misc'
 
 export type WatchLoadCanceller = () => void
 
-interface Options { failedOnFirstAttempt?: ()=>void }
+interface Options { failedOnFirstAttempt?: ()=>void, immediateFirst?: boolean }
 
 type WriteFile = typeof fs.writeFile
 interface WatchLoadReturn { unwatch:WatchLoadCanceller, save:WriteFile }
-export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt }:Options={}): WatchLoadReturn {
+export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt, immediateFirst }:Options={}): WatchLoadReturn {
     let doing = false
     let watcher: FSWatcher | undefined
     const debounced = debounceAsync(load, 500, { maxWait: 1000 })
@@ -35,6 +35,8 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                     debounced().then()
             })
             debounced().catch(x=>x)
+            if (immediateFirst)
+                debounced.flush().then()
         }
         catch(e) {
             retry = setTimeout(install, 3_000) // manual watching until watch is successful
