@@ -16,6 +16,7 @@ export interface DialogOptions {
     padding?: boolean
     position?: [number, number]
     dialogProps?: Record<string, any>
+    $id?: number
 
     Container?: FunctionComponent<DialogOptions>
 }
@@ -31,8 +32,8 @@ export const dialogsDefaults: Partial<DialogOptions> = {
 export function Dialogs() {
     const snap = useSnapshot(dialogs)
     return h(Fragment, {},
-        snap.length > 0 && snap.map((d,i) =>
-            h(Dialog, { key:i, ...(d as DialogOptions) })))
+        snap.length > 0 && snap.map(d =>
+            h(Dialog, { key: d.$id, ...(d as DialogOptions) })))
 }
 
 function Dialog(d:DialogOptions) {
@@ -98,7 +99,7 @@ function onKeyDown(ev:any) {
 
 export function newDialog(options: DialogOptions) {
     const $id = Math.random()
-    ;(options as any).$id = $id // object identity is not working because of the proxy. This is a possible workaround
+    options.$id = $id // object identity is not working because of the proxy. This is a possible workaround
     dialogs.push(options)
     return (v?:any) => {
         const i = dialogs.findIndex(x => (x as any).$id === $id)
