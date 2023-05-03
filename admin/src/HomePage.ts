@@ -1,22 +1,30 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h } from 'react'
+import { createElement as h, useState } from 'react'
 import { Box, Button, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApi, useApiEx, useApiList } from './api'
-import { dontBotherWithKeys, InLink, objSameKeys, onlyTruthy } from './misc'
-import { CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
+import { Btn, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, prefix, wait } from './misc'
+import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
-import { useSnapState } from './state'
-import { confirmDialog } from './dialog'
+import { state, useSnapState } from './state'
+import { alertDialog, confirmDialog, toast } from './dialog'
 import { isCertError, isKeyError, makeCertAndSave } from './OptionsPage'
 import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 import _ from 'lodash'
+import { subscribeKey } from 'valtio/utils'
 
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
-interface Status { http: ServerStatus, https: ServerStatus, frpDetected: boolean }
+
+interface Status {
+    http: ServerStatus
+    https: ServerStatus
+    frpDetected: boolean
+    update: boolean | string
+    version: string
+}
 
 export default function HomePage() {
     const SOLUTION_SEP = " — "
@@ -26,6 +34,7 @@ export default function HomePage() {
     const [account] = useApi<Account>(username && 'get_account')
     const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies'] })
     const { list: plugins } = useApiList('get_plugins')
+    const [onlineVersion, setOnlineVersion] = useState('')
     if (statusEl || !status)
         return statusEl
     const { http, https } = status
@@ -76,7 +85,38 @@ export default function HomePage() {
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
             )),
         entry('', h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "Get support")),
+        h(Box, { mt: 4 },
+            status.update === 'local' ? h(Btn, { icon: UpdateIcon, onClick: update }, "Update from local file")
+                : !onlineVersion ? h(Btn, {
+                    variant: 'outlined',
+                    icon: UpdateIcon,
+                    onClick: () => apiCall('check_update').then(x => setOnlineVersion(x.name), x => {
+                            setOnlineVersion('')
+                            alertDialog(x).then()
+                        })
+                }, "Check for updates")
+                : status?.version === onlineVersion ? entry('', "You got the latest version")
+                : !status.update ? entry('', `Version ${onlineVersion} available`)
+                    : h(Btn, { icon: UpdateIcon, onClick: update }, prefix("Update to ", onlineVersion))
+        ),
     )
+}
+
+async function update() {
+    if (!await confirmDialog("Update may take less than a minute, depending on the speed of your server")) return
+    toast('Downloading')
+    await apiCall('update')
+    toast("Restarting")
+    const restarting = Date.now()
+    while (await apiCall('NONE').then(() => 0, e => !e.code)) { // while we get no response
+        if (Date.now() - restarting > 10_000)
+            toast("This is taking too long, please check your server", 'warning')
+        await wait(500)
+    }
+    // the server is back on, SSE is restored and login dialog may appear, unwanted because we are just waiting to reload
+    subscribeKey(state, 'loginRequired', () => state.loginRequired = false)
+    await alertDialog("Procedure complete", 'success')
+    window.location.reload() // show new gui
 }
 
 type Color = '' | 'success' | 'warning' | 'error'

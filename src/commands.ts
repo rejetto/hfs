@@ -6,21 +6,22 @@ import _ from 'lodash'
 import { getUpdate, update } from './update'
 import { openAdmin } from './listen'
 import yaml from 'yaml'
-import { BUILD_TIMESTAMP, VERSION } from './const'
+import { argv, BUILD_TIMESTAMP, VERSION } from './const'
 import { createInterface } from 'readline'
 
-try {
-    /*
-    is this try-block useful in case the stdin is unavailable?
-    Not sure, but someone reported a problem using nohup https://github.com/rejetto/hfs/issues/74
-    and I've found this example try-catching https://github.com/DefinitelyTyped/DefinitelyTyped/blob/dda83a906914489e09ca28afea12948529015d4a/types/node/readline.d.ts#L489
-    */
-    createInterface({ input: process.stdin }).on('line', parseCommandLine)
-    console.log(`HINT: type "help" for help`)
-}
-catch {
-    console.log("console commands not available")
-}
+if (!argv.updating)
+    try {
+        /*
+        is this try-block useful in case the stdin is unavailable?
+        Not sure, but someone reported a problem using nohup https://github.com/rejetto/hfs/issues/74
+        and I've found this example try-catching https://github.com/DefinitelyTyped/DefinitelyTyped/blob/dda83a906914489e09ca28afea12948529015d4a/types/node/readline.d.ts#L489
+        */
+        createInterface({ input: process.stdin }).on('line', parseCommandLine)
+        console.log(`HINT: type "help" for help`)
+    }
+    catch {
+        console.log("console commands not available")
+    }
 
 function parseCommandLine(line: string) {
     if (!line) return

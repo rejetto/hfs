@@ -57,6 +57,7 @@ console.log(`License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
+console.log('pid', process.pid)
 if (argv.cwd)
     process.chdir(argv.cwd)
 else if (!process.execPath.endsWith('.exe')) { // still considering whether to use this behavior with Windows users, who may be less accustomed to it

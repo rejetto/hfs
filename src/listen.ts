@@ -9,7 +9,7 @@ import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
 import { debounceAsync, onlyTruthy, wait } from './misc'
-import { ADMIN_URI, DEV } from './const'
+import { ADMIN_URI, argv, DEV } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
@@ -34,7 +34,7 @@ portCfg.sub(async port => {
     if (!port) return
     httpSrv.on('connection', newConnection)
     printUrls(port, 'http')
-    if (openBrowserAtStart.get())
+    if (openBrowserAtStart.get() && !argv.updated)
         openAdmin()
 })
 

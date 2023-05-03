@@ -40,7 +40,7 @@ export interface FieldDescriptor<T=any> {
 // it seems necessary to cast (Multi)SelectField sometimes
 export type Field<T> = FC<FieldProps<T>>
 
-type Promisable<T> = T | Promise<T>
+export type Promisable<T> = T | Promise<T>
 interface FieldApi { getError: () => Promisable<ValidationError>, [rest: string]: any }
 export interface FieldProps<T> {
     label?: string | ReactElement

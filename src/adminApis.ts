@@ -31,6 +31,7 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
+import { getUpdate, localUpdateAvailable, update, updateSupported } from './update'
 
 export const adminApis: ApiHandlers = {
 
@@ -57,6 +58,8 @@ export const adminApis: ApiHandlers = {
     },
 
     get_config: getWholeConfig,
+    update,
+    check_update: () => getUpdate().then(x => _.pick(x, 'name')),
 
     get_custom_html() {
         return {
@@ -86,6 +89,7 @@ export const adminApis: ApiHandlers = {
             compatibleApiVersion: COMPATIBLE_API_VERSION,
             ...await getServerStatus(),
             urls: getUrls(),
+            update: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
