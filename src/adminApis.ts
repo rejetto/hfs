@@ -72,6 +72,11 @@ export const adminApis: ApiHandlers = {
         return {}
     },
 
+    quit() {
+        setTimeout(() => process.exit())
+        return {}
+    },
+
     async get_status() {
         return {
             started: HFS_STARTED,
