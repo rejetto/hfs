@@ -2,7 +2,6 @@
 
 import { FSWatcher, watch } from 'fs'
 import fs from 'fs/promises'
-import yaml from 'yaml'
 import { debounceAsync, readFileBusy } from './misc'
 
 export type WatchLoadCanceller = () => void
@@ -65,8 +64,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             last = text
             console.debug('loaded', path)
             uninstall(); install() // reinstall, as the original file could have been renamed. We watch by the name.
-            const decoded = path.endsWith('.yaml') ? yaml.parse(text) : text
-            await parser(decoded)
+            await parser(text)
         }
         finally {
             doing = false

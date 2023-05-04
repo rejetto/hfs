@@ -43,7 +43,7 @@ if (!existsSync(path) && existsSync(legacyPosition))
         }
         catch {}
     }
-const { save } = watchLoad(path, values => setConfig(values||{}, false), {
+const { save } = watchLoad(path, text => setConfig(yaml.parse(text)||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
         setConfig({}, false)
