@@ -6,12 +6,13 @@
 
 HFS is the best way via web to access or share files from your disk.
 
-- It's a server software, share files **fresh from your disk**. Don't rely on services, be independent! 
+- You be the server, share files **fresh from your disk**, with **unlimited** space and bandwidth.
 - It's all very **fast**. Try download zipping 100GB, it starts immediately!
 - **Easy to use**. HFS tries to detect problems and suggest solutions.
 - Share **even a single file** with our *virtual file system*, even with a different name, all without touching the real file. Present things the way you want!
 - **Watch** all activities in real-time.
 - **Control bandwidth**, decide how much to give.
+- **No intermediaries**, give a huge file to your friend without waiting for it to be uploaded on a server first.
 
 This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 

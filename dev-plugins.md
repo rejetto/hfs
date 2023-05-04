@@ -237,7 +237,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 ## API version history
 
-- 8.1 (v0.44.0)
+- 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - entry.cantOpen
   - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib
   - second parameter of onEvent is now deprecated
