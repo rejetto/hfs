@@ -43,7 +43,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - multi-language front-end
 - virtual hosting (plug-in)
 - anti-brute-force (plug-in)
-- reverse-proxy support
+- [reverse-proxy support](https://github.com/rejetto/hfs/wiki/Reverse-proxy)
 
 ## Installation
 
@@ -178,30 +178,6 @@ Some actions you can take for improved security:
 - install/start rejetto/antidos plugin. Tweak configuration if necessary.
 - start antibrute plugin (it's started by default)
 - disable "unprotected admin on localhost"
-
-## Reverse proxy
-
-HFS can work behind a reverse proxy. Configuration depends on what software you use, but this is an example using nginx
-exposing HFS under the path `/files/` instead of just `/`. Adjust it to suit your needs. 
-
-```
-location /files/ {
-  proxy_http_version 1.1;
-  keepalive_timeout 30;
-  proxy_buffering off;
-  proxy_redirect off;
-  proxy_max_temp_file_size 0;
-  proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;  # forward IP address
-  proxy_set_header        X-forwarded-prefix "/files"; # the location without final slash
-  client_max_body_size    0;  # disable max size for uploads
-  proxy_pass      http://127.0.0.1:80/;
-}
-```
-
-This is enough, but you may want to configure generated links accordingly:
-- go to Admin-panel > Shared files > Home > Link
-- click the change button (right side of the field)
-- enter the final URL of your proxy including the location
 
 ## Hidden features
 
