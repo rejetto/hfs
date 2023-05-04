@@ -53,6 +53,7 @@ defineConfig('force_lang', '', v => {
     if (!v)
         return forceLangData = undefined
     forceLangData = {} // necessary to make the embedded language work
+    if (v === EMBEDDED_LANGUAGE) return
     const res = watchLoad(code2file(v), data => {
         forceLangData = { [v]: JSON.parse(data) }
     })
