@@ -3,7 +3,7 @@ import events from './events'
 import { prefix } from './misc'
 import { customHeader } from './frontEndApis'
 import { watchLoad } from './watchLoad'
-import { proxy } from 'valtio'
+import { proxy } from 'valtio/vanilla' // without /vanilla we trigger react dependency
 import Dict = NodeJS.Dict
 import { writeFile } from 'fs/promises'
 
