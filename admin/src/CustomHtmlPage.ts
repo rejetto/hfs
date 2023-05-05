@@ -3,14 +3,13 @@
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { Alert, Box, Link } from '@mui/material'
+import { Alert, Box } from '@mui/material'
 import Editor from 'react-simple-code-editor'
-import { Dict, IconBtn, isCtrlKey, modifiedSx, reloadBtn } from './misc';
+import { Dict, IconBtn, isCtrlKey, modifiedSx, reloadBtn, wikiLink } from './misc';
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
 import md from './md'
-import { REPO_URL } from './HomePage'
 
 export default function CustomHtmlPage() {
     const { data, reload } = useApiEx<{ sections: Dict<string> }>('get_custom_html')
@@ -30,7 +29,8 @@ export default function CustomHtmlPage() {
     return h(Fragment, {},
         h(Alert, { severity: 'info' },
             md("Add HTML code to some parts of the Front-end. It's saved to file `custom.html`, that you can edit directly with your editor of choice. "),
-            h(Link, { href: REPO_URL + "wiki/customization", target: 'help' }, "More help")),
+            wikiLink('customization', "More help")
+        ),
         h(Box, { display: 'flex', alignItems: 'center', gap: 1, mb: 1 },
             h(SelectField as Field<string>, { label: "Section", value: sec, options, onChange: setSec }),
             reloadBtn(reload),

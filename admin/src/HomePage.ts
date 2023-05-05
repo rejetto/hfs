@@ -3,7 +3,7 @@
 import { createElement as h, useState } from 'react'
 import { Box, Button, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApi, useApiEx, useApiList } from './api'
-import { Btn, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, prefix, wait } from './misc'
+import { Btn, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, prefix, REPO_URL, wait, wikiLink } from './misc'
 import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { state, useSnapState } from './state'
@@ -13,8 +13,6 @@ import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
-
-export const REPO_URL = 'https://github.com/rejetto/hfs/'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
@@ -76,7 +74,7 @@ export default function HomePage() {
                             reloadCfg()
                     }
                 }, "ignore this warning"),
-                SOLUTION_SEP, h(Link, { target: 'help', href: REPO_URL + 'wiki/Proxy-warning' }, "Explanation")
+                SOLUTION_SEP, wikiLink('Proxy-warning', "Explanation")
         ),
         status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
             h('ol',{},

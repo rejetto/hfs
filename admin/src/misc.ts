@@ -197,3 +197,11 @@ export function Flex({ gap='.8em', vert=false, children=null, props={}, ...rest 
         ...props
     }, children)
 }
+
+
+export const REPO_URL = 'https://github.com/rejetto/hfs/'
+export const WIKI_URL = REPO_URL + '/wiki/'
+
+export function wikiLink(uri: string, content: ReactNode) {
+    return h(Link, { href: WIKI_URL + uri, target: 'help' }, content)
+}

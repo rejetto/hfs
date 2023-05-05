@@ -5,7 +5,7 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApi, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh, Warning } from '@mui/icons-material'
-import { Dict, modifiedSx, with_ } from './misc'
+import { Dict, modifiedSx, wikiLink, with_ } from './misc'
 import {
     Form,
     BoolField,
@@ -18,7 +18,7 @@ import {
 } from '@hfs/mui-grid-form';
 import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
-import { proxyWarning, REPO_URL } from './HomePage'
+import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 
@@ -286,7 +286,7 @@ function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
 }
 
 function WildcardsSupported() {
-    return h(Link, { target: 'help', href: REPO_URL + 'wiki/Wildcards' }, "Wildcards supported")
+    return wikiLink('Wildcards', "Wildcards supported")
 }
 
 function suggestMakingCert() {

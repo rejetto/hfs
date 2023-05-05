@@ -41,7 +41,10 @@ export interface FieldDescriptor<T=any> {
 export type Field<T> = FC<FieldProps<T>>
 
 export type Promisable<T> = T | Promise<T>
-interface FieldApi { getError: () => Promisable<ValidationError>, [rest: string]: any }
+interface FieldApi {
+    // provide getError if you want your error to be visible by the Form component
+    getError: () => Promisable<ValidationError>, [rest: string]: any
+}
 export interface FieldProps<T> {
     label?: string | ReactElement
     value?: T
