@@ -185,6 +185,7 @@ function LoginButton() {
     const {t} = useI18N()
     return MenuButton(snap.username ? {
         id: 'user-button',
+        toggled: true,
         icon: 'user',
         label: snap.username,
         onClick: showUserPanel
