@@ -99,7 +99,7 @@ export default function OptionsPage() {
             },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
-            httpsEnabled && values.port >= 0 && { k: 'force_https', comp: BoolField, md: 4, label: "Force HTTPS",
+            httpsEnabled && values.port >= 0 && { k: 'force_https', comp: BoolField, sm: 12, md: 4, label: "Force HTTPS",
                 helperText: "Not applied to localhost"
             },
             httpsEnabled && { k: 'cert', comp: FileField, md: 4, label: "HTTPS certificate file",
