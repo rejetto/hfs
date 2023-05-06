@@ -183,7 +183,8 @@ export default function OptionsPage() {
             return alertDialog("You cannot randomize this port unless you have a working fixed port for " + otherProtocol, 'warning')
         if (newPort > 0 && !await confirmDialog("You are changing the port and you may be disconnected"))
             return
-        if (onHttps && ('cert' in changes || 'private_key' in changes) && !await confirmDialog("You may disrupt https service, kicking you out"))
+        const certChange = 'cert' in changes || 'private_key' in changes
+        if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
         await apiCall('set_config', { values: changes })
         if (newPort !== undefined) {
@@ -192,7 +193,8 @@ export default function OptionsPage() {
             return window.location.href = newPort <= 0 ? (onHttps ? 'http:' : 'https:') + '//' + loc.hostname + ':' + otherPort + loc.pathname
                 : loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
         }
-        setTimeout(reloadStatus, 'port' in changes || 'https_port' in changes ? 1000 : 0) // give some time to consider new ports
+        const portChange = 'port' in changes || 'https_port' in changes
+        setTimeout(reloadStatus, portChange || certChange ? 1000 : 0) // give some time to apply news
         Object.assign(loaded!, changes) // since changes are recalculated subscribing state.config, but it depends on 'loaded' to (which cannot be subscribed), be sure to update loaded first
         recalculateChanges()
         toast("Changes applied", 'success')
