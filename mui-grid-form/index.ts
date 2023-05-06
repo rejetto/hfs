@@ -24,11 +24,12 @@ export * from './misc-fields'
 export * from './StringStringField'
 export { StringField }
 
-type ValidationError = string | boolean // false = no error
+type ValidationError = ReactNode // false = no error
 export interface FieldDescriptor<T=any> {
     k: string
     comp?: any
     label?: ReactNode
+    error?: ReactNode
     getError?: (v: any, extra?: any) => Promisable<ValidationError>
     toField?: (v: T) => any
     fromField?: (v: any) => T
@@ -131,7 +132,7 @@ export function Form<Values extends Dict>({
                     if (isValidElement(row))
                         return h(Grid, { key: idx, item: true, xs: 12 }, row)
                     const { k, fromField=_.identity, toField=_.identity, getError, error, ...field } = row
-                    let errMsg = errors[k] || fieldExceptions[k]
+                    let errMsg = errors[k] || error || fieldExceptions[k]
                     if (errMsg === true)
                         errMsg = "Not valid"
                     if (k) {
@@ -165,7 +166,8 @@ export function Form<Values extends Dict>({
                             field.helperText = !field.helperText ? errMsg
                                 : h(Fragment, {},
                                     h('span', { style: { borderBottom: '1px solid' } }, errMsg),
-                                    h(Box, { color: 'text.primary' }, field.helperText),
+                                    h(Box, { color: 'text.primary', component: 'span', /*avoid console warning*/ display: 'block' },
+                                        field.helperText),
                                 )
                         if (field.label === undefined)
                             field.label = labelFromKey(k)

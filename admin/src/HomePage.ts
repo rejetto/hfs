@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useState } from 'react'
+import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Button, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApi, useApiEx, useApiList } from './api'
 import { Btn, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, prefix, REPO_URL, wait, wikiLink } from './misc'
@@ -64,7 +64,7 @@ export default function HomePage() {
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
         !account?.adminActualAccess && entry('', md("On _localhost_ you don't need to login"),
             SOLUTION_SEP, h(InLink, { to:'accounts' }, md("to access from another computer create an account with /admin/ permission")) ),
-        proxyWarning(cfg, status) && entry('warning', "A proxy was detected but none is configured",
+        proxyWarning(cfg, status) && entry('warning', proxyWarning(cfg, status),
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure and you can ", h(Button, {
                     size: 'small',
@@ -119,7 +119,7 @@ async function update() {
 
 type Color = '' | 'success' | 'warning' | 'error'
 
-function entry(color: Color, ...content: any[]) {
+function entry(color: Color, ...content: ReactNode[]) {
     return h(Box, {
             fontSize: 'x-large',
             color: th => color && th.palette[color]?.main,
@@ -140,4 +140,5 @@ function cfgLink(text=`Options page`) {
 
 export function proxyWarning(cfg: any, status: any) {
     return cfg && !cfg.proxies && status?.proxyDetected
+        && "A proxy was detected but none is configured"
 }
