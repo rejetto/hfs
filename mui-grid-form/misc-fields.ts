@@ -67,7 +67,7 @@ export function BoolField({ label='', value, onChange, getApi, helperText, error
         }
     })
     return h(Box, { ml: 1, mt: 1, sx: error ? { color: 'error.main', outlineOffset: 6, outline: '1px solid' } : undefined },
-        h(FormControlLabel, { label, control, labelPlacement: 'end' }),
+        h(FormControlLabel, { label, control, labelPlacement: 'end', ...props.size==='small' && { sx: { '& .MuiFormControlLabel-label': { fontSize: '.9rem' } } } }),
         helperText && h(FormHelperText, { error }, helperText)
     )
 }
