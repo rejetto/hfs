@@ -5,7 +5,7 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApi, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh, Warning } from '@mui/icons-material'
-import { Dict, modifiedSx, wikiLink, with_ } from './misc'
+import { Dict, Flex, modifiedSx, wikiLink, with_ } from './misc'
 import {
     Form,
     BoolField,
@@ -17,7 +17,7 @@ import {
     StringField
 } from '@hfs/mui-grid-form';
 import FileField from './FileField'
-import { alertDialog, closeDialog, confirmDialog, formDialog, newDialog, toast, waitDialog } from './dialog'
+import { alertDialog, closeDialog, confirmDialog, newDialog, toast } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
@@ -307,33 +307,36 @@ function suggestMakingCert() {
 export async function makeCertAndSave() {
     if (!window.crypto.subtle)
         return alertDialog("Retry this procedure on localhost", 'warning')
-    const res = await formDialog<{ commonName: string }>({
-        title: "We'll generate a basic certificate for you",
-        form: {
-            fields: [
-                h(Box, { display: 'flex', gap: 1, alignItems: 'center' },
-                    h(Warning), "This certificate is just one click away, but will issue a warning on the browser"),
-                { k: 'commonName', label: "Enter a domain, or leave empty" }
-            ],
-            save: { children: "Continue" },
-            barSx: { gap: 1 },
-            addToBar: [
-                h(Link, { target: 'cert', href: 'https://letsencrypt.org/' }, h(Button, {}, "Get better certificate"))
-            ],
-        }
+    const close = newDialog({
+        title: "Get a certificate",
+        Content: () => h(Flex, { flexDirection: 'column' },
+            h('p', {}, "HTTPS needs a certificate to work."),
+            "We suggest you to ",
+            h(Link, {
+                target: 'cert',
+                href: 'https://letsencrypt.org/',
+                onClick: close,
+            }, h(Button, { size: 'small', color: 'success' }, "get a free but proper certificate")),
+            "or, if you are in a hurry",
+            h(Button, {
+                size: 'small',
+                color: 'warning',
+                async onClick() {
+                    try {
+                        const saved = await apiCall('save_pem', await makeCert({}))
+                        await apiCall('set_config', { values: saved })
+                        if (loaded) // when undefined we are not in this page
+                            Object.assign(loaded, saved)
+                        setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
+                        Object.assign(state.config, saved)
+                        await alertDialog("Certificate saved", 'success')
+                    }
+                    finally { close() }
+                }
+            }, "make a basic certificate"),
+            wikiLink('HTTPS#certificate', h(Flex, {}, h(Warning, { color: 'warning' }), "but BEWARE it won't be perfect"))
+        )
     })
-    if (!res) return
-    const close = waitDialog()
-    try {
-        const saved = await apiCall('save_pem', await makeCert(res))
-        await apiCall('set_config', { values: saved })
-        if (loaded) // when undefined we are not in this page
-            Object.assign(loaded, saved)
-        setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
-        Object.assign(state.config, saved)
-        await alertDialog("Certificate saved", 'success')
-    }
-    finally { close() }
 }
 
 async function makeCert(attributes: Record<string, string>) {

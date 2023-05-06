@@ -12,7 +12,7 @@ import {
 import {
     createElement as h, Dispatch, Fragment,
     isValidElement,
-    ReactElement, SetStateAction,
+    ReactElement, ReactNode, SetStateAction,
     useEffect,
     useRef,
     useState
@@ -117,12 +117,13 @@ export async function alertDialog(msg: ReactElement | string | Error, options?: 
     })
 }
 
-interface ConfirmOptions { href?: string }
-export async function confirmDialog(msg: string | ReactElement, { href }: ConfirmOptions={}) : Promise<boolean> {
+interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string }
+export async function confirmDialog(msg: ReactNode, { href, ...rest }: ConfirmOptions={}) : Promise<boolean> {
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
         icon: '?',
         onClose: resolve,
+        ...rest,
         Content
     }) )
 
