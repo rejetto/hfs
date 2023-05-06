@@ -103,10 +103,8 @@ export default function OptionsPage() {
                 helperText: "Not applied to localhost"
             },
             httpsEnabled && { k: 'cert', comp: FileField, md: 4, label: "HTTPS certificate file",
-                ...with_(status?.https.error, e => isCertError(e) ? { 
-                    error: true, 
-                    helperText: [e, ' - ', h(Link, { key: 'fix', sx: { cursor: 'pointer' }, onClick: makeCertAndSave }, "make one")] 
-                } : null)
+                helperText: wikiLink('HTTPS#certificate', "What is this?"),
+                error: with_(status?.https.error, e => isCertError(e) && [e, ' - ', h(Link, { key: 'fix', sx: { cursor: 'pointer' }, onClick: makeCertAndSave }, "make one")]),
             },
             httpsEnabled && { k: 'private_key', comp: FileField, md: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
