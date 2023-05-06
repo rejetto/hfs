@@ -5,5 +5,6 @@ import sr from './hfs-lang-sr.json'
 import ko from './hfs-lang-ko.json'
 import ms from './hfs-lang-ms.json'
 import zh_tw from './hfs-lang-zh-tw.json'
+import fr from './hfs-lang-fr.json'
 
-export default { it, zh, ru, sr, ko, ms, 'zh-tw': zh_tw }
+export default { it, zh, ru, sr, ko, ms, 'zh-tw': zh_tw, fr }
