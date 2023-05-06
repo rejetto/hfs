@@ -39,7 +39,7 @@ export default function showUserPanel() {
                                     throw e
                                 return apiCall('change_password', { newPassword: pwd }) // unencrypted version
                             })
-                            return alertDialog(t`Password changed`)
+                            return alertDialog(t('password_changed', "Password changed"))
                         }
                         catch(e) {
                             return alertDialog(e as Error)
