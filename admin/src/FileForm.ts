@@ -105,7 +105,18 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
                 placeholder: "Not on disk, this is a virtual folder",
             },
             perm('can_read', "Who can see but not download will be asked to login"),
-            perm('can_see', "If you don't see, you may download with a direct link"),
+            perm('can_see', "If you don't see, you may still download with a direct link", {
+                after: isDir && values.can_see != null
+                    && h(BoolField, {
+                        size: 'small',
+                        label: `Propagate permission inside this folder`,
+                        value: values.propagate?.can_see !== false,
+                        onChange(v) {
+                            const o = { ...values.propagate, can_see: v ? undefined : false } // new "propagate" object
+                            setValues({ ...values, propagate: _.every(o, v => v === undefined) ? null : o })
+                        }
+                    })
+            }),
             isDir && perm('can_list', "Permission to see content of folders"),
             isDir && perm('can_delete', hasSource ? '' : "Works only on folders with source"),
             isDir && perm('can_upload', hasSource ? '' : "Works only on folders with source", { lg: showAccept ? 6 : 12 }),
@@ -125,7 +136,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         ]
     })
 
-    function perm(perm: keyof typeof inheritedPerms, helperText='', props: Partial<WhoFieldProps>={}) {
+    function perm(perm: keyof typeof inheritedPerms, helperText?: ReactNode, props: Partial<WhoFieldProps>={}) {
         return {
             showInherited: anyMask, // with masks, you may need to set a permission to override the mask
             otherPerms: _.without(Object.keys(defaultPerms), perm).map(x => ({ value: x, label: "As " +perm2word(x) })),

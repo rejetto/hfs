@@ -22,6 +22,7 @@ import FileForm from './FileForm'
 import { Close, Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { Flex } from './misc'
+import { VfsPerm } from '../../src/vfs'
 
 let selectOnReload: string[] | undefined
 
@@ -175,6 +176,7 @@ export interface VfsNode extends VfsPerms {
     default?: string
     children?: VfsNode[]
     parent?: VfsNode
+    propagate?: Partial<Record<keyof VfsPerm, boolean>> | null
     website?: true
     masks?: any
     byMasks?: VfsPerms

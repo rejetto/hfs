@@ -63,8 +63,14 @@ Valid keys in a node are:
     - `[ frank, peter ]`: the list of accounts who can.
 - `can_see`: specify who can see this element. Even if a user can download you can still make the file not appear in the list.
   Value is a `WhoCan` descriptor, refer above.
-- `can_upload` specify who can upload. Applies to folders with a source. Default is none.
-- `can_delete` specify who can delete. Applies to folders with a source. Default is none.
+- `can_upload`: specify who can upload. Applies to folders with a source. Default is none.
+- `can_delete`: specify who can delete. Applies to folders with a source. Default is none.
+- `propagate`: by default, permissions propagate. Use this to stop propagation of some permissions assigned to this node. 
+  For each permission you don't want to propagate you specify the name and set it to false. E.g.
+  ```
+  can_see: false
+  ```
+  Default is "all propagates".
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
   myfile.txt:
