@@ -122,7 +122,8 @@ export default function useFetchList() {
                             const t = add.m || add.c
                             if (t)
                                 add.t = new Date(t)
-                            add.name = add.n.slice(add.n.lastIndexOf('/', add.n.length - 1) +1, add.isFolder ? -1 : Infinity)
+                            add.name = add.isFolder ? add.n.slice(add.n.lastIndexOf('/', add.n.length - 2) +1, -1)
+                                : add.n.slice(add.n.lastIndexOf('/') + 1)
                             add.cantOpen = add.p?.includes(add.isFolder ? 'l' : 'r')  // to open we need list for folders and read for files
 
                             buffer.push(add)
