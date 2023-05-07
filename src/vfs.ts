@@ -2,7 +2,7 @@
 
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
-import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys, makeMatcher } from './misc'
+import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys, makeMatcher, setHidden } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
@@ -44,6 +44,7 @@ export interface VfsNode extends Partial<VfsPerm> {
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
     parent?: VfsNode // available when original is available
+    isFolder?: boolean
 }
 
 export const defaultPerms: VfsPerm = {
@@ -83,6 +84,7 @@ export function isSameFilenameAs(name: string) {
 
 export function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
     const ret: VfsNode = {
+        isFolder: child?.children?.length ? true : undefined, // allow child to overwrite this property
         ...child,
         original: child,
         isTemp: true,
@@ -111,10 +113,10 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     }
     // does the tree node have a child that goes by this name?
     const child = parent.children?.find(isSameFilenameAs(name))
-    if (!child && !parent.source) return // on tree or on disk
+    if (!child && !parent.source) return // on tree or on disk, or it doesn't exist
 
     const ret = applyParentToChild(child, parent, name)
-    if (child)  // yes
+    if (child)
         return urlToNode(rest, ctx, ret, getRest)
     let onDisk = name
     if (parent.rename) { // reverse the mapping
@@ -131,7 +133,10 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     if (rest)
         return urlToNode(rest, ctx, ret, getRest)
     if (ret.source)
-        try { await fs.stat(ret.source) } // check existence
+        try {
+            const st = await fs.stat(ret.source)  // check existence
+            ret.isFolder = st.isDirectory()
+        }
         catch {
             if (!getRest)
                 return
@@ -166,7 +171,14 @@ export function getNodeName(node: VfsNode) {
 }
 
 export async function nodeIsDirectory(node: VfsNode) {
-    return Boolean(!node.source || await isDirectory(node.source))
+    if (node.isFolder !== undefined)
+        return node.isFolder
+    const isFolder = Boolean(node.children?.length || !node.source || await isDirectory(node.source))
+    if (node.isTemp)
+        node.isFolder = isFolder
+    else
+        setHidden(node, { isFolder }) // don't make it to the storage
+    return isFolder
 }
 
 export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context): boolean {
@@ -236,7 +248,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         const map = new Map()
         map.set(lastDir, parent)
         // it's important to keep using dirStream in deep-mode, as it is manyfold faster (it parallelizes)
-        for await (const [path, isDir] of dirStream(source, depth)) {
+        for await (const [path, isFolder] of dirStream(source, depth)) {
             if (ctx?.req.aborted)
                 return
             const name = prefixPath + (parent.rename?.[path] || path)
@@ -247,13 +259,14 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
                     parent = map.get(lastDir = dir)
             }
 
-            const item = {
+            const item: VfsNode = {
                 name,
+                isFolder,
                 source: join(source, path),
                 rename: renameUnderPath(parent.rename, path),
             }
             if (!canSee(item)) continue
-            if (isDir)
+            if (isFolder)
                 map.set(name, item)
             yield item
         }
