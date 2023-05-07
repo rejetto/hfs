@@ -9,8 +9,16 @@ import {
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL,
 } from './const'
 import { FRONTEND_URI } from './const'
-import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs } from './vfs'
-import { dirTraversal, isLocalHost, newObj, stream2string, tryJson } from './misc'
+import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode } from './vfs'
+import {
+    asyncGeneratorToReadable,
+    dirTraversal,
+    filterMapGenerator,
+    isLocalHost,
+    newObj,
+    stream2string,
+    tryJson
+} from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -137,7 +145,19 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     }
     ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
     return ctx.query.get === 'zip' ? zipStreamFromFolder(node, ctx)
+        : ctx.query.get === 'list' ? sendFolderList(node, ctx)
         : serveFrontendFiles(ctx, next)
+}
+
+async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
+    const { depth=0, folders } = ctx.query
+    ctx.type = 'text'
+    const walker = walkNode(node, ctx, depth === '*' ? Infinity : Number(depth))
+    ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
+        const isFolder = await nodeIsDirectory(el)
+        return !folders && isFolder ? undefined
+            : el.name + (isFolder ? '/' : '') + '\n'
+    }))
 }
 
 let proxyDetected: undefined | Koa.Context

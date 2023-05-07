@@ -38,7 +38,7 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path?: string,
         to: path || '/',
         async onClick(ev) {
             if (!current) return
-            const asEntry = { n: path!, uri: path!, name: label as string, ext: '', isFolder: true, cantOpen: false }
+            const asEntry = { n: '', uri: '', name: label as string, ext: '', isFolder: true, cantOpen: false }
             openFileMenu(asEntry, ev as any as MouseEvent, [
                 {
                     label: t`Reload`,

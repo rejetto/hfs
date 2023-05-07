@@ -75,13 +75,13 @@ export function adjustStaticPathForGlob(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
 }
 
-export async function* dirStream(path: string, deep?: number) {
+export async function* dirStream(path: string, deep=0) {
     if (!await isDirectory(path))
         throw Error('ENOTDIR')
     const dirStream = glob.stream(deep ? '**/*' : '*', {
         cwd: path,
         dot: true,
-        deep,
+        deep: deep + 1,
         onlyFiles: false,
         suppressErrors: true,
         objectMode: true,
