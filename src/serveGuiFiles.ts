@@ -118,13 +118,13 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     _.map(configs, (v,k) => `--${pluginName}-${k}: ${serializeCss(v)};`).join('\n')).join('')}
             }
             </style>
-            ${!isFrontend ? '' : mapPlugins((plug,k) =>
+            ${!isFrontend ? '' : mapPlugins((plug,id) =>
                 plug.frontend_css?.map(f => 
-                    `<link rel='stylesheet' type='text/css' href='${pub + k + '/' + f}' plugin=${JSON.stringify(k)}/>`))
+                    `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
                 .flat().filter(Boolean).join('\n')}
-            ${!isFrontend ? '' : mapPlugins((plug,k) =>
+            ${!isFrontend ? '' : mapPlugins((plug,id) =>
                 plug.frontend_js?.map(f => 
-                    `<script defer plugin=${JSON.stringify(k)} src='${pub + k + '/' + f}'></script>`))
+                    `<script defer plugin=${JSON.stringify(id)} src='${f.includes('//') ? f : pub + id + '/' + f}'></script>`))
                 .flat().filter(Boolean).join('\n')}
         `)
     if (isFrontend)
