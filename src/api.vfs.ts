@@ -16,7 +16,7 @@ import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, isWindowsDrive, makeMatcher } from './misc'
+import { dirStream, isDirectory, isWindowsDrive, makeMatcher } from './misc'
 import {
     IS_WINDOWS,
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
@@ -71,8 +71,8 @@ const apis: ApiHandlers = {
                     || undefined,
                 name: node === vfs ? undefined : getNodeName(node),
                 type: isDir ? 'folder' : undefined,
-                children: node.children && await Promise.all(node.children.map(async original =>
-                    recur(applyParentToChild(original, node)) ))
+                children: node.children && await Promise.all(node.children.map(child =>
+                    recur(applyParentToChild(child, node)) ))
             }
         }
     },
@@ -175,7 +175,7 @@ const apis: ApiHandlers = {
     async resolve_path({ path, closestFolder }) {
         path = resolve(path)
         if (closestFolder)
-            while (path && !await stat(path).then(x => x.isDirectory(), () => 0))
+            while (path && !await isDirectory(path))
                 path = dirname(path)
         return { path }
     },
