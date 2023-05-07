@@ -6,15 +6,19 @@ import { watchLoad } from './watchLoad'
 import { proxy } from 'valtio/vanilla' // without /vanilla we trigger react dependency
 import Dict = NodeJS.Dict
 import { writeFile } from 'fs/promises'
+import { mapPlugins } from './plugins'
 
 export const customHtmlSections: ReadonlyArray<string> = ['top', 'bottom', 'beforeHeader', 'afterHeader',
     'afterMenuBar', 'afterEntryName', 'afterList', 'beforeLogin']
 
-export const customHtmlState = proxy<{
-    sections: Map<string,string>
-}>({
-    sections: new Map()
+export const customHtmlState = proxy({
+    sections: newCustomHtmlState()
 })
+
+type CustomHtml = ReturnType<typeof newCustomHtmlState>
+export function newCustomHtmlState() {
+    return new Map<string, string>()
+}
 
 const FILE = 'custom.html'
 
@@ -24,23 +28,29 @@ if (!existsSync(FILE))
         writeFileSync(FILE, legacy)
         customHeader.set('') // get rid of it
     })
-watchLoad(FILE, data => {
-    const re = /^\[(\w+)] *$/gm
-    customHtmlState.sections.clear()
-    if (!data) return
-    let name: string | undefined = 'top'
-    do {
-        let last = re.lastIndex
-        const match = re.exec(data)
-        const content = data.slice(last, !match ? undefined : re.lastIndex - (match?.[0]?.length || 0)).trim()
-        if (content)
-            customHtmlState.sections.set(name, content)
-        name = match?.[1]
-    } while (name)
-})
+
+watchLoadCustomHtml(customHtmlState.sections)
+
+export function watchLoadCustomHtml(state: CustomHtml, folder='') {
+    return watchLoad(prefix('', folder, '/') + FILE, data => {
+        const re = /^\[(\w+)] *$/gm
+        state.clear()
+        if (!data) return
+        let name: string | undefined = 'top'
+        do {
+            let last = re.lastIndex
+            const match = re.exec(data)
+            const content = data.slice(last, !match ? undefined : re.lastIndex - (match?.[0]?.length || 0)).trim()
+            if (content)
+                state.set(name, content)
+            name = match?.[1]
+        } while (name)
+    })
+}
 
 export function getSection(name: string) {
-    return customHtmlState.sections.get(name) || ''
+    return (customHtmlState.sections.get(name) || '')
+        + mapPlugins(pl => pl.getData().customHtml.get(name)).join('\n')
 }
 
 export async function saveCustomHtml(sections: Dict<string>) {

@@ -138,8 +138,6 @@ The `api` object you get as parameter of the `init` contains the following:
   If you need something for your plugin that's not covered by `api`, you can test it with this method,
   but you should then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin.
 
-Each plug-in can have a `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`.
-
 ## Front-end specific
 
 The following information applies to the default front-end, and may not apply to a custom one.
@@ -218,6 +216,15 @@ This is a list of available frontend-events, with respective object parameter an
       }
       type FileMenuProp = [ReactNode,ReactNode] | ReactElement
       ```
+
+## Other files
+
+Together with the main file (plugin.js), you can have
+
+- `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`
+- `custom.html` file, that works exactly like the main `custom.html`. Even when same section is specified
+  by 2 (or more) files, both contents are appended.  
+
 ## Publish your plug-in
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
@@ -241,6 +248,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
+  - custom.html
   - entry.cantOpen
   - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib
   - second parameter of onEvent is now deprecated

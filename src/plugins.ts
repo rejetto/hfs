@@ -27,6 +27,7 @@ import { readFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, resolve } from 'path'
+import { newCustomHtmlState, watchLoadCustomHtml } from './customHtml'
 
 export const PATH = 'plugins'
 export const DISABLING_POSTFIX = '-disabled'
@@ -290,8 +291,12 @@ function loadPlugin(id: string, path: string) {
                 },
                 getHfsConfig: getConfig,
             })
-            Object.assign(data, res)
-            const plugin = new Plugin(id, dirname(module), data, unwatch)
+            const folder = dirname(module)
+            Object.assign(data, res, {
+                customHtml: newCustomHtmlState()
+            })
+            const customHtmlWatcher = watchLoadCustomHtml(data.customHtml, folder)
+            const plugin = new Plugin(id, folder, data, _.flow(unwatch, customHtmlWatcher.unwatch))
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
