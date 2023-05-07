@@ -1,5 +1,5 @@
 exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
-exports.version = 4 // config.where
+exports.version = 4.1 // fix: different cases and encodings with urls weren't properly counted
 exports.apiRequired = 8
 
 exports.config = {
@@ -15,7 +15,7 @@ exports.init = async api => {
     const _ = api.require('lodash')
     const yaml = api.require('yaml')
     const { writeFile, readFile } = api.require('fs/promises')
-    const { debounceAsync } = api.require('./misc')
+    const { debounceAsync, newObj } = api.require('./misc')
 
     const countersFile = 'counters.yaml'
 
@@ -29,6 +29,7 @@ exports.init = async api => {
     try {
         const data = await readFile(countersFile, 'utf8')
         counters = yaml.parse(data) || {}
+        counters = newObj(counters, (v,k,setKey) => setKey(uri2key(k)) && v)
         console.debug('counters loaded')
     }
     catch(err) {
@@ -43,15 +44,21 @@ exports.init = async api => {
         middleware: (ctx) =>
             () => { // execute after other middlewares are done
                 if (ctx.status >= 300 || !ctx.vfsNode) return
-                const { path } = ctx
-                counters[path] = counters[path] + 1 || 1
+                const k = uri2key(ctx.path)
+                counters[k] = counters[k] + 1 || 1
                 save()
             },
         onDirEntry: ({ entry, listUri }) => {
-            const path = listUri + entry.n
-            const n = counters[path]
+            const k = uri2key(listUri + entry.n)
+            const n = counters[k]
             if (n)
                 entry.hits = n
         }
     }
+}
+
+function uri2key(uri) { // normalize uri to avoid having different keys for same file
+    try { uri = decodeURIComponent(uri) } // decodeURI doesn't support #=%23
+    catch {}
+    return uri.toLowerCase()
 }
