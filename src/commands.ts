@@ -89,7 +89,7 @@ const commands = {
             setConfig({ [key]: v })
         }
     },
-    'show-config': {
+    'get-config': {
         params: '<key>',
         cb(key: string) {
             const conf = getConfigDefinition(key)
