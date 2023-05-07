@@ -109,6 +109,7 @@
         "Name": "Name",
         "file_open": "Open",
         "Download": "Download",
-        "Missing permission": "Missing permission"
+        "Missing permission": "Missing permission",
+        "Reload": "Reload"
     }
 }

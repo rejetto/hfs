@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import {
     createElement as h,
     Fragment,
-    isValidElement,
     memo,
     useCallback,
     useEffect,
@@ -12,7 +11,7 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, newDialog, hfsEvent, getHFS, dontBotherWithKeys } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, getHFS } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { state, useSnapState } from './state'
@@ -23,12 +22,13 @@ import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { deleteFiles } from './menu'
+import { openFileMenu } from './fileMenu'
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string, p?:string,
     name: string, uri: string, ext:string, isFolder:boolean, t?:Date, cantOpen: boolean } // we memoize these value for speed
 export type DirList = DirEntry[]
 
-const MISSING_PERM = "Missing permission"
+export const MISSING_PERM = "Missing permission"
 
 export function BrowseFiles() {
     useFetchList()
@@ -192,9 +192,9 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         className += ' cant-open'
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
-    const ico = hIcon(isFolder ? 'folder' : 'file')
+    const ico = getEntryIcon(entry)
     const menuOnLink = getHFS().fileMenuOnLink
-    const onClick = menuOnLink && openFileMenu || undefined
+    const onClick = menuOnLink && fileMenu || undefined
     const mobile = isMobile()
     return h('li', { className, label: separator },
         showFilter && h(Checkbox, {
@@ -212,7 +212,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 onMouseLeave(){ setMenuBtn(false) },
             } || {},
                 h(Link, { to: base + uri }, ico, entry.n.slice(0,-1)),
-                menuBtn && h('button', { className: 'popup-menu-button', onClick: openFileMenu }, hIcon('menu'), t`Menu`)
+                menuBtn && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
             )
             : h(Fragment, {},
                 containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, containerName),
@@ -221,66 +221,27 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
             h(EntryDetails, { entry, midnight }),
-            (!menuOnLink || isFolder && mobile) && h('button', { className: 'file-menu-button', onClick: openFileMenu }, hIcon('menu')),
+            (!menuOnLink || isFolder && mobile) && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
         ),
         h('div'),
     )
 
-    function openFileMenu(ev: MouseEvent) {
+    function fileMenu(ev: MouseEvent) {
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
-        const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
-        const OPEN_ICON = 'play'
-        const OPEN_LABEL = t('file_open', "Open")
-        const menu = [
+        const open = { icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
+        openFileMenu(entry, ev, [
             menuOnLink && !entry.cantOpen && (
-                isFolder ? h(Link, { to: base + uri, onClick: () => close() }, hIcon(OPEN_ICON), OPEN_LABEL)
-                    : { label: OPEN_LABEL, href: uri, target: isFolder ? undefined : '_blank', icon: OPEN_ICON }),
-            !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+                !isFolder ? open : h(Link, { to: base + uri, onClick: () => close() }, hIcon(open.icon), open.label) ),
             can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
-        ]
-        const props = [
-            [t(`Name`), entry.name]
-        ]
-        const res = hfsEvent('fileMenu', { entry, menu, props })
-        if (res)
-            menu.push(...res.flat())
-        const close = newDialog({
-            title: isFolder ? t`Folder menu` : t`File menu`,
-            className: 'file-dialog',
-            icon: () => ico,
-            position: isMobile() ? undefined
-                : [ev.pageX, ev.pageY - window.scrollY] as [number, number],
-            Content() {
-                const {t} = useI18N()
-                return h(Fragment, {},
-                    h('dl', { className: 'file-dialog-properties' },
-                        dontBotherWithKeys(props.map(prop => isValidElement(prop) ? prop
-                            : Array.isArray(prop) ? h(Fragment, {}, h('dt', {}, prop[0]), h('dd', {}, prop[1]))
-                                : null
-                        ))
-                    ),
-                    entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
-                    h('div', { className: 'file-menu' },
-                        dontBotherWithKeys(menu.map((e: any, i) =>
-                            isValidElement(e) ? e
-                                : !e?.label ? null :
-                                    h('a', {
-                                        key: i,
-                                        href: e.href || '#',
-                                        ..._.omit(e, ['label', 'icon', 'href', 'onClick']),
-                                        async onClick() {
-                                            if ((await e.onClick?.()) !== false)
-                                                close()
-                                        }
-                                    }, hIcon(e.icon || 'file'), e.label )
-                        ))
-                    )
-                )
-            }
-        })
+        ])
     }
+
 })
+
+export function getEntryIcon(entry: DirEntry) {
+    return hIcon(entry.isFolder ? 'folder' : 'file')
+}
 
 const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
     const { t: time, s } = entry

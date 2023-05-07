@@ -103,6 +103,7 @@
         "Name": "Nome",
         "file_open": "Apri",
         "Download": "Download",
-        "Missing permission": "Permesso mancante"
+        "Missing permission": "Permesso mancante",
+        "Reload": "Ricarica"
     }
 }

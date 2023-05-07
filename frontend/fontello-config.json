@@ -115,12 +115,6 @@
       "src": "fontawesome"
     },
     {
-      "uid": "09feb4465d9bd1364f4e301c9ddbaa92",
-      "css": "retweet",
-      "code": 59407,
-      "src": "fontawesome"
-    },
-    {
       "uid": "186dec7a13156bbe2550790c158fb85d",
       "css": "crown",
       "code": 59460,
@@ -196,6 +190,18 @@
       "uid": "555ef8c86832e686fef85f7af2eb7cde",
       "css": "left",
       "code": 59414,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "3e1bb74572a30486bd647304d9fcaff6",
+      "css": "lock",
+      "code": 59415,
+      "src": "typicons"
+    },
+    {
+      "uid": "f9c3205df26e7778abac86183aefdc99",
+      "css": "ccw",
+      "code": 59416,
       "src": "fontawesome"
     }
   ]
