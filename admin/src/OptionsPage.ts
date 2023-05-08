@@ -153,7 +153,7 @@ export default function OptionsPage() {
                 keyLabel: "Files", keyWidth: 7,
                 valueLabel: "Mime type", valueWidth: 4
             },
-            { k: 'block', label: "Blocked IPs", multiline: true, minRows:3, helperText: "Enter an IP address for each line. CIDR and * are supported.",
+            { k: 'block', label: "Blocked IPs", multiline: true, minRows:3, helperText: h(Fragment, {}, "Enter an IP address for each line. ",  h(WildcardsSupported)),
                 fromField: (all:string) => all.split('\n').map(s => s.trim()).filter(Boolean).map(ip => ({ ip })),
                 toField: (all: any) => !Array.isArray(all) ? '' : all.map(x => x?.ip).filter(Boolean).join('\n')
             },
