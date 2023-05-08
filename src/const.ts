@@ -58,9 +58,10 @@ console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
 console.log('pid', process.pid)
+const winExe = IS_WINDOWS && process.execPath.match(/(?<!node)\.exe$/i)
 if (argv.cwd)
     process.chdir(argv.cwd)
-else if (!process.execPath.endsWith('.exe')) { // still considering whether to use this behavior with Windows users, who may be less accustomed to it
+else if (!winExe) { // still considering whether to use this behavior with Windows users, who may be less accustomed to it
     const dir = join(homedir(), '.hfs')
     try { mkdirSync(dir) }
     catch(e: any) {
