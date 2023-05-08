@@ -178,9 +178,16 @@ export function isLocalHost(c: Connection | Koa.Context) {
 }
 
 export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
-    return !mask ? () => emptyMaskReturns
-        : mask.includes('/') ? (ip: string) => cidr.contains(mask, ip)
-            : makeMatcher(mask)
+    if (!mask)
+        return () => emptyMaskReturns
+    if (!mask.includes('/'))
+        return makeMatcher(mask)
+    const all = mask.split('|')
+    const neg = all[0]?.[0] === '!'
+    if (neg)
+        all[0] = all[0]!.slice(1)
+    return (ip: string) =>
+        neg !== all.some(x => cidr.contains(x, ip))
 }
 
 export function makeMatcher(mask: string, emptyMaskReturns=false) {
