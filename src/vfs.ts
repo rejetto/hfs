@@ -223,6 +223,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
     const { children, source } = parent
     const took = prefixPath ? undefined : new Set()
     const maskApplier = parentMaskApplier(parent)
+    const parentsCache = new Map() // we use this only if depth > 0
     if (children)
         for (const child of children) {
             const nodeName = getNodeName(child)
@@ -235,6 +236,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
                 catch { continue }
             yield item
             if (!depth || !await nodeIsDirectory(child).catch(() => false)) continue
+            parentsCache.set(name, item)
             inheritMasks(item, parent,  nodeName)
             if (!ctx || hasPermission(item, 'can_list', ctx)) // check perm before recursion
                 yield* walkNode(item, ctx, depth - 1, name + '/')
@@ -248,8 +250,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
 
     try {
         let lastDir = prefixPath.slice(0, -1) || '.'
-        const map = new Map()
-        map.set(lastDir, parent)
+        parentsCache.set(lastDir, parent)
         // it's important to keep using dirStream in deep-mode, as it is manyfold faster (it parallelizes)
         for await (const [path, isFolder] of dirStream(source, depth)) {
             if (ctx?.req.aborted)
@@ -259,7 +260,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
             if (depth) {
                 const dir = dirname(name)
                 if (dir !== lastDir)
-                    parent = map.get(lastDir = dir)
+                    parent = parentsCache.get(lastDir = dir)
             }
 
             const item: VfsNode = {
@@ -270,7 +271,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
             }
             if (!canSee(item)) continue
             if (isFolder)
-                map.set(name, item)
+                parentsCache.set(name, item)
             yield item
         }
     }
