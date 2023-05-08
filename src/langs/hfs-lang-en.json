@@ -110,6 +110,7 @@
         "file_open": "Open",
         "Download": "Download",
         "Missing permission": "Missing permission",
-        "Reload": "Reload"
+        "Reload": "Reload",
+        "Get list": "Get list"
     }
 }

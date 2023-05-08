@@ -104,6 +104,7 @@
         "file_open": "Apri",
         "Download": "Download",
         "Missing permission": "Permesso mancante",
-        "Reload": "Ricarica"
+        "Reload": "Ricarica",
+        "Get list": "Lista"
     }
 }

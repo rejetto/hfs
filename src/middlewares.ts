@@ -9,7 +9,7 @@ import {
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL,
 } from './const'
 import { FRONTEND_URI } from './const'
-import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode } from './vfs'
+import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode, getNodeName } from './vfs'
 import {
     asyncGeneratorToReadable,
     dirTraversal,
@@ -150,13 +150,13 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
 }
 
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
-    const { depth=0, folders } = ctx.query
+    const { depth=0, folders, prepend='' } = ctx.query
     ctx.type = 'text'
     const walker = walkNode(node, ctx, depth === '*' ? Infinity : Number(depth))
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = await nodeIsDirectory(el)
         return !folders && isFolder ? undefined
-            : el.name + (isFolder ? '/' : '') + '\n'
+            : prepend + getNodeName(el) + (isFolder ? '/' : '') + '\n'
     }))
 }
 
