@@ -230,6 +230,9 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
             took?.add(name)
             const item = { ...child, name }
             if (!canSee(item)) continue
+            if (item.source) // real items must be accessible
+                try { await fs.access(item.source) }
+                catch { continue }
             yield item
             if (!depth || !await nodeIsDirectory(child).catch(() => false)) continue
             inheritMasks(item, parent,  nodeName)
