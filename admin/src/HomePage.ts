@@ -56,7 +56,7 @@ export default function HomePage() {
         !vfs ? h(LinearProgress)
             : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
                 : entry('', md("This is Admin-panel, where you manage your server. Access your files on "),
-                    h(Link, { target:'frontend', href: '/' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
+                    h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
         !href && entry('warning', "Frontend unreachable: ",
             _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
             !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
