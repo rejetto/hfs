@@ -17,7 +17,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: FileMen
     const menu = [
         !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         ...addToMenu,
-        isFolder && { label: t`Get list`, href: uri + '?get=list&folders=*&prepend=' + encodeURIComponent(location.href + uri), icon: 'menu' }
+        isFolder && { label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'menu' }
     ]
     const props = [
         [t(`Name`), entry.name]

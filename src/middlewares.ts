@@ -149,9 +149,17 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         : serveFrontendFiles(ctx, next)
 }
 
+const baseUrl = defineConfig('base_url', '')
+
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
-    const { depth=0, folders, prepend='' } = ctx.query
+    let { depth=0, folders, prepend } = ctx.query
     ctx.type = 'text'
+    if (prepend === undefined || prepend === '*') { // * = force auto-detection even if we have baseUrl set
+        const { URL } = ctx
+        const base = prepend === undefined && baseUrl.get()
+            || URL.protocol + '//' + URL.host + ctx.state.revProxyPath
+        prepend = base + ctx.originalUrl.split('?')[0]! as string
+    }
     const walker = walkNode(node, ctx, depth === '*' ? Infinity : Number(depth))
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = await nodeIsDirectory(el)
