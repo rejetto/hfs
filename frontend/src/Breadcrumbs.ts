@@ -18,12 +18,12 @@ export function Breadcrumbs() {
     return h(Fragment, {},
         h(Breadcrumb, { label: hIcon('parent', { title: t`parent folder` }), path: parent }),
         h(Breadcrumb, { label: hIcon('home', { title: t`home` }), path: base, current: !currentPath }),
-        breadcrumbs.map(([path,label]) =>
+        breadcrumbs.map(([path,label], i) =>
             h(Breadcrumb, {
                 key: path,
                 path,
                 label,
-                current: path.slice(1,-1) === currentPath,
+                current: i === breadcrumbs.length - 1,
             }) )
     )
 }
