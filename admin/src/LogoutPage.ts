@@ -30,7 +30,7 @@ export default function LogoutPage() {
             size: 'large',
             variant: 'contained',
             color: 'warning',
-            confirm: "After you quit, this interface won't respond anymore",
+            confirm: "Stopping the server, this interface won't respond anymore",
             async onClick() {
                 await apiCall('quit')
                 await alertDialog("Good-bye", 'success')
