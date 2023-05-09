@@ -111,6 +111,7 @@
         "Download": "Download",
         "Missing permission": "Missing permission",
         "Reload": "Reload",
-        "Get list": "Get list"
+        "Get list": "Get list",
+        "Skip existing files": "Skip existing files"
     }
 }

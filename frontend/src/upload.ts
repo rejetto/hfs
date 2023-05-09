@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
-import { Flex, FlexV } from './components'
+import { Checkbox, Flex, FlexV } from './components'
 import {
     closeDialog,
     DialogCloser,
@@ -33,6 +33,7 @@ export const uploadState = proxy<{
     partial: number // relative to uploading file. This is how much we have done of the current queue.
     speed: number
     eta: number
+    skipExisting: boolean
 }>({
     eta: 0,
     speed: 0,
@@ -43,6 +44,7 @@ export const uploadState = proxy<{
     errors: 0,
     doneByte: 0,
     done: 0,
+    skipExisting: false,
 })
 
 // keep track of speed
@@ -94,7 +96,7 @@ export function showUpload() {
 
     function Content(){
         const [files, setFiles] = useState([] as File[])
-        const { qs, paused, eta } = useSnapshot(uploadState)
+        const { qs, paused, eta, skipExisting } = useSnapshot(uploadState)
         const { can_upload, accept } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
@@ -102,24 +104,29 @@ export function showUpload() {
         return h(FlexV, { gap: 0, props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
             h(FlexV, { props: { className: 'upload-toolbar' } },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
-                    : h(Flex, { justifyContent: 'center', flexWrap: 'wrap', margin: '1em 0' },
-                        h('button', {
-                            className: 'upload-files',
-                            onClick: () => pickFiles({ accept: normalizeAccept(accept) })
-                        }, t`Pick files`),
-                        !isMobile() && h('button', {
-                            className: 'upload-folder',
-                            onClick: () => pickFiles({ folder: true })
-                        }, t`Pick folder`),
-                        files.length > 0 &&  h('button', {
-                            className: 'upload-send',
-                            onClick() {
-                                enqueue(files)
-                                setFiles([])
-                            }
-                        }, t('send_files', { n: files.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
-                        files.length > 1 && h('button', { onClick() { setFiles([]) } }, t`Clear`),
-                        h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
+                    : h(FlexV, { margin: '0 0 1em' },
+                        h(Flex, { justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' },
+                            h('button', {
+                                className: 'upload-files',
+                                onClick: () => pickFiles({ accept: normalizeAccept(accept) })
+                            }, t`Pick files`),
+                            !isMobile() && h('button', {
+                                className: 'upload-folder',
+                                onClick: () => pickFiles({ folder: true })
+                            }, t`Pick folder`),
+                            h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
+                            h(Checkbox, { value: skipExisting, onChange: v => uploadState.skipExisting = v }, t`Skip existing files`),
+                        ),
+                        files.length > 0 && h(Flex, { justifyContent: 'center', flexWrap: 'wrap' },
+                            h('button', {
+                                className: 'upload-send',
+                                onClick() {
+                                    enqueue(files)
+                                    setFiles([])
+                                }
+                            }, t('send_files', { n: files.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
+                            h('button', { onClick() { setFiles([]) } }, t`Clear`),
+                        )
                     ),
             ),
             h(FilesList, {
@@ -269,7 +276,7 @@ async function startUpload(f: File, to: string, resume=0) {
         if (req?.readyState !== 4) return
         const status = overrideStatus || req.status
         closeLast?.()
-        if (status) // 0 = user-aborted
+        if (status && status !== 409) // 0 = user-aborted, 409 = skipped because existing
             if (status >= 400)
                 error(status)
             else
@@ -285,7 +292,11 @@ async function startUpload(f: File, to: string, resume=0) {
         bytesSent += e.loaded - lastProgress
         lastProgress = e.loaded
     }
-    req.open('POST', to + '?' + new URLSearchParams({ notificationChannel, resume: String(resume) }), true)
+    req.open('POST', to + '?' + new URLSearchParams({
+        notificationChannel,
+        resume: String(resume),
+        ...uploadState.skipExisting && { skipExisting: '1' },
+    }), true)
     const form = new FormData()
     form.append('file', f.slice(resume), path(f))
     req.send(form)

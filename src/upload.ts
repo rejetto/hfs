@@ -1,6 +1,7 @@
 import { statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
+    HTTP_CONFLICT,
     HTTP_PAYLOAD_TOO_LARGE,
     HTTP_RANGE_NOT_SATISFIABLE,
     HTTP_SERVER_ERROR,
@@ -39,6 +40,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         catch(e: any) {
             console.warn("can't check disk size:", e.message || String(e))
         }
+    if (ctx.query.skipExisting && fs.existsSync(fullPath))
+        return fail(HTTP_CONFLICT)
     fs.mkdirSync(dir, { recursive: true })
     const keepName = basename(fullPath).slice(-200)
     let tempName = join(dir, 'hfs$upload-' + keepName)

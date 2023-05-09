@@ -105,6 +105,7 @@
         "Download": "Download",
         "Missing permission": "Permesso mancante",
         "Reload": "Ricarica",
-        "Get list": "Lista"
+        "Get list": "Lista",
+        "Skip existing files": "Salta file esistenti"
     }
 }
