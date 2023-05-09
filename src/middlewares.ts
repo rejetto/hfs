@@ -6,7 +6,7 @@ import {
     ADMIN_URI, API_URI,
     BUILD_TIMESTAMP,
     DEV, DAY,
-    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL,
+    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode, getNodeName } from './vfs'
@@ -38,6 +38,7 @@ import { allowAdmin, favicon } from './adminApis'
 import { constants } from 'zlib'
 import { getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
+import { getLangData } from './lang'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
@@ -96,13 +97,13 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return ctx.redirect(ctx.state.revProxyPath + ADMIN_URI)
     if (path.startsWith(ADMIN_URI))
         return allowAdmin(ctx) ? serveAdminPrefixed(ctx,next)
-            : (ctx.status = HTTP_FORBIDDEN)
+            : sendErrorPage(ctx, HTTP_FORBIDDEN)
     if (ctx.method === 'PUT') { // curl -T file url/
         const decPath = decodeURI(path)
         let rest = basename(decPath)
         const folder = await urlToNode(dirname(decPath), ctx, vfs, v => rest = v+'/'+rest)
         if (!folder)
-            return ctx.status = HTTP_NOT_FOUND
+            return sendErrorPage(ctx, HTTP_NOT_FOUND)
         const dest = uploadWriter(folder, rest, ctx)
         if (dest) {
             await pipeline(ctx.req, dest)
@@ -116,7 +117,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (node?.default && (path.endsWith('/') || !node.default.match(/\.html?$/i))) // final/ needed on browser to make resource urls correctly
         node = await urlToNode(node.default, ctx, node)
     if (!node)
-        return ctx.status = HTTP_NOT_FOUND
+        return sendErrorPage(ctx, HTTP_NOT_FOUND)
     if (ctx.method === 'POST') { // curl -F upload=@file url/
         ctx.body = {}
         const form = formidable({
@@ -136,7 +137,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
         if (ctx.status === HTTP_FORBIDDEN)
-            return
+            return sendErrorPage(ctx, HTTP_FORBIDDEN)
         const browserDetected = ctx.get('Upgrade-Insecure-Requests') || ctx.get('Sec-Fetch-Mode') // ugh, heuristics
         if (!browserDetected) // we don't want to trigger basic authentication on browsers, it's meant for download managers only
             return ctx.set('WWW-Authenticate', 'Basic') // we support basic authentication
@@ -147,6 +148,24 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     return ctx.query.get === 'zip' ? zipStreamFromFolder(node, ctx)
         : ctx.query.get === 'list' ? sendFolderList(node, ctx)
         : serveFrontendFiles(ctx, next)
+}
+
+// to be used with errors whose recipient is possibly human
+export async function sendErrorPage(ctx: Koa.Context, code: number) {
+    ctx.status = code
+    const msg = (errorMessages as any)[ctx.status]
+    if (!msg) return
+    const lang = await getLangData(ctx)
+    if (!lang) return
+    const trans = (Object.values(lang)[0] as any)?.translate
+    if (!trans) return
+    ctx.body = trans[msg]
+}
+
+const errorMessages = {
+    [HTTP_NOT_FOUND]: "Not found",
+    [HTTP_UNAUTHORIZED]: "Unauthorized",
+    [HTTP_FORBIDDEN]: "Forbidden",
 }
 
 const baseUrl = defineConfig('base_url', '')
