@@ -42,6 +42,8 @@ import { getLangData } from './lang'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
+export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
+    v => v * 1000)
 
 export const gzipper = compress({
     threshold: 2048,
@@ -217,6 +219,8 @@ export function getProxyDetected() {
         && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
 }
 export const prepareState: Koa.Middleware = async (ctx, next) => {
+    if (ctx.session)
+        ctx.session.maxAge = sessionDuration.compiled()
     // calculate these once and for all
     ctx.state.account = await getHttpAccount(ctx) ?? getAccount(ctx.session?.username, false)
     const conn = ctx.state.connection = socket2connection(ctx.socket)

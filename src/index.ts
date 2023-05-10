@@ -4,7 +4,7 @@
 import Koa from 'koa'
 import mount from 'koa-mount'
 import { apiMiddleware } from './apiMiddleware'
-import { API_URI, DEV, SESSION_DURATION } from './const'
+import { API_URI, DEV } from './const'
 import { frontEndApis } from './frontEndApis'
 import { log } from './log'
 import { pluginsMiddleware } from './plugins'
@@ -31,7 +31,7 @@ ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',') || [randomId(30)]
 export const app = new Koa({ keys })
 app.use(someSecurity)
-    .use(session({ key: 'hfs_$id', signed: true, rolling: true, maxAge: SESSION_DURATION }, app))
+    .use(session({ key: 'hfs_$id', signed: true, rolling: true }, app))
     .use(prepareState)
     .use(headRequests)
     .use(log())

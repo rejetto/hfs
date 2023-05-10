@@ -6,19 +6,13 @@ import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
 import {
     ADMIN_URI,
-    SESSION_DURATION,
-    HTTP_UNAUTHORIZED,
-    HTTP_BAD_REQUEST,
-    HTTP_SERVER_ERROR,
-    HTTP_NOT_ACCEPTABLE,
-    HTTP_CONFLICT,
-    HTTP_NOT_FOUND
+    HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_NOT_ACCEPTABLE, HTTP_CONFLICT, HTTP_NOT_FOUND
 } from './const'
 import { randomId } from './misc'
 import Koa from 'koa'
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
 import { ctxAdminAccess } from './adminApis'
-import { prepareState } from './middlewares'
+import { prepareState, sessionDuration } from './middlewares'
 import { defineConfig } from './config'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
@@ -43,7 +37,7 @@ async function loggedIn(ctx:Koa.Context, username: string | false) {
 
 function makeExp() {
     return !keepSessionAlive.get() ? undefined
-        : { exp: new Date(Date.now() + SESSION_DURATION) }
+        : { exp: new Date(Date.now() + sessionDuration.compiled()) }
 }
 
 export const login: ApiHandler = async ({ username, password }, ctx) => {
