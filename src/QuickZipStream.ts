@@ -19,9 +19,9 @@ const FLAGS = 0x0808 // bit3 = no crc in local header + bit11 = utf8
 interface ZipSource {
     path: string
     sourcePath?: string
-    getData: () => Readable // deferred stream, so that we don't keep many open files because of calculateSize()
-    size: number
-    ts: Date
+    getData?: () => Readable // deferred stream, so that we don't keep many open files because of calculateSize()
+    size?: number
+    ts?: Date
     mode?: number
 }
 export class QuickZipStream extends Readable {
@@ -32,6 +32,7 @@ export class QuickZipStream extends Readable {
     private consumedCalculating: ZipSource[] = []
     private skip: number = 0
     private limit?: number
+    private now = new Date()
 
     constructor(private readonly walker:  AsyncIterableIterator<ZipSource>) {
         super({})
@@ -85,9 +86,10 @@ export class QuickZipStream extends Readable {
         let centralDirSize = 0
         for (const file of this.consumedCalculating) {
             const pathSize = Buffer.from(file.path, 'utf8').length
-            const extraLength = (file.size > ZIP64_SIZE_LIMIT ? 2 : 0) + (offset > ZIP64_SIZE_LIMIT ? 1 : 0)
+            const { size=0 } = file
+            const extraLength = (size > ZIP64_SIZE_LIMIT ? 2 : 0) + (offset > ZIP64_SIZE_LIMIT ? 1 : 0)
             const extraDataSize = extraLength && (2+2 + extraLength*8)
-            offset += 4+2+2+2+ 4+4+4+4+ 2+2+ pathSize + file.size
+            offset += 4+2+2+2+ 4+4+4+4+ 2+2+ pathSize + size
             centralDirSize += 4+2+2+2+2+ 4+4+4+4+ 2+2+2+2+2+ 4+4 + pathSize + extraDataSize
         }
         const n = this.consumedCalculating.length
@@ -107,7 +109,7 @@ export class QuickZipStream extends Readable {
         const file = this.consumedCalculating.shift() || (await this.walker.next()).value as ZipSource
         if (!file)
             return this.closeArchive()
-        let { path, sourcePath, getData, size, ts, mode } = file
+        let { path, sourcePath, getData, size=0, ts=this.now, mode=0o40775 } = file
         const pathAsBuffer = Buffer.from(path, 'utf8')
         const offset = this.dataWritten
         const version = 20
@@ -116,7 +118,7 @@ export class QuickZipStream extends Readable {
             2, version,
             2, FLAGS,
             2, 0, // compression = store
-            ...ts2buf(ts),
+            ...ts2buf(ts || this.now),
             4, 0, // crc
             4, 0, // size
             4, 0, // size
@@ -128,7 +130,7 @@ export class QuickZipStream extends Readable {
 
         const cache = sourcePath ? crcCache[sourcePath] : undefined
         const cacheHit = Number(cache?.ts) === Number(ts)
-        let crc = cacheHit ? cache!.crc : crc32function('')
+        let crc = cacheHit ? cache!.crc : getData ? crc32function('') : 0
         const extAttr = !mode ? 0 : (mode | 0x8000) * 0x10000 // it's like <<16 but doesn't overflow so easily
         const entry = { size, crc, pathAsBuffer, ts, offset, version, extAttr }
         if (this.skip >= size && cacheHit) {
@@ -138,11 +140,14 @@ export class QuickZipStream extends Readable {
             setTimeout(() => this.push('')) // this "signal" works only after _read() is done
             return
         }
+        if (!getData) {
+            this.entries.push(entry)
+            return
+        }
         const data = getData()
         data.on('error', (err) => console.error(err))
         data.on('end', ()=>{
             this.workingFile = undefined
-            entry.crc = crc
             if (sourcePath)
                 crcCache[sourcePath] = { ts, crc }
             this.entries.push(entry)

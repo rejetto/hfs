@@ -27,8 +27,10 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 if (!subNode)
                     continue
                 if (await nodeIsDirectory(subNode)) { // a directory needs to walked
-                    if (hasPermission(subNode, 'can_list',ctx))
+                    if (hasPermission(subNode, 'can_list',ctx)) {
+                        yield subNode // it could be empty
                         yield* walkNode(subNode, ctx, Infinity, uri + '/', 'can_read')
+                    }
                     continue
                 }
                 let folder = dirname(decodeURIComponent(uri)) // decodeURI() won't account for %23=#
@@ -40,9 +42,12 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         if (!hasPermission(el, 'can_read', ctx)) return // the fact you see it doesn't mean you can read it
         const { source } = el
         const name = getNodeName(el)
-        if (!source || ctx.req.aborted || !filter(name))
+        if (ctx.req.aborted || !filter(name))
             return
         try {
+            if (el.isFolder)
+                return { path: name + '/' }
+            if (!source) return
             const st = await fs.stat(source)
             if (!st || !st.isFile())
                 return
