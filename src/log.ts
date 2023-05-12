@@ -60,7 +60,7 @@ errorLogFile.sub(path => {
 })
 
 const logRotation = defineConfig('log_rotation', 'weekly')
-const dontLogNet = defineConfig('dont_log_net', '127.0.0.1|::1', makeNetMatcher)
+const dontLogNet = defineConfig('dont_log_net', '127.0.0.1|::1', v => makeNetMatcher(v))
 
 export function log(): Koa.Middleware {
     const debounce = _.debounce(cb => cb(), 1000)

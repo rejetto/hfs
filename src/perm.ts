@@ -83,7 +83,7 @@ export async function updateAccount(account: Account, changer?:Changer) {
         saveAccountsAsap()
 }
 
-const saveAccountsAsap = () => { saveConfigAsap().then() }
+const saveAccountsAsap = saveConfigAsap
 
 export const accountsConfig = defineConfig('accounts', {} as Accounts)
 accountsConfig.sub(obj => {
