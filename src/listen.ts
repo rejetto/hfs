@@ -40,7 +40,7 @@ portCfg.sub(async port => {
 
 export function openAdmin() {
     for (const srv of [httpSrv, httpsSrv]) {
-        const a = srv.address()
+        const a = srv?.address()
         if (!a || typeof a === 'string') continue
         const baseUrl = srv.name + '://localhost:' + a.port
         open(baseUrl + ADMIN_URI, { wait: true}).catch(e => {
