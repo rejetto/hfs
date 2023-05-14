@@ -106,8 +106,8 @@ export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Sub
     return ret
 }
 
-export function getConfigDefinition(k: string) {
-    return configProps[k]
+export function configKeyExists(k: string) {
+    return k in configProps
 }
 
 const stack: any[] = []

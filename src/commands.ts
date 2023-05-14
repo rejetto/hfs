@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { addAccount, getAccount, updateAccount } from './perm'
-import { getConfig, getConfigDefinition, setConfig } from './config'
+import { getConfig, configKeyExists, setConfig } from './config'
 import _ from 'lodash'
 import { getUpdate, update } from './update'
 import { openAdmin } from './listen'
@@ -80,8 +80,7 @@ const commands = {
     config: {
         params: '<key> <value>',
         cb(key: string, value: string) {
-            const conf = getConfigDefinition(key)
-            if (!conf)
+            if (!configKeyExists(key))
                 throw "specified key doesn't exist"
             let v: any = value
             try { v = JSON.parse(v) }
@@ -92,8 +91,7 @@ const commands = {
     'get-config': {
         params: '<key>',
         cb(key: string) {
-            const conf = getConfigDefinition(key)
-            if (!conf)
+            if (!configKeyExists(key))
                 throw "specified key doesn't exist"
             console.log(yaml.stringify(getConfig(key), { lineWidth:1000 }).trim())
         }
