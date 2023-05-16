@@ -98,6 +98,12 @@ vfs:
         - name: hi
     - name: cantSeeThisButChildren
       can_see: false
+      propagate:
+        can_see: false
+      children:
+        - name: hi
+    - name: cantSeeThisButChildrenMasks
+      can_see: false
       masks:
         "*":
           can_see: true

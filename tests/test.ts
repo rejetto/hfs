@@ -76,6 +76,8 @@ describe('basics', () => {
     it('cantSeeThis.children', reqList('/cantSeeThis', { outList:['hi/'] }))
     it('cantSeeThisButChildren', reqList('/', { outList:['cantSeeThisButChildren/'] }))
     it('cantSeeThisButChildren.children', reqList('/cantSeeThisButChildren', { inList:['hi/'] }))
+    it('cantSeeThisButChildrenMasks', reqList('/', { outList:['cantSeeThisButChildrenMasks/'] }))
+    it('cantSeeThisButChildrenMasks.children', reqList('/cantSeeThisButChildrenMasks', { inList:['hi/'] }))
 
     it('protectFromAbove', req('/protectFromAbove/child/alfa.txt', 403))
     it('protectFromAbove.list', reqList('/protectFromAbove/child/', { inList:['alfa.txt'] }))
