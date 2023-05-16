@@ -156,11 +156,15 @@ Configuration can be done in several ways
 `NAME` stands for the property name that you want to change. See the complete list below.
 
 ### Where is it stored
-Configuration is stored in the file `config.yaml`, which is stored in the same folder of `hfs.exe` if you are using this
-kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
 
-You can decide a different file and location by passing `--config SOME_FILE` at command line, or inside
-an *env* called `HFS_CONFIG`. Any relative path provided is relative to the *cwd*.  
+Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
+
+These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
+if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
+You can decide a different cwd passing `--cwd SOME_FOLDER` parameter at command line.  
+
+You can decide also a different file for config by passing `--config SOME_FILE`, or inside an *env* called `HFS_CONFIG`.
+Any relative path provided is relative to the *cwd*.  
 
 [Check details about config file format](https://github.com/rejetto/hfs/blob/main/config.md). 
 
