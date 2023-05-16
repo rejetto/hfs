@@ -8,6 +8,8 @@ vfs:
     protectFromAbove/child/*.txt:
       can_read: false
   children:
+    - source: tests/alfa.txt
+      name: x%#x
     - name: protectFromAbove
       children:
         - name: child
@@ -116,3 +118,4 @@ accounts:
       - admins
   admins:
     admin: true
+version: 0.45.0-beta12
