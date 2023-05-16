@@ -159,7 +159,8 @@ export class Plugin {
         const { id } = this
         try {
             await this.data?.unload?.()
-            console.log('unloaded plugin', id)
+            if (!reloading) // we already printed 'reloading'
+                console.log('unloaded plugin', id)
         }
         catch(e) {
             console.log('error unloading plugin', id, String(e))
