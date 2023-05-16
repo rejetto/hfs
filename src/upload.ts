@@ -1,14 +1,14 @@
 import { statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
-    HTTP_CONFLICT,
+    HTTP_CONFLICT, HTTP_FOOL,
     HTTP_PAYLOAD_TOO_LARGE,
     HTTP_RANGE_NOT_SATISFIABLE,
     HTTP_SERVER_ERROR,
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, try_ } from './misc'
+import { Callback, dirTraversal, try_ } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getFreeDiskSync } from './util-os'
@@ -23,6 +23,8 @@ const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
 const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
 
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
+    if (dirTraversal(path))
+        return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
         return fail()
     const fullPath = join(base.source!, path)
