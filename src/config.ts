@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import EventEmitter from 'events'
-import { APP_PATH, argv, ORIGINAL_CWD, VERSION } from './const'
+import { argv, ORIGINAL_CWD, VERSION } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
@@ -9,6 +9,7 @@ import { debounceAsync, same, newObj, onOff, wait, with_ } from './misc'
 import { copyFileSync, existsSync, renameSync, statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
+import { homedir } from 'os'
 
 const FILE = 'config.yaml'
 
@@ -30,7 +31,7 @@ const filePath = with_(argv.config || process.env.HFS_CONFIG, p => {
     catch {}
     return p
 })
-const legacyPosition = join(APP_PATH, FILE)
+const legacyPosition = join(homedir(), FILE) // this was happening with npx on Windows for some time. Remove around v0.47
 if (!existsSync(filePath) && existsSync(legacyPosition))
     try {
         renameSync(legacyPosition, filePath)
