@@ -252,7 +252,7 @@ function simulateBrowserAccept(f: File) {
     if (!accept) return true
     return normalizeAccept(accept)!.split(/ *[|,] */).some(pattern =>
         pattern.startsWith('.') ? f.name.endsWith(pattern)
-            : f.type.match(pattern.replace('*', '.*'))
+            : f.type.match(pattern.replace('.','\\.').replace('*', '.*')) // '.' for .ext and '*' for 'image/*'
     )
 }
 
