@@ -236,6 +236,10 @@ ul.dir {
         & input[type=checkbox] {
             margin: 0 .8em;
         }
+        & .link-and-menu {
+            &:not(:hover) .popup-menu-button { display: none; }
+            &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally
+        }
         & a {
             &:last-of-type {
                 word-break: break-word;

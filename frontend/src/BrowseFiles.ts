@@ -183,7 +183,6 @@ interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder } = entry
     const base = usePath()
-    const [menuBtn, setMenuBtn] = useState(false)
     const { showFilter, selected, can_delete } = useSnapState()
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     const containerName = containerDir && entry.n.slice(0, -entry.name.length)
@@ -206,13 +205,9 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
             },
         }),
         isFolder
-            ? h('span', menuOnLink && !mobile && { // container to handle mouse over for both children. Not using ternary because of ts
-                style: menuBtn ? { padding: '1em', margin: '-1em' } : {}, // add margin to avoid leaving the state unintentionally
-                onMouseEnter(){ setMenuBtn(true) },
-                onMouseLeave(){ setMenuBtn(false) },
-            } || {},
+            ? h('span', { className: 'link-and-menu' }, // container to handle mouse over for both children
                 h(Link, { to: base + uri }, ico, entry.n.slice(0,-1)),
-                menuBtn && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
+                menuOnLink && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
             )
             : h(Fragment, {},
                 containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, containerName),
