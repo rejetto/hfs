@@ -112,6 +112,8 @@
         "Missing permission": "Missing permission",
         "Reload": "Reload",
         "Get list": "Get list",
-        "Skip existing files": "Skip existing files"
+        "Skip existing files": "Skip existing files",
+        "Size": "Size",
+        "Timestamp": "Timestamp"
     }
 }

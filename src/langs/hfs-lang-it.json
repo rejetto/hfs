@@ -106,6 +106,8 @@
         "Missing permission": "Permesso mancante",
         "Reload": "Ricarica",
         "Get list": "Lista",
-        "Skip existing files": "Salta file esistenti"
+        "Skip existing files": "Salta file esistenti",
+        "Size": "Dimensione",
+        "Timestamp": "Data/ora"
     }
 }

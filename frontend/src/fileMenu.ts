@@ -1,5 +1,5 @@
 import { t, useI18N } from './i18n'
-import { dontBotherWithKeys, hfsEvent, hIcon, isMobile, newDialog } from './misc'
+import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, isMobile, newDialog } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEventHandler, ReactNode } from 'react'
 import _ from 'lodash'
 import { DirEntry, getEntryIcon, MISSING_PERM } from './BrowseFiles'
@@ -20,7 +20,9 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: FileMen
         isFolder && { label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'menu' }
     ]
     const props = [
-        [t(`Name`), entry.name]
+        [t`Name`, entry.name],
+        typeof entry.s === 'number' && [t`Size`, formatBytes(entry.s)],
+        entry.t && [t`Timestamp`, entry.t.toLocaleString()],
     ]
     const res = hfsEvent('fileMenu', { entry, menu, props })
     if (res)
