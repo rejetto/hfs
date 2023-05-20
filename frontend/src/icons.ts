@@ -32,25 +32,24 @@ const SYS_ICONS: Record<string, string[]> = {
 }
 
 document.fonts.ready.then(async ()=> {
-    const fontTester = '9px "fontello"'
+    const fontTester = '9px fontello'
     await document.fonts.load(fontTester) // force font to be loaded even if we didn't display anything with it yet
-    if (document.fonts.check(fontTester))
-        state.iconsClass = ' ' // with fontello we don't need an additional class (unlike google material icons), but the empty space will cause reload
+    state.iconsReady = document.fonts.check(fontTester)
 })
 
 interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
 export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
     const [emoji,clazz] = SYS_ICONS[name] || name.split(':')
-    const { iconsClass } = useSnapState()
+    const { iconsReady } = useSnapState()
     className += ' icon'
     const nameIsEmoji = name.length <= 2
     const nameIsFile = name.includes('.')
-    className += nameIsEmoji ? ' emoji-icon' : nameIsFile ? ' file-icon' : iconsClass ? ' fa-'+(clazz||name) : ' emoji-icon'
+    className += nameIsEmoji ? ' emoji-icon' : nameIsFile ? ' file-icon' : iconsReady ? ' fa-'+(clazz||name) : ' emoji-icon'
     return h('span',{
         'aria-label': alt,
         role: 'img',
         ...props,
         ...nameIsFile ? { style: { backgroundImage: `url(${JSON.stringify(name)})`, ...props?.style } } : undefined,
         className,
-    }, nameIsEmoji ? name : iconsClass ? null : (emoji||'#'))
+    }, nameIsEmoji ? name : iconsReady ? null : (emoji||'#'))
 })

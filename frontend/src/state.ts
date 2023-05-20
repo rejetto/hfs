@@ -8,7 +8,7 @@ import { DirList } from './BrowseFiles'
 export const state = proxy<{
     stopSearch?: ()=>void,
     stoppedSearch?: boolean,
-    iconsClass: string,
+    iconsReady: boolean,
     username: string,
     list: DirList,
     filteredList?: DirList,
@@ -31,7 +31,7 @@ export const state = proxy<{
     can_delete?: boolean
     accept?: string
 }>({
-    iconsClass: '',
+    iconsReady: false,
     username: '',
     list: [],
     loading: false,
