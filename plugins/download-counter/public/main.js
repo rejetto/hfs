@@ -1,4 +1,4 @@
-(() => { // this wrapper avoids name clashing of outer variables and functions
+{ // this wrapper avoids name clashing of outer variables and functions
     const config = HFS.getPluginConfig()
 
     const inMenu = config.where === 'menu'
@@ -9,4 +9,4 @@
         if (inMenu && !entry.isFolder)
             props.push(["Downloads", entry.hits || 0])
     })
-})()
+}
