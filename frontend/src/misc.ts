@@ -58,7 +58,7 @@ export function hfsEvent(name: string, params?:Dict) {
     return output
 }
 
-const tools = { h, React, state, t, _, dialogLib, apiCall, reloadList, logout }
+const tools = { h, React, state, t, _, dialogLib, apiCall, reloadList, logout, Icon, hIcon }
 Object.assign((window as any).HFS ||= {}, {
     ...tools,
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {

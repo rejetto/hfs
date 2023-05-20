@@ -154,6 +154,8 @@ The HFS objects contains many properties:
 - `h` shortcut for React.createElement
 - `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
 - `_` [lodash library](https://lodash.com/docs/)
+- `Icon` component for icons. Properties:
+  - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead. 
 
 ### Front-end API events
 
@@ -254,7 +256,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
   - full URL support for frontend_js and frontend_css
   - custom.html
   - entry.cantOpen
-  - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib
+  - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon
   - second parameter of onEvent is now deprecated
   - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
   - entryIcon event
