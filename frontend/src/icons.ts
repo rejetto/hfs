@@ -28,6 +28,7 @@ const SYS_ICONS = {
     to_start: '◀',
     to_end: '▶',
     menu: '☰',
+    list: '☰:menu'
 }
 
 document.fonts.ready.then(async ()=> {
