@@ -108,9 +108,13 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
             }, null, 4)
             .replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
-            HFS.getPluginKey = () => document.currentScript?.getAttribute('plugin')
-                || console.error("this function must be called at the very top of your file")
+            function getScriptAttr(k) {
+                return document.currentScript?.getAttribute(k)
+                    || console.error("this function must be called at the very top of your file")
+            }
+            HFS.getPluginKey = () => getScriptAttr('plugin')
             HFS.getPluginConfig = () => HFS.plugins[HFS.getPluginKey()]
+            HFS.getPluginPublic = () => getScriptAttr('src')?.match(/^.*\\//)[0]
             </script>
             <style>
             :root {

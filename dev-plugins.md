@@ -157,6 +157,10 @@ The HFS objects contains many properties:
 - `Icon` component for icons. Properties:
   - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead. 
 
+The following properties are accessible only immediately at top-level; don't call it later in a callback.
+- `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
+- `getPluginPublic()` returns plugin's public folder, with final slash. Useful to point to public files.
+
 ### Front-end API events
 
 API at this level is done with frontend-events, that you can handle by calling
@@ -256,7 +260,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
   - full URL support for frontend_js and frontend_css
   - custom.html
   - entry.cantOpen
-  - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon
+  - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
   - second parameter of onEvent is now deprecated
   - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
   - entryIcon event
