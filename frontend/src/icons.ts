@@ -45,7 +45,7 @@ export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
     className += ' icon'
     const nameIsEmoji = name.length <= 2
     const nameIsFile = name.includes('.')
-    className += nameIsEmoji ? ' emoji-icon' : nameIsFile ? ' file-icon' : iconsClass ? ' fa-'+(clazz||name) : ' emoji'
+    className += nameIsEmoji ? ' emoji-icon' : nameIsFile ? ' file-icon' : iconsClass ? ' fa-'+(clazz||name) : ' emoji-icon'
     return h('span',{
         'aria-label': alt,
         role: 'img',
