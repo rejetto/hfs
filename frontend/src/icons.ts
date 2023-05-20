@@ -27,6 +27,7 @@ const SYS_ICONS = {
     check: '✔️',
     to_start: '◀',
     to_end: '▶',
+    menu: '☰',
 }
 
 document.fonts.ready.then(async ()=> {
