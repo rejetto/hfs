@@ -68,12 +68,13 @@ input[type=checkbox] {
 label input[type=checkbox] {
     margin-right: .8em;
 }
-select { text-align: center; } /* it is surely cooler on the options dialog */
+select { text-align: center; } // it is surely cooler on the options dialog
 
 .hidden { display: none !important }
 
 .icon {
     font-size: 1.2em;
+    height: 1.18em; min-width: 1.4em; // give similar size to <img> icons
 }
 .emoji-icon {
     display: inline-block;
@@ -247,6 +248,7 @@ ul.dir {
             }
             & .icon {
                 margin-right: .3em;
+                vertical-align: text-bottom; // give similar aligning to <img> icons
             }
             &:hover {
                 text-decoration: underline;

@@ -4,6 +4,7 @@ import { getHFS, hfsEvent, hIcon } from './misc'
 import {
     ChangeEvent,
     createElement as h,
+    FC,
     Fragment,
     HTMLAttributes,
     InputHTMLAttributes,
@@ -59,15 +60,15 @@ export function Select({ onChange, value, options, ...props }:SelectProps) {
     }, options.map(({ value, label }) => h('option', { key:value, value }, label)))
 }
 
-export function Html({ code, ...rest }:{ code:string } & HTMLAttributes<any>) {
+export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
     return !code ? null : h('span', { ...rest, ref(x) {
         if (x)
             x.append(document.createRange().createContextualFragment(code))
     } })
 }
 
-export function CustomCode({ name, props }: any) {
-    return h(Fragment, {}, useMemo(() => {
+export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any, ifEmpty?: FC }) {
+    const children = useMemo(() => {
         const ret = hfsEvent(name, props)
             .filter(x => x === 0 || x)
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
@@ -77,5 +78,6 @@ export function CustomCode({ name, props }: any) {
         if (html?.trim?.())
             ret.push(h(Html, { key: 'x', code: html }))
         return ret
-    }, props ? Object.values(props) : []))
+    }, props ? Object.values(props) : [])
+    return children.length || !ifEmpty ? h(Fragment, {}, children) : h(ifEmpty)
 }

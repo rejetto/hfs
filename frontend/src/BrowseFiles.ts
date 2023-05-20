@@ -235,7 +235,11 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
 })
 
 export function getEntryIcon(entry: DirEntry) {
-    return hIcon(entry.isFolder ? 'folder' : 'file')
+    return h(CustomCode, {
+        name: 'entryIcon',
+        props: { entry },
+        ifEmpty: () => hIcon(entry.isFolder ? 'folder' : 'file')
+    })
 }
 
 const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {

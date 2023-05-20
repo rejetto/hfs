@@ -196,6 +196,10 @@ This is a list of available frontend-events, with respective object parameter an
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
     - parameter `{ entry: Entry }` (refer above for Entry object)
     - output `Html`
+- `entryIcon`
+    - you receive an entry of the list and optionally produce HTML that will be used in place of the standard icon.
+    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - output `Html`
 - `beforeHeader` & `afterHeader`
     - use this to produce content that should go right before/after the `header` part
     - output `Html`
@@ -253,6 +257,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
   - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib
   - second parameter of onEvent is now deprecated
   - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
+  - entryIcon event
 - 8 (v0.43.0)
   - entry.name & .uri
   - tools.dialogLib
