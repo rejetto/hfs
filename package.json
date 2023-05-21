@@ -35,9 +35,10 @@
     "node": ">=16.13.0"
   },
   "files": [
-    "README*",
-    "LICENSE*",
-    "@(src|admin|frontend|plugins)/*"
+    "src/*",
+    "admin/*",
+    "frontend/*",
+    "plugins/*"
   ],
   "repository": {
     "type": "git",
