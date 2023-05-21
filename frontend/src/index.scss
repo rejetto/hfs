@@ -7,7 +7,7 @@
     --faint-contrast: #8884;
     --mild-contrast: #8886;
     --good-contrast: #000a;
-    --button-bg: #68a;
+    --button-bg: #6080aa;
     --button-text: #eaeaea;
     --focus-color: #468;
     --separator: " – ";
@@ -93,7 +93,7 @@ select { text-align: center; } // it is surely cooler on the options dialog
 .icon.mirror:before { transform: scaleX(-1); }
 a {
     text-decoration: none;
-    color: #57a;
+    color: var(--button-bg);
 }
 button {
     background-color: var(--button-bg);
