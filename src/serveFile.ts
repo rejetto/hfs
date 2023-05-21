@@ -67,6 +67,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
         ctx.set('Last-Modified', stats.mtime.toUTCString())
         ctx.fileSource = source
+        ctx.fileStats = stats
         ctx.status = HTTP_OK
         if (ctx.fresh)
             return ctx.status = HTTP_NOT_MODIFIED
