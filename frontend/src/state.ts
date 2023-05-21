@@ -30,6 +30,7 @@ export const state = proxy<{
     can_upload?: boolean
     can_delete?: boolean
     accept?: string
+    tiles?: number
 }>({
     iconsReady: false,
     username: '',
@@ -52,7 +53,7 @@ export function useSnapState() {
 }
 
 const SETTINGS_KEY = 'hfs_settings'
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'sortNumerics', 'invertOrder', 'foldersFirst', 'theme']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'sortNumerics', 'invertOrder', 'foldersFirst', 'theme', 'tiles']
 
 loadSettings()
 for (const k of SETTINGS_TO_STORE)

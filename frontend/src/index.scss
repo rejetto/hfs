@@ -4,6 +4,7 @@
     --bg: #fff;
     --text: #555;
     --ghost-contrast: #8882;
+    --ghost-contrast-alt: #eee;
     --faint-contrast: #8884;
     --mild-contrast: #8886;
     --good-contrast: #000a;
@@ -15,6 +16,7 @@
     .theme-dark {
         --bg: #000;
         --text: #999;
+        --ghost-contrast-alt: #181818;
         --good-contrast: #fffa;
         --button-bg: #345;
         --button-text: #999;
@@ -23,7 +25,9 @@
         a { color:#8ac; }
         .dialog-closer { background: #633 }
         .dialog-icon { color: #ccc;
-            .icon { color: #aaa; margin-left: -1px; font-size:95%; }
+            .icon { color: #aaa; margin-left: -1px; font-size:95%;
+                margin-top: 0.4em; // useful for and affecting only img icons
+            }
         }
         .dialog-backdrop { background: #333b; }
         .error-msg { color: #b88; background-color: #623; }
@@ -39,7 +43,7 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 body, button, select, input { font-size: 12pt; }
-#root {
+#root>div {
     max-width: 50em;
     margin: auto;
     min-height: 100vh;
@@ -74,7 +78,7 @@ select { text-align: center; } // it is surely cooler on the options dialog
 
 .icon {
     font-size: 1.2em;
-    height: 1.18em; min-width: 1.4em; // give similar size to <img> icons
+    height: 1.2em; width: 1.4em; // give similar size to <img> icons
 }
 .emoji-icon {
     display: inline-block;
@@ -144,7 +148,7 @@ header {
     position: sticky;
     top: 0;
     padding: .2em .1em;
-    z-index: 1; // necessary to not be covered by checkboxes
+    z-index: 3; // necessary to not be covered by checkboxes
 }
 
 .before-sliding {
@@ -236,26 +240,26 @@ ul.dir {
         & input[type=checkbox] {
             margin: 0 .8em;
         }
-        & .link-and-menu {
+        & .link-wrapper {
             &:not(:hover) .popup-menu-button { display: none; }
             &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally
-        }
-        & a {
-            &:last-of-type {
-                word-break: break-word;
-                padding-right: 0.3em;
-            }
-            & .icon {
-                margin-right: .3em;
-                vertical-align: text-bottom; // give similar aligning to <img> icons
-            }
-            &:hover {
-                text-decoration: underline;
+            & a {
+                &:last-of-type {
+                    word-break: break-word;
+                    padding-right: 0.3em;
+                }
+                & .icon {
+                    margin-right: .3em;
+                    vertical-align: text-bottom; // give similar aligning to <img> icons
+                }
+                &:hover {
+                    text-decoration: underline;
+                }
             }
         }
         & .entry-panel {
             float: right;
-            margin-top: 0.3em;
+            padding-top: 0.3em;
             display: flex;
             align-items: center;
             & .file-menu-button {
@@ -430,6 +434,108 @@ button label {
         &:hover { @extend .highlightedText }
     }
 }
+
+#root>.tiles-mode {
+    max-width: none;
+    margin: 0 1em;
+    --tile-size: 5;
+    --name-lines: 3;
+    --name-height: calc(4.7em + var(--tile-size) * .4em + 1.2em * var(--name-lines));
+    --tile-width: calc(5em + 1em * var(--tile-size));
+
+    ul.dir {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(var(--tile-width),1fr));
+        grid-auto-rows: calc(var(--name-height) + 1.3em);
+        gap: 0 20px;
+
+        li {
+            text-align: center;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            border-bottom: none;
+            overflow-x: clip;
+            padding: 0;
+
+            a {
+                max-height: var(--name-height);
+                display: block;
+                display: -webkit-box;
+                overflow: hidden;
+                -webkit-line-clamp: calc(var(--name-lines) + 1); // + icon's line
+                -webkit-box-orient: vertical;
+
+                &:last-of-type { padding: 0; }
+                &:hover {
+                    overflow: visible;
+                    display: block;
+                    z-index: 1;
+                }
+                span { display: block; }
+                .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
+                img.icon { width: auto }
+                .icon {
+                    font-size: 4rem;
+                    display: block;
+                    margin: auto; // good for both font and img icons
+                }
+                &:hover .icon::before { text-decoration: none; }
+            }
+            .link-wrapper:hover {
+                padding: 0; margin: 0;
+            }
+            &:nth-of-type(odd) {
+                background-color: var(--bg); // to avoid checkerboard effect
+            }
+            .entry-panel {
+                justify-content: center;
+                font-size: 10pt;
+            }
+            .entry-details {
+                display: flex;
+                flex-direction: column-reverse;
+                font-size: 80%;
+            }
+            &.page-separator::before {
+                content: '';
+            }
+            input[type=checkbox] {
+                margin: 0;
+                position: absolute;
+                top: 0.3em;
+                right: 1em;
+            }
+
+            &:hover {
+                --bg: var(--ghost-contrast-alt);
+                background: var(--bg); // highlight whole tile
+                .link-wrapper, .entry-panel {
+                    z-index: 1; background: var(--bg); // cover underlying elements of other tiles, in case it's overflowing
+                }
+                input[type=checkbox] { z-index: 2; } // over link-wrapper, but not over header
+                .link-wrapper a { display:inline } // avoid overlapping name and details
+                .entry-panel {
+                    padding-bottom: 0.3em;
+                }
+            }
+        }
+    }
+    .entry-size::after {
+        content: none;
+    }
+    .entry-ts { display: none; }
+    .popup-menu-button {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    #filter-bar {
+        margin-bottom: 1em;
+    }
+
+}
+
 
 @media (min-width: 42em) {
     body {

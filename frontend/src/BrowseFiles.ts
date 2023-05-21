@@ -204,8 +204,8 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 delete state.selected[uri]
             },
         }),
-        isFolder
-            ? h('span', { className: 'link-and-menu' }, // container to handle mouse over for both children
+        h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
+            isFolder ? h(Fragment, {},
                 h(Link, { to: base + uri }, ico, entry.n.slice(0,-1)),
                 menuOnLink && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
             )
@@ -213,6 +213,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, containerName),
                 h('a', { href: uri, onClick }, !containerDir && ico, entry.name)
             ),
+        ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
             h(EntryDetails, { entry, midnight }),

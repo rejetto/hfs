@@ -55,6 +55,18 @@ export function showOptions (){
                 }
             }, t`Numeric names`),
 
+            h('div', {},
+                h('div', {}, t`Tiles mode:`, ' ', state.tiles || t`off`),
+                h('input', {
+                    type: 'range',
+                    min: 0, max: 10,
+                    value: snap.tiles || 0,
+                    onChange(ev: any) {
+                        state.tiles = Number(ev.target.value)
+                    }
+                }),
+            ),
+
             h(Select, {
                 options: ['', 'light', 'dark'].map(s => ({ label: t`theme:` + ' ' + t(s || "auto"), value: s })),
                 value: snap.theme,
