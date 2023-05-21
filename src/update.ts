@@ -12,10 +12,7 @@ import { Readable } from 'stream'
 import open from 'open'
 
 export async function getUpdate() {
-    const [latest] = await getRepoInfo(HFS_REPO + '/releases?per_page=1')
-    if (latest.name === VERSION)
-        throw "you already have the latest version: " + VERSION
-    return latest
+    return (await getRepoInfo(HFS_REPO + '/releases?per_page=1'))[0]
 }
 
 const LOCAL_UPDATE = 'hfs-update.zip' // update from file takes precedence over net

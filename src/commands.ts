@@ -110,6 +110,8 @@ const commands = {
         params: '',
         async cb() {
             const update = await getUpdate()
+            if (update.name === VERSION)
+                throw "you already have the latest version: " + VERSION
             console.log("new version available", update.name)
         }
     },
