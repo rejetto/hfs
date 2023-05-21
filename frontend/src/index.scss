@@ -143,8 +143,8 @@ header {
     @extend .hide-back;
     position: sticky;
     top: 0;
-    padding: .2em;
-    z-index: 1; /* necessary to not be covered by checkboxes */
+    padding: .2em .1em;
+    z-index: 1; // necessary to not be covered by checkboxes
 }
 
 .before-sliding {
@@ -191,9 +191,9 @@ header {
 
     border-top: 1px solid #666;
     margin-right: -0.1em;
-}
-.breadcrumb:nth-child(-n+3) .icon {
-    padding: 0 0.2em;
+    &:nth-child(-n+3) .icon {
+        padding: 0 0.2em;
+    }
 }
 #folder-stats, #filter-bar>span {
     font-size: 90%;
@@ -295,7 +295,9 @@ ul.dir {
     flex-wrap: wrap;
     &>* {
         flex: 1;
-        margin: 0.1em;
+        margin: 0.1em; // using margin instead of gap because of the 0-width element that would produce extra gap
+        &:first-child { margin-left: 0 }
+        &:last-child { margin-right: 0 }
     }
     & button { /* no need for horizontal padding as we are using flex to grow */
         padding-left: 0;
@@ -409,6 +411,7 @@ button label {
 .file-dialog-properties {
     word-break: break-word;
     line-height: 1.5em;
+    margin: 0;
     & dt { font-weight: bold; }
     & dd { margin-left: 1.5em; }
 }
