@@ -182,9 +182,5 @@ subscribeKey(state, 'patternFilter', v => {
     if (!v)
         return state.filteredList = undefined
     const filter = new RegExp(_.escapeRegExp(v),'i')
-    const newList = []
-    for (const entry of state.list)
-        if (filter.test(entry.n))
-            newList.push(entry)
-    state.filteredList = newList
+    state.filteredList = state.list.filter(x => filter.test(x.n))
 })
