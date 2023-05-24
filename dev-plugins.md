@@ -249,6 +249,13 @@ Be sure to also fill the "description" field, especially with words that people 
 The files intended to be installed must go in a folder named `dist`.
 You can keep other files outside.
 
+If you have platform-dependent files, you can put those files in `dist-PLATFORM` or `dist-PLATFORM-ARCHITECTURE`.
+For example, if you want some files to be installed only on Windows with Intel CPUs, put them in `dist-win32-x64`.
+
+Possible values for platform are `aix`, `darwin`, `freebsd`, `linux`, `openbsd`, `sunos`, `win32`.
+
+Possible values for CPUs are `arm`, `arm64`, `ia32`, `mips`, `mipsel`, `ppc`, `ppc64`, `s390`, `s390x`, `x64`.
+
 You can refer to these published plugins for reference, like
 - https://github.com/rejetto/simple-player/
 - https://github.com/rejetto/theme-example/
@@ -263,6 +270,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 - 8.2 (v0.46.0)
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
+  - platform-dependent distribution
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html

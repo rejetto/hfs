@@ -9,7 +9,7 @@ import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 import { DAY, HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT } from './const'
 
-const DIST_ROOT = 'dist/'
+const DIST_ROOT = 'dist'
 
 type DownloadStatus = true | undefined
 const downloading: Record<string, DownloadStatus> = {}
@@ -39,9 +39,16 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
     const installPath = PLUGINS_PATH + '/' + folder
     const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder
     const rootWithinZip = GITHUB_ZIP_ROOT + '/' + DIST_ROOT
+    const foldersToCopy = [ // from longer to shorter, so we first test the longer
+        rootWithinZip + '-' + process.platform + '-' + process.arch,
+        rootWithinZip + '-' + process.platform,
+        rootWithinZip,
+    ].map(x => x + '/')
     const stream = await httpsStream(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`)
-    await unzip(stream, path =>
-        path.startsWith(rootWithinZip) && installPath + '/' + path.slice(rootWithinZip.length) )
+    await unzip(stream, path => {
+        const folder = foldersToCopy.find(x => path.startsWith(x))
+        return folder ? installPath + '/' + path.slice(folder.length) : false
+    })
     downloadProgress(repo, undefined)
     await rescan() // workaround: for some reason, operations are not triggering the rescan of the watched folder. Let's invoke it.
     return folder
@@ -57,7 +64,7 @@ export function readGithubFile(uri: string) {
 }
 
 export async function readOnlinePlugin(repoInfo: { full_name: string, default_branch: string }, branch='') {
-    const res = await readGithubFile(`${repoInfo.full_name}/${branch || repoInfo.default_branch}/${DIST_ROOT}plugin.js`)
+    const res = await readGithubFile(`${repoInfo.full_name}/${branch || repoInfo.default_branch}/${DIST_ROOT}/plugin.js`)
     const pl = parsePluginSource(repoInfo.full_name, res) // use 'repo' as 'id' client-side
     pl.branch = branch || undefined
     return pl
