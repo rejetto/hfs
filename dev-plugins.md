@@ -189,6 +189,8 @@ This is a list of available frontend-events, with respective object parameter an
 
       The `Entry` type is an object with the following properties:
         - `name: string` name of the entry.
+        - `ext: string` just the extension part of the name, dot excluded.
+        - `isFolder: boolean` true if it's a folder.
         - `n: string` name of the entry, including relative path when searched in sub-folders.
         - `uri: string` relative url of the entry.
         - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
@@ -197,6 +199,8 @@ This is a list of available frontend-events, with respective object parameter an
         - `m?: Date` modified-time.
         - `p?: string` permissions missing
         - `cantOpen: boolean` true if current user has no permission to open this entry
+        - `getNext/getPrevious: ()=>Entry` return next/previous Entry in list
+        - `getNextFiltered/getPreviousFiltered: ()=>Entry` as above, but considers the filtered-list instead
     - output `Html`
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
@@ -256,10 +260,12 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 ## API version history
 
+- 8.2 (v0.46.0)
+  - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered 
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html
-  - entry.cantOpen
+  - entry.cantOpen, ext, isFolder
   - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
   - second parameter of onEvent is now deprecated
   - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details

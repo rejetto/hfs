@@ -14,7 +14,7 @@ import {
 import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, getHFS } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
-import { state, useSnapState } from './state'
+import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList, { usePath } from './useFetchList'
 import { useAuthorized } from './login'
@@ -23,10 +23,6 @@ import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { deleteFiles } from './menu'
 import { openFileMenu } from './fileMenu'
-
-export interface DirEntry { n:string, s?:number, m?:string, c?:string, p?:string,
-    name: string, uri: string, ext:string, isFolder:boolean, t?:Date, cantOpen: boolean } // we memoize these value for speed
-export type DirList = DirEntry[]
 
 export const MISSING_PERM = "Missing permission"
 

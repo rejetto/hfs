@@ -2,7 +2,8 @@ import { t, useI18N } from './i18n'
 import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, isMobile, newDialog } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEventHandler, ReactNode } from 'react'
 import _ from 'lodash'
-import { DirEntry, getEntryIcon, MISSING_PERM } from './BrowseFiles'
+import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
+import { DirEntry } from './state'
 
 interface FileMenuEntry {
     label: ReactNode

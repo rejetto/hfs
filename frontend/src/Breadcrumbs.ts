@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom'
 import { createElement as h, Fragment, ReactElement } from 'react'
 import { getPrefixUrl, hIcon } from './misc'
-import { state } from './state'
+import { DirEntry, state } from './state'
 import { usePath, reloadList } from './useFetchList'
 import { useI18N } from './i18n'
 import { openFileMenu } from './fileMenu'
@@ -38,18 +38,21 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path?: string,
         to: path || '/',
         async onClick(ev) {
             if (!current) return
-            const asEntry = { n: '', uri: '', name: label as string, ext: '', isFolder: true, cantOpen: false }
-            openFileMenu(asEntry, ev as any as MouseEvent, [
+            if (typeof label !== 'string')
+                return reload()
+            openFileMenu(new DirEntry(label), ev as any as MouseEvent, [
                 {
                     label: t`Reload`,
                     icon: 'reload',
-                    onClick() {
-                        state.remoteSearch = ''
-                        state.stopSearch?.()
-                        reloadList()
-                    }
+                    onClick: reload
                 }
             ])
+
+            function reload() {
+                state.remoteSearch = ''
+                state.stopSearch?.()
+                reloadList()
+            }
         }
     }, label)
 }

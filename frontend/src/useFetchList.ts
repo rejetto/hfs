@@ -1,9 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { state, useSnapState } from './state'
+import { DirEntry, DirList, state, useSnapState } from './state'
 import { useEffect, useRef } from 'react'
 import { apiEvents } from '@hfs/shared/api'
-import { DirList } from './BrowseFiles'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
@@ -16,14 +15,6 @@ const RELOADER_PROP = Symbol('reloader')
 
 export function usePath() {
     return useLocation().pathname
-}
-
-export function pathEncode(s: string) {
-    return encodeURI(s).replace(/#/g, encodeURIComponent)
-}
-
-export function pathDecode(s: string) {
-    return decodeURI(s).replace(/%23/g, '#')
 }
 
 export default function useFetchList() {
@@ -112,22 +103,8 @@ export default function useFetchList() {
                         state.can_upload ??= false
                         state.can_delete ??= false
                         const { add } = entry
-                        if (add) {
-                            add.uri = pathEncode(add.n)
-                            add.isFolder = add.n.endsWith('/')
-                            if (add.isFolder) {
-                                const i = add.n.lastIndexOf('.') + 1
-                                add.ext = i ? add.n.substring(i) : ''
-                            }
-                            const t = add.m || add.c
-                            if (t)
-                                add.t = new Date(t)
-                            add.name = add.isFolder ? add.n.slice(add.n.lastIndexOf('/', add.n.length - 2) +1, -1)
-                                : add.n.slice(add.n.lastIndexOf('/') + 1)
-                            add.cantOpen = add.p?.includes(add.isFolder ? 'l' : 'r')  // to open we need list for folders and read for files
-
-                            buffer.push(add)
-                        }
+                        if (add)
+                            buffer.push(new DirEntry(add.n, add))
                     }
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()

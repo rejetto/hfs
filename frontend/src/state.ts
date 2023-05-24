@@ -3,7 +3,6 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { DirList } from './BrowseFiles'
 
 export const state = proxy<{
     stopSearch?: ()=>void,
@@ -78,3 +77,56 @@ function loadSettings() {
 function storeSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(_.pick(state, SETTINGS_TO_STORE)))
 }
+
+export class DirEntry {
+    public readonly s?: number
+    public readonly m?: string
+    public readonly c?: string
+    public readonly p?: string
+    // we memoize these value for speed
+    public readonly name: string
+    public readonly uri: string
+    public readonly ext: string = ''
+    public readonly isFolder:boolean
+    public readonly t?:Date
+    public readonly cantOpen: boolean
+
+    constructor(public readonly n: string, rest?: object) {
+        Object.assign(this, rest) // we actually allow any custom property to be memorized
+        this.uri = pathEncode(this.n)
+        this.isFolder = this.n.endsWith('/')
+        if (!this.isFolder) {
+            const i = this.n.lastIndexOf('.') + 1
+            this.ext = i ? this.n.substring(i) : ''
+        }
+        const t = this.m || this.c
+        if (t)
+            this.t = new Date(t)
+        this.name = this.isFolder ? this.n.slice(this.n.lastIndexOf('/', this.n.length - 2) + 1, -1)
+            : this.n.slice(this.n.lastIndexOf('/') + 1)
+        this.cantOpen = Boolean(this.p?.includes(this.isFolder ? 'l' : 'r'))  // to open we need list for folders and read for files
+    }
+
+    getNext() {
+        return this.getSibling(+1)
+    }
+    getPrevious() {
+        return this.getSibling(-1)
+    }
+    getNextFiltered() {
+        return this.getSibling(+1, state.filteredList)
+    }
+    getPreviousFiltered() {
+        return this.getSibling(-1, state.filteredList)
+    }
+    getSibling(ofs: number, list: DirList=state.list) {
+        return list[ofs + list.findIndex(x => x.n === this.n)]
+    }
+
+}
+export type DirList = DirEntry[]
+
+function pathEncode(s: string) {
+    return encodeURI(s).replace(/#/g, encodeURIComponent)
+}
+//unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
