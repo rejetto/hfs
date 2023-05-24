@@ -3,6 +3,7 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
+import { hIcon } from './misc'
 
 export const state = proxy<{
     stopSearch?: ()=>void,
@@ -119,10 +120,13 @@ export class DirEntry {
     getPreviousFiltered() {
         return this.getSibling(-1, state.filteredList)
     }
-    getSibling(ofs: number, list: DirList=state.list) {
+    getSibling(ofs: number, list: DirList=state.list) { // i'd rather make this private, but valtio is messing with types, causing problems in FilesList()
         return list[ofs + list.findIndex(x => x.n === this.n)]
     }
 
+    getDefaultIcon() {
+        return hIcon(this.isFolder ? 'folder' : 'file')
+    }
 }
 export type DirList = DirEntry[]
 

@@ -201,6 +201,7 @@ This is a list of available frontend-events, with respective object parameter an
         - `cantOpen: boolean` true if current user has no permission to open this entry
         - `getNext/getPrevious: ()=>Entry` return next/previous Entry in list
         - `getNextFiltered/getPreviousFiltered: ()=>Entry` as above, but considers the filtered-list instead
+        - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
     - output `Html`
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
@@ -261,7 +262,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 ## API version history
 
 - 8.2 (v0.46.0)
-  - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered 
+  - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html

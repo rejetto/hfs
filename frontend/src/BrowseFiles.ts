@@ -100,7 +100,7 @@ function FilesList() {
     return h(Fragment, {},
         h('ul', { ref, className: 'dir', ...acceptDropFiles(can_upload && enqueue) },
             msgInstead ? h('p', {}, msgInstead)
-                : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry: DirEntry, idx) =>
+                : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry, idx) =>
                     h(Entry, {
                         key: entry.n,
                         midnight,
@@ -235,7 +235,7 @@ export function getEntryIcon(entry: DirEntry) {
     return h(CustomCode, {
         name: 'entryIcon',
         props: { entry },
-        ifEmpty: () => hIcon(entry.isFolder ? 'folder' : 'file')
+        ifEmpty: () => entry.getDefaultIcon()
     })
 }
 
