@@ -11,6 +11,18 @@ type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
 
 (window as any)._ = _
 
+const HFS = getHFS()
+Object.assign(HFS, {
+    getPluginKey: () => getScriptAttr('plugin'),
+    getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
+    getPluginConfig: () => HFS.plugins[HFS.getPluginKey()],
+})
+
+function getScriptAttr(k: string) {
+    return document.currentScript?.getAttribute(k)
+        || console.error("this function must be called at the very top of your file")
+}
+
 export const urlParams = Object.fromEntries(new URLSearchParams(window.location.search).entries())
 
 const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']

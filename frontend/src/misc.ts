@@ -4,7 +4,7 @@ import React, { createElement as h } from 'react'
 import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
-import { Dict } from '@hfs/shared'
+import { Dict, getHFS } from '@hfs/shared'
 import { state } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
@@ -66,7 +66,7 @@ const tools = { h, React, state, t, _, dialogLib, apiCall, reloadList, logout, I
         return subscribeKey(up ? uploadState : state as any, up || k, cb, true)
     }
 }
-Object.assign((window as any).HFS ||= {}, {
+Object.assign(getHFS(), {
     ...tools,
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
         const key = 'hfs.' + name

@@ -3,8 +3,6 @@
 import events from './events'
 import { httpsString, httpsStream, unzip } from './misc'
 import { getAvailablePlugins, mapPlugins, parsePluginSource, PATH as PLUGINS_PATH, rescan } from './plugins'
-// @ts-ignore
-import unzipper from 'unzip-stream'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 import { DAY, HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT } from './const'
@@ -44,6 +42,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
         rootWithinZip + '-' + process.platform,
         rootWithinZip,
     ].map(x => x + '/')
+    // this zip doesn't have content-length, so we cannot produce progress event
     const stream = await httpsStream(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`)
     await unzip(stream, path => {
         const folder = foldersToCopy.find(x => path.startsWith(x))
