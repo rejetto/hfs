@@ -150,12 +150,16 @@ The HFS objects contains many properties:
 - `reloadList`
 - `logout`
 - `state` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
+- `watchState: (key: string, callback)=>function`
+  - watch the `key` property of the state object above
+  - `callback(newValue)` will be called at each change
+  - use returned callback to stop watching
 - `React` whole React object, as for `require('react')` (JSX syntax is not supported here)
 - `h` shortcut for React.createElement
 - `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
 - `_` [lodash library](https://lodash.com/docs/)
-- `Icon` component for icons. Properties:
-  - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead. 
+- `Icon: ReactComponent` Properties:
+  - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -271,6 +275,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 - 8.2 (v0.46.0)
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
   - platform-dependent distribution
+  - HFS.watchState
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html

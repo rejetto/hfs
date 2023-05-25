@@ -12,6 +12,8 @@ import _ from 'lodash'
 import { apiCall, setDefaultApiCallOptions } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { logout } from './login'
+import { subscribeKey } from 'valtio/utils'
+import { uploadState } from './upload'
 export * from '@hfs/shared'
 
 export const ERRORS: Record<number, string> = {
@@ -58,7 +60,12 @@ export function hfsEvent(name: string, params?:Dict) {
     return output
 }
 
-const tools = { h, React, state, t, _, dialogLib, apiCall, reloadList, logout, Icon, hIcon }
+const tools = { h, React, state, t, _, dialogLib, apiCall, reloadList, logout, Icon, hIcon,
+    watchState(k: string, cb: (v: any) => void) {
+        const up = k.split('upload.')[1]
+        return subscribeKey(up ? uploadState : state as any, up || k, cb, true)
+    }
+}
 Object.assign((window as any).HFS ||= {}, {
     ...tools,
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
