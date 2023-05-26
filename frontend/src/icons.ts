@@ -28,7 +28,8 @@ const SYS_ICONS: Record<string, string[]> = {
     to_start: ['◀'],
     to_end: ['▶'],
     menu: ['☰'],
-    list: ['☰','menu']
+    list: ['☰','menu'],
+    play: ['▶'],
 }
 
 document.fonts.ready.then(async ()=> {
