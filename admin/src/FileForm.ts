@@ -14,7 +14,18 @@ import {
     StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { basename, formatBytes, IconBtn, isEqualLax, modifiedSx, newDialog, objSameKeys, onlyTruthy, prefix } from './misc'
+import {
+    basename,
+    formatBytes,
+    IconBtn,
+    isEqualLax,
+    modifiedSx,
+    newDialog,
+    objSameKeys,
+    onlyTruthy,
+    prefix,
+    wikiLink
+} from './misc'
 import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -132,7 +143,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
             isDir && { k: 'masks', multiline: true, lg: true,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 sx: { '& textarea': { fontFamily: 'monospace' } },
-                helperText: "Special field, leave empty unless you know what you are doing. YAML syntax." }
+                helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Permissions', "(examples)")] }
         ]
     })
 
