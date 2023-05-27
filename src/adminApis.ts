@@ -181,8 +181,13 @@ export function ctxAdminAccess(ctx: Koa.Context) {
 
 const frpDebounced = debounceAsync(async () => {
     if (!IS_WINDOWS) return false
-    const { stdout } = await promisify(execFile)('tasklist', ['/fi','imagename eq frpc.exe','/nh'])
-    return stdout.includes('frpc')
+    try { // guy with win11 reported missing tasklist, so don't take it for granted
+        const { stdout } = await promisify(execFile)('tasklist', ['/fi','imagename eq frpc.exe','/nh'])
+        return stdout.includes('frpc')
+    }
+    catch {
+        return false
+    }
 })
 
 export function anyAccountCanLoginAdmin() {
