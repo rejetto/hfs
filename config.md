@@ -82,6 +82,8 @@ Valid keys in a node are:
     mime: auto
   ```
   Rules on top have priority over bottom rules. Inner rules have priority over parent's rules.
+  A mask can carry any node property (even property "masks") plus a special property `maskOnly` (optional) to restrict
+  the application of the mask to only files or folders, just by specifying exactly `files` or `folders`
 
 Permissions set on an inner element will override inherited permissions. This means that you can restrict access to folder1,
 and yet decide to give free access to folder1/subfolder2.

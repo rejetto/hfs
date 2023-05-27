@@ -2,7 +2,17 @@
 
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
-import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys, makeMatcher, setHidden } from './misc'
+import {
+    dirStream,
+    dirTraversal,
+    enforceFinal,
+    getOrSet,
+    isDirectory,
+    typedKeys,
+    makeMatcher,
+    setHidden,
+    onlyTruthy
+} from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
@@ -28,7 +38,7 @@ export interface VfsPerm {
     can_delete: Who
 }
 
-type Masks = Record<string, VfsNode>
+type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 
 export interface VfsNode extends Partial<VfsPerm> {
     name?: string
@@ -296,18 +306,13 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
 }
 
 export function parentMaskApplier(parent: VfsNode) {
-    const matchers = Object.entries(parent.masks || {}).map(([k, v]) => {
+    const matchers = onlyTruthy(Object.entries(parent.masks || {}).map(([k, { maskOnly, ...mods }]) => {
         k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : ''
-        if (!k) return
-        const m = makeMatcher(k)
-        return [m, v] as [typeof m, typeof v]
-    })
-    return (item: VfsNode, virtualBasename?: string) => {
-        if (virtualBasename === undefined)
-            virtualBasename = getNodeName(item)
-        for (const entry of matchers) {
-            if (!entry) continue
-            const [matcher, mods] = entry
+        return k && { mods, maskOnly, matcher: makeMatcher(k) }
+    }))
+    return (item: VfsNode, virtualBasename=getNodeName(item)) => {
+        for (const { matcher, mods, maskOnly } of matchers) {
+            if (maskOnly === 'folders' && !item.isFolder || maskOnly === 'files' && item.isFolder) continue
             if (!matcher(virtualBasename)) continue
             if (item.masks)
                 item.masks = _.merge(_.cloneDeep(mods.masks), item.masks) // item.masks must take precedence
