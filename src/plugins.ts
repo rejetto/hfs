@@ -15,6 +15,7 @@ import {
     onProcessExit,
     same,
     tryJson,
+    wait,
     wantArray,
     watchDir
 } from './misc'
@@ -36,15 +37,18 @@ export const STORAGE_FOLDER = 'storage'
 const plugins: Record<string, Plugin> = {}
 
 export function isPluginRunning(id: string) {
-    return plugins[id]?.started
+    return Boolean(plugins[id]?.started)
 }
 
-export function enablePlugin(id: string, state=true) {
+export async function enablePlugin(id: string, state=true, waitForIt=false) {
     enablePlugins.set( arr =>
         arr.includes(id) === state ? arr
             : state ? [...arr, id]
                 : arr.filter((x: string) => x !== id)
     )
+    if (!waitForIt) return
+    while (isPluginRunning(id) !== state)
+        await wait(500)
 }
 
 // nullish values are equivalent to defaultValues

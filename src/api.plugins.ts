@@ -127,15 +127,13 @@ const apis: ApiHandlers = {
     },
 
     async update_plugin(pl) {
+        await enablePlugin(pl.id, false, true)
         await downloadPlugin(pl.id, pl.branch, true)
         return {}
     },
 
     async uninstall_plugin({ id }) {
-        while (isPluginRunning(id)) {
-            enablePlugin(id, false)
-            await wait(500)
-        }
+        await enablePlugin(id, false, true)
         await rm(PLUGINS_PATH + '/' + id,  { recursive: true, force: true })
         return {}
     }
