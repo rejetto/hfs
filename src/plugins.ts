@@ -3,7 +3,7 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, PLUGINS_PUB_URI } from './const'
+import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import {
@@ -23,7 +23,7 @@ import { DirEntry } from './api.file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
-import { readFile } from 'fs/promises'
+import { mkdir, readFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, resolve } from 'path'
@@ -31,6 +31,7 @@ import { newCustomHtmlState, watchLoadCustomHtml } from './customHtml'
 
 export const PATH = 'plugins'
 export const DISABLING_POSTFIX = '-disabled'
+export const STORAGE_FOLDER = 'storage'
 
 const plugins: Record<string, Plugin> = {}
 
@@ -265,14 +266,17 @@ function loadPlugin(id: string, path: string) {
 
             await alreadyRunning?.unload(true)
             console.debug("starting plugin", id)
+            const storageDir = resolve(module, '..', STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
+            await mkdir(storageDir, { recursive: true })
             const res = await init?.call(null, {
                 srcDir: __dirname,
+                storageDir,
                 const: Const,
                 require,
                 getConnections,
                 events,
                 log(...args: any[]) {
-                    console.log('plugin', id, ':', ...args)
+                    console.log('plugin', id+':', ...args)
                 },
                 getConfig: (cfgKey: string) =>
                     pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue,

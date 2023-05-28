@@ -124,6 +124,8 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `getConnections: Connections[]` retrieve current list of active connections.
 
+- `storageDir: string` folder where a plugin is supposed to store run-time data.
+
 - `events: EventEmitter` this is the main events emitter used by HFS.
 
 - `require: function` use this instead of standard `require` function to access modules already loaded by HFS. Example:
@@ -270,10 +272,11 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 ## API version history
 
-- 8.2 (v0.46.0)
+- 8.21 (v0.46.0)
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
   - platform-dependent distribution
   - HFS.watchState
+  - api.storageDir
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html
