@@ -24,33 +24,37 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
     if (downloading[repo])
         return new ApiError(HTTP_CONFLICT, "already downloading")
     downloadProgress(repo, true)
-    const rec = await getRepoInfo(repo)
-    if (!branch)
-        branch = rec.default_branch
-    const short = repo.split('/')[1] // second part, repo without the owner
-    if (!short)
-        return new ApiError(HTTP_BAD_REQUEST, "bad repo")
-    const folder2repo = getFolder2repo()
-    const folder = overwrite ? _.findKey(folder2repo, x => x===repo)! // use existing folder
-        : short in folder2repo ? repo.replace('/','-') // longer form only if another plugin is using short form
-            : short
-    const installPath = PLUGINS_PATH + '/' + folder
-    const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder
-    const rootWithinZip = GITHUB_ZIP_ROOT + '/' + DIST_ROOT
-    const foldersToCopy = [ // from longer to shorter, so we first test the longer
-        rootWithinZip + '-' + process.platform + '-' + process.arch,
-        rootWithinZip + '-' + process.platform,
-        rootWithinZip,
-    ].map(x => x + '/')
-    // this zip doesn't have content-length, so we cannot produce progress event
-    const stream = await httpsStream(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`)
-    await unzip(stream, path => {
-        const folder = foldersToCopy.find(x => path.startsWith(x))
-        return folder ? installPath + '/' + path.slice(folder.length) : false
-    })
-    downloadProgress(repo, undefined)
-    await rescan() // workaround: for some reason, operations are not triggering the rescan of the watched folder. Let's invoke it.
-    return folder
+    try {
+        const rec = await getRepoInfo(repo)
+        if (!branch)
+            branch = rec.default_branch
+        const short = repo.split('/')[1] // second part, repo without the owner
+        if (!short)
+            return new ApiError(HTTP_BAD_REQUEST, "bad repo")
+        const folder2repo = getFolder2repo()
+        const folder = overwrite ? _.findKey(folder2repo, x => x===repo)! // use existing folder
+            : short in folder2repo ? repo.replace('/','-') // longer form only if another plugin is using short form
+                : short
+        const installPath = PLUGINS_PATH + '/' + folder
+        const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder
+        const rootWithinZip = GITHUB_ZIP_ROOT + '/' + DIST_ROOT
+        const foldersToCopy = [ // from longer to shorter, so we first test the longer
+            rootWithinZip + '-' + process.platform + '-' + process.arch,
+            rootWithinZip + '-' + process.platform,
+            rootWithinZip,
+        ].map(x => x + '/')
+        // this zip doesn't have content-length, so we cannot produce progress event
+        const stream = await httpsStream(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`)
+        await unzip(stream, path => {
+            const folder = foldersToCopy.find(x => path.startsWith(x))
+            return folder ? installPath + '/' + path.slice(folder.length) : false
+        })
+        await rescan() // workaround: for some reason, operations are not triggering the rescan of the watched folder. Let's invoke it.
+        return folder
+    }
+    finally {
+        downloadProgress(repo, undefined)
+    }
 }
 
 export function getRepoInfo(id: string) {
