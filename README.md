@@ -153,7 +153,7 @@ Configuration can be done in several ways
 - passing via command line at start in the form `--NAME VALUE`
 - directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
 
-`NAME` stands for the property name that you want to change. See the complete list below.
+`NAME` stands for the property name that you want to change. See the [complete list](config.md).
 
 ### Where is it stored
 
@@ -166,7 +166,7 @@ You can decide a different cwd passing `--cwd SOME_FOLDER` parameter at command 
 You can decide also a different file for config by passing `--config SOME_FILE`, or inside an *env* called `HFS_CONFIG`.
 Any relative path provided is relative to the *cwd*.  
 
-[Check details about config file format](https://github.com/rejetto/hfs/blob/main/config.md). 
+[Check details about config file format](config.md). 
 
 ## Security
 
@@ -210,14 +210,14 @@ There are several ways to contribute
   If you'd like to make a change yourself in the code, please first open an "issue" or "discussion" about it,
   so we'll try to cooperate and understand what's the best path for it.
 
-- [Make a plugin](https://github.com/rejetto/hfs/blob/main/dev-plugins.md)
+- [Make a plugin](dev-plugins.md)
 
   A plugin can change the look (a theme), and/or introduce a new functionality.
 
 ## More
 
-- [Build yourself](https://github.com/rejetto/hfs/blob/main/dev.md)
+- [Build yourself](dev.md)
 
 - [License](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
 
-- [To-do list](https://github.com/rejetto/hfs/blob/main/todo.md) 
+- [To-do list](todo.md) 
