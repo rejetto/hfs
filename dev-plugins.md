@@ -109,8 +109,6 @@ Based on `type`, other properties are supported:
 
 The `api` object you get as parameter of the `init` contains the following:
 
-- `require: function` use this instead of standard `require` function to access modules already loaded by HFS.
-
 - `getConfig(key: string): any` get config's value set up by using `exports.config`.
 
 - `setConfig(key: string, value: any)` set config's value set up by using `exports.config`.
@@ -128,15 +126,15 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `events: EventEmitter` this is the main events emitter used by HFS.
 
-- `srcDir: string` this can be useful if you need to import some extra function not available in `api`.
+- `require: function` use this instead of standard `require` function to access modules already loaded by HFS. Example:
   ```js
-  exports.init = api => {
-      const { watchLoad } = api.require(api.srcDir + '/watchLoad')
-  }
+  const { watchLoad } = api.require('./watchLoad')
   ```
-  You *should* try to keep this kind of behavior at its minimum, as name of sources and of elements in them are subject to change.
-  If you need something for your plugin that's not covered by `api`, you can test it with this method,
-  but you should then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin.
+
+  You *should* try to keep this kind of behavior at its minimum, as name of sources and elements can change, and your
+  plugin can become incompatible with future versions.
+  If you need something for your plugin that's not covered by `api`, you can test it with this method, but you should
+  then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin.
 
 ## Front-end specific
 
@@ -145,7 +143,7 @@ The following information applies to the default front-end, and may not apply to
 Once your script is loaded into the frontend (via `frontend_js`), you will have access to the `HFS` object in the global scope.
 
 The HFS objects contains many properties:
-- `onEvent` this is the main API function inside the frontend. Refer to dedicated section below.  
+- `onEvent` this is the main API function inside the frontend. Refer to dedicated section below.
 - `apiCall`
 - `reloadList`
 - `logout`
