@@ -76,15 +76,22 @@ export function getFolder2repo() {
 }
 
 async function apiGithub(uri: string) {
-    const res = await httpsString('https://api.github.com/'+uri, {
-        headers: {
-            'User-Agent': 'HFS',
-            Accept: 'application/vnd.github.v3+json',
-        }
-    })
-    if (!res.ok)
-        throw res.statusCode
-    return JSON.parse(res.body)
+    try {
+        const res = await httpsString('https://api.github.com/'+uri, {
+            headers: {
+                'User-Agent': 'HFS',
+                Accept: 'application/vnd.github.v3+json',
+            }
+        })
+        if (!res.ok)
+            throw res.statusCode
+        return JSON.parse(res.body)
+    }
+    catch(e: any) {
+        // https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
+        throw e.message === '403' ? Error('github_quota')
+            : e
+    }
 }
 
 export async function* searchPlugins(text='') {

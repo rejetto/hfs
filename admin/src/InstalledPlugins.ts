@@ -142,7 +142,8 @@ const type2comp = {
 
 export function showError(error: any) {
     return h(Alert, { severity: 'error' }, xlate(error, {
-        ENOTFOUND: "Couldn't reach github.com"
+        github_quota: "Request denied. You may have reached the limit, retry later.",
+        ENOTFOUND: "Couldn't reach github.com",
     }))
 }
 
