@@ -86,7 +86,7 @@ export default function OnlinePlugins() {
                                 tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
                                 confirm: "WARNING - Proceed only if you trust this author and this plugin",
                                 async onClick() {
-                                    const res = await apiCall('download_plugin', { id, branch })
+                                    const res = await apiCall('download_plugin', { id, branch }, { timeout: false })
                                     await startPlugin(res.id)
                                 }
                             })

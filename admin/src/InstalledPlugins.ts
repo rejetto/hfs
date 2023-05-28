@@ -151,7 +151,7 @@ export function UpdateButton({ id, then }: { id: string, then: (id:string)=>void
         icon: Upgrade,
         title: "Update",
         async onClick() {
-            await apiCall('update_plugin', { id })
+            await apiCall('update_plugin', { id }, { timeout: false })
             then?.(id)
             toast("Plugin updated")
         }
