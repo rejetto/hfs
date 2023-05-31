@@ -238,7 +238,10 @@ This is a list of available frontend-events, with respective object parameter an
 
 ## Other files
 
-Together with the main file (plugin.js), you can have
+Together with the main file (plugin.js), you can have other files, both for data and javascript to include with `require('./other-file')`.
+Notice that in this case you don't use `api.require` but classic `require` because it's in your plugin folder.
+
+These files have a special meaning:
 
 - `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`
 - `custom.html` file, that works exactly like the main `custom.html`. Even when same section is specified
