@@ -111,17 +111,17 @@ export async function unzip(stream: Readable, cb: (path: string) => false | stri
     return new Promise(resolve =>
         stream.pipe(unzipper.Parse())
             .on('end', () => pending.then(resolve))
-            .on('entry', async (entry: any) => {
-                const { path, type } = entry
-                const dest = cb(path)
-                if (!dest || type !== 'File')
-                    return entry.autodrain()
-                await pending // don't overlap writings
-                console.debug('unzip', dest)
-                await prepareFolder(dest)
-                const thisFile = entry.pipe(createWriteStream(dest))
-                pending = once(thisFile, 'finish')
-            })
+            .on('entry', (entry: any) =>
+                pending = pending.then(async () => { // don't overlap writings
+                    const { path, type } = entry
+                    const dest = cb(path)
+                    if (!dest || type !== 'File')
+                        return entry.autodrain()
+                    console.debug('unzip', dest)
+                    await prepareFolder(dest)
+                    const thisFile = entry.pipe(createWriteStream(dest))
+                    await once(thisFile, 'finish')
+                }) )
     )
 }
 
