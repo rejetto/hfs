@@ -2,10 +2,18 @@
 
 import events from './events'
 import { httpsString, httpsStream, unzip } from './misc'
-import { getAvailablePlugins, mapPlugins, parsePluginSource, PATH as PLUGINS_PATH, rescan } from './plugins'
+import {
+    getAvailablePlugins,
+    mapPlugins,
+    parsePluginSource,
+    PATH as PLUGINS_PATH,
+    pluginsWatcher,
+    rescan,
+} from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 import { DAY, HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT } from './const'
+import { rm } from 'fs/promises'
 
 const DIST_ROOT = 'dist'
 
@@ -43,12 +51,16 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
             rootWithinZip + '-' + process.platform,
             rootWithinZip,
         ].map(x => x + '/')
+        pluginsWatcher.pause()
         // this zip doesn't have content-length, so we cannot produce progress event
         const stream = await httpsStream(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`)
-        await unzip(stream, path => {
+        await unzip(stream, async path => {
             const folder = foldersToCopy.find(x => path.startsWith(x))
-            return folder ? installPath + '/' + path.slice(folder.length) : false
+            if (!folder || path.endsWith('/')) return false
+            const dest = installPath + '/' + path.slice(folder.length)
+            return rm(dest).then(() => dest, () => false)
         })
+        pluginsWatcher.unpause()
         await rescan() // workaround: for some reason, operations are not triggering the rescan of the watched folder. Let's invoke it.
         return folder
     }

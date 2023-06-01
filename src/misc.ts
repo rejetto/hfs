@@ -17,6 +17,7 @@ export { debounceAsync }
 
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Dict<T = any> = Record<string, T>
+export type Promisable<T> = T | Promise<T>
 
 export function enforceFinal(sub:string, s:string) {
     return s.endsWith(sub) ? s : s+sub

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs from 'fs/promises'
-import { wait } from './misc'
+import { Promisable, try_, wait } from './misc'
 import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
@@ -106,7 +106,7 @@ export async function* dirStream(path: string, deep=0) {
     }
 }
 
-export async function unzip(stream: Readable, cb: (path: string) => false | string) {
+export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {
     let pending: Promise<any> = Promise.resolve()
     return new Promise(resolve =>
         stream.pipe(unzipper.Parse())
@@ -114,7 +114,10 @@ export async function unzip(stream: Readable, cb: (path: string) => false | stri
             .on('entry', (entry: any) =>
                 pending = pending.then(async () => { // don't overlap writings
                     const { path, type } = entry
-                    const dest = cb(path)
+                    const dest = await try_(() => cb(path), e => {
+                        console.warn(String(e))
+                        return false
+                    })
                     if (!dest || type !== 'File')
                         return entry.autodrain()
                     console.debug('unzip', dest)
