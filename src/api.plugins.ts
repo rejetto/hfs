@@ -6,13 +6,19 @@ import {
     getAvailablePlugins,
     getPluginConfigFields,
     mapPlugins,
-    Plugin, pluginsConfig,
-    PATH as PLUGINS_PATH, isPluginRunning, enablePlugin, getPluginInfo, setPluginConfig
+    Plugin,
+    pluginsConfig,
+    PATH as PLUGINS_PATH,
+    enablePlugin,
+    getPluginInfo,
+    setPluginConfig,
+    findPluginByRepo,
+    isPluginEnabled
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { Callback, newObj, onOff, wait } from './misc'
-import { ApiHandlers, SendListReadable } from './apiMiddleware'
+import { Callback, newObj, onOff } from './misc'
+import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
 import { downloadPlugin, getFolder2repo, getRepoInfo, readOnlinePlugin, searchPlugins } from './github'
@@ -59,10 +65,10 @@ const apis: ApiHandlers = {
 
     async set_plugin({ id, enabled, config }) {
         assert(id, 'id')
-        if (enabled !== undefined)
-            enablePlugin(id, enabled)
         if (config)
-            setPluginConfig(id, config)
+            setPluginConfig(id, config)  // since we may wait the plugin to start, we save other changes first
+        if (enabled !== undefined)
+            await enablePlugin(id, enabled)
         return {}
     },
 
@@ -127,13 +133,18 @@ const apis: ApiHandlers = {
     },
 
     async update_plugin(pl) {
-        await enablePlugin(pl.id, false, true)
+        const found = findPluginByRepo(pl.id) // github id !== local id
+        if (!found)
+            return new ApiError(404)
+        const enabled = isPluginEnabled(found.id)
+        await enablePlugin(found.id, false)
         await downloadPlugin(pl.id, pl.branch, true)
+        enablePlugin(found.id, enabled).then() // don't wait, in case it fails to start
         return {}
     },
 
     async uninstall_plugin({ id }) {
-        await enablePlugin(id, false, true)
+        await enablePlugin(id, false)
         await rm(PLUGINS_PATH + '/' + id,  { recursive: true, force: true })
         return {}
     }

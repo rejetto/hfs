@@ -40,13 +40,16 @@ export function isPluginRunning(id: string) {
     return Boolean(plugins[id]?.started)
 }
 
-export async function enablePlugin(id: string, state=true, waitForIt=false) {
+export function isPluginEnabled(id: string) {
+    return enablePlugins.get().includes(id)
+}
+
+export async function enablePlugin(id: string, state=true) {
     enablePlugins.set( arr =>
         arr.includes(id) === state ? arr
             : state ? [...arr, id]
                 : arr.filter((x: string) => x !== id)
     )
-    if (!waitForIt) return
     while (isPluginRunning(id) !== state)
         await wait(500)
 }
@@ -74,6 +77,11 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> 
             console.log('plugin error', plName, String(e))
         }
     }).filter(x => x !== undefined) as Exclude<T,undefined>[]
+}
+
+export function findPluginByRepo<T>(repo: string) {
+    return _.find(plugins, pl => pl.getData()?.repo === repo)
+        || _.find(availablePlugins, { repo })
 }
 
 export function getPluginConfigFields(id: string) {
