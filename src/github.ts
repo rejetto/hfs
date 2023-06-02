@@ -3,17 +3,17 @@
 import events from './events'
 import { httpsString, httpsStream, unzip } from './misc'
 import {
+    DISABLING_POSTFIX,
     getAvailablePlugins,
     mapPlugins,
     parsePluginSource,
     PATH as PLUGINS_PATH,
-    pluginsWatcher,
-    rescan,
 } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 import { DAY, HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT } from './const'
-import { rm } from 'fs/promises'
+import { rename, rm } from 'fs/promises'
+import { join } from 'path'
 
 const DIST_ROOT = 'dist'
 
@@ -31,6 +31,7 @@ function downloadProgress(id: string, status: DownloadStatus) {
 export async function downloadPlugin(repo: string, branch='', overwrite?: boolean) {
     if (downloading[repo])
         return new ApiError(HTTP_CONFLICT, "already downloading")
+    console.log('downloading plugin', repo)
     downloadProgress(repo, true)
     try {
         const rec = await getRepoInfo(repo)
@@ -51,17 +52,20 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
             rootWithinZip + '-' + process.platform,
             rootWithinZip,
         ].map(x => x + '/')
-        pluginsWatcher.pause()
         // this zip doesn't have content-length, so we cannot produce progress event
         const stream = await httpsStream(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`)
+        const MAIN = 'plugin.js'
         await unzip(stream, async path => {
             const folder = foldersToCopy.find(x => path.startsWith(x))
             if (!folder || path.endsWith('/')) return false
-            const dest = installPath + '/' + path.slice(folder.length)
-            return rm(dest).then(() => dest, () => false)
+            let dest = path.slice(folder.length)
+            if (dest === MAIN) // avoid being possibly loaded before the download is complete
+                dest += DISABLING_POSTFIX
+            dest = join(installPath, dest)
+            return rm(dest, { force: true }).then(() => dest, () => false)
         })
-        pluginsWatcher.unpause()
-        await rescan() // workaround: for some reason, operations are not triggering the rescan of the watched folder. Let's invoke it.
+        const main = join(installPath, MAIN)
+        await rename(main + DISABLING_POSTFIX, main) // we are good now, restore name
         return folder
     }
     finally {

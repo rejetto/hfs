@@ -13,15 +13,16 @@ import {
     getPluginInfo,
     setPluginConfig,
     findPluginByRepo,
-    isPluginEnabled
+    isPluginEnabled,
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { Callback, newObj, onOff } from './misc'
+import { Callback, newObj, onOff, waitFor } from './misc'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
 import { downloadPlugin, getFolder2repo, getRepoInfo, readOnlinePlugin, searchPlugins } from './github'
+import { HTTP_SERVER_ERROR } from './const'
 
 const apis: ApiHandlers = {
 
@@ -129,7 +130,10 @@ const apis: ApiHandlers = {
 
     async download_plugin(pl) {
         const res = await downloadPlugin(pl.id, pl.branch)
-        return typeof res === 'string' ? getPluginInfo(res) : res
+        if (typeof res !== 'string')
+            return res
+        return (await waitFor(() => getPluginInfo(res), { timeout: 5000 }))
+            || new ApiError(HTTP_SERVER_ERROR)
     },
 
     async update_plugin(pl) {

@@ -27,7 +27,7 @@ import events from './events'
 import { mkdir, readFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
-import { dirname, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
 import { newCustomHtmlState, watchLoadCustomHtml } from './customHtml'
 
 export const PATH = 'plugins'
@@ -122,7 +122,7 @@ export function pluginsMiddleware(): Koa.Middleware {
     }
 
     function printError(id: string, e: any) {
-        console.log('error middleware plugin', id, String(e))
+        console.log(`error middleware plugin ${id}: ${e?.message || e}`)
         console.debug(e)
     }
 }
@@ -132,13 +132,10 @@ interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
 type OnDirEntry = (params:OnDirEntryParams) => void | false
 
 export class Plugin {
-    started = new Date()
+    started: Date | null = new Date()
 
     constructor(readonly id:string, readonly folder:string, private readonly data:any, private unwatch:()=>void){
         if (!data) throw 'invalid data'
-        if (plugins[id])
-            throw "unload first: " + id
-        plugins[id] = this
 
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
         // some validation
@@ -170,6 +167,8 @@ export class Plugin {
     }
 
     async unload(reloading=false) {
+        if (!this.started) return
+        this.started = null
         const { id } = this
         try {
             await this.data?.unload?.()
@@ -179,13 +178,9 @@ export class Plugin {
         catch(e) {
             console.log('error unloading plugin', id, String(e))
         }
-        delete plugins[id]
-        if (reloading) return
+        if (this.data)
+            this.data.unload = undefined
         this.unwatch()
-        if (availablePlugins[id])
-            events.emit('pluginStopped', availablePlugins[id])
-        else
-            events.emit('pluginUninstalled', id)
     }
 }
 
@@ -220,53 +215,68 @@ enablePlugins.sub(rescanAsap)
 
 export const pluginsConfig = defineConfig('plugins_config', {} as Record<string,any>)
 
+const pluginWatchers = new Map<string, ReturnType<typeof watchPlugin>>()
+
 export async function rescan() {
     console.debug('scanning plugins')
-    const found: string[] = []
-    const foundDisabled: typeof availablePlugins = {}
-    const MASK = PATH + '/*/plugin.js' // be sure to not use path.join as fast-glob doesn't work with \
-    const pluginSources = [MASK]
+    const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
-        pluginSources.push(adjustStaticPathForGlob(APP_PATH) + '/' + MASK)
-    for (const f of await glob(pluginSources)) {
-        const id = f.split('/').slice(-2)[0]!
-        if (id.endsWith(DISABLING_POSTFIX)) continue
-        if (!enablePlugins.get().includes(id)) {
-            try {
-                const source = await readFile(f, 'utf8')
-                foundDisabled[id] = parsePluginSource(id, source)
-            }
-            catch {}
-            continue
-        }
-        if (found.includes(id)) // not twice
-            continue
-        found.push(id)
-        if (!plugins[id]) // already loaded
-            loadPlugin(id, f)
+        patterns.push(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0])
+    const met = []
+    for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
+        if (!dirent.isDirectory() || path.endsWith(DISABLING_POSTFIX)) continue
+        const id = path.split('/').slice(-1)[0]!
+        met.push(id)
+        const w = pluginWatchers.get(id)
+        if (w) continue
+        console.debug('plugin watch', id)
+        pluginWatchers.set(id, watchPlugin(id, join(path, 'plugin.js')))
     }
-    for (const [id,p] of Object.entries(foundDisabled)) {
-        const a = availablePlugins[id]
-        if (same(a, p)) continue
-        availablePlugins[id] = p
-        if (a)
-            events.emit('pluginUpdated', p)
-        else if (!plugins[id])
-            events.emit('pluginInstalled', p)
-    }
-    for (const id in availablePlugins)
-        if (!foundDisabled[id] && !found.includes(id) && !plugins[id]) {
-            delete availablePlugins[id]
-            events.emit('pluginUninstalled', id)
+    for (const [id, cancelWatcher] of pluginWatchers.entries())
+        if (!met.includes(id)) {
+            enablePlugin(id, false)
+            console.debug('plugin unwatch', id)
+            cancelWatcher()
+            pluginWatchers.delete(id)
         }
-    for (const [id,p] of Object.entries(plugins))
-        if (!found.includes(id))
-            await p.unload()
 }
 
-function loadPlugin(id: string, path: string) {
+function watchPlugin(id: string, path: string) {
     const module = resolve(path)
-    const { unwatch } = watchLoad(path, async () => {
+    enablePlugins.sub(() => { // we take care of enabled-state after it was loaded
+        if (!getPluginInfo(id)) return // not loaded yet
+        const enabled = isPluginEnabled(id)
+        if (enabled !== isPluginRunning(id))
+            return enabled ? start() : stop()
+    })
+    const { unwatch } = watchLoad(module, async (source) => {
+        const notRunning = availablePlugins[id]
+        if (!source) {
+            await stop()
+            delete availablePlugins[id]
+            events.emit('pluginUninstalled', id)
+            return
+        }
+        if (isPluginEnabled(id))
+            return start()
+        const p = parsePluginSource(id, source)
+        if (same(notRunning, p)) return
+        availablePlugins[id] = p
+        events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
+    })
+    return unwatch
+
+    async function stop() {
+        const p = plugins[id]
+        if (!p) return
+        await p.unload()
+        delete plugins[id]
+        const source = await readFile(module, 'utf8')
+        availablePlugins[id] = parsePluginSource(id, source)
+        events.emit('pluginStopped', p)
+    }
+
+    async function start() {
         try {
             const alreadyRunning = plugins[id]
             console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
@@ -314,7 +324,7 @@ function loadPlugin(id: string, path: string) {
                 customHtml: newCustomHtmlState()
             })
             const customHtmlWatcher = watchLoadCustomHtml(data.customHtml, folder)
-            const plugin = new Plugin(id, folder, data, _.flow(unwatch, customHtmlWatcher.unwatch))
+            const plugin = plugins[id] = new Plugin(id, folder, data, customHtmlWatcher.unwatch)
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
@@ -324,10 +334,11 @@ function loadPlugin(id: string, path: string) {
                 events.emit(wasInstalled ? 'pluginStarted' : 'pluginInstalled', plugin)
             }
 
-        } catch (e) {
+        } catch (e: any) {
             console.log("plugin error:", e)
         }
-    })
+
+    }
 }
 
 function deleteModule(id: string) {
