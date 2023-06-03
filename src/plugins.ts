@@ -13,6 +13,7 @@ import {
     Dict,
     getOrSet,
     onProcessExit,
+    PendingPromise, pendingPromise,
     same,
     tryJson,
     wait,
@@ -44,15 +45,34 @@ export function isPluginEnabled(id: string) {
     return enablePlugins.get().includes(id)
 }
 
-export async function enablePlugin(id: string, state=true) {
+export function enablePlugin(id: string, state=true) {
+    if (state && !getPluginInfo(id))
+        throw Error('miss')
     console.log("switching plugin", id, state ? "on" : "off")
     enablePlugins.set( arr =>
         arr.includes(id) === state ? arr
             : state ? [...arr, id]
                 : arr.filter((x: string) => x !== id)
     )
-    while (isPluginRunning(id) !== state)
+}
+
+export async function stopPlugin(id: string) {
+    enablePlugin(id, false)
+    await waitRunning(id, false)
+}
+
+export async function startPlugin(id: string) {
+    enablePlugin(id)
+    await waitRunning(id)
+}
+
+async function waitRunning(id: string, state=true) {
+    while (isPluginRunning(id) !== state) {
         await wait(500)
+        const error = getError(id)
+        if (error)
+            throw Error(error)
+    }
 }
 
 // nullish values are equivalent to defaultValues
@@ -196,6 +216,7 @@ export interface AvailablePlugin {
     repo?: string
     branch?: string
     badApi?: string
+    error?: string
 }
 
 let availablePlugins: Record<string, AvailablePlugin> = {}
@@ -243,6 +264,7 @@ export async function rescan() {
 
 function watchPlugin(id: string, path: string) {
     const module = resolve(path)
+    let starting: PendingPromise | undefined
     enablePlugins.sub(() => { // we take care of enabled-state after it was loaded
         if (!getPluginInfo(id)) return // not loaded yet
         const enabled = isPluginEnabled(id)
@@ -266,18 +288,27 @@ function watchPlugin(id: string, path: string) {
     })
     return unwatch
 
-    async function stop() {
-        const p = plugins[id]
-        if (!p) return
-        await p.unload()
+    async function markItAvailable() {
         delete plugins[id]
         const source = await readFile(module, 'utf8')
         availablePlugins[id] = parsePluginSource(id, source)
+    }
+
+    async function stop() {
+        await starting
+        const p = plugins[id]
+        if (!p) return
+        await p.unload()
+        await markItAvailable()
         events.emit('pluginStopped', p)
     }
 
     async function start() {
+        if (starting) return
         try {
+            starting = pendingPromise()
+            if (getPluginInfo(id))
+                setError(id, '')
             const alreadyRunning = plugins[id]
             console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
             const { init, ...data } = await import(module)
@@ -335,10 +366,26 @@ function watchPlugin(id: string, path: string) {
             }
 
         } catch (e: any) {
-            console.log("plugin error:", e)
+            await markItAvailable()
+            e = e.message || String(e)
+            console.log(`plugin error: ${id}:`, e)
+            setError(id, e)
+        }
+        finally {
+            starting?.resolve()
+            starting = undefined
         }
 
     }
+}
+
+function getError(id: string) {
+    return getPluginInfo(id).error
+}
+
+function setError(id: string, error: string) {
+    getPluginInfo(id).error = error
+    events.emit('pluginUpdated', { id, error })
 }
 
 function deleteModule(id: string) {

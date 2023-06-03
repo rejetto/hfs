@@ -14,6 +14,7 @@ import {
     setPluginConfig,
     findPluginByRepo,
     isPluginEnabled,
+    isPluginRunning, stopPlugin, startPlugin,
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
@@ -64,12 +65,27 @@ const apis: ApiHandlers = {
         return list
     },
 
+    async start_plugin({ id }) {
+        if (isPluginRunning(id))
+            return { msg: 'already running' }
+        await stopPlugin(id)
+        await startPlugin(id)
+        return {}
+    },
+
+    async stop_plugin({ id }) {
+        if (!isPluginRunning(id))
+            return { msg: 'already stopped' }
+        await stopPlugin(id)
+        return {}
+    },
+
     async set_plugin({ id, enabled, config }) {
         assert(id, 'id')
         if (config)
-            setPluginConfig(id, config)  // since we may wait the plugin to start, we save other changes first
+            setPluginConfig(id, config)
         if (enabled !== undefined)
-            await enablePlugin(id, enabled)
+            enablePlugin(id, enabled)
         return {}
     },
 
@@ -143,7 +159,8 @@ const apis: ApiHandlers = {
         const enabled = isPluginEnabled(found.id)
         await enablePlugin(found.id, false)
         await downloadPlugin(pl.id, pl.branch, true)
-        enablePlugin(found.id, enabled).then() // don't wait, in case it fails to start
+        if (enabled)
+            startPlugin(found.id).then() // don't wait, in case it fails to start
         return {}
     },
 

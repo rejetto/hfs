@@ -133,7 +133,7 @@ export function onlyTruthy<T>(arr: T[]) {
     return arr.filter(truthy)
 }
 
-type PendingPromise<T> = Promise<T> & { resolve: (value: T) => void, reject: (reason?: any) => void }
+export type PendingPromise<T=unknown> = Promise<T> & { resolve: (value?: T) => void, reject: (reason?: any) => void }
 export function pendingPromise<T>() {
     let takeOut
     const ret = new Promise<T>((resolve, reject) =>

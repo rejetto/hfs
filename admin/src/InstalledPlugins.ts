@@ -57,9 +57,10 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                             icon: StopCircle,
                             title: h(Box, {}, `Stop ${id}`, h('br'), `Started ` + new Date(row.started as string).toLocaleString()),
                             color: 'success',
-                            onClick: () =>
-                                apiCall('set_plugin', { id, enabled: false }).then(() =>
-                                    toast("Plugin stopped", h(StopCircle, { color: 'warning' })))
+                            async onClick() {
+                                await apiCall('stop_plugin', { id })
+                                toast("Plugin stopped", h(StopCircle, { color: 'warning' }))
+                            }
                         } : {
                             icon: PlayCircle,
                             title: `Start ${id}`,
@@ -159,7 +160,7 @@ export function UpdateButton({ id, then }: { id: string, then: (id:string)=>void
     })
 }
 
-export function startPlugin(id: string) {
-    return apiCall('set_plugin', { id, enabled: true }).then(() =>
-        toast("Plugin started", h(PlayCircle, { color: 'success' })))
+export async function startPlugin(id: string) {
+    await apiCall('start_plugin', { id })
+    toast("Plugin started", h(PlayCircle, { color: 'success' }))
 }
