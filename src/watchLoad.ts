@@ -29,7 +29,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
 
     function install(first=false) {
         try {
-            watcher = watch(path, ()=> {
+            watcher = watch(path, () => {
                 if (!saving)
                     debounced().then()
             })

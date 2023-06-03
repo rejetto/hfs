@@ -93,7 +93,7 @@ export async function* dirStream(path: string, deep=0) {
         if (!isDir && !dirent.isFile()) continue
         path = String(path)
         if (!skip?.includes(path))
-            yield [path, isDir]
+            yield [path, isDir] as [string, boolean]
     }
 
     async function getItemsToSkip(path: string) {
