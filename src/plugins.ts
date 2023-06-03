@@ -45,6 +45,7 @@ export function isPluginEnabled(id: string) {
 }
 
 export async function enablePlugin(id: string, state=true) {
+    console.log("switching plugin", id, state ? "on" : "off")
     enablePlugins.set( arr =>
         arr.includes(id) === state ? arr
             : state ? [...arr, id]

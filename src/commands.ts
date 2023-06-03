@@ -8,6 +8,7 @@ import { openAdmin } from './listen'
 import yaml from 'yaml'
 import { argv, BUILD_TIMESTAMP, VERSION } from './const'
 import { createInterface } from 'readline'
+import { enablePlugin } from './plugins'
 
 if (!argv.updating)
     try {
@@ -121,5 +122,16 @@ const commands = {
             console.log(VERSION)
             console.log(BUILD_TIMESTAMP)
         }
+    },
+    'start-plugin': {
+        params: '<name>',
+        async cb(name: string) {
+            await enablePlugin(name, false)
+            await enablePlugin(name)
+        }
+    },
+    'stop-plugin': {
+        params: '<name>',
+        cb: (name: string) => enablePlugin(name, false),
     },
 }
