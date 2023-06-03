@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiList } from './api'
-import { createElement as h, Fragment } from 'react'
+import { createElement as h, Fragment, ReactNode } from 'react'
 import { Alert, Box, Link, Tooltip } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import { Delete, Error, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
@@ -106,15 +106,19 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
 
 export function renderName({ row, value }: any) {
     const { repo } = row
-    const warn = typeof row.badApi === 'string' && h(Tooltip, {
-        title: row.badApi,
-        children: h(Error, { fontSize: 'small', color: 'warning', sx: { ml: -.5, mr: .5 } })
-    })
-    if (!repo)
-        return [warn, value]
-    const arr = repo.split('/')
-    const link = h(Link, { href: 'https://github.com/' + repo, target: 'plugin' }, arr[1])
-    return h(Fragment, {}, warn, link, '\xa0by ', arr[0])
+    const arr = repo?.split('/')
+    return h(Fragment, {},
+        errorIcon(row.badApi, true),
+        errorIcon(row.error),
+        ...!repo ? [value] : [ h(Link, { href: 'https://github.com/' + repo, target: 'plugin' }, arr[1]), '\xa0by ', arr[0] ]
+    )
+
+    function errorIcon(msg: ReactNode, warning=false) {
+        return msg && h(Tooltip, {
+            title: msg,
+            children: h(Error, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } })
+        })
+    }
 }
 
 function makeFields(config: any) {
