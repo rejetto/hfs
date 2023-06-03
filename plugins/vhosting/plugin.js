@@ -1,5 +1,5 @@
 exports.description = "If you want to have different home folders, based on domain"
-exports.version = 3.1 // support masks for host
+exports.version = 3.11
 exports.apiRequired = 2 // 2 is for the config 'array'
 
 exports.config = {
@@ -41,12 +41,15 @@ exports.init = api => {
                 }
                 return
             }
+            let { root } = row
+            if (root.endsWith('/'))
+                root = root.slice(0, -1)
             if (!params)
-                ctx.path = row.root + ctx.path
+                ctx.path = root + ctx.path
             else
                 for (const [k,v] of Object.entries(params))
                     if (k.startsWith('uri'))
-                        params[k] = row.root + v
+                        params[k] = root + v
         }
     }
 }
