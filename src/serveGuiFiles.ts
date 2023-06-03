@@ -91,7 +91,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
         .replace('<body>', () => `<body>
             ${!isFrontend ? '' : `
                 <title>${title.get()}</title>
-                <link rel="icon" href="${favicon.get() ? '/favicon.ico' : 'data:;'}" />
+                <link rel="shortcut icon" href="${favicon.get() ? '/favicon.ico' : '#'}" />
             `}
             <script>
             HFS = ${JSON.stringify({
