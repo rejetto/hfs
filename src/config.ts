@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import EventEmitter from 'events'
-import { argv, ORIGINAL_CWD, VERSION } from './const'
+import { argv, DAY, ORIGINAL_CWD, VERSION } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
@@ -10,6 +10,7 @@ import { copyFileSync, existsSync, renameSync, statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
 import { homedir } from 'os'
+import { copyFile, stat } from 'fs/promises'
 
 const FILE = 'config.yaml'
 
@@ -180,6 +181,12 @@ function setConfig1(k: string, newV: unknown, saveChanges=true, valueVersion?: V
 const saveDebounced = debounceAsync(async () => {
     while (!started)
         await wait(100)
+    // keep backup
+    const bak = filePath + '.bak'
+    const aWeekAgo = Date.now() - DAY * 7
+    if (await stat(bak).then(x => aWeekAgo > Number(x.mtime || x.ctime), () => true))
+        await copyFile(filePath, bak).catch(() => {}) // ignore errors
+
     let txt = yaml.stringify({ ...state, version: VERSION }, { lineWidth:1000 })
     if (txt.trim() === '{}')  // most users wouldn't understand
         txt = ''
