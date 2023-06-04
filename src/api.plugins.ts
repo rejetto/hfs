@@ -110,10 +110,10 @@ const apis: ApiHandlers = {
                     const folder2repo = getFolder2repo()
                     for await (const pl of searchPlugins(text)) {
                         const repo = pl.id
+                        if (_.includes(folder2repo, repo)) continue
                         const folder = _.findKey(folder2repo, x => x === repo)
                         const installed = folder && getPluginInfo(folder)
                         Object.assign(pl, {
-                            installed: _.includes(folder2repo, repo),
                             update: installed && installed.version < pl.version!,
                         })
                         list.add(pl)
@@ -157,7 +157,7 @@ const apis: ApiHandlers = {
         if (!found)
             return new ApiError(404)
         const enabled = isPluginEnabled(found.id)
-        await enablePlugin(found.id, false)
+        await stopPlugin(found.id)
         await downloadPlugin(pl.id, pl.branch, true)
         if (enabled)
             startPlugin(found.id).then() // don't wait, in case it fails to start
@@ -165,7 +165,7 @@ const apis: ApiHandlers = {
     },
 
     async uninstall_plugin({ id }) {
-        await enablePlugin(id, false)
+        await stopPlugin(id)
         await rm(PLUGINS_PATH + '/' + id,  { recursive: true, force: true })
         return {}
     }
