@@ -8,28 +8,41 @@ Each plug-in has access to the same set of features.
 Normally you'll have a plug-in that's a theme, and another that's a firewall,
 but nothing is preventing a single plug-in from doing both tasks.
 
-`plugin.js` is a javascript module that exports an `init` function like this:
+## Exported object
+`plugin.js` is a javascript module, and its main way to communicate with HFS is by exporting things.
+For example, it can define its description like this 
+```js
+exports.description = "I'm a nice plugin"
+```
+
+The set of things exported goes by the name "exported object".
+A plugin can define an `init` function like this:
 ```js
 exports.init = api => ({
     frontend_css: 'mystyle.css'
 })
 ```
 
-The init function is called when the module is loaded and should return an object with things to customize.
-In the example above we are asking a css file to be loaded in the frontend.
-The parameter `api` object contains some useful things we'll see later.
-You can decide to return things in the `init` function, or directly in the `exports`.
-If you need to access the api you must use `init`, otherwise you can go directly with `exports`.
+The init function is called by HFS when the module is loaded and should return an object with more things to 
+added/merged to the exported object. In the example above we are asking a css file to be loaded in the frontend.
+Since it's a basic example, you could have simply defined it like this:
+```js
+exports.frontend_css = 'mystyle.css'
+```
+but in more complex cases you'll need go through the `init`.
+Thus, you can decide to return things in the `init` function, or directly in the `exports`.
+If you need to access the api you must use `init`, since that's the only place where it is found, otherwise you
+can go directly with `exports`. The parameter `api` of the init is an object containing useful things [we'll see later](#api-object).
 
-Let's first look at the things you can return:
+Let's first look at the things you can export:
 
-## Things a plugin can return or export
+## Things a plugin can export
 
-All the following properties are essentially optional.
+All the following properties are optional unless otherwise specified.
 
 - `description: string` try to explain what this plugin is for. This must go in `exports` and use "double quotes".
 - `version: number` use progressive numbers to distinguish each release. This must go in `exports`.
-- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. You'll find api version in `src/const.ts`. This must go in `exports`.
+- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. You'll find api version in `src/const.ts`. This must go in `exports` and is mandatory.
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL. 
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
@@ -132,7 +145,6 @@ The `api` object you get as parameter of the `init` contains the following:
   ```js
   const { watchLoad } = api.require('./watchLoad')
   ```
-
   You *should* try to keep this kind of behavior at its minimum, as name of sources and elements can change, and your
   plugin can become incompatible with future versions.
   If you need something for your plugin that's not covered by `api`, you can test it with this method, but you should
