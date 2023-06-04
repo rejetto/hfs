@@ -150,6 +150,9 @@ The `api` object you get as parameter of the `init` contains the following:
   If you need something for your plugin that's not covered by `api`, you can test it with this method, but you should
   then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin.
 
+- `customApiCall: (method: string, params?: object) => any[]` this will invoke other plugins if they define `method`
+  exported inside `customApi: object` 
+
 ## Front-end specific
 
 The following information applies to the default front-end, and may not apply to a custom one.
@@ -292,7 +295,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
   - platform-dependent distribution
   - HFS.watchState, emit
-  - api.storageDir
+  - api.storageDir, customApiCall
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html

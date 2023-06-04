@@ -349,6 +349,9 @@ function watchPlugin(id: string, path: string) {
                     })
                 },
                 getHfsConfig: getConfig,
+                customApiCall(method: string, params?: any) {
+                    return mapPlugins(pl => pl.getData().customApi?.[method]?.(params))
+                }
             })
             const folder = dirname(module)
             Object.assign(data, res, {
