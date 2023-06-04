@@ -23,7 +23,7 @@ import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
 import { downloadPlugin, getFolder2repo, getRepoInfo, readOnlinePlugin, searchPlugins } from './github'
-import { HTTP_SERVER_ERROR } from './const'
+import { HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 
 const apis: ApiHandlers = {
 
@@ -155,7 +155,7 @@ const apis: ApiHandlers = {
     async update_plugin(pl) {
         const found = findPluginByRepo(pl.id) // github id !== local id
         if (!found)
-            return new ApiError(404)
+            return new ApiError(HTTP_NOT_FOUND)
         const enabled = isPluginEnabled(found.id)
         await stopPlugin(found.id)
         await downloadPlugin(pl.id, pl.branch, true)
