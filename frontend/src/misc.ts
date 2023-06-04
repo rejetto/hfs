@@ -68,6 +68,7 @@ const tools = { h, React, state, t, _, dialogLib, apiCall, reloadList, logout, I
 }
 Object.assign(getHFS(), {
     ...tools,
+    emit: hfsEvent,
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
         const key = 'hfs.' + name
         document.addEventListener(key, wrapper)

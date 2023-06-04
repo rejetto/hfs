@@ -170,6 +170,7 @@ The HFS objects contains many properties:
 - `h` shortcut for React.createElement
 - `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
 - `_` [lodash library](https://lodash.com/docs/)
+- `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts. 
 - `Icon: ReactComponent` Properties:
   - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
 
@@ -290,7 +291,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 - 8.21 (v0.46.0)
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
   - platform-dependent distribution
-  - HFS.watchState
+  - HFS.watchState, emit
   - api.storageDir
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
