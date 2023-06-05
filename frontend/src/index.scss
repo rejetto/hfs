@@ -458,29 +458,33 @@ button label {
             overflow-x: clip;
             padding: 0;
 
-            a {
-                max-height: var(--name-height);
-                display: block;
-                display: -webkit-box;
-                overflow: hidden;
-                -webkit-line-clamp: calc(var(--name-lines) + 1); // + icon's line
-                -webkit-box-orient: vertical;
+            .link-wrapper {
+                &:not(:hover) {
+                    max-height: var(--name-height);
+                    display: block;
+                    display: -webkit-box;
+                    overflow: hidden;
+                    -webkit-line-clamp: calc(var(--name-lines) + 1); // + icon's line
+                    -webkit-box-orient: vertical;
+                }
+                a {
+                    &:last-of-type { padding: 0; }
+                    span { display: block; }
+                    .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
+                    img.icon { width: auto }
+                    .icon {
+                        font-size: 4rem;
+                        display: block;
+                        margin: auto; // good for both font and img icons
+                    }
+                }
 
-                &:last-of-type { padding: 0; }
                 &:hover {
                     overflow: visible;
                     display: block;
                     z-index: 1;
+                    .icon::before { text-decoration: none; }
                 }
-                span { display: block; }
-                .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
-                img.icon { width: auto }
-                .icon {
-                    font-size: 4rem;
-                    display: block;
-                    margin: auto; // good for both font and img icons
-                }
-                &:hover .icon::before { text-decoration: none; }
             }
             .link-wrapper:hover {
                 padding: 0; margin: 0;
@@ -507,6 +511,7 @@ button label {
                 right: 1em;
             }
 
+            .link-wrapper a { display:inline } // avoid overlapping name and details
             &:hover {
                 --bg: var(--ghost-contrast-alt);
                 background: var(--bg); // highlight whole tile
@@ -514,7 +519,6 @@ button label {
                     z-index: 1; background: var(--bg); // cover underlying elements of other tiles, in case it's overflowing
                 }
                 input[type=checkbox] { z-index: 2; } // over link-wrapper, but not over header
-                .link-wrapper a { display:inline } // avoid overlapping name and details
                 .entry-panel {
                     padding-bottom: 0.3em;
                 }
