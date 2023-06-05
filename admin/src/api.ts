@@ -133,7 +133,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
             apply.flush()
         }
     }, [reloader, cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, props, loading, error, initializing, connecting, setList, updateList, reload }
+    return { list, props, loading, error, initializing, connecting, setList, updateList, updateEntry, reload }
 
     function reload() {
         setReloader(x => x + 1)
@@ -143,5 +143,13 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
         setList(produce(list, x => {
             cb(x)
         }))
+    }
+
+    function updateEntry(search: T, change: T) {
+        updateList(list => {
+            const res = _.find(list, search as any)
+            if (res)
+                Object.assign(res, change)
+        })
     }
 }

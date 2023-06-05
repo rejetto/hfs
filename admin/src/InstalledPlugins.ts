@@ -13,7 +13,7 @@ import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
-    const { list, setList, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
+    const { list, updateEntry, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     if (error)
         return showError(error)
     return h(DataGrid, {
@@ -49,9 +49,9 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 hideSortIcons: true,
                 disableColumnMenu: true,
                 renderCell({ row }) {
-                    const { config, id } = row
+                    const { config, id, updated } = row
                     if (updates)
-                        return h(UpdateButton, { id, then: () => setList(list.filter(x => x.id !== id)) })
+                        return h(UpdateButton, { id, updated, then: () => updateEntry({ id }, { updated: true }) })
                     return h('div', {},
                         h(IconBtn, row.started ? {
                             icon: StopCircle,
@@ -152,10 +152,11 @@ export function showError(error: any) {
     }))
 }
 
-export function UpdateButton({ id, then }: { id: string, then: (id:string)=>void }) {
+export function UpdateButton({ id, updated, then }: { id: string, updated?: boolean, then: (id:string)=>void }) {
     return h(IconBtn, {
         icon: Upgrade,
-        title: "Update",
+        title: updated ? "Already updated" : "Update",
+        disabled: updated,
         async onClick() {
             await apiCall('update_plugin', { id }, { timeout: false })
             then?.(id)
