@@ -136,7 +136,8 @@ const apis: ApiHandlers = {
         while (parent.children?.find(isSameFilenameAs(name)))
             name = `${noExt} ${idx++}${ext}`
         child.name = name
-        ;(parent.children ||= []).unshift({ source, name })
+        simplifyName(child)
+        ;(parent.children ||= []).unshift(child)
         await saveVfs()
         return { name }
     },
