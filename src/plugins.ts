@@ -169,6 +169,9 @@ export class Plugin {
             }
         }
     }
+    get version(): undefined | number {
+        return this.data?.version
+    }
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
     }
@@ -214,6 +217,7 @@ export interface AvailablePlugin {
     version?: number
     apiRequired?: number | [number,number]
     repo?: string
+    depend?: { repo: string, version?: number }[]
     branch?: string
     badApi?: string
     error?: string
@@ -422,6 +426,9 @@ export function parsePluginSource(id: string, source: string) {
     pl.repo = /exports.repo *= *"(.*)"/.exec(source)?.[1]
     pl.version = Number(/exports.version *= *(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
+    pl.depend = tryJson(/exports.depend *= *(\[.*\])/m.exec(source)?.[1])?.filter((x: any) =>
+        typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
+            || console.warn("plugin dependency discarded", x) )
     if (Array.isArray(pl.apiRequired) && (pl.apiRequired.length !== 2 || !pl.apiRequired.every(_.isFinite))) // validate [from,to] form
         pl.apiRequired = undefined
     calculateBadApi(pl)

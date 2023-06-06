@@ -10,6 +10,7 @@ import { useDebounce } from 'usehooks-ts'
 import { renderName, showError, startPlugin, UpdateButton } from './InstalledPlugins'
 import { state, useSnapState } from './state'
 import _ from 'lodash'
+import { alertDialog } from './dialog'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -70,7 +71,7 @@ export default function OnlinePlugins() {
                     disableColumnMenu: true,
                     hideable: false,
                     renderCell({ row }) {
-                        const { id, branch } = row
+                        const { id } = row
                         return h('div', {},
                             row.update ? h(UpdateButton, {
                                 id,
@@ -86,8 +87,17 @@ export default function OnlinePlugins() {
                                 tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
                                 confirm: "WARNING - Proceed only if you trust this author and this plugin",
                                 async onClick() {
-                                    const res = await apiCall('download_plugin', { id, branch }, { timeout: false })
-                                    await startPlugin(res.id)
+                                    const branch = row.branch || row.default_branch
+                                    try {
+                                        const res = await apiCall('download_plugin', { id, branch }, { timeout: false })
+                                        await startPlugin(res.id)
+                                    }
+                                    catch(e: any) {
+                                        if (e.code !== 424) throw e
+                                        const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
+                                            e.data.map((x: any) => h('li', {}, x.repo + ': ' + x.error)) )
+                                        return alertDialog(msg, 'error')
+                                    }
                                 }
                             })
                         )

@@ -39,13 +39,15 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
     }).then(async res => {
         stop?.()
         let body: any = await res.text()
-        try { body = JSON.parse(body) }
+        let data: any
+        try { data = JSON.parse(body) }
         catch {}
-        console.debug(res.ok ? 'API' : 'API FAILED', cmd, params, '>>', body)
-        await options.onResponse?.(res, body)
+        const result = data ?? body
+        console.debug(res.ok ? 'API' : 'API FAILED', cmd, params, '>>', result)
+        await options.onResponse?.(res, result)
         if (!res.ok)
-            throw new ApiError(res.status, body || `Failed API ${cmd}: ${res.statusText}`)
-        return body as T
+            throw new ApiError(res.status, data === undefined ? body : `Failed API ${cmd}: ${res.statusText}`, data)
+        return result as T
     }, err => {
         stop?.()
         if (err?.message?.includes('fetch'))
@@ -59,8 +61,11 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
 }
 
 export class ApiError extends Error {
-    constructor(readonly code:number, message: string) {
-        super(message);
+    constructor(readonly code:number, message: string, data?: any) {
+        super(message, { cause: data });
+    }
+    get data() {
+        return this.cause
     }
 }
 

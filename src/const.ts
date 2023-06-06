@@ -42,6 +42,7 @@ export const HTTP_CONFLICT = 409
 export const HTTP_PAYLOAD_TOO_LARGE = 413
 export const HTTP_RANGE_NOT_SATISFIABLE = 416
 export const HTTP_FOOL = 418
+export const HTTP_FAILED_DEPENDENCY = 424
 export const HTTP_SERVER_ERROR = 500
 
 export const IS_WINDOWS = process.platform === 'win32'

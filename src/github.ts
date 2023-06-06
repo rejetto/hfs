@@ -82,9 +82,10 @@ export function readGithubFile(uri: string) {
         .then(res => res.body)
 }
 
-export async function readOnlinePlugin(repoInfo: { full_name: string, default_branch: string }, branch='') {
-    const res = await readGithubFile(`${repoInfo.full_name}/${branch || repoInfo.default_branch}/${DIST_ROOT}/plugin.js`)
-    const pl = parsePluginSource(repoInfo.full_name, res) // use 'repo' as 'id' client-side
+export async function readOnlinePlugin(repo: string, branch='') {
+    branch ||= (await getRepoInfo(repo)).default_branch
+    const res = await readGithubFile(`${repo}/${branch}/${DIST_ROOT}/plugin.js`)
+    const pl = parsePluginSource(repo, res) // use 'repo' as 'id' client-side
     pl.branch = branch || undefined
     return pl
 }
@@ -120,7 +121,7 @@ export async function* searchPlugins(text='') {
     for (const it of res.items) {
         const repo = it.full_name
         if (projectInfo?.plugins_blacklist?.includes(repo)) continue
-        let pl = await readOnlinePlugin(it)
+        let pl = await readOnlinePlugin(repo, it.default_branch)
         if (!pl.apiRequired) continue // mandatory field
         if (pl.badApi) { // we try other branches (starting with 'api')
             const res = await apiGithub('repos/' + it.full_name + '/branches')
@@ -140,7 +141,7 @@ export async function* searchPlugins(text='') {
         Object.assign(pl, { // inject some extra useful fields
             downloading: downloading[repo],
             license: it.license?.spdx_id,
-        }, _.pick(it, ['pushed_at', 'stargazers_count']))
+        }, _.pick(it, ['pushed_at', 'stargazers_count', 'default_branch']))
         yield pl
     }
 }

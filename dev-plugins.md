@@ -43,6 +43,7 @@ All the following properties are optional unless otherwise specified.
 - `description: string` try to explain what this plugin is for. This must go in `exports` and use "double quotes".
 - `version: number` use progressive numbers to distinguish each release. This must go in `exports`.
 - `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. You'll find api version in `src/const.ts`. This must go in `exports` and is mandatory.
+ - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. This must go in `exports`
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL. 
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
@@ -296,6 +297,7 @@ HFS will scan through them in inverted alphabetical order searching for a compat
   - platform-dependent distribution
   - HFS.watchState, emit
   - api.storageDir, customApiCall
+  - exports.depend
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html

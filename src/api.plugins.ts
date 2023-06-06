@@ -22,8 +22,8 @@ import { Callback, newObj, onOff, waitFor } from './misc'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
-import { downloadPlugin, getFolder2repo, getRepoInfo, readOnlinePlugin, searchPlugins } from './github'
-import { HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
+import { downloadPlugin, getFolder2repo, readOnlinePlugin, searchPlugins } from './github'
+import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 
 const apis: ApiHandlers = {
 
@@ -51,7 +51,8 @@ const apis: ApiHandlers = {
             for (const [folder, repo] of Object.entries(getFolder2repo()))
                 try {
                     if (!repo) continue
-                    const online = await readOnlinePlugin(await getRepoInfo(repo))
+                    //TODO shouldn't we consider other branches here?
+                    const online = await readOnlinePlugin(repo)
                     if (!online.apiRequired || online.badApi) continue
                     const disk = getPluginInfo(folder)
                     if (online.version! > disk.version)
@@ -145,6 +146,7 @@ const apis: ApiHandlers = {
     },
 
     async download_plugin(pl) {
+        await checkDependencies(pl.id, pl.branch)
         const res = await downloadPlugin(pl.id, pl.branch)
         if (typeof res !== 'string')
             return res
@@ -153,6 +155,7 @@ const apis: ApiHandlers = {
     },
 
     async update_plugin(pl) {
+        await checkDependencies(pl.id, pl.branch)
         const found = findPluginByRepo(pl.id) // github id !== local id
         if (!found)
             return new ApiError(HTTP_NOT_FOUND)
@@ -173,3 +176,18 @@ const apis: ApiHandlers = {
 }
 
 export default apis
+
+async function checkDependencies(repo: string, branch: string) {
+    const rec = await readOnlinePlugin(repo, branch)
+    const miss = rec.depend && rec.depend.map((dep: any) => {
+        const res = findPluginByRepo(dep.repo)
+        const error = !res ? 'missing'
+            : (res.version || 0) < dep.version ? 'version'
+                : !isPluginEnabled(res.id) ? 'disabled'
+                    : !isPluginRunning(res.id) ? 'stopped'
+                        : ''
+        return error && { repo: dep.repo, error, id: res?.id }
+    }).filter(Boolean)
+    if (miss?.length)
+        throw new ApiError(HTTP_FAILED_DEPENDENCY, miss)
+}
