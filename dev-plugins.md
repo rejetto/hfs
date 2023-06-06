@@ -23,8 +23,8 @@ exports.init = api => ({
 })
 ```
 
-The init function is called by HFS when the module is loaded and should return an object with more things to 
-added/merged to the exported object. In the example above we are asking a css file to be loaded in the frontend.
+The init function is called by HFS when the module is loaded and should return an object with more things to
+add/merge to the exported object. In the example above we are asking a css file to be loaded in the frontend.
 Since it's a basic example, you could have simply defined it like this:
 ```js
 exports.frontend_css = 'mystyle.css'
@@ -40,10 +40,16 @@ Let's first look at the things you can export:
 
 All the following properties are optional unless otherwise specified.
 
-- `description: string` try to explain what this plugin is for. This must go in `exports` and use "double quotes".
-- `version: number` use progressive numbers to distinguish each release. This must go in `exports`.
-- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. You'll find api version in `src/const.ts`. This must go in `exports` and is mandatory.
- - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. This must go in `exports`
+- `description: string` try to explain what this plugin is for.
+- `version: number` use progressive numbers to distinguish each release
+- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. Mandatory. [Refer to API version history](#api-version-history)   
+- `repo: string` pointer to a GitHub repo where this plugin is hosted.
+- `depend: { repo: string, version: number }[]` declare what other plugins this depends on.
+
+All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
+used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects).
+
+- `init` described in the previous section. 
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL. 
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
