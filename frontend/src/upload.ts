@@ -21,6 +21,7 @@ import { apiCall, getNotification } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { Link } from 'react-router-dom'
 import { t } from './i18n'
+import { subscribeKey } from 'valtio/utils'
 
 export const uploadState = proxy<{
     done: number
@@ -314,8 +315,12 @@ async function startUpload(f: File, to: string, resume=0) {
                 const timeout = typeof expires !== 'number' ? 0
                     : (Number(new Date(expires)) - Date.now()) / 1000
                 closeLast?.()
+                const cancelSub = subscribeKey(uploadState, 'partial', v =>
+                    v >= size && closeLast?.() )  // dismiss dialog as soon as we pass the threshold
                 const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/f.size)} = ${formatBytes(size)})`
-                if (!await confirmDialog(msg, { timeout, getClose: x => closeLast=x })) return
+                const confirmed = await confirmDialog(msg, { timeout, getClose: x => closeLast=x })
+                cancelSub()
+                if (!confirmed) return
                 if (uploading !== uploadState.uploading) return // too late
                 resuming = true
                 abortCurrentUpload()
