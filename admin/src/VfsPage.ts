@@ -39,11 +39,7 @@ export default function VfsPage() {
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
     const [status] = useApi('get_status')
-    const urls = useMemo(() =>
-        typeof status === 'object' && _.sortBy(
-            Object.values(status.urls?.https || status.urls?.http || {}) as string[],
-            url => url.includes('[')
-        ),
+    const urls = useMemo(() => _.sortBy(status?.urls.https || status?.urls.http, url => url.includes('[')), // ipv4 first
         [status])
 
     function close() {
