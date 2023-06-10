@@ -38,9 +38,14 @@ export default function VfsPage() {
         [vfs])
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
-    const [status] = useApi('get_status')
-    const urls = useMemo(() => _.sortBy(status?.urls.https || status?.urls.http, url => url.includes('[')), // ipv4 first
-        [status])
+    const statusApi = useApiEx('get_status')
+    const { data: status } = statusApi
+    const urls = useMemo(() => {
+        const b = status?.baseUrl
+        const ret = _.sortBy(status?.urls.https || status?.urls.http, url => url.includes('[') && url !== b) // ipv4 first
+        if (status) status.suggestedUrls = ret // store it for Link component
+        return b && !ret.includes(b) ? [b, ...ret] : ret
+    }, [status])
 
     function close() {
         state.selectedFiles = []
@@ -55,7 +60,7 @@ export default function VfsPage() {
                 }),
                 defaultPerms: data?.defaultPerms as VfsPerms,
                 anyMask,
-                urls,
+                statusApi,
                 file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
             })
             : h(Fragment, {},

@@ -22,7 +22,7 @@ import { debounceAsync, isLocalHost, makeNetMatcher, onOff, waitFor } from './mi
 import events from './events'
 import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
 import Koa from 'koa'
-import { getProxyDetected } from './middlewares'
+import { baseUrl, getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
 import { createReadStream } from 'fs'
 import * as readline from 'readline'
@@ -89,6 +89,7 @@ export const adminApis: ApiHandlers = {
             compatibleApiVersion: COMPATIBLE_API_VERSION,
             ...await getServerStatus(),
             urls: getUrls(),
+            baseUrl: baseUrl.get(), // can be retrieved with get_config, but it's very handy with urls and low overhead. Case is different because the context is
             update: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()

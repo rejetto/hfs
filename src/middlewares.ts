@@ -170,7 +170,7 @@ const errorMessages = {
     [HTTP_FORBIDDEN]: "Forbidden",
 }
 
-const baseUrl = defineConfig('base_url', '')
+export const baseUrl = defineConfig('base_url', '')
 
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
     let { depth=0, folders, prepend } = ctx.query

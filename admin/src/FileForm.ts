@@ -16,6 +16,7 @@ import {
 import { apiCall, useApiEx } from './api'
 import {
     basename,
+    Btn,
     formatBytes,
     IconBtn,
     isEqualLax,
@@ -30,9 +31,9 @@ import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
 import FileField from './FileField'
-import { alertDialog, useDialogBarColors } from './dialog'
+import { alertDialog, toast, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Check, ContentCopy, Delete, Edit } from '@mui/icons-material'
+import { Check, ContentCopy, Delete, Edit, Save } from '@mui/icons-material'
 
 interface Account { username: string }
 
@@ -41,12 +42,12 @@ interface FileFormProps {
     anyMask?: boolean
     defaultPerms: VfsPerms
     addToBar?: ReactNode
-    urls: string[] | false
+    statusApi: any
 }
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
-export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }: FileFormProps) {
+export default function FileForm({ file, anyMask, defaultPerms, addToBar, statusApi }: FileFormProps) {
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -111,7 +112,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
         fields: [
             isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : { k: 'name', required: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
-            { k: 'id', comp: LinkField, urls },
+            { k: 'id', comp: LinkField, statusApi },
             { k: 'source', label: "Source on disk", comp: FileField, files: !isDir, folders: isDir, multiline: true,
                 placeholder: "Not on disk, this is a virtual folder",
             },
@@ -219,15 +220,18 @@ function who2desc(who: any) {
 }
 
 interface LinkFieldProps extends FieldProps<string> {
-    urls: string[]
+    statusApi: any // receive status from parent, to avoid asking server at each click on a file
 }
-function LinkField({ value, urls }: LinkFieldProps) {
-    const { data, error, reload } = useApiEx('get_config', { only: ['base_url'] })
-    const base: string | undefined = data?.base_url
-    const link = (base || (urls ? urls[0] : '')) + value
-    return h(Box, { display: 'flex', },
+function LinkField({ value, statusApi }: LinkFieldProps) {
+    const { data: status, reload, error } = statusApi
+    const urls: string[] = status?.suggestedUrls
+    const base: string = status?.baseUrl
+    const link = (base || urls?.[0] || '') + value
+    return h(Box, { display: 'flex' },
+        !urls ? 'error' : // check data is ok
         h(DisplayField, {
-            label: "Link", value: link,
+            label: "Link",
+            value: link,
             error,
             end: h(Box, {},
                 h(IconBtn, {
@@ -235,23 +239,18 @@ function LinkField({ value, urls }: LinkFieldProps) {
                     title: "Copy",
                     onClick: () => navigator.clipboard.writeText(link)
                 }),
-                h(IconBtn, {
-                    icon: Edit,
-                    title: "Change",
-                    onClick: edit,
-                }),
+                h(IconBtn, { icon: Edit, title: "Change", onClick: edit }),
             )
         }),
     )
 
     function edit() {
-        const startingProto = new URL(base || urls[0]).protocol + '//'
-        newDialog({
+        const close = newDialog({
             title: "Change link",
-            onClose: reload,
             Content() {
-                const [v, setV] = useState(base)
-                const [proto, setProto] = useState(startingProto)
+                const [v, setV] = useState(base || '')
+                const proto = new URL(v || urls[0]).protocol + '//'
+                const host = urls.includes(v) ? '' : v.slice(proto.length)
                 return h(Box, { display: 'flex', flexDirection: 'column' },
                     h(Box, { mb: 2 }, "You can choose a different base address for your links"),
                     h(MenuList, {},
@@ -264,11 +263,11 @@ function LinkField({ value, urls }: LinkFieldProps) {
                     h(StringField, {
                         label: "Custom IP or domain",
                         helperText: md("You can type any address but *you* are responsible to make the address work.\nThis functionality is just to help you copy the link in case you have a domain or a complex network configuration."),
-                        value: !v || urls.includes(v) ? '' : v.slice(proto.length),
+                        value: host,
                         onChange: v => set(prefix(proto, v)),
                         start: h(SelectField as Field<string>, {
                             value: proto,
-                            onChange: setProto,
+                            onChange: v => host ? set(v + host) : toast("Enter domain first"),
                             options: ['http://','https://'],
                             size: 'small',
                             variant: 'standard',
@@ -276,12 +275,23 @@ function LinkField({ value, urls }: LinkFieldProps) {
                         }),
                         sx: { mt: 2 }
                     }),
+                    h(Box, { mt: 2, textAlign: 'right' },
+                        h(Btn, {
+                            icon: Save,
+                            children: "Save",
+                            async onClick() {
+                                if (v !== base) {
+                                    await apiCall('set_config', { values: { base_url: v } })
+                                    await reload()
+                                }
+                                close()
+                            },
+                        }) ),
                 )
 
-                async function set(u: string) {
+                function set(u: string) {
                     if (u.endsWith('/'))
                         u = u.slice(0, -1)
-                    await apiCall('set_config', { values: { base_url: u } })
                     setV(u)
                 }
             }
