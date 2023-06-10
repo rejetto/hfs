@@ -162,6 +162,8 @@ export function Form<Values extends Dict>({
                                 }
                             },
                         } as Partial<FieldProps<any>>)
+                        if (Array.isArray(field.helperText))
+                            field.helperText = h(Fragment, {}, ...field.helperText)
                         if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
                             field.helperText = !field.helperText ? errMsg
                                 : h(Fragment, {},

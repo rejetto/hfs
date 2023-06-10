@@ -143,7 +143,8 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, urls }
             isDir && { k: 'masks', multiline: true, lg: true,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 sx: { '& textarea': { fontFamily: 'monospace' } },
-                helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Permissions', "(examples)")] }
+                helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Permissions', "(examples)")]
+            }
         ]
     })
 
