@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 1.92,
-    "hfs_version": "0.43.0",
+    "version": 1.95,
+    "hfs_version": "0.46.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{1 файл} few{# файла} other{# файлов}}",
@@ -109,6 +109,11 @@
         "Name": "Имя",
         "file_open": "Открыть",
         "Download": "Скачать",
-        "Missing permission": "Отсутствует доступ"
+        "Missing permission": "Отсутствует доступ",
+        "Reload": "Обновить",
+        "Get list": "Получить список",
+        "Skip existing files": "Пропуск существующих файлов",
+        "Size": "Размер",
+        "Timestamp": "Дата"
     }
 }
