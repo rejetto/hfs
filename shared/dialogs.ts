@@ -49,7 +49,9 @@ function Dialog(d:DialogOptions) {
             className: 'dialog-backdrop '+(d.className||''),
             tabIndex: 0,
             onKeyDown,
-            onClick: ()=> closeDialog()
+            onClick: (ev: any) =>
+                ev.target === ev.currentTarget // this test will tell us if really the backdrop was clicked
+                    && closeDialog()
         },
         d.noFrame ? h(d.Content || 'div')
             : h('div', {
