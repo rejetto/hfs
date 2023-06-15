@@ -4,24 +4,30 @@ import { createElement as h, Fragment, useState } from "react"
 import { Tab, Tabs } from '@mui/material'
 import InstalledPlugins from "./InstalledPlugins"
 import OnlinePlugins from "./OnlinePlugins"
+import { useBreakpoint } from "./misc"
 
 const TABS = {
     "Installed": InstalledPlugins,
-    "Search online": OnlinePlugins,
-    "Check updates": () => h(InstalledPlugins, { updates: true }),
+    "Search online|Search": OnlinePlugins,
+    "Check updates|Updates": () => h(InstalledPlugins, { updates: true }),
 }
 const LABELS = Object.keys(TABS)
 const PANES = Object.values(TABS)
 
 export default function PluginsPage() {
     const [tab, setTab] = useState(0)
+    const tooSmall = !useBreakpoint('sm')
     return h(Fragment, {},
         h(Tabs, {
             value: tab,
             onChange(ev, i) {
                 setTab(i)
             }
-        }, LABELS.map(label => h(Tab, { label, key: label })) ),
+        }, LABELS.map(x =>
+            h(Tab, {
+                key: x,
+                label: x.split('|').slice(tooSmall ? -1 : 0)[0]
+            }))),
         h(PANES[tab])
     )
 }
