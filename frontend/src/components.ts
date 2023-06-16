@@ -9,7 +9,7 @@ import {
     Fragment,
     HTMLAttributes,
     InputHTMLAttributes,
-    isValidElement,
+    isValidElement, MouseEventHandler,
     ReactNode,
     useMemo
 } from 'react'
@@ -85,7 +85,7 @@ export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any
 }
 
 interface IconBtnOptions extends ButtonHTMLAttributes<any> { small?: boolean, style?: any }
-export function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...props }: IconBtnOptions={}) {
+export function iconBtn(icon: string, onClick: MouseEventHandler, { small=true, style={}, ...props }: IconBtnOptions={}) {
     return h('button', {
             onClick,
             ...props,

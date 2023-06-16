@@ -5,6 +5,7 @@ import {
     createElement as h,
     Fragment,
     memo,
+    MouseEvent,
     useCallback,
     useEffect,
     useMemo,

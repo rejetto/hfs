@@ -40,7 +40,7 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path: string, 
             if (!current) return
             if (typeof label !== 'string')
                 return reload()
-            openFileMenu(new DirEntry(path), ev as any as MouseEvent, [
+            openFileMenu(new DirEntry(path), ev, [
                 {
                     label: t`Reload`,
                     icon: 'reload',

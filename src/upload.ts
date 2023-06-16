@@ -14,7 +14,6 @@ import { defineConfig } from './config'
 import { getFreeDiskSync } from './util-os'
 import { socket2connection, updateConnection } from './connections'
 import { roundSpeed } from './throttler'
-import _ from 'lodash'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -36,10 +35,10 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
             const free = getFreeDiskSync(dir)
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
-            if (reqSize > getFreeDiskSync(dir) - (min || 0))
+            if (reqSize > free - (min || 0))
                 return fail(HTTP_PAYLOAD_TOO_LARGE)
         }
-        catch(e: any) {
+        catch(e: any) { // warn, but let it through
             console.warn("can't check disk size:", e.message || String(e))
         }
     if (ctx.query.skipExisting && fs.existsSync(fullPath))

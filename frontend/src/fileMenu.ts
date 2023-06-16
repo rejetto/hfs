@@ -1,6 +1,6 @@
 import { t, useI18N } from './i18n'
 import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog } from './misc'
-import { createElement as h, Fragment, isValidElement, MouseEventHandler, ReactNode } from 'react'
+import { createElement as h, Fragment, isValidElement, MouseEventHandler, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
 import { DirEntry, state } from './state'
