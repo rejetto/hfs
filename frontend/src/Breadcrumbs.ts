@@ -28,7 +28,7 @@ export function Breadcrumbs() {
     )
 }
 
-function Breadcrumb({ path, label, current }:{ current?: boolean, path?: string, label?: string | ReactElement }) {
+function Breadcrumb({ path, label, current }:{ current?: boolean, path: string, label?: string | ReactElement }) {
     const PAD = '\u00A0\u00A0' // make small elements easier to tap. Don't use min-width 'cause it requires display-inline that breaks word-wrapping
     if (typeof label === 'string' && label.length < 3)
         label = PAD + label + PAD
@@ -40,7 +40,7 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path?: string,
             if (!current) return
             if (typeof label !== 'string')
                 return reload()
-            openFileMenu(new DirEntry(label), ev as any as MouseEvent, [
+            openFileMenu(new DirEntry(path), ev as any as MouseEvent, [
                 {
                     label: t`Reload`,
                     icon: 'reload',
