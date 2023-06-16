@@ -116,14 +116,6 @@ In the Languages section of the Admin-panel you can install additional language 
 
 If your language is missing, please consider [translating yourself](https://github.com/rejetto/hfs/wiki/Translation). 
 
-## Plug-ins
-
-You can use the Admin-panel to manage your plugins and install new ones.
-
-Under the hood, installing a plugin just means copying its folder inside `plugins` folder. Deleting will uninstall it.
-
-HFS will ignore all plugin folders with `-disabled` at the end of the name.
-
 ## Why you should upgrade from HFS 2.x to 3
 
 As you can see from the list of features, we already have some goods that you cannot find in HFS 2.
