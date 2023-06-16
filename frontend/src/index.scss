@@ -218,9 +218,9 @@ header {
     align-items: center;
     gap: .8em;
     margin: 0.2em 0 0;
-    padding: 2px 0 1px 11px;
+    padding: 2px 0 1px 3px;
     height: 1.8em; /* necessary to animate displaying */
-    & input[type=checkbox] { margin-top: .5em; }
+    & input[type=checkbox] { margin-top: .3em; }
     & span:empty { display:none } /* avoid flex-gap */
 }
 
@@ -238,7 +238,7 @@ ul.dir {
         &:nth-of-type(odd) { background-color: var(--ghost-contrast); }
 
         & input[type=checkbox] {
-            margin: 0 .8em;
+            margin-right: 1em;
         }
         & .link-wrapper {
             &:not(:hover) .popup-menu-button { display: none; }
@@ -456,7 +456,7 @@ button label {
             flex-direction: column;
             border-bottom: none;
             overflow-x: clip;
-            padding: 0;
+            padding: .5em 0 0;
 
             .link-wrapper {
                 &:not(:hover) {
