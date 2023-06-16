@@ -206,10 +206,11 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 h(Link, { to: base + uri }, ico, entry.n.slice(0,-1)),
                 menuOnLink && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
             )
-            : h(Fragment, {},
-                containerDir && h(Link, { to: base + containerDir, className:'container-folder' }, ico, containerName),
-                h('a', { href: uri, onClick }, !containerDir && ico, entry.name)
-            ),
+            : containerDir ? h(Fragment, {},
+                h('a', { href: uri, onClick }, ico),
+                h(Link, { to: base + containerDir, className:'container-folder' }, containerName),
+                h('a', { href: uri, onClick }, entry.name)
+            ) : h('a', { href: uri, onClick }, ico, entry.name),
         ),
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
