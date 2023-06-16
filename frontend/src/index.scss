@@ -75,6 +75,9 @@ select { text-align: center; } // it is surely cooler on the options dialog
 
 .hidden { display: none !important }
 
+[class^="fa-"]:before, [class*=" fa-"]:before { /* don't need extra margin on fontello icons */
+    margin: 0;
+}
 .icon {
     font-size: 1.2em;
     height: 1.2em; width: 1.4em; // give similar size to <img> icons
@@ -321,7 +324,7 @@ ul.dir {
 
 button label {
     cursor: inherit;
-    margin-left: 0.5em;
+    margin-left: .7em;
 }
 
 .dialog-backdrop.working {
@@ -544,6 +547,44 @@ button label {
 
 }
 
+#root // heavier selector
+.file-show {
+    &>div {
+        height: 100%;
+        width: 100%;
+    }
+    .showing {
+        max-width: calc(100% - var(--nav-size)*2); // avoid overlapping of controls and nav buttons
+        max-height: 100%;
+    }
+    img.showing { max-width: 100% } // we are ok with overlapping for simple images
+    --nav-size: min(25vh, 15vw);
+    .nav {
+        position: absolute;
+        margin: -.4em; // closer to the edge
+        font-size: var(--nav-size); // big
+        cursor: pointer;
+        opacity: .3;
+        -webkit-text-stroke: 2px black;
+        user-select: none;
+        transition: opacity .3s;
+        &:hover { opacity: .7; }
+    }
+    .bar {
+        padding: .5em 1em;
+        background: var(--bg);
+        opacity: .8;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .5em 1.5em;
+
+        .entry-details { font-size: smaller; }
+        .entry-ts { display: inherit; }
+        .entry-size::after { display: none }
+    }
+}
 
 @media (min-width: 42em) {
     body {
@@ -575,17 +616,32 @@ button label {
     }
     #filter-bar {
         margin-top: 0.4em;
-    }
-    #filter-bar button { /* make it same size of top bar */
-        width: 17.6vw;
-        height: 2.3em;
+        button { // make it same size of top bar
+            width: 17.6vw;
+            height: 2.3em;
+        }
     }
     .breadcrumb {
-        word-break: break-all; /* solves with very long names without spaces. 'break-word' is nicer but doesn't handle worst
-              cases like /gear/mininova/x/LOOPMASTERS%204Gig%20Pack/LOOPMASTERS_2015/BASS_HOUSE_AND_GARAGE_2_DEMOS/SOUNDS_AND_FX/
-              */
+        word-break: break-all; // solves with very long names without spaces. 'break-word' is nicer but doesn't handle worst cases like /gear/mininova/x/LOOPMASTERS%204Gig%20Pack/LOOPMASTERS_2015/BASS_HOUSE_AND_GARAGE_2_DEMOS/SOUNDS_AND_FX/
+        .icon {
+            font-size:24px;
+        }
     }
-    .breadcrumb .icon {
-        font-size:24px;
+    #root>.tiles-mode {
+        margin: 0;
+    }
+}
+
+@media (max-height: 600px) {
+    .file-dialog {
+        .dialog-content {
+            display: flex;
+            gap: 3em;
+            margin: 1em;
+            .file-menu {
+                margin-top: 0;
+                a:first-child { border-top: none; }
+            }
+        }
     }
 }

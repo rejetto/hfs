@@ -3,7 +3,10 @@ import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog } from './m
 import { createElement as h, Fragment, isValidElement, MouseEventHandler, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
-import { DirEntry } from './state'
+import { DirEntry, state } from './state'
+import { deleteFiles } from './menu'
+import { Link } from 'react-router-dom'
+import { fileShow, getShowType } from './show'
 
 interface FileMenuEntry {
     label: ReactNode
@@ -12,12 +15,31 @@ interface FileMenuEntry {
     onClick?: MouseEventHandler
 }
 
-export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: FileMenuEntry[]) {
+export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder } = entry
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
         !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
-        ...addToMenu,
+        ...addToMenu.map(x => {
+            if (x === 'open') {
+                if (entry.cantOpen) return
+                const open = { icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
+                return !isFolder ? open : h(Link, { to: location.pathname + uri, onClick: () => close() }, hIcon(open.icon), open.label)
+            }
+            if (x === 'delete')
+                return state.can_delete && {
+                    label: t`Delete`,
+                    icon: 'trash',
+                    onClick: () => deleteFiles([entry.uri], entry.uri[0] === '/' ? '' : location.pathname)
+                }
+            if (x === 'show')
+                return !entry.cantOpen && getShowType(entry) && {
+                    label: t`Show`,
+                    icon: 'image',
+                    onClick: () => fileShow(entry)
+                }
+            return x
+        }),
         isFolder && { label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' }
     ]
     const props = [
@@ -64,4 +86,3 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: FileMen
         }
     })
 }
-

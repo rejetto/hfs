@@ -1,7 +1,7 @@
 {
     "author": "YOUR NAME HERE",
     "version": 1.0,
-    "hfs_version": "0.43.0",
+    "hfs_version": "0.46.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -114,6 +114,8 @@
         "Get list": "Get list",
         "Skip existing files": "Skip existing files",
         "Size": "Size",
-        "Timestamp": "Timestamp"
+        "Timestamp": "Timestamp",
+        "Show": "Show",
+        "Loading failed": "Loading failed"
     }
 }

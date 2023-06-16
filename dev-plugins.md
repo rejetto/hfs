@@ -258,6 +258,10 @@ This is a list of available frontend-events, with respective object parameter an
       }
       type FileMenuProp = [ReactNode,ReactNode] | ReactElement
       ```
+- `fileShow`
+  - you receive an entry of the list, and optionally produce React Component for visualization.
+  - parameter `{ entry: Entry }` (refer above for Entry object)
+  - output `ReactComponent`
 
 ## Other files
 
@@ -298,12 +302,13 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 ## API version history
 
-- 8.21 (v0.46.0)
+- 8.22 (v0.46.0)
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
   - platform-dependent distribution
   - HFS.watchState, emit
   - api.storageDir, customApiCall
   - exports.depend
+  - new event: fileShow
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html
@@ -311,18 +316,18 @@ HFS will scan through them in inverted alphabetical order searching for a compat
   - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
   - second parameter of onEvent is now deprecated
   - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
-  - entryIcon event
+  - new event: entryIcon
 - 8 (v0.43.0)
   - entry.name & .uri
   - tools.dialogLib
   - HFS.getPluginConfig()
 - 7 (v0.42.0)
-  - event.fileMenu
+  - new event: fileMenu
   - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
 - 6 (v0.38.0)
   - config.frontend
 - 5 (v0.33.0)
-  - event.afterEntryName
+  - new event: afterEntryName
 - 4.1 (v0.23.4)
   - config.type:array added $width, $column and fixed height 
 - 4 (v0.23.0)

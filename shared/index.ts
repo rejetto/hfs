@@ -5,6 +5,9 @@ export * from './react'
 export * from './dialogs'
 export * from './srp'
 
+export const REPO_URL = 'https://github.com/rejetto/hfs/'
+export const WIKI_URL = REPO_URL + 'wiki/'
+
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
@@ -106,6 +109,11 @@ export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: Win
     return () => target.removeEventListener(eventName, cb)
 }
 
+export function restartAnimation(e: HTMLElement, animation: string) {
+    e.style.animation = ''
+    void e.offsetWidth
+    e.style.animation = animation
+}
 
 export function findFirst<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string | number)=>O): any {
     if (a) for (const k in a) {

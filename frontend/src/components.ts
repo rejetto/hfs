@@ -2,6 +2,7 @@
 
 import { getHFS, hfsEvent, hIcon } from './misc'
 import {
+    ButtonHTMLAttributes,
     ChangeEvent,
     createElement as h,
     FC,
@@ -17,12 +18,13 @@ export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
 }
 
-export function Flex({ gap='.8em', vert=false, children=null, props={}, ...rest }) {
+export function Flex({ gap='.8em', center=false, vert=false, children=null, props={}, ...rest }) {
     return h('div', {
         style: {
             display: 'flex',
             gap,
             flexDirection: vert ? 'column' : undefined,
+            ...center && { alignItems: 'center', justifyContent: 'center' },
             ...rest,
         },
         ...props
@@ -80,4 +82,17 @@ export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any
         return ret
     }, props ? Object.values(props) : [])
     return children.length || !ifEmpty ? h(Fragment, {}, children) : h(ifEmpty)
+}
+
+interface IconBtnOptions extends ButtonHTMLAttributes<any> { small?: boolean, style?: any }
+export function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...props }: IconBtnOptions={}) {
+    return h('button', {
+            onClick,
+            ...props,
+            ...small && {
+                style: { padding: '.1em', width: 35, height: 30, ...style }
+            }
+        },
+        icon.length > 1 ? hIcon(icon) : icon
+    )
 }

@@ -17,7 +17,7 @@ import { SxProps } from '@mui/system'
 import { Refresh, SvgIconComponent } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { apiCall } from './api'
-import { dontBotherWithKeys, formatPerc, useStateMounted } from '@hfs/shared'
+import { dontBotherWithKeys, formatPerc, useStateMounted, WIKI_URL } from '@hfs/shared'
 import { Promisable } from '@hfs/mui-grid-form'
 import { LoadingButton, LoadingButtonProps } from '@mui/lab'
 export * from '@hfs/shared'
@@ -198,9 +198,6 @@ export function Flex({ gap='.8em', vert=false, children=null, props={}, ...rest 
     }, children)
 }
 
-
-export const REPO_URL = 'https://github.com/rejetto/hfs/'
-export const WIKI_URL = REPO_URL + '/wiki/'
 
 export function wikiLink(uri: string, content: ReactNode) {
     if (Array.isArray(content))

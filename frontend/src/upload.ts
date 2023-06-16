@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
-import { Checkbox, Flex, FlexV } from './components'
+import { Checkbox, Flex, FlexV, iconBtn } from './components'
 import {
     closeDialog,
     DialogCloser,
@@ -195,18 +195,6 @@ function FilesList({ files, remove }: { files: File[], remove: (f:File) => any }
                 )
             })
         )
-    )
-}
-
-function iconBtn(icon: string, onClick: () => any, { small=true, style={}, ...props }={}) {
-    return h('button', {
-            onClick,
-            ...props,
-            ...small && {
-                style: { padding: '.1em', width: 35, height: 30, ...style }
-            }
-        },
-        icon.length > 1 ? hIcon(icon) : icon
     )
 }
 

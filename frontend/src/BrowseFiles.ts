@@ -22,7 +22,6 @@ import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
-import { deleteFiles } from './menu'
 import { openFileMenu } from './fileMenu'
 
 export const MISSING_PERM = "Missing permission"
@@ -158,7 +157,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
     )
 })
 
-function useMidnight() {
+export function useMidnight() {
     const [midnight, setMidnight] = useState(calcMidnight)
     useEffect(() => {
         setTimeout(()=> setMidnight(calcMidnight()), 10 * 60_000) // refresh every 10 minutes
@@ -180,7 +179,7 @@ interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder } = entry
     const base = usePath()
-    const { showFilter, selected, can_delete } = useSnapState()
+    const { showFilter, selected } = useSnapState()
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     const containerName = containerDir && entry.n.slice(0, -entry.name.length)
     let className = isFolder ? 'folder' : 'file'
@@ -223,11 +222,10 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     function fileMenu(ev: MouseEvent) {
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
-        const open = { icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
         openFileMenu(entry, ev, [
-            menuOnLink && !entry.cantOpen && (
-                !isFolder ? open : h(Link, { to: base + uri, onClick: () => close() }, hIcon(open.icon), open.label) ),
-            can_delete &&  { label: t`Delete`, icon: 'trash', onClick: () => deleteFiles([uri], base) }
+            menuOnLink && 'open',
+            'delete',
+            'show'
         ])
     }
 
@@ -241,7 +239,7 @@ export function getEntryIcon(entry: DirEntry) {
     })
 }
 
-const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
+export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
     const { t: time, s } = entry
     const today = time && time > midnight
     const shortTs = useWindowSize().width < 800

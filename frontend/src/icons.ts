@@ -9,6 +9,8 @@ const SYS_ICONS: Record<string, string[]> = {
     filter: ['✂'],
     search: ['🔍'],
     search_off: ['❌','cancel'],
+    close: ['❌','cancel'],
+    error: ['❌','cancel'],
     stop: ['⏹️'],
     settings: ['⚙','cog'],
     archive: ['📦'],
