@@ -1,5 +1,5 @@
 import { t, useI18N } from './i18n'
-import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, isMobile, newDialog } from './misc'
+import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEventHandler, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
@@ -33,8 +33,8 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: FileMen
         title: isFolder ? t`Folder menu` : t`File menu`,
         className: 'file-dialog',
         icon: () => ico,
-        position: isMobile() ? undefined
-            : [ev.pageX, ev.pageY - window.scrollY] as [number, number],
+        position: Math.min(innerWidth, innerHeight) < 800 ? undefined
+            : [ev.pageX, ev.pageY - scrollY] as [number, number],
         Content() {
             const {t} = useI18N()
             return h(Fragment, {},
