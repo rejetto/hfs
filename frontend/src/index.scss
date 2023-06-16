@@ -24,10 +24,9 @@
         .highlightedText { color: #fff; text-shadow: 0 0 3px #fff; }
         a { color:#8ac; }
         .dialog-closer { background: #633 }
-        .dialog-icon { color: #ccc;
-            .icon { color: #aaa; margin-left: -1px; font-size:95%;
-                margin-top: 0.4em; // useful for and affecting only img icons
-            }
+        .dialog-icon {
+            color: #ccc;
+            .icon { color: #aaa; }
         }
         .dialog-backdrop { background: #333b; }
         .error-msg { color: #b88; background-color: #623; }
@@ -340,6 +339,11 @@ button label {
 .dialog {
     min-width: 11em;
     --color: var(--button-bg);
+}
+.dialog-icon .icon {
+    margin-left: -1px; font-size:95%;
+    margin-top: 0.4em; // useful for and affecting only img icons
+    border-radius: 0.6em 0;
 }
 
 #paging {
