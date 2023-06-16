@@ -11,7 +11,8 @@ import {
     useRef,
     useState
 } from 'react'
-import { domOn, formatBytes, ErrorMsg, hIcon, isMobile, getHFS } from './misc'
+import { useWindowSize } from 'usehooks-ts'
+import { domOn, formatBytes, ErrorMsg, hIcon, getHFS } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -190,7 +191,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const ico = getEntryIcon(entry)
     const menuOnLink = getHFS().fileMenuOnLink
     const onClick = menuOnLink && fileMenu || undefined
-    const mobile = isMobile()
+    const small = useWindowSize().width < 800
     return h('li', { className, label: separator },
         showFilter && h(Checkbox, {
             value: selected[uri],
@@ -213,7 +214,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
             h(EntryDetails, { entry, midnight }),
-            (!menuOnLink || isFolder && mobile) && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
+            (!menuOnLink || isFolder && small) && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
         ),
         h('div'),
     )
@@ -242,7 +243,7 @@ export function getEntryIcon(entry: DirEntry) {
 const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
     const { t: time, s } = entry
     const today = time && time > midnight
-    const shortTs = isMobile()
+    const shortTs = useWindowSize().width < 800
     const {t} = useI18N()
     const dd = '2-digit'
     return h('div', { className: 'entry-props entry-details' }, // entry-props is legacy
