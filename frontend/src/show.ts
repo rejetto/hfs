@@ -1,4 +1,4 @@
-import { DirEntry, state } from './state'
+import { DirEntry, ext2type, state } from './state'
 import { createElement as h, Fragment, useRef, useState } from 'react'
 import { hfsEvent, hIcon, newDialog, restartAnimation, WIKI_URL } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
@@ -90,10 +90,10 @@ export function getShowType(entry: DirEntry) {
     const res = hfsEvent('fileShow', { entry }).find(Boolean)
     if (res)
         return res
-    const { n } = entry
-    return /\.(jpe?g|gif|png|webp|svg)$/i.test(n) ? 'img'
-        : /\.(mp3|wav|m4a)$/i.test(n) ? Audio
-        : /\.(mp4|mpe?g|webm|mov|m4v)$/i.test(n) ? Video
+    const type = ext2type(entry.ext)
+    return type === 'audio' ? Audio
+        : type === 'video' ? Video
+        : type === 'image' ? 'img'
         : ''
 }
 

@@ -170,7 +170,7 @@
     },
     {
       "uid": "381da2c2f7fd51f8de877c044d7f439d",
-      "css": "picture",
+      "css": "image",
       "code": 59409,
       "src": "fontawesome"
     },
@@ -200,7 +200,7 @@
     },
     {
       "uid": "f9c3205df26e7778abac86183aefdc99",
-      "css": "ccw",
+      "css": "reload",
       "code": 59416,
       "src": "fontawesome"
     }

@@ -65,7 +65,7 @@
 .fa-trash:before { content: '\e80d'; } /* '' */
 .fa-to_start:before { content: '\e80e'; } /* '' */
 .fa-to_end:before { content: '\e810'; } /* '' */
-.fa-picture:before { content: '\e811'; } /* '' */
+.fa-image:before { content: '\e811'; } /* '' */
 .fa-camera:before { content: '\e812'; } /* '' */
 .fa-search:before { content: '\e813'; } /* '' */
 .fa-logout:before { content: '\e814'; } /* '' */

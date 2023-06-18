@@ -98,7 +98,7 @@ export class DirEntry {
         this.isFolder = this.n.endsWith('/')
         if (!this.isFolder) {
             const i = this.n.lastIndexOf('.') + 1
-            this.ext = i ? this.n.substring(i) : ''
+            this.ext = i ? this.n.substring(i).toLowerCase() : ''
         }
         const t = this.m || this.c
         if (t)
@@ -125,7 +125,7 @@ export class DirEntry {
     }
 
     getDefaultIcon() {
-        return hIcon(this.isFolder ? 'folder' : 'file')
+        return hIcon(this.isFolder ? 'folder' : ext2type(this.ext) || 'file')
     }
 }
 export type DirList = DirEntry[]
@@ -134,3 +134,13 @@ function pathEncode(s: string) {
     return encodeURI(s).replace(/#/g, encodeURIComponent)
 }
 //unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
+
+const exts = {
+    image: ['jpeg','jpg','gif','png','webp','svg'],
+    audio: ['mp3','wav','m4a','ogg'],
+    video: ['mp4','mpeg','mpg','webm','mov','m4v'],
+}
+
+export function ext2type(ext: string) {
+    return _.findKey(exts, arr => arr.includes(ext))
+}

@@ -216,7 +216,7 @@ This is a list of available frontend-events, with respective object parameter an
 
       The `Entry` type is an object with the following properties:
         - `name: string` name of the entry.
-        - `ext: string` just the extension part of the name, dot excluded.
+        - `ext: string` just the extension part of the name, dot excluded and lowercase.
         - `isFolder: boolean` true if it's a folder.
         - `n: string` name of the entry, including relative path when searched in sub-folders.
         - `uri: string` relative url of the entry.
