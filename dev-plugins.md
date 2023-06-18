@@ -298,7 +298,25 @@ Published plugins are required to specify the `apiRequired` property.
 
 It is possible to publish different versions of the plugin to be compatible with different versions of HFS.
 To do that, just have your other versions in branches with name starting with `api`.
-HFS will scan through them in inverted alphabetical order searching for a compatible one. 
+HFS will scan through them in inverted alphabetical order searching for a compatible one.
+
+## React developers
+
+Most React developers are used to JSX, which is not (currently) supported here.
+If you want, you can try solutions to JSX support, like transpiling.
+Anyway, React is not JSX, and can be easily used without.
+
+Any time you in JSX you do 
+```jsx
+<button onClick={() => console.log('hi')}>Say hi</button>
+```
+
+This is just transalted to
+```js
+h('button', { onClick: () => console.log('hi') }, 'Say hi')
+```
+
+Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
