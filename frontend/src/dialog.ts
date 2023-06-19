@@ -35,6 +35,10 @@ export async function promptDialog(msg: string, { def, type, trim=true, ...rest 
                 ref,
                 type,
                 name: 'input',
+                style: {
+                    width: def ? (def.length / 2) + 'em' : 'auto',
+                    minWidth: '100%', maxWidth: '100%'
+                },
                 autoFocus: true,
                 onKeyDown(ev: KeyboardEvent) {
                     const { key } = ev

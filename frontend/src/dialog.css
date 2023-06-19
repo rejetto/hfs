@@ -14,7 +14,7 @@
 .dialog {
     background: #fff; /*fallback*/
     background: var(--bg);
-    padding: max(0.5em, 1vw);
+    padding: max(0.5em, 1vw, 2vh);
     border-radius: 1em;
     position: relative;
     margin: 0 3vw;
@@ -38,6 +38,7 @@
     font-size: 120%;
     margin-top: -.4em;
     padding: 0 0.5em; /* avoid reaching margins */
+    min-height: 1.2em;
 }
 .dialog-closer ~ .dialog-title {
     margin-right: 2em;
@@ -55,7 +56,7 @@
     background-color: #c88;
 }
 .dialog-icon ~ .dialog-content {
-    margin-top: 1.5em;
+    margin-top: .5em;
 }
 .dialog-type {
     left: 0;
@@ -87,12 +88,11 @@
 
 @media (max-width: 42em) {
     .dialog-icon { font-size: 120% }
-    .dialog-icon ~ .dialog-content { margin-top: 2.5em; } /* account for larger top icons */
+    .dialog-icon ~ .dialog-content { margin-top: 1.5em; } /* account for larger top icons */
     .dialog-title { margin-top: -.2em; }
 }
 
 .dialog-prompt label {
     display: block;
-    margin-bottom: .5em;
-    margin-left: .1em;
+    margin: .5em .1em;
 }
