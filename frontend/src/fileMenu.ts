@@ -7,6 +7,8 @@ import { DirEntry, state } from './state'
 import { deleteFiles } from './menu'
 import { Link } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
+import { alertDialog, promptDialog } from './dialog'
+import { apiCall } from '@hfs/shared/api'
 
 interface FileMenuEntry {
     label: ReactNode
@@ -40,7 +42,8 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 }
             return x
         }),
-        isFolder && { label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' }
+        state.can_delete && { label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
+        isFolder && { label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
     const props = [
         [t`Name`, entry.name],
@@ -85,4 +88,27 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             )
         }
     })
+}
+
+async function rename(entry: DirEntry) {
+    const dest = await promptDialog(t`Name`, { def: entry.name, title: t`Rename` })
+    if (!dest) return
+    const uri = location.pathname + entry.uri
+    try {
+        await apiCall('rename', { uri, dest })
+        // update state instead of re-getting the list
+        const { n } = entry
+        const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
+        const newEntry = new DirEntry(newN)
+        const i = _.findIndex(state.list, { n })
+        state.list[i] = newEntry
+        const j = _.findIndex(state.filteredList, { n })
+        if (j >= 0)
+            state.filteredList![j] = newEntry
+
+        alertDialog(t`Operation successful`).then() // don't wait, so it appears after the file-menu closes
+    }
+    catch(e: any) {
+        await alertDialog(e)
+    }
 }

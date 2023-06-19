@@ -116,6 +116,8 @@
         "Size": "Size",
         "Timestamp": "Timestamp",
         "Show": "Show",
-        "Loading failed": "Loading failed"
+        "Loading failed": "Loading failed",
+        "Rename": "Rename",
+        "Operation successful": "Operation successful"
     }
 }

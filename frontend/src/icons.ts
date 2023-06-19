@@ -32,6 +32,7 @@ const SYS_ICONS: Record<string, string[]> = {
     menu: ['☰'],
     list: ['☰','menu'],
     play: ['▶'],
+    edit: ['✏️'],
 }
 
 document.fonts.ready.then(async ()=> {

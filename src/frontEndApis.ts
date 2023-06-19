@@ -16,8 +16,8 @@ import {
     HTTP_UNAUTHORIZED
 } from './const'
 import { hasPermission, urlToNode } from './vfs'
-import { mkdir, rm } from 'fs/promises'
-import { join } from 'path'
+import { mkdir, rename, rm } from 'fs/promises'
+import { dirname, join } from 'path'
 
 export const customHeader = defineConfig('custom_header', '')
 
@@ -71,6 +71,29 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(e.code || HTTP_SERVER_ERROR, e)
         }
     },
+
+    async rename({ uri, dest }, ctx) {
+        apiAssertTypes({ string: { uri, dest } })
+        if (dest.includes('/') || dirTraversal(dest))
+            throw new ApiError(HTTP_FORBIDDEN)
+        const node = await urlToNode(uri, ctx)
+        if (!node)
+            throw new ApiError(HTTP_NOT_FOUND)
+        if (!hasPermission(node, 'can_delete', ctx))
+            throw new ApiError(HTTP_UNAUTHORIZED)
+        try {
+            if (node.name)
+                node.name = dest
+            else if (node.source)
+                await rename(node.source, join(dirname(node.source), dest))
+            else
+                throw new ApiError(HTTP_SERVER_ERROR)
+            return {}
+        }
+        catch (e: any) {
+            throw new ApiError(e.code || HTTP_SERVER_ERROR, e)
+        }
+    }
 
 }
 

@@ -16,7 +16,6 @@
   - configure router with upnp. If it fails, suggest a guide. https://github.com/indutny/node-nat-upnp
   - offer ddns registration/update
 - admin/fs: sort items
-- rename file (with delete permission)
 - admin/config: hide advanced settings
 - admin/fs: support insert/delete key
 - admin/monitor: show some info on what folder is browsing

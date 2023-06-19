@@ -110,6 +110,8 @@
         "Size": "Dimensione",
         "Timestamp": "Data/ora",
         "Show": "Show",
-        "Loading failed": "Caricamento fallito"
+        "Loading failed": "Caricamento fallito",
+        "Rename": "Rinomina",
+        "Operation successful": "Operazione riuscita"
     }
 }
