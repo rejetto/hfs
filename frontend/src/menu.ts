@@ -207,7 +207,7 @@ export async function deleteFiles(uris: string[], root: string='') {
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
         return false
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
-        apiCall('del', { uri: root + uri }).then(() => null, err => ({ uri, err }))
+        apiCall('delete', { uri: root + uri }).then(() => null, err => ({ uri, err }))
     )))
     reloadList()
     const e = errors.length

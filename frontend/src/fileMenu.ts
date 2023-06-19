@@ -68,7 +68,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 ),
                 entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                 h('div', { className: 'file-menu' },
-                    dontBotherWithKeys(menu.map((e: any, i) =>
+                    dontBotherWithKeys(menu.map((e: any, i) => // render menu entries
                         isValidElement(e) ? e
                             : !e?.label ? null :
                                 h('a', {

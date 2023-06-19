@@ -54,7 +54,7 @@ export const frontEndApis: ApiHandlers = {
         }
     },
 
-    async del({ uri }, ctx) {
+    async delete({ uri }, ctx) {
         apiAssertTypes({ string: { uri } })
         const node = await urlToNode(uri, ctx)
         if (!node)
