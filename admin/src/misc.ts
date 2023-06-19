@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, FC, Fragment, ReactNode } from 'react'
+import { createElement as h, FC, Fragment, ReactNode, KeyboardEvent } from 'react'
 import {
     Box,
     Breakpoint,
@@ -167,7 +167,7 @@ export function reloadBtn(onClick: any, props?: any) {
 }
 
 const isMac = navigator.platform.match('Mac')
-export function isCtrlKey(ev: React.KeyboardEvent) {
+export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }
 

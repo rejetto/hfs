@@ -36,7 +36,7 @@ const apis: ApiHandlers = {
             },
             connectionClosed(conn: Connection) {
                 if (cancel(conn)) return
-                list.remove(serializeConnection(conn, true))
+                list.remove(getConnAddress(conn))
                 conn[state] = false
             },
             connectionUpdated(conn: Connection, change: Change) {
@@ -65,19 +65,20 @@ const apis: ApiHandlers = {
 
         function update(conn: Connection, change: Change) {
             if (conn[state] === false) return
-            list.update(serializeConnection(conn, true), change)
+            list.update(getConnAddress(conn), change)
         }
 
-        function serializeConnection(conn: Connection, minimal?:true) {
+        function serializeConnection(conn: Connection) {
             const { socket, started, secure } = conn
-            return Object.assign(getConnAddress(conn), !minimal && {
+            return {
+                ...getConnAddress(conn),
                 v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
                 got: socket.bytesRead,
                 sent: socket.bytesWritten,
                 started,
                 secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
                 ...fromCtx(conn.ctx),
-            })
+            }
         }
 
         function fromCtx(ctx?: Koa.Context) {

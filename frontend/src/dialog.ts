@@ -6,6 +6,7 @@ import { newDialog, closeDialog, DialogOptions, DialogCloser } from '@hfs/shared
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'
 import { t } from './i18n'
+import { err2msg } from './misc'
 export * from '@hfs/shared/dialogs'
 
 interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string, trim?: boolean }
@@ -59,10 +60,8 @@ export async function promptDialog(msg: string, { def, type, trim=true, ...rest 
 type AlertType = 'error' | 'warning' | 'info'
 
 export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', { getClose=_.noop }={}) {
-    if (msg instanceof Error) {
-        msg = msg.message
+    if (msg instanceof Error)
         type = 'error'
-    }
     return new Promise(resolve => getClose(newDialog({
         className: 'dialog-alert dialog-alert-'+type,
         title: t(_.capitalize(type)),
@@ -72,7 +71,9 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
     })))
 
     function Content(){
-        if (typeof msg === 'string' || msg instanceof Error)
+        if (msg instanceof Error)
+            msg = err2msg(msg)
+        if (typeof msg === 'string')
             msg = h('p', {}, String(msg))
         return msg
     }
