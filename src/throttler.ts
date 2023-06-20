@@ -49,13 +49,17 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     const update = _.debounce(() => {
         const ts = conn[SymThrStr] as ThrottledStream
         const outSpeed = roundSpeed(ts.getSpeed())
-        updateConnection(conn, { outSpeed, sent: ts.getBytesSent() })
+        updateConnection(conn, {
+            outSpeed,
+            sent: conn.socket.bytesWritten,
+            downloadProgress: ts.getBytesSent() / downloadTotal,
+        })
         /* in case this stream stands still for a while (before the end), we'll have neither 'sent' or 'close' events,
         * so who will take care to updateConnection? This artificial next-call will ensure just that */
         clearTimeout(conn[SymTimeout])
         if (outSpeed || !closed)
             conn[SymTimeout] = setTimeout(update, DELAY)
-    }, DELAY, { maxWait:DELAY })
+    }, DELAY, { leading: true, maxWait:DELAY })
     ts.on('sent', (n: number) => {
         totalSent += n
         update()
@@ -70,11 +74,11 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         delete ip2group[ctx.ip]
     })
 
-    const bak = ctx.response.length // preserve
+    const downloadTotal: number = ctx.response.length
     ctx.body = ctx.body.pipe(ts)
 
-    if (bak)
-        ctx.response.length = bak
+    if (downloadTotal)  // preserve this info
+        ctx.response.length = downloadTotal
     ts.once('end', () => // in case of compressed response, we offer calculation of real size
         ctx.state.length = ts.getBytesSent())
 }

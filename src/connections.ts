@@ -7,10 +7,11 @@ import _ from 'lodash'
 
 export class Connection {
     readonly started = new Date()
-    sent = 0
+    sent = 0 // socket-scoped, not request-scoped
     got = 0
     outSpeed?: number
     inSpeed?: number
+    downloadProgress?: number
     uploadProgress?: number
     uploadPath?: string
     ctx?: Koa.Context

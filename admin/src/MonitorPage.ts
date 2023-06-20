@@ -3,7 +3,7 @@
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip, Upload } from '@mui/icons-material'
+import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { formatBytes, IconBtn, IconProgress, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
@@ -118,9 +118,10 @@ function Connections() {
                         h(Box, { ml: 2, color: 'text.secondary' }, value)
                     )
                 const i = value?.lastIndexOf('/')
+                const progress = row.uploadProgress ?? row.downloadProgress
                 return h(Fragment, {},
-                    row.uploadProgress !== undefined
-                        && h(IconProgress, { icon: Upload, progress: row.uploadProgress, sx: { mr: 1 } }),
+                    progress !== undefined
+                        && h(IconProgress, { icon: row.uploadProgress ? Upload : Download, progress, sx: { mr: 1 } }),
                     value.slice(i + 1),
                     i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i))
                 )
@@ -144,7 +145,7 @@ function Connections() {
         },
         {
             field: 'sent',
-            headerName: "Total",
+            headerName: "Sent",
             type: 'number',
             renderCell: ({ value, row}) => formatBytes(Math.max(value||0, row.got||0))
         },
