@@ -8,7 +8,6 @@ import { Alert, Box, Chip, ChipProps } from '@mui/material'
 import { DataGrid } from "@mui/x-data-grid"
 import { formatBytes, IconBtn, IconProgress, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
-import { GridColumns } from '@mui/x-data-grid/models/colDef/gridColDef'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 
 export default function MonitorPage() {
@@ -85,101 +84,6 @@ function Connections() {
     const rows = useMemo(() =>
             list?.filter((x: any) => !filtered || x.path).map((x: any, id: number) => ({ id, ...x })),
         [!paused && list, filtered]) //eslint-disable-line
-    // if I don't memo 'columns', it won't keep hiding status
-    const columns = useMemo<GridColumns<any>>(() => [
-        {
-            field: 'ip',
-            headerName: "Address",
-            flex: 1,
-            maxWidth: 400,
-            valueGetter: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port
-        },
-        {
-            field: 'user',
-            headerName: "User",
-        },
-        {
-            field: 'started',
-            headerName: "Started",
-            type: 'dateTime',
-            width: 130,
-            valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
-        },
-        {
-            field: 'path',
-            headerName: "File",
-            flex: 1,
-            renderCell({ value, row }) {
-                if (!value) return
-                if (row.archive)
-                    return h(Fragment, {},
-                        h(FolderZip, { sx: { mr: 1 } }),
-                        row.archive,
-                        h(Box, { ml: 2, color: 'text.secondary' }, value)
-                    )
-                const i = value?.lastIndexOf('/')
-                return h(Fragment, {},
-                    row.op && h(IconProgress, {
-                        icon: row.op === 'upload' ? Upload : Download,
-                        progress: row.opProgress,
-                        offset: row.opOffset,
-                        addTitle: row.opTotal && h('div', {}, "Total: " + formatBytes(row.opTotal)),
-                        sx: { mr: 1 }
-                    }),
-                    value.slice(i + 1),
-                    i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i))
-                )
-            }
-        },
-        {
-            field: 'v',
-            headerName: "Protocol",
-            align: 'center',
-            hide: true,
-            renderCell: ({ value, row }) => h(Fragment, {},
-                "IPv" + value,
-                row.secure && iconTooltip(Lock, "HTTPS", { opacity: .5 })
-            )
-        },
-        {
-            field: 'outSpeed',
-            headerName: "Speed",
-            type: 'number',
-            renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0))
-        },
-        {
-            field: 'sent',
-            headerName: "Sent",
-            type: 'number',
-            renderCell: ({ value, row}) => formatBytes(Math.max(value||0, row.got||0))
-        },
-        {
-            field: 'agent',
-            headerName: "Agent",
-        },
-        {
-            field: "Actions",
-            width: 80,
-            align: 'center',
-            hideSortIcons: true,
-            disableColumnMenu: true,
-            renderCell({ row }) {
-                return h('div', {},
-                    h(IconBtn, {
-                        icon: Delete,
-                        title: "Disconnect",
-                        onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])),
-                    }),
-                    h(IconBtn, {
-                        icon: Block,
-                        title: "Block IP",
-                        disabled: row.ip === props?.you,
-                        onClick: () => blockIp(row.ip),
-                    }),
-                )
-            }
-        }
-    ], [props])
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center' },
             h(SelectField as Field<boolean>, {
@@ -200,8 +104,107 @@ function Connections() {
             }),
         ),
         error ? h(Alert, { severity: 'error' }, error)
-            : h(DataGrid, { rows, columns,
+            : h(DataGrid, {
+                rows,
                 localeText: filtered ? { noRowsLabel: "No downloads at the moment" } : undefined,
+                initialState: {
+                    columns: {
+                        columnVisibilityModel: { v: false },
+                    }
+                },
+                columns: [
+                    {
+                        field: 'ip',
+                        headerName: "Address",
+                        flex: 1,
+                        maxWidth: 400,
+                        valueGetter: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port
+                    },
+                    {
+                        field: 'user',
+                        headerName: "User",
+                    },
+                    {
+                        field: 'started',
+                        headerName: "Started",
+                        type: 'dateTime',
+                        width: 130,
+                        valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
+                    },
+                    {
+                        field: 'path',
+                        headerName: "File",
+                        flex: 1,
+                        renderCell({ value, row }) {
+                            if (!value) return
+                            if (row.archive)
+                                return h(Fragment, {},
+                                    h(FolderZip, { sx: { mr: 1 } }),
+                                    row.archive,
+                                    h(Box, { ml: 2, color: 'text.secondary' }, value)
+                                )
+                            const i = value?.lastIndexOf('/')
+                            return h(Fragment, {},
+                                row.op && h(IconProgress, {
+                                    icon: row.op === 'upload' ? Upload : Download,
+                                    progress: row.opProgress,
+                                    offset: row.opOffset,
+                                    addTitle: row.opTotal && h('div', {}, "Total: " + formatBytes(row.opTotal)),
+                                    sx: { mr: 1 }
+                                }),
+                                value.slice(i + 1),
+                                i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i))
+                            )
+                        }
+                    },
+                    {
+                        field: 'v',
+                        headerName: "Protocol",
+                        align: 'center',
+                        renderCell: ({ value, row }) => h(Fragment, {},
+                            "IPv" + value,
+                            row.secure && iconTooltip(Lock, "HTTPS", { opacity: .5 })
+                        )
+                    },
+                    {
+                        field: 'outSpeed',
+                        headerName: "Speed",
+                        type: 'number',
+                        renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0))
+                    },
+                    {
+                        field: 'sent',
+                        headerName: "Sent",
+                        type: 'number',
+                        renderCell: ({ value, row}) => formatBytes(Math.max(value||0, row.got||0))
+                    },
+                    {
+                        field: 'agent',
+                        headerName: "Agent",
+                    },
+                    {
+                        field: "Actions",
+                        width: 80,
+                        align: 'center',
+                        hideSortIcons: true,
+                        disableColumnMenu: true,
+                        renderCell({ row }) {
+                            return h('div', {},
+                                h(IconBtn, {
+                                    icon: Delete,
+                                    title: "Disconnect",
+                                    onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])),
+                                }),
+                                h(IconBtn, {
+                                    icon: Block,
+                                    title: "Block IP",
+                                    disabled: row.ip === props?.you,
+                                    onClick: () => blockIp(row.ip),
+                                }),
+                            )
+                        }
+                    }
+                ]
             })
     )
 }
@@ -212,8 +215,4 @@ function blockIp(ip: string) {
 
 function formatSpeed(value: number) {
     return !value ? '' : formatBytes(value * 1000, { post: "B/s", k: 1000, digits: 1 })
-}
-
-function isLocalHost(ip: string) {
-    return ip === '::1' || ip.endsWith('127.0.0.1')
 }
