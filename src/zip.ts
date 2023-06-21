@@ -29,7 +29,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 if (await nodeIsDirectory(subNode)) { // a directory needs to walked
                     if (hasPermission(subNode, 'can_list',ctx)) {
                         yield subNode // it could be empty
-                        yield* walkNode(subNode, ctx, Infinity, uri + '/', 'can_read')
+                        yield* walkNode(subNode, ctx, Infinity, decodeURI(uri) + '/', 'can_read')
                     }
                     continue
                 }
