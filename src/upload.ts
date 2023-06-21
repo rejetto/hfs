@@ -49,7 +49,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     const resumable = fs.existsSync(tempName) && tempName
     if (resumable)
         tempName = join(dir, 'hfs$upload2-' + keepName)
-    const resume = Number(ctx.query.resume)
+    let resume = Number(ctx.query.resume)
     const size = resumable && try_(() => fs.statSync(resumable).size)
     if (size === undefined) // stat failed
         return fail(HTTP_SERVER_ERROR)
@@ -65,6 +65,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
             }) )
     }
     const resuming = resume && resumable
+    if (!resuming)
+        resume = 0
     const ret = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
         : fs.createWriteStream(tempName)
     if (resuming) {
@@ -103,14 +105,15 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         const conn = socket2connection(ctx.socket)
         if (!conn) return ()=>{}
         ctx.state.uploadPath = ctx.path + path
-        updateConnection(conn, { ctx })
+        const opTotal = reqSize + resume
+        updateConnection(conn, { ctx, op: 'upload', opTotal, opOffset: resume / opTotal })
         const h = setInterval(() => {
             const now = Date.now()
             const got = ret.bytesWritten
             const inSpeed = roundSpeed((got - lastGot) / (now - lastGotTime))
             lastGot = got
             lastGotTime = now
-            updateConnection(conn, { inSpeed, got, uploadProgress: _.round(got / reqSize, 3) })
+            updateConnection(conn, { inSpeed, got, opProgress: (resume + got) / opTotal })
         }, 1000)
         ret.once('close', () => clearInterval(h) )
     }

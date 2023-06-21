@@ -18,6 +18,7 @@ import { matches } from './misc'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
+import { updateConnection } from './connections'
 
 const allowedReferer = defineConfig('allowed_referer', '')
 
@@ -32,17 +33,17 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
         if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
         && !matches(ref, allowed))
             return ctx.status = HTTP_FORBIDDEN
-
-        function host() {
-            const s = ctx.get('host')
-            return s[0] === '[' ? s.slice(1, s.indexOf(']')) : s?.split(':')[0]
-        }
     }
 
     ctx.vfsNode = node // useful to tell service files from files shared by the user
     if ('dl' in ctx.query) // please, download
         ctx.attachment(name)
     return serveFile(ctx, source||'', mimeString)
+
+    function host() {
+        const s = ctx.get('host')
+        return s[0] === '[' ? s.slice(1, s.indexOf(']')) : s?.split(':')[0]
+    }
 }
 
 const mimeCfg = defineConfig<Record<string,string>>('mime', { '*': 'auto' })
@@ -73,8 +74,15 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
             return ctx.status = HTTP_NOT_MODIFIED
         if (content !== undefined)
             return ctx.body = content
-        const range = getRange(ctx, stats.size)
+        const { size } = stats
+        const range = getRange(ctx, size)
         ctx.body = createReadStream(source, range)
+        if (ctx.vfsNode)
+            updateConnection(ctx.state.connection, {
+                op: 'download',
+                opTotal: stats.size,
+                opOffset: range && (range.start / size),
+            })
     }
     catch (e: any) {
         return ctx.status = HTTP_NOT_FOUND

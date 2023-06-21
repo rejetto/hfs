@@ -118,10 +118,14 @@ function Connections() {
                         h(Box, { ml: 2, color: 'text.secondary' }, value)
                     )
                 const i = value?.lastIndexOf('/')
-                const progress = row.uploadProgress ?? row.downloadProgress
                 return h(Fragment, {},
-                    progress !== undefined
-                        && h(IconProgress, { icon: row.uploadProgress ? Upload : Download, progress, sx: { mr: 1 } }),
+                    row.op && h(IconProgress, {
+                        icon: row.op === 'upload' ? Upload : Download,
+                        progress: row.opProgress,
+                        offset: row.opOffset,
+                        addTitle: row.opTotal && h('div', {}, "Total: " + formatBytes(row.opTotal)),
+                        sx: { mr: 1 }
+                    }),
                     value.slice(i + 1),
                     i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i))
                 )

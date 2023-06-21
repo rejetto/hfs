@@ -11,8 +11,10 @@ export class Connection {
     got = 0
     outSpeed?: number
     inSpeed?: number
-    downloadProgress?: number
-    uploadProgress?: number
+    op?: 'download' | 'upload'
+    opTotal?: number
+    opProgress?: number
+    opOffset?: number
     uploadPath?: string
     ctx?: Koa.Context
     private _cachedIp?: string

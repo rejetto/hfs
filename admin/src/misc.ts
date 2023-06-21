@@ -171,18 +171,32 @@ export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }
 
-export function IconProgress({ icon, progress, sx }: { icon: SvgIconComponent, progress: number, sx?: SxProps }) {
+interface IconProgressProps {
+    icon: SvgIconComponent,
+    progress: number,
+    offset?: number,
+    sx?: SxProps,
+    addTitle?: ReactNode
+}
+export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgressProps) {
     return h(Fragment, {},
         h(icon, { sx: { position:'absolute', ml: '4px' } }),
+        h(CircularProgress, {
+            value: progress * 100,
+            variant: 'determinate',
+            size: 32,
+            sx: { position: 'absolute' },
+        }),
         h(Tooltip, {
-            title: formatPerc(progress),
+            title: h(Fragment, {}, formatPerc(progress), addTitle),
             children: h(CircularProgress, {
-                value: progress*100,
+                color: 'success',
+                value: (offset || 1e-7) * 100,
                 variant: 'determinate',
                 size: 32,
                 sx,
             }),
-        }),
+        })
     )
 }
 
