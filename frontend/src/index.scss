@@ -428,15 +428,13 @@ button label {
 }
 .file-menu {
     margin-top: 1em;
+    padding-top: 1em;
+    border-top: 1px solid var(--faint-contrast);
 
     display: flex;
     flex-direction: column;
+    gap: 1em;
     & a {
-        padding: .5em 0;
-        &:first-child {
-            padding-top: 1em;
-            border-top: 1px solid var(--faint-contrast);
-        }
         & .icon { margin-right: 0.5em; }
         &:hover { @extend .highlightedText }
     }
@@ -638,9 +636,13 @@ button label {
             display: flex;
             gap: 3em;
             margin: 1em;
-            .file-menu {
+            .file-menu { // move divisor to left
                 margin-top: 0;
-                a:first-child { border-top: none; }
+                padding-top: 0;
+                border-top: none;
+                margin-left: 2em;
+                padding-left: 2em;
+                border-left: 1px solid var(--faint-contrast);
             }
         }
     }
