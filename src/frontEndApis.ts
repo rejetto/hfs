@@ -18,6 +18,7 @@ import {
 import { hasPermission, urlToNode } from './vfs'
 import { mkdir, rename, rm } from 'fs/promises'
 import { dirname, join } from 'path'
+import { getUploadMeta } from './upload'
 
 export const customHeader = defineConfig('custom_header', '')
 
@@ -34,6 +35,16 @@ export const frontEndApis: ApiHandlers = {
                 list.custom({ name, data })
             }
         })
+    },
+
+    async get_file_details({ uri }, ctx) {
+        apiAssertTypes({ string: { uri } })
+        const node = await urlToNode(uri, ctx)
+        if (!node)
+            return new ApiError(HTTP_NOT_FOUND)
+        return {
+            upload: node.source && await getUploadMeta(node.source).catch(() => undefined)
+        }
     },
 
     async create_folder({ uri, name }, ctx) {

@@ -8,18 +8,25 @@ import {
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, dirTraversal, try_ } from './misc'
+import { Callback, dirTraversal, loadFileAttr, storeFileAttr, try_ } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getFreeDiskSync } from './util-os'
 import { socket2connection, updateConnection } from './connections'
 import { roundSpeed } from './throttler'
+import { getCurrentUsername } from './perm'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
 const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
 
 const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
+
+const ATTR_UPLOADER = 'uploader'
+
+export function getUploadMeta(path: string) {
+    return loadFileAttr(path, ATTR_UPLOADER)
+}
 
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     if (dirTraversal(path))
@@ -75,9 +82,13 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     }
     cancelDeletion(tempName)
     trackProgress()
-    ret.once('close', () => {
+    ret.once('close', async () => {
         if (!ctx.req.aborted) {
             let dest = fullPath
+            await storeFileAttr(tempName, ATTR_UPLOADER, {
+                username: getCurrentUsername(ctx),
+                ip: ctx.ip,
+            })
             if (dontOverwriteUploading.get() && fs.existsSync(dest)) {
                 const ext = extname(dest)
                 const base = dest.slice(0, -ext.length)

@@ -1,5 +1,5 @@
 import { t, useI18N } from './i18n'
-import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog } from './misc'
+import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog, prefix, with_ } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEventHandler, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
@@ -8,7 +8,7 @@ import { deleteFiles } from './menu'
 import { Link } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
 import { alertDialog, promptDialog } from './dialog'
-import { apiCall } from '@hfs/shared/api'
+import { apiCall, useApi } from '@hfs/shared/api'
 
 interface FileMenuEntry {
     label: ReactNode
@@ -19,6 +19,7 @@ interface FileMenuEntry {
 
 export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder } = entry
+    const fullUri = uri[0] === '/' ? uri : location.pathname + uri
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
         !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
@@ -26,7 +27,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             if (x === 'open') {
                 if (entry.cantOpen) return
                 const open = { icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
-                return !isFolder ? open : h(Link, { to: location.pathname + uri, onClick: () => close() }, hIcon(open.icon), open.label)
+                return !isFolder ? open : h(Link, { to: fullUri, onClick: () => close() }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
                 return state.can_delete && {
@@ -62,9 +63,13 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             : [ev.pageX, ev.pageY - scrollY] as [number, number],
         Content() {
             const {t} = useI18N()
+            const [details] = useApi('get_file_details', { uri: fullUri })
+            const showProps = [ ...props,
+                with_(details?.upload, x => x && [ t`Uploader`, x.ip + prefix(' (', x.username, ')') ])
+            ]
             return h(Fragment, {},
                 h('dl', { className: 'file-dialog-properties' },
-                    dontBotherWithKeys(props.map(prop => isValidElement(prop) ? prop
+                    dontBotherWithKeys(showProps.map(prop => isValidElement(prop) ? prop
                         : Array.isArray(prop) ? h(Fragment, {}, h('dt', {}, prop[0]), h('dd', {}, prop[1]))
                             : null
                     ))
