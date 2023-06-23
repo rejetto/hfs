@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { Center, getHFS } from './misc'
+import { Center, getHFS, makeSessionRefresher } from './misc'
 import { Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
 import { srpSequence } from '@hfs/shared'
@@ -71,15 +71,5 @@ async function login(username: string, password: string) {
     sessionRefresher(res)
 }
 
+const sessionRefresher = makeSessionRefresher(state)
 sessionRefresher(getHFS().session)
-
-function sessionRefresher(response: any) {
-    if (!response) return
-    const { exp, username } = response
-    state.username = username
-    if (!username || !exp) return
-    const delta = new Date(exp).getTime() - Date.now()
-    const t = Math.min(delta - 30_000, 600_000)
-    console.debug('session refresh in', Math.round(t/1000))
-    setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
-}

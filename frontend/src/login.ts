@@ -3,13 +3,12 @@
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
-import { getHFS, getPrefixUrl, hIcon, srpSequence, working } from './misc'
+import { getHFS, getPrefixUrl, hIcon, makeSessionRefresher, srpSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
 import { reloadList } from './useFetchList'
 import { CustomCode } from './components'
-import _ from 'lodash'
 
 async function login(username:string, password:string) {
     const stopWorking = working()
@@ -28,19 +27,8 @@ async function login(username:string, password:string) {
     })
 }
 
+const sessionRefresher = makeSessionRefresher(state)
 sessionRefresher(getHFS().session)
-
-function sessionRefresher(response: any) {
-    if (!response) return
-    const { exp, username, adminUrl } = response
-    state.username = username
-    state.adminUrl = adminUrl
-    if (!username || !exp) return
-    const delta = new Date(exp).getTime() - Date.now()
-    const t = _.clamp(delta - 30_000, 5_000, 600_000)
-    console.debug('session refresh in', Math.round(t/1000))
-    setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
-}
 
 export function logout(){
     return apiCall('logout').catch(res => {

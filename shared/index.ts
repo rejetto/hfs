@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
+import { apiCall } from './api'
 export * from './react'
 export * from './dialogs'
 export * from './srp'
@@ -187,4 +188,18 @@ export function getPrefixUrl() {
 
 export function basename(path: string) {
     return path.slice(path.lastIndexOf('/') + 1 || path.lastIndexOf('\\') + 1)
+}
+
+export function makeSessionRefresher(state: any) {
+    return function sessionRefresher(response: any) {
+        if (!response) return
+        const { exp, username, adminUrl } = response
+        state.username = username
+        state.adminUrl = adminUrl
+        if (!username || !exp) return
+        const delta = new Date(exp).getTime() - Date.now()
+        const t = _.clamp(delta - 30_000, 4_000, 600_000)
+        console.debug('session refresh in', Math.round(t / 1000))
+        setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
+    }
 }
