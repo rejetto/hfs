@@ -144,7 +144,7 @@ export default function OptionsPage() {
             { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
             { k: 'keep_session_alive', comp: BoolField, helperText: "Keeps you logged in while the page is left open and the computer is on" },
-            { k: 'session_duration', comp: NumberField, sm: 3, unit: "seconds" },
+            { k: 'session_duration', comp: NumberField, sm: 3, min: 5, unit: "seconds", required: true },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 3, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address", md: 12,
