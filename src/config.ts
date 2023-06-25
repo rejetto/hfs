@@ -66,11 +66,11 @@ const CONFIG_CHANGE_EVENT_PREFIX = 'new.'
 const currentVersion = new Version(VERSION)
 const configVersion = defineConfig('version', VERSION, v => new Version(v))
 
-type Subscriber<T,R=void> = (v:T, was:T | undefined, version: Version | undefined) => R
+type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T }) => R
 export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Subscriber<T,CT>) {
     configProps[k] = { defaultValue }
     type Updater = (currentValue:T) => T
-    let compiled = compiler?.(defaultValue, undefined, currentVersion)
+    let compiled = compiler?.(defaultValue, { version: currentVersion, defaultValue })
     const ret = { // consider a Class
         key() {
             return k
@@ -80,7 +80,7 @@ export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Sub
         },
         sub(cb: Subscriber<T>) {
             if (started) // initial event already passed, we'll make the first call
-                cb(getConfig(k), defaultValue, configVersion.compiled())
+                cb(getConfig(k), { was: defaultValue, defaultValue, version: configVersion.compiled() })
             const eventName = CONFIG_CHANGE_EVENT_PREFIX + k
             return onOff(cfgEvents, {
                 [eventName]() {
