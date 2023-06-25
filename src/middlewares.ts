@@ -192,6 +192,14 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
 let proxyDetected: undefined | Koa.Context
 export const someSecurity: Koa.Middleware = async (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
+    // don't allow sessions to change ip
+    const ss = ctx.session
+    if (ss?.username)
+        if (!ss.ip)
+            ss.ip = ctx.ip
+        else if (ss.ip !== ctx.ip)
+            delete ss.username
+
     try {
         if (dirTraversal(decodeURI(ctx.path)))
             return ctx.status = HTTP_FOOL
