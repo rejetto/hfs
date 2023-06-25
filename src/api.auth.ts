@@ -31,7 +31,6 @@ async function loggedIn(ctx:Koa.Context, username: string | false) {
     }
     s.username = normalizeUsername(username)
     await prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
-    delete s.login
     ctx.cookies.set('csrf', randomId(), { signed:false, httpOnly: false })
 }
 
@@ -100,6 +99,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
         await loggedIn(ctx, username)
+        delete ctx.session.loggingIn
         return {
             proof: String(M2),
             redirect: ctx.state.account?.redirect,
