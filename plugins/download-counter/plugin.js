@@ -1,3 +1,5 @@
+// other plugins can use ctx.state.download_counter_ignore to mark downloads that shouldn't be counted
+
 exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
 exports.version = 4.1 // fix: different cases and encodings with urls weren't properly counted
 exports.apiRequired = 8
@@ -43,7 +45,7 @@ exports.init = async api => {
         unload: () => save.flush(), // we may have pending savings
         middleware: (ctx) =>
             () => { // execute after other middlewares are done
-                if (ctx.status >= 300 || !ctx.vfsNode) return
+                if (ctx.status >= 300 || !ctx.vfsNode || ctx.state.download_counter_ignore) return
                 const k = uri2key(ctx.path)
                 counters[k] = counters[k] + 1 || 1
                 save()
