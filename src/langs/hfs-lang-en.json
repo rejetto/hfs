@@ -118,6 +118,8 @@
         "Show": "Show",
         "Loading failed": "Loading failed",
         "Rename": "Rename",
+        "Tiles mode:": "Tiles mode:",
+        "off": "off",
         "Operation successful": "Operation successful",
         "Uploader": "Uploader"
     }
