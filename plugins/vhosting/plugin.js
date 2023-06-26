@@ -41,7 +41,7 @@ exports.init = api => {
                 }
                 return
             }
-            let { root } = row
+            let { root='' } = row
             if (root.endsWith('/'))
                 root = root.slice(0, -1)
             if (!params)
