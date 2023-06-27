@@ -9,7 +9,7 @@ import { state } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
 import _ from 'lodash'
-import { apiCall, setDefaultApiCallOptions } from '@hfs/shared/api'
+import { apiCall, setDefaultApiCallOptions, useApi } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { logout } from './login'
 import { subscribeKey } from 'valtio/utils'
@@ -60,7 +60,7 @@ export function hfsEvent(name: string, params?:Dict) {
     return output
 }
 
-const tools = { h, React, state, t, _, dialogLib, apiCall, reloadList, logout, Icon, hIcon,
+const tools = { h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon,
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
         return subscribeKey(up ? uploadState : state as any, up || k, cb, true)

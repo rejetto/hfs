@@ -16,7 +16,7 @@ const pkg = JSON.parse(fs.readFileSync(PKG_PATH,'utf8'))
 export const VERSION = pkg.version
 export const DAY = 86_400_000
 
-export const API_VERSION = 8.22
+export const API_VERSION = 8.23
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
 
 export const HFS_REPO = 'rejetto/hfs'

@@ -169,6 +169,7 @@ Once your script is loaded into the frontend (via `frontend_js`), you will have 
 The HFS objects contains many properties:
 - `onEvent` this is the main API function inside the frontend. Refer to dedicated section below.
 - `apiCall`
+- `useApi`
 - `reloadList`
 - `logout`
 - `state` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
@@ -320,10 +321,10 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
-- 8.22 (v0.46.0)
+- 8.23 (v0.46.0)
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
   - platform-dependent distribution
-  - HFS.watchState, emit
+  - HFS.watchState, emit, useApi
   - api.storageDir, customApiCall
   - exports.depend
   - new event: fileShow
