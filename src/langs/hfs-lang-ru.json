@@ -1,6 +1,6 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 1.95,
+    "version": 1.96,
     "hfs_version": "0.46.0",
     "translate": {
         "Select": "Выбор",
@@ -114,6 +114,13 @@
         "Get list": "Получить список",
         "Skip existing files": "Пропуск существующих файлов",
         "Size": "Размер",
-        "Timestamp": "Дата"
+        "Timestamp": "Дата",
+        "Show": "Просмотр",
+        "Loading failed": "Не удалось загрузить",
+        "Rename": "Переименовать",
+        "Tiles mode:": "Плитки:",
+        "off": "выключено",
+        "Operation successful": "Операция успешна",
+        "Uploader": "Загрузчик"
     }
 }
