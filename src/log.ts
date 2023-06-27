@@ -67,7 +67,7 @@ const debounce = _.debounce(cb => cb(), 1000)
 export const logMw: Koa.Middleware = async (ctx, next) => {
     const now = new Date()
     await next()
-    console.debug(ctx.status, ctx.method, ctx.path)
+    console.debug(ctx.status, ctx.method, ctx.originalUrl)
     Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ]).then(() => {
         if (ctx.state.dont_log) return
         if (dontLogNet.compiled()(ctx.ip)) return
@@ -107,7 +107,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             user || '-',
             date,
             ctx.method,
-            ctx.path,
+            ctx.originalUrl,
             ctx.req.httpVersion,
             ctx.status,
             length?.toString() ?? '-',
