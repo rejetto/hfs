@@ -3,7 +3,7 @@ import { createElement as h, Fragment, useRef, useState } from 'react'
 import { hfsEvent, hIcon, newDialog, restartAnimation, WIKI_URL } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
-import { Flex, FlexV, iconBtn } from './components'
+import { Flex, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { useI18N } from './i18n'
 
@@ -32,6 +32,7 @@ export function fileShow(entry: DirEntry) {
                     return
                 }
             })
+            const [loading, setLoading] = useState(false)
             const [failed, setFailed] = useState<false | string>(false)
             const {t} = useI18N()
             return h(Fragment, {},
@@ -48,6 +49,7 @@ export function fileShow(entry: DirEntry) {
                     h(FlexV, { flex: 1, center: true, position: 'relative', maxHeight: '100%',
                         overflow: 'hidden' // without this <video> can make me go beyond the screen limit
                     },
+                        loading && h(Spinner, { style: { position: 'absolute', fontSize: '20vh', opacity: .5 } }),
                         failed === cur.n ? h(FlexV, { alignItems: 'center', textAlign: 'center' },
                             hIcon('error', { style: { fontSize: '20vh' } }),
                             h('div', {}, cur.name),
@@ -55,7 +57,10 @@ export function fileShow(entry: DirEntry) {
                         ) : h(getShowType(cur) || Fragment, {
                             src: cur.uri,
                             className: 'showing',
-                            onLoad: () => lastGood.current = cur,
+                            onLoad: () => {
+                                lastGood.current = cur
+                                setLoading(false)
+                            },
                             onError: () => {
                                 go()
                                 setFailed(cur.n)
@@ -72,9 +77,11 @@ export function fileShow(entry: DirEntry) {
                     moving.current = dir
                 let e = cur
                 setFailed(false)
+                setLoading(true)
                 while (1) {
                     e = e.getSibling(moving.current)
                     if (!e) { // reached last
+                        setLoading(cur !== lastGood.current)
                         setCur(lastGood.current) // revert to last known supported file
                         return restartAnimation(document.body, '.2s blink')
                     }
