@@ -19,7 +19,7 @@ const HFS = getHFS()
 Object.assign(HFS, {
     getPluginKey: () => getScriptAttr('plugin'),
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
-    getPluginConfig: () => HFS.plugins[HFS.getPluginKey()],
+    getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
 })
 
 function getScriptAttr(k: string) {
