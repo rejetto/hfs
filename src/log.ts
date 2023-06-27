@@ -62,57 +62,56 @@ errorLogFile.sub(path => {
 const logRotation = defineConfig('log_rotation', 'weekly')
 const dontLogNet = defineConfig('dont_log_net', '127.0.0.1|::1', v => makeNetMatcher(v))
 
-export function log(): Koa.Middleware {
-    const debounce = _.debounce(cb => cb(), 1000)
-    return async (ctx, next) => {  // wrapping in a function will make it use current 'mw' value
-        const now = new Date()
-        await next()
-        console.debug(ctx.status, ctx.method, ctx.path)
-        Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ]).then(() => {
-            if (dontLogNet.compiled()(ctx.ip)) return
-            const isError = ctx.status >= 400
-            const logger = isError && accessErrorLog || accessLogger
-            const rotate = logRotation.get()?.[0]
-            let { stream, last, path } = logger
-            if (!stream) return
-            logger.last = now
-            if (rotate && last) { // rotation enabled and a file exists?
-                const passed = Number(now) - Number(last)
-                    - 3600_000 // be pessimistic and count a possible DST change
-                if (rotate === 'm' && (passed >= 31*DAY || now.getMonth() !== last.getMonth())
-                    || rotate === 'd' && (passed >= DAY || now.getDate() !== last.getDate()) // checking passed will solve the case when the day of the month is the same but a month has passed
-                    || rotate === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
-                    stream.end()
-                    const postfix = last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
-                    try { // other logging requests shouldn't happen while we are renaming. Since this is very infrequent we can tolerate solving this by making it sync.
-                        renameSync(path, path + '-' + postfix)
-                    }
-                    catch(e) {  // ok, rename failed, but this doesn't mean we ain't gonna log
-                        console.error(e)
-                    }
-                    stream = logger.reopen() // keep variable updated
-                    if (!stream) return
+const debounce = _.debounce(cb => cb(), 1000)
+
+export const logMw: Koa.Middleware = async (ctx, next) => {
+    const now = new Date()
+    await next()
+    console.debug(ctx.status, ctx.method, ctx.path)
+    Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ]).then(() => {
+        if (dontLogNet.compiled()(ctx.ip)) return
+        const isError = ctx.status >= 400
+        const logger = isError && accessErrorLog || accessLogger
+        const rotate = logRotation.get()?.[0]
+        let { stream, last, path } = logger
+        if (!stream) return
+        logger.last = now
+        if (rotate && last) { // rotation enabled and a file exists?
+            const passed = Number(now) - Number(last)
+                - 3600_000 // be pessimistic and count a possible DST change
+            if (rotate === 'm' && (passed >= 31*DAY || now.getMonth() !== last.getMonth())
+                || rotate === 'd' && (passed >= DAY || now.getDate() !== last.getDate()) // checking passed will solve the case when the day of the month is the same but a month has passed
+                || rotate === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
+                stream.end()
+                const postfix = last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
+                try { // other logging requests shouldn't happen while we are renaming. Since this is very infrequent we can tolerate solving this by making it sync.
+                    renameSync(path, path + '-' + postfix)
                 }
+                catch(e) {  // ok, rename failed, but this doesn't mean we ain't gonna log
+                    console.error(e)
+                }
+                stream = logger.reopen() // keep variable updated
+                if (!stream) return
             }
-            const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s\n' // Apache's Common Log Format
-            const a = now.toString().split(' ')
-            const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5]?.slice(3)
-            const user = getCurrentUsername(ctx)
-            const length = ctx.state.length ?? ctx.length
-            debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
-                stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
-            stream!.write(util.format( format,
-                ctx.ip,
-                user || '-',
-                date,
-                ctx.method,
-                ctx.path,
-                ctx.req.httpVersion,
-                ctx.status,
-                length?.toString() ?? '-',
-            ))
-        })
-    }
+        }
+        const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s\n' // Apache's Common Log Format
+        const a = now.toString().split(' ')
+        const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5]?.slice(3)
+        const user = getCurrentUsername(ctx)
+        const length = ctx.state.length ?? ctx.length
+        debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
+            stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
+        stream!.write(util.format( format,
+            ctx.ip,
+            user || '-',
+            date,
+            ctx.method,
+            ctx.path,
+            ctx.req.httpVersion,
+            ctx.status,
+            length?.toString() ?? '-',
+        ))
+    })
 }
 
 function doubleDigit(n: number) {

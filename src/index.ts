@@ -6,17 +6,10 @@ import mount from 'koa-mount'
 import { apiMiddleware } from './apiMiddleware'
 import { API_URI, DEV } from './const'
 import { frontEndApis } from './frontEndApis'
-import { log } from './log'
+import { logMw } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import {
-    headRequests,
-    gzipper,
-    serveGuiAndSharedFiles,
-    someSecurity,
-    prepareState,
-    paramsDecoder
-} from './middlewares'
+import { headRequests, gzipper, serveGuiAndSharedFiles, someSecurity, prepareState, paramsDecoder } from './middlewares'
 import './listen'
 import './commands'
 import { adminApis } from './adminApis'
@@ -34,11 +27,11 @@ app.use(someSecurity)
     .use(session({ key: 'hfs_$id', signed: true, rolling: true }, app))
     .use(prepareState)
     .use(headRequests)
-    .use(log())
+    .use(logMw)
     .use(throttler)
     .use(gzipper)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
-    .use(pluginsMiddleware())
+    .use(pluginsMiddleware)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
     .use(serveGuiAndSharedFiles)
     .on('error', errorHandler)

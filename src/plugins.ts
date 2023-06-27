@@ -109,42 +109,40 @@ export function getPluginConfigFields(id: string) {
     return plugins[id]?.getData().config
 }
 
-export function pluginsMiddleware(): Koa.Middleware {
-    return async (ctx, next) => {
-        const after: Dict<CallMeAfter> = {}
-        // run middleware plugins
-        for (const [id,pl] of Object.entries(plugins))
-            try {
-                const res = await pl.middleware?.(ctx)
-                if (res === true)
-                    ctx.pluginStopped = true
-                if (typeof res === 'function')
-                    after[id] = res
-            }
-            catch(e){
-                printError(id, e)
-            }
-        // expose public plugins' files
-        const { path } = ctx
-        if (!ctx.pluginStopped) {
-            if (path.startsWith(PLUGINS_PUB_URI)) {
-                const a = path.substring(PLUGINS_PUB_URI.length).split('/')
-                const name = a.shift()!
-                if (plugins.hasOwnProperty(name)) // do it only if the plugin is loaded
-                    await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), 'auto')
-                return
-            }
-            await next()
+export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
+    const after: Dict<CallMeAfter> = {}
+    // run middleware plugins
+    for (const [id,pl] of Object.entries(plugins))
+        try {
+            const res = await pl.middleware?.(ctx)
+            if (res === true)
+                ctx.pluginStopped = true
+            if (typeof res === 'function')
+                after[id] = res
         }
-        for (const [id,f] of Object.entries(after))
-            try { await f() }
-            catch (e) { printError(id, e) }
+        catch(e){
+            printError(id, e)
+        }
+    // expose public plugins' files
+    const { path } = ctx
+    if (!ctx.pluginStopped) {
+        if (path.startsWith(PLUGINS_PUB_URI)) {
+            const a = path.substring(PLUGINS_PUB_URI.length).split('/')
+            const name = a.shift()!
+            if (plugins.hasOwnProperty(name)) // do it only if the plugin is loaded
+                await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), 'auto')
+            return
+        }
+        await next()
     }
+    for (const [id,f] of Object.entries(after))
+        try { await f() }
+        catch (e) { printError(id, e) }
+}
 
-    function printError(id: string, e: any) {
-        console.log(`error middleware plugin ${id}: ${e?.message || e}`)
-        console.debug(e)
-    }
+function printError(id: string, e: any) {
+    console.log(`error middleware plugin ${id}: ${e?.message || e}`)
+    console.debug(e)
 }
 
 // return false to ask to exclude this entry from results
