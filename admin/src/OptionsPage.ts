@@ -133,6 +133,7 @@ export default function OptionsPage() {
                 helperText: h(WildcardsSupported)
             },
             { k: 'log_gui', comp: BoolField, label: "Log interface loading" },
+            { k: 'log_api', comp: BoolField, label: "Log API requests" },
             { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, label: "How many HTTP proxies between this server and users?",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"

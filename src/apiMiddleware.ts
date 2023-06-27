@@ -7,6 +7,7 @@ import { asyncGeneratorToReadable, onOff, removeStarting } from './misc'
 import events from './events'
 import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
 import _ from 'lodash'
+import { defineConfig } from './config'
 
 export class ApiError extends Error {
     constructor(public status:number, message?:string | Error | object) {
@@ -17,8 +18,12 @@ type ApiHandlerResult = Record<string,any> | ApiError | Readable | AsyncGenerato
 export type ApiHandler = (params:any, ctx:Koa.Context) => ApiHandlerResult | Promise<ApiHandlerResult>
 export type ApiHandlers = Record<string, ApiHandler>
 
+const logApi = defineConfig('log_api', true)
+
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
+        if (!logApi.get())
+            ctx.state.dont_log = true
         const { params } = ctx
         console.debug('API', ctx.method, ctx.path, { ...params })
         const apiFun = apis.hasOwnProperty(ctx.path) && apis[ctx.path]!
