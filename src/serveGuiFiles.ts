@@ -25,6 +25,8 @@ import _ from 'lodash'
 import { defineConfig } from './config'
 import { getLangData } from './lang'
 
+const logGui = defineConfig('log_gui', false)
+
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
 
@@ -33,6 +35,8 @@ function serveStatic(uri: string): Koa.Middleware {
     let cache: Record<string, Promise<string>> = {}
     subscribe(customHtmlState, () => cache = {}) // reset cache at every change
     return async (ctx) => {
+        if (!logGui.get())
+            ctx.state.dont_log = true
         if(ctx.method === 'OPTIONS') {
             ctx.status = HTTP_NO_CONTENT
             ctx.set({ Allow: 'OPTIONS, GET' })
@@ -150,9 +154,11 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
                     : adjustBundlerLinks(ctx, uri, data)
             }
         }) )
-    return function() { //@ts-ignore
-        return proxy.apply(this,arguments)
-    }
+    return function (ctx, next) {
+        if (!logGui.get())
+            ctx.state.dont_log = true
+        return proxy(ctx, next)
+    } as Koa.Middleware
 }
 
 export function serveGuiFiles(proxyPort:string | undefined, uri:string) {

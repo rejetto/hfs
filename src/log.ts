@@ -69,6 +69,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     await next()
     console.debug(ctx.status, ctx.method, ctx.path)
     Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ]).then(() => {
+        if (ctx.state.dont_log) return
         if (dontLogNet.compiled()(ctx.ip)) return
         const isError = ctx.status >= 400
         const logger = isError && accessErrorLog || accessLogger
