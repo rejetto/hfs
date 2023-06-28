@@ -1,6 +1,6 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 1.96,
+    "version": 1.97,
     "hfs_version": "0.46.0",
     "translate": {
         "Select": "Выбор",
@@ -102,8 +102,6 @@
         "upload_errors": "{n,plural, one{# файл} few{# файла} other{# файлов}} не удалось загрузить",
         "upload_file_rejected": "Некоторые файлы не были приняты",
 
-        "download counter": "Количество скачиваний",
-
         "File menu": "Меню файла",
         "Folder menu": "Меню папки",
         "Name": "Имя",
@@ -121,6 +119,7 @@
         "Tiles mode:": "Плитки:",
         "off": "выключено",
         "Operation successful": "Операция успешна",
-        "Uploader": "Загрузчик"
+        "Uploader": "Загрузчик",
+        "Download counter": "Счётчик загрузок"
     }
 }

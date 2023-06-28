@@ -102,8 +102,6 @@
         "upload_errors": "{n} failed",
         "upload_file_rejected": "Some files were not accepted",
 
-        "download counter": "download counter",
-
         "File menu": "File menu",
         "Folder menu": "Folder menu",
         "Name": "Name",
@@ -121,6 +119,7 @@
         "Tiles mode:": "Tiles mode:",
         "off": "off",
         "Operation successful": "Operation successful",
-        "Uploader": "Uploader"
+        "Uploader": "Uploader",
+        "Download counter": "Download counter"
     }
 }

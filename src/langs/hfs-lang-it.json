@@ -96,8 +96,6 @@
         "upload_errors": "{n,plural, one{# fallito} other{# falliti}}",
         "upload_file_rejected": "Alcuni file non sono stati accettati",
 
-        "download counter": "download conteggiati",
-
         "File menu": "Menu file",
         "Folder menu": "Menu cartella",
         "Name": "Nome",
@@ -115,6 +113,7 @@
         "Tiles mode:": "Griglia:",
         "off": "no",
         "Operation successful": "Operazione riuscita",
-        "Uploader": "Upload da"
+        "Uploader": "Upload da",
+        "Download counter": "Download conteggiati"
     }
 }
