@@ -2,9 +2,12 @@ import { findFirst, getHFS } from './misc'
 import { createElement as h, Fragment } from 'react'
 import { proxy, useSnapshot } from 'valtio'
 
-const state = proxy<{ langs: string[], embedded: string }>({ embedded: '', langs: [] })
+const translations = getHFS().lang || {} // all dictionaries
+const state = proxy<{ langs: string[], embedded: string }>({
+    embedded: '',
+    langs: Object.keys(translations)
+})
 const warns = new Set() // avoid duplicates
-let loaded: any // all dictionaries
 
 // the hook ensures translation is refreshed when language changes
 export function useI18N() {
@@ -13,9 +16,7 @@ export function useI18N() {
 }
 
 export function I18Nprovider({ embedded='en', ...props }) {
-    loaded = getHFS().lang
     state.embedded = embedded
-    state.langs = Object.keys(loaded||{})
     return h(Fragment, props)
 }
 
@@ -30,14 +31,12 @@ export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: a
     let found
     let selectedLang = '' // keep track of where we find the translation
     const { langs, embedded } = state
-    if (loaded) {
-        for (const key of keys) {
-            found = findFirst(langs, lang => loaded[selectedLang=lang]?.translate?.[key])
-            if (found) break
-            if (selectedLang && langs[0] !== embedded && !warns.has(key)) {
-                warns.add(key)
-                console.debug("miss i18n:", key)
-            }
+    for (const key of keys) {
+        found = findFirst(langs, lang => translations[selectedLang=lang]?.translate?.[key])
+        if (found) break
+        if (selectedLang && langs[0] !== embedded && !warns.has(key)) {
+            warns.add(key)
+            console.debug("miss i18n:", key)
         }
     }
     if (!found) {
