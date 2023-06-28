@@ -252,7 +252,10 @@ ul.dir {
                 }
                 & .icon {
                     margin-right: .5em;
-                    vertical-align: text-bottom; // give similar aligning to <img> icons
+                    // give similar aligning to <img> icons
+                    vertical-align: text-bottom;
+                    display: inline-block;
+                    text-align: center;
                 }
                 &:hover {
                     text-decoration: underline;
