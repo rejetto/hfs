@@ -43,6 +43,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     if (!conn) throw 'assert throttler connection'
 
     const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr])
+    const offset = ts.getBytesSent()
     let closed = false
 
     const DELAY = 1000
@@ -80,7 +81,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     if (downloadTotal)  // preserve this info
         ctx.response.length = downloadTotal
     ts.once('end', () => // in case of compressed response, we offer calculation of real size
-        ctx.state.length = ts.getBytesSent())
+        ctx.state.length = ts.getBytesSent() - offset)
 }
 
 export function roundSpeed(n: number) {
