@@ -2,9 +2,9 @@
 
 import { createElement as h, Fragment, useState } from 'react';
 import { Tab, Tabs } from '@mui/material'
-import { useApiList } from './api'
+import { API_URL, useApiList } from './api'
 import { DataGrid } from '@mui/x-data-grid'
-import { formatBytes } from '@hfs/shared'
+import { formatBytes, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import { typedKeys } from './misc';
 
@@ -74,6 +74,16 @@ function LogFile({ file }: { file: string }) {
                 headerName: "URI",
                 flex: 2,
                 minWidth: 100,
+                valueFormatter: ({ value }) => {
+                    if (!value.startsWith(API_URL))
+                        return value
+                    const ofs = API_URL.length
+                    const i = value.indexOf('?', ofs)
+                    const name = value.slice(ofs, i > 0 ? i : Infinity)
+                    const params = i < 0 ? ''
+                        : Array.from(new URLSearchParams(value.slice(i))).map(x => `${x[0]}=${tryJson(x[1]) ?? x[1]}`).join(' ; ')
+                    return `API ${name} ${params}`
+                }
             },
         ]
     })

@@ -203,3 +203,8 @@ export function makeSessionRefresher(state: any) {
         setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
     }
 }
+
+export function tryJson(s?: string) {
+    try { return s && JSON.parse(s) }
+    catch {}
+}
