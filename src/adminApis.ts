@@ -175,7 +175,7 @@ export const favicon = defineConfig('favicon', '')
 export const title = defineConfig('title', "File server")
 
 export function ctxAdminAccess(ctx: Koa.Context) {
-    return !ctx.ips.length // we consider localhost_admin only if no proxy is being usedø
+    return !ctx.ips.length // we consider localhost_admin only if no proxy is being used
         && localhostAdmin.get() && isLocalHost(ctx)
         || getFromAccount(ctx.state.account, a => a.admin)
 }

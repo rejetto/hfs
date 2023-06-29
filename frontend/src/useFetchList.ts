@@ -42,7 +42,6 @@ export default function useFetchList() {
             uri: desiredPath,
             search,
             sse: true,
-            omit: 'c',
             [RELOADER_PROP]: snap.listReloader, // symbol, so it won't be serialized, but will force reloading
         }
         if (_.isEqual(baseParams, lastReq.current)) return

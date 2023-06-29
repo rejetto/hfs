@@ -16,10 +16,10 @@ import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, pattern2filter } from './misc'
 import _ from 'lodash'
-import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
+import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 
-export const file_list: ApiHandler = async ({ uri, offset, limit, search, omit, sse }, ctx) => {
+export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse }, ctx) => {
     const node = await urlToNode( uri || '/', ctx)
     const list = new SendListReadable()
     if (!node)
@@ -80,12 +80,11 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, omit, 
                 --offset
                 continue
             }
-            if (omit) {
-                if (omit !== 'c')
-                    ctx.throw(HTTP_BAD_REQUEST, 'omit')
+            if (!c) { // include c field?
                 if (!entry.m)
                     entry.m = entry.c
-                delete entry.c
+                if (entry.c)
+                    entry.c = undefined
             }
             yield entry
             if (limit && !--limit)
