@@ -101,7 +101,8 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5]?.slice(3)
         const user = getCurrentUsername(ctx)
         const length = ctx.state.length ?? ctx.length
-        events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri: ctx.originalUrl }))
+        const uri = ctx.originalUrl?.replace(/&?csrf=[^&]+/, '') // temporary workaround. To avoid csrf in url we need to stop using EventSource.
+        events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri }))
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
         stream!.write(util.format( format,
@@ -109,7 +110,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             user || '-',
             date,
             ctx.method,
-            ctx.originalUrl,
+            uri,
             ctx.req.httpVersion,
             ctx.status,
             length?.toString() ?? '-',
