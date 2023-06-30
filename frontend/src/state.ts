@@ -80,6 +80,7 @@ function storeSettings() {
 }
 
 export class DirEntry {
+    public readonly n: string
     public readonly s?: number
     public readonly m?: string
     public readonly c?: string
@@ -92,8 +93,9 @@ export class DirEntry {
     public readonly t?:Date
     public readonly cantOpen: boolean
 
-    constructor(public readonly n: string, rest?: object) {
+    constructor(n: string, rest?: object) {
         Object.assign(this, rest) // we actually allow any custom property to be memorized
+        this.n = n // must do it after rest to avoid overwriting
         this.uri = pathEncode(this.n)
         this.isFolder = this.n.endsWith('/')
         if (!this.isFolder) {

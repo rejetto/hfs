@@ -104,7 +104,7 @@ async function rename(entry: DirEntry) {
         // update state instead of re-getting the list
         const { n } = entry
         const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
-        const newEntry = new DirEntry(newN)
+        const newEntry = new DirEntry(newN, entry)
         const i = _.findIndex(state.list, { n })
         state.list[i] = newEntry
         const j = _.findIndex(state.filteredList, { n })
