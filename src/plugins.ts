@@ -48,12 +48,14 @@ export function isPluginEnabled(id: string) {
 export function enablePlugin(id: string, state=true) {
     if (state && !getPluginInfo(id))
         throw Error('miss')
-    console.log("switching plugin", id, state ? "on" : "off")
-    enablePlugins.set( arr =>
-        arr.includes(id) === state ? arr
+    enablePlugins.set(arr => {
+        if (arr.includes(id) === state)
+            return arr
+        console.log("switching plugin", id, state ? "on" : "off")
+        return arr.includes(id) === state ? arr
             : state ? [...arr, id]
                 : arr.filter((x: string) => x !== id)
-    )
+    })
 }
 
 export async function stopPlugin(id: string) {
