@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.45.0",
+  "version": "0.46.0",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -32,7 +32,7 @@
     "dist-node": "npm run dist-modules && cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-* *.log logs"
   },
   "engines": {
-    "node": ">=16.13.0"
+    "node": ">=18.12.0"
   },
   "files": [
     "src/*",

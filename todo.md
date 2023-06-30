@@ -7,10 +7,7 @@
 - plugins' log, accessible in admin
 - admin: check + update
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
-- generation of links to give access to a file
-  - an admin page where you can pick a file or folder(zip), and a link is generated
-  - limits: expiration, number of downloads 
-  - description, creation, delete
+- generation of links to give access to a file without password
 - easier nat life
   - show public ip use, https://github.com/sindresorhus/public-ip
   - configure router with upnp. If it fails, suggest a guide. https://github.com/indutny/node-nat-upnp
