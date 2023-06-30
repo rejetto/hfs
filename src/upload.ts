@@ -28,6 +28,14 @@ export function getUploadMeta(path: string) {
     return loadFileAttr(path, ATTR_UPLOADER)
 }
 
+function setUploadMeta(path: string, ctx: Koa.Context) {
+    return storeFileAttr(path, ATTR_UPLOADER, {
+        username: getCurrentUsername(ctx),
+        ip: ctx.ip,
+    })
+}
+
+// stay sync because we use this function with formidable()
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     if (dirTraversal(path))
         return fail(HTTP_FOOL)
@@ -50,7 +58,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         }
     if (ctx.query.skipExisting && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT)
-    fs.mkdirSync(dir, { recursive: true })
+    if (fs.mkdirSync(dir, { recursive: true }))
+        setUploadMeta(dir, ctx)
     const keepName = basename(fullPath).slice(-200)
     let tempName = join(dir, 'hfs$upload-' + keepName)
     const resumable = fs.existsSync(tempName) && tempName
@@ -85,10 +94,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     ret.once('close', async () => {
         if (!ctx.req.aborted) {
             let dest = fullPath
-            await storeFileAttr(tempName, ATTR_UPLOADER, {
-                username: getCurrentUsername(ctx),
-                ip: ctx.ip,
-            })
+            await setUploadMeta(tempName, ctx)
             if (dontOverwriteUploading.get() && fs.existsSync(dest)) {
                 const ext = extname(dest)
                 const base = dest.slice(0, -ext.length)

@@ -2,7 +2,7 @@
     const { display } = HFS.getPluginConfig()
 
     HFS.onEvent('additionalEntryDetails', ({ entry }) =>
-        !entry.isFolder && HFS.h(Uploader, entry))
+        HFS.h(Uploader, entry))
 
     const cache = {}
 
