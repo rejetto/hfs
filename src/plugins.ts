@@ -277,12 +277,8 @@ function watchPlugin(id: string, path: string) {
     })
     const { unwatch } = watchLoad(module, async (source) => {
         const notRunning = availablePlugins[id]
-        if (!source) {
-            await stop()
-            delete availablePlugins[id]
-            events.emit('pluginUninstalled', id)
-            return
-        }
+        if (!source)
+            return onUninstalled()
         if (isPluginEnabled(id))
             return start()
         const p = parsePluginSource(id, source)
@@ -290,7 +286,16 @@ function watchPlugin(id: string, path: string) {
         availablePlugins[id] = p
         events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
     })
-    return unwatch
+    return () => {
+        unwatch()
+        return onUninstalled()
+    }
+
+    async function onUninstalled() {
+        await stop()
+        delete availablePlugins[id]
+        events.emit('pluginUninstalled', id)
+    }
 
     async function markItAvailable() {
         delete plugins[id]
