@@ -1,5 +1,5 @@
 import Koa from 'koa'
-import { hasProp, wantArray } from './misc'
+import { hasProp, tryJson, wantArray } from './misc'
 import { readFile } from 'fs/promises'
 import { defineConfig } from './config'
 import { watchLoad } from './watchLoad'
@@ -52,10 +52,11 @@ defineConfig('force_lang', '', v => {
     undo?.()
     if (!v)
         return forceLangData = undefined
-    forceLangData = {} // necessary to make the embedded language work
+    const translation = (EMBEDDED_TRANSLATIONS as any)[v]
+    forceLangData = { [v]: translation }
     if (v === EMBEDDED_LANGUAGE) return
     const res = watchLoad(code2file(v), data => {
-        forceLangData = { [v]: JSON.parse(data) }
+        forceLangData = { [v]: tryJson(data) || translation }
     })
     undo = res.unwatch
 })
