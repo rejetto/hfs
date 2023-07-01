@@ -18,7 +18,7 @@ import {
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { Callback, newObj, onOff, waitFor } from './misc'
+import { Callback, newObj, onlyTruthy, onOff, waitFor } from './misc'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
@@ -48,19 +48,22 @@ const apis: ApiHandlers = {
     async get_plugin_updates() {
         const list = new SendListReadable()
         setTimeout(async () => {
-            for (const [folder, repo] of Object.entries(getFolder2repo()))
+            const errs = await Promise.all(_.map(getFolder2repo(), async (repo, folder) => {
                 try {
-                    if (!repo) continue
+                    if (!repo) return
                     //TODO shouldn't we consider other branches here?
                     const online = await readOnlinePlugin(repo)
-                    if (!online.apiRequired || online.badApi) continue
+                    if (!online.apiRequired || online.badApi) return
                     const disk = getPluginInfo(folder)
                     if (online.version! > disk.version)
                         list.add(online)
                 }
                 catch (err:any) {
-                    list.error(err.code || err.message)
+                    return err.code || err.message
                 }
+            }))
+            for (const x of _.uniq(onlyTruthy(errs)))
+                list.error(x)
             list.close()
         })
         return list
