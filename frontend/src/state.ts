@@ -141,6 +141,7 @@ const exts = {
     image: ['jpeg','jpg','gif','png','webp','svg'],
     audio: ['mp3','wav','m4a','ogg'],
     video: ['mp4','mpeg','mpg','webm','mov','m4v'],
+    archive: ['zip', 'rar', 'gz', 'tgz'],
 }
 
 export function ext2type(ext: string) {
