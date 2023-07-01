@@ -479,7 +479,11 @@ button label {
                     &:last-of-type { padding: 0; }
                     span { display: block; }
                     .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
-                    img.icon { width: auto }
+                    img.icon {
+                        width: auto;
+                        height: 1em;
+                        padding: 0.1em 0;
+                    }
                     .icon {
                         font-size: 4rem;
                         display: block;
