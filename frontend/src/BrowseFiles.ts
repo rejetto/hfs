@@ -266,6 +266,6 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
 const EntrySize = memo(({ s }: { s: DirEntry['s']  }) => {
     if (s === undefined) return null
     const a = formatBytes(s).split(' ')
-    return h('span', { className: 'entry-size' }, a[0],
+    return h('span', { className: 'entry-size', title: s.toLocaleString() }, a[0],
         h('span', { className: 'entry-size-unit' }, a[1]))
 })
