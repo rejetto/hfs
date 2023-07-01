@@ -18,7 +18,7 @@ interface FileMenuEntry {
 }
 
 export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
-    const { uri, isFolder } = entry
+    const { uri, isFolder, s } = entry
     const fullUri = uri[0] === '/' ? uri : location.pathname + uri
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
@@ -48,7 +48,8 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     ]
     const props = [
         [t`Name`, entry.name],
-        typeof entry.s === 'number' && [t`Size`, formatBytes(entry.s)],
+        typeof s === 'number' && [t`Size`, h(Fragment, {},
+            formatBytes(s), h('small', {}, prefix(' (', s > 1024 && s.toLocaleString(), ')')) ) ],
         entry.t && [t`Timestamp`, entry.t.toLocaleString()],
     ]
     const res = hfsEvent('fileMenu', { entry, menu, props })
