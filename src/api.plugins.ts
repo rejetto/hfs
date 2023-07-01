@@ -59,6 +59,8 @@ const apis: ApiHandlers = {
                         list.add(online)
                 }
                 catch (err:any) {
+                    if (err.message === '404') // the plugin is declaring a wrong repo
+                        return
                     return err.code || err.message
                 }
             }))
