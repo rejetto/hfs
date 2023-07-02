@@ -8,10 +8,14 @@ import { DataGrid, GridAlignment } from '@mui/x-data-grid'
 import { FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 
-export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, getApi, ...rest }: FieldProps<T[]> & { fields: FieldDescriptor[], height?: number }) {
+type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number }
+export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, getApi, ...rest }: ArrayFieldProps<T>) {
     const rows = useMemo(() => (value||[]).map((x,$idx) =>
             setHidden({ ...x } as any, 'id' in x ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
+    const form = {
+        fields: fields.map(({ $width, $column, ...rest }) => rest)
+    }
     const columns = useMemo(() => {
         return [
             ...fields.map(f => ({
@@ -29,22 +33,24 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                 align: 'center' as GridAlignment,
                 headerAlign: 'center' as GridAlignment,
                 renderHeader(){
+                    const title = "Add"
                     return h(IconBtn, {
                         icon: Add,
-                        title: "Add",
+                        title,
                         onClick: (event:any) =>
-                            formDialog({ form: { fields } }).then(o => // @ts-ignore
+                            formDialog({ form, title }).then(o => // @ts-ignore
                                 o && onChange([...value||[], o], { was: value, event }))
                     })
                 },
                 renderCell({ row }: any) {
                     const { $idx=row.id } = row
+                    const title = "Modify"
                     return h('div', {},
                         h(IconBtn, {
                             icon: Edit,
-                            title: "Modify",
+                            title,
                             onClick: (event:any) =>
-                                formDialog<T>({ values: row, form: { fields } }).then(newRec => {
+                                formDialog<T>({ values: row, form, title }).then(newRec => {
                                     if (!newRec) return
                                     const newValue = value!.map((oldRec, i) => i === $idx ? newRec : oldRec)
                                     onChange(newValue, { was: value, event })
