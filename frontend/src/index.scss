@@ -308,9 +308,8 @@ ul.dir {
         &:first-child { margin-left: 0 }
         &:last-child { margin-right: 0 }
     }
-    & button { /* no need for horizontal padding as we are using flex to grow */
-        padding-left: 0;
-        padding-right: 0;
+    & button {
+        padding: min(1vh, 0.5em) 0; // avoid wasting too much vertical space, and no need for horizontal padding as we are using flex to grow
     }
 }
 #searched {
@@ -632,6 +631,7 @@ button label {
     }
     #root>.tiles-mode {
         margin: 0;
+        .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
     }
 }
 
