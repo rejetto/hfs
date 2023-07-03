@@ -546,6 +546,7 @@ button label {
     #filter-bar {
         margin-bottom: 1em;
     }
+    #paging { z-index: 1 } // avoid being covered by hovered elements
 
 }
 
