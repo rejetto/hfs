@@ -19,6 +19,7 @@ import { LoadingButton } from '@mui/lab'
 import * as _ from 'lodash'
 import { StringField } from './StringField'
 import { GridProps } from '@mui/material/Grid/Grid'
+import { useDebounce } from 'usehooks-ts'
 export * from './SelectField'
 export * from './misc-fields'
 export * from './StringStringField'
@@ -199,7 +200,7 @@ export function Form<Values extends Dict>({
                     variant: 'contained',
                     startIcon: h(Save),
                     children: "Save",
-                    loading: phase !== Phase.Idle,
+                    loading: useDebounce(phase !== Phase.Idle), // debounce fixes click being ignored at state change, and flickering
                     ...saveBtn,
                     onClick: pleaseSubmit,
                 }),
