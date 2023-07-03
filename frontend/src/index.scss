@@ -631,7 +631,6 @@ button label {
     }
     #root>.tiles-mode {
         margin: 0;
-        .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
     }
 }
 
@@ -651,4 +650,9 @@ button label {
             }
         }
     }
+}
+
+// mobile, landscape or portrait
+@media (max-width: 42em), (max-height: 600px) {
+    #root>.tiles-mode .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
 }
