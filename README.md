@@ -69,6 +69,8 @@ If your system is not Windows/Linux/Mac or you just don't want to run the binari
 
 The `@latest` part is optional, and ensures that you are always up to date.
 
+If this procedure fails, it may be that you are missing one of [these requirements](https://github.com/nodejs/node-gyp#installation).
+
 Configuration and other files will be stored in `%HOME%/.vfs`
 
 ### Service
