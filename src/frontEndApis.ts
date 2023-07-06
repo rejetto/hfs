@@ -79,7 +79,7 @@ export const frontEndApis: ApiHandlers = {
             return {}
         }
         catch (e: any) {
-            throw new ApiError(e.code || HTTP_SERVER_ERROR, e)
+            throw new ApiError(HTTP_SERVER_ERROR, e)
         }
     },
 
@@ -102,7 +102,7 @@ export const frontEndApis: ApiHandlers = {
             return {}
         }
         catch (e: any) {
-            throw new ApiError(e.code || HTTP_SERVER_ERROR, e)
+            throw new ApiError(HTTP_SERVER_ERROR, e)
         }
     }
 

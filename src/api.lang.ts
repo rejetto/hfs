@@ -37,7 +37,7 @@ const apis: ApiHandlers = {
             return {}
         }
         catch (e: any) {
-            return new ApiError(e.code || HTTP_SERVER_ERROR, e)
+            return new ApiError(HTTP_SERVER_ERROR, e)
         }
     },
 
