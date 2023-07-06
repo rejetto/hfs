@@ -12,7 +12,7 @@ import { once, Readable } from 'stream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
 // @ts-ignore
-import fsx from 'fs-extended-attributes'
+import fsx from 'fs-x-attributes'
 
 export async function isDirectory(path: string) {
     try { return (await fs.stat(path)).isDirectory() }
