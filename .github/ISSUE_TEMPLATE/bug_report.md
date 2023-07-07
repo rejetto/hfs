@@ -5,6 +5,10 @@ title: ''
 labels: bug
 
 ---
+**BEFORE**
+
+- Are you using a reverse-proxy, like nginx?
+  - Check if your problem is caused by your proxy, try without it.
 
 **To Reproduce**
 Steps to reproduce the behavior:
