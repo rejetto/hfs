@@ -1,5 +1,7 @@
 # For plug-in makers
 
+If the information you are searching for is not in this document, [please ask](https://github.com/rejetto/hfs/discussions). 
+
 A plug-in is a folder with a `plugin.js` file in it.
 
 Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
@@ -172,6 +174,7 @@ The HFS objects contains many properties:
 - `useApi`
 - `reloadList`
 - `logout`
+- `prefixUrl: string` normally an empty string, it will be set in case a [reverse-proxy wants to mount HFS on a path](https://github.com/rejetto/hfs/wiki/Reverse-proxy).  
 - `state` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
 - `watchState: (key: string, callback)=>function`
   - watch the `key` property of the state object above
