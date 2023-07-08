@@ -20,6 +20,7 @@ interface Status {
     http: ServerStatus
     https: ServerStatus
     frpDetected: boolean
+    proxyDetected?: boolean
     update: boolean | string
     version: string
 }
@@ -76,6 +77,7 @@ export default function HomePage() {
                 }, "ignore this warning"),
                 SOLUTION_SEP, wikiLink('Proxy-warning', "Explanation")
         ),
+        (cfg?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
         status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
             h('ol',{},
                 h('li',{}, `configure FRP with type=http (best solution)`),
