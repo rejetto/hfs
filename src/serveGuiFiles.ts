@@ -61,7 +61,7 @@ function serveStatic(uri: string): Koa.Middleware {
 }
 
 function shouldServeApp(ctx: Koa.Context) {
-    return ctx.state.serveApp ||= ctx.path.endsWith('/')
+    return ctx.state.serveApp ||= ctx.path.endsWith('/') && !ctx.headers.upgrade // skip websockets
 }
 
 function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer) {
