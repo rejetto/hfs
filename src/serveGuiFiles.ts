@@ -67,7 +67,7 @@ function shouldServeApp(ctx: Koa.Context) {
 function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer) {
     const ext = extname(ctx.path)
     return ext && !ext.match(/\.(css|html|js|ts|scss)/) ? data
-        : String(data).replace(/((?:import | from )['"])\//g, `$1${ctx.state.revProxyPath}${uri}`)
+        : String(data).replace(/((?:import[ (]| from )['"])\//g, `$1${ctx.state.revProxyPath}${uri}`)
 }
 
 async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
