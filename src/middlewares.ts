@@ -197,8 +197,10 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     if (ss?.username)
         if (!ss.ip)
             ss.ip = ctx.ip
-        else if (ss.ip !== ctx.ip)
+        else if (ss.ip !== ctx.ip) {
             delete ss.username
+            ss.ip = ctx.ip
+        }
 
     try {
         if (dirTraversal(decodeURI(ctx.path)))
