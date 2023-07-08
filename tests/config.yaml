@@ -118,4 +118,4 @@ accounts:
       - admins
   admins:
     admin: true
-version: 0.46.0
+version: 0.46.1
