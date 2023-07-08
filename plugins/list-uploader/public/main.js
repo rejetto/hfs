@@ -1,4 +1,4 @@
-{
+"use strict";{
     const { display } = HFS.getPluginConfig()
 
     HFS.onEvent('additionalEntryDetails', ({ entry }) =>
