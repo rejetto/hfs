@@ -4,7 +4,7 @@ import _ from 'lodash';
 import { useCallback, useEffect, useRef } from 'react';
 import { Dict, Falsy, getCookie, getPrefixUrl, pendingPromise, useStateMounted } from '.'
 
-export const API_URL = getPrefixUrl() + '/~/api/'
+export const API_URL = '/~/api/'
 
 const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute
@@ -31,7 +31,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
     const controller = new AbortController()
     if (options.timeout !== false)
         setTimeout(() => controller.abort('timeout'), 1000*(timeoutByApi[cmd] ?? options.timeout ?? 10))
-    return Object.assign(fetch(API_URL + cmd, {
+    return Object.assign(fetch(getPrefixUrl() + API_URL + cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         signal: controller.signal,
@@ -111,7 +111,7 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     const csrf = getCsrf()
     if (csrf)
         processed.csrf = JSON.stringify(csrf)
-    const source = new EventSource(API_URL + cmd + '?' + new URLSearchParams(processed))
+    const source = new EventSource(getPrefixUrl() + API_URL + cmd + '?' + new URLSearchParams(processed))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {
