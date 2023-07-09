@@ -37,13 +37,19 @@ export const frontEndApis: ApiHandlers = {
         })
     },
 
-    async get_file_details({ uri }, ctx) {
-        apiAssertTypes({ string: { uri } })
-        const node = await urlToNode(uri, ctx)
-        if (!node)
-            return new ApiError(HTTP_NOT_FOUND)
+    async get_file_details({ uris }, ctx) {
+        if (typeof uris?.[0] !== 'string')
+            return new ApiError(HTTP_BAD_REQUEST, 'bad uris')
         return {
-            upload: node.source && await getUploadMeta(node.source).catch(() => undefined)
+            details: Promise.all(uris.map(async (uri: any) => {
+                if (typeof uri !== 'string')
+                    return false // false means error
+                const node = await urlToNode(uri, ctx)
+                if (!node)
+                    return false
+                const upload = node.source && await getUploadMeta(node.source).catch(() => undefined)
+                return upload && { upload }
+            }))
         }
     },
 
@@ -117,8 +123,9 @@ export function notifyClient(ctx: Koa.Context, name: string, data: any) {
 const NOTIFICATION_PREFIX = 'notificationChannel:'
 
 function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: any  } }) {
-    for (const [type,params] of Object.entries(paramsByType))
-        for (const [name,val] of Object.entries(params))
-            if (typeof val !== type)
-                throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
+    for (const [types,params] of Object.entries(paramsByType))
+        for (const type of types.split('_'))
+            for (const [name,val] of Object.entries(params))
+                if (typeof val !== type)
+                    throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
 }

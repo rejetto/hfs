@@ -187,6 +187,7 @@ The HFS objects contains many properties:
 - `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts. 
 - `Icon: ReactComponent` Properties:
   - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
+- `useBatch: (worker, job) => any`
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -324,6 +325,8 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
+- 8.3 (v0.47.0)
+  -  HFS.useBatch
 - 8.23 (v0.46.0)
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
   - platform-dependent distribution

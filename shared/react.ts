@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactElement, ReactNode, useCallback, useState } from 'react'
+import { createElement as h, Fragment, ReactElement, ReactNode, useCallback, useEffect, useState } from 'react'
 import { useIsMounted } from 'usehooks-ts'
 
 export function useStateMounted<T>(init: T) {
@@ -32,3 +32,38 @@ export function dontBotherWithKeys(elements: ReactNode[]): (ReactNode|string)[] 
                 : h(Fragment, { key:i, children:e }) )
 }
 
+export function useBatch<Job=unknown,Result=unknown>(
+    worker: ((jobs: Job[]) => Promise<Result[]>),
+    job: undefined | Job,
+    { delay=0 }={}
+) {
+    interface Env {
+        batch: Set<Job>,
+        cache: Map<Job, Result | null>,
+        timeout?: ReturnType<typeof setTimeout>
+    }
+    const worker2env = (useBatch as any).worker2env ||= worker && new Map<typeof worker, Env>()
+    const env = worker && (worker2env.get(worker) || (() => {
+        const ret = { batch: new Set<Job>(), cache: new Map<Job, Result>() } as Env
+        worker2env.set(worker, ret)
+        return ret
+    })())
+    const [, setRefresher] = useState(0)
+    useEffect(() => {
+        if (!env) return
+        env.timeout ||= setTimeout(async () => {
+            env.timeout = undefined
+            const jobs = [...env.batch.values()]
+            env.batch.clear()
+            const res = await worker(jobs)
+            let i = 0
+            for (const job of jobs)
+                env.cache.set(job, res[i++] ?? null)
+            setRefresher(x => x + 1)
+        }, delay)
+    }, [])
+    const cached = env?.cache.get(job)
+    if (env && cached === undefined)
+        env.batch.add(job)
+    return { data: cached, ...env } as Env & { data: Result | undefined | null } // so you can cache.clear
+}

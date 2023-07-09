@@ -36,10 +36,17 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         let res
         try {
             for (const [k,v] of Object.entries(params))
-                if (k.startsWith('uri') && typeof v === 'string')
-                    params[k] = removeStarting(ctx.state.revProxyPath, v)
+                if (k.startsWith('uri'))
+                    if (typeof v === 'string')
+                        fixUri(params, k)
+                    else if (typeof (v as any)?.[0] === 'string')
+                        (v as string[]).forEach((x,i) => fixUri(v,i))
             res = csrf && csrf !== params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
                 : await apiFun(params || {}, ctx)
+
+            function fixUri(o: any, k: string | number) {
+                o[k] = removeStarting(ctx.state.revProxyPath, o[k])
+            }
         }
         catch(e) {
             res = e

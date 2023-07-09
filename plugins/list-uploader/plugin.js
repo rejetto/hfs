@@ -1,6 +1,6 @@
 exports.version = 1.0
 exports.description = "Show uploader info in list"
-exports.apiRequired = 8.23
+exports.apiRequired = 8.3 // useBatch
 exports.frontend_js = "main.js"
 
 exports.configDialog = {
