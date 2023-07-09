@@ -2,7 +2,7 @@
 
 import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataTable } from './DataTable'
 import { IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
@@ -11,6 +11,7 @@ import { renderName, showError, startPlugin, UpdateButton } from './InstalledPlu
 import { state, useSnapState } from './state'
 import _ from 'lodash'
 import { alertDialog } from './dialog'
+import { LinearProgress } from '@mui/material'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -27,10 +28,10 @@ export default function OnlinePlugins() {
             typing: true,
             label: "Search text"
         }),
-        h(DataGrid, {
+        h(DataTable, {
             rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
             localeText: { noRowsLabel: "No compatible plugins have been found" },
-            loading: initializing,
+            initializing,
             columnVisibilityModel: snap.onlinePluginsColumns,
             onColumnVisibilityModelChange: newModel => Object.assign(state.onlinePluginsColumns, newModel),
             columns: [
@@ -39,6 +40,7 @@ export default function OnlinePlugins() {
                     headerName: "name",
                     flex: 1,
                     renderCell: renderName,
+                    mergeRender: { other: 'description', fontSize: 'x-small' },
                 },
                 {
                     field: 'version',
@@ -56,53 +58,44 @@ export default function OnlinePlugins() {
                 {
                     field: 'description',
                     flex: 3,
+                    hideUnder: 'sm',
                 },
                 {
                     field: 'stargazers_count',
                     width: 50,
                     headerName: "stars",
                     align: 'center',
+                    hideUnder: 'sm',
                 },
-                {
-                    field: "actions",
-                    width: 80,
-                    align: 'center',
-                    hideSortIcons: true,
-                    disableColumnMenu: true,
-                    hideable: false,
-                    renderCell({ row }) {
-                        const { id } = row
-                        return h('div', {},
-                            row.update ? h(UpdateButton, {
-                                id,
-                                then() {
-                                    updateList(list =>
-                                        _.find(list, { id }).update = false )
-                                }
-                            }) : h(IconBtn, {
-                                icon: Download,
-                                title: "Install",
-                                progress: row.downloading,
-                                disabled: row.installed && "Already installed",
-                                tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
-                                confirm: "WARNING - Proceed only if you trust this author and this plugin",
-                                async onClick() {
-                                    const branch = row.branch || row.default_branch
-                                    try {
-                                        const res = await apiCall('download_plugin', { id, branch }, { timeout: false })
-                                        await startPlugin(res.id)
-                                    }
-                                    catch(e: any) {
-                                        if (e.code !== 424) throw e
-                                        const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
-                                            e.data.map((x: any) => h('li', {}, x.repo + ': ' + x.error)) )
-                                        return alertDialog(msg, 'error')
-                                    }
-                                }
-                            })
-                        )
+            ],
+            actions: ({ row, id }) => [
+                row.update ? h(UpdateButton, {
+                    id,
+                    then() {
+                        updateList(list =>
+                            _.find(list, { id }).update = false )
                     }
-                },
+                }) : h(IconBtn, {
+                    icon: Download,
+                    title: "Install",
+                    progress: row.downloading,
+                    disabled: row.installed && "Already installed",
+                    tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
+                    confirm: "WARNING - Proceed only if you trust this author and this plugin",
+                    async onClick() {
+                        const branch = row.branch || row.default_branch
+                        try {
+                            const res = await apiCall('download_plugin', { id, branch }, { timeout: false })
+                            await startPlugin(res.id)
+                        }
+                        catch(e: any) {
+                            if (e.code !== 424) throw e
+                            const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
+                                e.data.map((x: any) => h('li', {}, x.repo + ': ' + x.error)) )
+                            return alertDialog(msg, 'error')
+                        }
+                    }
+                })
             ]
         })
     )

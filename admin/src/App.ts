@@ -47,7 +47,7 @@ function Routed() {
                 sx: {
                     background: 'url(cup.svg) no-repeat right fixed',
                     backgroundSize: 'contain',
-                    px: { xs: 2, md: 3 },
+                    px: { xs: 1, sm: 2, md: 3 },
                     pb: '1em',
                     position: 'relative',
                     display: 'flex',

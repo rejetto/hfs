@@ -1,9 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useState } from 'react';
-import { Tab, Tabs } from '@mui/material'
+import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApiList } from './api'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataTable } from './DataTable'
 import { formatBytes, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import { typedKeys } from './misc';
@@ -19,10 +19,10 @@ export default function LogsPage() {
 }
 
 function LogFile({ file }: { file: string }) {
-    const { list, error, connecting } = useApiList('get_log', { file }, { addId: true })
+    const { list, error, connecting } = useApiList('get_log', { file })
     if (error)
         return error
-    return h(DataGrid, {
+    return h(DataTable, {
         loading: connecting,
         rows: list as any,
         componentsProps: {
@@ -38,35 +38,41 @@ function LogFile({ file }: { file: string }) {
                 flex: .6,
                 minWidth: 100,
                 maxWidth: 230,
+                mergeRender: { other: 'user' },
             },
             {
                 field: 'user',
                 headerName: "Username",
                 flex: .4,
                 maxWidth: 200,
+                hideUnder: 'lg',
             },
             {
                 field: 'ts',
                 headerName: "Timestamp",
                 type: 'dateTime',
-                width: 170,
-                valueFormatter: ({ value }) => new Date(value as string).toLocaleString()
+                width: 90,
+                valueGetter: ({ value }) => new Date(value as string),
+                renderCell: ({ value }) => h(Box, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
             },
             {
                 field: 'method',
                 headerName: "Method",
                 width: 80,
+                hideUnder: 'lg',
             },
             {
                 field: 'status',
                 headerName: "Code",
                 type: 'number',
                 width: 70,
+                hideUnder: 'lg',
             },
             {
                 field: 'length',
                 headerName: "Size",
                 type: 'number',
+                hideUnder: 'md',
                 valueFormatter: ({ value }) => formatBytes(value as number)
             },
             {
@@ -74,6 +80,7 @@ function LogFile({ file }: { file: string }) {
                 headerName: "URI",
                 flex: 2,
                 minWidth: 100,
+                mergeRender: { other: 'method', fontSize: 'small' },
                 valueFormatter: ({ value }) => {
                     if (!value.startsWith(API_URL))
                         return value

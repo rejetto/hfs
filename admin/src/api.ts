@@ -32,7 +32,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     return { data, error, reload, loading, element }
 }
 
-export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=false, map=((x:any)=>x) }={}) {
+export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:any)=>x) }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -40,7 +40,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
     const [loading, setLoading] = useStateMounted(false)
     const [initializing, setInitializing] = useStateMounted(true)
     const [reloader, setReloader] = useState(0)
-    const idRef = useRef(0)
+    const idGenerator = useRef(0)
     useEffect(() => {
         if (!cmd) return
         const buffer: T[] = []
@@ -82,8 +82,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                             return setProps(entry.props)
                         if (entry.add) {
                             const rec = map(entry.add)
-                            if (addId)
-                                rec.id = ++idRef.current
+                            rec.id ??= idGenerator.current = Math.max(idGenerator.current, Date.now()) + .001
                             buffer.push(rec)
                             apply()
                             return

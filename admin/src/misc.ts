@@ -194,7 +194,7 @@ export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgr
                 value: (offset || 1e-7) * 100,
                 variant: 'determinate',
                 size: 32,
-                sx,
+                sx: { display: 'flex', ...sx }, // workaround: without this the element is has 0 width when the space is crammy (monitor/file)
             }),
         })
     )

@@ -5,7 +5,7 @@ import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps } from '@mui/material'
-import { DataGrid } from "@mui/x-data-grid"
+import { DataTable } from './DataTable'
 import { formatBytes, IconBtn, IconProgress, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
@@ -104,31 +104,29 @@ function Connections() {
             }),
         ),
         error ? h(Alert, { severity: 'error' }, error)
-            : h(DataGrid, {
+            : h(DataTable, {
                 rows,
                 localeText: filtered ? { noRowsLabel: "No downloads at the moment" } : undefined,
-                initialState: {
-                    columns: {
-                        columnVisibilityModel: { v: false },
-                    }
-                },
                 columns: [
                     {
                         field: 'ip',
                         headerName: "Address",
                         flex: 1,
                         maxWidth: 400,
-                        valueGetter: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port
+                        renderCell: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port,
+                        mergeRender: { other: 'user', fontSize: 'small' },
                     },
                     {
                         field: 'user',
                         headerName: "User",
+                        hideUnder: 'md',
                     },
                     {
                         field: 'started',
                         headerName: "Started",
                         type: 'dateTime',
-                        width: 130,
+                        width: 100,
+                        hideUnder: 'lg',
                         valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
                     },
                     {
@@ -152,58 +150,57 @@ function Connections() {
                                     addTitle: row.opTotal && h('div', {}, "Total: " + formatBytes(row.opTotal)),
                                     sx: { mr: 1 }
                                 }),
-                                value.slice(i + 1),
-                                i > 0 && h(Box, { ml: 2, color: 'text.secondary' }, value.slice(0, i))
+                                h(Box, {}, value.slice(i + 1),
+                                    i > 0 && h(Box, { ml: 2, fontSize: 'x-small', color: 'text.secondary' }, value.slice(0, i))
+                                ),
                             )
                         }
+                    },
+                    {
+                        field: 'outSpeed',
+                        headerName: "Speed",
+                        width: 110,
+                        hideUnder: 'sm',
+                        type: 'number',
+                        renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0)),
+                        mergeRender: { other: 'sent', fontSize: 'small', textAlign: 'right' }
+                    },
+                    {
+                        field: 'sent',
+                        headerName: "Sent",
+                        type: 'number',
+                        hideUnder: 'md',
+                        renderCell: ({ value, row}) => formatBytes(Math.max(value||0, row.got||0))
                     },
                     {
                         field: 'v',
                         headerName: "Protocol",
                         align: 'center',
+                        hideUnder: Infinity,
                         renderCell: ({ value, row }) => h(Fragment, {},
                             "IPv" + value,
                             row.secure && iconTooltip(Lock, "HTTPS", { opacity: .5 })
                         )
                     },
                     {
-                        field: 'outSpeed',
-                        headerName: "Speed",
-                        type: 'number',
-                        renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0))
-                    },
-                    {
-                        field: 'sent',
-                        headerName: "Sent",
-                        type: 'number',
-                        renderCell: ({ value, row}) => formatBytes(Math.max(value||0, row.got||0))
-                    },
-                    {
                         field: 'agent',
                         headerName: "Agent",
+                        hideUnder: 'lg',
                     },
-                    {
-                        field: "Actions",
-                        width: 80,
-                        align: 'center',
-                        hideSortIcons: true,
-                        disableColumnMenu: true,
-                        renderCell({ row }) {
-                            return h('div', {},
-                                h(IconBtn, {
-                                    icon: Delete,
-                                    title: "Disconnect",
-                                    onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])),
-                                }),
-                                h(IconBtn, {
-                                    icon: Block,
-                                    title: "Block IP",
-                                    disabled: row.ip === props?.you,
-                                    onClick: () => blockIp(row.ip),
-                                }),
-                            )
-                        }
-                    }
+                ],
+                actionsProps: { hideUnder: 'sm' },
+                actions: ({ row }) => [
+                    h(IconBtn, {
+                        icon: Delete,
+                        title: "Disconnect",
+                        onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])),
+                    }),
+                    h(IconBtn, {
+                        icon: Block,
+                        title: "Block IP",
+                        disabled: row.ip === props?.you,
+                        onClick: () => blockIp(row.ip),
+                    }),
                 ]
             })
     )
