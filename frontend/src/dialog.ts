@@ -76,9 +76,10 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
 
     function Content(){
         if (msg instanceof Error)
-            msg = err2msg(msg)
+            msg = h('div', {}, err2msg(msg),
+                h('div', { style: { marginTop: 20, fontSize: 'small' } }, msg.message) )
         if (typeof msg === 'string')
-            msg = h('p', {}, String(msg))
+            msg = h('p', {}, msg)
         return msg
     }
 }
