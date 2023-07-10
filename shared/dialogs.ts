@@ -55,16 +55,16 @@ function Dialog(d:DialogOptions) {
         },
         d.noFrame ? h(d.Content || 'div')
             : h('div', {
-                    className: 'dialog',
-                    style: {
-                        ...position(),
-                        ...d.dialogProps?.style,
-                    },
-                    onClick(ev:any){
-                        ev.stopPropagation()
-                    },
-                    ...d.dialogProps,
+                className: 'dialog',
+                style: {
+                    ...position(),
+                    ...d.dialogProps?.style,
                 },
+                onClick(ev:any){
+                    ev.stopPropagation()
+                },
+                ...d.dialogProps,
+            },
                 d.closable || d.closable===undefined
                     && h('button', {
                         className: 'dialog-icon dialog-closer',

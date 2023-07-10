@@ -79,6 +79,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         ctx.body = createReadStream(source, range)
         if (ctx.vfsNode)
             updateConnection(ctx.state.connection, {
+                ctx, // this will cause 'path' to be sent as well
                 op: 'download',
                 opTotal: stats.size,
                 opOffset: range && (range.start / size),
