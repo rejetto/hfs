@@ -146,7 +146,7 @@ function Connections() {
                             return h(Fragment, {},
                                 row.op && h(IconProgress, {
                                     icon: row.op === 'upload' ? Upload : Download,
-                                    progress: row.opProgress,
+                                    progress: row.opProgress ?? row.opOffset,
                                     offset: row.opOffset,
                                     addTitle: row.opTotal && h('div', {}, "Total: " + formatBytes(row.opTotal)),
                                     sx: { mr: 1 }

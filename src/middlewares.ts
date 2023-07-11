@@ -235,9 +235,9 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     ctx.state.account = await getHttpAccount(ctx) ?? getAccount(ctx.session?.username, false)
     const conn = ctx.state.connection = socket2connection(ctx.socket)
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
-    await next()
     if (conn)
-        updateConnection(conn, { ctx })
+        updateConnection(conn, { ctx, op: undefined })
+    await next()
 }
 
 async function getHttpAccount(ctx: Koa.Context) {

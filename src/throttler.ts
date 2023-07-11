@@ -53,7 +53,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         updateConnection(conn, {
             outSpeed,
             sent: conn.socket.bytesWritten,
-            opProgress: (conn.opOffset || 0) + ts.getBytesSent() / conn.opTotal!,
+            opProgress: conn.opTotal && ((conn.opOffset || 0) + (ts.getBytesSent() - offset) / conn.opTotal),
         })
         /* in case this stream stands still for a while (before the end), we'll have neither 'sent' or 'close' events,
         * so who will take care to updateConnection? This artificial next-call will ensure just that */

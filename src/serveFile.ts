@@ -76,7 +76,8 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
             return ctx.body = content
         const { size } = stats
         const range = getRange(ctx, size)
-        ctx.body = createReadStream(source, range)
+        ctx.body = createReadStream(source, range).on('end', () =>
+            updateConnection(ctx.state.connection, { opProgress: 1 }) )
         if (ctx.vfsNode)
             updateConnection(ctx.state.connection, {
                 ctx, // this will cause 'path' to be sent as well
