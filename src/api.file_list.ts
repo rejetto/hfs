@@ -46,7 +46,7 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {
         if (can_upload || can_delete)
-            list.custom({ props })
+            list.props(props)
         for await (const entry of produceEntries())
             list.add(entry)
         list.close()

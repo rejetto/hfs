@@ -82,18 +82,19 @@ export class SendListReadable<T> extends Readable {
     protected lastError: string | number | undefined
     protected buffer: any[] = []
     protected processBuffer: _.DebouncedFunc<any>
-    constructor({ addAtStart, doAtStart, bufferTime }:{ bufferTime?: number, addAtStart?: T[], doAtStart?: SendListFunc<T> }={}) {
+    constructor({ addAtStart, doAtStart, bufferTime, onEnd }:{ bufferTime?: number, addAtStart?: T[], doAtStart?: SendListFunc<T>, onEnd?: SendListFunc<T> }={}) {
         super({ objectMode: true, read(){} })
         if (!bufferTime)
-            bufferTime = 100
+            bufferTime = 200
         this.processBuffer = _.debounce(() => {
             this.push(this.buffer)
             this.buffer = []
         }, bufferTime, { maxWait: bufferTime })
-        this.on('end', () =>
-            this.destroy())
-        if (doAtStart)
-            setTimeout(() => doAtStart(this)) // work later, when list object has been received by Koa
+        this.on('end', () => {
+            onEnd?.(this)
+            this.destroy()
+        })
+        setTimeout(() => doAtStart?.(this)) // work later, when list object has been received by Koa
         if (addAtStart) {
             for (const x of addAtStart)
                 this.add(x)
@@ -108,25 +109,41 @@ export class SendListReadable<T> extends Readable {
             this.processBuffer()
     }
     add(rec: T | T[]) {
-        this._push({ add: rec })
+        this._push(['add', rec])
     }
-    remove(key: Partial<T>) {
-        this._push({ remove: [key] })
+    remove(search: Partial<T>) {
+        const match = _.matches(search)
+        const idx = _.findIndex(this.buffer, x => match(x[1]))
+        const found = this.buffer[idx]
+        const op = found?.[0]
+        if (op === 'remove') return
+        if (found) {
+            this.buffer.splice(idx, 1)
+            if (op === 'add') return
+        }
+        this._push(['remove', search])
     }
     update(search: Partial<T>, change: Partial<T>) {
-        this._push({ update:[{ search, change }] })
+        if (_.isEmpty(change)) return
+        const match = _.matches(search)
+        const found = _.find(this.buffer, x => match(x[1]))
+        const op = found?.[0]
+        if (op === 'remove') return
+        if (op === 'add' || op === 'update')
+            return Object.assign(found[op === 'add' ? 1 : 2], change)
+        return this._push(['update', search, change])
     }
     ready() { // useful to indicate the end of an initial phase, but we leave open for updates
-        this._push('ready')
+        this._push(['ready'])
     }
     custom(data: any) {
         this._push(data)
     }
     props(props: object) {
-        this._push({ props })
+        this._push(['props', props])
     }
     error(msg: NonNullable<typeof this.lastError>, close=false, props?: object) {
-        this._push({ error: msg, ...props })
+        this._push(['error', msg, props])
         this.lastError = msg
         if (close)
             this.close()

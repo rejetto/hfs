@@ -78,7 +78,8 @@ export default function useFetchList() {
                 case 'msg':
                     state.loginRequired = false
                     for (const entry of data) {
-                        const { error } = entry
+                        const [op, par] = entry
+                        const error = op === 'error' && par
                         if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
                             state.messageOnly = t('upload_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
@@ -95,15 +96,14 @@ export default function useFetchList() {
                         }
                         if (!desiredPath.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(desiredPath + '/')
-                        if (entry.props) {
-                            Object.assign(state, _.pick(entry.props, ['can_upload', 'can_delete', 'accept']))
+                        if (op === 'props') {
+                            Object.assign(state, _.pick(par, ['can_upload', 'can_delete', 'accept']))
                             continue
                         }
                         state.can_upload ??= false
                         state.can_delete ??= false
-                        const { add } = entry
-                        if (add)
-                            buffer.push(new DirEntry(add.n, add))
+                        if (op === 'add')
+                            buffer.push(new DirEntry(par.n, par))
                     }
                     if (src?.readyState === src?.CLOSED)
                         return state.stopSearch?.()

@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { pendingPromise, wait } from './misc'
+import { pendingPromise, typedKeys, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
@@ -25,48 +25,43 @@ const apis: ApiHandlers = {
     },
 
     get_connections({}, ctx) {
-        const list = new SendListReadable({ addAtStart: getConnections().map(c => serializeConnection(c)) })
+        const sent = Symbol('sent')
+        const list = new SendListReadable({
+            addAtStart: getConnections().map(c =>
+                !ignore(c) && (c[sent] = serializeConnection(c))).filter(Boolean),
+            onEnd() {
+                for (const c of getConnections())
+                    delete c[sent]
+            }
+        })
         type Change = Partial<Omit<Connection,'ip'>>
-        const throttledUpdate = _.throttle(update, 1000/20) // try to avoid clogging with updates
-        const state = Symbol('state') // undefined=added, Timeout=add-pending, false=removed
         list.props({ you: ctx.ip })
         return list.events(ctx, {
             connection(conn: Connection) {
-                conn[state] = setTimeout(() => add(conn), 100)
+                if (ignore(conn)) return
+                list.add(conn[sent] = serializeConnection(conn))
             },
             connectionClosed(conn: Connection) {
-                if (cancel(conn)) return
+                if (ignore(conn)) return
                 list.remove(getConnAddress(conn))
-                conn[state] = false
+                delete conn[sent]
             },
             connectionUpdated(conn: Connection, change: Change) {
-                if (!change.ctx)
-                    return throttledUpdate(conn, change)
-
-                Object.assign(change, fromCtx(change.ctx))
-                change.ctx = undefined
-                if (!add(conn))
-                    throttledUpdate(conn, change)
+                if (ignore(conn) || ignore(change as any) || !conn[sent]) return
+                if (change.ctx) {
+                    Object.assign(change, fromCtx(change.ctx))
+                    change.ctx = undefined
+                }
+                // avoid sending non-changes
+                const last = conn[sent]
+                for (const k of typedKeys(change))
+                    if (change[k] === last[k])
+                        delete change[k]
+                if (_.isEmpty(change)) return
+                Object.assign(last, change)
+                list.update(getConnAddress(conn), change)
             },
         })
-
-        function add(conn: Connection) {
-            if (!cancel(conn)) return
-            list.add(serializeConnection(conn))
-            return true
-        }
-
-        function cancel(conn: Connection) {
-            if (!conn[state]) return
-            clearTimeout(conn[state])
-            conn[state] = undefined
-            return true
-        }
-
-        function update(conn: Connection, change: Change) {
-            if (conn[state] === false) return
-            list.update(getConnAddress(conn), change)
-        }
 
         function serializeConnection(conn: Connection) {
             const { socket, started, secure } = conn
@@ -101,7 +96,7 @@ const apis: ApiHandlers = {
                 inSpeed: totalInSpeed,
                 got: totalGot,
                 sent: totalSent,
-                connections: getConnections().length
+                connections: _.sumBy(getConnections(), x => ignore(x) ? 0 : 1),
             }
             await wait(1000)
         }
@@ -109,6 +104,10 @@ const apis: ApiHandlers = {
 }
 
 export default apis
+
+function ignore(conn: Connection) {
+    return false //conn.socket && isLocalHost(conn)
+}
 
 function getConnAddress(conn: Connection) {
     return {
