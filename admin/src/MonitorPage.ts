@@ -3,12 +3,13 @@
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { PauseCircle, PlayCircle, Delete, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
+import { PauseCircle, PlayCircle, LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
 import { formatBytes, IconBtn, IconProgress, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
+import { toast } from "./dialog"
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -113,7 +114,7 @@ function Connections() {
                         headerName: "Address",
                         flex: 1,
                         maxWidth: 400,
-                        renderCell: ({ row, value }) => (row.v === 6 ? `[${value}]` : value) + ' :' + row.port,
+                        renderCell: ({ row, value }) => (value.includes(':') ? `[${value}]` : value) + ' :' + row.port,
                         mergeRender: { other: 'user', fontSize: 'small' },
                     },
                     {
@@ -132,7 +133,7 @@ function Connections() {
                     {
                         field: 'path',
                         headerName: "File",
-                        flex: 1,
+                        flex: 1.5,
                         renderCell({ value, row }) {
                             if (!value) return
                             if (row.archive)
@@ -191,9 +192,10 @@ function Connections() {
                 actionsProps: { hideUnder: 'sm' },
                 actions: ({ row }) => [
                     h(IconBtn, {
-                        icon: Delete,
+                        icon: LinkOff,
                         title: "Disconnect",
-                        onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])),
+                        onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port']))
+                            .then(() => toast("Disconnection requested")),
                     }),
                     h(IconBtn, {
                         icon: Block,
