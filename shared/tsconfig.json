@@ -1,4 +1,4 @@
 {
   "extends": "../tsconfig-web",
-  "include": ["src"]
+  "include": ["."]
 }
