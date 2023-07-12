@@ -61,6 +61,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:a
                     return setTimeout(() => apply.flush()) // this trick we'll cause first entries to be rendered almost immediately, while the rest will be subject to normal debouncing
                 case 'error':
                     setError("Connection error")
+                    setTimeout(reload, 1000)
                     return stop()
                 case 'closed':
                     return stop()
