@@ -22,7 +22,7 @@ export interface DialogOptions {
 }
 
 const dialogs = proxy<DialogOptions[]>([])
-export type DialogCloser = ReturnType<typeof newDialog>
+export type DialogCloser = ReturnType<typeof newDialog>['close']
 
 export const dialogsDefaults: Partial<DialogOptions> = {
     closableContent: 'x',
@@ -103,7 +103,9 @@ export function newDialog(options: DialogOptions) {
     const $id = Math.random()
     options.$id = $id // object identity is not working because of the proxy. This is a possible workaround
     dialogs.push(options)
-    return (v?:any) => {
+    return { close }
+
+    function close(v?:any) {
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
         dialogs.splice(i,1)

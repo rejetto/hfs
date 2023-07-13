@@ -10,7 +10,7 @@ import FilePicker from './FilePicker'
 import { onlyTruthy } from './misc'
 
 export default function addFiles() {
-    const close = newDialog({
+    const { close } = newDialog({
         title: "Add files or folders",
         dialogProps: { sx:{ minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content() {

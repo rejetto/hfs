@@ -56,7 +56,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     if (res)
         menu.push(...res.flat())
     const ico = getEntryIcon(entry)
-    const close = newDialog({
+    const { close } = newDialog({
         title: isFolder ? t`Folder menu` : t`File menu`,
         className: 'file-dialog',
         icon: () => ico,

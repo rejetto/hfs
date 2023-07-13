@@ -245,7 +245,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     )
 
     function edit() {
-        const close = newDialog({
+        const { close } = newDialog({
             title: "Change link",
             Content() {
                 const [v, setV] = useState(base || '')

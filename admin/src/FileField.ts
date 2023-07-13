@@ -22,7 +22,7 @@ export default function FileField({ value, onChange, files=true, folders=false, 
                     title: "Browse files...",
                     edge: 'end',
                     onClick() {
-                        const close = newDialog({
+                        const { close } = newDialog({
                             title: title ?? (files ? "Pick a file" : "Pick a folder"),
                             dialogProps: {
                                 fullScreen: !large,

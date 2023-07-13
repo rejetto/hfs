@@ -72,7 +72,7 @@ export async function alertDialog(msg: ReactElement | string | Error, type:Alert
         icon: '!',
         onClose: resolve,
         Content
-    })))
+    }).close))
 
     function Content(){
         if (msg instanceof Error)
@@ -102,7 +102,7 @@ export async function confirmDialog(msg: ReactElement | string, options: Confirm
             onClose: resolve,
             ...rest,
             Content
-        })) )
+        }).close) )
 
     function Content() {
         const [sec,setSec] = useState(Math.ceil(timeout||0))

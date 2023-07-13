@@ -47,7 +47,7 @@ export default function VfsPage() {
         return b && !ret.includes(b) ? [b, ...ret] : ret
     }, [status])
 
-    function close() {
+    function selectNone() {
         state.selectedFiles = []
     }
 
@@ -56,7 +56,7 @@ export default function VfsPage() {
                 addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
                     icon: Close,
                     title: "Close",
-                    onClick: close
+                    onClick: selectNone
                 }),
                 defaultPerms: data?.defaultPerms as VfsPerms,
                 anyMask,
@@ -76,11 +76,12 @@ export default function VfsPage() {
 
     useEffect(() => {
         if (isSideBreakpoint || !sideContent) return
-        return newDialog({
+        const { close } = newDialog({
             title: selectedFiles.length > 1 ? "Multiple selection" : selectedFiles[0].name,
             Content: () => sideContent,
-            onClose: close,
+            onClose: selectNone,
         })
+        return close
     },[isSideBreakpoint, selectedFiles])
 
     useEffect(() => {

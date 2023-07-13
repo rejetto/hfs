@@ -82,7 +82,7 @@ export function showUpload() {
     if (!uploadState.qs.length)
         resetCounters()
     uploadDialogIsOpen = true
-    const close = newDialog({
+    const { close } = newDialog({
         dialogProps: { id: 'upload-dialog', style: { minHeight: '6em', minWidth: 'min(20em, 100vw - 1em)' } },
         title: t`Upload`,
         icon: () => hIcon('upload'),

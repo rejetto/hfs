@@ -312,7 +312,7 @@ function suggestMakingCert() {
 export async function makeCertAndSave() {
     if (!window.crypto.subtle)
         return alertDialog("Retry this procedure on localhost", 'warning')
-    const close = newDialog({
+    const { close } = newDialog({
         title: "Get a certificate",
         Content: () => h(Flex, { flexDirection: 'column' },
             h('p', {}, "HTTPS needs a certificate to work."),

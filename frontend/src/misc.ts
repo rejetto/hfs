@@ -42,7 +42,7 @@ export function working() {
     if (isWorking)
         return ()=>{} // noop
     isWorking = true
-    return newDialog({
+    const { close } = newDialog({
         closable: false,
         noFrame: true,
         Content: Spinner,
@@ -52,6 +52,7 @@ export function working() {
             isWorking = false
         }
     })
+    return close
 }
 
 export function hfsEvent(name: string, params?:Dict) {

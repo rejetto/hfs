@@ -94,7 +94,7 @@ export async function alertDialog(msg: ReactElement | string | Error, options?: 
             msg = msg.message || String(msg)
             type = 'error'
         }
-        const close = newDialog({
+        const { close } = newDialog({
             className: 'dialog-alert-' + type,
             icon: '!',
             onClose: resolve,
@@ -208,12 +208,12 @@ export async function promptDialog(msg: string, props:any={}) : Promise<string |
 }
 
 export function waitDialog() {
-    return newDialog({ Content: CircularProgress, closable: false })
+    return newDialog({ Content: CircularProgress, closable: false }).close
 }
 
 export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info') {
     const ms = 3000
-    const close = newDialog({
+    const { close } = newDialog({
         Content,
         dialogProps: {
             PaperProps: {

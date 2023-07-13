@@ -8,7 +8,7 @@ import { openFileMenu } from './fileMenu'
 import { useI18N } from './i18n'
 
 export function fileShow(entry: DirEntry) {
-    const close = newDialog({
+    const { close } = newDialog({
         noFrame: true,
         className: 'file-show',
         Content() {
