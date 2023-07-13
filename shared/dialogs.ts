@@ -22,7 +22,6 @@ export interface DialogOptions {
 }
 
 const dialogs = proxy<DialogOptions[]>([])
-export type DialogCloser = ReturnType<typeof newDialog>['close']
 
 export const dialogsDefaults: Partial<DialogOptions> = {
     closableContent: 'x',

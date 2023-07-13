@@ -49,7 +49,7 @@ const accessLogger = new Logger('log')
 const accessErrorLog = new Logger('error_log')
 export const loggers = [accessLogger, accessErrorLog]
 
-defineConfig('log', 'logs/access.log').sub(path => {
+defineConfig(accessLogger.name, 'logs/access.log').sub(path => {
     console.debug('access log file: ' + (path || 'disabled'))
     accessLogger.setPath(path)
 })
@@ -89,8 +89,8 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
                 try { // other logging requests shouldn't happen while we are renaming. Since this is very infrequent we can tolerate solving this by making it sync.
                     renameSync(path, path + '-' + postfix)
                 }
-                catch(e) {  // ok, rename failed, but this doesn't mean we ain't gonna log
-                    console.error(e)
+                catch(e: any) {  // ok, rename failed, but this doesn't mean we ain't gonna log
+                    console.error(String(e || e.message))
                 }
                 stream = logger.reopen() // keep variable updated
                 if (!stream) return

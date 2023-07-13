@@ -2,11 +2,11 @@
 
 import { createElement as h, ReactElement, ReactNode, useEffect, useRef, useState } from 'react'
 import './dialog.css'
-import { newDialog, closeDialog, DialogOptions, DialogCloser } from '@hfs/shared/dialogs'
+import { newDialog, closeDialog, DialogOptions } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'
 import { t } from './i18n'
-import { err2msg } from './misc'
+import { err2msg, pendingPromise } from './misc'
 export * from '@hfs/shared/dialogs'
 
 interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string, trim?: boolean }
@@ -63,16 +63,17 @@ export async function promptDialog(msg: string, { def, type, trim=true, ...rest 
 
 type AlertType = 'error' | 'warning' | 'info'
 
-export async function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', { getClose=_.noop }={}) {
+export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info') {
     if (msg instanceof Error)
         type = 'error'
-    return new Promise(resolve => getClose(newDialog({
+    const ret = pendingPromise()
+    return Object.assign(ret, newDialog({
         className: 'dialog-alert dialog-alert-'+type,
         title: t(_.capitalize(type)),
         icon: '!',
-        onClose: resolve,
+        onClose: ret.resolve,
         Content
-    }).close))
+    }))
 
     function Content(){
         if (msg instanceof Error)
@@ -89,20 +90,20 @@ export interface ConfirmOptions extends Partial<DialogOptions> {
     afterButtons?: ReactNode
     timeout?: number
     timeoutConfirm?: boolean
-    getClose?: (cb: DialogCloser) => unknown
 }
-export async function confirmDialog(msg: ReactElement | string, options: ConfirmOptions={}) : Promise<unknown> {
-    const { href, afterButtons, timeout, timeoutConfirm=false, getClose=_.noop, ...rest } = options
+export function confirmDialog(msg: ReactElement | string, options: ConfirmOptions={}) {
+    const { href, afterButtons, timeout, timeoutConfirm=false, ...rest } = options
     if (typeof msg === 'string')
         msg = h('p', {}, msg)
-    return new Promise(resolve =>
-        getClose(newDialog({
-            className: 'dialog-confirm',
-            icon: '?',
-            onClose: resolve,
-            ...rest,
-            Content
-        }).close) )
+    const ret = pendingPromise<boolean>()
+    const dialog = newDialog({
+        className: 'dialog-confirm',
+        icon: '?',
+        onClose: ret.resolve,
+        ...rest,
+        Content
+    })
+    return Object.assign(ret, dialog)
 
     function Content() {
         const [sec,setSec] = useState(Math.ceil(timeout||0))
@@ -110,7 +111,7 @@ export async function confirmDialog(msg: ReactElement | string, options: Confirm
         const missingText = timeout!>0 && ` (${sec})`
         useEffect(() => {
             if (timeout && !sec)
-                closeDialog(timeoutConfirm)
+                dialog.close(timeoutConfirm)
         }, [sec])
         return h('div', {},
             msg,
@@ -124,10 +125,10 @@ export async function confirmDialog(msg: ReactElement | string, options: Confirm
             },
                 h('a', {
                     href,
-                    onClick() { closeDialog(true) },
+                    onClick() { dialog.close(true) },
                 }, h('button', {}, t`Confirm`, timeoutConfirm && missingText)),
                 h('button', {
-                    onClick() { closeDialog(false) },
+                    onClick() { dialog.close(false) },
                 }, t`Don't`, !timeoutConfirm && missingText),
                 afterButtons,
             )

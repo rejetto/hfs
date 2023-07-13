@@ -4,7 +4,6 @@ import { createElement as h, Fragment, useMemo, useState } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
 import {
     closeDialog,
-    DialogCloser,
     formatBytes,
     formatPerc,
     hIcon,
@@ -122,7 +121,7 @@ export function showUpload() {
                             h('button', {
                                 className: 'upload-send',
                                 onClick() {
-                                    enqueue(files)
+                                    enqueue(files).then()
                                     setFiles([])
                                 }
                             }, t('send_files', { n: files.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
@@ -253,7 +252,7 @@ let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource
-let closeLast: DialogCloser | undefined
+let closeLast: undefined | (() => void)
 
 async function startUpload(f: File, to: string, resume=0) {
     let resuming = false
@@ -306,7 +305,9 @@ async function startUpload(f: File, to: string, resume=0) {
                 const cancelSub = subscribeKey(uploadState, 'partial', v =>
                     v >= size && closeLast?.() )  // dismiss dialog as soon as we pass the threshold
                 const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/f.size)} = ${formatBytes(size)})`
-                const confirmed = await confirmDialog(msg, { timeout, getClose: x => closeLast=x })
+                const dialog = confirmDialog(msg, { timeout })
+                closeLast = dialog.close
+                const confirmed = await dialog
                 cancelSub()
                 if (!confirmed) return
                 if (uploading !== uploadState.uploading) return // too late
@@ -331,7 +332,7 @@ async function startUpload(f: File, to: string, resume=0) {
         const specifier = (ERRORS as any)[status]
         const msg = t('failed_upload', f, "Couldn't upload {name}") + prefix(': ', specifier)
         closeLast?.()
-        return alertDialog(msg, 'error', { getClose: x => closeLast=x })
+        closeLast = alertDialog(msg, 'error').close
     }
 
     function done() {
