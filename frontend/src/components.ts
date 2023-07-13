@@ -11,6 +11,7 @@ import {
     InputHTMLAttributes,
     isValidElement, MouseEventHandler,
     ReactNode,
+    SelectHTMLAttributes,
     useMemo
 } from 'react'
 
@@ -51,15 +52,18 @@ export function Checkbox({ onChange, value, children, ...props }: CheckboxProps)
     return !children ? ret : h('label', {}, ret, children)
 }
 
-type Options = { label:string, value:string }[]
-interface SelectProps { value:any, onChange?:(v:string)=>void, options:Options }
-export function Select({ onChange, value, options, ...props }:SelectProps) {
+interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
+    value: string, // just string for the time being
+    onChange?: (v: string) => void,
+    options: { label: string, value: string }[]
+}
+export function Select({ onChange, value, options, ...props }: SelectProps) {
     return h('select', {
-        onChange: ev => // @ts-ignore
-            onChange?.(ev.target.value),
+        onChange: ev =>
+            onChange?.((ev.target as any).value),
         value,
         ...props,
-    }, options.map(({ value, label }) => h('option', { key:value, value }, label)))
+    }, options.map(({ value, label }) => h('option', { key: value, value }, label)))
 }
 
 export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {

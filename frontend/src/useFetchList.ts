@@ -38,14 +38,14 @@ export default function useFetchList() {
             return
         }
 
-        const baseParams = {
+        const params = {
             uri: desiredPath,
             search,
             sse: true,
             [RELOADER_PROP]: snap.listReloader, // symbol, so it won't be serialized, but will force reloading
         }
-        if (_.isEqual(baseParams, lastReq.current)) return
-        lastReq.current = baseParams
+        if (_.isEqual(params, lastReq.current)) return
+        lastReq.current = params
 
         state.list = []
         state.filteredList = undefined
@@ -62,7 +62,7 @@ export default function useFetchList() {
                 state.list = sort([...state.list, ...chunk])
         }
         const timer = setInterval(flush, 1000)
-        const src = apiEvents('file_list', baseParams, (type, data) => {
+        const src = apiEvents('file_list', params, (type, data) => {
             if (!isMounted()) return
             switch (type) {
                 case 'error':

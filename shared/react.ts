@@ -32,6 +32,11 @@ export function dontBotherWithKeys(elements: ReactNode[]): (ReactNode|string)[] 
                 : h(Fragment, { key:i, children:e }) )
 }
 
+/* the idea is that you need a job done by a worker, but the worker will execute only after it collected jobs for some time
+    by other "users" of the same worker, like other instances of the same component, but potentially also different components.
+    User of this hook will just be returned with the single result of its own job.
+    As an additional feature, results are cached. You can clear the cache by calling cache.clear()
+*/
 export function useBatch<Job=unknown,Result=unknown>(
     worker: ((jobs: Job[]) => Promise<Result[]>),
     job: undefined | Job,
