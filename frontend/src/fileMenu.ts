@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
 import { alertDialog, promptDialog } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
+import { navigate } from './App'
 
 interface FileMenuEntry {
     label: ReactNode
@@ -19,7 +20,6 @@ interface FileMenuEntry {
 
 export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder, s } = entry
-    const fullUri = uri[0] === '/' ? uri : location.pathname + uri
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
         !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
@@ -27,13 +27,13 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             if (x === 'open') {
                 if (entry.cantOpen) return
                 const open = { icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
-                return !isFolder ? open : h(Link, { to: fullUri, onClick: () => close() }, hIcon(open.icon), open.label)
+                return !isFolder ? open : h(Link, { to: uri, onClick: () => close() }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
                 return state.can_delete && {
                     label: t`Delete`,
                     icon: 'trash',
-                    onClick: () => deleteFiles([entry.uri], entry.uri[0] === '/' ? '' : location.pathname)
+                    onClick: () => deleteFiles([entry.uri])
                 }
             if (x === 'show')
                 return !entry.cantOpen && getShowType(entry) && {
@@ -64,7 +64,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             : [ev.pageX, ev.pageY - scrollY] as [number, number],
         Content() {
             const {t} = useI18N()
-            const [details] = useApi('get_file_details', { uris: [fullUri] });
+            const [details] = useApi('get_file_details', { uris: [entry.uri] });
             const showProps = [ ...props,
                 with_(details?.[0]?.upload, x => x && [ t`Uploader`, x.ip + prefix(' (', x.username, ')') ])
             ]
@@ -101,20 +101,24 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
 async function rename(entry: DirEntry) {
     const dest = await promptDialog(t`Name`, { def: entry.name, title: t`Rename` })
     if (!dest) return
-    const uri = location.pathname + entry.uri
     try {
+        const { n, uri } = entry
         await apiCall('rename', { uri, dest })
-        // update state instead of re-getting the list
-        const { n } = entry
-        const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
-        const newEntry = new DirEntry(newN, entry)
-        const i = _.findIndex(state.list, { n })
-        state.list[i] = newEntry
-        const j = _.findIndex(state.filteredList, { n })
-        if (j >= 0)
-            state.filteredList![j] = newEntry
-
-        alertDialog(t`Operation successful`).then() // don't wait, so it appears after the file-menu closes
+        const isCurrentFolder = uri === location.pathname
+        if (!isCurrentFolder) {
+            // update state instead of re-getting the list
+            const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
+            const newEntry = new DirEntry(newN, entry)
+            const i = _.findIndex(state.list, { n })
+            state.list[i] = newEntry
+            const j = _.findIndex(state.filteredList, { n })
+            if (j >= 0)
+                state.filteredList![j] = newEntry
+        }
+        alertDialog(t`Operation successful`).then(() => {
+            if (isCurrentFolder)
+                navigate(uri + '../' + dest + '/')
+        })
     }
     catch(e: any) {
         await alertDialog(e)

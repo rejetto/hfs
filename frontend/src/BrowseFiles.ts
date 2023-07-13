@@ -179,7 +179,6 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder } = entry
-    const base = usePath()
     const { showFilter, selected } = useSnapState()
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     const containerName = containerDir && entry.n.slice(0, -entry.name.length)
@@ -203,12 +202,12 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         }),
         h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
             isFolder ? h(Fragment, {},
-                h(Link, { to: base + uri }, ico, entry.n.slice(0,-1)),
+                h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
                 menuOnLink && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
             )
             : containerDir ? h(Fragment, {},
                 h('a', { href: uri, onClick }, ico),
-                h(Link, { to: base + containerDir, className:'container-folder' }, containerName),
+                h(Link, { to: containerDir, className:'container-folder' }, containerName),
                 h('a', { href: uri, onClick }, entry.name)
             ) : h('a', { href: uri, onClick }, ico, entry.name),
         ),

@@ -32,7 +32,6 @@ export function MenuPanel() {
         setStarted1secAgo(false)
         setTimeout(() => setStarted1secAgo(true), 1000)
     }, [stopSearch, setStarted1secAgo])
-    const pathname = usePath()
 
     useEffect(() => {
         if (!can_delete || localStorage.warn_can_delete) return
@@ -67,7 +66,7 @@ export function MenuPanel() {
                 icon: 'trash',
                 label: t`Delete`,
                 className: 'show-sliding',
-                onClick: () => deleteFiles(Object.keys(selected), pathname)
+                onClick: () => deleteFiles(Object.keys(selected))
             } : changingButton === 'upload' ? {
                 id: 'upload-button',
                 icon: 'upload',
@@ -198,7 +197,7 @@ function LoginButton() {
     })
 }
 
-export async function deleteFiles(uris: string[], root: string='') {
+export async function deleteFiles(uris: string[]) {
     const n = uris.length
     if (!n) {
         alertDialog(t('delete_select', "Select something to delete")).then()
@@ -207,7 +206,7 @@ export async function deleteFiles(uris: string[], root: string='') {
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
         return false
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
-        apiCall('delete', { uri: root + uri }).then(() => null, err => ({ uri, err }))
+        apiCall('delete', { uri }).then(() => null, err => ({ uri, err }))
     )))
     reloadList()
     const e = errors.length

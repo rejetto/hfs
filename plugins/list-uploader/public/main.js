@@ -6,8 +6,7 @@
         HFS.h(Uploader, entry))
 
     function Uploader({ uri }) {
-        const fullUri = location.pathname + uri
-        const { data } = HFS.useBatch(getDetails, fullUri)
+        const { data } = HFS.useBatch(getDetails, uri)
         const text = React.useMemo(() => {
             if (!data || data === true) return ''
             const { upload: x } = data
