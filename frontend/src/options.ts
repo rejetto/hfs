@@ -10,7 +10,7 @@ import { t } from './i18n'
 
 export function showOptions (){
     const options = ['name', 'extension', 'size', 'time']
-    const close = newDialog({
+    newDialog({
         title: t`Options`,
         className: 'options-dialog',
         icon: () => hIcon('settings'),
@@ -19,23 +19,23 @@ export function showOptions (){
 
     function Content(){
         const snap = useSnapState()
-        return h(FlexV, { gap: '1.2em' },
+        return h(FlexV, { gap: '1.5em' },
             snap.adminUrl && h(MenuLink, {
                 icon: 'admin',
                 label: t`Admin-panel`,
                 href: snap.adminUrl,
                 target: 'admin',
             }),
-            h(FlexV, { gap: '.5em' },
-                h('div', {}, t`Sort by`),
-                options.map(x => h('button',{
-                    key: x,
-                    className: snap.sortBy === x ? 'toggled' : undefined,
-                    onClick(){
-                        close(state.sortBy = x)
-                    }
-                }, t(x)))
-            ),
+            h(Select, {
+                options: options.map(x => ({
+                    value: x,
+                    label: t("Sort by:", { by: t(x) }, t`Sort by` + ': ' + t(x))
+                })),
+                value: snap.sortBy,
+                onChange(v) {
+                    state.sortBy = v
+                }
+            }),
             h(Checkbox, {
                 value: snap.invertOrder,
                 onChange(v) {
@@ -68,7 +68,7 @@ export function showOptions (){
             ),
 
             h(Select, {
-                options: ['', 'light', 'dark'].map(s => ({ label: t`theme:` + ' ' + t(s || "auto"), value: s })),
+                options: ['', 'light', 'dark'].map(s => ({ label: t(["Theme:", "theme:"]) + ' ' + t(s || "auto"), value: s })),
                 value: snap.theme,
                 onChange(v) {
                     state.theme = v

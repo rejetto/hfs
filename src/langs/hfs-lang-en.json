@@ -69,7 +69,7 @@
         "enter_folder": "Enter the folder",
         "folder_exists": "Folder with same name already exists",
 
-        "Sort by": "Sort by",
+        "Sort by:": "Sort by: {by}",
         "name": "name",
         "extension": "extension",
         "size": "size",

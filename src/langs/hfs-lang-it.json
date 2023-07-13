@@ -67,10 +67,10 @@
         "enter_folder": "Accedi alla nuova cartella",
         "folder_exists": "Questo nome esiste già",
 
-        "Sort by": "Ordinamento",
+        "Sort by:": "Ordina per {by}",
         "name": "nome",
         "extension": "estensione",
-        "size": "dimensioni",
+        "size": "dimensione",
         "time": "data/ora",
         "Invert order": "Inverti ordine",
         "Folders first": "Prima le cartelle",
