@@ -82,9 +82,11 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                             : !e?.label ? null :
                                 h('a', {
                                     key: i,
-                                    href: e.href || '#',
-                                    ..._.omit(e, ['label', 'icon', 'href', 'onClick']),
-                                    async onClick() {
+                                    href: '#',
+                                    ..._.omit(e, ['label', 'icon', 'onClick']),
+                                    async onClick(ev: MouseEvent) {
+                                        if (!e.href) // even with #, the
+                                            ev.preventDefault()
                                         if ((await e.onClick?.()) !== false)
                                             close()
                                     }
