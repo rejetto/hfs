@@ -216,6 +216,7 @@ export function toast(msg: string | ReactElement, type: AlertType | ReactElement
     const { close } = newDialog({
         Content,
         dialogProps: {
+            fullScreen: false,
             PaperProps: {
                 sx: { transition: `opacity ${ms}ms ease-in` },
                 ref(x: HTMLElement) { // we need to set opacity later, to trigger transition
