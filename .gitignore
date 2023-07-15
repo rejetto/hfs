@@ -8,7 +8,7 @@ mui-grid-form/lib
 counters.yaml
 *.log*
 self.*
-config.yaml
+config.yaml*
 custom.html
 accounts.yaml
 .DS_Store
