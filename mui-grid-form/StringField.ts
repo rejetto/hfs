@@ -36,6 +36,7 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
         ...props,
         sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1.5 } }, props.sx),
         value: state,
+        onInput(ev: any) { go(ev, ev.target.value) }, // necessary to support autofill on chrome mobile
         onChange(ev) {
             const val = ev.target.value
             if (onTyping?.(val) === false) return
