@@ -44,7 +44,6 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
     const titleSx = useDialogBarColors() // don't move this hook inside the return. When closing+showing at once it throws about rendering with fewer hooks.
     d = { ...dialogsDefaults, ...d }
     const { sx, root, ...rest } = d.dialogProps||{}
-    dialogsDefaults.dialogProps = { fullScreen: mobile, sx: { overflow:'initial' } }
     return h(MuiDialog, {
         open: true,
         maxWidth: 'lg',
