@@ -22,7 +22,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         disableColumnSelector: true,
         disableColumnMenu: true,
         hideFooter: true,
-        localeText: updates && { noRowsLabel: `No updates available. Only plugins available on "search online" are checked.` },
+        noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,
         columns: [
             {
                 field: 'id',

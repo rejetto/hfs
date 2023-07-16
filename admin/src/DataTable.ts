@@ -4,7 +4,7 @@ import { useWindowSize } from 'usehooks-ts'
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { newDialog, onlyTruthy } from '@hfs/shared'
 import _ from 'lodash'
-import { Flex } from './misc'
+import { Center, Flex } from './misc'
 
 const ACTIONS = 'Actions'
 
@@ -16,8 +16,9 @@ interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridP
     actions?: ({ row, id }: any) => ReactNode[]
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
     initializing?: boolean
+    noRows?: ReactNode
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, ...rest }: DataTableProps) {
     const { width } = useWindowSize()
     const theme = useTheme()
     const apiRef = useGridApiRef()
@@ -87,6 +88,9 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             initialState,
             columns: manipulatedColumns,
             apiRef,
+            slots: {
+                ...(noRows || initializing) && { noRowsOverlay: () => initializing ? null : h(Center, {}, noRows) },
+            },
             onCellClick({ field, row }) {
                 if (field === ACTIONS) return
                 const n = apiRef.current.getVisibleColumns().length

@@ -30,7 +30,7 @@ export default function OnlinePlugins() {
         }),
         h(DataTable, {
             rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
-            localeText: { noRowsLabel: "No compatible plugins have been found" },
+            noRows: "No compatible plugins have been found",
             initializing,
             columnVisibilityModel: snap.onlinePluginsColumns,
             onColumnVisibilityModelChange: newModel => Object.assign(state.onlinePluginsColumns, newModel),

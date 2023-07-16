@@ -107,7 +107,7 @@ function Connections() {
         error ? h(Alert, { severity: 'error' }, error)
             : h(DataTable, {
                 rows,
-                localeText: filtered ? { noRowsLabel: "No downloads at the moment" } : undefined,
+                noRows: filtered && "No downloads at the moment",
                 columns: [
                     {
                         field: 'ip',
