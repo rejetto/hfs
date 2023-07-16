@@ -35,8 +35,9 @@ subscribe(state, (ops) => {
 })
 
 export const logLabels = {
-    log: "Access log file",
-    error_log: "Access error log file"
+    log: "Access",
+    error_log: "Access error",
+    console: "Console",
 }
 
 const NetmaskField = StringField

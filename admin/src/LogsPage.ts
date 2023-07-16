@@ -31,7 +31,27 @@ function LogFile({ file }: { file: string }) {
                 showLastButton: true,
             }
         },
-        columns: [
+        columns: file === 'console' ? [
+            {
+                field: 'ts',
+                headerName: "Timestamp",
+                type: 'dateTime',
+                width: 90,
+                valueGetter: ({ value }) => new Date(value as string),
+                renderCell: ({ value }) => h(Box, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
+            },
+            {
+                field: 'k',
+                headerName: "Level",
+                hideUnder: 'sm',
+            },
+            {
+                field: 'msg',
+                headerName: "Message",
+                flex: 1,
+                mergeRender: { other: 'k', override: { valueFormatter: ({ value }) => value !== 'log' && value } }
+            }
+        ] : [
             {
                 field: 'ip',
                 headerName: "Address",

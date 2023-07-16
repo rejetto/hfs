@@ -18,7 +18,7 @@ import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import { getConnections } from './connections'
-import { debounceAsync, isLocalHost, makeNetMatcher, onOff, waitFor } from './misc'
+import { debounceAsync, isLocalHost, makeNetMatcher, onOff, wait, waitFor } from './misc'
 import events from './events'
 import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
 import Koa from 'koa'
@@ -32,6 +32,7 @@ import { promisify } from 'util'
 import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
 import { getUpdate, localUpdateAvailable, update, updateSupported } from './update'
+import { consoleLog } from './consoleLog'
 
 export const adminApis: ApiHandlers = {
 
@@ -110,7 +111,17 @@ export const adminApis: ApiHandlers = {
     async get_log({ file='log' }, ctx) {
         return new SendListReadable({
             bufferTime: 10,
-            doAtStart(list) {
+            async doAtStart(list) {
+                if (file === 'console') {
+                    for (const chunk of _.chunk(consoleLog, 1000)) { // avoid occupying the thread too long
+                        for (const x of chunk)
+                            list.add(x)
+                        await wait(0)
+                    }
+                    list.ready()
+                    events.on('console', x => list.add(x))
+                    return
+                }
                 const logger = loggers.find(l => l.name === file)
                 if (!logger)
                     return list.error(HTTP_NOT_FOUND, true)

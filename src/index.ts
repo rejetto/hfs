@@ -3,6 +3,7 @@
 
 import Koa from 'koa'
 import mount from 'koa-mount'
+import './consoleLog'
 import { apiMiddleware } from './apiMiddleware'
 import { API_URI, DEV } from './const'
 import { frontEndApis } from './frontEndApis'
