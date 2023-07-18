@@ -5,7 +5,7 @@ import Koa from 'koa'
 import mount from 'koa-mount'
 import './consoleLog'
 import { apiMiddleware } from './apiMiddleware'
-import { API_URI, DEV } from './const'
+import { API_URI, DEV, VERSION } from './const'
 import { frontEndApis } from './frontEndApis'
 import { logMw } from './log'
 import { pluginsMiddleware } from './plugins'
@@ -20,8 +20,9 @@ import _ from 'lodash'
 import { randomId } from './misc'
 import session from 'koa-session'
 
-ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints
+ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
+process.title = 'HFS ' + VERSION
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',') || [randomId(30)]
 export const app = new Koa({ keys })
 app.use(someSecurity)
