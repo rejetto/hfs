@@ -3,7 +3,18 @@
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Button, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApi, useApiEx, useApiList } from './api'
-import { Btn, dontBotherWithKeys, InLink, objSameKeys, onlyTruthy, prefix, REPO_URL, wait, wikiLink } from './misc'
+import {
+    Btn,
+    dontBotherWithKeys,
+    Flex,
+    InLink,
+    objSameKeys,
+    onlyTruthy,
+    prefix,
+    REPO_URL,
+    wait,
+    wikiLink
+} from './misc'
 import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
 import { state, useSnapState } from './state'
@@ -21,7 +32,7 @@ interface Status {
     https: ServerStatus
     frpDetected: boolean
     proxyDetected?: boolean
-    update: boolean | string
+    updatePossible: boolean | string
     version: string
 }
 
@@ -31,9 +42,9 @@ export default function HomePage() {
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const [account] = useApi<Account>(username && 'get_account')
-    const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies'] })
+    const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
     const { list: plugins } = useApiList('get_plugins')
-    const [onlineVersion, setOnlineVersion] = useState('')
+    const [updateInfo, setUpdateInfo] = useState<any>()
     if (statusEl || !status)
         return statusEl
     const { http, https } = status
@@ -47,10 +58,13 @@ export default function HomePage() {
     const errors = serverErrors && onlyTruthy(Object.entries(serverErrors).map(([k,v]) =>
         v && [md(`Protocol _${k}_ cannot work: `), v,
             (isCertError(v) || isKeyError(v)) && [
-                SOLUTION_SEP, h(Link, { sx: { cursor: 'pointer' }, onClick() { makeCertAndSave().then(reloadCfg).then(reloadStatus) } }, "make one"),
-                " or ", SOLUTION_SEP, cfgLink("provide adequate files")
+                SOLUTION_SEP, h(Link, {
+                    sx: { cursor: 'pointer' },
+                    onClick() { makeCertAndSave().then(reloadCfg).then(reloadStatus) } },
+                    "make one"
+                ), " or ", SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
-    return h(Box, { display:'flex', gap: 2, flexDirection:'column' },
+    return h(Box, { display:'flex', gap: 2, flexDirection:'column', height: '100%' },
         username && entry('', "Welcome "+username),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
             : entry('success', "Server is working"),
@@ -86,26 +100,29 @@ export default function HomePage() {
             )),
         entry('', h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "Get support")),
         h(Box, { mt: 4 },
-            status.update === 'local' ? h(Btn, { icon: UpdateIcon, onClick: update }, "Update from local file")
-                : !onlineVersion ? h(Btn, {
+            status.updatePossible === 'local' ? h(Btn, {
+                    icon: UpdateIcon,
+                    onClick: () => update()
+                }, "Update from local file")
+                : !updateInfo ? h(Btn, {
                     variant: 'outlined',
                     icon: UpdateIcon,
-                    onClick: () => apiCall('check_update').then(x => setOnlineVersion(x.name), x => {
-                            setOnlineVersion('')
-                            alertDialog(x).then()
-                        })
+                    onClick: () => apiCall('check_update').then(x => setUpdateInfo(x.options), alertDialog)
                 }, "Check for updates")
-                : status?.version === onlineVersion ? entry('', "You got the latest version")
-                : !status.update ? entry('', `Version ${onlineVersion} available`)
-                    : h(Btn, { icon: UpdateIcon, onClick: update }, prefix("Update to ", onlineVersion))
+                : !updateInfo.length ? entry('', "No update available")
+                : !status.updatePossible ? entry('', `Version ${updateInfo[0].name} available`)
+                    : h(Flex, { vert: true, alignItems: 'flex-start' },
+                        updateInfo.map((x: any) =>
+                            h(Btn, { icon: UpdateIcon, onClick: () => update(x.tag_name) }, prefix("Install ", x.name)) )
+                    )
         ),
     )
 }
 
-async function update() {
+async function update(tag?: string) {
     if (!await confirmDialog("Update may take less than a minute, depending on the speed of your server")) return
     toast('Downloading')
-    await apiCall('update')
+    await apiCall('update', { tag })
     toast("Restarting")
     const restarting = Date.now()
     while (await apiCall('NONE').then(() => 0, e => !e.code)) { // while we get no response

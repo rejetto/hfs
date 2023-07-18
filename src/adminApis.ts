@@ -31,7 +31,7 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
-import { getUpdate, localUpdateAvailable, update, updateSupported } from './update'
+import { getUpdates, localUpdateAvailable, update, updateSupported } from './update'
 import { consoleLog } from './consoleLog'
 
 export const adminApis: ApiHandlers = {
@@ -59,8 +59,12 @@ export const adminApis: ApiHandlers = {
     },
 
     get_config: getWholeConfig,
-    update,
-    check_update: () => getUpdate().then(x => _.pick(x, 'name')),
+    update({ tag }) {
+        return update(tag)
+    },
+    async check_update() {
+        return { options: await getUpdates() }
+    },
 
     get_custom_html() {
         return {
@@ -91,7 +95,7 @@ export const adminApis: ApiHandlers = {
             ...await getServerStatus(),
             urls: getUrls(),
             baseUrl: baseUrl.get(), // can be retrieved with get_config, but it's very handy with urls and low overhead. Case is different because the context is
-            update: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
+            updatePossible: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
