@@ -3,7 +3,7 @@ import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog, prefix, wi
 import { createElement as h, Fragment, isValidElement, MouseEventHandler, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
-import { DirEntry, state } from './state'
+import { DirEntry, pathEncode, state } from './state'
 import { deleteFiles } from './menu'
 import { Link } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
@@ -117,7 +117,7 @@ async function rename(entry: DirEntry) {
         }
         alertDialog(t`Operation successful`).then(() => {
             if (isCurrentFolder)
-                navigate(uri + '../' + dest + '/')
+                navigate(uri + '../' + pathEncode(dest) + '/')
         })
     }
     catch(e: any) {

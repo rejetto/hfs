@@ -132,7 +132,7 @@ export class DirEntry {
 }
 export type DirList = DirEntry[]
 
-function pathEncode(s: string) {
+export function pathEncode(s: string) {
     return encodeURI(s).replace(/#/g, encodeURIComponent)
 }
 //unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
