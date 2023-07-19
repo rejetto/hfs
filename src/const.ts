@@ -14,6 +14,7 @@ const PKG_PATH = join(__dirname, '..', 'package.json')
 export const BUILD_TIMESTAMP = fs.statSync(PKG_PATH).mtime.toISOString()
 const pkg = JSON.parse(fs.readFileSync(PKG_PATH,'utf8'))
 export const VERSION = pkg.version
+export const RUNNING_BETA = VERSION.includes('-')
 export const DAY = 86_400_000
 
 export const API_VERSION = 8.3

@@ -13,7 +13,8 @@ import {
     prefix,
     REPO_URL,
     wait,
-    wikiLink
+    wikiLink,
+    with_
 } from './misc'
 import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
 import md from './md'
@@ -108,12 +109,17 @@ export default function HomePage() {
                 icon: UpdateIcon,
                 onClick: () => apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
             }, "Check for updates")
-            : !updates.length ? entry('', "No update available")
-            : !status.updatePossible ? entry('', `Version ${updates[0].name} available`)
-                : h(Flex, { vert: true },
-                    updates.map((x: any) =>
-                        h(Btn, { icon: UpdateIcon, onClick: () => update(x.tag_name) }, prefix("Install ", x.name)) )
-                ),
+            : with_(_.find(updates, 'isNewer'), newer =>
+                !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
+                    : newer && !status.updatePossible ? entry('', `Version ${newer.name} available`)
+                        : h(Flex, { vert: true },
+                            updates.map((x: any) =>
+                                h(Btn, {
+                                    icon: UpdateIcon,
+                                    ...!x.isNewer && { color: 'warning', variant: 'outlined' },
+                                    onClick: () => update(x.tag_name)
+                                }, prefix("Install ", x.name, x.isNewer ? '' : " (older)")))
+                        ))
     )
 }
 

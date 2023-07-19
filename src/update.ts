@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { getRepoInfo } from './github'
-import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS } from './const'
+import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { basename, dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import { httpsStream, onProcessExit, unzip } from './misc'
@@ -14,14 +14,20 @@ import { currentVersion, defineConfig, versionToScalar } from './config'
 
 const updateToBeta = defineConfig('update_to_beta', false)
 
-interface Release { prerelease: boolean, tag_name: string, name: string, assets: any[] }
+interface Release {
+    prerelease: boolean,
+    tag_name: string,
+    name: string,
+    assets: any[],
+    isNewer: boolean // introduced by us
+}
 
 export async function getUpdates() {
     const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
     const verStable = ver(stable)
     const ret = await getBetas()
-    if (stable && currentVersion.olderThan(stable.tag_name))
-        ret.unshift(stable)
+    if (stable && (currentVersion.olderThan(stable.tag_name) || RUNNING_BETA)) // if we are running a beta, also offer the latest stable
+        ret.push(stable)
     return ret
 
     function ver(x: any) {
@@ -29,7 +35,7 @@ export async function getUpdates() {
     }
 
     async function getBetas() {
-        if (!updateToBeta.get() && !currentVersion.includes('-')) return [] // '-' means using beta
+        if (!updateToBeta.get() && !RUNNING_BETA) return []
         let page = 1
         const ret = []
         while (1) {
@@ -38,10 +44,12 @@ export async function getUpdates() {
             if (!res.length) break
             for (const x of res) {
                 if (!x.prerelease) continue // prerelease are all the end
-                if (ver(x) <= verStable) // prerelease-s are locally ordered, so as soon as we reach verStable we are done
+                const v = ver(x)
+                if (v <= verStable) // prerelease-s are locally ordered, so as soon as we reach verStable we are done
                     return ret
-                if (ver(x) !== currentVersion.getScalar())
-                    ret.push(x)
+                if (v === currentVersion.getScalar()) continue // skip current
+                x.isNewer = v > currentVersion.getScalar() // make easy to know what's newer
+                ret.push(x)
             }
         }
         return ret
