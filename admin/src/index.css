@@ -10,7 +10,9 @@ body {
   background: #000;
 }
 #root { min-height: 100%; display:flex; }
-
+main {
+  word-break: break-word; /* avoid causing unnecessary horizontal scrolling */
+}
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

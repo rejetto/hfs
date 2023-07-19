@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode, useState } from 'react'
-import { Box, Button, LinearProgress, Link } from '@mui/material'
+import { Box, Button, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApi, useApiEx, useApiList } from './api'
 import {
     Btn,
@@ -114,11 +114,17 @@ export default function HomePage() {
                     : newer && !status.updatePossible ? entry('', `Version ${newer.name} available`)
                         : h(Flex, { vert: true },
                             updates.map((x: any) =>
-                                h(Btn, {
-                                    icon: UpdateIcon,
-                                    ...!x.isNewer && { color: 'warning', variant: 'outlined' },
-                                    onClick: () => update(x.tag_name)
-                                }, prefix("Install ", x.name, x.isNewer ? '' : " (older)")))
+                                h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },
+                                    h(Card, {},
+                                        h(CardContent, {},
+                                        h(Btn, {
+                                            icon: UpdateIcon,
+                                            ...!x.isNewer && { color: 'warning', variant: 'outlined' },
+                                            onClick: () => update(x.tag_name)
+                                        }, prefix("Install ", x.name, x.isNewer ? '' : " (older)")),
+                                        h(Box, { mt: 1 }, md(x.body, { linkTarget: '_blank' }))
+                                    )),
+                                )),
                         ))
     )
 }
