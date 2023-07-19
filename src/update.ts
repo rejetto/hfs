@@ -88,7 +88,7 @@ export async function update(tag?: string) {
 
     const bin = process.execPath
     const binPath = dirname(bin)
-    const binFile = basename(bin)
+    const binFile = 'hfs' + (IS_WINDOWS ? '.exe' : '') // currently running bin could have been renamed
     const newBinFile = 'new-' + binFile
     pluginsWatcher.pause()
     try {
