@@ -18,7 +18,7 @@ import {
     useState
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
-import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode } from '@hfs/shared'
+import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex } from './misc'
 import { useDark } from './theme'
@@ -85,46 +85,49 @@ const type2ico = {
     info: Info,
     success: Check,
 }
-export async function alertDialog(msg: ReactElement | string | Error, options?: AlertType | ({ type?:AlertType, icon?: ReactElement } & Partial<DialogOptions>)) {
-    return new Promise(resolve => {
-        const opt = typeof options === 'string' ? { type: options } : (options ?? {})
-        let { type='info', ...rest } = opt
-        if (msg instanceof Error) {
-            msg = msg.message || String(msg)
-            type = 'error'
+export function alertDialog(msg: ReactElement | string | Error, options?: AlertType | ({ type?:AlertType, icon?: ReactElement } & Partial<DialogOptions>)) {
+    const opt = typeof options === 'string' ? { type: options } : (options ?? {})
+    let { type='info', ...rest } = opt
+    if (msg instanceof Error) {
+        msg = msg.message || String(msg)
+        type = 'error'
+    }
+
+    const promise = pendingPromise()
+    const dialog = newDialog({
+        className: 'dialog-alert-' + type,
+        icon: '!',
+        onClose: promise.resolve,
+        ...rest,
+        Content() {
+            return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
+                h(IconButton, {
+                    onClick() {
+                        dialog.close()
+                    },
+                    size: 'small',
+                    sx: { position: 'absolute', right: 0, top: 0, opacity: .5 }
+                }, h(Close)),
+                opt.icon ?? h(type2ico[type], { color: type, fontSize: 'large' }),
+                isValidElement(msg) ? msg
+                    : h(Box, { fontSize: 'large', mb: 1, lineHeight: '1.8em' }, String(msg)),
+            )
         }
-        const { close } = newDialog({
-            className: 'dialog-alert-' + type,
-            icon: '!',
-            onClose: resolve,
-            ...rest,
-            Content() {
-                return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
-                    h(IconButton, {
-                        onClick() {
-                            close()
-                        },
-                        size: 'small',
-                        sx: { position: 'absolute', right: 0, top: 0, opacity: .5 }
-                    }, h(Close)),
-                    opt.icon ?? h(type2ico[type], { color: type, fontSize: 'large' }),
-                    isValidElement(msg) ? msg
-                        : h(Box, { fontSize: 'large', mb: 1, lineHeight: '1.8em' }, String(msg)),
-                )
-            }
-        })
     })
+    return Object.assign(promise, dialog)
 }
 
 interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string }
-export async function confirmDialog(msg: ReactNode, { href, ...rest }: ConfirmOptions={}) : Promise<boolean> {
-    return new Promise(resolve => newDialog({
+export function confirmDialog(msg: ReactNode, { href, ...rest }: ConfirmOptions={}) {
+    const promise = pendingPromise<boolean>()
+    const dialog = newDialog({
         className: 'dialog-confirm',
         icon: '?',
-        onClose: resolve,
+        onClose: promise.resolve,
         ...rest,
         Content
-    }) )
+    })
+    return Object.assign(promise, dialog)
 
     function Content() {
         return h(Fragment, {},
@@ -212,7 +215,7 @@ export function waitDialog() {
 
 export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info') {
     const ms = 3000
-    const { close } = newDialog({
+    const dialog = newDialog({
         Content,
         dialogProps: {
             fullScreen: false,
@@ -225,7 +228,9 @@ export function toast(msg: string | ReactElement, type: AlertType | ReactElement
             }
         }
     })
+    const { close } = dialog
     setTimeout(close, ms)
+    return dialog
 
     function Content(){
         return h(Box, { display:'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },

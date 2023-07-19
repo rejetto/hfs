@@ -129,11 +129,13 @@ async function update(tag?: string) {
     await apiCall('update', { tag })
     toast("Restarting")
     const restarting = Date.now()
+    let warning: undefined | ReturnType<typeof alertDialog>
     while (await apiCall('NONE').then(() => 0, e => !e.code)) { // while we get no response
-        if (Date.now() - restarting > 10_000)
-            toast("This is taking too long, please check your server", 'warning')
+        if (!warning && Date.now() - restarting > 10_000)
+            warning = alertDialog("This is taking too long, please check your server", 'warning')
         await wait(500)
     }
+    warning?.close()
     // the server is back on, SSE is restored and login dialog may appear, unwanted because we are just waiting to reload
     subscribeKey(state, 'loginRequired', () => state.loginRequired = false)
     await alertDialog("Procedure complete", 'success')

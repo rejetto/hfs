@@ -107,8 +107,7 @@ export function newDialog(options: DialogOptions) {
     function close(v?:any) {
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
-        dialogs.splice(i,1)
-        options.onClose?.(v)
+        return closeDialogAt(i, v)
     }
 }
 
@@ -118,8 +117,12 @@ export function closeDialog(v?:any) {
         const d = dialogs[i]
         if (d.reserveClosing)
             continue
-        dialogs.splice(i,1)
-        return d.onClose?.(v)
+        closeDialogAt(i, v)
+        return d
     }
 }
 
+function closeDialogAt(i: number, value?: any) {
+    const [d] = dialogs.splice(i,1)
+    return d?.onClose?.(value)
+}

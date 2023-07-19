@@ -95,15 +95,15 @@ export function confirmDialog(msg: ReactElement | string, options: ConfirmOption
     const { href, afterButtons, timeout, timeoutConfirm=false, ...rest } = options
     if (typeof msg === 'string')
         msg = h('p', {}, msg)
-    const ret = pendingPromise<boolean>()
+    const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',
         icon: '?',
-        onClose: ret.resolve,
+        onClose: promise.resolve,
         ...rest,
         Content
     })
-    return Object.assign(ret, dialog)
+    return Object.assign(promise, dialog)
 
     function Content() {
         const [sec,setSec] = useState(Math.ceil(timeout||0))
