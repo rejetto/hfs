@@ -18,7 +18,7 @@ interface Release { prerelease: boolean, tag_name: string, name: string, assets:
 
 export async function getUpdates() {
     const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
-    const minVer = Math.max(ver(stable), currentVersion.getScalar())
+    const verStable = ver(stable)
     const ret = await getBetas()
     if (stable && currentVersion.olderThan(stable.tag_name))
         ret.unshift(stable)
@@ -38,9 +38,10 @@ export async function getUpdates() {
             if (!res.length) break
             for (const x of res) {
                 if (!x.prerelease) continue // prerelease are all the end
-                if (ver(x) <= minVer) // prerelease-s are locally ordered, so as soon as we reach verStable we are done
+                if (ver(x) <= verStable) // prerelease-s are locally ordered, so as soon as we reach verStable we are done
                     return ret
-                ret.push(x)
+                if (ver(x) !== currentVersion.getScalar())
+                    ret.push(x)
             }
         }
         return ret
