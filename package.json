@@ -68,7 +68,7 @@
     "fast-glob": "^3.2.7",
     "find-process": "^1.4.7",
     "formidable": "^2.1.1",
-    "fs-x-attributes": "^1.0.0",
+    "fs-x-attributes": "^1.0.2",
     "koa": "^2.13.4",
     "koa-compress": "^5.1.0",
     "koa-mount": "^4.0.0",
