@@ -44,7 +44,7 @@ export default function HomePage() {
     const [account] = useApi<Account>(username && 'get_account')
     const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
     const { list: plugins } = useApiList('get_plugins')
-    const [updateInfo, setUpdateInfo] = useState<any>()
+    const [updates, setUpdates] = useState<undefined | any[]>()
     if (statusEl || !status)
         return statusEl
     const { http, https } = status
@@ -64,7 +64,7 @@ export default function HomePage() {
                     "make one"
                 ), " or ", SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
-    return h(Box, { display:'flex', gap: 2, flexDirection:'column', height: '100%' },
+    return h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
         username && entry('', "Welcome "+username),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
             : entry('success', "Server is working"),
@@ -99,23 +99,21 @@ export default function HomePage() {
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
             )),
         entry('', h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "Get support")),
-        h(Box, { mt: 4 },
-            status.updatePossible === 'local' ? h(Btn, {
-                    icon: UpdateIcon,
-                    onClick: () => update()
-                }, "Update from local file")
-                : !updateInfo ? h(Btn, {
-                    variant: 'outlined',
-                    icon: UpdateIcon,
-                    onClick: () => apiCall('check_update').then(x => setUpdateInfo(x.options), alertDialog)
-                }, "Check for updates")
-                : !updateInfo.length ? entry('', "No update available")
-                : !status.updatePossible ? entry('', `Version ${updateInfo[0].name} available`)
-                    : h(Flex, { vert: true, alignItems: 'flex-start' },
-                        updateInfo.map((x: any) =>
-                            h(Btn, { icon: UpdateIcon, onClick: () => update(x.tag_name) }, prefix("Install ", x.name)) )
-                    )
-        ),
+        status.updatePossible === 'local' ? h(Btn, {
+                icon: UpdateIcon,
+                onClick: () => update()
+            }, "Update from local file")
+            : !updates ? h(Btn, {
+                variant: 'outlined',
+                icon: UpdateIcon,
+                onClick: () => apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
+            }, "Check for updates")
+            : !updates.length ? entry('', "No update available")
+            : !status.updatePossible ? entry('', `Version ${updates[0].name} available`)
+                : h(Flex, { vert: true },
+                    updates.map((x: any) =>
+                        h(Btn, { icon: UpdateIcon, onClick: () => update(x.tag_name) }, prefix("Install ", x.name)) )
+                ),
     )
 }
 
