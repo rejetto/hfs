@@ -28,16 +28,16 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - https
 - unicode
 - virtual file system
-- mobile friendly front-end
+- mobile friendly
 - search
 - accounts
-- resumable downloads
-- resumable uploads
+- resumable downloads & uploads
 - download folders as zip archive
 - remote delete
 - simple website serving
 - plug-ins
-- log file
+- real-time monitoring of connections
+- [show some files](https://github.com/rejetto/hfs/discussions/270)
 - speed throttler
 - admin web interface
 - multi-language front-end
