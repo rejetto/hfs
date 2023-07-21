@@ -108,17 +108,18 @@ async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry
         const { ctime, mtime } = st
         const pl = node.can_list === WHO_NO_ONE ? 'l'
             : !hasPermission(node, 'can_list', ctx) ? 'L'
-                : ''
+            : ''
         // no download here, but maybe inside?
         const pr = node.can_read === WHO_NO_ONE && !(folder && filesInsideCould()) ? 'r'
             : !hasPermission(node, 'can_read', ctx) ? 'R'
-                : ''
+            : ''
+        const pd = hasPermission(node, 'can_delete', ctx) ? 'd' : ''
         return {
             n: name + (folder ? '/' : ''),
             c: ctime,
             m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
             s: folder ? undefined : st.size,
-            p: (pr + pl) || undefined
+            p: (pr + pl + pd) || undefined
         }
     }
     catch {
