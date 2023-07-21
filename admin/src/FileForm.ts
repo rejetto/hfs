@@ -130,7 +130,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, status
                     })
             }),
             isDir && perm('can_list', "Permission to see content of folders"),
-            isDir && perm('can_delete', hasSource ? '' : "Works only on folders with source"),
+            isDir && perm('can_delete', [hasSource ? '' : "Works only on folders with source. ", "Who can delete can also rename."]),
             isDir && perm('can_upload', hasSource ? '' : "Works only on folders with source", { lg: showAccept ? 6 : 12 }),
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything",
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip"), lg: 6 },
