@@ -112,7 +112,7 @@ export const adminApis: ApiHandlers = {
         return files
     },
 
-    async get_log({ file='log' }, ctx) {
+    get_log({ file='log' }, ctx) {
         return new SendListReadable({
             bufferTime: 10,
             async doAtStart(list) {

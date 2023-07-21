@@ -14,7 +14,7 @@ import {
 } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
-import { ApiError, ApiHandlers } from './apiMiddleware'
+import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import { dirStream, isDirectory, isWindowsDrive, makeMatcher } from './misc'
 import {
@@ -181,43 +181,44 @@ const apis: ApiHandlers = {
         return { path }
     },
 
-    async *ls({ path, files=true, fileMask }, ctx) {
-        if (!path && IS_WINDOWS) {
-            try {
-                for (const n of await getDrives())
-                    yield { add: { n, k: 'd' } }
-            }
-            catch(error) {
-                console.debug(error)
-            }
-            return
-        }
-        try {
-            const matching = makeMatcher(fileMask)
-            path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
-            for await (const [name, isDir] of dirStream(path)) {
-                if (ctx.req.aborted)
-                    return
-                try {
-                    if (!isDir)
-                        if (!files || fileMask && !matching(name))
-                            continue
-                    const stats = await stat(join(path, name))
-                    yield {
-                        add: {
-                            n: name,
-                            s: stats.size,
-                            c: stats.ctime,
-                            m: stats.mtime,
-                            k: isDir ? 'd' : undefined,
-                        }
+    ls({ path, files=true, fileMask }, ctx) {
+        return new SendListReadable({
+            async doAtStart(list) {
+                if (!path && IS_WINDOWS) {
+                    try {
+                        for (const n of await getDrives())
+                            list.add({ n, k: 'd' })
+                    } catch (error) {
+                        console.debug(error)
                     }
+                    return
                 }
-                catch {} // just ignore entries we can't stat
+                try {
+                    const matching = makeMatcher(fileMask)
+                    path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
+                    for await (const [name, isDir] of dirStream(path)) {
+                        if (ctx.req.aborted)
+                            return
+                        if (!isDir)
+                            if (!files || fileMask && !matching(name))
+                                continue
+                        try {
+                            const stats = await stat(join(path, name))
+                            list.add({
+                                n: name,
+                                s: stats.size,
+                                c: stats.ctime,
+                                m: stats.mtime,
+                                k: isDir ? 'd' : undefined,
+                            })
+                        } catch {} // just ignore entries we can't stat
+                    }
+                    list.close()
+                } catch (e: any) {
+                    list.error(e.code || e.message || String(e), true)
+                }
             }
-        } catch (e: any) {
-            yield { error: e.code || e.message || String(e) }
-        }
+        })
     }
 
 }
