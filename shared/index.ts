@@ -33,7 +33,7 @@ const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
 export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
     if (isNaN(Number(n)) || n < 0)
         return ''
-    const i = Math.floor(Math.log2(n) / Math.log2(k))
+    const i = n && Math.floor(Math.log2(n) / Math.log2(k))
     n /= k ** i
     const nAsString = i && !isNaN(digits) ? n.toFixed(digits)
         : _.round(n, isNaN(digits) ? (n >= 100 ? 0 : 1) : digits)
