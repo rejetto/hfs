@@ -16,8 +16,8 @@ import {
     wikiLink,
     with_
 } from './misc'
-import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, Warning } from '@mui/icons-material'
-import md from './md'
+import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInNew, Warning } from '@mui/icons-material'
+import md, { replaceStringToReact } from './md'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { isCertError, isKeyError, makeCertAndSave } from './OptionsPage'
@@ -122,11 +122,17 @@ export default function HomePage() {
                                             ...!x.isNewer && { color: 'warning', variant: 'outlined' },
                                             onClick: () => update(x.tag_name)
                                         }, prefix("Install ", x.name, x.isNewer ? '' : " (older)")),
-                                        h(Box, { mt: 1 }, md(x.body, { linkTarget: '_blank' }))
+                                        h(Box, { mt: 1 }, md(x.body, { onText, linkTarget: '_blank' }))
                                     )),
                                 )),
                         ))
     )
+
+    function onText(s: string) {
+        return replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues
+            h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' },
+                h(OpenInNew, { sx: { verticalAlign: 'bottom' } }) ))
+    }
 }
 
 async function update(tag?: string) {
