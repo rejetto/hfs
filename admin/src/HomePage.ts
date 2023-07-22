@@ -114,7 +114,7 @@ export default function HomePage() {
                     : newer && !status.updatePossible ? entry('', `Version ${newer.name} available`)
                         : h(Flex, { vert: true },
                             updates.map((x: any) =>
-                                h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },
+                                h(Flex, { key: x.name, alignItems: 'flex-start', flexWrap: 'wrap' },
                                     h(Card, {},
                                         h(CardContent, {},
                                         h(Btn, {
