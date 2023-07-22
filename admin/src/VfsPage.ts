@@ -178,7 +178,6 @@ export interface VfsNode extends VfsPerms {
     default?: string
     children?: VfsNode[]
     parent?: VfsNode
-    propagate?: Partial<Record<keyof VfsPerm, boolean>> | null
     website?: true
     masks?: any
     byMasks?: VfsPerms
@@ -190,7 +189,9 @@ const WHO_ANYONE = true
 const WHO_NO_ONE = false
 const WHO_ANY_ACCOUNT = '*'
 type AccountList = string[]
-export type Who = typeof WHO_ANYONE
+export type Who = SimpleWho | { this?: SimpleWho, children?: SimpleWho }
+export type SimpleWho = typeof WHO_ANYONE
     | typeof WHO_NO_ONE
     | typeof WHO_ANY_ACCOUNT
     | AccountList
+    | null

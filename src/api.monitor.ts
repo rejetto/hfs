@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { isLocalHost, pendingPromise, typedKeys, wait } from './misc'
+import { pendingPromise, typedEntries, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
@@ -56,8 +56,8 @@ const apis: ApiHandlers = {
                     change.opProgress = _.round(change.opProgress, 3)
                 // avoid sending non-changes
                 const last = conn[sent]
-                for (const k of typedKeys(change))
-                    if (change[k] === last[k])
+                for (const [k, v] of typedEntries(change))
+                    if (v === last[k])
                         delete change[k]
                 if (_.isEmpty(change)) return
                 Object.assign(last, change)

@@ -104,7 +104,7 @@ const apis: ApiHandlers = {
         const n = await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
-        props = pickProps(props, ['name','source','masks','default','accept','propagate', ...PERM_KEYS]) // sanitize
+        props = pickProps(props, ['name','source','masks','default','accept', ...PERM_KEYS]) // sanitize
         if (props.name && props.name !== getNodeName(n)) {
             const parent = await urlToNodeOriginal(dirname(uri))
             if (parent?.children?.find(x => getNodeName(x) === props.name))

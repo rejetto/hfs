@@ -32,10 +32,8 @@ vfs:
     - name: for-admins
       can_read:
         - admins
-      can_list:
-        - admins
-      can_see:
-        - admins
+      can_list: can_read
+      can_see: can_read
       children:
         - name: upload
           source: tests
@@ -99,9 +97,8 @@ vfs:
       children:
         - name: hi
     - name: cantSeeThisButChildren
-      can_see: false
-      propagate:
-        can_see: false
+      can_see:
+        this: false
       children:
         - name: hi
     - name: cantSeeThisButChildrenMasks
