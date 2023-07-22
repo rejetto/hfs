@@ -31,7 +31,7 @@ function LoginForm() {
             formRef,
             values,
             set(v, k) {
-                setValues({ ...values, [k]: v })
+                setValues(values => ({ ...values, [k]: v }))
             },
             fields: [
                 { k: 'username', autoComplete: 'username', autoFocus: true, required: true },

@@ -28,7 +28,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
         formRef:  ref,
         values,
         set(v, k) {
-            setValues({ ...values, [k]: v })
+            setValues(values => ({ ...values, [k]: v }))
         },
         barSx: { gap: 2, width: '100%', ...useDialogBarColors() },
         stickyBar: true,

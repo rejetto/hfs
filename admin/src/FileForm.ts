@@ -81,9 +81,11 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, status
         values,
         set(v, k) {
             if (k === 'link') return
-            const nameIsVirtual = k === 'source' && values.source?.endsWith(values.name)
-            const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
-            setValues({ ...values, name, [k]: v })
+            setValues(values => {
+                const nameIsVirtual = k === 'source' && values.source?.endsWith(values.name)
+                const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
+                return { ...values, name, [k]: v }
+            })
         },
         barSx: { gap: 2, width: '100%', ...barColors },
         stickyBar: true,

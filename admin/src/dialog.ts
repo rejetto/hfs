@@ -172,9 +172,11 @@ export async function formDialog<T>(
                 ...props,
                 values: curValues,
                 set(v, k) {
-                    const newV = { ...curValues, [k]: v }
-                    setCurValues(newV)
-                    onChange?.(newV, { setValues: setCurValues })
+                    setCurValues(curValues => {
+                        const newV = { ...curValues, [k]: v }
+                        onChange?.(newV, { setValues: setCurValues })
+                        return newV
+                    })
                 },
                 save: {
                     ...props.save,
