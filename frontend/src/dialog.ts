@@ -76,9 +76,12 @@ export function alertDialog(msg: ReactElement | string | Error, type:AlertType='
     }))
 
     function Content(){
-        if (msg instanceof Error)
-            msg = h('div', {}, err2msg(msg),
-                h('div', { style: { marginTop: 20, fontSize: 'small' } }, msg.message) )
+        if (msg instanceof Error) {
+            const main = err2msg(msg)
+            const sub = msg.message
+            msg = h('div', {}, main,
+                sub !== main && h('div', { style: { marginTop: 20, fontSize: 'small' } }, sub))
+        }
         if (typeof msg === 'string')
             msg = h('p', {}, msg)
         return msg
