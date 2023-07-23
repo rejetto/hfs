@@ -1,15 +1,25 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h } from 'react'
+import { createElement as h, ReactNode } from 'react'
 import { FieldProps } from '.'
-import { FormControl, FormControlLabel, FormLabel, MenuItem, Radio, RadioGroup, TextField } from '@mui/material'
+import {
+    FormControl,
+    FormControlLabel,
+    FormLabel,
+    InputAdornment,
+    MenuItem,
+    Radio,
+    RadioGroup,
+    StandardTextFieldProps,
+    TextField
+} from '@mui/material'
 import { SxProps } from '@mui/system'
 
 type SelectOptions<T> = { [label:string]:T } | SelectOption<T>[]
 type SelectOption<T> = SelectPair<T> | (T extends string | number ? T : never)
 interface SelectPair<T> { label: string, value:T }
 
-export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T> }) {
+export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
     const { value, onChange, getApi, options, sx, ...rest } = props
     return h(TextField, { // using TextField because Select is not displaying label correctly
         ...commonSelectProps(props),
@@ -25,7 +35,7 @@ export function SelectField<T>(props: FieldProps<T> & { options:SelectOptions<T>
     })
 }
 
-export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectOptions<T> }) {
+export function MultiSelectField<T>(props: FieldProps<T[]> & CommonSelectProps<T>) {
     const { value, onChange, getApi, options, sx, ...rest } = props
     return h(TextField, {
         ...commonSelectProps({ ...props, value: undefined }),
@@ -43,8 +53,17 @@ export function MultiSelectField<T>(props: FieldProps<T[]> & { options:SelectOpt
     })
 }
 
-function commonSelectProps<T>(props: { sx?:SxProps, label?: FieldProps<T>['label'], value?: T, disabled?: boolean, options:SelectOptions<T> }) {
-    const { options, disabled } = props
+interface CommonSelectProps<T> extends Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
+    sx?: SxProps
+    label?: FieldProps<T>['label']
+    value?: T
+    disabled?: boolean
+    options: SelectOptions<T>
+    start?: ReactNode
+    end?: ReactNode
+}
+function commonSelectProps<T>(props: CommonSelectProps<T>) {
+    const { options, disabled, start, end } = props
     const normalizedOptions = !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label }))
         : options.map(o => typeof o === 'string' || typeof o === 'number' ? { value: o, label: String(o) } : o as SelectPair<T>)
     const jsonValue = JSON.stringify(props.value)
@@ -56,6 +75,11 @@ function commonSelectProps<T>(props: { sx?:SxProps, label?: FieldProps<T>['label
         // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
         value: currentOption ? jsonValue : '',
         disabled: !normalizedOptions?.length || disabled,
+        InputProps: {
+            startAdornment: start && h(InputAdornment, { position: 'start' }, start),
+            endAdornment: end && h(InputAdornment, { position: 'end' }, end),
+            ...props.InputProps,
+        },
         children: normalizedOptions.map((o, i) => h(MenuItem, {
             key: i,
             value: JSON.stringify(o?.value),

@@ -5,7 +5,7 @@ import { FieldProps } from '.'
 import { Autocomplete, InputAdornment, TextField } from '@mui/material'
 import { StandardTextFieldProps } from '@mui/material/TextField/TextField'
 
-interface StringProps extends FieldProps<string>, Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
+interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
     typing?: boolean
     onTyping?: (v: string) => boolean
     min?: number
@@ -14,7 +14,7 @@ interface StringProps extends FieldProps<string>, Partial<Omit<StandardTextField
     start?: ReactNode
     end?: ReactNode
 }
-export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, onTyping, suggestions, ...props }: StringProps) {
+export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, onTyping, suggestions, ...props }: StringFieldProps) {
     const normalized = value ?? ''
     getApi?.({
         getError() {
