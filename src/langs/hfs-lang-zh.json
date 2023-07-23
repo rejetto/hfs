@@ -1,7 +1,7 @@
-﻿{
-    "author": "yx3016",
-    "version": 1.1,
-    "hfs_version": "0.40.1",
+{
+    "author": "yx3016 & MircoH0",
+    "version": 1.2,
+    "hfs_version": "0.46.0",
     "translate": {
         "Select": "选择",
         "n_files": "{n} 个文件",
@@ -89,6 +89,7 @@
         "Don't": "取消",
         "Warning": "警告",
         "Error": "错误",
+        "Info": "信息",
 
         "Unauthorized": "未授权",
         "Forbidden": "禁止",
@@ -96,10 +97,29 @@
         "Server error": "服务器错误",
 
         "Upload": "上传",
-        "Upload terminated": "上传已终止",
+        "upload_concluded": "上传已终止:",
         "upload_finished": "上传{n} 结束 ({size})",
         "upload_errors": "上传失败{n} 失败",
+        "upload_file_rejected": "部分文件被服务器拒绝接收",
 
-        "download counter": "download 计数"
+        "File menu": "文件菜单",
+        "Folder menu": "文件夹菜单",
+        "Name": "名称",
+        "file_open": "打开",
+        "Download": "下载",
+        "Missing permission": "权限缺失",
+        "Reload": "刷新",
+        "Get list": "生成列表",
+        "Skip existing files": "跳过已存在的文件",
+        "Size": "大小",
+        "Timestamp": "时间戳",
+        "Show": "显示",
+        "Loading failed": "加载失败",
+        "Rename": "重命名",
+        "Tiles mode:": "图标平铺模式:",
+        "off": "关闭",
+        "Operation successful": "操作执行成功",
+        "Uploader": "上传者",
+        "Download counter": "下载计数"
     }
 }
