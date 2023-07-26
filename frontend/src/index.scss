@@ -556,11 +556,21 @@ button label {
         height: 100%;
         width: 100%;
     }
+    .showing-container { max-height: 100%; }
     .showing {
         max-width: calc(100% - var(--nav-size)*2); // avoid overlapping of controls and nav buttons
         max-height: 100%;
     }
     img.showing { max-width: 100% } // we are ok with overlapping for simple images
+    .main {
+        flex: 1; position: relative; max-height: 100%;
+        overflow: hidden; // without this <video> can make me go beyond the screen limit
+    }
+    .fullY {
+        .main { overflow-y: auto; }
+        .showing { max-height: initial }
+        .showing-container { overflow: auto; }
+    }
     --nav-size: min(25vh, 15vw);
     .nav {
         position: absolute;

@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useMemo, useState } from 'react'
+import { createElement as h, DragEvent, Fragment, useMemo, useState } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
 import {
     closeDialog,
@@ -102,7 +102,7 @@ export function showUpload() {
         const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
 
         return h(FlexV, { gap: 0, props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
-            h(FlexV, { props: { className: 'upload-toolbar' } },
+            h(FlexV, { className: 'upload-toolbar' },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, { margin: '0 0 1em' },
                         h(Flex, { justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' },

@@ -1,5 +1,5 @@
 import { DirEntry, ext2type, state } from './state'
-import { createElement as h, Fragment, useRef, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { hfsEvent, hIcon, newDialog, restartAnimation, WIKI_URL } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
@@ -15,6 +15,7 @@ export function fileShow(entry: DirEntry) {
             const [cur, setCur] = useState(entry)
             const moving = useRef(0)
             const lastGood = useRef(entry)
+            const [fullY, setFullY] = useState(false)
             useEventListener('keydown', ({ key }) => {
                 if (key === 'ArrowLeft')
                     return go(-1)
@@ -22,6 +23,8 @@ export function fileShow(entry: DirEntry) {
                     return go(+1)
                 if (key === 'ArrowDown')
                     return location.href = cur.uri + '?dl'
+                if (key === 'ArrowUp')
+                    return setFullY(x => !x)
                 if (key === ' ') {
                     const sel = state.selected
                     if (sel[cur.uri])
@@ -34,9 +37,11 @@ export function fileShow(entry: DirEntry) {
             })
             const [loading, setLoading] = useState(false)
             const [failed, setFailed] = useState<false | string>(false)
+            const containerRef = useRef<HTMLDivElement>()
+            useEffect(() => { containerRef.current?.scrollTo(0,0) }, [cur])
             const {t} = useI18N()
             return h(Fragment, {},
-                h(FlexV, { gap: 0, alignItems: 'stretch' },
+                h(FlexV, { gap: 0, alignItems: 'stretch', className: fullY ? 'fullY' : undefined, },
                     h('div', { className: 'bar' },
                         h('div', { className: 'filename' }, cur.n),
                         h(EntryDetails, { entry: cur, midnight: useMidnight() }),
@@ -46,26 +51,26 @@ export function fileShow(entry: DirEntry) {
                             iconBtn('close', close),
                         )
                     ),
-                    h(FlexV, { flex: 1, center: true, position: 'relative', maxHeight: '100%',
-                        overflow: 'hidden' // without this <video> can make me go beyond the screen limit
-                    },
+                    h(FlexV, { center: true, className: 'main' },
                         loading && h(Spinner, { style: { position: 'absolute', fontSize: '20vh', opacity: .5 } }),
                         failed === cur.n ? h(FlexV, { alignItems: 'center', textAlign: 'center' },
                             hIcon('error', { style: { fontSize: '20vh' } }),
                             h('div', {}, cur.name),
                             t`Loading failed`
-                        ) : h(getShowType(cur) || Fragment, {
-                            src: cur.uri,
-                            className: 'showing',
-                            onLoad: () => {
-                                lastGood.current = cur
-                                setLoading(false)
-                            },
-                            onError: () => {
-                                go()
-                                setFailed(cur.n)
-                            }
-                        }),
+                        ) : h('div', { className: 'showing-container', ref: containerRef },
+                            h(getShowType(cur) || Fragment, {
+                                src: cur.uri,
+                                className: 'showing',
+                                onLoad: () => {
+                                    lastGood.current = cur
+                                    setLoading(false)
+                                },
+                                onError: () => {
+                                    go()
+                                    setFailed(cur.n)
+                                }
+                            })
+                        ),
                         hIcon('❮', { className: 'nav', style: { left: 0 }, onClick: () => go(-1) }),
                         hIcon('❯', { className: 'nav', style: { right: 0 }, onClick: () => go(+1) }),
                     ),

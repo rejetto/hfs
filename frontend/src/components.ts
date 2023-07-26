@@ -19,8 +19,9 @@ export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
 }
 
-export function Flex({ gap='.8em', center=false, vert=false, children=null, props={}, ...rest }) {
+export function Flex({ gap='.8em', center=false, vert=false, children=null, className=undefined, props={}, ...rest }) {
     return h('div', {
+        className,
         style: {
             display: 'flex',
             gap,
