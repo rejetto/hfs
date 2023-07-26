@@ -42,13 +42,26 @@ export function fileShow(entry: DirEntry) {
                     return
                 }
             })
+            const [showNav, setShowNav] = useState(false)
+            const timerRef = useRef(0)
+            const navClass = 'nav' + (showNav ? '' : ' nav-hidden')
+
             const [loading, setLoading] = useState(false)
             const [failed, setFailed] = useState<false | string>(false)
             const containerRef = useRef<HTMLDivElement>()
             useEffect(() => { containerRef.current?.scrollTo(0,0) }, [cur])
             const {t} = useI18N()
             return h(Fragment, {},
-                h(FlexV, { gap: 0, alignItems: 'stretch', className: ZoomMode[mode] },
+                h(FlexV, {
+                    gap: 0,
+                    alignItems: 'stretch',
+                    className: ZoomMode[mode],
+                    props: { onMouseMove() {
+                        setShowNav(true)
+                        clearTimeout(timerRef.current)
+                        timerRef.current = +setTimeout(() => setShowNav(false), 1_000)
+                    } }
+                },
                     h('div', { className: 'bar' },
                         h('div', { className: 'filename' }, cur.n),
                         h(EntryDetails, { entry: cur, midnight: useMidnight() }),
@@ -81,8 +94,8 @@ export function fileShow(entry: DirEntry) {
                                 }
                             })
                         ),
-                        hIcon('❮', { className: 'nav', style: { left: 0 }, onClick: () => go(-1) }),
-                        hIcon('❯', { className: 'nav', style: { right: 0 }, onClick: () => go(+1) }),
+                        hIcon('❮', { className: navClass, style: { left: 0 }, onClick: () => go(-1) }),
+                        hIcon('❯', { className: navClass, style: { right: 0 }, onClick: () => go(+1) }),
                     ),
                 )
             )
