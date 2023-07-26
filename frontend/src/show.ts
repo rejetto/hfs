@@ -39,7 +39,7 @@ export function fileShow(entry: DirEntry) {
                 h(FlexV, { gap: 0, alignItems: 'stretch' },
                     h('div', { className: 'bar' },
                         h('div', { className: 'filename' }, cur.n),
-                        h(EntryDetails, { entry, midnight: useMidnight() }),
+                        h(EntryDetails, { entry: cur, midnight: useMidnight() }),
                         h(Flex, {},
                             useWindowSize().width > 1280 && iconBtn('?', () => window.open(WIKI_URL + 'File-show')),
                             iconBtn('menu', ev => openFileMenu(cur, ev, ['open','delete'])),

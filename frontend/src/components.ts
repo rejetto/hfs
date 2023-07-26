@@ -69,7 +69,7 @@ export function Select({ onChange, value, options, ...props }: SelectProps) {
 export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
     return !code ? null : h('span', { ...rest, ref(x) {
         if (x)
-            x.append(document.createRange().createContextualFragment(code))
+            x.replaceChildren(document.createRange().createContextualFragment(code))
     } })
 }
 
