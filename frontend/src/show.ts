@@ -21,7 +21,7 @@ export function fileShow(entry: DirEntry) {
                     return go(-1)
                 if (key === 'ArrowRight')
                     return go(+1)
-                if (key === 'ArrowDown')
+                if (key === 'd')
                     return location.href = cur.uri + '?dl'
                 if (key === 'ArrowUp')
                     return setFullY(x => !x)
