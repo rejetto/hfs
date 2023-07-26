@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
-    "version": 1.6,
-    "hfs_version": "0.46.0",
+    "version": 1.7,
+    "hfs_version": "0.47.0",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -114,6 +114,7 @@
         "off": "no",
         "Operation successful": "Operazione riuscita",
         "Uploader": "Upload da",
-        "Download counter": "Download conteggiati"
+        "Download counter": "Download conteggiati",
+        "Switch _z_oom mode": "Cambia _z_oom"
     }
 }

@@ -6,6 +6,13 @@ import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Flex, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { useI18N } from './i18n'
+import md from '@hfs/admin/src/md'
+
+enum ZoomMode {
+    fullWidth,
+    freeY,
+    contain, // leave this as last
+}
 
 export function fileShow(entry: DirEntry) {
     const { close } = newDialog({
@@ -15,7 +22,7 @@ export function fileShow(entry: DirEntry) {
             const [cur, setCur] = useState(entry)
             const moving = useRef(0)
             const lastGood = useRef(entry)
-            const [fullY, setFullY] = useState(false)
+            const [mode, setMode] = useState(ZoomMode.contain)
             useEventListener('keydown', ({ key }) => {
                 if (key === 'ArrowLeft')
                     return go(-1)
@@ -23,8 +30,8 @@ export function fileShow(entry: DirEntry) {
                     return go(+1)
                 if (key === 'd')
                     return location.href = cur.uri + '?dl'
-                if (key === 'ArrowUp')
-                    return setFullY(x => !x)
+                if (key === 'z')
+                    return switchZoomMode()
                 if (key === ' ') {
                     const sel = state.selected
                     if (sel[cur.uri])
@@ -41,13 +48,16 @@ export function fileShow(entry: DirEntry) {
             useEffect(() => { containerRef.current?.scrollTo(0,0) }, [cur])
             const {t} = useI18N()
             return h(Fragment, {},
-                h(FlexV, { gap: 0, alignItems: 'stretch', className: fullY ? 'fullY' : undefined, },
+                h(FlexV, { gap: 0, alignItems: 'stretch', className: ZoomMode[mode] },
                     h('div', { className: 'bar' },
                         h('div', { className: 'filename' }, cur.n),
                         h(EntryDetails, { entry: cur, midnight: useMidnight() }),
                         h(Flex, {},
                             useWindowSize().width > 1280 && iconBtn('?', () => window.open(WIKI_URL + 'File-show')),
-                            iconBtn('menu', ev => openFileMenu(cur, ev, ['open','delete'])),
+                            iconBtn('menu', ev => openFileMenu(cur, ev, [
+                                'open','delete',
+                                { icon: 'zoom', label: md(t`Switch _z_oom mode`), onClick: switchZoomMode },
+                            ])),
                             iconBtn('close', close),
                         )
                     ),
@@ -93,6 +103,10 @@ export function fileShow(entry: DirEntry) {
                     if (!e.isFolder && getShowType(e)) break // give it a chance
                 }
                 setCur(e)
+            }
+
+            function switchZoomMode() {
+                setMode(x => x ? x - 1 : ZoomMode.contain)
             }
         }
     })

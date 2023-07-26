@@ -1,7 +1,7 @@
 {
     "author": "YOUR NAME HERE",
     "version": 1.0,
-    "hfs_version": "0.46.0",
+    "hfs_version": "0.47.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -120,6 +120,7 @@
         "off": "off",
         "Operation successful": "Operation successful",
         "Uploader": "Uploader",
-        "Download counter": "Download counter"
+        "Download counter": "Download counter",
+        "Switch _z_oom mode": "Switch _z_oom mode"
     }
 }

@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { createElement as h, memo } from 'react'
 
-const SYS_ICONS: Record<string, string[]> = {
+const SYS_ICONS: Record<string, [string] | [string, string]> = {
     login: ['👤','user'],
     user: ['👤','user'],
     filter: ['✂'],
@@ -33,6 +33,7 @@ const SYS_ICONS: Record<string, string[]> = {
     list: ['☰','menu'],
     play: ['▶'],
     edit: ['✏️'],
+    zoom: ['↔'],
 }
 
 document.fonts.ready.then(async ()=> {
@@ -43,17 +44,20 @@ document.fonts.ready.then(async ()=> {
 
 interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
 export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
-    const [emoji,clazz] = SYS_ICONS[name] || name.split(':')
+    if (!name) return null
+    const [emoji, clazz=name] = SYS_ICONS[name] || []
     const { iconsReady } = useSnapState()
     className += ' icon'
-    const nameIsEmoji = name.length <= 2
-    const nameIsFile = name.includes('.')
-    className += nameIsEmoji ? ' emoji-icon' : nameIsFile ? ' file-icon' : iconsReady ? ' fa-'+(clazz||name) : ' emoji-icon'
+    const nameIsTheIcon = name.length === 1 ||
+        name.match(/^[\uD800-\uDFFF\u2600-\u27BF\u2B50-\u2BFF\u3030-\u303F\u3297\u3299\u00A9\u00AE\u200D\u20E3\uFE0F\u2190-\u21FF\u2300-\u23FF\u2400-\u243F\u25A0-\u25FF\u2600-\u26FF\u2700-\u27BF]*$/)
+    const nameIsFile = !nameIsTheIcon && name.includes('.')
+    const isFontIcon = iconsReady && clazz
+    className += nameIsFile ? ' file-icon' : isFontIcon ? ` fa-${clazz}` : ' emoji-icon'
     return h('span',{
         'aria-label': alt,
         role: 'img',
         ...props,
         ...nameIsFile ? { style: { backgroundImage: `url(${JSON.stringify(name)})`, ...props?.style } } : undefined,
         className,
-    }, nameIsEmoji ? name : iconsReady ? null : (emoji||'#'))
+    }, nameIsTheIcon ? name : isFontIcon ? null : (emoji||'#'))
 })
