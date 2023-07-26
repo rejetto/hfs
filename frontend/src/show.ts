@@ -28,6 +28,10 @@ export function fileShow(entry: DirEntry) {
                     return go(-1)
                 if (key === 'ArrowRight')
                     return go(+1)
+                if (key === 'ArrowDown')
+                    return scrollY(1)
+                if (key === 'ArrowUp')
+                    return scrollY(-1)
                 if (key === 'd')
                     return location.href = cur.uri + '?dl'
                 if (key === 'z')
@@ -49,7 +53,7 @@ export function fileShow(entry: DirEntry) {
             const [loading, setLoading] = useState(false)
             const [failed, setFailed] = useState<false | string>(false)
             const containerRef = useRef<HTMLDivElement>()
-            useEffect(() => { containerRef.current?.scrollTo(0,0) }, [cur])
+            useEffect(() => { scrollY(-1E9) }, [cur])
             const {t} = useI18N()
             return h(Fragment, {},
                 h(FlexV, {
@@ -120,6 +124,10 @@ export function fileShow(entry: DirEntry) {
 
             function switchZoomMode() {
                 setMode(x => x ? x - 1 : ZoomMode.contain)
+            }
+
+            function scrollY(dy: number) {
+                containerRef.current?.scrollBy(0, dy * .5 * containerRef.current?.clientHeight)
             }
         }
     })
