@@ -62,8 +62,7 @@
     left: 0;
     top: 0;
     overflow: hidden;
-    line-height: 1.8em;
-    opacity: .8; /* render the idea that's not a button */
+    opacity: .7; /* render the idea that's not a button */
 }
 .dialog-content {
     overflow: auto;

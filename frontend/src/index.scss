@@ -81,14 +81,10 @@ select { text-align: center; } // it is surely cooler on the options dialog
 .icon {
     font-size: 1.2em;
     height: 1.2em; width: 1.4em; // give similar size to <img> icons
-}
-.emoji-icon {
-    display: inline-block;
-    width: 1.4em;
-    text-align: center;
+
+    display: inline-block; text-align: center; // same size for font icons
 }
 .file-icon {
-    @extend .emoji-icon;
     height: 1em;
     background-size: contain;
     background-repeat: no-repeat;
