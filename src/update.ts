@@ -42,13 +42,14 @@ export async function getUpdates() {
             const per = 100
             const res: Release[] = await getRepoInfo(HFS_REPO + `/releases?per_page=${per}&page=${page++}`)
             if (!res.length) break
+            const curV = currentVersion.getScalar()
             for (const x of res) {
                 if (!x.prerelease) continue // prerelease are all the end
                 const v = ver(x)
                 if (v <= verStable) // prerelease-s are locally ordered, so as soon as we reach verStable we are done
                     return ret
-                if (v === currentVersion.getScalar()) continue // skip current
-                x.isNewer = v > currentVersion.getScalar() // make easy to know what's newer
+                if (v === curV) continue // skip current
+                x.isNewer = v > curV // make easy to know what's newer
                 ret.push(x)
             }
         }

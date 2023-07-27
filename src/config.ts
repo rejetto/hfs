@@ -48,7 +48,7 @@ if (!existsSync(filePath) && existsSync(legacyPosition))
 // takes a semver like 1.2.3-alpha1, but alpha and beta numbers must share the number progression
 export const versionToScalar = _.memoize((ver: string) => { // memoize so we don't have to care about converting same value twice
     // this regexp is supposed to be resistant to optional leading "v" and an optional custom name after a space
-    const res = /^v?(\d+)\.(\d+)\.(\d+)(?:-\w+(\d+))?/.exec(ver)
+    const res = /^v?(\d+)\.(\d+)\.(\d+)(?:-\D+([0-9.]+))?/.exec(ver)
     if (!res) return NaN
     const [,a,b,c,beta] = res.map(Number)
     const officialScalar = c! + b! * 1E3 + a! * 1E6 // gives 3 digits for each number
