@@ -30,6 +30,9 @@ export const dialogsDefaults: Partial<DialogOptions> = {
 
 export function Dialogs() {
     const snap = useSnapshot(dialogs)
+    useEffect(() => {
+        document.body.style.overflow = snap.length ? 'hidden' : ''
+    }, [snap.length])
     return h(Fragment, {},
         snap.length > 0 && snap.map(d =>
             h(Dialog, { key: d.$id, ...(d as DialogOptions) })))
