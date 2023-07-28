@@ -432,7 +432,13 @@ button label {
     flex-direction: column;
     gap: 1em;
     & a {
-        & .icon { margin-right: 0.5em; }
+        display: flex;
+        align-items: flex-start;
+        label {
+            margin-top: .1em;
+            small { display: block }
+        }
+        .icon { margin-right: 0.5em; }
         &:hover { @extend .highlightedText }
     }
 }

@@ -1,6 +1,6 @@
 import { t, useI18N } from './i18n'
 import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog, prefix, with_ } from './misc'
-import { createElement as h, Fragment, isValidElement, MouseEventHandler, MouseEvent, ReactNode } from 'react'
+import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
 import { DirEntry, pathEncode, state } from './state'
@@ -13,9 +13,10 @@ import { navigate } from './App'
 
 interface FileMenuEntry {
     label: ReactNode
+    subLabel?: ReactNode
     href?: string
     icon?: string
-    onClick?: MouseEventHandler
+    onClick?: (ev:MouseEvent<Element>) => any
 }
 
 export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
@@ -77,20 +78,24 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 ),
                 entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                 h('div', { className: 'file-menu' },
-                    dontBotherWithKeys(menu.map((e: any, i) => // render menu entries
+                    dontBotherWithKeys(menu.map((e: FileMenuEntry, i) => // render menu entries
                         isValidElement(e) ? e
-                            : !e?.label ? null :
-                                h('a', {
-                                    key: i,
-                                    href: '#',
-                                    ..._.omit(e, ['label', 'icon', 'onClick']),
-                                    async onClick(ev: MouseEvent) {
-                                        if (!e.href) // even with #, the
-                                            ev.preventDefault()
-                                        if ((await e.onClick?.()) !== false)
-                                            close()
-                                    }
-                                }, hIcon(e.icon || 'file'), e.label )
+                            : e?.label && h('a', {
+                                key: i,
+                                href: '#',
+                                ..._.omit(e, ['label', 'icon', 'onClick']),
+                                async onClick(event: MouseEvent) {
+                                    if (!e.href) // even with #, the
+                                        event.preventDefault()
+                                    if (false !== await e.onClick?.(event))
+                                        close()
+                                }
+                            },
+                                hIcon(e.icon || 'file'),
+                                h('label', { style: { display: 'flex', flexDirection: 'column' } },
+                                    h('div', {}, e.label),
+                                    h('small', {}, e.subLabel) )
+                            )
                     ))
                 )
             )
