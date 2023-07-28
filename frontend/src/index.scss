@@ -415,7 +415,6 @@ button label {
     &:hover { opacity: 1 }
 }
 
-.file-dialog .dialog-content { min-width: calc(100% - 1em); } /* effective and nicer on short names  */
 .file-dialog .dialog { min-width: 13em; } /* more room for title */
 .file-dialog-properties {
     word-break: break-word;
