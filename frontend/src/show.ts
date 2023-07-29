@@ -59,54 +59,55 @@ export function fileShow(entry: DirEntry) {
             const mainRef = useRef<HTMLDivElement>()
             useEffect(() => { scrollY(-1E9) }, [cur])
             const {t} = useI18N()
-            return h(Fragment, {},
-                h(FlexV, {
+            return h(FlexV, {
                     gap: 0,
                     alignItems: 'stretch',
                     className: ZoomMode[mode],
-                    props: { onMouseMove() {
-                        setShowNav(true)
-                        clearTimeout(timerRef.current)
-                        timerRef.current = +setTimeout(() => setShowNav(false), 1_000)
-                    } }
+                    props: {
+                        role: 'dialog',
+                        onMouseMove() {
+                            setShowNav(true)
+                            clearTimeout(timerRef.current)
+                            timerRef.current = +setTimeout(() => setShowNav(false), 1_000)
+                        }
+                    }
                 },
-                    h('div', { className: 'bar' },
-                        h('div', { className: 'filename' }, cur.n),
-                        h(EntryDetails, { entry: cur, midnight: useMidnight() }),
-                        h(Flex, {},
-                            useWindowSize().width > 1280 && iconBtn('?', () => window.open(WIKI_URL + 'File-show')),
-                            iconBtn('menu', ev => openFileMenu(cur, ev, [
-                                'open','delete',
-                                { id: 'zoom', icon: 'zoom', label: md(t`Switch _z_oom mode`), onClick: switchZoomMode },
-                                { id: 'fullscreen', icon: 'fullscreen', label: md(t`_F_ull screen`), onClick: toggleFullScreen },
-                            ])),
-                            iconBtn('close', close),
-                        )
+                h('div', { className: 'bar' },
+                    h('div', { className: 'filename' }, cur.n),
+                    h(EntryDetails, { entry: cur, midnight: useMidnight() }),
+                    h(Flex, {},
+                        useWindowSize().width > 1280 && iconBtn('?', () => window.open(WIKI_URL + 'File-show')),
+                        iconBtn('menu', ev => openFileMenu(cur, ev, [
+                            'open','delete',
+                            { id: 'zoom', icon: 'zoom', label: md(t`Switch _z_oom mode`), onClick: switchZoomMode },
+                            { id: 'fullscreen', icon: 'fullscreen', label: md(t`_F_ull screen`), onClick: toggleFullScreen },
+                        ])),
+                        iconBtn('close', close),
+                    )
+                ),
+                h(FlexV, { center: true, className: 'main', ref: mainRef },
+                    loading && h(Spinner, { style: { position: 'absolute', fontSize: '20vh', opacity: .5 } }),
+                    failed === cur.n ? h(FlexV, { alignItems: 'center', textAlign: 'center' },
+                        hIcon('error', { style: { fontSize: '20vh' } }),
+                        h('div', {}, cur.name),
+                        t`Loading failed`
+                    ) : h('div', { className: 'showing-container', ref: containerRef },
+                        h(getShowType(cur) || Fragment, {
+                            src: cur.uri,
+                            className: 'showing',
+                            onLoad: () => {
+                                lastGood.current = cur
+                                setLoading(false)
+                            },
+                            onError: () => {
+                                go()
+                                setFailed(cur.n)
+                            }
+                        })
                     ),
-                    h(FlexV, { center: true, className: 'main', ref: mainRef },
-                        loading && h(Spinner, { style: { position: 'absolute', fontSize: '20vh', opacity: .5 } }),
-                        failed === cur.n ? h(FlexV, { alignItems: 'center', textAlign: 'center' },
-                            hIcon('error', { style: { fontSize: '20vh' } }),
-                            h('div', {}, cur.name),
-                            t`Loading failed`
-                        ) : h('div', { className: 'showing-container', ref: containerRef },
-                            h(getShowType(cur) || Fragment, {
-                                src: cur.uri,
-                                className: 'showing',
-                                onLoad: () => {
-                                    lastGood.current = cur
-                                    setLoading(false)
-                                },
-                                onError: () => {
-                                    go()
-                                    setFailed(cur.n)
-                                }
-                            })
-                        ),
-                        hIcon('❮', { className: navClass, style: { left: 0 }, onClick: () => go(-1) }),
-                        hIcon('❯', { className: navClass, style: { right: 0 }, onClick: () => go(+1) }),
-                    ),
-                )
+                    hIcon('❮', { className: navClass, style: { left: 0 }, onClick: () => go(-1) }),
+                    hIcon('❯', { className: navClass, style: { right: 0 }, onClick: () => go(+1) }),
+                ),
             )
 
             function go(dir?: number) {
