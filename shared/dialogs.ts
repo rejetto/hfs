@@ -28,6 +28,32 @@ export const dialogsDefaults: Partial<DialogOptions> = {
     padding: true,
 }
 
+// focus trapped on current dialog (MUI already does it)
+const focusableSelector = ['input:not([type="hidden"])', 'button', 'select', 'textarea', 'a[href]', '[tabindex]'].map(x =>
+    x + ':not([disabled]):not([tabindex="-1"])').join(',')
+window.addEventListener('keydown', ev => {
+    if (ev.key !== 'Tab') return
+    const dialogs = document.querySelectorAll('[role=dialog]')
+    const dialog = dialogs[dialogs.length-1]
+    if (!dialog) return
+    const focusable = dialog.querySelectorAll(focusableSelector)
+    const n = focusable.length
+    if (!n) return
+    const [a, b] = ev.shiftKey ? [n-1, 0] : [0, n-1]
+    if (ev.target !== focusable[b] && isDescendant(document.activeElement, dialog)) return // default behavior
+    ;(focusable[a] as HTMLElement).focus()
+    ev.preventDefault()
+})
+
+function isDescendant(child: Node | null, parent: Node) {
+    while (child) {
+        if (child === parent)
+            return true
+        child = child.parentNode
+    }
+    return false
+}
+
 export function Dialogs() {
     const snap = useSnapshot(dialogs)
     useEffect(() => {
@@ -57,6 +83,8 @@ function Dialog(d:DialogOptions) {
         },
         d.noFrame ? h(d.Content || 'div')
             : h('div', {
+                role: 'dialog',
+                'aria-modal': true,
                 className: 'dialog',
                 style: {
                     ...position(),
