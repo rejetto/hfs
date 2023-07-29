@@ -203,7 +203,7 @@ header {
 #folder-stats {
     margin: 0.5em 0 0 0.5em;
     float: right;
-    & .icon {
+    .icon {
         margin-right: .3em;
     }
 }
@@ -218,8 +218,8 @@ header {
     margin: 0.2em 0 0;
     padding: 2px 0 1px 3px;
     height: 1.8em; /* necessary to animate displaying */
-    & input[type=checkbox] { margin-top: .3em; }
-    & span:empty { display:none } /* avoid flex-gap */
+    input[type=checkbox] { margin-top: .3em; }
+    span:empty { display:none } /* avoid flex-gap */
 }
 
 ul.dir {
@@ -228,25 +228,25 @@ ul.dir {
     margin: 0;
     clear: both;
     &>p { text-align: center; }
-    & li {
+    li {
         display: block;
         list-style-type: none;
         padding: 0.3em 0.3em 0.4em;
         border-bottom: 1px solid var(--faint-contrast);
         &:nth-of-type(odd) { background-color: var(--ghost-contrast); }
 
-        & input[type=checkbox] {
+        input[type=checkbox] {
             margin-right: 1em;
         }
-        & .link-wrapper {
+        .link-wrapper {
             &:not(:hover) .popup-menu-button { display: none; }
             &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally
-            & a {
+            a {
                 &:last-of-type {
                     word-break: break-word;
                     padding-right: 0.3em;
                 }
-                & .icon {
+                .icon {
                     margin-right: .5em;
                     // give similar aligning to <img> icons
                     vertical-align: text-bottom;
@@ -258,21 +258,21 @@ ul.dir {
                 }
             }
         }
-        & .entry-panel {
+        .entry-panel {
             float: right;
             padding-top: 0.3em;
             display: flex;
             align-items: center;
-            & .file-menu-button {
+            .file-menu-button {
                 @extend .icon-button;
                 margin: -3px 0 -3px 0.4em;
             }
-            & .entry-details {
+            .entry-details {
                 font-size: 90%;
                 margin-left: 4px;
                 font-variant-numeric: tabular-nums; /* trick to get stuff aligned */
 
-                & .entry-size-unit {
+                .entry-size-unit {
                     margin-left: .3em;
                 }
             }
@@ -304,7 +304,7 @@ ul.dir {
         &:first-child { margin-left: 0 }
         &:last-child { margin-right: 0 }
     }
-    & button {
+    button {
         padding: min(1vh, 0.5em) 0; // avoid wasting too much vertical space, and no need for horizontal padding as we are using flex to grow
     }
 }
@@ -315,7 +315,7 @@ ul.dir {
     display:flex;
     flex-direction: column;
     gap: 1em;
-    & a>button {
+    a>button {
         width: 100%;
     }
 }
@@ -334,7 +334,7 @@ button label {
 }
 .dialog-alert .dialog-content {
     text-align: center;
-    & p { text-align: left; display: inline-block; }
+    p { text-align: left; display: inline-block; }
 }
 
 .dialog {
@@ -355,8 +355,8 @@ button label {
     background-color: var(--bg);
     padding: 0 0.2em 0.2em;
     &>button { z-index: 1; }
-    & button { box-shadow: 0 0 .3em .3em #0003; }
-    & #paging-middle {
+    button { box-shadow: 0 0 .3em .3em #0003; }
+    #paging-middle {
         padding: 0 0.5em;
         margin: 0 -0.3em;
         display: flex;
@@ -364,11 +364,11 @@ button label {
         flex: 1;
         overflow-x: auto;
     }
-    & #paging-middle>button {
+    #paging-middle>button {
         flex: 1;
         padding-top: 0; padding-bottom: 0; /* reduce vertically in case a horizontal scrolling bar is needed */
     }
-    & button {
+    button {
         background: var(--button-bg);
         text-align: center;
         white-space: nowrap;
@@ -390,9 +390,9 @@ button label {
     margin-left: 0.5em;
 }
 .upload-list {
-    & td:nth-child(1) { width: 0;  }
-    & td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
-    & td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
+    td:nth-child(1) { width: 0;  }
+    td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
+    td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
 }
 
 .dialog-login {
@@ -420,8 +420,8 @@ button label {
     word-break: break-word;
     line-height: 1.5em;
     margin: 0;
-    & dt { font-weight: bold; }
-    & dd { margin-left: 1.5em; }
+    dt { font-weight: bold; }
+    dd { margin-left: 1.5em; }
 }
 .file-menu {
     margin-top: 1em;
@@ -431,7 +431,7 @@ button label {
     display: flex;
     flex-direction: column;
     gap: 1em;
-    & a {
+    a {
         display: flex;
         align-items: flex-start;
         label {
@@ -607,10 +607,8 @@ button label {
 @media (min-width: 42em) {
     body {
         /* Works on Firefox */
-        & {
-            scrollbar-width: thin;
-            scrollbar-color: var(--button-bg) var(--ghost-contrast);
-        }
+        scrollbar-width: thin;
+        scrollbar-color: var(--button-bg) var(--ghost-contrast);
 
         /* Works on Chrome, Edge, and Safari */
         &::-webkit-scrollbar {
@@ -630,7 +628,7 @@ button label {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }
     #menu-bar, #filter-bar {
-        & button label { display: none } /* icons only */
+        button label { display: none } /* icons only */
     }
     #filter-bar {
         margin-top: 0.4em;
