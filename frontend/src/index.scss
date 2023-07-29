@@ -557,7 +557,7 @@ button label {
         height: 100%;
         width: 100%;
     }
-    .showing-container { max-height: 100%; }
+    .showing-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;}
     .showing {
         max-width: calc(100% - var(--nav-size)*2); // avoid overlapping of controls and nav buttons
         max-height: 100%;

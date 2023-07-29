@@ -7,6 +7,7 @@ import { Flex, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { useI18N } from './i18n'
 import md from '@hfs/admin/src/md'
+import { alertDialog } from './dialog'
 
 enum ZoomMode {
     fullWidth,
@@ -36,6 +37,8 @@ export function fileShow(entry: DirEntry) {
                     return location.href = cur.uri + '?dl'
                 if (key === 'z')
                     return switchZoomMode()
+                if (key === 'f')
+                    return toggleFullScreen()
                 if (key === ' ') {
                     const sel = state.selected
                     if (sel[cur.uri])
@@ -53,6 +56,7 @@ export function fileShow(entry: DirEntry) {
             const [loading, setLoading] = useState(false)
             const [failed, setFailed] = useState<false | string>(false)
             const containerRef = useRef<HTMLDivElement>()
+            const mainRef = useRef<HTMLDivElement>()
             useEffect(() => { scrollY(-1E9) }, [cur])
             const {t} = useI18N()
             return h(Fragment, {},
@@ -74,11 +78,12 @@ export function fileShow(entry: DirEntry) {
                             iconBtn('menu', ev => openFileMenu(cur, ev, [
                                 'open','delete',
                                 { icon: 'zoom', label: md(t`Switch _z_oom mode`), onClick: switchZoomMode },
+                                { icon: 'fullscreen', label: md(t`_F_ull screen`), onClick: toggleFullScreen },
                             ])),
                             iconBtn('close', close),
                         )
                     ),
-                    h(FlexV, { center: true, className: 'main' },
+                    h(FlexV, { center: true, className: 'main', ref: mainRef },
                         loading && h(Spinner, { style: { position: 'absolute', fontSize: '20vh', opacity: .5 } }),
                         failed === cur.n ? h(FlexV, { alignItems: 'center', textAlign: 'center' },
                             hIcon('error', { style: { fontSize: '20vh' } }),
@@ -120,6 +125,15 @@ export function fileShow(entry: DirEntry) {
                     if (!e.isFolder && getShowType(e)) break // give it a chance
                 }
                 setCur(e)
+            }
+
+            function toggleFullScreen() {
+                if (!document.fullscreenEnabled)
+                    return alertDialog(t`Full-screen not supported`, 'error')
+                if (document.fullscreenElement)
+                    document.exitFullscreen()
+                else
+                    mainRef.current?.requestFullscreen()
             }
 
             function switchZoomMode() {

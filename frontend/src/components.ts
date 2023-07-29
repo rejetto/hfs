@@ -2,25 +2,25 @@
 
 import { getHFS, hfsEvent, hIcon } from './misc'
 import {
-    ButtonHTMLAttributes,
-    ChangeEvent,
-    createElement as h,
-    FC,
-    Fragment,
-    HTMLAttributes,
-    InputHTMLAttributes,
-    isValidElement, MouseEventHandler,
-    ReactNode,
-    SelectHTMLAttributes,
-    useMemo
+    ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
+    HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes, useMemo
 } from 'react'
 
 export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
 }
 
-export function Flex({ gap='.8em', center=false, vert=false, children=null, className='', props={}, ...rest }) {
-    return h('div', {
+interface FlexProps extends CSSProperties {
+    gap?: CSSProperties['gap'],
+    center?: boolean,
+    vert?: boolean,
+    children?: ReactNode,
+    className?: string,
+    props?: HTMLAttributes<HTMLDivElement>
+}
+export const Flex = forwardRef(({ gap='.8em', center=false, vert=false, children=null, className='', props={}, ...rest }: FlexProps, ref) =>
+    h('div', {
+        ref,
         className,
         style: {
             display: 'flex',
@@ -30,12 +30,9 @@ export function Flex({ gap='.8em', center=false, vert=false, children=null, clas
             ...rest,
         },
         ...props
-    }, children)
-}
+    }, children) )
 
-export function FlexV(props:any) {
-    return h(Flex, { vert:true, ...props })
-}
+export const FlexV = forwardRef((props: FlexProps, ref) => h(Flex, { ref, vert: true, ...props }))
 
 interface CheckboxProps extends Omit<Partial<InputHTMLAttributes<any>>, 'onChange'> {
     children?: ReactNode,
