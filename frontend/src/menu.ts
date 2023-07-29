@@ -67,13 +67,14 @@ export function MenuPanel() {
                 label: t`Delete`,
                 className: 'show-sliding',
                 onClick: () => deleteFiles(Object.keys(selected))
-            } : changingButton === 'upload' ? {
+            } : {
                 id: 'upload-button',
                 icon: 'upload',
                 label: t`Upload`,
-                className: 'show-sliding ' + (uploading ? 'ani-working' : ''),
+                tabIndex: changingButton === 'upload' ? undefined : -1,
+                className: changingButton === 'upload' ? 'show-sliding ' + (uploading ? 'ani-working' : '') : 'before-sliding',
                 onClick: showUpload,
-            } : { icon: '', label: '', className: 'before-sliding' }),
+            }),
             h(MenuButton, getSearchProps()),
             h(MenuButton, {
                 id: 'options-button',
