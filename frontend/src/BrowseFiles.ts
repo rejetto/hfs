@@ -206,8 +206,8 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 menuOnLink && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
             )
             : containerDir ? h(Fragment, {},
-                h('a', { href: uri, onClick }, ico),
-                h(Link, { to: containerDir, className:'container-folder' }, containerName),
+                h('a', { href: uri, onClick, tabIndex: -1 }, ico),
+                h(Link, { to: containerDir, className:'container-folder', tabIndex: -1 }, containerName),
                 h('a', { href: uri, onClick }, entry.name)
             ) : h('a', { href: uri, onClick }, ico, entry.name),
         ),
@@ -245,7 +245,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
     const shortTs = useWindowSize().width < 800
     const {t} = useI18N()
     const dd = '2-digit'
-    return h('div', { className: 'entry-props entry-details' }, // entry-props is legacy
+    return h('div', { className: 'entry-details' },
         h(CustomCode, { name: 'additionalEntryDetails', props: { entry } }),
         entry.p?.match(entry.isFolder ? /l/i : /r/i) && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),
