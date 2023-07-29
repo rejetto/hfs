@@ -12,6 +12,7 @@ import { apiCall, useApi } from '@hfs/shared/api'
 import { navigate } from './App'
 
 interface FileMenuEntry {
+    id?: string
     label: ReactNode
     subLabel?: ReactNode
     href?: string
@@ -23,29 +24,31 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     const { uri, isFolder, s } = entry
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
-        !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+        !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         ...addToMenu.map(x => {
             if (x === 'open') {
                 if (entry.cantOpen) return
-                const open = { icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
+                const open = { id: 'open', icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
                 return !isFolder ? open : h(Link, { to: uri, onClick: () => close() }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
                 return (state.can_delete || entry.p?.includes('d')) && {
+                    id: 'delete',
                     label: t`Delete`,
                     icon: 'trash',
                     onClick: () => deleteFiles([entry.uri])
                 }
             if (x === 'show')
                 return !entry.cantOpen && getShowType(entry) && {
+                    id: 'show',
                     label: t`Show`,
                     icon: 'image',
                     onClick: () => fileShow(entry)
                 }
             return x
         }),
-        state.can_delete && { label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
-        isFolder && { label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
+        state.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
+        isFolder && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
     const props = [
         [t`Name`, entry.name],

@@ -42,6 +42,7 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path: string, 
                 return reload()
             openFileMenu(new DirEntry(decodeURIComponent(path)), ev, [
                 {
+                    id: 'reload',
                     label: t`Reload`,
                     icon: 'reload',
                     onClick: reload

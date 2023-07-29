@@ -77,8 +77,8 @@ export function fileShow(entry: DirEntry) {
                             useWindowSize().width > 1280 && iconBtn('?', () => window.open(WIKI_URL + 'File-show')),
                             iconBtn('menu', ev => openFileMenu(cur, ev, [
                                 'open','delete',
-                                { icon: 'zoom', label: md(t`Switch _z_oom mode`), onClick: switchZoomMode },
-                                { icon: 'fullscreen', label: md(t`_F_ull screen`), onClick: toggleFullScreen },
+                                { id: 'zoom', icon: 'zoom', label: md(t`Switch _z_oom mode`), onClick: switchZoomMode },
+                                { id: 'fullscreen', icon: 'fullscreen', label: md(t`_F_ull screen`), onClick: toggleFullScreen },
                             ])),
                             iconBtn('close', close),
                         )
