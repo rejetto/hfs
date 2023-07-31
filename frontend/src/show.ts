@@ -1,9 +1,9 @@
 import { DirEntry, ext2type, state } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { hfsEvent, hIcon, newDialog, restartAnimation, WIKI_URL } from './misc'
+import { hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
-import { Flex, FlexV, iconBtn, Spinner } from './components'
+import { Flex, FlexV, Html, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { useI18N } from './i18n'
 import md from '@hfs/admin/src/md'
@@ -76,7 +76,7 @@ export function fileShow(entry: DirEntry) {
                     h('div', { className: 'filename' }, cur.n),
                     h(EntryDetails, { entry: cur, midnight: useMidnight() }),
                     h(Flex, {},
-                        useWindowSize().width > 1280 && iconBtn('?', () => window.open(WIKI_URL + 'File-show')),
+                        useWindowSize().width > 1280 && iconBtn('?', showHelp),
                         iconBtn('menu', ev => openFileMenu(cur, ev, [
                             'open','delete',
                             { id: 'zoom', icon: 'zoom', label: md(t`Switch _z_oom mode`), onClick: switchZoomMode },
@@ -165,4 +165,20 @@ function Audio({ onLoad, ...rest }: any) {
 
 function Video({ onLoad, ...rest }: any) {
     return h('video', { onLoadedData: onLoad, controls: true, ...rest })
+}
+
+function showHelp() {
+    newDialog({
+        title: "File show help",
+        className: 'file-show-help',
+        Content: () => h(Html, { code: `
+            You can use the keyboard for some actions:  
+            <br/><kbd>left/right</kbd> go to previous/next file
+            <br/><kbd>up/down</kbd> scroll tall images
+            <br/><kbd>space</kbd> select
+            <br/><kbd>D</kbd> download
+            <br/><kbd>Z</kbd> zoom modes
+            <br/><kbd>F</kbd> full screen
+        ` })
+    })
 }
