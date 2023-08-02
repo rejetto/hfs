@@ -76,6 +76,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     })
 
     const downloadTotal: number = ctx.response.length
+    ctx.state.originalStream = ctx.body
     ctx.body = ctx.body.pipe(ts)
 
     if (downloadTotal)  // preserve this info

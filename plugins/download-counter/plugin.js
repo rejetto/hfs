@@ -1,13 +1,14 @@
 // other plugins can use ctx.state.download_counter_ignore to mark downloads that shouldn't be counted
 
 exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
-exports.version = 4.1 // fix: different cases and encodings with urls weren't properly counted
+exports.version = 5 // count files in archive
 exports.apiRequired = 8.3
 
 exports.config = {
     where: { frontend: true, type: 'select', defaultValue: 'menu',
         options: ['list', { value: 'menu', label: "file menu" }],
-    }
+    },
+    archives: { defaultValue: true, type: 'boolean', label: "Count files in zip/archives" },
 }
 exports.configDialog = {
     sx: { maxWidth: '20em' },
@@ -45,11 +46,15 @@ exports.init = async api => {
         unload: () => save.flush(), // we may have pending savings
         middleware: (ctx) =>
             () => { // execute after other middlewares are done
-                if (ctx.status >= 300 || !ctx.vfsNode || ctx.state.download_counter_ignore) return
-                if (ctx.state.includesLastByte === false) return
+                if (ctx.status >= 300 || ctx.state.download_counter_ignore || ctx.state.includesLastByte === false) return
+                if (!(ctx.vfsNode || api.getConfig('archives') && ctx.state.archive)) return
                 ctx.state.completed.then(() => {
-                    const k = uri2key(ctx.path)
-                    counters[k] = counters[k] + 1 || 1
+                    const key = uri2key(ctx.path)
+                    const entries = ctx.vfsNode ? [key]
+                        : ctx.state.originalStream?.getArchiveEntries?.().filter(x => x.at(-1) !== '/').map(x => key + uri2key(x))
+                    if (!entries) return
+                    for (const k of entries)
+                        counters[k] = counters[k] + 1 || 1
                     save()
                 })
             },

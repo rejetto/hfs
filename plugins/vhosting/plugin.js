@@ -44,6 +44,8 @@ exports.init = api => {
             let { root='' } = row
             if (root.endsWith('/'))
                 root = root.slice(0, -1)
+            if (root && root[0] !== '/') // normalize
+                root = '/' + root
             if (!root) return
             if (!params)
                 ctx.path = root + ctx.path
