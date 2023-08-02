@@ -102,6 +102,7 @@ function LogFile({ file }: { file: string }) {
                 minWidth: 100,
                 mergeRender: { other: 'method', fontSize: 'small' },
                 valueFormatter: ({ value }) => {
+                    value = decodeURIComponent(value)
                     if (!value.startsWith(API_URL))
                         return value
                     const ofs = API_URL.length
