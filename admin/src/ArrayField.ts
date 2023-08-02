@@ -11,7 +11,7 @@ import { Box, FormHelperText, FormLabel } from '@mui/material'
 type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number }
 export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, getApi, ...rest }: ArrayFieldProps<T>) {
     const rows = useMemo(() => (value||[]).map((x,$idx) =>
-            setHidden({ ...x } as any, 'id' in x ? { $idx } : { id: $idx })),
+            setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
     const form = {
         fields: fields.map(({ $width, $column, ...rest }) => rest)

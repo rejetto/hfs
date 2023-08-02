@@ -42,7 +42,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
             return new ApiError(HTTP_BAD_REQUEST, "bad repo")
         const folder2repo = getFolder2repo()
         const folder = overwrite ? _.findKey(folder2repo, x => x===repo)! // use existing folder
-            : short in folder2repo ? repo.replace('/','-') // longer form only if another plugin is using short form
+            : folder2repo.hasOwnProperty(short) ? repo.replace('/','-') // longer form only if another plugin is using short form
                 : short
         const installPath = PLUGINS_PATH + '/' + folder
         const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder

@@ -112,7 +112,7 @@ export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Sub
 }
 
 export function configKeyExists(k: string) {
-    return k in configProps
+    return configProps.hasOwnProperty(k)
 }
 
 const stack: any[] = []

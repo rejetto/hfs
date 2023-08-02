@@ -71,7 +71,7 @@ export function StringStringField({ value, onChange, keyLabel='key', valueLabel=
                 onChange(v, more){
                     if (!v) return
                     more.cancel()
-                    if (value && v in value)
+                    if (value?.hasOwnProperty(v))
                         return alert(keyLabel + " entry already present")
                     justEntered.current = v // the way dom is manipulated will cause focus on wrong element, so we have to re-focus
                     onChange({ ...value, [v]:'' }, { ...more, was:value })
