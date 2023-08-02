@@ -85,7 +85,7 @@ const apis: ApiHandlers = {
                 agent: getBrowser(ctx.get('user-agent')),
                 archive: ctx.state.archive,
                 upload: ctx.state.uploadProgress,
-                path: ctx.state.uploadPath
+                path: ctx.state.uploadPath && decodeURIComponent(ctx.state.uploadPath)
                     || (ctx.fileSource || ctx.state.archive) && decodeURIComponent(ctx.path)  // only uploads and downloads
             }
         }
