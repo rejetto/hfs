@@ -86,7 +86,7 @@ const apis: ApiHandlers = {
                 archive: ctx.state.archive,
                 upload: ctx.state.uploadProgress,
                 path: ctx.state.uploadPath
-                    || (ctx.fileSource || ctx.state.archive) && ctx.path  // only uploads and downloads
+                    || (ctx.fileSource || ctx.state.archive) && decodeURIComponent(ctx.path)  // only uploads and downloads
             }
         }
     },
