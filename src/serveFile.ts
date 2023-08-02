@@ -116,6 +116,7 @@ export function getRange(ctx: Koa.Context, totalSize: number) {
         ctx.body = 'Requested Range Not Satisfiable'
         return
     }
+    ctx.state.includesLastByte = end === max
     ctx.status = HTTP_PARTIAL_CONTENT
     ctx.set('Content-Range', `bytes ${start}-${isNaN(end) ? '' : end}/${isNaN(totalSize) ? '*' : totalSize}`)
     ctx.response.length = end - start + 1

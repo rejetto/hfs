@@ -2,7 +2,7 @@
 
 exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
 exports.version = 4.1 // fix: different cases and encodings with urls weren't properly counted
-exports.apiRequired = 8
+exports.apiRequired = 8.3
 
 exports.config = {
     where: { frontend: true, type: 'select', defaultValue: 'menu',
@@ -46,9 +46,12 @@ exports.init = async api => {
         middleware: (ctx) =>
             () => { // execute after other middlewares are done
                 if (ctx.status >= 300 || !ctx.vfsNode || ctx.state.download_counter_ignore) return
-                const k = uri2key(ctx.path)
-                counters[k] = counters[k] + 1 || 1
-                save()
+                if (ctx.state.includesLastByte === false) return
+                ctx.state.completed.then(() => {
+                    const k = uri2key(ctx.path)
+                    counters[k] = counters[k] + 1 || 1
+                    save()
+                })
             },
         onDirEntry: ({ entry, listUri }) => {
             const k = uri2key(listUri + entry.n)
