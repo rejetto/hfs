@@ -79,7 +79,7 @@ export default function HomePage() {
         ),
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
         !account?.adminActualAccess && entry('', md("On _localhost_ you don't need to login"),
-            SOLUTION_SEP, h(InLink, { to:'accounts' }, md("to access from another computer create an account with /admin/ permission")) ),
+            SOLUTION_SEP, "to access from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
         proxyWarning(cfg, status) && entry('warning', proxyWarning(cfg, status),
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure and you can ", h(Button, {
@@ -122,11 +122,15 @@ export default function HomePage() {
                                             ...!x.isNewer && { color: 'warning', variant: 'outlined' },
                                             onClick: () => update(x.tag_name)
                                         }, prefix("Install ", x.name, x.isNewer ? '' : " (older)")),
-                                        h(Box, { mt: 1 }, md(x.body, { onText, linkTarget: '_blank' }))
+                                        h(Box, { mt: 1 }, renderChangelog(x.body))
                                     )),
                                 )),
                         ))
     )
+}
+
+function renderChangelog(s: string) {
+    return md(s, { onText, linkTarget: '_blank' })
 
     function onText(s: string) {
         return replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues
