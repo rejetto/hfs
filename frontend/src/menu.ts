@@ -13,7 +13,7 @@ import { closeDialog } from '@hfs/shared/dialogs'
 import { showUpload, uploadState } from './upload'
 import { useSnapshot } from 'valtio'
 import { apiCall } from '@hfs/shared/api'
-import { reloadList, usePath } from './useFetchList'
+import { reloadList } from './useFetchList'
 import { t, useI18N } from './i18n'
 
 export function MenuPanel() {
@@ -40,7 +40,8 @@ export function MenuPanel() {
     }, [can_delete])
 
     // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
-    const list = useMemo(() => Object.keys(selected).map(s => s.endsWith('/') ? s.slice(0,-1) : s).join('*'), [selected])
+    const ofs = location.pathname.length
+    const list = useMemo(() => Object.keys(selected).map(s => s.slice(ofs, s.endsWith('/') ? -1 : Infinity)).join('*'), [selected])
 
     // avoid useless dom changes while we are still waiting for necessary data
     const [changingButton, setChangingButton] = useState('')
