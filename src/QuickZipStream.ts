@@ -119,7 +119,8 @@ export class QuickZipStream extends Readable {
         if (this.finished || this.destroyed) return
         if (this.workingFile)
             return this.workingFile.resume()
-        const file = this.consumedCalculating.shift() || (await this.walker.next()).value as ZipSource
+        const file = this.consumedCalculating.shift()
+            || (await this.walker.next()).value as ZipSource
         if (!file)
             return this.closeArchive()
         let { path, sourcePath, getData, size=0, ts=this.now, mode=0o40775 } = file

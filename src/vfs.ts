@@ -12,7 +12,7 @@ import {
     makeMatcher,
     setHidden,
     onlyTruthy,
-    typedEntries
+    typedEntries, throw_
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -250,7 +250,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx
         }
         return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
             : who === WHO_ANY_ACCOUNT ? (ctx.state.account ? 0 : HTTP_UNAUTHORIZED)
-                : (() => { throw Error('invalid permission: ' + who) })()
+                : throw_(Error('invalid permission: ' + JSON.stringify(who)))
     }
 }
 

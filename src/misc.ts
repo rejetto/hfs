@@ -242,3 +242,7 @@ export function try_(cb: () => any, onException?: (e:any) => any) {
         return onException?.(e)
     }
 }
+
+export function throw_(err: any) {
+    throw err
+}
