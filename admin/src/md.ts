@@ -7,17 +7,16 @@ const TAGS = {
     '`': 'code',
     '*': 'i',
     '**': 'b',
-    '_': 'u',
 }
-// markdown inspired syntax to transform text into react elements: * for bold, / for italic, _ for underline, ` for code
 type OnText = (s: string) => ReactNode
 export default function md(text: string | TemplateStringsArray, { linkTarget='', onText=(x=>x) as OnText }={}) {
     if (typeof text !== 'string')
         text = text[0]
-    return replaceStringToReact(text, /(`|_|\*\*?)(.+)\1|(\n)|\[(.+)\]\((.+)\)/g, m =>
+    return replaceStringToReact(text, /(`|_|\*\*?)(.+)\1|(\n)|\[(.+)\]\((.+)\)|<([^ >/]+)>(.*)<\/\6>|<([^ >/]+) *\/>/g, m =>
         m[4] ? h(Link, { href: m[5], target: linkTarget }, onText(m[4]))
             : m[3] ? h('br')
-            : h((TAGS as any)[ m[1] ], {}, onText(m[2])),
+            : m[1] ? h((TAGS as any)[ m[1] ], {}, onText(m[2]))
+            : h(m[6] || m[8], {}, m[7]),
         onText)
 }
 

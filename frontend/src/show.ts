@@ -6,7 +6,6 @@ import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Flex, FlexV, Html, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { useI18N } from './i18n'
-import md from '@hfs/admin/src/md'
 import { alertDialog } from './dialog'
 
 enum ZoomMode {
@@ -79,8 +78,8 @@ export function fileShow(entry: DirEntry) {
                         useWindowSize().width > 1280 && iconBtn('?', showHelp),
                         iconBtn('menu', ev => openFileMenu(cur, ev, [
                             'open','delete',
-                            { id: 'zoom', icon: 'zoom', label: md(t`Switch _z_oom mode`), onClick: switchZoomMode },
-                            { id: 'fullscreen', icon: 'fullscreen', label: md(t`_F_ull screen`), onClick: toggleFullScreen },
+                            { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
+                            { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
                         ])),
                         iconBtn('close', close),
                     )

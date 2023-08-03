@@ -57,7 +57,7 @@ export default function HomePage() {
         v.busy ? [`port ${v.port} already used by ${v.busy}${SOLUTION_SEP}choose a `, cfgLink('different port'), ` or stop ${v.busy}`]
             : v.error )
     const errors = serverErrors && onlyTruthy(Object.entries(serverErrors).map(([k,v]) =>
-        v && [md(`Protocol _${k}_ cannot work: `), v,
+        v && [md(`Protocol <u>${k}</u> cannot work: `), v,
             (isCertError(v) || isKeyError(v)) && [
                 SOLUTION_SEP, h(Link, {
                     sx: { cursor: 'pointer' },
@@ -78,7 +78,7 @@ export default function HomePage() {
             !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
         ),
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
-        !account?.adminActualAccess && entry('', md("On _localhost_ you don't need to login"),
+        !account?.adminActualAccess && entry('', md("On <u>localhost</u> you don't need to login"),
             SOLUTION_SEP, "to access from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
         proxyWarning(cfg, status) && entry('warning', proxyWarning(cfg, status),
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
@@ -96,7 +96,7 @@ export default function HomePage() {
         status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
             h('ol',{},
                 h('li',{}, `configure FRP with type=http (best solution)`),
-                h('li',{}, md(`configure FRP to connect to HFS _not_ with 127.0.0.1 (safe, but you won't see users' IPs)`)),
+                h('li',{}, md(`configure FRP to connect to HFS <u>not</u> with 127.0.0.1 (safe, but you won't see users' IPs)`)),
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
             )),
         entry('', h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "Get support")),
