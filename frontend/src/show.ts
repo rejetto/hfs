@@ -3,10 +3,11 @@ import { createElement as h, Fragment, useEffect, useRef, useState } from 'react
 import { hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
-import { Flex, FlexV, Html, iconBtn, Spinner } from './components'
+import { Flex, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
-import { useI18N } from './i18n'
+import { t, useI18N } from './i18n'
 import { alertDialog } from './dialog'
+import _ from 'lodash'
 
 enum ZoomMode {
     fullWidth,
@@ -168,16 +169,18 @@ function Video({ onLoad, ...rest }: any) {
 
 function showHelp() {
     newDialog({
-        title: "File show help",
+        title: t`File Show help`,
         className: 'file-show-help',
-        Content: () => h(Html, { code: `
-            You can use the keyboard for some actions:  
-            <br/><kbd>left/right</kbd> go to previous/next file
-            <br/><kbd>up/down</kbd> scroll tall images
-            <br/><kbd>space</kbd> select
-            <br/><kbd>D</kbd> download
-            <br/><kbd>Z</kbd> zoom modes
-            <br/><kbd>F</kbd> full screen
-        ` })
+        Content: () => h(Fragment, {},
+            t('showHelpMain', {}, "You can use the keyboard for some actions:"),
+            _.map({
+                "←/→": "go to previous/next file",
+                "↑/↓": "scroll tall images",
+                "space": "select",
+                "D": "download",
+                "Z": "zoom modes",
+                "F": "full screen",
+            }, (v,k) => h('div', { key: k }, h('kbd', {}, t('showHelp_' + k, {}, k)), ' ', t('showHelp_' + k + '_body', {}, v)) )
+        )
     })
 }

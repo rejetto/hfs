@@ -122,6 +122,18 @@
         "Uploader": "Uploader",
         "Download counter": "Download counter",
         "Switch zoom mode": "Switch zoom mode",
-        "Full screen": "Full screen"
+        "Full screen": "Full screen",
+
+        "File Show help": "File Show help",
+        "showHelpMain": "You can use the keyboard for some actions:",
+        "showHelp_←/→": "←/→",
+        "showHelp_↑/↓": "↑/↓",
+        "showHelp_space": "space",
+        "showHelp_←/→_body": "go to previous/next file",
+        "showHelp_↑/↓_body": "scroll tall images",
+        "showHelp_space_body": "select",
+        "showHelp_D_body": "download",
+        "showHelp_Z_body": "zoom modes",
+        "showHelp_F_body": "full screen"
     }
 }
