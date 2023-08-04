@@ -21,5 +21,8 @@ code {
 .MuiTreeItem-content {
   box-sizing: border-box; /* avoid unwanted scrolling caused by its width:100% + padding */
 }
+.MuiDataGrid-columnHeaders {
+  background-color: #8882;
+}
 
 ol, ul { margin-top: .2em }
