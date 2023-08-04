@@ -1,6 +1,6 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 1.98,
+    "version": 1.99,
     "hfs_version": "0.47.0",
     "translate": {
         "Select": "Выбор",
@@ -120,6 +120,8 @@
         "off": "выключено",
         "Operation successful": "Операция успешна",
         "Uploader": "Загрузчик",
-        "Download counter": "Счётчик загрузок"
+        "Download counter": "Счётчик загрузок",
+        "Switch zoom mode": "Переключить увеличение",
+        "Full screen": "Полный экран"
     }
 }
