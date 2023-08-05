@@ -179,6 +179,10 @@ function setConfig1(k: string, newV: unknown, saveChanges=true, valueVersion?: V
     cfgEvents.emit(CONFIG_CHANGE_EVENT_PREFIX + k, getConfig(k), was, valueVersion)
     if (saveChanges)
         saveConfigAsap()
+
+    function same(a: any, b: any) { // we want to consider order of object entries as well (eg: mime)
+        return a === b || JSON.stringify(a) === JSON.stringify(b)
+    }
 }
 
 const saveDebounced = debounceAsync(async () => {
