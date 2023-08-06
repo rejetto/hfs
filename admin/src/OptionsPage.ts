@@ -5,22 +5,15 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApi, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh, Warning } from '@mui/icons-material'
-import { Dict, Flex, modifiedSx, wikiLink, with_ } from './misc'
-import {
-    Form,
-    BoolField,
-    NumberField,
-    SelectField,
-    StringStringField,
-    FieldProps,
-    Field,
-    StringField
-} from '@hfs/mui-grid-form';
+import { Dict, Flex, iconTooltip, modifiedSx, wikiLink, with_ } from './misc'
+import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
+import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { alertDialog, closeDialog, confirmDialog, newDialog, toast } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
+import md from './md'
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
@@ -154,9 +147,20 @@ export default function OptionsPage() {
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
             },
-            { k: 'mime', comp: StringStringField,
-                keyLabel: "Files", keyWidth: 7,
-                valueLabel: "Mime type", valueWidth: 4
+            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true,
+                fields: [
+                    { k: 'k', label: "File mask", $width: 1, $column: {
+                        renderCell: ({ value, id }: any) => h('code', {},
+                            value,
+                            value === '*' && id < Object.keys(values.mime).length - 1
+                                && iconTooltip(Warning, md("Mime with `*` should be the last, because first matching row applies"), {
+                                    color: 'warning.main', ml: 1
+                                }))
+                    } },
+                    { k: 'v', label: "Mime type", $width: 2 },
+                ],
+                toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
+                fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v])),
             },
             { k: 'block', label: "Blocked IPs", multiline: true, minRows:3, helperText: h(Fragment, {}, "Enter an IP address for each line. ",  h(WildcardsSupported)),
                 fromField: (all:string) => all.split('\n').map(s => s.trim()).filter(Boolean).map(ip => ({ ip })),
@@ -223,7 +227,7 @@ export function isKeyError(error: any) {
     return /private key/.test(error)
 }
 
-function ServerPort({ label, value, onChange, getApi, status, suggestedPort=1, error, helperText }: FieldProps<number | null>) {
+function ServerPort({ label, value, onChange, setApi, status, suggestedPort=1, error, helperText }: FieldProps<number | null>) {
     const lastCustom = useRef(suggestedPort)
     if (value! > 0)
         lastCustom.current = value!
@@ -253,7 +257,7 @@ function ServerPort({ label, value, onChange, getApi, status, suggestedPort=1, e
                 fullWidth: false,
                 value,
                 onChange,
-                getApi,
+                setApi,
                 error,
                 min: 1,
                 max: 65535,

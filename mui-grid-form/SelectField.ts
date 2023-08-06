@@ -20,7 +20,7 @@ type SelectOption<T> = SelectPair<T> | (T extends string | number ? T : never)
 interface SelectPair<T> { label: string, value:T }
 
 export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
-    const { value, onChange, getApi, options, sx, ...rest } = props
+    const { value, onChange, setApi, options, sx, ...rest } = props
     return h(TextField, { // using TextField because Select is not displaying label correctly
         ...commonSelectProps(props),
         ...rest,
@@ -36,7 +36,7 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
 }
 
 export function MultiSelectField<T>(props: FieldProps<T[]> & CommonSelectProps<T>) {
-    const { value, onChange, getApi, options, sx, ...rest } = props
+    const { value, onChange, setApi, options, sx, ...rest } = props
     return h(TextField, {
         ...commonSelectProps({ ...props, value: undefined }),
         ...rest,

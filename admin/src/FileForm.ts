@@ -173,7 +173,7 @@ interface WhoFieldProps extends FieldProps<Who | undefined> {
     contentText?: string
 }
 function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, otherPerms, byMasks,
-                      isChildren, isDir, contentText="folder content", ...rest }: WhoFieldProps): ReactElement {
+                      isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = (byMasks !== undefined ? "As per mask: " : parent !== undefined ? "As parent: " : "Default: " )
         + who2desc(byMasks ?? inherit)
     const objectMode =  value != null && typeof value === 'object' && !Array.isArray(value)
@@ -197,7 +197,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
     const arrayMode = Array.isArray(thisValue)
     // a large side band will convey union across the fields
     return h(Box, { sx: { borderRight: objectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
-        h(SelectField as Field<typeof thisValue>, {
+        h(SelectField as typeof SelectField<typeof thisValue>, {
             ...rest,
             value: arrayMode ? [] : thisValue,
             onChange(v, { event }) {

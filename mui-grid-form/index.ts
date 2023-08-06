@@ -22,16 +22,14 @@ import { GridProps } from '@mui/material/Grid/Grid'
 import { useDebounce } from 'usehooks-ts'
 export * from './SelectField'
 export * from './misc-fields'
-export * from './StringStringField'
 export { StringField }
 
 type ValidationError = ReactNode // false = no error
-export interface FieldDescriptor<T=any> {
+export interface FieldDescriptor<T=any> extends FieldApi<T> {
     k: string
     comp?: any
     label?: ReactNode
     error?: ReactNode
-    getError?: (v: any, extra?: any) => Promisable<ValidationError>
     toField?: (v: T) => any
     fromField?: (v: any) => T
     before?: ReactNode
@@ -43,15 +41,16 @@ export interface FieldDescriptor<T=any> {
 export type Field<T> = FC<FieldProps<T>>
 
 export type Promisable<T> = T | Promise<T>
-interface FieldApi {
+interface FieldApi<T> {
     // provide getError if you want your error to be visible by the Form component
-    getError: () => Promisable<ValidationError>, [rest: string]: any
+    getError?: (v: any, extra?: any) => Promisable<ValidationError>
+    isEqual?: (a: T, b: T) => boolean,
 }
 export interface FieldProps<T> {
     label?: string | ReactElement
     value?: T
     onChange: (v: T, more: { was?: T, event: any, [rest: string]: any }) => void
-    getApi?: (api: FieldApi) => void
+    setApi?: (api: FieldApi<T>) => void
     error?: boolean
     helperText?: ReactNode
     [rest: string]: any
@@ -108,7 +107,7 @@ export function Form<Values extends Dict>({
     const validateUpTo = useRef('')
     useEffect(() => void(phaseChange()), [phase]) //eslint-disable-line
 
-    const apis: Dict<FieldApi> = {}
+    const apis: Dict<FieldApi<unknown>> = {} // consider { [K in keyof Values]?: FieldApi<Values[K]> }
     return h('form', {
         ref: formRef && (x => formRef.current = x ? x as HTMLFormElement : undefined),
         ...formProps,
@@ -142,7 +141,7 @@ export function Form<Values extends Dict>({
                         Object.assign(field, {
                             value: toField(originalValue),
                             error: Boolean(errMsg || error) || undefined,
-                            getApi(api) { apis[k] = api },
+                            setApi(api) { apis[k] = api },
                             onBlur() {
                                 pleaseValidate(k)
                             },
@@ -154,7 +153,7 @@ export function Form<Values extends Dict>({
                                 try {
                                     v = fromField(v)
                                     setFieldExceptions(x => ({ ...x, [k]: false }))
-                                    if (_.isEqual(v, originalValue)) return
+                                    if ((apis[k]?.isEqual || _.isEqual)(v, originalValue)) return
                                     set(v, k)
                                     pleaseValidate(k)
                                 }
@@ -231,7 +230,7 @@ export function Form<Values extends Dict>({
             if (!f || isValidElement(f) || !f.k) continue
             const { k } = f
             const v = values?.[k]
-            const err = await apis[k]?.getError()
+            const err = await apis[k]?.getError?.(v, { values, fields })
                 || await f.getError?.(v, { values, fields })
                 || fieldExceptions[k]
             errs[k] = err || false

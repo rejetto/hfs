@@ -14,9 +14,9 @@ interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardText
     start?: ReactNode
     end?: ReactNode
 }
-export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, onTyping, suggestions, ...props }: StringFieldProps) {
+export function StringField({ value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, ...props }: StringFieldProps) {
     const normalized = value ?? ''
-    getApi?.({
+    setApi?.({
         getError() {
             return !value && required ? "required"
                 : value?.length! < min! ? "too short"

@@ -201,3 +201,22 @@ export function tryJson(s?: string) {
     try { return s && JSON.parse(s) }
     catch {}
 }
+
+export function swap<T>(obj: T, k1: keyof T, k2: keyof T) {
+    const temp = obj[k1]
+    obj[k1] = obj[k2]
+    obj[k2] = temp
+    return obj
+}
+
+export function isOrderedEqual(a: any, b: any): boolean {
+    return _.isEqualWith(a, b, (a1, b1) => {
+        if (!_.isPlainObject(a1) || !_.isPlainObject(b1)) return
+        const ka = Object.keys(a1)
+        const kb = Object.keys(b1)
+        return ka.length === kb.length && ka.every((ka1, i) => {
+            const kb1 = kb[i]
+            return ka1 === kb1 && isOrderedEqual(a1[ka1], b1[kb1])
+        })
+    })
+}

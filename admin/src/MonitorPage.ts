@@ -180,7 +180,7 @@ function Connections() {
                         hideUnder: Infinity,
                         renderCell: ({ value, row }) => h(Fragment, {},
                             "IPv" + value,
-                            row.secure && iconTooltip(Lock, "HTTPS", { opacity: .5 })
+                            iconTooltip(Lock, "HTTPS", { opacity: .5 })
                         )
                     },
                     {

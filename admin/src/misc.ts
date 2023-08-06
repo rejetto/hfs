@@ -68,15 +68,14 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
                 ret.catch(alertDialog).finally(()=> setLoading(false))
             }
         }
-    }, h(icon))
-    if ((progress || loading) && progress !== false) // false is also useful to inhibit behavior with loading
-        ret = h(Box, { position:'relative', display: 'inline-block' },
-            h(CircularProgress, {
+    },
+        (progress || loading) && progress !== false  // false is also useful to inhibit behavior with loading
+            && h(CircularProgress, {
                 ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
                 style: { position:'absolute', top: 4, left: 4, width: 32, height: 32 }
             }),
-            ret
-        )
+        h(icon)
+    )
     if (title)
         ret = h(Tooltip, { title, ...tooltipProps, children: h('span',{},ret) })
     return ret
@@ -123,8 +122,8 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
     return ret
 }
 
-export function iconTooltip(icon: SvgIconComponent, tooltip: string, sx?: SxProps) {
-    return h(Tooltip, { title: tooltip, children: h(icon, { sx }) })
+export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxProps) {
+    return h(Tooltip, { title: tooltip, children: h(icon, { sx: { verticalAlign: 'bottom', ...sx } }) })
 }
 
 export function InLink(props:any) {
