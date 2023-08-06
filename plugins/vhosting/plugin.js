@@ -17,6 +17,10 @@ exports.config = {
 	}
 }
 
+exports.configDialog = {
+    sx: { maxWidth: '35em' },
+}
+
 exports.init = api => {
     const { matches } = api.require('./misc')
     return {
