@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, FC, Fragment, ReactNode, KeyboardEvent } from 'react'
+import { createElement as h, FC, Fragment, ReactNode, KeyboardEvent, forwardRef } from 'react'
 import {
     Box,
     Breakpoint,
@@ -50,13 +50,14 @@ interface IconBtnProps extends Omit<IconButtonProps, 'disabled'|'title'|'onClick
     onClick: (...args: Parameters<NonNullable<IconButtonProps['onClick']>>) => Promisable<any>
 }
 
-export function IconBtn({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, ...rest }: IconBtnProps) {
+export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, ...rest }: IconBtnProps, ref: any) => {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
     if (link)
         onClick = () => window.open(link)
     let ret: ReturnType<FC> = h(IconButton, {
+        ref,
         disabled: Boolean(loading || progress || disabled),
         ...rest,
         async onClick(...args) {
@@ -79,7 +80,7 @@ export function IconBtn({ title, icon, onClick, disabled, progress, link, toolti
     if (title)
         ret = h(Tooltip, { title, ...tooltipProps, children: h('span',{},ret) })
     return ret
-}
+})
 
 interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'> {
     icon: SvgIconComponent
