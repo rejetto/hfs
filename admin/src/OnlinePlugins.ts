@@ -11,7 +11,6 @@ import { renderName, showError, startPlugin, UpdateButton } from './InstalledPlu
 import { state, useSnapState } from './state'
 import _ from 'lodash'
 import { alertDialog } from './dialog'
-import { LinearProgress } from '@mui/material'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')

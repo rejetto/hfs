@@ -118,7 +118,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
         try {
             const res = await pl.middleware?.(ctx)
             if (res === true)
-                ctx.pluginStopped = true
+                console.debug("plugin blocked request", ctx.pluginBlockedRequest = id)
             if (typeof res === 'function')
                 after[id] = res
         }
@@ -126,8 +126,8 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
             printError(id, e)
         }
     // expose public plugins' files
-    const { path } = ctx
-    if (!ctx.pluginStopped) {
+    if (!ctx.pluginBlockedRequest) {
+        const { path } = ctx
         if (path.startsWith(PLUGINS_PUB_URI)) {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
             const name = a.shift()!
