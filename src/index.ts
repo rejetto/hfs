@@ -26,7 +26,7 @@ process.title = 'HFS ' + VERSION
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',') || [randomId(30)]
 export const app = new Koa({ keys })
 app.use(someSecurity)
-    .use(session({ key: 'hfs_$id', signed: true, rolling: true }, app))
+    .use(session({ key: 'hfs_$id', signed: true, rolling: true, sameSite: 'lax' }, app))
     .use(prepareState)
     .use(gzipper)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
