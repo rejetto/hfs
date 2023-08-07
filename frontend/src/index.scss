@@ -43,7 +43,7 @@ body {
 }
 body, button, select, input { font-size: 12pt; }
 #root>div {
-    max-width: 50em;
+    max-width: 54em;
     margin: auto;
     min-height: 100vh;
     display: flex;
@@ -337,7 +337,7 @@ ul.dir {
 
 button label {
     cursor: inherit;
-    margin-left: .7em;
+    margin-left: .4em;
 }
 
 .dialog-backdrop.working {
