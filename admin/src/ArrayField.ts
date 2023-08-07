@@ -24,6 +24,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
         h(Box, { ...rest },
             h(DataGrid, {
                 rows,
+                sx: { '.MuiDataGrid-virtualScroller': { minHeight: '3em' } },
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
                 componentsProps: {
@@ -76,6 +77,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                 h(GridActionsCellItem as any, {
                                     icon: h(Edit),
                                     label: title,
+                                    title,
                                     onClick(event: MouseEvent) {
                                         formDialog<T>({ values: row as any, form, title }).then(x => {
                                             if (x)
