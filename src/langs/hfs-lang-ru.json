@@ -1,6 +1,6 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 1.99,
+    "version": 2.0,
     "hfs_version": "0.47.0",
     "translate": {
         "Select": "Выбор",
@@ -113,7 +113,7 @@
         "Skip existing files": "Пропуск существующих файлов",
         "Size": "Размер",
         "Timestamp": "Дата",
-        "Show": "Просмотр",
+        "Show": "Просмотр файла",
         "Loading failed": "Не удалось загрузить",
         "Rename": "Переименовать",
         "Tiles mode:": "Плитки:",
@@ -122,6 +122,18 @@
         "Uploader": "Загрузчик",
         "Download counter": "Счётчик загрузок",
         "Switch zoom mode": "Переключить увеличение",
-        "Full screen": "Полный экран"
+        "Full screen": "Полный экран",
+
+        "File Show help": "Помощь меню просмотра файла",
+        "showHelpMain": "Для некоторых действий можно использовать клавиатуру:",
+        "showHelp_←/→": "←/→",
+        "showHelp_↑/↓": "↑/↓",
+        "showHelp_space": "пробел",
+        "showHelp_←/→_body": "предыдущий/следующий файл",
+        "showHelp_↑/↓_body": "прокрутка высоких изображений",
+        "showHelp_space_body": "выбрать файл",
+        "showHelp_D_body": "скачать",
+        "showHelp_Z_body": "переключение увеличения",
+        "showHelp_F_body": "полноэкранный режим"
     }
 }
