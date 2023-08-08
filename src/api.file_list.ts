@@ -19,7 +19,7 @@ import _ from 'lodash'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 
-export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse }, ctx) => {
+export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c }, ctx) => {
     const node = await urlToNode( uri || '/', ctx)
     const list = new SendListReadable()
     if (!node)
@@ -28,6 +28,7 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse
         return fail()
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
+    const sse = ctx.get('accept') === 'text/event-stream'
     if (node.default)
         return (sse ? list.custom : _.identity)({ // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
             redirect: uri // tell the browser to access the folder (instead of using this api), so it will get the default file

@@ -105,7 +105,7 @@ const apis: ApiHandlers = {
         }
     },
 
-    search_online_plugins({ text }, ctx) {
+    get_online_plugins({ text }, ctx) {
         return new SendListReadable({
             async doAtStart(list) {
                 try {

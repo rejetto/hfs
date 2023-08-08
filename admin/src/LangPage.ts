@@ -11,7 +11,7 @@ import { alertDialog, toast } from './dialog'
 import { Field, SelectField } from '@hfs/mui-grid-form';
 
 export default function LangPage() {
-    const { list, error, connecting, reload } = useApiList('list_langs')
+    const { list, error, connecting, reload } = useApiList('get_langs')
     const langs = useMemo(() => ['en', ..._.uniq(list.map(x => x.code))], [list])
     const large = useBreakpoint('md')
     return error || h(Fragment, {},

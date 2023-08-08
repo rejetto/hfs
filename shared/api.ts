@@ -102,17 +102,9 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
 type EventHandler = (type:string, data?:any) => void
 
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
+    params = _.omitBy(params, _.isUndefined)
     console.debug('API EVENTS', cmd, params)
-    const processed: Record<string,string> = {}
-    for (const k in params) {
-        const v = params[k]
-        if (v !== undefined)
-            processed[k] = JSON.stringify(v)
-    }
-    const csrf = getCsrf()
-    if (csrf)
-        processed.csrf = JSON.stringify(csrf)
-    const source = new EventSource(getPrefixUrl() + API_URL + cmd + '?' + new URLSearchParams(processed))
+    const source = new EventSource(getPrefixUrl() + API_URL + cmd + '?' + new URLSearchParams(params))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {

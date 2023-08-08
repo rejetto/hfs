@@ -42,7 +42,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
             }
         }).finally(() => setReady(true))
     }, [from])
-    const { list, error, connecting } = useApiList<DirEntry>(ready && 'ls', { path: cwd, files, fileMask })
+    const { list, error, connecting } = useApiList<DirEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
     useEffect(() => {
         setSel([])
         setFilter('')

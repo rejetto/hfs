@@ -213,7 +213,7 @@ export function same(a: any, b: any) {
 }
 
 export function tryJson(s?: string) {
-    try { return s && JSON.parse(s) }
+    try { return s ? JSON.parse(s) : undefined }
     catch {}
 }
 
