@@ -15,7 +15,7 @@ import { alertDialog } from './dialog'
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
     const debouncedSearch = useDebounce(search, 1000)
-    const { list, error, initializing, updateList } = useApiList('search_online_plugins', { text: debouncedSearch })
+    const { list, error, initializing, updateList } = useApiList('get_online_plugins', { text: debouncedSearch })
     const snap = useSnapState()
     if (error)
         return showError(error)

@@ -5,7 +5,7 @@ import createSSE from './sse'
 import { Readable } from 'stream'
 import { asyncGeneratorToReadable, onOff, removeStarting } from './misc'
 import events from './events'
-import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
+import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
 import _ from 'lodash'
 import { defineConfig } from './config'
 
@@ -24,14 +24,19 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
         if (!logApi.get())
             ctx.state.dont_log = true
-        const { params } = ctx
-        console.debug('API', ctx.method, ctx.path, { ...params })
-        const apiFun = apis.hasOwnProperty(ctx.path) && apis[ctx.path]!
-        if (!apiFun) {
-            ctx.body = 'invalid api'
-            return ctx.status = HTTP_NOT_FOUND
-        }
-        const csrf = ctx.cookies.get('csrf')
+        const isPost = ctx.params
+        const params = isPost ? ctx.params || {} : ctx.query
+        const apiName = ctx.path
+        console.debug('API', ctx.method, apiName, { ...params })
+        const safe = postWithOriginMatchingHost() // POST is safe because browser will enforce SameSite cookie
+            || apiName.startsWith('get_') // "get_" apis are safe because they make no change
+        if (!safe)
+            return send(HTTP_FOOL)
+        const apiFun = apis.hasOwnProperty(apiName) && apis[apiName]!
+        if (!apiFun)
+            return send(HTTP_NOT_FOUND, 'invalid api')
+        if (isPost && ctx.cookies.get('csrf') !== params.csrf)
+            return send(HTTP_UNAUTHORIZED, 'csrf')
         // we don't rely on SameSite cookie option because it's https-only
         let res
         try {
@@ -42,8 +47,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
                             fixUri(params, k)
                         else if (typeof (v as any)?.[0] === 'string')
                             (v as string[]).forEach((x,i) => fixUri(v,i))
-            res = csrf && csrf !== params.csrf ? new ApiError(HTTP_UNAUTHORIZED, 'csrf')
-                : await apiFun(params || {}, ctx)
+            res = await apiFun(params, ctx)
 
             function fixUri(o: any, k: string | number) {
                 o[k] = removeStarting(ctx.state.revProxyPath, o[k])
@@ -61,15 +65,23 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
                 resAsReadable.destroy())
             return
         }
-        if (res instanceof ApiError) {
-            ctx.body = res.message
-            return ctx.status = res.status
-        }
-        if (res instanceof Error) { // generic exception
-            ctx.body = res.message || String(res)
-            return ctx.status = HTTP_BAD_REQUEST
-        }
+        if (res instanceof ApiError)
+            return send(res.status, res.message)
+        if (res instanceof Error)  // generic error/exception
+            return send(HTTP_BAD_REQUEST, res.message || String(res))
         ctx.body = res
+
+        function send(status: number, body?: string) {
+            ctx.body = body
+            ctx.status = status
+        }
+
+        function postWithOriginMatchingHost() {
+            if (!isPost) return false
+            const origin = ctx.get('origin')
+            return !origin // not a browser
+                || origin.split('//')[1] === ctx.get('host') // browser's requests must come from the inside. Even when no credentials are necessary, we don't want other website to issue non-get actions without the user knowing
+        }
     }
 }
 

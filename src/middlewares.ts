@@ -15,7 +15,6 @@ import {
     dirTraversal,
     filterMapGenerator,
     isLocalHost,
-    newObj,
     stream2string,
     tryJson
 } from './misc'
@@ -261,10 +260,8 @@ async function srpCheck(username: string, password: string) {
     return await step1.step2(clientRes2.A, clientRes2.M1).then(() => true, () => false)
 }
 
-// unify get/post parameters, with JSON decoding to not be limited to strings
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
     ctx.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
-        ? tryJson(await stream2string(ctx.req))
-        : newObj(ctx.query, x => Array.isArray(x) ? x : tryJson(x))
+        && (tryJson(await stream2string(ctx.req)) || {})
     await next()
 }

@@ -32,7 +32,7 @@ exports.init = api => {
                 let { referer } = ctx.headers
                 referer &&= new URL(referer).pathname
                 if (referer?.startsWith(ctx.state.revProxyPath + api.const.ADMIN_URI)) return // exclude apis for admin-panel
-                params = ctx.params
+                params = ctx.params || ctx.query
             }
 
             const hosts = api.getConfig('hosts')
@@ -51,7 +51,7 @@ exports.init = api => {
             if (root && root[0] !== '/') // normalize
                 root = '/' + root
             if (!root) return
-            if (!params)
+            if (params === undefined)
                 ctx.path = root + ctx.path
             else
                 for (const [k,v] of Object.entries(params))

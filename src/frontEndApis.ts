@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
-import { file_list } from './api.file_list'
+import { get_file_list } from './api.file_list'
 import * as api_auth from './api.auth'
 import { defineConfig } from './config'
 import events from './events'
@@ -23,7 +23,7 @@ import { getUploadMeta } from './upload'
 export const customHeader = defineConfig('custom_header', '')
 
 export const frontEndApis: ApiHandlers = {
-    file_list,
+    get_file_list,
     ...api_auth,
 
     get_notifications({ channel }, ctx) {

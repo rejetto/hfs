@@ -181,7 +181,7 @@ const apis: ApiHandlers = {
         return { path }
     },
 
-    ls({ path, files=true, fileMask }, ctx) {
+    get_ls({ path, files=true, fileMask }, ctx) {
         return new SendListReadable({
             async doAtStart(list) {
                 if (!path && IS_WINDOWS) {
