@@ -59,9 +59,8 @@ export function socket2connection(socket: Socket) {
 }
 
 export function updateConnection(conn: Connection, change: Partial<Connection>) {
-    // if no change is detected, skip update. ctx is a special case
-    if (!change.ctx && Object.entries(change).every(([k,v]) => _.isEqual(v, conn[k as keyof Connection]) ))
-        return
+    if (change.op)
+        change.opProgress ??= change.opOffset || 0
     Object.assign(conn, change)
     events.emit('connectionUpdated', conn, change)
 }

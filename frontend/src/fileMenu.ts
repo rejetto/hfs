@@ -1,50 +1,54 @@
 import { t, useI18N } from './i18n'
 import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog, prefix, with_ } from './misc'
-import { createElement as h, Fragment, isValidElement, MouseEventHandler, MouseEvent, ReactNode } from 'react'
+import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
-import { DirEntry, state } from './state'
+import { DirEntry, pathEncode, state } from './state'
 import { deleteFiles } from './menu'
 import { Link } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
 import { alertDialog, promptDialog } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
+import { navigate } from './App'
 
 interface FileMenuEntry {
+    id?: string
     label: ReactNode
+    subLabel?: ReactNode
     href?: string
     icon?: string
-    onClick?: MouseEventHandler
+    onClick?: (ev:MouseEvent<Element>) => any
 }
 
 export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder, s } = entry
-    const fullUri = uri[0] === '/' ? uri : location.pathname + uri
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
-        !cantDownload && { label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+        !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         ...addToMenu.map(x => {
             if (x === 'open') {
                 if (entry.cantOpen) return
-                const open = { icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
-                return !isFolder ? open : h(Link, { to: fullUri, onClick: () => close() }, hIcon(open.icon), open.label)
+                const open = { id: 'open', icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
+                return !isFolder ? open : h(Link, { to: uri, onClick: () => close() }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
-                return state.can_delete && {
+                return (state.can_delete || entry.p?.includes('d')) && {
+                    id: 'delete',
                     label: t`Delete`,
                     icon: 'trash',
-                    onClick: () => deleteFiles([entry.uri], entry.uri[0] === '/' ? '' : location.pathname)
+                    onClick: () => deleteFiles([entry.uri])
                 }
             if (x === 'show')
                 return !entry.cantOpen && getShowType(entry) && {
+                    id: 'show',
                     label: t`Show`,
                     icon: 'image',
                     onClick: () => fileShow(entry)
                 }
             return x
         }),
-        state.can_delete && { label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
-        isFolder && { label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
+        state.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
+        isFolder && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
     const props = [
         [t`Name`, entry.name],
@@ -56,7 +60,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     if (res)
         menu.push(...res.flat())
     const ico = getEntryIcon(entry)
-    const close = newDialog({
+    const { close } = newDialog({
         title: isFolder ? t`Folder menu` : t`File menu`,
         className: 'file-dialog',
         icon: () => ico,
@@ -64,9 +68,9 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             : [ev.pageX, ev.pageY - scrollY] as [number, number],
         Content() {
             const {t} = useI18N()
-            const [details] = useApi('get_file_details', { uri: fullUri })
+            const [details] = useApi('get_file_details', { uris: [entry.uri] });
             const showProps = [ ...props,
-                with_(details?.upload, x => x && [ t`Uploader`, x.ip + prefix(' (', x.username, ')') ])
+                with_(details?.[0]?.upload, x => x && [ t`Uploader`, x.ip + prefix(' (', x.username, ')') ])
             ]
             return h(Fragment, {},
                 h('dl', { className: 'file-dialog-properties' },
@@ -77,18 +81,24 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 ),
                 entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                 h('div', { className: 'file-menu' },
-                    dontBotherWithKeys(menu.map((e: any, i) => // render menu entries
+                    dontBotherWithKeys(menu.map((e: FileMenuEntry, i) => // render menu entries
                         isValidElement(e) ? e
-                            : !e?.label ? null :
-                                h('a', {
-                                    key: i,
-                                    href: e.href || '#',
-                                    ..._.omit(e, ['label', 'icon', 'href', 'onClick']),
-                                    async onClick() {
-                                        if ((await e.onClick?.()) !== false)
-                                            close()
-                                    }
-                                }, hIcon(e.icon || 'file'), e.label )
+                            : e?.label && h('a', {
+                                key: i,
+                                href: '#',
+                                ..._.omit(e, ['label', 'icon', 'onClick']),
+                                async onClick(event: MouseEvent) {
+                                    if (!e.href) // even with #, the
+                                        event.preventDefault()
+                                    if (false !== await e.onClick?.(event))
+                                        close()
+                                }
+                            },
+                                hIcon(e.icon || 'file'),
+                                h('label', { style: { display: 'flex', flexDirection: 'column' } },
+                                    h('div', {}, e.label),
+                                    h('small', {}, e.subLabel) )
+                            )
                     ))
                 )
             )
@@ -99,20 +109,24 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
 async function rename(entry: DirEntry) {
     const dest = await promptDialog(t`Name`, { def: entry.name, title: t`Rename` })
     if (!dest) return
-    const uri = location.pathname + entry.uri
     try {
+        const { n, uri } = entry
         await apiCall('rename', { uri, dest })
-        // update state instead of re-getting the list
-        const { n } = entry
-        const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
-        const newEntry = new DirEntry(newN, entry)
-        const i = _.findIndex(state.list, { n })
-        state.list[i] = newEntry
-        const j = _.findIndex(state.filteredList, { n })
-        if (j >= 0)
-            state.filteredList![j] = newEntry
-
-        alertDialog(t`Operation successful`).then() // don't wait, so it appears after the file-menu closes
+        const isCurrentFolder = uri === location.pathname
+        if (!isCurrentFolder) {
+            // update state instead of re-getting the list
+            const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
+            const newEntry = new DirEntry(newN, entry)
+            const i = _.findIndex(state.list, { n })
+            state.list[i] = newEntry
+            const j = _.findIndex(state.filteredList, { n })
+            if (j >= 0)
+                state.filteredList![j] = newEntry
+        }
+        alertDialog(t`Operation successful`).then(() => {
+            if (isCurrentFolder)
+                navigate(uri + '../' + pathEncode(dest) + '/')
+        })
     }
     catch(e: any) {
         await alertDialog(e)

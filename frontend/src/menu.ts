@@ -13,7 +13,7 @@ import { closeDialog } from '@hfs/shared/dialogs'
 import { showUpload, uploadState } from './upload'
 import { useSnapshot } from 'valtio'
 import { apiCall } from '@hfs/shared/api'
-import { reloadList, usePath } from './useFetchList'
+import { reloadList } from './useFetchList'
 import { t, useI18N } from './i18n'
 
 export function MenuPanel() {
@@ -32,7 +32,6 @@ export function MenuPanel() {
         setStarted1secAgo(false)
         setTimeout(() => setStarted1secAgo(true), 1000)
     }, [stopSearch, setStarted1secAgo])
-    const pathname = usePath()
 
     useEffect(() => {
         if (!can_delete || localStorage.warn_can_delete) return
@@ -41,7 +40,8 @@ export function MenuPanel() {
     }, [can_delete])
 
     // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
-    const list = useMemo(() => Object.keys(selected).map(s => s.endsWith('/') ? s.slice(0,-1) : s).join('*'), [selected])
+    const ofs = location.pathname.length
+    const list = useMemo(() => Object.keys(selected).map(s => s.slice(ofs, s.endsWith('/') ? -1 : Infinity)).join('*'), [selected])
 
     // avoid useless dom changes while we are still waiting for necessary data
     const [changingButton, setChangingButton] = useState('')
@@ -67,14 +67,15 @@ export function MenuPanel() {
                 icon: 'trash',
                 label: t`Delete`,
                 className: 'show-sliding',
-                onClick: () => deleteFiles(Object.keys(selected), pathname)
-            } : changingButton === 'upload' ? {
+                onClick: () => deleteFiles(Object.keys(selected))
+            } : {
                 id: 'upload-button',
                 icon: 'upload',
                 label: t`Upload`,
-                className: 'show-sliding ' + (uploading ? 'ani-working' : ''),
+                tabIndex: changingButton === 'upload' ? undefined : -1,
+                className: changingButton === 'upload' ? 'show-sliding ' + (uploading ? 'ani-working' : '') : 'before-sliding',
                 onClick: showUpload,
-            } : { icon: '', label: '', className: 'before-sliding' }),
+            }),
             h(MenuButton, getSearchProps()),
             h(MenuButton, {
                 id: 'options-button',
@@ -198,7 +199,7 @@ function LoginButton() {
     })
 }
 
-export async function deleteFiles(uris: string[], root: string='') {
+export async function deleteFiles(uris: string[]) {
     const n = uris.length
     if (!n) {
         alertDialog(t('delete_select', "Select something to delete")).then()
@@ -207,7 +208,7 @@ export async function deleteFiles(uris: string[], root: string='') {
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
         return false
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
-        apiCall('delete', { uri: root + uri }).then(() => null, err => ({ uri, err }))
+        apiCall('delete', { uri }).then(() => null, err => ({ uri, err }))
     )))
     reloadList()
     const e = errors.length

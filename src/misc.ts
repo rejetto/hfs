@@ -165,6 +165,10 @@ export function typedKeys<T extends {}>(o: T) {
     return Object.keys(o) as (keyof T)[]
 }
 
+export function typedEntries<T extends {}>(o: T): [keyof T, T[keyof T]][] {
+    return Object.entries(o) as [keyof T, T[keyof T]][];
+}
+
 export function hasProp<T extends object>(obj: T, key: PropertyKey): key is keyof T {
     return key in obj;
 }
@@ -237,4 +241,8 @@ export function try_(cb: () => any, onException?: (e:any) => any) {
     catch(e) {
         return onException?.(e)
     }
+}
+
+export function throw_(err: any) {
+    throw err
 }

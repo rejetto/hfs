@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state } from './state'
-import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Link, MenuItem, MenuList, } from '@mui/material'
+import { createElement as h, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
+import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, } from '@mui/material'
 import {
     BoolField,
     DisplayField,
@@ -77,13 +77,16 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, status
         return element
     const accounts = data.list
 
+    const needSourceWarning = !hasSource && "Works only on folders with source! "
     return h(Form, {
         values,
         set(v, k) {
             if (k === 'link') return
-            const nameIsVirtual = k === 'source' && values.source?.endsWith(values.name)
-            const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
-            setValues({ ...values, name, [k]: v })
+            setValues(values => {
+                const nameIsVirtual = k === 'source' && values.source?.endsWith(values.name)
+                const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
+                return { ...values, name, [k]: v }
+            })
         },
         barSx: { gap: 2, width: '100%', ...barColors },
         stickyBar: true,
@@ -117,23 +120,12 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, status
                 placeholder: "Not on disk, this is a virtual folder",
             },
             perm('can_read', "Who can see but not download will be asked to login"),
-            perm('can_see', "If you don't see, you may still download with a direct link", {
-                after: isDir && values.can_see != null
-                    && h(BoolField, {
-                        size: 'small',
-                        label: `Propagate permission inside this folder`,
-                        value: values.propagate?.can_see !== false,
-                        onChange(v) {
-                            const o = { ...values.propagate, can_see: v ? undefined : false } // new "propagate" object
-                            setValues({ ...values, propagate: _.every(o, v => v === undefined) ? null : o })
-                        }
-                    })
-            }),
-            isDir && perm('can_list', "Permission to see content of folders"),
-            isDir && perm('can_delete', hasSource ? '' : "Works only on folders with source"),
-            isDir && perm('can_upload', hasSource ? '' : "Works only on folders with source", { lg: showAccept ? 6 : 12 }),
-            showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything",
-                helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip"), lg: 6 },
+            perm('can_see', "If you can't see, you may still download with a direct link"),
+            isDir && perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
+            isDir && perm('can_delete', [needSourceWarning, "Those who can delete can also rename"]),
+            isDir && perm('can_upload', needSourceWarning, { lg: showAccept ? 6 : 12, contentText: "subfolders" }),
+            showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", lg: 6,
+                helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: 'Created', toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: 'Modified', toField: formatTimestamp },
@@ -157,6 +149,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, status
             label: "Who can " + perm2word(perm),
             inherit: inheritedPerms[perm],
             byMasks: byMasks?.[perm],
+            isDir,
             ...props
         }
     }
@@ -172,10 +165,21 @@ function formatTimestamp(x: string) {
     return x ? new Date(x).toLocaleString() : '-'
 }
 
-interface WhoFieldProps extends FieldProps<Who> { accounts: Account[], otherPerms: any[] }
-function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, otherPerms, byMasks, ...rest }: WhoFieldProps) {
+interface WhoFieldProps extends FieldProps<Who | undefined> {
+    accounts: Account[],
+    otherPerms: any[],
+    isChildren?: boolean,
+    isDir: boolean
+    contentText?: string
+}
+function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, otherPerms, byMasks,
+                      isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = (byMasks !== undefined ? "As per mask: " : parent !== undefined ? "As parent: " : "Default: " )
         + who2desc(byMasks ?? inherit)
+    const objectMode =  value != null && typeof value === 'object' && !Array.isArray(value)
+    const childrenValue = objectMode && value.children
+    const thisValue = objectMode ? value.this : value
+
     const options = useMemo(() =>
         onlyTruthy([
             { value: null, label: defaultLabel },
@@ -185,28 +189,50 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
             ...otherPerms,
             { value: [], label: "Select accounts" },
         // don't offer inherited value twice, unless it was already selected, or it is forced
-        ].map(x => (x.value === value || showInherited || x.value !== inherit)
+        ].map(x => (x.value === thisValue || showInherited || x.value !== inherit)
             && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
-    [inherit, parent, value])
+    [inherit, parent, thisValue])
 
-    const arrayMode = Array.isArray(value)
-    return h('div', {},
-        h(SelectField as Field<Who>, {
+    const timeout = 500
+    const arrayMode = Array.isArray(thisValue)
+    // a large side band will convey union across the fields
+    return h(Box, { sx: { borderRight: objectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
+        h(SelectField as typeof SelectField<typeof thisValue>, {
             ...rest,
-            helperText: !arrayMode && helperText,
-            value: arrayMode ? [] : value,
-            onChange(v, { was, event }) {
-                onChange(v, { was , event })
+            value: arrayMode ? [] : thisValue,
+            onChange(v, { event }) {
+                onChange(objectMode ? { this: v, children: childrenValue } : v, { was: value, event })
             },
-            options
+            options,
         }),
-        arrayMode && h(MultiSelectField as Field<string[]>, {
-            label: accounts?.length ? "Choose accounts for " + rest.label : "You didn't create any account yet",
-            value,
-            onChange,
+        h(Collapse, { in: arrayMode, timeout },
+            arrayMode && h(MultiSelectField as Field<string[]>, {
+                label: accounts?.length ? "Choose accounts for " + rest.label : "You didn't create any account yet",
+                value: thisValue,
+                onChange,
+                options: accounts?.map(a => ({ value: a.username, label: a.username })) || [],
+            }) ),
+        h(FormHelperText, {},
             helperText,
-            options: accounts?.map(a => ({ value: a.username, label: a.username })) || [],
-        })
+            !isChildren && isDir && h(Link, {
+                sx: { display: 'block', cursor: 'pointer', mt: -.5 },
+                onClick(event) {
+                    if (thisValue === undefined) return
+                    onChange(objectMode ? thisValue : { this: value }, { was: value, event })
+                }
+            }, objectMode ? "Different permission for " : "Same permission for ", contentText)
+        ),
+        !isChildren && h(Collapse, { in: objectMode, timeout },
+            h(WhoField, {
+                label: "Permission for " + contentText,
+                parent, inherit, accounts, showInherited, otherPerms, isDir,
+                isChildren: true,
+                value: childrenValue ?? null,
+                onChange(v, { event }) {
+                    onChange({ this: thisValue, children: v as any }, { was: value, event })
+                }
+            })
+        ),
     )
 }
 
@@ -245,7 +271,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     )
 
     function edit() {
-        const close = newDialog({
+        const { close } = newDialog({
             title: "Change link",
             Content() {
                 const [v, setV] = useState(base || '')

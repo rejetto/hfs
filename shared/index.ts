@@ -33,15 +33,8 @@ const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
 export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
     if (isNaN(Number(n)) || n < 0)
         return ''
-    let prevMul = 1
-    let mul = k
-    let i = 0
-    while (i < MULTIPLIERS.length && n > mul) {
-        prevMul = mul
-        mul *= k
-        ++i
-    }
-    n /= prevMul
+    const i = n && Math.floor(Math.log2(n) / Math.log2(k))
+    n /= k ** i
     const nAsString = i && !isNaN(digits) ? n.toFixed(digits)
         : _.round(n, isNaN(digits) ? (n >= 100 ? 0 : 1) : digits)
     return nAsString + ' ' + (MULTIPLIERS[i]||'') + post
@@ -207,4 +200,23 @@ export function makeSessionRefresher(state: any) {
 export function tryJson(s?: string) {
     try { return s && JSON.parse(s) }
     catch {}
+}
+
+export function swap<T>(obj: T, k1: keyof T, k2: keyof T) {
+    const temp = obj[k1]
+    obj[k1] = obj[k2]
+    obj[k2] = temp
+    return obj
+}
+
+export function isOrderedEqual(a: any, b: any): boolean {
+    return _.isEqualWith(a, b, (a1, b1) => {
+        if (!_.isPlainObject(a1) || !_.isPlainObject(b1)) return
+        const ka = Object.keys(a1)
+        const kb = Object.keys(b1)
+        return ka.length === kb.length && ka.every((ka1, i) => {
+            const kb1 = kb[i]
+            return ka1 === kb1 && isOrderedEqual(a1[ka1], b1[kb1])
+        })
+    })
 }

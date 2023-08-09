@@ -24,10 +24,19 @@ interface ZipSource {
     ts?: Date
     mode?: number
 }
+interface QuickZipEntry {
+    size: number,
+    crc: number,
+    ts: Date,
+    pathAsBuffer: Buffer,
+    offset: number,
+    version: number,
+    extAttr: number,
+}
 export class QuickZipStream extends Readable {
     private workingFile: Readable | undefined
     private finished = false
-    private readonly entries: ({ size:number, crc:number, ts:Date, pathAsBuffer:Buffer, offset:number, version:number, extAttr: number })[] = []
+    private readonly entries: QuickZipEntry[] = []
     private dataWritten = 0
     private consumedCalculating: ZipSource[] = []
     private skip: number = 0
@@ -36,6 +45,10 @@ export class QuickZipStream extends Readable {
 
     constructor(private readonly walker:  AsyncIterableIterator<ZipSource>) {
         super({})
+    }
+
+    getArchiveEntries() {
+        return this.entries.map(x => String(x.pathAsBuffer))
     }
 
     earlyClose() {
@@ -106,7 +119,8 @@ export class QuickZipStream extends Readable {
         if (this.finished || this.destroyed) return
         if (this.workingFile)
             return this.workingFile.resume()
-        const file = this.consumedCalculating.shift() || (await this.walker.next()).value as ZipSource
+        const file = this.consumedCalculating.shift()
+            || (await this.walker.next()).value as ZipSource
         if (!file)
             return this.closeArchive()
         let { path, sourcePath, getData, size=0, ts=this.now, mode=0o40775 } = file

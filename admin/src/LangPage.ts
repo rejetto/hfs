@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
 import { apiCall, useApiEx, useApiList } from './api'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataTable } from './DataTable';
 import { Alert, Box, Button } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
 import { IconBtn, readFile, selectFiles, useBreakpoint } from './misc'
@@ -11,7 +11,7 @@ import { alertDialog, toast } from './dialog'
 import { Field, SelectField } from '@hfs/mui-grid-form';
 
 export default function LangPage() {
-    const { list, error, connecting, reload } = useApiList('list_langs', undefined, { addId: true })
+    const { list, error, connecting, reload } = useApiList('list_langs')
     const langs = useMemo(() => ['en', ..._.uniq(list.map(x => x.code))], [list])
     const large = useBreakpoint('md')
     return error || h(Fragment, {},
@@ -22,7 +22,7 @@ export default function LangPage() {
                 h(Box, { flex: 1 }),
                 h(ForceLang, { langs }),
             ),
-            h(DataGrid, {
+            h(DataTable, {
                 loading: connecting,
                 rows: list as any,
                 hideFooter: true,
@@ -30,41 +30,37 @@ export default function LangPage() {
                 columns: [
                     {
                         field: 'code',
-                        width: 80,
+                        width: 110,
+                        valueFormatter: ({ value }) => value?.toUpperCase(),
                     },
                     {
                         field: 'version',
-                        width: 80,
+                        width: 120,
+                        hideUnder: 'sm',
                     },
                     {
                         field: 'hfs_version',
                         headerName: "HFS version",
+                        width: 110,
                     },
                     {
                         field: 'author',
                         flex: 1,
-                    },
-                    {
-                        field: "actions",
-                        width: 80,
-                        align: 'center',
-                        hideSortIcons: true,
-                        disableColumnMenu: true,
-                        renderCell({ row }) {
-                            return row.embedded ? "Embedded" : h('div', {},
-                                h(IconBtn, {
-                                    icon: Delete,
-                                    title: "Delete",
-                                    confirm: "Delete?",
-                                    async onClick() {
-                                        await apiCall('del_lang', _.pick(row, 'code'))
-                                        reload()
-                                        toast("Deleted")
-                                    }
-                                }),
-                            )
-                        }
+                        hideUnder: 'sm',
                     }
+                ],
+                actions: ({ row }) => [
+                    h(IconBtn, {
+                        icon: Delete,
+                        title: row.embedded ? "Cannot delete (embedded)" : "Delete",
+                        confirm: "Delete?",
+                        disabled: row.embedded,
+                        async onClick() {
+                            await apiCall('del_lang', _.pick(row, 'code'))
+                            reload()
+                            toast("Deleted")
+                        }
+                    }),
                 ]
             })
         )
@@ -87,7 +83,6 @@ export default function LangPage() {
         }, { accept: '.json' })
     }
 }
-
 
 function ForceLang({ langs }: { langs: string[] }) {
     const K = 'force_lang'

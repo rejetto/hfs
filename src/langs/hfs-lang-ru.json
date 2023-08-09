@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 1.97,
-    "hfs_version": "0.46.0",
+    "version": 2.0,
+    "hfs_version": "0.47.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{1 файл} few{# файла} other{# файлов}}",
@@ -69,7 +69,7 @@
         "enter_folder": "Перейти в папку",
         "folder_exists": "Папка уже существует",
 
-        "Sort by": "Сортировка по",
+        "Sort by:": "Сортировка по: {by}",
         "name": "имени",
         "extension": "расширению",
         "size": "размеру",
@@ -113,13 +113,27 @@
         "Skip existing files": "Пропуск существующих файлов",
         "Size": "Размер",
         "Timestamp": "Дата",
-        "Show": "Просмотр",
+        "Show": "Просмотр файла",
         "Loading failed": "Не удалось загрузить",
         "Rename": "Переименовать",
         "Tiles mode:": "Плитки:",
         "off": "выключено",
         "Operation successful": "Операция успешна",
         "Uploader": "Загрузчик",
-        "Download counter": "Счётчик загрузок"
+        "Download counter": "Счётчик загрузок",
+        "Switch zoom mode": "Переключить увеличение",
+        "Full screen": "Полный экран",
+
+        "File Show help": "Помощь меню просмотра файла",
+        "showHelpMain": "Для некоторых действий можно использовать клавиатуру:",
+        "showHelp_←/→": "←/→",
+        "showHelp_↑/↓": "↑/↓",
+        "showHelp_space": "пробел",
+        "showHelp_←/→_body": "предыдущий/следующий файл",
+        "showHelp_↑/↓_body": "прокрутка высоких изображений",
+        "showHelp_space_body": "выбрать файл",
+        "showHelp_D_body": "скачать",
+        "showHelp_Z_body": "переключение увеличения",
+        "showHelp_F_body": "полноэкранный режим"
     }
 }

@@ -203,6 +203,24 @@
       "css": "reload",
       "code": 59416,
       "src": "fontawesome"
+    },
+    {
+      "uid": "b013f6403e5ab0326614e68d1850fd6b",
+      "css": "zoom",
+      "code": 61618,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "757afacc32d82967975cbb3b45cfb41b",
+      "css": "fullscreen",
+      "code": 61704,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "9c1376672bb4f1ed616fdd78a23667e9",
+      "css": "comment",
+      "code": 61669,
+      "src": "fontawesome"
     }
   ]
 }

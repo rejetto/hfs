@@ -10,7 +10,9 @@ body {
   background: #000;
 }
 #root { min-height: 100%; display:flex; }
-
+main {
+  word-break: break-word; /* avoid causing unnecessary horizontal scrolling */
+}
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
@@ -18,6 +20,9 @@ code {
 
 .MuiTreeItem-content {
   box-sizing: border-box; /* avoid unwanted scrolling caused by its width:100% + padding */
+}
+.MuiDataGrid-columnHeaders {
+  background-color: #8882;
 }
 
 ol, ul { margin-top: .2em }

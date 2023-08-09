@@ -1,10 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
+import { createElement as h, ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { FieldProps } from '.'
 import { Autocomplete, InputAdornment, TextField } from '@mui/material'
+import { StandardTextFieldProps } from '@mui/material/TextField/TextField'
 
-interface StringProps extends FieldProps<string> {
+interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
     typing?: boolean
     onTyping?: (v: string) => boolean
     min?: number
@@ -13,9 +14,9 @@ interface StringProps extends FieldProps<string> {
     start?: ReactNode
     end?: ReactNode
 }
-export function StringField({ value, onChange, min, max, required, getApi, typing, start, end, onTyping, suggestions, ...props }: StringProps) {
+export function StringField({ value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, ...props }: StringFieldProps) {
     const normalized = value ?? ''
-    getApi?.({
+    setApi?.({
         getError() {
             return !value && required ? "required"
                 : value?.length! < min! ? "too short"
@@ -25,6 +26,7 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
     })
     const [state, setState] = useState(normalized)
 
+    useProxyRef(props, 'inputRef', useCallback((x: any) => x && go(null, x.value), [])) // support autofill on chrome mobile
     const lastChange = useRef(normalized)
     useEffect(() => {
         setState(normalized)
@@ -77,3 +79,17 @@ export function StringField({ value, onChange, min, max, required, getApi, typin
     }
 }
 
+// intercept a ref prop. Return another Ref, but you can use the callback instead
+function useProxyRef(props: any, propName: string, cb?: (instance: any) => void) {
+    const ret = useRef()
+    const was = props[propName]
+    props[propName] = (instance: any) => { // callback is called twice, first time with null. This happens because it is controlled.
+        ret.current = instance
+        cb?.(instance)
+        if (typeof was === 'function')
+            was(instance)
+        else if (was)
+            (was as any).current = instance
+    }
+    return ret
+}

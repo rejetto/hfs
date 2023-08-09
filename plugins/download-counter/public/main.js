@@ -7,7 +7,7 @@
         hits && !inMenu && `<span class="download-counter" title="${label}">${hits}</span>`)
 
     HFS.onEvent('fileMenu', ({ entry, props }) => {
-        if (inMenu && !entry.isFolder)
+        if (!entry.isFolder)
             props.push([label, entry.hits || 0])
     })
 }

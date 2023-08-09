@@ -11,7 +11,8 @@ import {
     typedKeys,
     makeMatcher,
     setHidden,
-    onlyTruthy
+    onlyTruthy,
+    typedEntries, throw_
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -28,7 +29,9 @@ export type Who = typeof WHO_ANYONE
     | typeof WHO_NO_ONE
     | typeof WHO_ANY_ACCOUNT
     | keyof VfsPerm
+    | WhoObject
     | AccountList // empty array shouldn't be used to keep the type boolean-able
+interface WhoObject { this?: Who, children?: Who }
 
 export interface VfsPerm {
     can_read: Who
@@ -49,7 +52,7 @@ export interface VfsNode extends Partial<VfsPerm> {
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
     accept?: string
-    propagate?: Record<keyof VfsPerm, boolean>
+    propagate?: Record<keyof VfsPerm, boolean> // legacy pre-0.47
     // fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
@@ -71,12 +74,18 @@ export const MIME_AUTO = 'auto'
 
 function inheritFromParent(parent: VfsNode, child: VfsNode) {
     for (const k of typedKeys(defaultPerms)) {
-        let dueParent: VfsNode | undefined = parent
-        while (dueParent?.propagate?.[k] === false)
-            dueParent = dueParent.parent
-        const v = dueParent?.[k]
-        if (v !== undefined)  // small optimization: don't expand the object
-            child[k] ??= v
+        let p: VfsNode | undefined = parent
+        let inheritedPerm: Who | undefined
+        while (p) {
+            inheritedPerm = p[k]
+            // // in case of object without children, parent is skipped in favor of the parent's parent
+            if (!isWhoObject(inheritedPerm)) break
+            inheritedPerm = inheritedPerm.children
+            if (inheritedPerm !== undefined) break
+            p = p.parent
+        }
+        if (inheritedPerm !== undefined)  // small optimization: don't expand the object
+            child[k] ??= inheritedPerm
     }
     if (typeof parent.mime === 'object' && typeof child.mime === 'object')
         _.defaults(child.mime, parent.mime)
@@ -84,6 +93,10 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
         child.mime ??= parent.mime
     child.accept ??= parent.accept
     return child
+}
+
+function isWhoObject(v: undefined | Who): v is WhoObject {
+    return v !== null && typeof v === 'object' && !Array.isArray(v)
 }
 
 export function isSameFilenameAs(name: string) {
@@ -158,7 +171,18 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
 
 export let vfs: VfsNode = {}
 defineConfig<VfsNode>('vfs', {}).sub(data =>
-    vfs = data)
+    vfs = (function recur(node) {
+        if (node.propagate) { // legacy pre-0.47
+            for (const [k,v] of typedEntries(node.propagate))
+                if (v === false)
+                    node[k] = { this: node[k] }
+            delete node.propagate
+        }
+        if (node.children)
+            for (const c of node.children)
+                recur(c)
+        return node
+    })(data) )
 
 export function saveVfs() {
     return setConfig({ vfs: _.cloneDeep(vfs) }, true)
@@ -205,10 +229,13 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx
         if (!node.source && perm === 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
             return HTTP_FORBIDDEN
         // calculate value of permission resolving references to other permissions, avoiding infinite loop
-        let who: Who
+        let who: Who | undefined
         let max = PERM_KEYS.length
         do {
-            who = node[perm] ?? defaultPerms[perm]
+            who = node[perm]
+            if (isWhoObject(who))
+                who = who.this
+            who ??= defaultPerms[perm]
             if (!max-- || typeof who !== 'string' || who === WHO_ANY_ACCOUNT)
                 break
             perm = who
@@ -223,7 +250,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx
         }
         return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
             : who === WHO_ANY_ACCOUNT ? (ctx.state.account ? 0 : HTTP_UNAUTHORIZED)
-                : (() => { throw Error('invalid permission: ' + who) })()
+                : throw_(Error('invalid permission: ' + JSON.stringify(who)))
     }
 }
 

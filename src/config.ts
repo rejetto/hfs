@@ -46,13 +46,13 @@ if (!existsSync(filePath) && existsSync(legacyPosition))
         catch {}
     }
 // takes a semver like 1.2.3-alpha1, but alpha and beta numbers must share the number progression
-const versionToScalar = _.memoize((ver: string) => { // memoize so we don't have to care about converting same value twice
-    const [official, beta] = ver.split('-')
-    const numbers = official!.split('.').map(Number)
-    if (numbers.length !== 3)
-        return NaN
-    const officialScalar = numbers.reduce((acc,x,i) => acc + x * 1000 ** (2-i), 0) // 1000 gives 3 digits for each number
-    const betaScalar = 1 / (beta && Number(/\d+/.exec(beta)?.[0]) || Infinity) // beta tends to 0, while non-beta is 0
+export const versionToScalar = _.memoize((ver: string) => { // memoize so we don't have to care about converting same value twice
+    // this regexp is supposed to be resistant to optional leading "v" and an optional custom name after a space
+    const res = /^v?(\d+)\.(\d+)\.(\d+)(?:-\D+([0-9.]+))?/.exec(ver)
+    if (!res) return NaN
+    const [,a,b,c,beta] = res.map(Number)
+    const officialScalar = c! + b! * 1E3 + a! * 1E6 // gives 3 digits for each number
+    const betaScalar = 1 / (1 + beta! || Infinity) // beta tends to 0, while non-beta is 0. +1 to make it work even in case of alpha0
     return officialScalar - betaScalar
 })
 
@@ -60,10 +60,13 @@ class Version extends String {
     olderThan(otherVersion: string) {
         return versionToScalar(this.valueOf()) < versionToScalar(otherVersion)
     }
+    getScalar() {
+        return versionToScalar(this.valueOf())
+    }
 }
 
 const CONFIG_CHANGE_EVENT_PREFIX = 'new.'
-const currentVersion = new Version(VERSION)
+export const currentVersion = new Version(VERSION)
 const configVersion = defineConfig('version', VERSION, v => new Version(v))
 
 type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T }) => R
@@ -109,7 +112,7 @@ export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Sub
 }
 
 export function configKeyExists(k: string) {
-    return k in configProps
+    return configProps.hasOwnProperty(k)
 }
 
 const stack: any[] = []
@@ -176,6 +179,10 @@ function setConfig1(k: string, newV: unknown, saveChanges=true, valueVersion?: V
     cfgEvents.emit(CONFIG_CHANGE_EVENT_PREFIX + k, getConfig(k), was, valueVersion)
     if (saveChanges)
         saveConfigAsap()
+
+    function same(a: any, b: any) { // we want to consider order of object entries as well (eg: mime)
+        return a === b || JSON.stringify(a) === JSON.stringify(b)
+    }
 }
 
 const saveDebounced = debounceAsync(async () => {

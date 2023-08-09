@@ -187,6 +187,7 @@ The HFS objects contains many properties:
 - `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts. 
 - `Icon: ReactComponent` Properties:
   - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
+- `useBatch: (worker, job) => any`
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -249,12 +250,15 @@ This is a list of available frontend-events, with respective object parameter an
     - no parameter
     - output `Html`
 - `fileMenu`
-    - add your entries to the menu.
+    - add or manipulate entries of the menu. If you return something, that will be added to the menu.
+      You can also delete or replace the content of the `menu` array.   
     - parameter `{ entry: Entry, menu: FileMenuEntry[], props: FileMenuProp[] }`
-    - output `FileMenuEntry | FileMenuEntry[]`
+    - output `undefined | FileMenuEntry | FileMenuEntry[]`
       ```typescript
-      interface FileMenuEntry { 
+      interface FileMenuEntry {
+          id?: string, 
           label: ReactNode,
+          subLabel: ReactNode,
           href?: string, // use this if you want your entry to be a link
           icon?: string, // supports: emoji, name from a limited set
           onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
@@ -262,6 +266,15 @@ This is a list of available frontend-events, with respective object parameter an
       }
       type FileMenuProp = [ReactNode,ReactNode] | ReactElement
       ```
+      Example, if you want to remove the 'show' item of the menu:
+      ```typescript
+      HFS.onEvent('fileMenu', ({ entry, menu }) => {
+        const index = menu.findIndex(x => x.id === 'show')
+        if (index >= 0)
+            menu.splice(index, 1)
+      })
+      ```
+      or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
 - `fileShow`
   - you receive an entry of the list, and optionally produce React Component for visualization.
   - parameter `{ entry: Entry }` (refer above for Entry object)
@@ -324,6 +337,9 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
+- 8.3 (v0.47.0)
+  - HFS.useBatch
+  - FileMenuEntry.id, .subLabel
 - 8.23 (v0.46.0)
   - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
   - platform-dependent distribution

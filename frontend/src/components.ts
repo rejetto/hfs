@@ -2,24 +2,26 @@
 
 import { getHFS, hfsEvent, hIcon } from './misc'
 import {
-    ButtonHTMLAttributes,
-    ChangeEvent,
-    createElement as h,
-    FC,
-    Fragment,
-    HTMLAttributes,
-    InputHTMLAttributes,
-    isValidElement, MouseEventHandler,
-    ReactNode,
-    useMemo
+    ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
+    HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes, useMemo
 } from 'react'
 
 export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
 }
 
-export function Flex({ gap='.8em', center=false, vert=false, children=null, props={}, ...rest }) {
-    return h('div', {
+interface FlexProps extends CSSProperties {
+    gap?: CSSProperties['gap'],
+    center?: boolean,
+    vert?: boolean,
+    children?: ReactNode,
+    className?: string,
+    props?: HTMLAttributes<HTMLDivElement>
+}
+export const Flex = forwardRef(({ gap='.8em', center=false, vert=false, children=null, className='', props={}, ...rest }: FlexProps, ref) =>
+    h('div', {
+        ref,
+        className,
         style: {
             display: 'flex',
             gap,
@@ -28,12 +30,9 @@ export function Flex({ gap='.8em', center=false, vert=false, children=null, prop
             ...rest,
         },
         ...props
-    }, children)
-}
+    }, children) )
 
-export function FlexV(props:any) {
-    return h(Flex, { vert:true, ...props })
-}
+export const FlexV = forwardRef((props: FlexProps, ref) => h(Flex, { ref, vert: true, ...props }))
 
 interface CheckboxProps extends Omit<Partial<InputHTMLAttributes<any>>, 'onChange'> {
     children?: ReactNode,
@@ -51,21 +50,24 @@ export function Checkbox({ onChange, value, children, ...props }: CheckboxProps)
     return !children ? ret : h('label', {}, ret, children)
 }
 
-type Options = { label:string, value:string }[]
-interface SelectProps { value:any, onChange?:(v:string)=>void, options:Options }
-export function Select({ onChange, value, options, ...props }:SelectProps) {
+interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
+    value: string, // just string for the time being
+    onChange?: (v: string) => void,
+    options: { label: string, value: string }[]
+}
+export function Select({ onChange, value, options, ...props }: SelectProps) {
     return h('select', {
-        onChange: ev => // @ts-ignore
-            onChange?.(ev.target.value),
+        onChange: ev =>
+            onChange?.((ev.target as any).value),
         value,
         ...props,
-    }, options.map(({ value, label }) => h('option', { key:value, value }, label)))
+    }, options.map(({ value, label }) => h('option', { key: value, value }, label)))
 }
 
 export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
     return !code ? null : h('span', { ...rest, ref(x) {
         if (x)
-            x.append(document.createRange().createContextualFragment(code))
+            x.replaceChildren(document.createRange().createContextualFragment(code))
     } })
 }
 

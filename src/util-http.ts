@@ -5,7 +5,7 @@ import { IncomingMessage } from 'node:http'
 import https from 'node:https'
 import { HTTP_TEMPORARY_REDIRECT } from './const'
 
-export function httpsString(url: string, options:RequestOptions={}): Promise<IncomingMessage & { ok: boolean, body: string }> {
+export function httpsString(url: string, options?: XRequestOptions): Promise<IncomingMessage & { ok: boolean, body: string }> {
     return httpsStream(url, options).then(res =>
         new Promise(resolve => {
             let buf = ''
@@ -18,8 +18,11 @@ export function httpsString(url: string, options:RequestOptions={}): Promise<Inc
     )
 }
 
-export function httpsStream(url: string, options:RequestOptions={}): Promise<IncomingMessage> {
+export interface XRequestOptions extends RequestOptions { body?: string | Buffer }
+export function httpsStream(url: string, { body, ...options }:XRequestOptions ={}): Promise<IncomingMessage> {
     return new Promise((resolve, reject) => {
+        if (body)
+            options.method ||= 'POST'
         const req = https.request(url, options, res => {
             if (!res.statusCode || res.statusCode >= 400)
                 return reject(new Error(String(res.statusCode), { cause: res }))
@@ -28,7 +31,10 @@ export function httpsStream(url: string, options:RequestOptions={}): Promise<Inc
             resolve(res)
         }).on('error', e => {
             reject((req as any).res || e)
-        }).end()
+        })
+        if (body)
+            req.write(body)
+        req.end()
     })
 }
 

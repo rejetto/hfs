@@ -10,14 +10,16 @@ import FilePicker from './FilePicker'
 import { onlyTruthy } from './misc'
 
 export default function addFiles() {
-    const close = newDialog({
+    const { close } = newDialog({
         title: "Add files or folders",
         dialogProps: { sx:{ minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content() {
             const parent = getParent()
             return h(Fragment, {},
                 h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } },
-                    "Selected elements will be added under " + (parent.isRoot ? '(home)' : parent.id)),
+                    "Selected elements will be added under ",
+                    parent.isRoot ? h('i', {}, 'Home') : parent.id
+                ),
                 h(FilePicker, {
                     from: parent.source,
                     async onSelect(sel) {

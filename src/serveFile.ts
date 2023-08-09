@@ -76,9 +76,11 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
             return ctx.body = content
         const { size } = stats
         const range = getRange(ctx, size)
-        ctx.body = createReadStream(source, range)
+        ctx.body = createReadStream(source, range).on('end', () =>
+            updateConnection(ctx.state.connection, { opProgress: 1 }) )
         if (ctx.vfsNode)
             updateConnection(ctx.state.connection, {
+                ctx, // this will cause 'path' to be sent as well
                 op: 'download',
                 opTotal: stats.size,
                 opOffset: range && (range.start / size),
@@ -114,6 +116,7 @@ export function getRange(ctx: Koa.Context, totalSize: number) {
         ctx.body = 'Requested Range Not Satisfiable'
         return
     }
+    ctx.state.includesLastByte = end === max
     ctx.status = HTTP_PARTIAL_CONTENT
     ctx.set('Content-Range', `bytes ${start}-${isNaN(end) ? '' : end}/${isNaN(totalSize) ? '*' : totalSize}`)
     ctx.response.length = end - start + 1

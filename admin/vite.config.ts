@@ -7,17 +7,20 @@ export default defineConfig({
         outDir: '../dist/admin',
         emptyOutDir: true,
         target: "es2015",
+        rollupOptions: {
+            plugins: [
+                vitePluginImport([
+                    { // speed up build process (~2s on my M1) by bringing "modules transformed" from 11k+ down to 1.7k+
+                        libraryName: '@mui/icons-material',
+                        libraryDirectory: '',
+                        libraryChangeCase: "camelCase",
+                        ignoreStyles: [],
+                    },
+                ])
+            ],
+
+        }
     },
-    plugins: [
-        vitePluginImport([
-            { // this is (currently) speeding up build process, by bringing "modules transformed" from 11k+ down to 1.5k+
-                libraryName: '@mui/icons-material',
-                libraryDirectory: '',
-                libraryChangeCase: "camelCase",
-                ignoreStyles: [],
-            },
-        ])
-    ],
     server: {
         port: 3006,
         host: '127.0.0.1',

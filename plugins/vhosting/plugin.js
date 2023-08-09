@@ -1,5 +1,5 @@
 exports.description = "If you want to have different home folders, based on domain"
-exports.version = 3.11
+exports.version = 3.12
 exports.apiRequired = 2 // 2 is for the config 'array'
 
 exports.config = {
@@ -15,6 +15,10 @@ exports.config = {
 		label: "Block requests that are not using any of the domains above",
 		type: 'boolean',
 	}
+}
+
+exports.configDialog = {
+    sx: { maxWidth: '35em' },
 }
 
 exports.init = api => {
@@ -44,12 +48,15 @@ exports.init = api => {
             let { root='' } = row
             if (root.endsWith('/'))
                 root = root.slice(0, -1)
+            if (root && root[0] !== '/') // normalize
+                root = '/' + root
+            if (!root) return
             if (!params)
                 ctx.path = root + ctx.path
             else
                 for (const [k,v] of Object.entries(params))
                     if (k.startsWith('uri'))
-                        params[k] = root + v
+                        params[k] = Array.isArray(v) ? v.map(x => root + x) : root + v
         }
     }
 }

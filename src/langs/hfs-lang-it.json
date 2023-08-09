@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
-    "version": 1.6,
-    "hfs_version": "0.46.0",
+    "version": 1.7,
+    "hfs_version": "0.47.0",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -67,10 +67,10 @@
         "enter_folder": "Accedi alla nuova cartella",
         "folder_exists": "Questo nome esiste già",
 
-        "Sort by": "Ordinamento",
+        "Sort by:": "Ordina per {by}",
         "name": "nome",
         "extension": "estensione",
-        "size": "dimensioni",
+        "size": "dimensione",
         "time": "data/ora",
         "Invert order": "Inverti ordine",
         "Folders first": "Prima le cartelle",
@@ -114,6 +114,18 @@
         "off": "no",
         "Operation successful": "Operazione riuscita",
         "Uploader": "Upload da",
-        "Download counter": "Download conteggiati"
+        "Download counter": "Download conteggiati",
+        "Switch zoom mode": "Cambia zoom",
+        "Full screen": "Pieno schermo",
+
+        "File Show help": "Guida File Show",
+        "showHelpMain": "Puoi usare la tastiera per alcune azioni:",
+        "showHelp_space": "spazio",
+        "showHelp_←/→_body": "vai al precedente/prossimo file",
+        "showHelp_↑/↓_body": "scorri immagini lunghe",
+        "showHelp_space_body": "seleziona",
+        "showHelp_D_body": "download",
+        "showHelp_Z_body": "cambia modalità zoom",
+        "showHelp_F_body": "pieno schermo"
     }
 }

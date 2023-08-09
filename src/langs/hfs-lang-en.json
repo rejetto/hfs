@@ -1,7 +1,7 @@
 {
     "author": "YOUR NAME HERE",
     "version": 1.0,
-    "hfs_version": "0.46.0",
+    "hfs_version": "0.47.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -69,7 +69,7 @@
         "enter_folder": "Enter the folder",
         "folder_exists": "Folder with same name already exists",
 
-        "Sort by": "Sort by",
+        "Sort by:": "Sort by: {by}",
         "name": "name",
         "extension": "extension",
         "size": "size",
@@ -120,6 +120,20 @@
         "off": "off",
         "Operation successful": "Operation successful",
         "Uploader": "Uploader",
-        "Download counter": "Download counter"
+        "Download counter": "Download counter",
+        "Switch zoom mode": "Switch zoom mode",
+        "Full screen": "Full screen",
+
+        "File Show help": "File Show help",
+        "showHelpMain": "You can use the keyboard for some actions:",
+        "showHelp_←/→": "←/→",
+        "showHelp_↑/↓": "↑/↓",
+        "showHelp_space": "space",
+        "showHelp_←/→_body": "go to previous/next file",
+        "showHelp_↑/↓_body": "scroll tall images",
+        "showHelp_space_body": "select",
+        "showHelp_D_body": "download",
+        "showHelp_Z_body": "zoom modes",
+        "showHelp_F_body": "full screen"
     }
 }

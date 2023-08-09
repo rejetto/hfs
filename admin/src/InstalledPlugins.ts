@@ -3,7 +3,7 @@
 import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment, ReactNode } from 'react'
 import { Alert, Box, Link, Tooltip } from '@mui/material'
-import { DataGrid } from '@mui/x-data-grid'
+import { DataTable } from './DataTable'
 import { Delete, Error, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
 import { IconBtn, xlate } from './misc'
 import { formDialog, toast } from './dialog'
@@ -16,90 +16,85 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     if (error)
         return showError(error)
-    return h(DataGrid, {
+    return h(DataTable, {
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
-        loading: initializing,
+        initializing,
         disableColumnSelector: true,
         disableColumnMenu: true,
-        columnVisibilityModel: {
-            started: !updates,
-        },
-        localeText: updates && { noRowsLabel: `No updates available. Only plugins available on "search online" are checked.` },
+        hideFooter: true,
+        noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,
         columns: [
             {
                 field: 'id',
                 headerName: "name",
                 flex: .3,
                 minWidth: 150,
-                renderCell: renderName
+                renderCell: renderName,
+                mergeRender: { other: 'description', fontSize: 'x-small' }
             },
             {
                 field: 'version',
                 width: 70,
+                hideUnder: 'sm',
             },
             {
                 field: 'description',
                 flex: 1,
+                hideUnder: 'sm',
             },
-            {
-                field: "actions",
-                width: 120,
-                align: 'center',
-                headerAlign: 'center',
-                hideSortIcons: true,
-                disableColumnMenu: true,
-                renderCell({ row }) {
-                    const { config, id, updated } = row
-                    if (updates)
-                        return h(UpdateButton, { id, updated, then: () => updateEntry({ id }, { updated: true }) })
-                    return h('div', {},
-                        h(IconBtn, row.started ? {
-                            icon: StopCircle,
-                            title: h(Box, {}, `Stop ${id}`, h('br'), `Started ` + new Date(row.started as string).toLocaleString()),
-                            color: 'success',
-                            async onClick() {
-                                await apiCall('stop_plugin', { id })
-                                toast("Plugin stopped", h(StopCircle, { color: 'warning' }))
-                            }
-                        } : {
-                            icon: PlayCircle,
-                            title: `Start ${id}`,
-                            onClick: () => startPlugin(id),
-                        }),
-                        h(IconBtn, {
-                            icon: Settings,
-                            title: "Options",
-                            disabled: !row.started && "Start plugin to access options"
-                                || !config && "No options available for this plugin",
-                            progress: false,
-                            async onClick() {
-                                const pl = await apiCall('get_plugin', { id })
-                                const values = await formDialog({
-                                    title: `${id} options`,
-                                    form: {
-                                        before: h(Box, { mx: 2, mb: 3 }, row.description),
-                                        fields: makeFields(config),
-                                    },
-                                    values: pl.config,
-                                    dialogProps: row.configDialog,
-                                })
-                                if (!values || _.isEqual(pl.config, values)) return
-                                await apiCall('set_plugin', { id, config: values })
-                                toast("Configuration saved")
-                            }
-                        }),
-                        h(IconBtn, {
-                            icon: Delete,
-                            title: "Uninstall",
-                            confirm: "Remove?",
-                            async onClick() {
-                                await apiCall('uninstall_plugin', { id })
-                                toast("Plugin uninstalled")
-                            }
-                        }),
-                    )
+        ],
+        actions: ({ row, id }) => updates ? [
+            h(UpdateButton, { id, updated: row.updated, then: () => updateEntry({ id }, { updated: true }) })
+        ] : [
+            h(IconBtn, row.started ? {
+                icon: StopCircle,
+                title: h(Box, {}, `Stop ${id}`, h('br'), `Started ` + new Date(row.started as string).toLocaleString()),
+                size: 'small',
+                color: 'success',
+                async onClick() {
+                    await apiCall('stop_plugin', { id })
+                    toast("Plugin stopped", h(StopCircle, { color: 'warning' }))
                 }
-            },
+            } : {
+                icon: PlayCircle,
+                title: `Start ${id}`,
+                size: 'small',
+                onClick: () => startPlugin(id),
+            }),
+            h(IconBtn, {
+                icon: Settings,
+                title: "Options",
+                size: 'small',
+                disabled: !row.started && "Start plugin to access options"
+                    || !row.config && "No options available for this plugin",
+                progress: false,
+                async onClick() {
+                    const pl = await apiCall('get_plugin', { id })
+                    const values = await formDialog({
+                        title: `${id} options`,
+                        form: {
+                            before: h(Box, { mx: 2, mb: 3 }, row.description),
+                            fields: makeFields(row.config),
+                        },
+                        values: pl.config,
+                        dialogProps: _.merge({ sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
+                            row.configDialog),
+                    })
+                    if (!values || _.isEqual(pl.config, values)) return
+                    await apiCall('set_plugin', { id, config: values })
+                    toast("Configuration saved")
+                }
+            }),
+            h(IconBtn, {
+                icon: Delete,
+                title: "Uninstall",
+                size: 'small',
+                confirm: "Remove?",
+                async onClick() {
+                    await apiCall('uninstall_plugin', { id })
+                    toast("Plugin uninstalled")
+                }
+            }),
         ]
     })
 }

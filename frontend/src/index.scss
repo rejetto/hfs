@@ -43,7 +43,7 @@ body {
 }
 body, button, select, input { font-size: 12pt; }
 #root>div {
-    max-width: 50em;
+    max-width: 54em;
     margin: auto;
     min-height: 100vh;
     display: flex;
@@ -81,14 +81,10 @@ select { text-align: center; } // it is surely cooler on the options dialog
 .icon {
     font-size: 1.2em;
     height: 1.2em; width: 1.4em; // give similar size to <img> icons
-}
-.emoji-icon {
-    display: inline-block;
-    width: 1.4em;
-    text-align: center;
+
+    display: inline-block; text-align: center; // same size for font icons
 }
 .file-icon {
-    @extend .emoji-icon;
     height: 1em;
     background-size: contain;
     background-repeat: no-repeat;
@@ -153,6 +149,21 @@ header {
     z-index: 3; // necessary to not be covered by checkboxes
 }
 
+kbd {
+    background-color: #eee;
+    border-radius: 3px;
+    border: 1px solid #b4b4b4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 2px 0 0 rgba(255, 255, 255, 0.7) inset;
+    color: #333;
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+    margin-right: .5em;
+}
+
 .before-sliding {
     width: 0 !important;
     flex: 0 !important;
@@ -207,7 +218,7 @@ header {
 #folder-stats {
     margin: 0.5em 0 0 0.5em;
     float: right;
-    & .icon {
+    .icon {
         margin-right: .3em;
     }
 }
@@ -222,8 +233,8 @@ header {
     margin: 0.2em 0 0;
     padding: 2px 0 1px 3px;
     height: 1.8em; /* necessary to animate displaying */
-    & input[type=checkbox] { margin-top: .3em; }
-    & span:empty { display:none } /* avoid flex-gap */
+    input[type=checkbox] { margin-top: .3em; }
+    span:empty { display:none } /* avoid flex-gap */
 }
 
 ul.dir {
@@ -232,25 +243,25 @@ ul.dir {
     margin: 0;
     clear: both;
     &>p { text-align: center; }
-    & li {
+    li {
         display: block;
         list-style-type: none;
         padding: 0.3em 0.3em 0.4em;
         border-bottom: 1px solid var(--faint-contrast);
         &:nth-of-type(odd) { background-color: var(--ghost-contrast); }
 
-        & input[type=checkbox] {
+        input[type=checkbox] {
             margin-right: 1em;
         }
-        & .link-wrapper {
+        .link-wrapper {
             &:not(:hover) .popup-menu-button { display: none; }
             &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally
-            & a {
+            a {
                 &:last-of-type {
                     word-break: break-word;
                     padding-right: 0.3em;
                 }
-                & .icon {
+                .icon {
                     margin-right: .5em;
                     // give similar aligning to <img> icons
                     vertical-align: text-bottom;
@@ -262,21 +273,21 @@ ul.dir {
                 }
             }
         }
-        & .entry-panel {
+        .entry-panel {
             float: right;
             padding-top: 0.3em;
             display: flex;
             align-items: center;
-            & .file-menu-button {
+            .file-menu-button {
                 @extend .icon-button;
                 margin: -3px 0 -3px 0.4em;
             }
-            & .entry-details {
+            .entry-details {
                 font-size: 90%;
                 margin-left: 4px;
                 font-variant-numeric: tabular-nums; /* trick to get stuff aligned */
 
-                & .entry-size-unit {
+                .entry-size-unit {
                     margin-left: .3em;
                 }
             }
@@ -308,7 +319,7 @@ ul.dir {
         &:first-child { margin-left: 0 }
         &:last-child { margin-right: 0 }
     }
-    & button {
+    button {
         padding: min(1vh, 0.5em) 0; // avoid wasting too much vertical space, and no need for horizontal padding as we are using flex to grow
     }
 }
@@ -319,14 +330,14 @@ ul.dir {
     display:flex;
     flex-direction: column;
     gap: 1em;
-    & a>button {
+    a>button {
         width: 100%;
     }
 }
 
 button label {
     cursor: inherit;
-    margin-left: .7em;
+    margin-left: .4em;
 }
 
 .dialog-backdrop.working {
@@ -338,7 +349,7 @@ button label {
 }
 .dialog-alert .dialog-content {
     text-align: center;
-    & p { text-align: left; display: inline-block; }
+    p { text-align: left; display: inline-block; }
 }
 
 .dialog {
@@ -359,8 +370,8 @@ button label {
     background-color: var(--bg);
     padding: 0 0.2em 0.2em;
     &>button { z-index: 1; }
-    & button { box-shadow: 0 0 .3em .3em #0003; }
-    & #paging-middle {
+    button { box-shadow: 0 0 .3em .3em #0003; }
+    #paging-middle {
         padding: 0 0.5em;
         margin: 0 -0.3em;
         display: flex;
@@ -368,11 +379,11 @@ button label {
         flex: 1;
         overflow-x: auto;
     }
-    & #paging-middle>button {
+    #paging-middle>button {
         flex: 1;
         padding-top: 0; padding-bottom: 0; /* reduce vertically in case a horizontal scrolling bar is needed */
     }
-    & button {
+    button {
         background: var(--button-bg);
         text-align: center;
         white-space: nowrap;
@@ -394,9 +405,9 @@ button label {
     margin-left: 0.5em;
 }
 .upload-list {
-    & td:nth-child(1) { width: 0;  }
-    & td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
-    & td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
+    td:nth-child(1) { width: 0;  }
+    td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
+    td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
 }
 
 .dialog-login {
@@ -419,14 +430,13 @@ button label {
     &:hover { opacity: 1 }
 }
 
-.file-dialog .dialog-content { min-width: calc(100% - 1em); } /* effective and nicer on short names  */
 .file-dialog .dialog { min-width: 13em; } /* more room for title */
 .file-dialog-properties {
     word-break: break-word;
     line-height: 1.5em;
     margin: 0;
-    & dt { font-weight: bold; }
-    & dd { margin-left: 1.5em; }
+    dt { font-weight: bold; }
+    dd { margin-left: 1.5em; }
 }
 .file-menu {
     margin-top: 1em;
@@ -436,8 +446,14 @@ button label {
     display: flex;
     flex-direction: column;
     gap: 1em;
-    & a {
-        & .icon { margin-right: 0.5em; }
+    a {
+        display: flex;
+        align-items: flex-start;
+        label {
+            margin-top: .1em;
+            small { display: block }
+        }
+        .icon { margin-right: 0.5em; }
         &:hover { @extend .highlightedText }
     }
 }
@@ -556,12 +572,25 @@ button label {
         height: 100%;
         width: 100%;
     }
+    .showing-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;}
     .showing {
         max-width: calc(100% - var(--nav-size)*2); // avoid overlapping of controls and nav buttons
         max-height: 100%;
     }
     img.showing { max-width: 100% } // we are ok with overlapping for simple images
-    --nav-size: min(25vh, 15vw);
+    .main {
+        flex: 1; position: relative; max-height: 100%;
+        overflow: hidden; // without this <video> can make me go beyond the screen limit
+    }
+    .freeY, .fullWidth {
+        .main { overflow-y: auto; }
+        .showing { max-height: initial; margin: auto; }
+        .showing-container { overflow: auto; align-items: flex-start;}
+    }
+    .fullWidth {
+        .showing-container, .showing { width: 100%; }
+    }
+    --nav-size: min(25vh, 25vw);
     .nav {
         position: absolute;
         margin: -.4em; // closer to the edge
@@ -572,6 +601,7 @@ button label {
         user-select: none;
         transition: opacity .3s;
         &:hover { opacity: .7; }
+        &.nav-hidden { opacity: 0 }
     }
     .bar {
         padding: .5em 1em;
@@ -588,14 +618,16 @@ button label {
         .entry-size::after { display: none }
     }
 }
+.file-show-help {
+    kbd { margin: .5em }
+    kbd:first-of-type { margin-top: 1em; }
+}
 
 @media (min-width: 42em) {
     body {
         /* Works on Firefox */
-        & {
-            scrollbar-width: thin;
-            scrollbar-color: var(--button-bg) var(--ghost-contrast);
-        }
+        scrollbar-width: thin;
+        scrollbar-color: var(--button-bg) var(--ghost-contrast);
 
         /* Works on Chrome, Edge, and Safari */
         &::-webkit-scrollbar {
@@ -615,7 +647,7 @@ button label {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }
     #menu-bar, #filter-bar {
-        & button label { display: none } /* icons only */
+        button label { display: none } /* icons only */
     }
     #filter-bar {
         margin-top: 0.4em;

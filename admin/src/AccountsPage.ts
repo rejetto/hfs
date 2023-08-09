@@ -56,7 +56,7 @@ export default function AccountsPage() {
                 addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
                     icon: Close,
                     title: "Close",
-                    onClick: close
+                    onClick: selectNone
                 }),
                 reload,
                 done(username) {
@@ -66,14 +66,15 @@ export default function AccountsPage() {
             })
     useEffect(() => {
         if (isSideBreakpoint || !sideContent || !sel.length) return
-        return newDialog({
+        const { close } = newDialog({
             title: _.isString(sel) ? _.startCase(sel)
                 : sel.length > 1 ? "Multiple selection"
                     : selectedAccount ? (selectedAccount.hasPassword ? "User: " : "Group: ") + selectedAccount.username
                         : '?', // never
             Content: () => sideContent,
-            onClose: close,
+            onClose: selectNone,
         })
+        return close
     }, [isSideBreakpoint, sel, selectedAccount])
 
     return element || h(Grid, { container: true, maxWidth: '80em' },
@@ -140,7 +141,7 @@ export default function AccountsPage() {
             h(Card, {}, h(CardContent, {}, sideContent) )),
     )
 
-    function close() {
+    function selectNone() {
         setSel([])
     }
 

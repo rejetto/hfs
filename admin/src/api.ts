@@ -32,7 +32,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     return { data, error, reload, loading, element }
 }
 
-export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=false, map=((x:any)=>x) }={}) {
+export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:any)=>x) }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -40,12 +40,12 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
     const [loading, setLoading] = useStateMounted(false)
     const [initializing, setInitializing] = useStateMounted(true)
     const [reloader, setReloader] = useState(0)
-    const idRef = useRef(0)
+    const idGenerator = useRef(0)
     useEffect(() => {
         if (!cmd) return
-        const buffer: T[] = []
+        const bufferAdd: T[] = []
         const apply = _.debounce(() => {
-            const chunk = buffer.splice(0, Infinity)
+            const chunk = bufferAdd.splice(0, Infinity)
             if (chunk.length)
                 setList(list => [ ...list, ...chunk ])
         }, 1000, { maxWait: 1000 })
@@ -61,64 +61,73 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { addId=fal
                     return setTimeout(() => apply.flush()) // this trick we'll cause first entries to be rendered almost immediately, while the rest will be subject to normal debouncing
                 case 'error':
                     setError("Connection error")
+                    setTimeout(reload, 1000)
                     return stop()
                 case 'closed':
                     return stop()
                 case 'msg':
-                    wantArray(data).forEach(entry => {
-                        if (entry === 'ready') {
+                    const removeOnList: ReturnType<typeof _.matches>[] = []
+                    const updateOnList: [object,object][] = []
+                    wantArray(data).forEach(msg => {
+                        if (!Array.isArray(msg))
+                            return console.debug('illegal list packet', msg)
+                        const [op, par] = msg
+                        if (op === 'ready') {
                             apply.flush()
                             setInitializing(false)
                             return
                         }
-                        if (entry.error) {
-                            if (entry.error === 401)
-                                state.loginRequired = entry.any !== false || 403
+                        if (op === 'error') {
+                            if (par === 401)
+                                state.loginRequired = msg[2].any !== false || 403
                             else
-                                setError(err2msg(entry.error))
+                                setError(err2msg(par))
                             return
                         }
-                        if (entry.props)
-                            return setProps(entry.props)
-                        if (entry.add) {
-                            const rec = map(entry.add)
-                            if (addId)
-                                rec.id = ++idRef.current
-                            buffer.push(rec)
+                        if (op === 'props')
+                            return setProps(par)
+                        if (op === 'add') {
+                            const mappedPar = map(par)
+                            mappedPar.id ??= idGenerator.current = Math.max(idGenerator.current, Date.now()) + .001
+                            bufferAdd.push(mappedPar)
                             apply()
                             return
                         }
-                        if (entry.remove) {
-                            const matchOnList: ReturnType<typeof _.matches>[] = []
-                            // first remove from the buffer
-                            for (const key of entry.remove) {
-                                const match1 = _.matches(key)
-                                if (_.isEmpty(_.remove(buffer, match1)))
-                                    matchOnList.push(match1)
+                        if (op === 'remove') {
+                            const match = _.matches(par)
+                            if (_.isEmpty(_.remove(bufferAdd, match))) // first remove from the buffer
+                                removeOnList.push(match)
+                            return
+                        }
+                        if (op === 'update') {
+                            const change = msg[2]
+                            const found = _.find(bufferAdd, par)
+                            if (found)
+                                return Object.assign(found, change)
+                            updateOnList.push([par, change])
+                            return
+                        }
+                        console.debug('unknown list api', op)
+                    })
+                    setList(list => {
+                        let ret = list
+                        let copy // optimization: remember if we already made a copy
+                        if (removeOnList.length) {
+                            copy = list.filter(rec => !removeOnList.some(match1 => match1(rec)))
+                            if (copy.length < list.length)  // avoid unnecessary render
+                                ret = copy
+                        }
+
+                        if (updateOnList.length) {
+                            for (const [search, change] of updateOnList) {
+                                const foundAt = _.findIndex(ret, search)
+                                if (foundAt < 0) continue
+                                if (ret === list)
+                                    ret = copy ?? list.slice()
+                                ret[foundAt] = { ...ret[foundAt], ...change }
                             }
-                            // then work the hooked state
-                            if (_.isEmpty(matchOnList))
-                                return
-                            setList(list => {
-                                const filtered = list.filter(rec => !matchOnList.some(match1 => match1(rec)))
-                                return filtered.length < list.length ? filtered : list // avoid unnecessary changes
-                            })
-                            return
                         }
-                        if (entry.update) {
-                            apply.flush() // avoid treating buffer
-                            setList(list => {
-                                const modified = [...list]
-                                for (const { search, change } of entry.update) {
-                                    const idx = modified.findIndex(_.matches(search))
-                                    if (idx >= 0)
-                                        modified[idx] = { ...modified[idx], ...change }
-                                }
-                                return modified
-                            })
-                            return
-                        }
-                        console.debug('unknown api event', type, entry)
+                        return ret
                     })
                     if (src?.readyState === src?.CLOSED)
                         stop()

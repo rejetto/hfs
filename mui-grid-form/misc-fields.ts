@@ -22,8 +22,8 @@ export function DisplayField({ value, empty='-', ...props }: any) {
     return h(StringField, {  ...props, value, disabled: true })
 }
 
-export function NumberField({ value, onChange, getApi, required, min, max, step, unit, ...props }: FieldProps<number | null>) {
-    getApi?.({
+export function NumberField({ value, onChange, setApi, required, min, max, step, unit, ...props }: FieldProps<number | null>) {
+    setApi?.({
         getError() {
             return value == null ? (required ? "required" : false)
                 : (value < min ? "too low" : value > max ? "too high" : false)
@@ -52,7 +52,7 @@ export function NumberField({ value, onChange, getApi, required, min, max, step,
     })
 }
 
-export function BoolField({ label='', value, onChange, getApi, helperText, error,
+export function BoolField({ label='', value, onChange, setApi, helperText, error,
                               type, // avoid passing this by accident, as it disrupts the control
                               ...props }: FieldProps<boolean>) {
     const setter = () => value ?? false

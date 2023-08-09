@@ -57,7 +57,7 @@ export async function importAccountsCsv(cb?: () => void) {
             },
         })
         if (!cfg) return
-        const close = newDialog({
+        const { close } = newDialog({
             title: "Importing...",
             Content() {
                 const [progress, setProgress] = useState(0)

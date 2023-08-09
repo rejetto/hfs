@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { getRepoInfo } from './github'
-import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS } from './const'
+import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { basename, dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import { httpsStream, onProcessExit, unzip } from './misc'
@@ -10,9 +10,51 @@ import { pluginsWatcher } from './plugins'
 import { access, chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
 import open from 'open'
+import { currentVersion, defineConfig, versionToScalar } from './config'
 
-export async function getUpdate() {
-    return (await getRepoInfo(HFS_REPO + '/releases?per_page=1'))[0]
+const updateToBeta = defineConfig('update_to_beta', false)
+
+interface Release {
+    prerelease: boolean,
+    tag_name: string,
+    name: string,
+    assets: any[],
+    isNewer: boolean // introduced by us
+}
+
+export async function getUpdates() {
+    const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
+    const verStable = ver(stable)
+    const ret = await getBetas()
+    if (stable && (currentVersion.olderThan(stable.tag_name) || RUNNING_BETA)) // if we are running a beta, also offer the latest stable
+        ret.push(stable)
+    return ret
+
+    function ver(x: any) {
+        return versionToScalar(x.name)
+    }
+
+    async function getBetas() {
+        if (!updateToBeta.get() && !RUNNING_BETA) return []
+        let page = 1
+        const ret = []
+        while (1) {
+            const per = 100
+            const res: Release[] = await getRepoInfo(HFS_REPO + `/releases?per_page=${per}&page=${page++}`)
+            if (!res.length) break
+            const curV = currentVersion.getScalar()
+            for (const x of res) {
+                if (!x.prerelease) continue // prerelease are all the end
+                const v = ver(x)
+                if (v <= verStable) // prerelease-s are locally ordered, so as soon as we reach verStable we are done
+                    return ret
+                if (v === curV) continue // skip current
+                x.isNewer = v > curV // make easy to know what's newer
+                ret.push(x)
+            }
+        }
+        return ret
+    }
 }
 
 const LOCAL_UPDATE = 'hfs-update.zip' // update from file takes precedence over net
@@ -25,12 +67,15 @@ export function updateSupported() {
     return IS_BINARY
 }
 
-export async function update() {
+export async function update(tag?: string) {
     if (!updateSupported())
         throw "only binary versions are supported for now"
     let updateSource: Readable | false = await localUpdateAvailable() && createReadStream(LOCAL_UPDATE)
     if (!updateSource) {
-        const update = await getUpdate()
+        const update = !tag ? (await getUpdates())[0]
+            : await getRepoInfo(HFS_REPO + '/releases/tags/' + tag) as Release
+        if (!update)
+            throw "no update found"
         const assetSearch = ({ win32: 'windows', darwin: 'mac', linux: 'linux' } as any)[process.platform]
         if (!assetSearch)
             throw "this feature doesn't support your platform: " + process.platform
@@ -44,7 +89,7 @@ export async function update() {
 
     const bin = process.execPath
     const binPath = dirname(bin)
-    const binFile = basename(bin)
+    const binFile = 'hfs' + (IS_WINDOWS ? '.exe' : '') // currently running bin could have been renamed
     const newBinFile = 'new-' + binFile
     pluginsWatcher.pause()
     try {

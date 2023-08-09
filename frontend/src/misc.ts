@@ -4,7 +4,7 @@ import React, { createElement as h } from 'react'
 import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
-import { Dict, getHFS } from '@hfs/shared'
+import { Dict, getHFS, useBatch } from '@hfs/shared'
 import { state } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
@@ -42,7 +42,7 @@ export function working() {
     if (isWorking)
         return ()=>{} // noop
     isWorking = true
-    return newDialog({
+    const { close } = newDialog({
         closable: false,
         noFrame: true,
         Content: Spinner,
@@ -52,6 +52,7 @@ export function working() {
             isWorking = false
         }
     })
+    return close
 }
 
 export function hfsEvent(name: string, params?:Dict) {
@@ -60,7 +61,7 @@ export function hfsEvent(name: string, params?:Dict) {
     return output
 }
 
-const tools = { h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon,
+const tools = { h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, useBatch,
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
         return subscribeKey(up ? uploadState : state as any, up || k, cb, true)

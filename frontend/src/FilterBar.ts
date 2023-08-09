@@ -17,9 +17,11 @@ export function FilterBar() {
 
     const sel = Object.keys(selected).length
     const fil = filteredList?.length
+    const tabIndex = showFilter ? undefined : -1
     return h('div', { id: 'filter-bar', className: showFilter ? 'show-sliding' : 'before-sliding' },
         h(Checkbox, {
             value: all,
+            tabIndex,
             onContextMenu(ev) {
                 ev.preventDefault()
                 select(undefined)
@@ -34,6 +36,7 @@ export function FilterBar() {
             placeholder: t('filter_placeholder', "Type here to filter the list below"),
             autoComplete: 'off',
             value: filter,
+            tabIndex,
             autoFocus: true,
             onChange(ev) {
                 setFilter(ev.target.value)

@@ -8,5 +8,8 @@ import zh_tw from './hfs-lang-zh-tw.json'
 import fr from './hfs-lang-fr.json'
 import pt from './hfs-lang-pt.json'
 import vi from './hfs-lang-vi.json'
+import es from './hfs-lang-es.json'
+import nl from './hfs-lang-nl.json'
+import el from './hfs-lang-el.json'
 
-export default { it, zh, ru, sr, ko, ms, 'zh-tw': zh_tw, fr, pt, vi }
+export default { it, zh, ru, sr, ko, ms, 'zh-tw': zh_tw, fr, pt, vi, es, nl, el }

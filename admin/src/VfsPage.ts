@@ -47,7 +47,7 @@ export default function VfsPage() {
         return b && !ret.includes(b) ? [b, ...ret] : ret
     }, [status])
 
-    function close() {
+    function selectNone() {
         state.selectedFiles = []
     }
 
@@ -56,7 +56,7 @@ export default function VfsPage() {
                 addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
                     icon: Close,
                     title: "Close",
-                    onClick: close
+                    onClick: selectNone
                 }),
                 defaultPerms: data?.defaultPerms as VfsPerms,
                 anyMask,
@@ -76,11 +76,12 @@ export default function VfsPage() {
 
     useEffect(() => {
         if (isSideBreakpoint || !sideContent) return
-        return newDialog({
+        const { close } = newDialog({
             title: selectedFiles.length > 1 ? "Multiple selection" : selectedFiles[0].name,
             Content: () => sideContent,
-            onClose: close,
+            onClose: selectNone,
         })
+        return close
     },[isSideBreakpoint, selectedFiles])
 
     useEffect(() => {
@@ -177,7 +178,6 @@ export interface VfsNode extends VfsPerms {
     default?: string
     children?: VfsNode[]
     parent?: VfsNode
-    propagate?: Partial<Record<keyof VfsPerm, boolean>> | null
     website?: true
     masks?: any
     byMasks?: VfsPerms
@@ -189,7 +189,9 @@ const WHO_ANYONE = true
 const WHO_NO_ONE = false
 const WHO_ANY_ACCOUNT = '*'
 type AccountList = string[]
-export type Who = typeof WHO_ANYONE
+export type Who = SimpleWho | { this?: SimpleWho, children?: SimpleWho }
+export type SimpleWho = typeof WHO_ANYONE
     | typeof WHO_NO_ONE
     | typeof WHO_ANY_ACCOUNT
     | AccountList
+    | null

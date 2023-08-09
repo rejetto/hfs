@@ -1,10 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useMemo, useState } from 'react'
+import { createElement as h, DragEvent, Fragment, useMemo, useState } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
 import {
     closeDialog,
-    DialogCloser,
     formatBytes,
     formatPerc,
     hIcon,
@@ -82,7 +81,7 @@ export function showUpload() {
     if (!uploadState.qs.length)
         resetCounters()
     uploadDialogIsOpen = true
-    const close = newDialog({
+    const { close } = newDialog({
         dialogProps: { id: 'upload-dialog', style: { minHeight: '6em', minWidth: 'min(20em, 100vw - 1em)' } },
         title: t`Upload`,
         icon: () => hIcon('upload'),
@@ -103,7 +102,7 @@ export function showUpload() {
         const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
 
         return h(FlexV, { gap: 0, props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
-            h(FlexV, { props: { className: 'upload-toolbar' } },
+            h(FlexV, { className: 'upload-toolbar' },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, { margin: '0 0 1em' },
                         h(Flex, { justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' },
@@ -122,7 +121,7 @@ export function showUpload() {
                             h('button', {
                                 className: 'upload-send',
                                 onClick() {
-                                    enqueue(files)
+                                    enqueue(files).then()
                                     setFiles([])
                                 }
                             }, t('send_files', { n: files.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
@@ -253,7 +252,7 @@ let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource
-let closeLast: DialogCloser | undefined
+let closeLast: undefined | (() => void)
 
 async function startUpload(f: File, to: string, resume=0) {
     let resuming = false
@@ -306,7 +305,9 @@ async function startUpload(f: File, to: string, resume=0) {
                 const cancelSub = subscribeKey(uploadState, 'partial', v =>
                     v >= size && closeLast?.() )  // dismiss dialog as soon as we pass the threshold
                 const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/f.size)} = ${formatBytes(size)})`
-                const confirmed = await confirmDialog(msg, { timeout, getClose: x => closeLast=x })
+                const dialog = confirmDialog(msg, { timeout })
+                closeLast = dialog.close
+                const confirmed = await dialog
                 cancelSub()
                 if (!confirmed) return
                 if (uploading !== uploadState.uploading) return // too late
@@ -331,7 +332,7 @@ async function startUpload(f: File, to: string, resume=0) {
         const specifier = (ERRORS as any)[status]
         const msg = t('failed_upload', f, "Couldn't upload {name}") + prefix(': ', specifier)
         closeLast?.()
-        return alertDialog(msg, 'error', { getClose: x => closeLast=x })
+        closeLast = alertDialog(msg, 'error').close
     }
 
     function done() {

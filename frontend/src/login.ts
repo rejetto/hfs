@@ -45,7 +45,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
     return lastPromise = new Promise(resolve => {
         if (closeLoginDialog)
             return lastPromise
-        const closeDialog = closeLoginDialog = newDialog({
+        const { close } = newDialog({
             className: 'login-dialog dialog-login',
             icon: () => hIcon('login'),
             onClose(v) {
@@ -95,7 +95,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                 function onKeyDown(ev: KeyboardEvent) {
                     const { key } = ev
                     if (key === 'Escape')
-                        return closeDialog(null)
+                        return close(null)
                     if (key === 'Enter')
                         return go()
                 }
@@ -107,7 +107,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                     if (!usr || !pwd) return
                     try {
                         const res = await login(usr, pwd)
-                        closeDialog()
+                        close()
                         if (res?.redirect)
                             navigate(getPrefixUrl() + res.redirect)
                     } catch (err: any) {
@@ -118,6 +118,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
 
             }
         })
+        closeLoginDialog = close
     })
 }
 

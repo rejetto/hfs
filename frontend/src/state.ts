@@ -96,7 +96,7 @@ export class DirEntry {
     constructor(n: string, rest?: object) {
         Object.assign(this, rest) // we actually allow any custom property to be memorized
         this.n = n // must do it after rest to avoid overwriting
-        this.uri = pathEncode(this.n)
+        this.uri = (n[0] === '/' ? '' : location.pathname) + pathEncode(this.n)
         this.isFolder = this.n.endsWith('/')
         if (!this.isFolder) {
             const i = this.n.lastIndexOf('.') + 1
@@ -132,7 +132,7 @@ export class DirEntry {
 }
 export type DirList = DirEntry[]
 
-function pathEncode(s: string) {
+export function pathEncode(s: string) {
     return encodeURI(s).replace(/#/g, encodeURIComponent)
 }
 //unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }

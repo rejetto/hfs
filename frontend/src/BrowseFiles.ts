@@ -179,7 +179,6 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder } = entry
-    const base = usePath()
     const { showFilter, selected } = useSnapState()
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     const containerName = containerDir && entry.n.slice(0, -entry.name.length)
@@ -203,12 +202,12 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         }),
         h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
             isFolder ? h(Fragment, {},
-                h(Link, { to: base + uri }, ico, entry.n.slice(0,-1)),
+                h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
                 menuOnLink && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
             )
             : containerDir ? h(Fragment, {},
-                h('a', { href: uri, onClick }, ico),
-                h(Link, { to: base + containerDir, className:'container-folder' }, containerName),
+                h('a', { href: uri, onClick, tabIndex: -1 }, ico),
+                h(Link, { to: containerDir, className:'container-folder', tabIndex: -1 }, containerName),
                 h('a', { href: uri, onClick }, entry.name)
             ) : h('a', { href: uri, onClick }, ico, entry.name),
         ),
@@ -246,7 +245,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
     const shortTs = useWindowSize().width < 800
     const {t} = useI18N()
     const dd = '2-digit'
-    return h('div', { className: 'entry-props entry-details' }, // entry-props is legacy
+    return h('div', { className: 'entry-details' },
         h(CustomCode, { name: 'additionalEntryDetails', props: { entry } }),
         entry.p?.match(entry.isFolder ? /l/i : /r/i) && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),

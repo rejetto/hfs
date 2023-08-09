@@ -74,7 +74,7 @@ export async function updateAccount(account: Account, changer?:Changer) {
     if (account.belongs) {
         account.belongs = wantArray(account.belongs)
         _.remove(account.belongs, b => {
-            if (b in accounts) return
+            if (accounts.hasOwnProperty(b)) return
             console.error(`account ${username} belongs to non-existing ${b}`)
             return true
         })
