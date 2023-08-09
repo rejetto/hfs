@@ -143,10 +143,6 @@ type Tester = number
 
 function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<any>={}) {
     return (done:Done) => {
-        const csrf = getCookie('csrf')
-        if (csrf)
-            Object.assign(requestOptions.data, { csrf })
-
         // all url starts with /, so if one doesn't it's because the method is prefixed
         const i = methodUrl.indexOf('/')
         const method = methodUrl.slice(0,i) || requestOptions?.data && 'POST' || 'GET'

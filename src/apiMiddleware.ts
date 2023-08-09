@@ -28,15 +28,13 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         const params = isPost ? ctx.params || {} : ctx.query
         const apiName = ctx.path
         console.debug('API', ctx.method, apiName, { ...params })
-        const safe = postWithOriginMatchingHost() // POST is safe because browser will enforce SameSite cookie
+        const safe = isPost && ctx.get('x-hfs-anti-csrf') // POST is safe because browser will enforce SameSite cookie
             || apiName.startsWith('get_') // "get_" apis are safe because they make no change
         if (!safe)
             return send(HTTP_FOOL)
         const apiFun = apis.hasOwnProperty(apiName) && apis[apiName]!
         if (!apiFun)
             return send(HTTP_NOT_FOUND, 'invalid api')
-        if (isPost && ctx.cookies.get('csrf') !== params.csrf)
-            return send(HTTP_UNAUTHORIZED, 'csrf')
         // we don't rely on SameSite cookie option because it's https-only
         let res
         try {
@@ -74,13 +72,6 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         function send(status: number, body?: string) {
             ctx.body = body
             ctx.status = status
-        }
-
-        function postWithOriginMatchingHost() {
-            if (!isPost) return false
-            const origin = ctx.get('origin')
-            return !origin // not a browser
-                || origin.split('//')[1] === ctx.get('host') // browser's requests must come from the inside. Even when no credentials are necessary, we don't want other website to issue non-get actions without the user knowing
         }
     }
 }

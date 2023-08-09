@@ -26,12 +26,10 @@ async function loggedIn(ctx:Koa.Context, username: string | false) {
         return ctx.throw(HTTP_SERVER_ERROR,'session')
     if (username === false) {
         delete s.username
-        ctx.cookies.set('csrf', '')
         return
     }
     s.username = normalizeUsername(username)
     await prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
-    ctx.cookies.set('csrf', randomId(), { signed:false, httpOnly: false })
 }
 
 function makeExp() {

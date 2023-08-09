@@ -26,15 +26,12 @@ export function setDefaultApiCallOptions(options: Partial<ApiCallOptions>) {
 export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptions={}) {
     _.defaults(options, defaultApiCallOptions)
     const stop = options.modal?.(cmd, params)
-    const csrf = getCsrf()
-    if (csrf)
-        params = { csrf, ...params }
     const controller = new AbortController()
     if (options.timeout !== false)
         setTimeout(() => controller.abort('timeout'), 1000*(timeoutByApi[cmd] ?? options.timeout ?? 10))
     return Object.assign(fetch(getPrefixUrl() + API_URL + cmd, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         signal: controller.signal,
         body: params && JSON.stringify(params),
     }).then(async res => {
@@ -120,10 +117,6 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
         cb('msg', data)
     }
     return source
-}
-
-function getCsrf() {
-    return getCookie('csrf')
 }
 
 export function useApiEvents(cmd: string, params: Dict={}) {
