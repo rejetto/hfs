@@ -178,7 +178,7 @@ for (const [k, was] of Object.entries(adminApis))
             return new ApiError(HTTP_FORBIDDEN)
         if (ctxAdminAccess(ctx))
             return was(params, ctx)
-        const props = { any: anyAccountCanLoginAdmin() }
+        const props = { possible: anyAccountCanLoginAdmin() }
         return ctx.headers.accept === 'text/event-stream'
             ? new SendListReadable({ doAtStart: x => x.error(HTTP_UNAUTHORIZED, true, props) })
             : new ApiError(HTTP_UNAUTHORIZED, props)

@@ -13,7 +13,7 @@ export * from '@hfs/shared/api'
 setDefaultApiCallOptions({
     async onResponse(res: Response, body: any) {
         if (res.status === 401) {
-            state.loginRequired = body?.any !== false || 403
+            state.loginRequired = body?.possible !== false || 403
             throw new ApiError(res.status, "Unauthorized")
         }
     }
@@ -79,7 +79,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:a
                         }
                         if (op === 'error') {
                             if (par === 401)
-                                state.loginRequired = msg[2].any !== false || 403
+                                state.loginRequired = msg[2].possible !== false || 403
                             else
                                 setError(err2msg(par))
                             return
