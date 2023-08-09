@@ -115,5 +115,5 @@ accounts:
       - admins
   admins:
     admin: true
-version: 0.47.0-beta7
+version: 0.47.0
 open_browser_at_start: false
