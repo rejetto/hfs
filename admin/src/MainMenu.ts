@@ -6,6 +6,7 @@ import {
     AccountTree,
     Extension,
     History,
+    Home,
     Logout,
     ManageAccounts,
     Monitor,
@@ -28,6 +29,7 @@ import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
 import { useApi } from './api'
 import CustomHtmlPage from './CustomHtmlPage';
+import InternetPage from './InternetPage'
 
 interface MenuEntry {
     path: string
@@ -38,10 +40,11 @@ interface MenuEntry {
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '', icon: Public, label: "Home", title: "Admin panel", comp: HomePage },
+    { path: '', icon: Home, label: "Home", title: "Admin panel", comp: HomePage },
     { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
     { path: 'options', icon: Settings, comp: OptionsPage },
+    { path: 'internet', icon: Public, comp: InternetPage },
     { path: 'monitoring', icon: Monitor, comp: MonitorPage },
     { path: 'logs', icon: History, comp: LogsPage },
     { path: 'language', icon: Translate, comp: LangPage },
