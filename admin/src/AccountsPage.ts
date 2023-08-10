@@ -105,7 +105,7 @@ export default function AccountsPage() {
                 list?.length! > 0 && h(Typography, { p: 1 }, `${list!.length} account(s)`),
             ) ),
         h(Grid, { item: true, md: 5 },
-            !list?.length && h(Alert, { severity: 'info' }, md`To access administration _remotely_ you will need to create a user account with admin permission`),
+            !list?.length && h(Alert, { severity: 'info' }, md`To access administration <u>remotely</u> you will need to create a user account with admin permission`),
             h(TreeView, {
                 multiSelect: true,
                 sx: { pr: 4, pb: 2, minWidth: '15em' },
