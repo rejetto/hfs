@@ -195,6 +195,11 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         neg !== all.some(x => cidr.contains(x, ip))
 }
 
+export function netmaskToCIDR(netmask: string) {
+    return netmask.split('.').map(x => Number(x).toString(2)) // to binary
+        .join('').split('1').length - 1 // Count '1' bits
+}
+
 export function makeMatcher(mask: string, emptyMaskReturns=false) {
     return mask ? matcher(mask.replace(/^(!)?/, '$1(') + ')') // adding () will allow us to use the pipe at root level
         : () => emptyMaskReturns
@@ -245,4 +250,12 @@ export function try_(cb: () => any, onException?: (e:any) => any) {
 
 export function throw_(err: any) {
     throw err
+}
+
+export function findFirst<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string | number)=>O): any {
+    if (a) for (const k in a) {
+        const ret = cb((a as any)[k] as I, k)
+        if (ret !== undefined)
+            return ret
+    }
 }

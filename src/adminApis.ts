@@ -17,6 +17,7 @@ import accountsApis from './api.accounts'
 import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import langApis from './api.lang'
+import netApis from './api.net'
 import { getConnections } from './connections'
 import { debounceAsync, isLocalHost, makeNetMatcher, onOff, wait, waitFor } from './misc'
 import events from './events'
@@ -41,6 +42,7 @@ export const adminApis: ApiHandlers = {
     ...pluginsApis,
     ...monitorApis,
     ...langApis,
+    ...netApis,
 
     async set_config({ values: v }) {
         if (v) {
