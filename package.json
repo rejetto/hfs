@@ -9,7 +9,12 @@
   "homepage": "https://rejetto.com/hfs",
   "license": "GPL-3.0",
   "author": "Massimo Melina <a@rejetto.com>",
-  "workspaces": [ "admin", "frontend", "shared", "mui-grid-form" ],
+  "workspaces": [
+    "admin",
+    "frontend",
+    "shared",
+    "mui-grid-form"
+  ],
   "scripts": {
     "watch-server": "cross-env DEV=1 nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src",
     "watch-server-proxied": "cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
@@ -78,6 +83,7 @@
     "lodash": "^4.17.21",
     "minimist": "^1.2.6",
     "nat-upnp": "github:kaden-sharpin/node-nat-upnp",
+    "node-html-parser": "^6.1.5",
     "open": "^8.4.0",
     "tssrp6a": "^3.0.0",
     "unzip-stream": "^0.3.1",
