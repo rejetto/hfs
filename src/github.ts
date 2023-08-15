@@ -14,6 +14,7 @@ import _ from 'lodash'
 import { DAY, HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT } from './const'
 import { rename, rm } from 'fs/promises'
 import { join } from 'path'
+import { readFileSync } from 'fs'
 
 const DIST_ROOT = 'dist'
 
@@ -148,12 +149,17 @@ export async function* searchPlugins(text='') {
 
 // centralized hosted information, to be used as little as possible
 let cache
+const FN = 'central.json'
+let latest = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8')) // initially built-in is our latest
 export function getProjectInfo() {
-    return cache ||= readGithubFile(HFS_REPO + '/main/central.json').then(x => {
-        if (!x) throw x // go catch
-        setTimeout(() => cache = null, DAY) // invalidate cache
-        return JSON.parse(x)
-    }).catch(() => { // schedule next attempt
-        setTimeout(() => cache = null, 10_000)
-    })
+    return cache ||= readGithubFile(HFS_REPO + '/main/' + FN)
+        .catch(() => latest) // fall back to latest
+        .then(x => {
+            if (!x) throw x // go catch
+            setTimeout(() => cache = undefined, DAY) // invalidate cache
+            return latest = JSON.parse(x)
+        }).catch(() => { // schedule next attempt
+            setTimeout(() => cache = undefined, 10_000) // invalidate cache sooner on errors
+            return latest
+        })
 }
