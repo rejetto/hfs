@@ -117,8 +117,8 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
     return Object.assign(promise, dialog)
 }
 
-interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string }
-export function confirmDialog(msg: ReactNode, { href, ...rest }: ConfirmOptions={}) {
+interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string, confirmText?: string, dontText?: string }
+export function confirmDialog(msg: ReactNode, { href, confirmText="Confirm", dontText="Don't",  ...rest }: ConfirmOptions={}) {
     const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',
@@ -136,8 +136,8 @@ export function confirmDialog(msg: ReactNode, { href, ...rest }: ConfirmOptions=
                 h('a', {
                     href,
                     onClick: () => closeDialog(true),
-                }, h(Button, { variant: 'contained' }, "Confirm")),
-                h(Button, { onClick: () => closeDialog(false) }, "Don't"),
+                }, h(Button, { variant: 'contained' }, confirmText)),
+                h(Button, { onClick: () => closeDialog(false) }, dontText),
             ),
         )
     }
@@ -189,24 +189,21 @@ export async function formDialog<T>(
     }
 }
 
-export async function promptDialog(msg: string, props:any={}) : Promise<string | undefined> {
-    return formDialog<{ text: string }>({ ...props, form: {
+export async function promptDialog(msg: ReactNode, { value, field, save, addToBar=[], ...props }:any={}) : Promise<string | undefined> {
+    return formDialog<{ text: string }>({ ...props, values: { text: value }, form: {
         fields: [
-            { k: 'text', label: null, autoFocus: true,
-                before: h(Box, { mb: 2 }, msg),
-                ...props.field
-            },
+            { k: 'text', label: null, autoFocus: true,  ...field, before: h(Box, { mb: 2 }, msg) },
         ],
         save: {
             children: "Continue",
             startIcon: h(Forward),
-            ...props.save,
+            ...save,
         },
         saveOnEnter: true,
         barSx: { gap: 2 },
         addToBar: [
             h(Button, { onClick: closeDialog }, "Cancel"),
-            ...props.addToBar||[],
+            ...addToBar,
         ]
     } }).then(values => values?.text)
 }

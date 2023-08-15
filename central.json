@@ -3,7 +3,7 @@
         {
             "url": "https://ports.yougetsignal.com/check-port.php",
             "headers": {"content-type": "application/x-www-form-urlencoded"},
-            "method": "POST",
+            "method": "post",
             "selector": "p:nth-child(1)",
             "body": "remoteAddress=$IP&portNumber=$PORT",
             "regexpFailure": "is closed",
@@ -12,7 +12,7 @@
         {
             "url": "https://canyouseeme.org/",
             "headers": {"content-type": "application/x-www-form-urlencoded"},
-            "method": "POST",
+            "method": "post",
             "selector": "div.tool > p:nth-child(1)",
             "body": "port=$PORT",
             "regexpFailure": "I could not see your service",
