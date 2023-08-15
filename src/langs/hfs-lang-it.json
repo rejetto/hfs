@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
-    "version": 1.7,
-    "hfs_version": "0.47.0",
+    "version": 1.8,
+    "hfs_version": "0.47.1",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -126,6 +126,11 @@
         "showHelp_space_body": "seleziona",
         "showHelp_D_body": "download",
         "showHelp_Z_body": "cambia modalità zoom",
-        "showHelp_F_body": "pieno schermo"
+        "showHelp_F_body": "pieno schermo",
+
+        "": "PLUGINS SECTION",
+        "": "PLUGIN thumbnails",
+        "Enable tiles mode": "Modalità griglia",
+        "thumbnails_switchBack": "Puoi tornare alla lista com'era prima entrando in Opzioni"
     }
 }
