@@ -45,6 +45,7 @@ export const HTTP_RANGE_NOT_SATISFIABLE = 416
 export const HTTP_FOOL = 418
 export const HTTP_FAILED_DEPENDENCY = 424
 export const HTTP_SERVER_ERROR = 500
+export const HTTP_SERVICE_UNAVAILABLE = 503
 
 export const IS_WINDOWS = process.platform === 'win32'
 export const IS_BINARY = !basename(process.execPath).includes('node') // this won't be node if pkg was used
