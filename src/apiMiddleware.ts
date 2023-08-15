@@ -47,8 +47,8 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
                             (v as string[]).forEach((x,i) => fixUri(v,i))
             res = await apiFun(params, ctx)
 
-            function fixUri(o: any, k: string | number) {
-                o[k] = removeStarting(ctx.state.revProxyPath, o[k])
+            function fixUri(obj: any, k: string | number) {
+                obj[k] = removeStarting(ctx.state.revProxyPath, obj[k])
             }
         }
         catch(e) {
