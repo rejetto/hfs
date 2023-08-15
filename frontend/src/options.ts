@@ -68,7 +68,7 @@ export function showOptions (){
             ),
 
             h(Select, {
-                options: ['', 'light', 'dark'].map(s => ({ label: t(["Theme:", "theme:"]) + ' ' + t(s || "auto"), value: s })),
+                options: ['', 'light', 'dark'].map(s => ({ label: t(["theme:", "Theme:", ]) + ' ' + t(s || "auto"), value: s })),
                 value: snap.theme,
                 onChange(v) {
                     state.theme = v

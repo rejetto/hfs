@@ -20,12 +20,13 @@ export function I18Nprovider({ embedded='en', ...props }) {
     return h(Fragment, props)
 }
 
-export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: any, def?: string) {
+// If one of the keys is an "id", that should be the first. If one of the keys should work as a fallback, that should be the last. Use 'fallback' parameter if you don't want the fallback to work as a key.
+export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: any, fallback?: string) {
     // memoize?
-    const keys = isTemplateStringsArray(keyOrTpl) ? [(def ??= keyOrTpl[0] as string)]
+    const keys = isTemplateStringsArray(keyOrTpl) ? [(fallback ??= keyOrTpl[0] as string)]
         : Array.isArray(keyOrTpl) ? keyOrTpl : [keyOrTpl]
-    if (typeof params === 'string' && !def) {
-        def = params
+    if (typeof params === 'string' && !fallback) {
+        fallback = params
         params = null
     }
     let found
@@ -40,7 +41,7 @@ export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: a
         }
     }
     if (!found) {
-        found = def || keys[0]
+        found = fallback || keys[keys.length - 1]
         selectedLang = embedded
     }
     return Array.from(tokenizer(found)).map(([s,inside]) => {

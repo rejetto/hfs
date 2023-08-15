@@ -1,7 +1,7 @@
 { // this wrapper avoids name clashing of outer variables and functions
     const config = HFS.getPluginConfig()
 
-    const label = HFS.t(["Download counter", "download counter"])
+    const label = HFS.t(["download counter", "Download counter"])
     const inMenu = config.where === 'menu'
     HFS.onEvent('additionalEntryDetails', ({ entry: { hits } }) =>
         hits && !inMenu && `<span class="download-counter" title="${label}">${hits}</span>`)
