@@ -1,7 +1,7 @@
 {	
 	"author":	"Club Microtel Vernon",
-	"version":	1.2,
-	"hfs_version":	"0.46.0 Beta",
+	"version":	1.3,
+	"hfs_version":	"0.47.1",
 	"translate": {
 		"Select": "Selectionner",
 		"n_files": "{n,plural, one{# fichier} other{# fichiers}}",
@@ -33,6 +33,7 @@
 		"stopped_before": "Chargement annulé",
 		"empty_list": "Liste vide",
 		"filter_none": "Aucun filtre",
+
 		"Admin-panel": "Page Administration",
 		"Login": "Connexion",
 		"Username": "Utilisateur",
@@ -51,6 +52,7 @@
 		"Full timestamp:": "Horodatage complet:",
 		"Search was interrupted": "Recherche interrompue",
 		"Stop list": "Arrêter le chargement de la liste",
+
 		"upload_starting": "Votre télé-chargement devrait commencer maintenant",
 		"wrong_account": "Aucun accès défini pour ce compte, essayez avec un autre compte",
 		"no_upload_here": "Pas de permission de télé-versement pour ce dossier",
@@ -66,6 +68,7 @@
 		"Successfully created": "Créé avec succès",
 		"enter_folder": "Saisissez le dossier",
 		"folder_exists": "Un dossier avec le même nom éxiste déjà",
+
 		"Sort by": "Trier par",
 		"name": "Nom",
 		"extension": "Extension",
@@ -80,22 +83,25 @@
 		"dark": "Sombre",
 		"parent folder": "Dossier parent",
 		"home": "Dossier racine",
+
 		"Continue": "Continuer",
 		"Confirm": "Confirmer",
 		"Don't": "Annuler",
 		"Warning": "Avertissement",
 		"Error": "Erreur",
 		"Info": "Info",
+
 		"Unauthorized": "Non autorisé",
 		"Forbidden": "Interdit",
 		"Not found": "Non trouvé",
 		"Server error": "Erreur du serveur",
+
 		"Upload": "Envoyer",
 		"upload_concluded": "Envoi terminé:",
 		"upload_finished": "{n} terminé(s) ({size})",
 		"upload_errors": "{n} échoués",
 		"upload_file_rejected": "Certains fichiers ont été refusés",
-		"Download counter": "Compteur de téléchargements",
+
 		"File menu": "Menu du fichier",
 		"Folder menu": "Menu du dossier",
 		"Name": "Nom",
@@ -113,7 +119,21 @@
 		"Tiles mode:": "Mode tuiles:",
 		"off": "Désactivé",
 		"Operation successful": "Opération réussie",
-		"Uploader": "Téléchargeur"
+		"Uploader": "Téléchargeur",
+		"download counter": "Compteur de téléchargements",
+		"Switch zoom mode": "Changer le mode zoom",
+        "Full screen": "Plein écran",
 
+        "File Show help": "Aide pour l'affichage des fichiers",
+        "showHelpMain": "Vous pouvez utiliser le clavier pour certaines actions:",
+        "showHelp_←/→": "←/→",
+        "showHelp_↑/↓": "↑/↓",
+        "showHelp_space": "Espace",
+        "showHelp_←/→_body": "Atteindre le précédent/prochain fichier",
+        "showHelp_↑/↓_body": "Faire défiler verticalement les images très hautes",
+        "showHelp_space_body": "Sélectionner",
+        "showHelp_D_body": "Télécharger",
+        "showHelp_Z_body": "Modes de zoom",
+        "showHelp_F_body": "Plein écran"
 	}
 }
