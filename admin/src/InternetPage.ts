@@ -1,37 +1,56 @@
-import { createElement as h } from 'react'
-import { Box, Button, Link } from '@mui/material'
+import { createElement as h, useState } from 'react'
+import { Alert, Box, Button, CircularProgress, LinearProgress, Link } from '@mui/material'
 import { HomeWorkTwoTone, PublicTwoTone, RouterTwoTone } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, with_ } from '@hfs/shared'
 import { Flex } from './misc'
-import { confirmDialog, promptDialog, toast, waitDialog } from './dialog'
+import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
 import { NumberField } from '@hfs/mui-grid-form'
 import md from './md'
 
 export default function InternetPage() {
+    const [checkResult, setCheckResult] = useState<boolean | undefined>()
+    const [checking, setChecking] = useState(false)
     const { data: status } = useApiEx('get_status')
     const localColor = with_([status?.http?.error, status?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
-    const { data: nat, reload } = useApiEx('get_nat')
-    const port = nat?.port
+    const { data: nat, reload, error } = useApiEx('get_nat')
+    const port = nat?.internalPort
     const wrongMap = nat?.mapped && nat.mapped.private.port !== port
     return h(Box, {},
         h(Box, { mb: 2 }, "This page helps you making your server work on the internet"),
-        h(Flex, { justifyContent: 'space-around', alignItems: 'center', maxWidth: '40em' },
-            h(Device, { name: "Local network", icon: HomeWorkTwoTone, color: localColor, ip: nat?.local_ip,
-                below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
-            }),
-            h(Sep),
-            h(Device, {
-                name: "Router", icon: RouterTwoTone, ip: nat?.gateway_ip,
-                color: nat?.mapped && (wrongMap ? 'warning' : 'success'),
-                below: h(Link, { fontSize: 'smaller', display: 'block', onClick: configure, sx: { cursor: 'pointer' } },
-                    "port ", wrongMap ? 'is wrong' : nat?.mapped ? nat.mapped.public.port : "unknown"),
-            }),
-            h(Sep),
-            h(Device, { name: "Internet", icon: PublicTwoTone, ip: nat?.public_ip }),
-        ),
+        error ? h(Alert, { severity: 'warning' }, "Cannot analyze network because UPnP unavailable")
+            : !nat ? h(CircularProgress)
+            : h(Flex, { justifyContent: 'space-around', alignItems: 'center', maxWidth: '40em' },
+                h(Device, { name: "Local network", icon: HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
+                    below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
+                }),
+                h(Sep),
+                h(Device, {
+                    name: "Router", icon: RouterTwoTone, ip: nat?.gatewayIp,
+                    color: nat?.mapped && (wrongMap ? 'warning' : 'success'),
+                    below: h(Link, { fontSize: 'smaller', display: 'block', onClick: configure, sx: { cursor: 'pointer' } },
+                        "port ", wrongMap ? 'is wrong' : nat?.mapped ? nat.mapped.public.port : "unknown"),
+                }),
+                h(Sep),
+                h(Device, { name: "Internet", icon: PublicTwoTone, ip: nat?.publicIp,
+                    color: checkResult === undefined ? undefined : checkResult ? 'success' : 'warning',
+                    below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller' }, checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
+                        ' ',
+                        h(Link, { onClick: verify, sx: { cursor: 'pointer' } }, "Verify")
+                    )
+                }),
+            ),
     )
+
+    async function verify() {
+        setChecking(true)
+        const { success } = await apiCall('check_server', {}).finally(() => setChecking(false))
+        setCheckResult(success)
+        if (success)
+            return toast("Your server is responding correctly over the internet", 'success')
+        alertDialog("We couldn't reach your server from the internet", 'warning')
+    }
 
     async function configure() {
         if (wrongMap) {
