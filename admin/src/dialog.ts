@@ -7,7 +7,8 @@ import {
     Dialog as MuiDialog,
     DialogContent,
     DialogTitle,
-    IconButton
+    IconButton,
+    Modal
 } from '@mui/material'
 import {
     createElement as h, Dispatch, Fragment,
@@ -20,7 +21,7 @@ import {
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
-import { IconBtn, Flex } from './misc'
+import { IconBtn, Flex, Center } from './misc'
 import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
 export * from '@hfs/shared/dialogs'
@@ -44,6 +45,8 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
     const titleSx = useDialogBarColors() // don't move this hook inside the return. When closing+showing at once it throws about rendering with fewer hooks.
     d = { ...dialogsDefaults, ...d }
     const { sx, root, ...rest } = d.dialogProps||{}
+    if (d.noFrame)
+        return h(Modal, { open: true, children: h(Center, {}, h(d.Content)) })
     return h(MuiDialog, {
         open: true,
         maxWidth: 'lg',
@@ -209,7 +212,7 @@ export async function promptDialog(msg: ReactNode, { value, field, save, addToBa
 }
 
 export function waitDialog() {
-    return newDialog({ Content: CircularProgress, closable: false }).close
+    return newDialog({ Content: () => h(CircularProgress, { size: '20vw'}), noFrame: true, closable: false }).close
 }
 
 export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info') {

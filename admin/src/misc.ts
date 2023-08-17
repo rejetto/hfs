@@ -2,7 +2,7 @@
 
 import { createElement as h, FC, Fragment, ReactNode, KeyboardEvent, forwardRef } from 'react'
 import {
-    Box,
+    Box, BoxProps,
     Breakpoint,
     ButtonProps,
     CircularProgress,
@@ -130,9 +130,8 @@ export function InLink(props:any) {
     return h(Link, { component: RouterLink, ...props })
 }
 
-export function Center(props: any) {
-    return h(Box, { display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props })
-}
+export const Center = forwardRef((props: BoxProps, ref) =>
+    h(Box, { ref, display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props }))
 
 export async function manipulateConfig(k: string, work:(data:any) => any) {
     const cfg = await apiCall('get_config', { only: [k] })
