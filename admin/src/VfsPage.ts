@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
-import { apiCall, useApi, useApiEx } from './api'
+import { apiCall, useApiEx } from './api'
 import {
     Alert,
     Button,
@@ -22,7 +22,6 @@ import FileForm from './FileForm'
 import { Close, Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { Flex } from './misc'
-import { VfsPerm } from '../../src/vfs'
 
 let selectOnReload: string[] | undefined
 
@@ -130,6 +129,7 @@ export default function VfsPage() {
         alert && h(Grid, { item: true, mb: 2, xs: 12 }, h(Alert, alert)),
         h(Grid, { item:true, [sideBreakpoint]: 6, lg: 5 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
+            h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
             h(VfsMenuBar),
             vfs && h(VfsTree, { id2node })),
         isSideBreakpoint && sideContent && h(Grid, { item:true, [sideBreakpoint]: 6, lg: 7, maxWidth:'100%' },
