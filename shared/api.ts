@@ -2,7 +2,7 @@
 
 import _ from 'lodash';
 import { useCallback, useEffect, useRef } from 'react';
-import { Dict, Falsy, getCookie, getPrefixUrl, pendingPromise, useStateMounted } from '.'
+import { Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted } from '.'
 
 export const API_URL = '/~/api/'
 

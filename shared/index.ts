@@ -48,19 +48,6 @@ export function wait<T=undefined>(ms: number, val?: T): Promise<T> {
     return new Promise(res=> setTimeout(res,ms,val))
 }
 
-export function getCookie(name: string) {
-    const pre = name + '='
-    //@ts-ignore necessary to import this file in tests.ts (node doesn't have document)
-    let decodedCookie = decodeURIComponent(document.cookie)
-    let ca = decodedCookie.split(';')
-    for (let c of ca) {
-        c = c.trim()
-        if (c.startsWith(pre))
-            return c.substring(pre.length, c.length)
-    }
-    return ''
-}
-
 export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>VR) {
     return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
 }
