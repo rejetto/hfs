@@ -23,7 +23,9 @@ export function httpsStream(url: string, { body, ...options }:XRequestOptions ={
     return new Promise((resolve, reject) => {
         if (body)
             options.method ||= 'POST'
+        console.debug("making http request", url)
         const req = https.request(url, options, res => {
+            console.debug("http responded", res.statusCode)
             if (!res.statusCode || res.statusCode >= 400)
                 return reject(new Error(String(res.statusCode), { cause: res }))
             if (res.statusCode === HTTP_TEMPORARY_REDIRECT && res.headers.location)

@@ -48,6 +48,7 @@ export const HTTP_SERVER_ERROR = 500
 export const HTTP_SERVICE_UNAVAILABLE = 503
 
 export const IS_WINDOWS = process.platform === 'win32'
+export const IS_MAC = process.platform === 'darwin'
 export const IS_BINARY = !basename(process.execPath).includes('node') // this won't be node if pkg was used
 export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname)
 

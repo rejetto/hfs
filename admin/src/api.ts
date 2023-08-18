@@ -20,9 +20,8 @@ setDefaultApiCallOptions({
 })
 
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
-    const [data, error, reload] = useApi<T>(...args)
+    const [data, error, reload, loading] = useApi<T>(...args)
     const cmd = args[0]
-    const loading = data === undefined
     const element = useMemo(() =>
             !cmd ? null
                 : error ? h(Alert, { severity: 'error' }, String(error), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } }))

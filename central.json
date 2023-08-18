@@ -18,5 +18,10 @@
             "regexpFailure": "I could not see your service",
             "regexpSuccess": "I can see your service"
         }
+    ],
+    "publicIpServices": [
+        "https://checkip.amazonaws.com",
+        "https://ipinfo.io/ip",
+        "https://ifconfig.io/ip"
     ]
 }

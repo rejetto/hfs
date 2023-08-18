@@ -9,6 +9,7 @@ export const API_URL = '/~/api/'
 const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute
     update: 600, // download can be lengthy
+    get_nat: 20, // wait more mostly for debug purposes, as we don't want this to take this long
     get_status: 20 // can be lengthy on slow machines because of the find-process-on-busy-port feature
 }
 
@@ -67,7 +68,7 @@ export class ApiError extends Error {
     }
 }
 
-export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undefined, undefined | Error, ()=>void] {
+export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undefined, undefined | Error, ()=>void, boolean] {
     const [ret, setRet] = useStateMounted<T | undefined>(undefined)
     const [err, setErr] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
@@ -81,7 +82,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
         let aborted = false
         const req = apiCall<T>(cmd, params)
         const wholePromise = req.then(x => aborted || setRet(x), x => aborted || setErr(x))
-            .finally(()=> loadingRef.current = undefined)
+            .finally(() => loadingRef.current = reloadingRef.current = undefined)
         loadingRef.current = Object.assign(wholePromise, {
             abort() {
                 aborted = true
@@ -93,7 +94,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
     const reload = useCallback(() => loadingRef.current
             || setForcer(v => v+1) || (reloadingRef.current = pendingPromise()),
         [setForcer])
-    return [ret, err, reload]
+    return [ret, err, reload, ret === undefined || Boolean(loadingRef.current || reloadingRef.current)]
 }
 
 type EventHandler = (type:string, data?:any) => void

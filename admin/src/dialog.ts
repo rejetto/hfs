@@ -121,7 +121,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
 }
 
 interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string, confirmText?: string, dontText?: string }
-export function confirmDialog(msg: ReactNode, { href, confirmText="Confirm", dontText="Don't",  ...rest }: ConfirmOptions={}) {
+export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText="Don't",  ...rest }: ConfirmOptions={}) {
     const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',

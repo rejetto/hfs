@@ -201,21 +201,20 @@ export async function getServerStatus() {
 
 const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
+export function getIps() {
+    const ips = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
+        nets && !ignore.test(name) && onlyTruthy(nets.map(net => !net.internal && net.address)) )).flat()
+    return _.sortBy(ips, x => x.includes(':')) // IPv4 first
+}
+
 export function getUrls() {
+    const ips = getIps().map(ip => ip.includes(':') ? '[' + ip + ']' : ip)
     return Object.fromEntries(onlyTruthy([httpSrv, httpsSrv].map(srv => {
         if (!srv?.listening)
             return false
         const port = (srv?.address() as any)?.port
         const appendPort = port === (srv.name === 'https' ? 443 : 80) ? '' : ':' + port
-        const urls = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
-                nets && !ignore.test(name) && nets.map(net => {
-                    if (net.internal) return
-                    let { address } = net
-                    if (address.includes(':'))
-                        address = '[' + address + ']'
-                    return srv.name + '://' + address + appendPort
-                })
-        ).flat())
+        const urls = ips.map(ip => `${srv.name}://${ip}${appendPort}`)
         return urls.length && [srv.name, urls]
     })))
 }

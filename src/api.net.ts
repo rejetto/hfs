@@ -2,36 +2,33 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { Client } from 'nat-upnp'
-import { HTTP_SERVICE_UNAVAILABLE } from './const'
+import { HTTP_SERVICE_UNAVAILABLE, IS_MAC, IS_WINDOWS } from './const'
 import axios from 'axios'
 import {parse} from 'node-html-parser'
 import _ from 'lodash'
-import { getServerStatus } from './listen'
+import { getIps, getServerStatus } from './listen'
 import { getProjectInfo } from './github'
+import { httpsString } from './util-http'
+import { exec } from 'child_process'
 
-export interface PortScannerService {
-    url: string
-    headers: {[k: string]: any}
-    method: string
-    selector: string
-    body?: string
-    regexpFailure: string
-    regexpSuccess: string
-}
-
-async function get_nat() {
-    const client = new Client()
-    const { gateway, address} = await client.getGateway().catch(() => {
-        throw new ApiError(HTTP_SERVICE_UNAVAILABLE, 'upnp failed')
-    })
+async function getNatInfo() {
+    const client = new Client({ timeout: 3000 })
+    const res = await client.getGateway().catch(() => null)
     const status = await getServerStatus()
+    const mappings = res && await client.getMappings().catch(() => null)
+    const externalIp = res && await client.getPublicIp().catch(() => null)
+    const publicIp = await getPublicIp() || externalIp
+    const gatewayIp = res ? new URL(res.gateway.description).hostname : await getGateway().catch(() => null)
+    const localIp = res?.address || getIps()[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port
-    const mappings = await client.getMappings().catch(() => null)
-    const mapped = _.find(mappings, x => x.private.host === address && x.private.port === internalPort || x.description === 'hfs')
+    const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort || x.description === 'hfs')
+    console.debug('responding')
     return {
-        localIp: address,
-        gatewayIp: new URL(gateway.description).hostname,
-        publicIp: await client.getPublicIp().catch(() => null),
+        upnp: Boolean(res),
+        localIp,
+        gatewayIp,
+        publicIp,
+        externalIp,
         mapped,
         mappings,
         internalPort,
@@ -39,11 +36,29 @@ async function get_nat() {
     }
 }
 
+async function getPublicIp() {
+    const prjInfo = await getProjectInfo()
+    for (const url of _.shuffle(prjInfo.publicIpServices))
+        try { return (await httpsString(url)).body?.trim() }
+        catch (e: any) { console.debug(String(e)) }
+}
+
+function getGateway(): Promise<string | undefined> {
+    return new Promise((resolve, reject) =>
+        exec(IS_WINDOWS || IS_MAC ? 'netstat -rn' : 'route -n', (err, out) => {
+            if (err) return reject(err)
+            const re = IS_WINDOWS ? /(?:0\.0\.0\.0 +){2}([\d\.]+)/ : IS_MAC ? /default +([\d\.]+)/ : /^0\.0\.0\.0 +([\d\.]+)/
+            resolve(re.exec(out)?.[1])
+        }) )
+}
+
 const apis: ApiHandlers = {
-    get_nat,
+    get_nat: getNatInfo,
 
     async map_port({ external }) {
-        const { mapped, internalPort } = await get_nat()
+        const { gatewayIp, mapped, internalPort } = await getNatInfo()
+        if (!gatewayIp)
+            throw new ApiError(HTTP_SERVICE_UNAVAILABLE, 'upnp failed')
         const client = new Client()
         if (mapped)
             await client.removeMapping({ private: mapped.private.port, public: mapped.public.port, protocol: 'tcp' })
@@ -54,22 +69,34 @@ const apis: ApiHandlers = {
 
     async check_server() {
         const noop = () => null
-        const { publicIp, internalPort, externalPort } = await get_nat()
+        const { publicIp, internalPort, externalPort } = await getNatInfo()
         if (!publicIp) return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'cannot detect public ip')
         const prjInfo = await getProjectInfo()
         const port = externalPort || internalPort
         console.log(`checking server ${publicIp}:${port}`)
+        interface PortScannerService {
+            url: string
+            headers: {[k: string]: string}
+            method: string
+            selector: string
+            body?: string
+            regexpFailure: string
+            regexpSuccess: string
+        }
         for (const svc of _.shuffle<PortScannerService>(prjInfo.checkServerServices)) {
+            const service = new URL(svc.url).hostname
+            console.log('using service', service)
             const api = (axios as any)[svc.method]
             const body = svc.body?.replace('$IP', publicIp).replace('$PORT', port) || ''
             const res = await api(svc.url, body, {headers: svc.headers}).catch(noop)
             if (!res) continue
+            console.debug('service responded')
             const parsed = parse(res.data).querySelector(svc.selector)?.innerText
             if (!parsed) continue
             const success = new RegExp(svc.regexpSuccess).test(parsed)
             const failure = new RegExp(svc.regexpFailure).test(parsed)
             if (success === failure) continue // this result cannot be trusted
-            const service = new URL(svc.url).hostname
+            console.log('server', success ? 'responding' : 'not responding')
             return { success, service }
         }
         return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'no service available to detect upnp mapping')
