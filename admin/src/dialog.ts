@@ -53,6 +53,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
         fullScreen: mobile,
         ...rest,
         ...root,
+        className: d.className,
         onClose: ()=> closeDialog(),
     },
         d.title && h(DialogTitle, {
@@ -98,7 +99,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
 
     const promise = pendingPromise()
     const dialog = newDialog({
-        className: 'dialog-alert-' + type,
+        className: 'dialog-alert dialog-alert-' + type,
         icon: '!',
         onClose: promise.resolve,
         ...rest,

@@ -25,7 +25,12 @@ code {
   background-color: #8882;
 }
 
-ol, ul { margin-top: .2em }
+ol, ul { margin-top: .2em; padding-left: 1.5em; }
+
+.dialog-alert .MuiDialogContent-root {
+  max-width: 45em;
+  padding: .5em 1em;
+}
 
 .animated-dashed-line {
   width: 100%;
