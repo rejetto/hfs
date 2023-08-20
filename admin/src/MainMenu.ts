@@ -68,7 +68,7 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
             }
         },
             h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'flex-end' },
-                h(Typography, { variant:'h3' }, 'HFS'),
+                h(Box, { fontSize: 'min(3rem, 5vh)' }, 'HFS'),
                 h(Box, { pb: 1, fontSize: 'small' }, version),
             ),
             mainMenu.map(it =>
