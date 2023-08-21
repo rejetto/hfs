@@ -33,7 +33,7 @@ portCfg.sub(async port => {
     port = await startServer(httpSrv, { port })
     if (!port) return
     httpSrv.on('connection', newConnection)
-    printUrls(port, 'http')
+    printUrls(httpSrv.name)
     if (openBrowserAtStart.get() && !argv.updated)
         openAdmin()
 })
@@ -83,7 +83,7 @@ const considerHttps = debounceAsync(async () => {
     port = await startServer(httpsSrv, { port })
     if (!port) return
     httpsSrv.on('connection', newConnection)
-    printUrls(port, 'https')
+    printUrls(httpsSrv.name)
 })
 
 
@@ -202,9 +202,14 @@ export async function getServerStatus() {
 const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
 export function getIps() {
-    const ips = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
-        nets && !ignore.test(name) && onlyTruthy(nets.map(net => !net.internal && net.address)) )).flat()
-    return _.sortBy(ips, x => x.includes(':')) // IPv4 first
+    return v4first(onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
+        nets && !ignore.test(name)
+            && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
+    )).flat())
+
+    function v4first(a: string[]) {
+        return _.sortBy(a, x => x.includes(':'))
+    }
 }
 
 export function getUrls() {
@@ -219,18 +224,7 @@ export function getUrls() {
     })))
 }
 
-function printUrls(port: number, proto: string) {
-    if (!port) return
-    for (const [name, nets] of Object.entries(networkInterfaces())) {
-        if (!nets || ignore.test(name)) continue
-        _.remove(nets, 'internal')
-        const first = nets[0]
-        if (!first) continue
-        const best = _.find(nets, { family: 'IPv4' }) || first
-        const appendPort = port === (proto==='https' ? 443 : 80) ? '' : ':' + port
-        let { address } = best
-        if (address.includes(':'))
-            address = '['+address+']'
-        console.log('network', name, proto + '://' + address + appendPort)
-    }
+function printUrls(srvName: string) {
+    for (const url of getUrls()[srvName]!)
+        console.log('serving on', url)
 }

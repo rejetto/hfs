@@ -2,7 +2,7 @@
 
 import { getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
-import { basename, dirname, join } from 'path'
+import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import { httpsStream, onProcessExit, unzip } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
