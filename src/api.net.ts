@@ -38,8 +38,15 @@ async function getNatInfo() {
 
 async function getPublicIp() {
     const prjInfo = await getProjectInfo()
-    for (const url of _.shuffle(prjInfo.publicIpServices))
-        try { return (await httpsString(url)).body?.trim() }
+    for (const urls of _.chunk(_.shuffle(prjInfo.publicIpServices), 2)) // small parallelization
+        try {
+            return await Promise.any(urls.map(url => httpsString(url).then(res => {
+                const ip = res.body?.trim()
+                if (!/[.:0-9a-fA-F]/.test(ip))
+                    throw Error("bad result: " + ip)
+                return ip
+            })))
+        }
         catch (e: any) { console.debug(String(e)) }
 }
 
@@ -68,7 +75,6 @@ const apis: ApiHandlers = {
     },
 
     async check_server() {
-        const noop = () => null
         const { publicIp, internalPort, externalPort } = await getNatInfo()
         if (!publicIp) return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'cannot detect public ip')
         const prjInfo = await getProjectInfo()
@@ -83,21 +89,24 @@ const apis: ApiHandlers = {
             regexpFailure: string
             regexpSuccess: string
         }
-        for (const svc of _.shuffle<PortScannerService>(prjInfo.checkServerServices)) {
-            const service = new URL(svc.url).hostname
-            console.log('using service', service)
-            const api = (axios as any)[svc.method]
-            const body = svc.body?.replace('$IP', publicIp).replace('$PORT', port) || ''
-            const res = await api(svc.url, body, {headers: svc.headers}).catch(noop)
-            if (!res) continue
-            console.debug('service responded')
-            const parsed = parse(res.data).querySelector(svc.selector)?.innerText
-            if (!parsed) continue
-            const success = new RegExp(svc.regexpSuccess).test(parsed)
-            const failure = new RegExp(svc.regexpFailure).test(parsed)
-            if (success === failure) continue // this result cannot be trusted
-            console.log('server', success ? 'responding' : 'not responding')
-            return { success, service }
+        for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.checkServerServices), 2)) {
+            try {
+                return Promise.any(services.map(async svc => {
+                    const service = new URL(svc.url).hostname
+                    console.log('trying service', service)
+                    const api = (axios as any)[svc.method]
+                    const body = svc.body?.replace('$IP', publicIp).replace('$PORT', port) || ''
+                    const res = await api(svc.url, body, {headers: svc.headers})
+                    console.debug(service, 'responded')
+                    const parsed = parse(res.data).querySelector(svc.selector)?.innerText
+                    if (!parsed) throw console.debug('empty:' + service)
+                    const success = new RegExp(svc.regexpSuccess).test(parsed)
+                    const failure = new RegExp(svc.regexpFailure).test(parsed)
+                    if (success === failure) throw console.debug('inconsistent:' + service) // this result cannot be trusted
+                    return { success, service }
+                }))
+            }
+            catch {}
         }
         return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'no service available to detect upnp mapping')
     },
