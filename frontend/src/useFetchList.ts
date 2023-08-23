@@ -17,7 +17,7 @@ export function usePath() {
 
 export default function useFetchList() {
     const snap = useSnapState()
-    const uri = usePath()
+    const uri = usePath().slice(1)
     const search = snap.remoteSearch || undefined
     const lastUri = useRef('')
     const lastReq = useRef<any>()
@@ -89,7 +89,7 @@ export default function useFetchList() {
                             lastReq.current = null
                             continue
                         }
-                        if (!uri.endsWith('/'))  // now we know it was a folder for sure
+                        if (uri && !uri.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(uri + '/')
                         if (op === 'props') {
                             Object.assign(state, _.pick(par, ['can_upload', 'can_delete', 'accept']))

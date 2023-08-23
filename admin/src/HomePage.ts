@@ -115,8 +115,7 @@ export default function HomePage() {
                         : h(Flex, { vert: true },
                             updates.map((x: any) =>
                                 h(Flex, { key: x.name, alignItems: 'flex-start', flexWrap: 'wrap' },
-                                    h(Card, {},
-                                        h(CardContent, {},
+                                    h(Card, {}, h(CardContent, {},
                                         h(Btn, {
                                             icon: UpdateIcon,
                                             ...!x.isNewer && { color: 'warning', variant: 'outlined' },
