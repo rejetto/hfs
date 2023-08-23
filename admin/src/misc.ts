@@ -8,7 +8,7 @@ import {
     CircularProgress,
     IconButton,
     IconButtonProps,
-    Link,
+    Link, LinkProps,
     Tooltip, TooltipProps,
     useMediaQuery
 } from '@mui/material'
@@ -133,6 +133,10 @@ export function InLink(props:any) {
 export const Center = forwardRef((props: BoxProps, ref) =>
     h(Box, { ref, display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props }))
 
+export function LinkBtn({ ...rest }: LinkProps) {
+    return h(Link, { ...rest, sx: { cursor: 'pointer', ...rest.sx  } })
+}
+
 export async function manipulateConfig(k: string, work:(data:any) => any) {
     const cfg = await apiCall('get_config', { only: [k] })
     const was = cfg[k]
@@ -199,12 +203,13 @@ export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgr
     )
 }
 
-export function Flex({ gap='.8em', vert=false, children=null, props={}, ...rest }) {
+export function Flex({ gap='.8em', vert=false, center=false, children=null, props={}, ...rest }) {
     return h(Box, {
         sx: {
             display: 'flex',
             gap,
             flexDirection: vert ? 'column' : undefined,
+            ...center && { alignItems: 'center', justifyContent: 'center' },
             ...rest,
         },
         ...props

@@ -20,17 +20,16 @@ import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 
 export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c }, ctx) => {
-    const node = await urlToNode( uri || '/', ctx)
-    const list = new SendListReadable()
+    const node = await urlToNode(uri || '/', ctx)
+    const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
     if (!node)
         return fail(HTTP_NOT_FOUND)
     if (statusCodeForMissingPerm(node,'can_list',ctx))
         return fail()
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
-    const sse = ctx.get('accept') === 'text/event-stream'
     if (node.default)
-        return (sse ? list.custom : _.identity)({ // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
+        return (list?.custom ?? _.identity)({ // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
             redirect: uri // tell the browser to access the folder (instead of using this api), so it will get the default file
         })
     if (!await nodeIsDirectory(node))
@@ -43,7 +42,7 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     const can_upload = hasPermission(node, 'can_upload', ctx)
     const can_delete = hasPermission(node, 'can_delete', ctx)
     const props = { can_upload, can_delete, accept: node.accept }
-    if (!sse)
+    if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {
         if (can_upload || can_delete)
@@ -55,7 +54,7 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     return list
 
     function fail(code=ctx.status) {
-        if (!sse)
+        if (!list)
             return new ApiError(code)
         list.error(code, true)
         return list

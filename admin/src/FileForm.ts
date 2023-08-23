@@ -15,17 +15,8 @@ import {
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import {
-    basename,
-    Btn,
-    formatBytes,
-    IconBtn,
-    isEqualLax,
-    modifiedSx,
-    newDialog,
-    objSameKeys,
-    onlyTruthy,
-    prefix,
-    wikiLink
+    basename, Btn, formatBytes, IconBtn, isEqualLax, LinkBtn, modifiedSx, newDialog, objSameKeys,
+    onlyTruthy, prefix, wikiLink
 } from './misc'
 import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
 import md from './md'
@@ -214,8 +205,8 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
             }) ),
         h(FormHelperText, {},
             helperText,
-            !isChildren && isDir && h(Link, {
-                sx: { display: 'block', cursor: 'pointer', mt: -.5 },
+            !isChildren && isDir && h(LinkBtn, {
+                sx: { display: 'block', mt: -.5 },
                 onClick(event) {
                     if (thisValue === undefined) return
                     onChange(objectMode ? thisValue : { this: value }, { was: value, event })

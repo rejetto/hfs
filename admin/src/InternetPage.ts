@@ -3,7 +3,7 @@ import { Alert, Box, Button, CircularProgress, LinearProgress, Link } from '@mui
 import { HomeWorkTwoTone, PublicTwoTone, RouterTwoTone } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, with_ } from '@hfs/shared'
-import { Flex } from './misc'
+import { Flex, LinkBtn } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { NumberField } from '@hfs/mui-grid-form'
 import md from './md'
@@ -29,9 +29,15 @@ export default function InternetPage() {
         setVerifyAgain(false)
         verify().then()
     }, [verifyAgain, nat, loading])
-    return h(Box, {},
-        h(Alert, { severity: 'info', sx: { mb: 2 } }, "This page helps you making your server work on the Internet"),
-        error ? "Error" : !nat ? h(CircularProgress) : h(Flex, { justifyContent: 'space-around', alignItems: 'center', maxWidth: '40em' },
+    return h(Flex, { vert: true },
+        h(Alert, { severity: 'info' }, "This page helps you making your server work on the Internet"),
+        networkBox(),
+    )
+
+    function networkBox() {
+        if (error) return "Error"
+        if (!nat) return h(CircularProgress)
+        return h(Flex, { justifyContent: 'space-around', alignItems: 'center', maxWidth: '40em' },
             h(Device, { name: "Local network", icon: HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
             }),
@@ -40,21 +46,21 @@ export default function InternetPage() {
                 name: "Router", icon: RouterTwoTone, ip: nat?.gatewayIp,
                 color: nat?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
-                    : h(Link, { fontSize: 'smaller', display: 'block', onClick: configure, sx: { cursor: 'pointer' } },
+                    : h(LinkBtn, { fontSize: 'smaller', display: 'block', onClick: configure },
                         "port ", wrongMap ? 'is wrong' : nat?.mapped ? nat.mapped.public.port : "unknown"),
             }),
             h(Sep),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: nat?.publicIp,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
                 below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller' },
-                    doubleNat && h(Link, { sx: { cursor: 'pointer', display: 'block' }, onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
+                    doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    nat?.publicIp && h(Link, { onClick: verify, sx: { cursor: 'pointer' } }, "Verify")
+                    nat?.publicIp && h(LinkBtn, { onClick: verify }, "Verify")
                 )
             }),
-        ),
-    )
+        )
+    }
 
     async function verify(): Promise<any> {
         setCheckResult(undefined)

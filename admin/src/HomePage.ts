@@ -8,6 +8,7 @@ import {
     dontBotherWithKeys,
     Flex,
     InLink,
+    LinkBtn,
     objSameKeys,
     onlyTruthy,
     prefix,
@@ -59,8 +60,7 @@ export default function HomePage() {
     const errors = serverErrors && onlyTruthy(Object.entries(serverErrors).map(([k,v]) =>
         v && [md(`Protocol <u>${k}</u> cannot work: `), v,
             (isCertError(v) || isKeyError(v)) && [
-                SOLUTION_SEP, h(Link, {
-                    sx: { cursor: 'pointer' },
+                SOLUTION_SEP, h(LinkBtn, {
                     onClick() { makeCertAndSave().then(reloadCfg).then(reloadStatus) } },
                     "make one"
                 ), " or ", SOLUTION_SEP, cfgLink("provide adequate files")
