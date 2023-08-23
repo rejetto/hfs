@@ -206,6 +206,7 @@ export function getIps() {
         nets && !ignore.test(name)
             && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
     )).flat())
+        .filter((x,i,a) => a.length > 1 || !x.startsWith('169.254')) // 169.254 = dhcp failure on the interface, but keep it if it's our only one
 
     function v4first(a: string[]) {
         return _.sortBy(a, x => x.includes(':'))
