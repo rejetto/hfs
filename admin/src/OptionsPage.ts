@@ -55,6 +55,7 @@ export default function OptionsPage() {
     const maxSpeedDefaults = {
         comp: NumberField,
         min: 1,
+        unit: "KB/s",
         placeholder: "no limit",
         md: 3,
     }
@@ -91,8 +92,8 @@ export default function OptionsPage() {
                     return v
                 }
             },
-            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output KB/s", helperText: "Doesn't apply to localhost" },
-            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output KB/s per-ip" },
+            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output", helperText: "Doesn't apply to localhost" },
+            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output per-ip" },
             httpsEnabled && values.port >= 0 && { k: 'force_https', comp: BoolField, sm: 12, md: 4, label: "Force HTTPS",
                 helperText: "Not applied to localhost"
             },
