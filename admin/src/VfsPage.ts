@@ -39,10 +39,9 @@ export default function VfsPage() {
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
     const statusApi = useApiEx('get_status')
     const { data: status } = statusApi
-    const urls = useMemo(() => {
+    const urls = useMemo<string[]>(() => {
         const b = status?.baseUrl
-        const ret = _.sortBy(status?.urls.https || status?.urls.http, url => url.includes('[') && url !== b) // ipv4 first
-        if (status) status.suggestedUrls = ret // store it for Link component
+        const ret = status?.urls.https || status?.urls.http
         return b && !ret.includes(b) ? [b, ...ret] : ret
     }, [status])
 

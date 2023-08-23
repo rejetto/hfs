@@ -249,10 +249,9 @@ interface LinkFieldProps extends FieldProps<string> {
     statusApi: any // receive status from parent, to avoid asking server at each click on a file
 }
 function LinkField({ value, statusApi }: LinkFieldProps) {
-    const { data: status, reload, error } = statusApi
-    const urls: string[] = status?.suggestedUrls
-    const base: string = status?.baseUrl
-    const link = (base || urls?.[0] || '') + value
+    const { data, reload, error } = statusApi
+    const urls: string[] = data?.urls.https || data?.urls.http
+    const link = (data?.baseUrl || urls?.[0] || '') + value
     return h(Box, { display: 'flex' },
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
@@ -265,26 +264,35 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                     title: "Copy",
                     onClick: () => navigator.clipboard.writeText(link)
                 }),
-                h(IconBtn, { icon: Edit, title: "Change", onClick: edit }),
+                h(IconBtn, { icon: Edit, title: "Change", onClick() { changeBaseUrl().then(reload) } }),
             )
         }),
     )
+}
 
-    function edit() {
+export async function changeBaseUrl() {
+    return new Promise(async resolve => {
+        const res = await apiCall('get_status')
+        const urls: string[] = res.urls.https || res.urls.http
         const { close } = newDialog({
-            title: "Change link",
+            title: "Base address",
             Content() {
-                const [v, setV] = useState(base || '')
+                const [v, setV] = useState(res.baseUrl || '')
                 const proto = new URL(v || urls[0]).protocol + '//'
                 const host = urls.includes(v) ? '' : v.slice(proto.length)
+                const check = h(Check, { sx: { ml: 2 } })
                 return h(Box, { display: 'flex', flexDirection: 'column' },
-                    h(Box, { mb: 2 }, "You can choose a different base address for your links"),
+                    h(Box, { mb: 2 }, "Choose a base address for your links"),
                     h(MenuList, {},
+                        h(MenuItem, {
+                            selected: !v,
+                            onClick: () => set(''),
+                        }, "Automatic / None", !v && check),
                         urls.map(u => h(MenuItem, {
                             key: u,
                             selected: u === v,
                             onClick: () => set(u),
-                        }, u, u === v && h(Check, { sx: { ml: 2 } })))
+                        }, u, u === v && check))
                     ),
                     h(StringField, {
                         label: "Custom IP or domain",
@@ -306,10 +314,9 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                             icon: Save,
                             children: "Save",
                             async onClick() {
-                                if (v !== base) {
+                                if (v !== res.baseUrl)
                                     await apiCall('set_config', { values: { base_url: v } })
-                                    await reload()
-                                }
+                                resolve(v)
                                 close()
                             },
                         }) ),
@@ -322,5 +329,5 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                 }
             }
         })
-    }
+    })
 }
