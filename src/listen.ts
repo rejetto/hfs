@@ -13,6 +13,7 @@ import { ADMIN_URI, argv, DEV } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
+import { X509Certificate } from 'crypto'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -63,9 +64,18 @@ const considerHttps = debounceAsync(async () => {
             await wait(100)
         httpsSrv = Object.assign(
             https.createServer(port < 0 ? {} : { key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
-            { name: 'https', error: undefined }
+            { name: 'https' }
         )
         if (port >= 0) {
+            const cert = new X509Certificate(httpsOptions.cert)
+            const cn = cert.subject.split('CN=')[1]?.split('\n')[0]
+            if (cn)
+                console.log("certificate loaded for", cn)
+            const now = new Date()
+            httpsSrv.error = new Date(cert.validFrom) > now ? "certificate not valid yet"
+                : new Date(cert.validTo) < now ? "certificate expired"
+                    : undefined
+
             const namesForOutput: any = { cert: 'certificate', private_key: 'private key' }
             const missing = httpsNeeds.find(x => !x.get())?.key()
             if (missing)

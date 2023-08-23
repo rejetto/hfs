@@ -99,7 +99,9 @@ export default function OptionsPage() {
             },
             httpsEnabled && { k: 'cert', comp: FileField, md: 4, label: "HTTPS certificate file",
                 helperText: wikiLink('HTTPS#certificate', "What is this?"),
-                error: with_(status?.https.error, e => isCertError(e) && [e, ' - ', h(LinkBtn, { key: 'fix', onClick: makeCertAndSave }, "make one")]),
+                error: with_(status?.https.error, e => isCertError(e) && (
+                    status.https.listening ? e
+                        : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: makeCertAndSave }, "make one")] )),
             },
             httpsEnabled && { k: 'private_key', comp: FileField, md: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
