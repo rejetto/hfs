@@ -35,6 +35,11 @@
     text-align: center;
     border-radius: .8em 0;
 }
+.dialog-icon-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 .dialog-title {
     font-size: 120%;
     margin: .3em 0;
