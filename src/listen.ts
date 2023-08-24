@@ -63,7 +63,7 @@ const considerHttps = debounceAsync(async () => {
         while (!app)
             await wait(100)
         httpsSrv = Object.assign(
-            https.createServer(port < 0 ? {} : { key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
+            https.createServer(port === PORT_DISABLED ? {} : { key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
             { name: 'https' }
         )
         if (port >= 0) {
@@ -120,7 +120,8 @@ for (const cfg of httpsNeeds) {
     })
 }
 
-export const httpsPortCfg = defineConfig('https_port', -1)
+const PORT_DISABLED = -1
+export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
 httpsPortCfg.sub(considerHttps)
 
 interface StartServer { port: number, host?:string }
@@ -128,7 +129,7 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     return new Promise<number>(async resolve => {
         if (!srv) return 0
         try {
-            if (port < 0 || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
+            if (port === PORT_DISABLED || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
                 return resolve(0)
             // from a few tests, this seems enough to support the expect-100 http/1.1 mechanism, at least with curl -T, not used by chrome|firefox anyway
             srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
