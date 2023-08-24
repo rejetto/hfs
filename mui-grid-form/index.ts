@@ -142,9 +142,6 @@ export function Form<Values extends Dict>({
                             value: toField(originalValue),
                             error: Boolean(errMsg || error) || undefined,
                             setApi(api) { apis[k] = api },
-                            onBlur() {
-                                pleaseValidate(k)
-                            },
                             onKeyDown(event: any) {
                                 if (saveOnEnter && event.key === 'Enter')
                                     pleaseSubmit()

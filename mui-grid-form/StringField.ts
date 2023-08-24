@@ -6,7 +6,7 @@ import { Autocomplete, InputAdornment, TextField } from '@mui/material'
 import { StandardTextFieldProps } from '@mui/material/TextField/TextField'
 
 interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
-    typing?: boolean
+    typing?: boolean // change state as the user is typing
     onTyping?: (v: string) => boolean
     min?: number
     max?: number
@@ -26,12 +26,13 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
     })
     const [state, setState] = useState(normalized)
 
-    useProxyRef(props, 'inputRef', useCallback((x: any) => x && go(null, x.value), [])) // support autofill on chrome mobile
     const lastChange = useRef(normalized)
     useEffect(() => {
         setState(normalized)
         lastChange.current = normalized
     }, [normalized])
+    const valueFocusing = useRef('')
+    const autoFillDetected = useRef(false)
     const render = (params: any) => h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
@@ -42,18 +43,20 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
             const val = ev.target.value
             if (onTyping?.(val) === false) return
             setState(val)
-            if (typing // change state as the user is typing
-                || document.activeElement !== ev.target) // autofill ongoing, don't wait onBlur event, just go
+            if (typing || autoFillDetected.current)
                 go(ev, val)
         },
         onKeyDown(ev) {
             props.onKeyDown?.(ev)
+            autoFillDetected.current = ev.code === undefined
             if (ev.key === 'Enter')
                 go(ev)
         },
+        onFocus(ev) { valueFocusing.current = ev.target.value },
         onBlur(ev) {
             props.onBlur?.(ev)
-            go(ev)
+            if (valueFocusing.current !== ev.target.value)
+                go(ev)
         },
         InputProps: {
             startAdornment: start && h(InputAdornment, { position: 'start' }, start),
@@ -79,17 +82,3 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
     }
 }
 
-// intercept a ref prop. Return another Ref, but you can use the callback instead
-function useProxyRef(props: any, propName: string, cb?: (instance: any) => void) {
-    const ret = useRef()
-    const was = props[propName]
-    props[propName] = (instance: any) => { // callback is called twice, first time with null. This happens because it is controlled.
-        ret.current = instance
-        cb?.(instance)
-        if (typeof was === 'function')
-            was(instance)
-        else if (was)
-            (was as any).current = instance
-    }
-    return ret
-}
