@@ -158,7 +158,7 @@ export function delAccount(username: string) {
     if (!getAccount(username))
         return false
     accountsConfig.set(accounts =>
-        Object.assign(accounts, { [normalizeUsername(username)]: undefined }))
+        _.omit(accounts, normalizeUsername(username)) )
     saveAccountsAsap()
     return true
 }
