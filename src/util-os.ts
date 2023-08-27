@@ -13,7 +13,7 @@ export function getFreeDiskSync(path: string) {
             throw Error('miss')
         return Number(/FreeSpace=(\d+)/.exec(one)?.[1])
     }
-    const out = try_(() => execSync(`df -k ${path}`).toString(),
+    const out = try_(() => execSync(`df -k "${path}"`).toString(),
         err => {
             throw err.status === 1 ? Error('miss')
                 : err.status === 127 ? Error('unsupported')
