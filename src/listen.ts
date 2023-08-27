@@ -15,8 +15,8 @@ import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
-let httpSrv: http.Server & ServerExtra
-let httpsSrv: http.Server & ServerExtra
+let httpSrv: undefined | http.Server & ServerExtra
+let httpsSrv: undefined | http.Server & ServerExtra
 
 const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
 
@@ -42,7 +42,7 @@ export function openAdmin() {
     for (const srv of [httpSrv, httpsSrv]) {
         const a = srv?.address()
         if (!a || typeof a === 'string') continue
-        const baseUrl = srv.name + '://localhost:' + a.port
+        const baseUrl = srv!.name + '://localhost:' + a.port
         open(baseUrl + ADMIN_URI, { wait: true}).catch(e => {
             console.debug(String(e))
             console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
@@ -76,7 +76,7 @@ const considerHttps = debounceAsync(async () => {
         }
     }
     catch(e) {
-        httpsSrv.error = "bad private key or certificate"
+        httpsSrv!.error = "bad private key or certificate"
         console.log("failed to create https server: check your private key and certificate", String(e))
         return
     }
@@ -116,6 +116,7 @@ httpsPortCfg.sub(considerHttps)
 interface StartServer { port: number, host?:string }
 function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     return new Promise<number>(async resolve => {
+        if (!srv) return 0
         try {
             if (port < 0 || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
                 return resolve(0)
@@ -135,13 +136,13 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
 
     async function testIpV4() {
         const res = await listen('0.0.0.0')
-        await new Promise(res => srv.close(res))
+        await new Promise(res => srv?.close(res))
         return res > 0
     }
 
     function listen(host?: string) {
         return new Promise<number>(async (resolve, reject) => {
-            srv.listen({ port, host }, () => {
+            srv?.listen({ port, host }, () => {
                 const ad = srv.address()
                 if (!ad)
                     return reject('no address')
@@ -167,7 +168,7 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     }
 }
 
-function stopServer(srv: http.Server) {
+function stopServer(srv?: http.Server) {
     return new Promise(resolve => {
         if (!srv?.listening)
             return resolve(null)
@@ -189,7 +190,7 @@ export async function getServerStatus() {
     }
 
     async function serverStatus(h: typeof httpSrv, configuredPort?: number) {
-        const busy = await h.busy
+        const busy = await h?.busy
         await wait(0) // simple trick to wait for also .error to be updated. If this trickery becomes necessary elsewhere, then we should make also error a Promise.
         return {
             ..._.pick(h, ['listening', 'error']),
