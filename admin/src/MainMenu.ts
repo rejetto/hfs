@@ -27,7 +27,7 @@ import LogoutPage from './LogoutPage';
 import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
-import { useApi } from './api'
+import { getHFS } from '@hfs/shared'
 import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
 
@@ -53,10 +53,8 @@ export const mainMenu: MenuEntry[] = [
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
 
-let version: any // cache 'version', as it won't change at runtime, while the Drawer mechanism will unmount our menu each time
 export default function Menu({ onSelect }: { onSelect: ()=>void }) {
-    const [status] = useApi(!version && 'get_status')
-    version ||= status?.version?.replace('-', ' ')
+    const { VERSION } = getHFS()
     return h(Box, { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%', },
         h(List, {
             sx:{
@@ -69,7 +67,7 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
         },
             h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'flex-end' },
                 h(Box, { fontSize: 'min(3rem, 5vh)' }, 'HFS'),
-                h(Box, { pb: 1, fontSize: 'small' }, version),
+                h(Box, { pb: 1, fontSize: 'small' }, VERSION?.replace('-', ' ')),
             ),
             mainMenu.map(it =>
                 h(ListItemButton, {
