@@ -6,7 +6,7 @@ import {
     ADMIN_URI, API_URI,
     BUILD_TIMESTAMP,
     DEV, DAY,
-    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED,
+    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode, getNodeName } from './vfs'
@@ -23,7 +23,7 @@ import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
-import { once, Readable } from 'stream'
+import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { getAccount } from './perm'
 import { socket2connection, updateConnection, normalizeIp } from './connections'
@@ -121,15 +121,19 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (!node)
         return sendErrorPage(ctx, HTTP_NOT_FOUND)
     if (ctx.method === 'POST') { // curl -F upload=@file url/
+        if (ctx.request.type !== 'multipart/form-data')
+            return ctx.status = HTTP_BAD_REQUEST
         ctx.body = {}
         const form = formidable({
             maxFileSize: Infinity,
+            allowEmptyFiles: true,
             //@ts-ignore wrong in the .d.ts file
             fileWriteStreamHandler: f => uploadWriter(node, f.originalFilename, ctx)
         })
-        form.parse(ctx.req)
-        await once(form, 'end').catch(()=> {})
-        return
+        return new Promise<void>(res => form.parse(ctx.req, err => {
+            if (err) console.error(String(err))
+            res()
+        }))
     }
     if (!await nodeIsDirectory(node))
         return !node.source && await next()
