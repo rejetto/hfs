@@ -64,7 +64,7 @@ export default function InternetPage() {
 
     async function verify(): Promise<any> {
         setCheckResult(undefined)
-        if (!await confirmDialog("This test is going to check that your server is working properly on the Internet")) return
+        if (!await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
             const { success } = await apiCall('check_server', {})
