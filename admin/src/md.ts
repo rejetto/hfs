@@ -28,6 +28,7 @@ export function replaceStringToReact(text: string, re: RegExp, cb: (match: RegEx
         res.push(onText(text.slice(last, match.index)))
         res.push(cb(match))
         last = match.index + match[0].length
+        if (!re.global) break
     }
     return h(Fragment, {}, ...res, onText(text.slice(last, Infinity)))
 }

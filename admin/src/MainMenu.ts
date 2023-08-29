@@ -30,6 +30,8 @@ import PluginsPage from './PluginsPage';
 import { getHFS } from '@hfs/shared'
 import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
+import { replaceStringToReact } from './md'
+import { useWindowSize } from 'usehooks-ts'
 
 interface MenuEntry {
     path: string
@@ -55,6 +57,8 @@ export const mainMenu: MenuEntry[] = [
 
 export default function Menu({ onSelect }: { onSelect: ()=>void }) {
     const { VERSION } = getHFS()
+    const logo = 'hfs-logo.svg'
+    const short = useWindowSize().height < 700
     return h(Box, { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%', },
         h(List, {
             sx:{
@@ -65,9 +69,10 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                 display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
             }
         },
-            h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'flex-end' },
-                h(Box, { fontSize: 'min(3rem, 5vh)' }, 'HFS'),
-                h(Box, { pb: 1, fontSize: 'small' }, VERSION?.replace('-', ' ')),
+            h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'center' },
+                h(Box, { fontSize: 'min(3rem, max(5vw, 4vh))' }, 'HFS'),
+                h(Box, { fontSize: 'small' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
+                short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
             mainMenu.map(it =>
                 h(ListItemButton, {
@@ -82,7 +87,7 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                     it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
                     h(ListItemText, { sx: { whiteSpace: 'nowrap' }, primary: getMenuLabel(it) })
                 ) ),
-            h(Box, { sx: { flex: 1, opacity: .7, background: 'url(hfs-logo.svg) no-repeat bottom', backgroundSize: 'contain', margin: 2 } }),
+            !short && h(Box, { sx: { flex: 1, opacity: .7, background: `url(${logo}) no-repeat bottom`, backgroundSize: 'contain', margin: 2 } }),
         )
     )
 }
