@@ -5,11 +5,10 @@ import { argv, DAY, ORIGINAL_CWD, VERSION } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { debounceAsync, same, newObj, onOff, wait, with_ } from './misc'
-import { copyFileSync, existsSync, renameSync, statSync } from 'fs'
+import { debounceAsync, newObj, onOff, wait, with_ } from './misc'
+import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
-import { homedir } from 'os'
 import { copyFile, stat } from 'fs/promises'
 
 const FILE = 'config.yaml'
@@ -32,19 +31,6 @@ const filePath = with_(argv.config || process.env.HFS_CONFIG, p => {
     catch {}
     return p
 })
-const legacyPosition = join(homedir(), FILE) // this was happening with npx on Windows for some time. Remove around v0.47
-if (!existsSync(filePath) && existsSync(legacyPosition))
-    try {
-        renameSync(legacyPosition, filePath)
-        console.log("moved from legacy position", legacyPosition)
-    }
-    catch {
-        try { // attempt copying, in case moving the source file proves to be impractical
-            copyFileSync(legacyPosition, filePath)
-            console.log("copied from legacy position", legacyPosition)
-        }
-        catch {}
-    }
 // takes a semver like 1.2.3-alpha1, but alpha and beta numbers must share the number progression
 export const versionToScalar = _.memoize((ver: string) => { // memoize so we don't have to care about converting same value twice
     // this regexp is supposed to be resistant to optional leading "v" and an optional custom name after a space
