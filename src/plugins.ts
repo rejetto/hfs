@@ -103,8 +103,12 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> 
 }
 
 export function findPluginByRepo<T>(repo: string) {
-    return _.find(plugins, pl => pl.getData()?.repo === repo)
-        || _.find(availablePlugins, { repo })
+    return _.find(plugins, pl => match(pl.getData()))
+        || _.find(availablePlugins, match)
+
+    function match(rec: any) {
+        return repo === (rec?.repo?.main ?? rec?.repo)
+    }
 }
 
 export function getPluginConfigFields(id: string) {
@@ -211,12 +215,13 @@ type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
 type Stop = true
 type CallMeAfter = ()=>any
 
+export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string }
 export interface AvailablePlugin {
     id: string
     description?: string
     version?: number
     apiRequired?: number | [number,number]
-    repo?: string
+    repo?: Repo
     depend?: { repo: string, version?: number }[]
     branch?: string
     badApi?: string
@@ -428,7 +433,7 @@ onProcessExit(() =>
 export function parsePluginSource(id: string, source: string) {
     const pl: AvailablePlugin = { id }
     pl.description = tryJson(/exports.description *= *(".*")/.exec(source)?.[1])
-    pl.repo = /exports.repo *= *"(.*)"/.exec(source)?.[1]
+    pl.repo = tryJson(/exports.repo *= *(.*);? *$/m.exec(source)?.[1])
     pl.version = Number(/exports.version *= *(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
     pl.depend = tryJson(/exports.depend *= *(\[.*\])/m.exec(source)?.[1])?.filter((x: any) =>

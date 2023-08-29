@@ -45,10 +45,27 @@ All the following properties are optional unless otherwise specified.
 - `description: string` try to explain what this plugin is for.
 - `version: number` use progressive numbers to distinguish each release
 - `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. Mandatory. [Refer to API version history](#api-version-history)   
-- `repo: string` pointer to a GitHub repo where this plugin is hosted.
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on.
+- `repo: string | object` pointer to a GitHub repo where this plugin is hosted.
+  - the string form is for GitHub repos. Example: "rejetto/file-icons"
+  - the object form will point to other custom repo. Object properties:
+    - `web: string` link to a web page 
+    - `main: string` link to the plugin.js (can be relative to `web`)
+    - `zip: string` link to the zip with the whole plugin (can be relative to `web`)
+    - `zipRoot: string` optional, in case the plugin in the zip is inside a folder
+    
+    Example: 
+    ```
+    { 
+      "web": "https://github.com/rejetto/file-icons", 
+      "zip": "/archive/refs/heads/main.zip",
+      "zipRoot: "file-icons/main", 
+      "main": "https://raw.githubusercontent.com/rejetto/file-icons/main/dist/plugin.js" 
+    }
+    ```
+    Plugins with custom repos are not included in search results, but the update feature will still work.   
 
-All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
+WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects).
 
 - `init` described in the previous section. 
@@ -146,7 +163,8 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `getConnections: Connections[]` retrieve current list of active connections.
 
-- `storageDir: string` folder where a plugin is supposed to store run-time data.
+- `storageDir: string` folder where a plugin is supposed to store run-time data. This folder is preserved during
+  an update of the plugin, while the rest could be deleted. 
 
 - `events: EventEmitter` this is the main events emitter used by HFS.
 

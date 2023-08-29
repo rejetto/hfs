@@ -4,7 +4,7 @@ import { getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { httpsStream, onProcessExit, unzip } from './misc'
+import { httpStream, onProcessExit, unzip } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { access, chmod, stat } from 'fs/promises'
@@ -84,7 +84,7 @@ export async function update(tag?: string) {
             throw "asset not found"
         const url = asset.browser_download_url
         console.log("downloading", url)
-        updateSource = await httpsStream(url)
+        updateSource = await httpStream(url)
     }
 
     const bin = process.execPath

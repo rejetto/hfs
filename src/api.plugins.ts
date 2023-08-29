@@ -28,7 +28,7 @@ import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './con
 const apis: ApiHandlers = {
 
     get_plugins({}, ctx) {
-        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize), ...getAvailablePlugins() ] })
+        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize), ...getAvailablePlugins().map(serialize) ] })
         return list.events(ctx, {
             pluginInstalled: p => list.add(serialize(p)),
             'pluginStarted pluginStopped pluginUpdated': p => {
@@ -41,34 +41,35 @@ const apis: ApiHandlers = {
         function serialize(p: Readonly<Plugin> | AvailablePlugin) {
             const o = 'getData' in p ? Object.assign(_.pick(p, ['id','started']), p.getData())
                     : { ...p } // _.defaults mutates object, and we don't want that
+            if (typeof o.repo === 'object') // custom repo
+                o.repo = o.repo.web
             return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
         }
     },
 
     async get_plugin_updates() {
-        const list = new SendListReadable()
-        setTimeout(async () => {
-            const errs = await Promise.all(_.map(getFolder2repo(), async (repo, folder) => {
-                try {
-                    if (!repo) return
-                    //TODO shouldn't we consider other branches here?
-                    const online = await readOnlinePlugin(repo)
-                    if (!online.apiRequired || online.badApi) return
-                    const disk = getPluginInfo(folder)
-                    if (online.version! > disk.version)
-                        list.add(online)
-                }
-                catch (err:any) {
-                    if (err.message === '404') // the plugin is declaring a wrong repo
-                        return
-                    return err.code || err.message
-                }
-            }))
-            for (const x of _.uniq(onlyTruthy(errs)))
-                list.error(x)
-            list.close()
+        return new SendListReadable({
+            async doAtStart(list) {
+                const errs = await Promise.all(_.map(getFolder2repo(), async (repo, folder) => {
+                    try {
+                        if (!repo) return
+                        //TODO shouldn't we consider other branches here?
+                        const online = await readOnlinePlugin(repo)
+                        if (!online?.apiRequired || online.badApi) return
+                        const disk = getPluginInfo(folder)
+                        if (online.version! > disk.version)
+                            list.add(online)
+                    } catch (err: any) {
+                        if (err.message === '404') // the plugin is declaring a wrong repo
+                            return
+                        return err.code || err.message
+                    }
+                }))
+                for (const x of _.uniq(onlyTruthy(errs)))
+                    list.error(x)
+                list.close()
+            }
         })
-        return list
     },
 
     async start_plugin({ id }) {
@@ -184,6 +185,7 @@ export default apis
 
 async function checkDependencies(repo: string, branch: string) {
     const rec = await readOnlinePlugin(repo, branch)
+    if (!rec) return
     const miss = rec.depend && rec.depend.map((dep: any) => {
         const res = findPluginByRepo(dep.repo)
         const error = !res ? 'missing'

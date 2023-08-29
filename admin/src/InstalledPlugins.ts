@@ -5,7 +5,7 @@ import { createElement as h, Fragment, ReactNode } from 'react'
 import { Alert, Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
 import { Delete, Error, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { IconBtn, xlate } from './misc'
+import { IconBtn, with_, xlate } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
@@ -101,11 +101,15 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
 
 export function renderName({ row, value }: any) {
     const { repo } = row
-    const arr = repo?.split('/')
     return h(Fragment, {},
         errorIcon(row.badApi, true),
         errorIcon(row.error),
-        ...!repo ? [value] : [ h(Link, { href: 'https://github.com/' + repo, target: 'plugin' }, arr[1]), '\xa0by ', arr[0] ]
+        repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
+            : !repo ? value
+                : with_(repo?.split('/'), arr => h(Fragment, {},
+                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin' }, arr[1]),
+                    '\xa0by ', arr[0]
+                ))
     )
 
     function errorIcon(msg: ReactNode, warning=false) {

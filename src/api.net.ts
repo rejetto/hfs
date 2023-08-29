@@ -8,7 +8,7 @@ import {parse} from 'node-html-parser'
 import _ from 'lodash'
 import { getIps, getServerStatus } from './listen'
 import { getProjectInfo } from './github'
-import { httpsString } from './util-http'
+import { httpString } from './util-http'
 import { exec } from 'child_process'
 
 async function getNatInfo() {
@@ -40,7 +40,7 @@ async function getPublicIp() {
     const prjInfo = await getProjectInfo()
     for (const urls of _.chunk(_.shuffle(prjInfo.publicIpServices), 2)) // small parallelization
         try {
-            return await Promise.any(urls.map(url => httpsString(url).then(res => {
+            return await Promise.any(urls.map(url => httpString(url).then(res => {
                 const ip = res.body?.trim()
                 if (!/[.:0-9a-fA-F]/.test(ip))
                     throw Error("bad result: " + ip)
