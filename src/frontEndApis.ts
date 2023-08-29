@@ -3,7 +3,6 @@
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { get_file_list } from './api.file_list'
 import * as api_auth from './api.auth'
-import { defineConfig } from './config'
 import events from './events'
 import Koa from 'koa'
 import { dirTraversal, isValidFileName } from './util-files'
@@ -19,8 +18,6 @@ import { hasPermission, urlToNode } from './vfs'
 import { mkdir, rename, rm } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-
-export const customHeader = defineConfig('custom_header', '')
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
