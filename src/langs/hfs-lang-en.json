@@ -30,9 +30,9 @@
         "Searched": "Searched",
         "Clear search": "Clear search",
         "Interrupted": "Interrupted",
-        "stopped_before": "stopped_before",
-        "empty_list": "empty_list",
-        "filter_none": "filter_none",
+        "stopped_before": "Stopped before finding anything",
+        "empty_list": "Nothing here",
+        "filter_none": "No match for this filter",
 
         "Admin-panel": "Admin-panel",
         "Login": "Login",
