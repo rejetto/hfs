@@ -1,5 +1,5 @@
 import { createElement as h, useEffect, useState } from 'react'
-import { Alert, Box, Button, CircularProgress, LinearProgress, Link } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, CircularProgress, LinearProgress, Link } from '@mui/material'
 import { HomeWorkTwoTone, PublicTwoTone, RouterTwoTone } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, with_ } from '@hfs/shared'
@@ -7,6 +7,7 @@ import { Flex, LinkBtn } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { NumberField } from '@hfs/mui-grid-form'
 import md from './md'
+import { changeBaseUrl } from './FileForm'
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
@@ -17,7 +18,7 @@ export default function InternetPage() {
     const [checking, setChecking] = useState(false)
     const [mapping, setMapping] = useState(false)
     const [verifyAgain, setVerifyAgain] = useState(false)
-    const { data: status } = useApiEx('get_status')
+    const { data: status, reload: reloadStatus } = useApiEx('get_status')
     const localColor = with_([status?.http?.error, status?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     const { data: nat, reload, error, loading } = useApiEx('get_nat')
@@ -31,8 +32,23 @@ export default function InternetPage() {
     }, [verifyAgain, nat, loading])
     return h(Flex, { vert: true },
         h(Alert, { severity: 'info' }, "This page helps you making your server work on the Internet"),
+        baseUrlBox(),
         networkBox(),
     )
+
+    function baseUrlBox() {
+        if (!status) return h(CircularProgress)
+        return h(Card, {}, h(CardContent, {},
+            h(Box, { fontSize: 'x-large', mb: 2 }, "Address / Domain"),
+            h(Flex, { flexWrap: 'wrap', alignItems: 'center' },
+                status?.baseUrl || "Automatic, not configured",
+                h(Button, {
+                    size: 'small',
+                    onClick() { changeBaseUrl().then(reloadStatus) }
+                }, "Change"),
+            )
+        ))
+    }
 
     function networkBox() {
         if (error) return "Error"

@@ -278,7 +278,7 @@ export async function changeBaseUrl() {
                         h(MenuItem, {
                             selected: !v,
                             onClick: () => set(''),
-                        }, "Automatic / None", !v && check),
+                        }, "Automatic", !v && check),
                         urls.map(u => h(MenuItem, {
                             key: u,
                             selected: u === v,
