@@ -159,7 +159,7 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `log(...args)` print log in a standard form for plugins.
 
-- `const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
+- `Const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
 
 - `getConnections: Connections[]` retrieve current list of active connections.
 
@@ -355,6 +355,8 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
+- 8.4 (v0.48.0)
+  - HFS.Const (HFS.const is now deprecated) 
 - 8.3 (v0.47.0)
   - HFS.useBatch
   - FileMenuEntry.id, .subLabel

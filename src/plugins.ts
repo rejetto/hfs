@@ -339,7 +339,8 @@ function watchPlugin(id: string, path: string) {
             const res = await init?.call(null, {
                 srcDir: __dirname,
                 storageDir,
-                const: Const,
+                Const,
+                const: Const, // legacy, deprecated in 0.48
                 require,
                 getConnections,
                 events,
