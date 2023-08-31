@@ -9,7 +9,7 @@ const TAGS = {
     '**': 'b',
 }
 type OnText = (s: string) => ReactNode
-export default function md(text: string | TemplateStringsArray, { linkTarget='', onText=(x=>x) as OnText }={}) {
+export default function md(text: string | TemplateStringsArray, { linkTarget='_blank', onText=(x=>x) as OnText }={}) {
     if (typeof text !== 'string')
         text = text[0]
     return replaceStringToReact(text, /(`|_|\*\*?)(.+)\1|(\n)|\[(.+)\]\((.+)\)|<([^ >/]+)>(.*)<\/\6>|<([^ >/]+) *\/>/g, m =>

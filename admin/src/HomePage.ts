@@ -129,7 +129,7 @@ export default function HomePage() {
 }
 
 function renderChangelog(s: string) {
-    return md(s, { onText, linkTarget: '_blank' })
+    return md(s, { onText })
 
     function onText(s: string) {
         return replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues

@@ -29,7 +29,7 @@ import { mkdir, readFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
-import { newCustomHtmlState, watchLoadCustomHtml } from './customHtml'
+import { watchLoadCustomHtml } from './customHtml'
 
 export const PATH = 'plugins'
 export const DISABLING_POSTFIX = '-disabled'
@@ -115,10 +115,35 @@ export function getPluginConfigFields(id: string) {
     return plugins[id]?.getData().config
 }
 
+const serverCode = defineConfig('server_code', '', async (script, { k }) => {
+    const res: any = {}
+    try {
+        new Function('exports', script)(res) // parse
+        return await initPlugin(res)
+    }
+    catch (e: any) {
+        return console.error(k + ':', e.message || String(e))
+    }
+})
+
+async function initPlugin<T>(pl: any, more?: T) {
+    return Object.assign(pl, await pl.init?.({
+        const: Const, // legacy, deprecated in 0.48
+        Const,
+        require,
+        getConnections,
+        events,
+        log: console.log,
+        getHfsConfig: getConfig,
+        customApiCall,
+        ...more
+    }))
+}
+
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     const after: Dict<CallMeAfter> = {}
     // run middleware plugins
-    for (const [id,pl] of Object.entries(plugins))
+    for (const [id,pl] of Object.entries(plugins).concat([['.', await serverCode.compiled()]]))
         try {
             const res = await pl.middleware?.(ctx)
             if (res === true)
@@ -325,30 +350,24 @@ function watchPlugin(id: string, path: string) {
                 setError(id, '')
             const alreadyRunning = plugins[id]
             console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
-            const { init, ...data } = await import(module)
-            delete data.default
+            const pluginData = await import(module)
             deleteModule(require.resolve(module)) // avoid caching at next import
-            calculateBadApi(data)
-            if (data.badApi)
-                console.log("plugin", id, data.badApi)
+            calculateBadApi(pluginData)
+            if (pluginData.badApi)
+                console.log("plugin", id, pluginData.badApi)
 
             await alreadyRunning?.unload(true)
             console.debug("starting plugin", id)
             const storageDir = resolve(module, '..', STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
             await mkdir(storageDir, { recursive: true })
-            const res = await init?.call(null, {
+            await initPlugin(pluginData, {
                 srcDir: __dirname,
                 storageDir,
-                Const,
-                const: Const, // legacy, deprecated in 0.48
-                require,
-                getConnections,
-                events,
                 log(...args: any[]) {
                     console.log('plugin', id+':', ...args)
                 },
                 getConfig: (cfgKey: string) =>
-                    pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue,
+                    pluginsConfig.get()?.[id]?.[cfgKey] ?? pluginData.config?.[cfgKey]?.defaultValue,
                 setConfig: (cfgKey: string, value: any) =>
                     setPluginConfig(id, { [cfgKey]: value }),
                 subscribeConfig(cfgKey: string, cb: Callback<any>) {
@@ -358,22 +377,14 @@ function watchPlugin(id: string, path: string) {
                         const now = this.getConfig(cfgKey)
                         if (same(now, last)) return
                         try { cb(last = now) }
-                        catch(e){
-                            console.log('plugin', id, String(e))
-                        }
+                        catch(e){ this.log(String(e)) }
                     })
                 },
-                getHfsConfig: getConfig,
-                customApiCall(method: string, params?: any) {
-                    return mapPlugins(pl => pl.getData().customApi?.[method]?.(params))
-                }
             })
             const folder = dirname(module)
-            Object.assign(data, res, {
-                customHtml: newCustomHtmlState()
-            })
-            const customHtmlWatcher = watchLoadCustomHtml(data.customHtml, folder)
-            const plugin = plugins[id] = new Plugin(id, folder, data, customHtmlWatcher.unwatch)
+            const { state, unwatch } = watchLoadCustomHtml(folder)
+            pluginData.customHtml = state
+            const plugin = plugins[id] = new Plugin(id, folder, pluginData, unwatch)
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
@@ -395,6 +406,10 @@ function watchPlugin(id: string, path: string) {
         }
 
     }
+}
+
+function customApiCall(method: string, params?: any) {
+    return mapPlugins(pl => pl.getData().customApi?.[method]?.(params))
 }
 
 function getError(id: string) {

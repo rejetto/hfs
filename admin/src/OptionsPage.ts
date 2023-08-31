@@ -5,7 +5,7 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApi, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh, Warning } from '@mui/icons-material'
-import { Dict, Flex, iconTooltip, LinkBtn, modifiedSx, wikiLink, with_ } from './misc'
+import { Dict, Flex, iconTooltip, LinkBtn, modifiedSx, REPO_URL, wikiLink, with_ } from './misc'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -14,6 +14,7 @@ import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import md from './md'
+import { TextEditor } from './CustomHtmlPage'
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
@@ -169,6 +170,9 @@ export default function OptionsPage() {
                 fromField: (all:string) => all.split('\n').map(s => s.trim()).filter(Boolean).map(ip => ({ ip })),
                 toField: (all: any) => !Array.isArray(all) ? '' : all.map(x => x?.ip).filter(Boolean).join('\n')
             },
+            { k: 'server_code', comp: TextEditor, sm: 12,
+                helperText: md("This code works similarly to a plugin (with some limitations). Please refer to [plugin documentation]("+ REPO_URL + "blob/main/dev-plugins.md).")
+            }
         ]
     })
 
