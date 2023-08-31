@@ -55,7 +55,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
         if (!short)
             return new ApiError(HTTP_BAD_REQUEST, "bad repo")
         const folder = overwrite ? _.findKey(getFolder2repo(), x => x===repo)! // use existing folder
-            : getFolder2repo().hasOwnProperty(short) ? repo.replace('/','-') // longer form only if another plugin is using short form
+            : getFolder2repo().hasOwnProperty(short) ? repo.replace('/','-') // longer form only if another plugin is using short form, to avoid overwriting
                 : short
         const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder
         return await go(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`, folder, GITHUB_ZIP_ROOT + '/' + DIST_ROOT)

@@ -117,12 +117,7 @@ const apis: ApiHandlers = {
                     const folder2repo = getFolder2repo()
                     for await (const pl of searchPlugins(text)) {
                         const repo = pl.id
-                        if (_.includes(folder2repo, repo)) continue
-                        const folder = _.findKey(folder2repo, x => x === repo)
-                        const installed = folder && getPluginInfo(folder)
-                        Object.assign(pl, {
-                            update: installed && installed.version < pl.version!,
-                        })
+                        if (_.includes(folder2repo, repo)) continue // don't include installed plugins
                         list.add(pl)
                         // watch for events about this plugin, until this request is closed
                         undo.push(onOff(events, {
@@ -133,10 +128,6 @@ const apis: ApiHandlers = {
                             pluginUninstalled: folder => {
                                 if (repo === getFolder2repo()[folder])
                                     list.update({ id: repo }, { installed: false })
-                            },
-                            pluginUpdated: p => {
-                                if (p.repo === repo)
-                                    list.update({ id: repo }, { update: p.version < pl.version! })
                             },
                             ['pluginDownload_' + repo](status) {
                                 list.update({ id: repo }, { downloading: status ?? null })
