@@ -1,11 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { ComponentProps, createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
+import { ComponentProps, createElement as h, forwardRef, Fragment, useEffect, useMemo, useState } from 'react';
 import { Field, FieldProps, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { Alert, Box, FormHelperText, FormLabel } from '@mui/material'
+import { Alert, Box, TextField } from '@mui/material'
 import Editor from 'react-simple-code-editor'
-import { Dict, IconBtn, isCtrlKey, modifiedSx, reloadBtn, wikiLink } from './misc';
+import { Dict, focusableSelector, IconBtn, isCtrlKey, modifiedSx, reloadBtn, wikiLink } from './misc';
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
@@ -44,8 +44,7 @@ export default function CustomHtmlPage() {
         h(TextEditor, {
             value: all?.[section] || '',
             style: { background: '#8881' },
-            // @ts-ignore TODO
-            onChange(v: string) {
+            onValueChange(v: string) {
                 setAll(all => ({ ...all, [section]: v }))
             },
             onKeyDown(ev) {
@@ -68,30 +67,59 @@ function escapeHTML(unsafe: string) {
 }
 
 type OP = ComponentProps<typeof Editor>
-type Already = 'highlight' | 'padding' | 'tabSize' | 'insertSpaces' | 'ignoreTabKey' | 'onValueChange'
-type TextEditorProps = FieldProps<string> & Omit<OP, Already> & Partial<Pick<OP, Already>>
-export function TextEditor({ label, helperText, onChange, setApi, style, ...props }: TextEditorProps) {
-    return h(Fragment, {},
-        label && h(FormLabel, { sx: { ml: 1 } }, label),
-        helperText && h(FormHelperText, {}, helperText),
-        h(Editor, {
-            highlight: escapeHTML,
-            padding: 10,
-            tabSize: 4,
-            insertSpaces: true,
-            ignoreTabKey: false,
-            style: {
-                fontFamily: 'ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace',
-                fontSize: '1em',
-                flex: 1,
-                background: '#8883',
-                borderBottom: '1px solid #bbb',
-                ...style,
-            },
-            onValueChange(v: string) {
-                onChange(v, { was: props.value, event: null })
-            },
-            ...props,
-        })
-    )
+type Already = 'highlight' | 'padding' | 'tabSize' | 'insertSpaces' | 'ignoreTabKey'
+type TextEditorProps = Omit<OP, Already> & Partial<Pick<OP, Already>>
+const TextEditor = forwardRef(({ style, ...props }: TextEditorProps, ref) => h(Editor, {
+    // Editor component doesn't seem to support ref, but I didn't cause any problem yet
+    highlight: escapeHTML,
+    padding: 10,
+    tabSize: 4,
+    insertSpaces: true,
+    ignoreTabKey: false,
+    style: {
+        fontFamily: 'ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace',
+        fontSize: '1em',
+        flex: 1,
+        background: '#8883',
+        borderBottom: '1px solid #bbb',
+        ...style,
+    },
+    ...props,
+}))
+
+export function TextEditorField({ onChange, value, onBlur, setApi, ...props }: FieldProps<string>) {
+    const [state, setState] = useState(value || '')
+    return h(TextField, {
+        multiline: true,
+        fullWidth: true,
+        value: state,
+        InputProps: { inputComponent: TextEditorAsInput },
+        onChange(event) { setState(event.target.value) },
+        onBlur(event) {
+            onBlur?.(event)
+            onChange(event.target.value, { was: value, event })
+        },
+        ...props,
+        onKeyDown(ev) {
+            if (!ev.altKey || ev.key !== 'Tab') return
+            ev.preventDefault()
+            const focusable = document.querySelectorAll(focusableSelector)
+            const i = _.indexOf(focusable, ev.target)
+            const n = focusable.length
+            const next = (i + (ev.shiftKey ? -1 : 1) + n) % n
+            ;(focusable[next] as HTMLElement).focus()
+            console.debug(focusable[next])
+        },
+    })
 }
+
+const TextEditorAsInput = forwardRef<HTMLInputElement, any>(({ onChange, ...rest }: any, ref) =>
+    h(Box, { sx: { width: '100%', textarea: { outline: 0 } } },
+        h(TextEditor, {
+            ref,
+            onValueChange: value => onChange({ target: { value } }),
+            padding: 2,
+            style: { background: 'initial', borderBottom: 'initial' },
+            ...rest
+        })
+    ))

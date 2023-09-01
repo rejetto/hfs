@@ -29,7 +29,7 @@ export const dialogsDefaults: Partial<DialogOptions> = {
 }
 
 // focus trapped on current dialog (MUI already does it)
-const focusableSelector = ['input:not([type="hidden"])', 'button', 'select', 'textarea', 'a[href]', '[tabindex]'].map(x =>
+export const focusableSelector = ['input:not([type="hidden"])', 'button', 'select', 'textarea', 'a[href]', '[tabindex]'].map(x =>
     x + ':not([disabled]):not([tabindex="-1"])').join(',')
 window.addEventListener('keydown', ev => {
     if (ev.key !== 'Tab') return

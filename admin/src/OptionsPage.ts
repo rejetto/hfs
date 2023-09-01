@@ -14,7 +14,7 @@ import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import md from './md'
-import { TextEditor } from './CustomHtmlPage'
+import { TextEditorField } from './CustomHtmlPage'
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
@@ -170,8 +170,8 @@ export default function OptionsPage() {
                 fromField: (all:string) => all.split('\n').map(s => s.trim()).filter(Boolean).map(ip => ({ ip })),
                 toField: (all: any) => !Array.isArray(all) ? '' : all.map(x => x?.ip).filter(Boolean).join('\n')
             },
-            { k: 'server_code', comp: TextEditor, sm: 12,
-                helperText: md("This code works similarly to a plugin (with some limitations). Please refer to [plugin documentation]("+ REPO_URL + "blob/main/dev-plugins.md).")
+            { k: 'server_code', comp: TextEditorField, sm: 12,
+                helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             }
         ]
     })
