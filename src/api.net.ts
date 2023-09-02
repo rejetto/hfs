@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { Client } from 'nat-upnp'
-import { HTTP_FAILED_DEPENDENCY, HTTP_SERVICE_UNAVAILABLE, IS_MAC, IS_WINDOWS } from './const'
+import { HTTP_FAILED_DEPENDENCY, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE, IS_MAC, IS_WINDOWS } from './const'
 import axios from 'axios'
 import {parse} from 'node-html-parser'
 import _ from 'lodash'
@@ -10,14 +10,28 @@ import { getIps, getServerStatus } from './listen'
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
+import { debounceAsync } from './misc'
 
-async function getNatInfo() {
-    const client = new Client({ timeout: 3000 })
+const client = new Client({ timeout: 5_000 })
+const original = client.getGateway
+client.getGateway = () => {
+    const promise = original.apply(client)
+    promise.then(() => { // store in cache only if successful
+        console.debug('caching gateway')
+        // other client methods call getGateway too, so this will ensure they reuse this same result
+        client.getGateway = () => promise
+    }, ()=>{})
+    return promise
+}
+client.getGateway()
+
+const getNatInfo = debounceAsync(async () => {
+    const gettingIp = getPublicIp() // don't wait, do it in parallel
     const res = await client.getGateway().catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await client.getMappings().catch(() => null)
+    console.debug('mappings found', mappings)
     const externalIp = res && await client.getPublicIp().catch(() => null)
-    const publicIp = await getPublicIp() || externalIp
     const gatewayIp = res ? new URL(res.gateway.description).hostname : await getGateway().catch(() => null)
     const localIp = res?.address || getIps()[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port
@@ -27,14 +41,13 @@ async function getNatInfo() {
         upnp: Boolean(res),
         localIp,
         gatewayIp,
-        publicIp,
+        publicIp: await gettingIp || externalIp,
         externalIp,
         mapped,
-        mappings,
         internalPort,
         externalPort: mapped?.public.port,
     }
-}
+})
 
 async function getPublicIp() {
     const prjInfo = await getProjectInfo()
@@ -54,7 +67,7 @@ function getGateway(): Promise<string | undefined> {
     return new Promise((resolve, reject) =>
         exec(IS_WINDOWS || IS_MAC ? 'netstat -rn' : 'route -n', (err, out) => {
             if (err) return reject(err)
-            const re = IS_WINDOWS ? /(?:0\.0\.0\.0 +){2}([\d\.]+)/ : IS_MAC ? /default +([\d\.]+)/ : /^0\.0\.0\.0 +([\d\.]+)/
+            const re = IS_WINDOWS ? /(?:0\.0\.0\.0 +){2}([\d.]+)/ : IS_MAC ? /default +([\d.]+)/ : /^0\.0\.0\.0 +([\d.]+)/
             resolve(re.exec(out)?.[1])
         }) )
 }
@@ -68,9 +81,9 @@ const apis: ApiHandlers = {
             return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'upnp failed')
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
-        const client = new Client()
         if (mapped)
-            await client.removeMapping({ private: mapped.private.port, public: mapped.public.port, protocol: 'tcp' })
+            try { await client.removeMapping({ private: mapped.private.port, public: mapped.public.port, protocol: 'tcp' }) }
+            catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, 'removeMapping failed: ' + String(e) ) }
         if (external)
             await client.createMapping({ private: internalPort, public: external, description: 'hfs', ttl: 0 })
         return {}
@@ -102,12 +115,12 @@ const apis: ApiHandlers = {
                     const api = (axios as any)[svc.method]
                     const body = svc.body?.replace('$IP', publicIp).replace('$PORT', String(port)) || ''
                     const res = await api(svc.url, body, {headers: svc.headers})
-                    console.debug(service, 'responded')
                     const parsed = parse(res.data).querySelector(svc.selector)?.innerText
                     if (!parsed) throw console.debug('empty:' + service)
                     const success = new RegExp(svc.regexpSuccess).test(parsed)
                     const failure = new RegExp(svc.regexpFailure).test(parsed)
                     if (success === failure) throw console.debug('inconsistent:' + service) // this result cannot be trusted
+                    console.debug(service, 'responded', success)
                     return { success, service }
                 }))
             }
