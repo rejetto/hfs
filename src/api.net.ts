@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { Client } from 'nat-upnp'
-import { HTTP_SERVICE_UNAVAILABLE, IS_MAC, IS_WINDOWS } from './const'
+import { HTTP_FAILED_DEPENDENCY, HTTP_SERVICE_UNAVAILABLE, IS_MAC, IS_WINDOWS } from './const'
 import axios from 'axios'
 import {parse} from 'node-html-parser'
 import _ from 'lodash'
@@ -65,7 +65,9 @@ const apis: ApiHandlers = {
     async map_port({ external }) {
         const { gatewayIp, mapped, internalPort } = await getNatInfo()
         if (!gatewayIp)
-            throw new ApiError(HTTP_SERVICE_UNAVAILABLE, 'upnp failed')
+            return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'upnp failed')
+        if (!internalPort)
+            return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         const client = new Client()
         if (mapped)
             await client.removeMapping({ private: mapped.private.port, public: mapped.public.port, protocol: 'tcp' })
@@ -76,7 +78,10 @@ const apis: ApiHandlers = {
 
     async check_server() {
         const { publicIp, internalPort, externalPort } = await getNatInfo()
-        if (!publicIp) return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'cannot detect public ip')
+        if (!publicIp)
+            return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'cannot detect public ip')
+        if (!internalPort)
+            return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         const prjInfo = await getProjectInfo()
         const port = externalPort || internalPort
         console.log(`checking server ${publicIp}:${port}`)
@@ -95,7 +100,7 @@ const apis: ApiHandlers = {
                     const service = new URL(svc.url).hostname
                     console.log('trying service', service)
                     const api = (axios as any)[svc.method]
-                    const body = svc.body?.replace('$IP', publicIp).replace('$PORT', port) || ''
+                    const body = svc.body?.replace('$IP', publicIp).replace('$PORT', String(port)) || ''
                     const res = await api(svc.url, body, {headers: svc.headers})
                     console.debug(service, 'responded')
                     const parsed = parse(res.data).querySelector(svc.selector)?.innerText

@@ -200,13 +200,13 @@ export async function getServerStatus() {
         https: await serverStatus(httpsSrv, httpsPortCfg.get()),
     }
 
-    async function serverStatus(h: typeof httpSrv, configuredPort?: number) {
+    async function serverStatus(h: typeof httpSrv, configuredPort: number) {
         const busy = await h?.busy
         await wait(0) // simple trick to wait for also .error to be updated. If this trickery becomes necessary elsewhere, then we should make also error a Promise.
         return {
             ..._.pick(h, ['listening', 'error']),
             busy,
-            port: (h?.address() as any)?.port || configuredPort,
+            port: (h?.address() as any)?.port as number || configuredPort,
         }
     }}
 
