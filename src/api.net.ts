@@ -82,10 +82,10 @@ const apis: ApiHandlers = {
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         if (mapped)
-            try { await client.removeMapping({ private: mapped.private.port, public: mapped.public.port, protocol: 'tcp' }) }
+            try { await client.removeMapping({ public: { host: '', port: mapped.public.port } }) }
             catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, 'removeMapping failed: ' + String(e) ) }
-        if (external)
-            await client.createMapping({ private: internalPort, public: external, description: 'hfs', ttl: 0 })
+        if (external) // must use the object form of 'public' to workaround a bug of the library
+            await client.createMapping({ private: internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
         return {}
     },
 
