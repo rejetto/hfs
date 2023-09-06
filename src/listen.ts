@@ -14,6 +14,7 @@ import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
 import { X509Certificate } from 'crypto'
+import { externalIp } from './api.net'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -44,10 +45,10 @@ export function openAdmin() {
         const a = srv?.address()
         if (!a || typeof a === 'string') continue
         const baseUrl = srv!.name + '://localhost:' + a.port
-        open(baseUrl + ADMIN_URI, { wait: true}).catch(e => {
+        open(baseUrl + ADMIN_URI, { wait: true}).catch(async e => {
             console.debug(String(e))
             console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
-                ...Object.values(getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
+                ...Object.values(await getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
             if (! anyAccountCanLoginAdmin())
                 console.log(`HINT: you can enter command: create-admin YOUR_PASSWORD`)
         })
@@ -212,11 +213,14 @@ export async function getServerStatus() {
 
 const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
-export function getIps() {
-    return v4first(onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
+export async function getIps() {
+    const ips = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
         nets && !ignore.test(name)
-            && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
-    )).flat())
+        && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
+    )).flat()
+    const e = await externalIp
+    if (e) ips.unshift(e)
+    return v4first(ips)
         .filter((x,i,a) => a.length > 1 || !x.startsWith('169.254')) // 169.254 = dhcp failure on the interface, but keep it if it's our only one
 
     function v4first(a: string[]) {
@@ -224,8 +228,8 @@ export function getIps() {
     }
 }
 
-export function getUrls() {
-    const ips = getIps().map(ip => ip.includes(':') ? '[' + ip + ']' : ip)
+export async function getUrls() {
+    const ips = (await getIps()).map(ip => ip.includes(':') ? '[' + ip + ']' : ip)
     return Object.fromEntries(onlyTruthy([httpSrv, httpsSrv].map(srv => {
         if (!srv?.listening)
             return false
@@ -237,6 +241,8 @@ export function getUrls() {
 }
 
 function printUrls(srvName: string) {
-    for (const url of getUrls()[srvName]!)
-        console.log('serving on', url)
+    getUrls().then(urls => {
+        for (const url of urls[srvName]!)
+            console.log('serving on', url)
+    })
 }

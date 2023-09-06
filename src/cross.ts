@@ -4,6 +4,7 @@ import _ from 'lodash'
 
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 export const WIKI_URL = REPO_URL + 'wiki/'
+export const MINUTE = 60_000
 
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -216,3 +217,7 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
     return ret
 }
 
+export function repeat(every: number, cb: () => unknown) {
+    Promise.allSettled([cb()]).then(() =>
+        setTimeout(() => repeat(every, cb), every) )
+}

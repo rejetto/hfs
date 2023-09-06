@@ -10,20 +10,22 @@ import { getIps, getServerStatus } from './listen'
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { debounceAsync } from './misc'
+import { debounceAsync, MINUTE, repeat } from './misc'
 
 const client = new Client({ timeout: 5_000 })
 const original = client.getGateway
-client.getGateway = () => {
+// other client methods call getGateway too, so this will ensure they reuse this same result
+client.getGateway = function getGatewayCaching() {
     const promise = original.apply(client)
-    promise.then(() => { // store in cache only if successful
-        console.debug('caching gateway')
-        // other client methods call getGateway too, so this will ensure they reuse this same result
-        client.getGateway = () => promise
-    }, ()=>{})
+    client.getGateway = () => promise // multiple callings = same job
+    promise.then(() => console.debug('caching gateway'), // store in cache only if successful.
+        ()=> client.getGateway = getGatewayCaching) // failed, try again
     return promise
 }
 client.getGateway()
+
+export let externalIp = Promise.resolve('') // poll external ip
+repeat(10 * MINUTE, () => externalIp = client.getPublicIp().catch(() => externalIp))
 
 const getNatInfo = debounceAsync(async () => {
     const gettingIp = getPublicIp() // don't wait, do it in parallel
@@ -31,9 +33,8 @@ const getNatInfo = debounceAsync(async () => {
     const status = await getServerStatus()
     const mappings = res && await client.getMappings().catch(() => null)
     console.debug('mappings found', mappings)
-    const externalIp = res && await client.getPublicIp().catch(() => null)
-    const gatewayIp = res ? new URL(res.gateway.description).hostname : await getGateway().catch(() => null)
-    const localIp = res?.address || getIps()[0]
+    const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => null)
+    const localIp = res?.address || (await getIps())[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort || x.description === 'hfs')
     console.debug('responding')
@@ -41,8 +42,8 @@ const getNatInfo = debounceAsync(async () => {
         upnp: Boolean(res),
         localIp,
         gatewayIp,
-        publicIp: await gettingIp || externalIp,
-        externalIp,
+        publicIp: await gettingIp || await externalIp,
+        externalIp: await externalIp,
         mapped,
         internalPort,
         externalPort: mapped?.public.port,
@@ -63,7 +64,7 @@ async function getPublicIp() {
         catch (e: any) { console.debug(String(e)) }
 }
 
-function getGateway(): Promise<string | undefined> {
+function findGateway(): Promise<string | undefined> {
     return new Promise((resolve, reject) =>
         exec(IS_WINDOWS || IS_MAC ? 'netstat -rn' : 'route -n', (err, out) => {
             if (err) return reject(err)

@@ -95,7 +95,7 @@ export const adminApis: ApiHandlers = {
             apiVersion: API_VERSION,
             compatibleApiVersion: COMPATIBLE_API_VERSION,
             ...await getServerStatus(),
-            urls: getUrls(),
+            urls: await getUrls(),
             baseUrl: baseUrl.get(), // can be retrieved with get_config, but it's very handy with urls and low overhead. Case is different because the context is
             updatePossible: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
             proxyDetected: getProxyDetected(),
