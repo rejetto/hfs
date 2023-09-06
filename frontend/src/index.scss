@@ -55,7 +55,7 @@ body, input {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-input:not([type=checkbox]), select {
+input:not([type=checkbox],[type=range]), select {
     padding: 0.3em 0.4em;
     border-radius: 0.5em;
     background: var(--bg);
@@ -63,6 +63,9 @@ input:not([type=checkbox]), select {
     color: var(--good-contrast);
     max-width: 100%; box-sizing: border-box; // avoid scrolling
     width: 100%;
+}
+input[type=range] {
+    width: calc(100% - 1px); // chrome116 on android shows a scrollbar because of that 1px
 }
 input[type=checkbox] {
     transform: scale(1.7);
