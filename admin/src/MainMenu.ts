@@ -62,7 +62,7 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
     return h(Box, { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%', },
         h(List, {
             sx:{
-                pr: 1, color: 'primary.contrastText',
+                pr: 1, py: 0, color: 'primary.contrastText',
                 height: '100vh', boxSizing: 'border-box', // grow as screen permits, so we know the extra space for the logo
                 overflowY: 'auto', // ...and account for clipping
                 position: 'sticky', top: 0, // be independent (scrolling-wise)
