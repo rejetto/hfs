@@ -11,7 +11,7 @@ export * from './util-files'
 export * from './cross'
 import { Readable } from 'stream'
 import { matcher } from 'micromatch'
-import cidr from 'cidr-tools'
+import { SocketAddress, BlockList } from 'node:net'
 import debounceAsync from './debounceAsync'
 export { debounceAsync }
 
@@ -68,8 +68,26 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
     const neg = all[0]?.[0] === '!'
     if (neg)
         all[0] = all[0]!.slice(1)
-    return (ip: string) =>
-        neg !== all.some(x => cidr.contains(x, ip))
+    const bl = new BlockList()
+    for (const x of all) {
+        const m = /^([.:\d]+)(?:\/(\d+)|-(.+)|)$/.exec(x)
+        if (!m) {
+            console.warn("error in network mask", x)
+            continue
+        }
+        const address = parseAddress(m[1]!)
+        if (m[2])
+            bl.addSubnet(address, Number(m[2]))
+        else if (m[3])
+            bl.addRange(address, parseAddress(m[2]!))
+        else
+            bl.addAddress(address)
+    }
+    return (ip: string) => neg !== bl.check(ip)
+}
+
+function parseAddress(s: string) {
+    return new SocketAddress({ address: s, family: s.includes(':') ? 'ipv6' : 'ipv4' })
 }
 
 export function makeMatcher(mask: string, emptyMaskReturns=false) {
