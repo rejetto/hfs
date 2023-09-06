@@ -257,8 +257,13 @@ ul.dir {
             margin-right: 1em;
         }
         .link-wrapper {
-            &:not(:hover) .popup-menu-button { display: none; }
-            &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally
+            @media (hover: none) {
+                .popup-menu-button { display: none }
+            }
+            @media (hover: hover) {
+                &:not(:hover) .popup-menu-button { display: none; }
+                &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally. Using this on @media(hover:none) will result in some taps to be missed. It happened on a long folder with no spaces in the name to wrap.
+            }
             a {
                 &:last-of-type {
                     word-break: break-word;
@@ -429,7 +434,7 @@ button label {
 .miss-perm  { margin: .3em }
 
 .popup-menu-button {
-    font-size: .8em; padding: .2em .3em; position: absolute; opacity: .8;
+    font-size: .8em; padding: .2em .3em; position: absolute; opacity: .8; white-space: nowrap;
     &:hover { opacity: 1 }
 }
 
@@ -688,7 +693,6 @@ button label {
     }
 }
 
-// mobile, landscape or portrait
-@media (max-width: 42em), (max-height: 600px) {
+@media (pointer: coarse) {
     #root>.tiles-mode .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
 }
