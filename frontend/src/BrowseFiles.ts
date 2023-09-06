@@ -191,6 +191,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const menuOnLink = getHFS().fileMenuOnLink
     const onClick = menuOnLink && fileMenu || undefined
     const small = useWindowSize().width < 800
+    const showingButton = !menuOnLink || isFolder && small
     return h('li', { className, label: separator },
         showFilter && h(Checkbox, {
             value: selected[uri],
@@ -203,7 +204,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
             isFolder ? h(Fragment, {},
                 h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
-                menuOnLink && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
+                menuOnLink && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
             )
             : containerDir ? h(Fragment, {},
                 h('a', { href: uri, onClick, tabIndex: -1 }, ico),
@@ -214,7 +215,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         h(CustomCode, { name: 'afterEntryName', props: { entry } }),
         h('div', { className: 'entry-panel' },
             h(EntryDetails, { entry, midnight }),
-            (!menuOnLink || isFolder && small) && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
+            showingButton && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
         ),
         h('div'),
     )
