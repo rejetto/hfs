@@ -7,95 +7,13 @@ import Koa from 'koa'
 import { Connection } from './connections'
 import assert from 'assert'
 export * from './util-http'
-export * from './util-generators'
 export * from './util-files'
-import debounceAsync from './debounceAsync'
+export * from './cross'
 import { Readable } from 'stream'
 import { matcher } from 'micromatch'
 import cidr from 'cidr-tools'
+import debounceAsync from './debounceAsync'
 export { debounceAsync }
-
-export type Callback<IN=void, OUT=void> = (x:IN) => OUT
-export type Dict<T = any> = Record<string, T>
-export type Promisable<T> = T | Promise<T>
-
-export function enforceFinal(sub:string, s:string) {
-    return s.endsWith(sub) ? s : s+sub
-}
-
-export function removeStarting(sub: string, s: string) {
-    return s.startsWith(sub) ? s.slice(sub.length) : s
-}
-
-export function prefix(pre:string, v:string|number|undefined, post:string='') {
-    return v ? pre+v+post : ''
-}
-
-export function setHidden<T, ADD>(dest: T, src: ADD) {
-    return Object.defineProperties(dest, newObj(src as any, value => ({
-        enumerable: false,
-        writable: true,
-        value,
-    }))) as T & ADD
-}
-
-export function newObj<S extends (object | undefined | null),VR=any>(
-    src: S,
-    returnNewValue: (value:Truthy<S[keyof S]>, key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true, depth: number) => any,
-    recur: boolean | number=false
-) {
-    if (!src)
-        return {}
-    const pairs = Object.entries(src).map( ([k,v]) => {
-        if (typeof k === 'symbol') return
-        let _k: undefined | typeof k = k
-        const curDepth = typeof recur === 'number' ? recur : 0
-        let newV = returnNewValue(v, k as Exclude<keyof S, symbol>, (newK) => {
-            _k = newK
-            return true // for convenient expression concatenation
-        }, curDepth)
-        if ((recur !== false || returnNewValue.length === 4) // if callback is using depth parameter, then it wants recursion
-        && _.isPlainObject(newV)) // is it recurrable?
-            newV = newObj(newV, returnNewValue, curDepth + 1)
-        return _k !== undefined && [_k, newV]
-    })
-    return Object.fromEntries(onlyTruthy(pairs)) as S extends undefined | null ? S : { [K in keyof S]:VR }
-}
-
-export function wait(ms: number) {
-    return new Promise(res=> setTimeout(res,ms))
-}
-
-export async function waitFor<T>(cb: ()=> T, { interval=200, timeout=Infinity }={}) {
-    const started = Date.now()
-    while (1) {
-        const res = await cb()
-        if (res)
-            return res
-        if (Date.now() - started >= timeout)
-            return
-        await wait(interval)
-    }
-}
-
-export function wantArray<T>(x?: void | T | T[]) {
-    return x == null ? [] : Array.isArray(x) ? x : [x]
-}
-
-export function getOrSet<T>(o: Record<string,T>, k:string, creator:()=>T): T {
-    return k in o ? o[k]!
-        : (o[k] = creator())
-}
-
-// 10 chars is 51+bits, 8 is 41+bits
-export function randomId(len = 10): string {
-    if (len > 10)
-        return randomId(10) + randomId(len - 10)
-    return Math.random()
-        .toString(36)
-        .substring(2, 2+len)
-        .replace(/l/g, 'L'); // avoid confusion reading l1
-}
 
 type ProcessExitHandler = (signal:string) => any
 const cbs = new Set<ProcessExitHandler>()
@@ -123,24 +41,6 @@ export function pattern2filter(pattern: string){
         !s || !pattern || re.test(basename(s))
 }
 
-type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
-
-export function truthy<T>(value: T): value is Truthy<T> {
-    return Boolean(value)
-}
-
-export function onlyTruthy<T>(arr: T[]) {
-    return arr.filter(truthy)
-}
-
-export type PendingPromise<T=unknown> = Promise<T> & { resolve: (value?: T) => void, reject: (reason?: any) => void }
-export function pendingPromise<T>() {
-    let takeOut
-    const ret = new Promise<T>((resolve, reject) =>
-        takeOut = { resolve, reject })
-    return Object.assign(ret, takeOut) as PendingPromise<T>
-}
-
 // install multiple handlers and returns a handy 'uninstall' function which requires no parameter. Pass a map {event:handler}
 export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: any[]) => void }) {
     events = { ...events } // avoid later modifications, as we need this later for uninstallation
@@ -152,29 +52,6 @@ export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: 
             for (const e of k.split(' '))
                 em.off(e, cb)
     }
-}
-
-export function objRenameKey(o: Dict | undefined, from: string, to: string) {
-    if (!o || !o.hasOwnProperty(from) || from === to) return
-    o[to] = o[from]
-    delete o[from]
-    return true
-}
-
-export function typedKeys<T extends {}>(o: T) {
-    return Object.keys(o) as (keyof T)[]
-}
-
-export function typedEntries<T extends {}>(o: T): [keyof T, T[keyof T]][] {
-    return Object.entries(o) as [keyof T, T[keyof T]][];
-}
-
-export function hasProp<T extends object>(obj: T, key: PropertyKey): key is keyof T {
-    return key in obj;
-}
-
-export function with_<T,RT>(par:T, cb: (par:T) => RT) {
-    return cb(par)
 }
 
 export function isLocalHost(c: Connection | Koa.Context) {
@@ -195,11 +72,6 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         neg !== all.some(x => cidr.contains(x, ip))
 }
 
-export function netmaskToCIDR(netmask: string) {
-    return netmask.split('.').map(x => Number(x).toString(2)) // to binary
-        .join('').split('1').length - 1 // Count '1' bits
-}
-
 export function makeMatcher(mask: string, emptyMaskReturns=false) {
     return mask ? matcher(mask.replace(/^(!)?/, '$1(') + ')') // adding () will allow us to use the pipe at root level
         : () => emptyMaskReturns
@@ -215,11 +87,6 @@ export function same(a: any, b: any) {
         return true
     }
     catch { return false }
-}
-
-export function tryJson(s?: string) {
-    try { return s ? JSON.parse(s) : undefined }
-    catch {}
 }
 
 export async function stream2string(stream: Readable): Promise<string> {
@@ -239,23 +106,13 @@ export async function stream2string(stream: Readable): Promise<string> {
     })
 }
 
-export function try_(cb: () => any, onException?: (e:any) => any) {
-    try {
-        return cb()
-    }
-    catch(e) {
-        return onException?.(e)
-    }
-}
-
-export function throw_(err: any) {
-    throw err
-}
-
-export function findFirst<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string | number)=>O): any {
-    if (a) for (const k in a) {
-        const ret = cb((a as any)[k] as I, k)
-        if (ret !== undefined)
-            return ret
-    }
+export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
+    const iterator = generator[Symbol.asyncIterator]()
+    return new Readable({
+        objectMode: true,
+        read() {
+            iterator.next().then(it =>
+                this.push(it.done ? null : it.value))
+        }
+    })
 }

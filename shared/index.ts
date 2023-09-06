@@ -5,13 +5,7 @@ import { apiCall } from './api'
 export * from './react'
 export * from './dialogs'
 export * from './srp'
-
-export const REPO_URL = 'https://github.com/rejetto/hfs/'
-export const WIKI_URL = REPO_URL + 'wiki/'
-
-export type Dict<T=any> = Record<string, T>
-export type Falsy = false | null | undefined | '' | 0
-type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
+export * from '../src/cross'
 
 (window as any)._ = _
 
@@ -29,62 +23,6 @@ function getScriptAttr(k: string) {
 
 export const urlParams = Object.fromEntries(new URLSearchParams(window.location.search).entries())
 
-const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
-export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
-    if (isNaN(Number(n)) || n < 0)
-        return ''
-    const i = n && Math.floor(Math.log2(n) / Math.log2(k))
-    n /= k ** i
-    const nAsString = i && !isNaN(digits) ? n.toFixed(digits)
-        : _.round(n, isNaN(digits) ? (n >= 100 ? 0 : 1) : digits)
-    return nAsString + ' ' + (MULTIPLIERS[i]||'') + post
-} // formatBytes
-
-export function prefix(pre:string, v:string|number|undefined|null|false, post:string='') {
-    return v ? pre+v+post : ''
-}
-
-export function wait<T=undefined>(ms: number, val?: T): Promise<T> {
-    return new Promise(res=> setTimeout(res,ms,val))
-}
-
-export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>VR) {
-    return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
-}
-
-export function enforceFinal(sub:string, s:string) {
-    return !s || s.endsWith(sub) ? s : s+sub
-}
-
-export function truthy<T>(value: T): value is Truthy<T> {
-    return Boolean(value)
-}
-
-export function onlyTruthy<T>(arr: T[]) {
-    return arr.filter(truthy)
-}
-
-export function setHidden(dest: object, src:object) {
-    return Object.defineProperties(dest, objSameKeys(src as any, value => ({
-        enumerable: false,
-        writable: true,
-        value,
-    })))
-}
-
-export function try_(cb: () => any, onException?: (e:any) => any) {
-    try {
-        return cb()
-    }
-    catch(e) {
-        return onException?.(e)
-    }
-}
-
-export function with_<T,RT>(par:T, cb: (par:T) => RT) {
-    return cb(par)
-}
-
 export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: WindowEventMap[K]) => void, { target=window }={}) {
     target.addEventListener(eventName, cb)
     return () => target.removeEventListener(eventName, cb)
@@ -94,14 +32,6 @@ export function restartAnimation(e: HTMLElement, animation: string) {
     e.style.animation = ''
     void e.offsetWidth
     e.style.animation = animation
-}
-
-export function findFirst<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string | number)=>O): any {
-    if (a) for (const k in a) {
-        const ret = cb((a as any)[k] as I, k)
-        if (ret !== undefined)
-            return ret
-    }
 }
 
 export function selectFiles(cb: (list: FileList | null)=>void, { accept='', multiple=true, folder=false }={}) {
@@ -133,27 +63,6 @@ export function readFile(f: File | Blob): Promise<string | undefined> {
     })
 }
 
-export function formatPerc(p: number) {
-    return (p*100).toFixed(1) + '%'
-}
-
-export function wantArray<T>(x?: void | T | T[]) {
-    return x == null ? [] : Array.isArray(x) ? x : [x]
-}
-
-export function _log(...args: any[]) {
-    console.log('**', ...args)
-    return args[args.length-1]
-}
-
-type PendingPromise<T> = Promise<T> & { resolve: (value: T) => void, reject: (reason?: any) => void }
-export function pendingPromise<T>() {
-    let takeOut
-    const ret = new Promise<T>((resolve, reject) =>
-        takeOut = { resolve, reject })
-    return Object.assign(ret, takeOut) as PendingPromise<T>
-}
-
 export function isMobile() {
     return window.innerWidth < 800
 }
@@ -164,10 +73,6 @@ export function getHFS() {
 
 export function getPrefixUrl() {
     return getHFS().prefixUrl || ''
-}
-
-export function basename(path: string) {
-    return path.slice(path.lastIndexOf('/') + 1 || path.lastIndexOf('\\') + 1)
 }
 
 export function makeSessionRefresher(state: any) {
@@ -182,28 +87,4 @@ export function makeSessionRefresher(state: any) {
         console.debug('session refresh in', Math.round(t / 1000))
         setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
     }
-}
-
-export function tryJson(s?: string) {
-    try { return s && JSON.parse(s) }
-    catch {}
-}
-
-export function swap<T>(obj: T, k1: keyof T, k2: keyof T) {
-    const temp = obj[k1]
-    obj[k1] = obj[k2]
-    obj[k2] = temp
-    return obj
-}
-
-export function isOrderedEqual(a: any, b: any): boolean {
-    return _.isEqualWith(a, b, (a1, b1) => {
-        if (!_.isPlainObject(a1) || !_.isPlainObject(b1)) return
-        const ka = Object.keys(a1)
-        const kb = Object.keys(b1)
-        return ka.length === kb.length && ka.every((ka1, i) => {
-            const kb1 = kb[i]
-            return ka1 === kb1 && isOrderedEqual(a1[ka1], b1[kb1])
-        })
-    })
 }

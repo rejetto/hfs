@@ -5,6 +5,7 @@ import { srpSequence } from '@hfs/shared/srp'
 import { createReadStream, rmSync } from 'fs'
 import { join } from 'path'
 import _ from 'lodash'
+import { findDefined } from '../src/cross'
 /*
 import { PORT, srv } from '../src'
 
@@ -165,10 +166,10 @@ function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<
                 || re && !(typeof data === 'string' && re.test(data)) && 'expected content '+String(re)+' got '+(data || '-empty-')
                 || inList && !inList.every(x => isInList(data, x)) && 'expected in list '+inList
                 || outList && !outList.every(x => !isInList(data, x)) && 'expected not in list '+outList
-                || permInList && findFirst(permInList, (v, k) => {
+                || permInList && findDefined(permInList, (v, k) => {
                     const got = _.find(data.list, { n: k })?.p
                     const negate = v[0] === '!'
-                    return findFirst(v.slice(negate ? 1 : 0).split(''), char =>
+                    return findDefined(v.slice(negate ? 1 : 0).split(''), char =>
                         got?.includes(char) === negate ? `expected perm ${v} on ${k}, got ${got}` : undefined)
                 })
                 || test.empty && data && 'expected empty body'
@@ -195,12 +196,4 @@ function reqList(uri:string, tester:Tester, params?: object) {
 
 function isInList(res:any, name:string) {
     return Array.isArray(res?.list) && Boolean((res.list as any[]).find(x => x.n===name))
-}
-
-export function findFirst<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string | number)=>O): any {
-    if (a) for (const k in a) {
-        const ret = cb((a as any)[k] as I, k)
-        if (ret !== undefined)
-            return ret
-    }
 }
