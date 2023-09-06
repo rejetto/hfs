@@ -36,7 +36,7 @@ export default function CustomHtmlPage() {
             reloadBtn(reload),
             h(IconBtn, {
                 icon: Save,
-                title: "Save\n(ctrl+s)",
+                title: "Save\n(ctrl+enter)",
                 sx: modifiedSx(anyChange),
                 onClick: save,
             }),
@@ -48,7 +48,7 @@ export default function CustomHtmlPage() {
                 setAll(all => ({ ...all, [section]: v }))
             },
             onKeyDown(ev) {
-                if (isCtrlKey(ev) === 's') {
+                if (['s','Enter'].includes(isCtrlKey(ev) as any)) {
                     save().then()
                     ev.preventDefault()
                 }
