@@ -6,7 +6,7 @@ import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { formatBytes, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
-import { typedKeys } from './misc';
+import { typedKeys, xlate } from './misc';
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
@@ -19,7 +19,15 @@ export default function LogsPage() {
 }
 
 function LogFile({ file }: { file: string }) {
-    const { list, error, connecting } = useApiList('get_log', { file })
+    const { list, error, connecting } = useApiList('get_log', { file }, {
+        map(x) {
+            const { extra } = x
+            if (!extra) return
+            const notes = extra.dl ? "fully downloaded" : extra.ul ? "uploaded " + formatBytes(extra.size) : ''
+            if (notes)
+                x.notes = notes
+        }
+    })
     if (error)
         return error
     return h(DataTable, {
@@ -63,7 +71,7 @@ function LogFile({ file }: { file: string }) {
             {
                 field: 'user',
                 headerName: "Username",
-                flex: .4,
+                flex: .3,
                 maxWidth: 200,
                 hideUnder: 'lg',
             },
@@ -96,12 +104,21 @@ function LogFile({ file }: { file: string }) {
                 valueFormatter: ({ value }) => formatBytes(value as number)
             },
             {
+                field: 'notes',
+                headerName: "Notes",
+                width: 100,
+                hideUnder: 'sm',
+                cellClassName: 'wrap',
+            },
+            {
                 field: 'uri',
                 headerName: "URI",
                 flex: 2,
                 minWidth: 100,
                 mergeRender: { other: 'method', fontSize: 'small' },
-                valueFormatter: ({ value }) => {
+                renderCell: ({ value, row }) => {
+                    if (row.extra?.ul)
+                        return row.extra?.ul
                     value = decodeURIComponent(value)
                     if (!value.startsWith(API_URL))
                         return value

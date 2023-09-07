@@ -19,7 +19,7 @@ import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import netApis from './api.net'
 import { getConnections } from './connections'
-import { debounceAsync, isLocalHost, makeNetMatcher, onOff, wait, waitFor } from './misc'
+import { debounceAsync, isLocalHost, makeNetMatcher, onOff, tryJson, wait, waitFor } from './misc'
 import events from './events'
 import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
 import Koa from 'koa'
@@ -158,9 +158,9 @@ export const adminApis: ApiHandlers = {
         })
 
         function parse(line: string) {
-            const m = /^(.+?) (.+?) (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (-|\d+)/.exec(line)
+            const m = /^(.+?) (.+?) (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (-|\d+) ?(.*)/.exec(line)
             if (!m) return
-            const [, ip, , user, date, time, method, uri, status, length] = m
+            const [, ip, , user, date, time, method, uri, status, length, extra] = m
             return { // keep object format same as events emitted by the log module
                 ip,
                 user: user === '-' ? undefined : user,
@@ -169,6 +169,7 @@ export const adminApis: ApiHandlers = {
                 uri,
                 status: Number(status),
                 length: length === '-' ? undefined : Number(length),
+                extra: tryJson(tryJson(extra)) || undefined,
             }
         }
     },

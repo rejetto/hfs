@@ -98,13 +98,16 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
                 if (!stream) return
             }
         }
-        const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s\n' // Apache's Common Log Format
+        const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s %s\n' // Apache's Common Log Format
         const a = now.toString().split(' ')
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5]?.slice(3)
         const user = getCurrentUsername(ctx)
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
-        events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri }))
+        const extra = ctx.state.includesLastByte && ctx.vfsNode && { dl: 1 }
+            || ctx.state.uploadPath && { ul: ctx.state.uploadPath, size: ctx.state.uploadSize }
+            || undefined
+        events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri, extra }))
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
         stream!.write(util.format( format,
@@ -116,6 +119,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             ctx.req.httpVersion,
             ctx.status,
             length?.toString() ?? '-',
+            extra ? JSON.stringify(JSON.stringify(extra)) : '',
         ))
     })
 }

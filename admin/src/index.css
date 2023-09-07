@@ -25,6 +25,8 @@ code {
   background-color: #8882;
 }
 
+.wrap .MuiDataGrid-cellContent { white-space: normal }
+
 ol, ul { margin-top: .2em; padding-left: 1.5em; }
 
 .dialog-alert .MuiDialogContent-root {

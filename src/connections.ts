@@ -15,7 +15,6 @@ export class Connection {
     opTotal?: number
     opProgress?: number
     opOffset?: number
-    uploadPath?: string
     ctx?: Koa.Context
     private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision

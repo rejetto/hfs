@@ -121,8 +121,9 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         let lastGotTime = 0
         const conn = socket2connection(ctx.socket)
         if (!conn) return ()=>{}
-        ctx.state.uploadPath = ctx.path + path
         const opTotal = reqSize + resume
+        ctx.state.uploadPath = ctx.path + path
+        ctx.state.uploadSize = opTotal
         updateConnection(conn, { ctx, op: 'upload', opTotal, opOffset: resume / opTotal })
         const h = setInterval(() => {
             const now = Date.now()

@@ -31,7 +31,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     return { data, error, reload, loading, element }
 }
 
-export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:any)=>x) }={}) {
+export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map }: { map?: (rec: S) => T }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -86,7 +86,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:a
                         if (op === 'props')
                             return setProps(par)
                         if (op === 'add') {
-                            const mappedPar = map(par)
+                            const mappedPar = map?.(par) ?? par
                             mappedPar.id ??= idGenerator.current = Math.max(idGenerator.current, Date.now()) + .001
                             bufferAdd.push(mappedPar)
                             apply()
