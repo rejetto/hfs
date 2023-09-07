@@ -29,6 +29,19 @@ To run tests
 
 Alternatively you can run a development server, just be sure to load config from `tests` folder.
 
+# File organization
+
+The project is roughly divided in Server + Frontend + Admin, where Frontend is a web interface intended to access
+shared files, while Admin is the web interface for configuration/administration.  
+Server lies in the root of the project, with its "src" folder, while Frontend and Admin are inside folders "frontend"
+and "admin" respectively, with their "src" folder within. 
+
+Additionally, you have the following folders:
+- mui-grid-form: a lib used by Admin to easily build forms  
+- plugins: a collection of plugins that are pre-installed 
+- shared: code shared between Frontend and Admin
+- tests: automated tests with related resources
+
 # Known problems
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
 
