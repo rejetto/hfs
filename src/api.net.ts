@@ -25,7 +25,10 @@ client.getGateway = function getGatewayCaching() {
 client.getGateway()
 
 export let externalIp = Promise.resolve('') // poll external ip
-repeat(10 * MINUTE, () => externalIp = client.getPublicIp().catch(() => externalIp))
+repeat(10 * MINUTE, () => {
+    const was = externalIp
+    externalIp = client.getPublicIp().catch(() => was) //fallback to previous value
+})
 
 const getNatInfo = debounceAsync(async () => {
     const gettingIp = getPublicIp() // don't wait, do it in parallel
