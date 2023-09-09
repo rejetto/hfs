@@ -83,8 +83,8 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   ```
   You'll find more examples by studying plugins like `vhosting` or `antibrute`.
   This API is based on [Koa](https://koajs.com), because that's what HFS is using.
-  To know what the Context object contains please refer to [Koa's documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
-  You don't get the `next` parameter as in standard Koa's middlewares because this is different, but we are now explaining how to achieve the same results.
+  To know what the Context object contains please refer to [Koa documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
+  You don't get the `next` parameter as in standard Koa middlewares because this is different, but we are now explaining how to achieve the same results.
   To interrupt other middlewares on this http request, return `true`.
   If you want to execute something in the "upstream" of middlewares, return a function.
 
@@ -341,12 +341,12 @@ Most React developers are used to JSX, which is not (currently) supported here.
 If you want, you can try solutions to JSX support, like transpiling.
 Anyway, React is not JSX, and can be easily used without.
 
-Any time you in JSX you do 
+Any time in JSX you do 
 ```jsx
 <button onClick={() => console.log('hi')}>Say hi</button>
 ```
 
-This is just transalted to
+This is just translated to
 ```js
 h('button', { onClick: () => console.log('hi') }, 'Say hi')
 ```
@@ -355,8 +355,9 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
-- 8.4 (v0.48.0)
-  - HFS.Const (HFS.const is now deprecated) 
+- 8.4 (v0.48.0) 
+  - HFS.fileShow 
+  - api.Const (api.const is now deprecated)
 - 8.3 (v0.47.0)
   - HFS.useBatch
   - FileMenuEntry.id, .subLabel
