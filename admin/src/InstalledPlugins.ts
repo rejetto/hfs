@@ -4,8 +4,8 @@ import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment, ReactNode } from 'react'
 import { Alert, Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
-import { Delete, Error, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { IconBtn, with_, xlate } from './misc'
+import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
+import { IconBtn, prefix, with_, xlate } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
@@ -44,7 +44,19 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             },
         ],
         actions: ({ row, id }) => updates ? [
-            h(UpdateButton, { id, updated: row.updated, then: () => updateEntry({ id }, { updated: true }) })
+            h(IconBtn, {
+                icon: Upgrade,
+                title: row.updated ? "Already updated" : "Update",
+                disabled: row.updated,
+                async onClick() {
+                    await apiCall('update_plugin', { id }, { timeout: false }).catch(e => {
+                        throw e.code !== 424 ? e
+                            : Error("Failed dependencies: " + e.cause?.map((x: any) => prefix(`plugin "`, x.id || x.repo, `" `) + x.error).join('; '))
+                    })
+                    updateEntry({ id }, { updated: true })
+                    toast("Plugin updated")
+                }
+            })
         ] : [
             h(IconBtn, row.started ? {
                 icon: StopCircle,
@@ -115,7 +127,7 @@ export function renderName({ row, value }: any) {
     function errorIcon(msg: ReactNode, warning=false) {
         return msg && h(Tooltip, {
             title: msg,
-            children: h(Error, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } })
+            children: h(ErrorIcon, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } })
         })
     }
 }
@@ -149,19 +161,6 @@ export function showError(error: any) {
         github_quota: "Request denied. You may have reached the limit, retry later.",
         ENOTFOUND: "Couldn't reach github.com",
     }))
-}
-
-export function UpdateButton({ id, updated, then }: { id: string, updated?: boolean, then: (id:string)=>void }) {
-    return h(IconBtn, {
-        icon: Upgrade,
-        title: updated ? "Already updated" : "Update",
-        disabled: updated,
-        async onClick() {
-            await apiCall('update_plugin', { id }, { timeout: false })
-            then?.(id)
-            toast("Plugin updated")
-        }
-    })
 }
 
 export async function startPlugin(id: string) {

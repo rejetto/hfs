@@ -7,9 +7,8 @@ import { IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
-import { renderName, showError, startPlugin, UpdateButton } from './InstalledPlugins'
+import { renderName, showError, startPlugin } from './InstalledPlugins'
 import { state, useSnapState } from './state'
-import _ from 'lodash'
 import { alertDialog } from './dialog'
 
 export default function OnlinePlugins() {
@@ -68,13 +67,7 @@ export default function OnlinePlugins() {
                 },
             ],
             actions: ({ row, id }) => [
-                row.update ? h(UpdateButton, {
-                    id,
-                    then() {
-                        updateList(list =>
-                            _.find(list, { id }).update = false )
-                    }
-                }) : h(IconBtn, {
+                h(IconBtn, {
                     icon: Download,
                     title: "Install",
                     progress: row.downloading,

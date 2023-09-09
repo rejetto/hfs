@@ -12,7 +12,7 @@ import {
 } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
-import { DAY, HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_SERVER_ERROR } from './const'
+import { DAY, HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './const'
 import { rename, rm } from 'fs/promises'
 import { join } from 'path'
 import { readFileSync } from 'fs'
@@ -30,7 +30,16 @@ function downloadProgress(id: string, status: DownloadStatus) {
     events.emit('pluginDownload_'+id, status)
 }
 
-export async function downloadPlugin(repo: string, branch='', overwrite?: boolean) {
+// determine default branch, possibly without consuming api quota
+async function getGithubDefaultBranch(repo: string) {
+    const res = await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' })
+    return res.ok ? 'main'
+        : (await getRepoInfo(repo))?.default_branch as string
+}
+
+export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }={}) {
+    if (typeof repo !== 'string')
+        repo = repo.main
     if (downloading[repo])
         return new ApiError(HTTP_CONFLICT, "already downloading")
     console.log('downloading plugin', repo)
@@ -48,9 +57,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
                 url = customRepo.web + url
             return await go(url, pl?.id, customRepo.zipRoot ?? DIST_ROOT)
         }
-        const rec = await getRepoInfo(repo)
-        if (!branch)
-            branch = rec.default_branch
+        branch ||= await getGithubDefaultBranch(repo)
         const short = repo.split('/')[1] // second part, repo without the owner
         if (!short)
             return new ApiError(HTTP_BAD_REQUEST, "bad repo")
@@ -81,7 +88,7 @@ export async function downloadPlugin(repo: string, branch='', overwrite?: boolea
             })
             const main = join(installPath, MAIN)
             await rename(main + DISABLING_POSTFIX, main) // we are good now, restore name
-                .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_FAILED_DEPENDENCY, "missing main file") })
+                .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
             return folder
         }
     }
@@ -112,17 +119,12 @@ export async function readOnlinePlugin(repo: Repo, branch='') {
         if (!res.ok) throw Error("bad repo.main")
         return parsePluginSource(main, res.body) // use 'repo' as 'id' client-side
     }
-    const branches = branch ? [branch] : (async function*() {
-        yield 'main' // getRepoInfo consumes github-api-quota, so give 'main' a shot first, and if it fails we'll ask
-        yield (await getRepoInfo(repo))?.default_branch
-    })()
-    for await (const b of branches) {
-        const res = await readGithubFile(`${repo}/${b}/${DIST_ROOT}/plugin.js`)
-        if (!res) continue
-        const pl = parsePluginSource(repo, res) // use 'repo' as 'id' client-side
-        pl.branch = b || undefined
-        return pl
-    }
+    branch ||= await getGithubDefaultBranch(repo)
+    const res = await readGithubFile(`${repo}/${branch}/${DIST_ROOT}/plugin.js`)
+    if (!res) throw Error("missing plugin.js")
+    const pl = parsePluginSource(repo, res) // use 'repo' as 'id' client-side
+    pl.branch = branch
+    return pl
 }
 
 export function getFolder2repo() {

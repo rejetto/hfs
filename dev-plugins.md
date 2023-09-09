@@ -59,10 +59,12 @@ All the following properties are optional unless otherwise specified.
     { 
       "web": "https://github.com/rejetto/file-icons", 
       "zip": "/archive/refs/heads/main.zip",
-      "zipRoot: "file-icons/main", 
+      "zipRoot: "file-icons-main/dist", 
       "main": "https://raw.githubusercontent.com/rejetto/file-icons/main/dist/plugin.js" 
     }
     ```
+    Note that in this example we are pointing to a github repo just for clarity. You are not supposed to use this
+    complicated object form to link github, use the string form.
     Plugins with custom repos are not included in search results, but the update feature will still work.   
 
 WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
