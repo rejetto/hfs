@@ -17,7 +17,7 @@ export function usePath() {
 
 export default function useFetchList() {
     const snap = useSnapState()
-    const uri = usePath().slice(1)
+    const uri = usePath() // this api can still work removing the initial slash, but then we'll have a mixed situation that will require plugins an extra effort
     const search = snap.remoteSearch || undefined
     const lastUri = useRef('')
     const lastReq = useRef<any>()
