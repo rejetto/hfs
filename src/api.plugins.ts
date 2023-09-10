@@ -111,7 +111,7 @@ const apis: ApiHandlers = {
                     ctx.req.once('close', () => undo.forEach(x => x()))
 
                     const folder2repo = getFolder2repo()
-                    for await (const pl of searchPlugins(text)) {
+                    for await (const pl of await searchPlugins(text)) {
                         const repo = pl.repo || pl.id // .repo property can be more trustworthy in case github user renamed and left the previous link in 'repo'
                         if (_.includes(folder2repo, repo)) continue // don't include installed plugins
                         list.add(pl)

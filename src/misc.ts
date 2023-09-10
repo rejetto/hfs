@@ -134,3 +134,18 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
         }
     })
 }
+
+// produces as soon as a promise resolves, not sequentially
+export class AsapStream<T> extends Readable {
+    finished = false
+    constructor(private promises: Promise<T>[]) {
+        super({ objectMode: true })
+    }
+    _read() {
+        if (this.finished) return
+        this.finished = true
+        for (const p of this.promises)
+            p.then(data => this.push(data), e => this.emit('error', e))
+        Promise.allSettled(this.promises).then(() => this.push(null))
+    }
+}

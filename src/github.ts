@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import events from './events'
-import { httpString, httpStream, unzip } from './misc'
+import { httpString, httpStream, unzip, AsapStream } from './misc'
 import {
     DISABLING_POSTFIX, findPluginByRepo,
     getAvailablePlugins,
@@ -152,16 +152,16 @@ async function apiGithub(uri: string) {
     }
 }
 
-export async function* searchPlugins(text='') {
+export async function searchPlugins(text='') {
     const projectInfo = await getProjectInfo()
-    const res = await apiGithub('search/repositories?q=topic:hfs-plugin+' + encodeURI(text))
-    for (const it of res.items) {
+    const list = await apiGithub('search/repositories?q=topic:hfs-plugin+' + encodeURI(text))
+    return new AsapStream(list.items.map(async (it: any) => {
         const repo = it.full_name as string
-        if (projectInfo?.plugins_blacklist?.includes(repo)) continue
+        if (projectInfo?.plugins_blacklist?.includes(repo)) return
         let pl = await readOnlinePlugin(repo, it.default_branch)
-        if (!pl?.apiRequired) continue // mandatory field
+        if (!pl?.apiRequired) return // mandatory field
         if (pl.badApi) { // we try other branches (starting with 'api')
-            const res = await apiGithub('repos/' + it.full_name + '/branches')
+            const res = await apiGithub('repos/' + repo + '/branches')
             const branches: string[] = res.map((x: any) => x?.name)
                 .filter((x: any) => typeof x === 'string' && x.startsWith('api'))
                 .sort().reverse()
@@ -175,13 +175,13 @@ export async function* searchPlugins(text='') {
             }
         }
         if (!pl || pl.badApi)
-            continue
+            return
         Object.assign(pl, { // inject some extra useful fields
             downloading: downloading[repo],
             license: it.license?.spdx_id,
         }, _.pick(it, ['pushed_at', 'stargazers_count', 'default_branch']))
-        yield pl
-    }
+        return pl
+    }))
 }
 
 // centralized hosted information, to be used as little as possible
