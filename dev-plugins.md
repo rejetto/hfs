@@ -2,7 +2,8 @@
 
 If the information you are searching for is not in this document, [please ask](https://github.com/rejetto/hfs/discussions). 
 
-A plug-in is a folder with a `plugin.js` file in it.
+A plug-in is a folder with a `plugin.js` file in it. To install a plugin you just copy the folder into `plugins` folder.
+You will find `plugins` folder near `config.yaml`, and then in `USER_FOLDER/.hfs` for Linux and Mac, or near `hfs.exe` on Windows. 
 
 Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
 
