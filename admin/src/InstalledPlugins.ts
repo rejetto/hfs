@@ -16,6 +16,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     if (error)
         return showError(error)
+    const size = 'small'
     return h(DataTable, {
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         initializing,
@@ -48,6 +49,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 icon: Upgrade,
                 title: row.updated ? "Already updated" : "Update",
                 disabled: row.updated,
+                size,
                 async onClick() {
                     await apiCall('update_plugin', { id }, { timeout: false }).catch(e => {
                         throw e.code !== 424 ? e
@@ -61,7 +63,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             h(IconBtn, row.started ? {
                 icon: StopCircle,
                 title: h(Box, {}, `Stop ${id}`, h('br'), `Started ` + new Date(row.started as string).toLocaleString()),
-                size: 'small',
+                size,
                 color: 'success',
                 async onClick() {
                     await apiCall('stop_plugin', { id })
@@ -70,13 +72,13 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             } : {
                 icon: PlayCircle,
                 title: `Start ${id}`,
-                size: 'small',
+                size,
                 onClick: () => startPlugin(id),
             }),
             h(IconBtn, {
                 icon: Settings,
                 title: "Options",
-                size: 'small',
+                size,
                 disabled: !row.started && "Start plugin to access options"
                     || !row.config && "No options available for this plugin",
                 progress: false,
@@ -100,7 +102,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             h(IconBtn, {
                 icon: Delete,
                 title: "Uninstall",
-                size: 'small',
+                size,
                 confirm: "Remove?",
                 async onClick() {
                     await apiCall('uninstall_plugin', { id })

@@ -72,7 +72,7 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
         (progress || loading) && progress !== false  // false is also useful to inhibit behavior with loading
             && h(CircularProgress, {
                 ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
-                style: { position:'absolute', top: 4, left: 4, width: 32, height: 32 }
+                style: { position:'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }
             }),
         h(icon)
     )
