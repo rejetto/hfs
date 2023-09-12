@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
+    applyParentToChild,
     getNodeName,
     hasPermission,
     masksCouldGivePermission,
@@ -40,7 +41,8 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = hasPermission(node, 'can_upload', ctx)
-    const can_delete = hasPermission(node, 'can_delete', ctx)
+    const fakeChild = applyParentToChild({}, node) // we want to know if we want to delete children
+    const can_delete = hasPermission(fakeChild, 'can_delete', ctx)
     const props = { can_upload, can_delete, accept: node.accept }
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
