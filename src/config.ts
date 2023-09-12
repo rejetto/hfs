@@ -180,8 +180,7 @@ const saveDebounced = debounceAsync(async () => {
     if (await stat(bak).then(x => aWeekAgo > Number(x.mtime || x.ctime), () => true))
         await copyFile(filePath, bak).catch(() => {}) // ignore errors
 
-    const txt = yaml.stringify({ ...state, version: VERSION }, { lineWidth:1000 })
-    save(filePath, txt)
+    await save(yaml.stringify({ ...state, version: VERSION }, { lineWidth:1000 }))
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
 export const saveConfigAsap = () => void(saveDebounced())
