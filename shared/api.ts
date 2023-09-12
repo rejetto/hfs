@@ -2,7 +2,7 @@
 
 import _ from 'lodash';
 import { useCallback, useEffect, useRef } from 'react';
-import { Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted } from '.'
+import { Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait } from '.'
 
 export const API_URL = '/~/api/'
 
@@ -74,19 +74,21 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) {
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef<ReturnType<typeof apiCall>>()
     const reloadingRef = useRef<any>()
-    useEffect(()=>{
+    useEffect(() => {
         loadingRef.current?.abort()
         setData(undefined)
         setError(undefined)
         if (!cmd) return
         let aborted = false
-        const req = apiCall<T>(cmd, params)
-        const wholePromise = req.then(x => aborted || setData(x), x => aborted || setError(x))
+        let req: undefined | ReturnType<typeof apiCall>
+        const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
+            .then(() => aborted ? undefined : req = apiCall<T>(cmd, params))
+            .then(res => aborted || setData(res), err => aborted || setError(err))
             .finally(() => loadingRef.current = reloadingRef.current = undefined)
         loadingRef.current = Object.assign(wholePromise, {
             abort() {
                 aborted = true
-                req.abort()
+                req?.abort()
             }
         })
         reloadingRef.current?.resolve(wholePromise)
