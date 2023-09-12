@@ -45,6 +45,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
     return lastPromise = new Promise(resolve => {
         if (closeLoginDialog)
             return lastPromise
+        let going = false
         const { close } = newDialog({
             className: 'login-dialog dialog-login',
             icon: () => hIcon('login'),
@@ -104,7 +105,8 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                     ev?.stopPropagation()
                     const usr = usrRef.current?.value
                     const pwd = pwdRef.current?.value
-                    if (!usr || !pwd) return
+                    if (going || !usr || !pwd) return
+                    going = true
                     try {
                         const res = await login(usr, pwd)
                         close()
@@ -113,6 +115,8 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                     } catch (err: any) {
                         await alertDialog(err)
                         usrRef.current?.focus()
+                    } finally {
+                        going = false
                     }
                 }
 
