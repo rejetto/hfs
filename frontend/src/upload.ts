@@ -138,7 +138,7 @@ export function showUpload() {
             h(UploadStatus),
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
-                    `${_.sumBy(qs, q => q.files.length)} in queue${prefix(', ', etaStr)}`,
+                    `${_.sumBy(qs, q => q.files.length) - (uploadState.uploading ? 1 : 0)} in queue${prefix(', ', etaStr)}`,
                     iconBtn('trash', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
