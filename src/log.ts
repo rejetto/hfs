@@ -104,7 +104,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const user = getCurrentUsername(ctx)
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
-        const extra = ctx.state.includesLastByte && ctx.vfsNode && { dl: 1 }
+        const extra = ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
             || ctx.state.uploadPath && { ul: ctx.state.uploadPath, size: ctx.state.uploadSize }
             || undefined
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri, extra }))
