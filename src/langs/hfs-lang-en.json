@@ -134,6 +134,8 @@
         "showHelp_space_body": "select",
         "showHelp_D_body": "download",
         "showHelp_Z_body": "zoom modes",
-        "showHelp_F_body": "full screen"
+        "showHelp_F_body": "full screen",
+        "Destination": "Destination",
+        "in_queue": "{n} in queue"
     }
 }

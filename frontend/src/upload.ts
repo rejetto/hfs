@@ -99,6 +99,8 @@ export function showUpload() {
         const { qs, paused, eta, skipExisting } = useSnapshot(uploadState)
         const { can_upload, accept } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
+        const inQ = _.sumBy(qs, q => q.files.length) - (uploadState.uploading ? 1 : 0)
+        const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
         const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
 
         return h(FlexV, { gap: 0, props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
@@ -138,7 +140,7 @@ export function showUpload() {
             h(UploadStatus),
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
-                    `${_.sumBy(qs, q => q.files.length) - (uploadState.uploading ? 1 : 0)} in queue${prefix(', ', etaStr)}`,
+                    [queueStr, etaStr].filter(Boolean).join(', '),
                     iconBtn('trash', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
@@ -149,7 +151,7 @@ export function showUpload() {
                 ),
                 qs.map((q,idx) =>
                     h('div', { key: q.to },
-                        h(Link, { to: q.to, onClick: close }, "Destination ", decodeURI(q.to)),
+                        h(Link, { to: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FilesList, {
                             files: Array.from(q.files),
                             remove(f) {
