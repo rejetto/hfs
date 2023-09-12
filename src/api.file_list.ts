@@ -20,6 +20,8 @@ import _ from 'lodash'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string }
+
 export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c }, ctx) => {
     const node = await urlToNode(uri || '/', ctx)
     const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
@@ -93,43 +95,41 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
                 break
         }
     }
-}
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string }
-
-async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
-    let { source, default:def } = node
-    const name = getNodeName(node)
-    if (!source)
-        return name ? { n: name + '/' } : null
-    if (def)
-        return { n: name }
-    try {
-        const st = await stat(source)
-        const folder = st.isDirectory()
-        const { ctime, mtime } = st
-        const pl = node.can_list === WHO_NO_ONE ? 'l'
-            : !hasPermission(node, 'can_list', ctx) ? 'L'
-            : ''
-        // no download here, but maybe inside?
-        const pr = node.can_read === WHO_NO_ONE && !(folder && filesInsideCould()) ? 'r'
-            : !hasPermission(node, 'can_read', ctx) ? 'R'
-            : ''
-        const pd = hasPermission(node, 'can_delete', ctx) ? 'd' : ''
-        return {
-            n: name + (folder ? '/' : ''),
-            c: ctime,
-            m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
-            s: folder ? undefined : st.size,
-            p: (pr + pl + pd) || undefined
+    async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
+        let { source, default:def } = node
+        const name = getNodeName(node)
+        if (!source)
+            return name ? { n: name + '/' } : null
+        if (def)
+            return { n: name }
+        try {
+            const st = await stat(source)
+            const folder = st.isDirectory()
+            const { ctime, mtime } = st
+            const pl = node.can_list === WHO_NO_ONE ? 'l'
+                : !hasPermission(node, 'can_list', ctx) ? 'L'
+                : ''
+            // no download here, but maybe inside?
+            const pr = node.can_read === WHO_NO_ONE && !(folder && filesInsideCould()) ? 'r'
+                : !hasPermission(node, 'can_read', ctx) ? 'R'
+                : ''
+            const pd = !can_delete && hasPermission(node, 'can_delete', ctx) ? 'd' : ''
+            return {
+                n: name + (folder ? '/' : ''),
+                c: ctime,
+                m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
+                s: folder ? undefined : st.size,
+                p: (pr + pl + pd) || undefined
+            }
         }
-    }
-    catch {
-        return null
-    }
+        catch {
+            return null
+        }
 
-    function filesInsideCould(n: VfsNode=node): boolean | undefined {
-        return masksCouldGivePermission(n.masks, 'can_read')
-            || n.children?.some(c => c.can_read || filesInsideCould(c)) // we count on the boolean-compliant nature of the permission type here
+        function filesInsideCould(n: VfsNode=node): boolean | undefined {
+            return masksCouldGivePermission(n.masks, 'can_read')
+                || n.children?.some(c => c.can_read || filesInsideCould(c)) // we count on the boolean-compliant nature of the permission type here
+        }
     }
 }
