@@ -2,7 +2,7 @@
 
 import { Box, Button, FormHelperText, Link } from '@mui/material';
 import { createElement as h, Fragment, useEffect, useRef } from 'react';
-import { apiCall, useApi, useApiEx } from './api'
+import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Info, Refresh, Warning } from '@mui/icons-material'
 import { Dict, Flex, iconTooltip, LinkBtn, modifiedSx, REPO_URL, wikiLink, with_ } from './misc'
@@ -46,7 +46,7 @@ export default function OptionsPage() {
     useEffect(() => void(reloadStatus()), [data]) //eslint-disable-line
     useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
 
-    const admins = useApi('get_admins')[0]?.list
+    const admins = useApiEx('get_admins').data?.list
 
     if (element)
         return element

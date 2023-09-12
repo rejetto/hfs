@@ -2,7 +2,7 @@
 
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Button, Card, CardContent, LinearProgress, Link } from '@mui/material'
-import { apiCall, useApi, useApiEx, useApiList } from './api'
+import { apiCall, useApiEx, useApiList } from './api'
 import {
     Btn,
     dontBotherWithKeys,
@@ -43,7 +43,7 @@ export default function HomePage() {
     const { username } = useSnapState()
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
-    const [account] = useApi<Account>(username && 'get_account')
+    const { data: account } = useApiEx<Account>(username && 'get_account')
     const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
     const { list: plugins } = useApiList('get_plugins')
     const [updates, setUpdates] = useState<undefined | any[]>()

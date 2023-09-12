@@ -68,20 +68,20 @@ export class ApiError extends Error {
     }
 }
 
-export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undefined, undefined | Error, ()=>void, boolean] {
-    const [ret, setRet] = useStateMounted<T | undefined>(undefined)
-    const [err, setErr] = useStateMounted<Error | undefined>(undefined)
+export function useApi<T=any>(cmd: string | Falsy, params?: object) {
+    const [data, setData] = useStateMounted<T | undefined>(undefined)
+    const [error, setError] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef<ReturnType<typeof apiCall>>()
     const reloadingRef = useRef<any>()
     useEffect(()=>{
         loadingRef.current?.abort()
-        setRet(undefined)
-        setErr(undefined)
+        setData(undefined)
+        setError(undefined)
         if (!cmd) return
         let aborted = false
         const req = apiCall<T>(cmd, params)
-        const wholePromise = req.then(x => aborted || setRet(x), x => aborted || setErr(x))
+        const wholePromise = req.then(x => aborted || setData(x), x => aborted || setError(x))
             .finally(() => loadingRef.current = reloadingRef.current = undefined)
         loadingRef.current = Object.assign(wholePromise, {
             abort() {
@@ -94,7 +94,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
     const reload = useCallback(() => loadingRef.current
             || setForcer(v => v+1) || (reloadingRef.current = pendingPromise()),
         [setForcer])
-    return [ret, err, reload, ret === undefined || Boolean(loadingRef.current || reloadingRef.current)]
+    return { data, error, reload, loading: data === undefined || Boolean(loadingRef.current || reloadingRef.current) }
 }
 
 type EventHandler = (type:string, data?:any) => void

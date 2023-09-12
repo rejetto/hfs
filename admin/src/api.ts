@@ -19,16 +19,18 @@ setDefaultApiCallOptions({
     }
 })
 
+// expand useApi with things that cannot be shared with Frontend
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
-    const [data, error, reload, loading] = useApi<T>(...args)
-    const cmd = args[0]
-    const element = useMemo(() =>
-            !cmd ? null
-                : error ? h(Alert, { severity: 'error' }, String(error), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } }))
-                    : loading ? spinner()
+    const res = useApi<T>(...args)
+    return {
+        ...res,
+        element: useMemo(() =>
+            !args[0] ? null
+                : res.error ? h(Alert, { severity: 'error' }, String(res.error), h(IconBtn, { icon: Refresh, onClick: res.reload, sx: { m: '-8px 0 -8px 16px' } }))
+                    : res.loading ? spinner()
                         : null,
-        [error, cmd, loading, reload])
-    return { data, error, reload, loading, element }
+            Object.values(res))
+    }
 }
 
 export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map }: { map?: (rec: S) => T }={}) {
