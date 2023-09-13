@@ -74,3 +74,4 @@ else if (!winExe) { // still considering whether to use this behavior with Windo
     process.chdir(dir)
 }
 console.log('cwd', process.cwd())
+console.log('node', process.version)

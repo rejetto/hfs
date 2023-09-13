@@ -32,8 +32,8 @@
     "dist-bin": "npm run dist-modules && cd dist && pkg . --public -C gzip && mv -f hfs-win-x64.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux-x64 hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos-x64 hfs && zip hfs-mac.zip hfs -r plugins && cp -f hfs-macos-arm64 hfs && zip hfs-mac-arm.zip hfs -r plugins && rm hfs",
     "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && npm run dist-crclib && rm package-lock.json && cd .. && node prune_modules",
     "dist-crclib": "npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc @node-rs/crc32-darwin-arm64 @node-rs/crc32-darwin-x64 @node-rs/crc32-linux-x64-gnu",
-    "dist-win": "npm run dist-modules && cd dist && pkg . --public -C gzip -t node16-win-x64",
-    "dist-mac": "npm run dist-modules && cd dist && pkg . --public -C gzip -t node16-macos-arm64",
+    "dist-win": "npm run dist-modules && cd dist && pkg . --public -C gzip -t node18-win-x64",
+    "dist-mac": "npm run dist-modules && cd dist && pkg . --public -C gzip -t node18-macos-arm64",
     "dist-node": "npm run dist-modules && cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-* *.log logs"
   },
   "engines": {
