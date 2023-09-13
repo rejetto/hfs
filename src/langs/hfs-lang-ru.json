@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 2.0,
-    "hfs_version": "0.47.0",
+    "version": 2.1,
+    "hfs_version": "0.48.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{1 файл} few{# файла} other{# файлов}}",
@@ -15,7 +15,7 @@
         "zip_tooltip_whole": "Выбрать файлы для скачивания в zip-архиве. Если файлы не выбраны, то будет скачана вся папка",
         "zip_confirm_search": "Скачать все результаты поиска в одном zip-архиве",
         "zip_confirm_folder": "Скачать всю папку как zip-архив?",
-        "select_tooltip": "Выбор применяется к \"Zip\" и \"Удалить\" (если доступно), но также список можно отфильтровать",
+        "select_tooltip": "Позволяет выбрать файлы для скачивания или удаления, а так же использовать фильтры для быстрого поиска",
         "delete_hint": "Для удаления файлов сначала нажмите Выбор",
         "delete_confirm": "Удалить {n,plural, =1{элемент} one{# элемент} few{# элемента} many{# элементов} other{# элементов}}?",
         "delete_completed": "{n,plural, one{Удалён} other{Удалено}} {n,plural, one{# элемент} few{# элемента} many{# элементов} other{# элементов}}",
@@ -124,7 +124,7 @@
         "Switch zoom mode": "Переключить увеличение",
         "Full screen": "Полный экран",
 
-        "File Show help": "Помощь меню просмотра файла",
+        "File Show help": "Помощь",
         "showHelpMain": "Для некоторых действий можно использовать клавиатуру:",
         "showHelp_←/→": "←/→",
         "showHelp_↑/↓": "↑/↓",
@@ -134,6 +134,13 @@
         "showHelp_space_body": "выбрать файл",
         "showHelp_D_body": "скачать",
         "showHelp_Z_body": "переключение увеличения",
-        "showHelp_F_body": "полноэкранный режим"
+        "showHelp_F_body": "полноэкранный режим",
+        "Destination": "Назначение",
+        "in_queue": "{n} в очереди",
+
+        "": "PLUGINS SECTION",
+        "": "PLUGIN thumbnails",
+        "Enable tiles mode": "Просмотр в режиме плиток",
+        "thumbnails_switchBack": "Изменить вид можно в настройках"
     }
 }
