@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, IconBtn, spinner, useStateMounted, wantArray } from './misc'
+import { Dict, err2msg, Falsy, IconBtn, spinner, useStateMounted, wantArray, xlate } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
@@ -19,6 +19,7 @@ setDefaultApiCallOptions({
     }
 })
 
+const ERRORS = { timeout: "Operation timeout" }
 // expand useApi with things that cannot be shared with Frontend
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     const res = useApi<T>(...args)
@@ -26,7 +27,8 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
         ...res,
         element: useMemo(() =>
             !args[0] ? null
-                : res.error ? h(Alert, { severity: 'error' }, String(res.error), h(IconBtn, { icon: Refresh, onClick: res.reload, sx: { m: '-8px 0 -8px 16px' } }))
+                : res.error ? h(Alert, { severity: 'error' }, xlate(String(res.error), ERRORS),
+                                    h(IconBtn, { icon: Refresh, onClick: res.reload, sx: { m:'-10px 0 -8px 16px' } }) )
                     : res.loading ? spinner()
                         : null,
             Object.values(res))

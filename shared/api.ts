@@ -9,7 +9,7 @@ export const API_URL = '/~/api/'
 const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute
     update: 600, // download can be lengthy
-    get_nat: 20, // wait more mostly for debug purposes, as we don't want this to take this long
+    get_nat: 10,
     get_status: 20 // can be lengthy on slow machines because of the find-process-on-busy-port feature
 }
 
@@ -28,8 +28,9 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
     _.defaults(options, defaultApiCallOptions)
     const stop = options.modal?.(cmd, params)
     const controller = new AbortController()
+    let aborted = ''
     if (options.timeout !== false)
-        setTimeout(() => controller.abort('timeout'), 1000*(timeoutByApi[cmd] ?? options.timeout ?? 10))
+        setTimeout(() => controller.abort(aborted='timeout'), 1000*(timeoutByApi[cmd] ?? options.timeout ?? 10))
     return Object.assign(fetch(getPrefixUrl() + API_URL + cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
@@ -51,10 +52,10 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         stop?.()
         if (err?.message?.includes('fetch'))
             throw Error("Network error")
-        throw err
+        throw aborted || err
     }), {
         abort() {
-            controller.abort('cancel')
+            controller.abort(aborted='cancel')
         }
     })
 }
@@ -96,7 +97,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) {
     const reload = useCallback(() => loadingRef.current
             || setForcer(v => v+1) || (reloadingRef.current = pendingPromise()),
         [setForcer])
-    return { data, error, reload, loading: data === undefined || Boolean(loadingRef.current || reloadingRef.current) }
+    return { data, error, reload, loading: Boolean(loadingRef.current || reloadingRef.current) }
 }
 
 type EventHandler = (type:string, data?:any) => void

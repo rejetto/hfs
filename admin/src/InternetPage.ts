@@ -21,7 +21,7 @@ export default function InternetPage() {
     const { data: status, reload: reloadStatus } = useApiEx('get_status')
     const localColor = with_([status?.http?.error, status?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
-    const { data: nat, reload, error, loading } = useApiEx('get_nat')
+    const { data: nat, reload, error, loading, element } = useApiEx('get_nat')
     const port = nat?.internalPort
     const wrongMap = nat?.mapped && nat.mapped.private.port !== port
     const doubleNat = nat?.externalIp && nat.externalIp !== nat.publicIp
@@ -51,7 +51,7 @@ export default function InternetPage() {
     }
 
     function networkBox() {
-        if (error) return "Error"
+        if (error) return element
         if (!nat) return h(CircularProgress)
         return h(Flex, { justifyContent: 'space-around', alignItems: 'center', maxWidth: '40em' },
             h(Device, { name: "Local network", icon: HomeWorkTwoTone, color: localColor, ip: nat?.localIp,

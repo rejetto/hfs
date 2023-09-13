@@ -88,7 +88,7 @@ function ForceLang({ langs }: { langs: string[] }) {
     const K = 'force_lang'
     const { data, reload, loading } = useApiEx('get_config', { only: [K] })
     const [lang, setLang] = useState()
-    useEffect(() => setLang(loading ? lang : data[K]), [loading])
+    useEffect(() => setLang(data?.[K] ?? lang), [data])
     const [saving, setSaving] = useState<string>()
 
     return h(SelectField as Field<string>, {
