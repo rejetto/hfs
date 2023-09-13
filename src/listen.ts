@@ -31,7 +31,7 @@ portCfg.sub(async port => {
     while (!app)
         await wait(100)
     stopServer(httpSrv).then()
-    httpSrv = Object.assign(http.createServer(app.callback()), { name: 'http' })
+    httpSrv = Object.assign(http.createServer({ requestTimeout: 0 }, app.callback()), { name: 'http' })
     port = await startServer(httpSrv, { port })
     if (!port) return
     httpSrv.on('connection', newConnection)
