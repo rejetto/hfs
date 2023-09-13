@@ -162,6 +162,7 @@ export class QuickZipStream extends Readable {
         data.on('error', (err) => console.error(err))
         data.on('end', ()=>{
             this.workingFile = undefined
+            entry.crc = crc
             if (sourcePath)
                 crcCache[sourcePath] = { ts, crc }
             this.entries.push(entry)
