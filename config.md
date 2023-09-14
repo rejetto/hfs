@@ -96,6 +96,9 @@ E.g.
 accounts:
     admin:
         password: hello123
+        admin: true
+    frank:
+        password: another
         belongs: group1
     guest:
         password: guest

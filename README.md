@@ -51,11 +51,15 @@ NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of
 
 1. go to https://github.com/rejetto/hfs/releases
 2. click on `Assets`
-3. **download** the right version for your computer
-4. launch `hfs` file
-5. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
+3. **download** the right version for your system, unzip and launch `hfs` file. 
+   - If you cannot find your system in the list, see next section [Other systems](#other-systems).
+4. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
    - if a browser cannot be opened on the computer where you are installing HFS, 
      you should enter this command in HFS console: `create-admin <PASSWORD>`
+   - if you are running as a service and cannot access the console, your best option is to stop it, launch it
+     at command line (not as a service), and follow previous instruction.
+     - if you can never access the console, even with the previous instructions, 
+       you can [edit config file add add your admin account](config.md#accounts)
 
 If you access *Admin-panel* via localhost, by default HFS **won't** require you to login.
 If you don't like this behavior, disable it in the Admin-panel or enter this console command `config localhost_admin false`.
@@ -108,6 +112,34 @@ To update
 - run `npm -g update hfs`
 - run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
 
+## Console commands
+
+If you have access to HFS' console, you can enter commands. Start with `help` to have a full list.
+
+## Configuration
+
+Configuration can be done in several ways
+- accessing the Admin-panel with your browser
+  - it will automatically open when you start HFS. Bookmark it. if your port is 8000 the address will be http://localhost:8000/~/admin
+- after HFS has started you can enter console command in the form `config NAME VALUE`
+- passing via command line at start in the form `--NAME VALUE`
+- directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
+
+`NAME` stands for the property name that you want to change. See the [complete list](config.md).
+
+### Where is it stored
+
+Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
+
+These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
+if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
+You can decide a different cwd passing `--cwd SOME_FOLDER` parameter at command line.
+
+You can decide also a different file for config by passing `--config SOME_FILE`, or inside an *env* called `HFS_CONFIG`.
+Any relative path provided is relative to the *cwd*.
+
+[Check details about config file format](config.md).
+
 ## Internationalization
 
 It is possible to show the Front-end in other languages.
@@ -133,34 +165,6 @@ But you may still want to stay with HFS 2.x (so far) for the following reasons
 - smaller
 - more tested
 - classic window interface (can be easier for some people)
-
-## Console commands
-
-If you have access to HFS' console, you can enter commands. Start with `help` to have a full list. 
-
-## Configuration
-
-Configuration can be done in several ways
-- accessing the Admin-panel with your browser
-  - it will automatically open when you start HFS. Bookmark it. if your port is 8000 the address will be http://localhost:8000/~/admin 
-- after HFS has started you can enter console command in the form `config NAME VALUE`
-- passing via command line at start in the form `--NAME VALUE`
-- directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
-
-`NAME` stands for the property name that you want to change. See the [complete list](config.md).
-
-### Where is it stored
-
-Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
-
-These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
-if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
-You can decide a different cwd passing `--cwd SOME_FOLDER` parameter at command line.  
-
-You can decide also a different file for config by passing `--config SOME_FILE`, or inside an *env* called `HFS_CONFIG`.
-Any relative path provided is relative to the *cwd*.  
-
-[Check details about config file format](config.md). 
 
 ## Security
 
