@@ -156,7 +156,7 @@ export default function OptionsPage() {
                     { k: 'k', label: "File mask", $width: 1, $column: {
                         renderCell: ({ value, id }: any) => h('code', {},
                             value,
-                            value === '*' && id < Object.keys(values.mime).length - 1
+                            value === '*' && id < _.size(values.mime) - 1
                                 && iconTooltip(Warning, md("Mime with `*` should be the last, because first matching row applies"), {
                                     color: 'warning.main', ml: 1
                                 }))

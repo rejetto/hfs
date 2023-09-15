@@ -15,7 +15,7 @@ import {
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import {
-    basename, Btn, formatBytes, IconBtn, isEqualLax, LinkBtn, modifiedSx, newDialog, objSameKeys,
+    basename, Btn, formatBytes, formatTimestamp, IconBtn, isEqualLax, LinkBtn, modifiedSx, newDialog, objSameKeys,
     onlyTruthy, prefix, wikiLink
 } from './misc'
 import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
@@ -150,10 +150,6 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, status
 function perm2word(perm: string) {
     const word = perm.split('_')[1]
     return word === 'read' ? 'download' : word
-}
-
-function formatTimestamp(x: string) {
-    return x ? new Date(x).toLocaleString() : '-'
 }
 
 interface WhoFieldProps extends FieldProps<Who | undefined> {

@@ -6,11 +6,10 @@ import { defineConfig } from './config'
 import { createWriteStream, renameSync } from 'fs'
 import * as util from 'util'
 import { stat } from 'fs/promises'
-import { DAY } from './const'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './perm'
-import { makeNetMatcher, tryJson } from './misc'
+import { DAY, makeNetMatcher, tryJson } from './misc'
 import events from './events'
 
 class Logger {
