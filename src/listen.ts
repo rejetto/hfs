@@ -98,8 +98,8 @@ const considerHttps = debounceAsync(async () => {
 })
 
 
-const cert = defineConfig('cert', '')
-const privateKey = defineConfig('private_key', '')
+export const cert = defineConfig('cert', '')
+export const privateKey = defineConfig('private_key', '')
 const httpsNeeds = [cert, privateKey]
 const httpsOptions = { cert: '', private_key: '' }
 type HttpsKeys = keyof typeof httpsOptions
@@ -126,7 +126,7 @@ export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
 httpsPortCfg.sub(considerHttps)
 
 interface StartServer { port: number, host?:string }
-function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
+export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     return new Promise<number>(async resolve => {
         if (!srv) return 0
         try {
@@ -180,7 +180,7 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     }
 }
 
-function stopServer(srv?: http.Server) {
+export function stopServer(srv?: http.Server) {
     return new Promise(resolve => {
         if (!srv?.listening)
             return resolve(null)
@@ -201,13 +201,15 @@ export async function getServerStatus() {
         https: await serverStatus(httpsSrv, httpsPortCfg.get()),
     }
 
-    async function serverStatus(h: typeof httpSrv, configuredPort: number) {
-        const busy = await h?.busy
+    async function serverStatus(srv: typeof httpSrv, configuredPort: number) {
+        const busy = await srv?.busy
         await wait(0) // simple trick to wait for also .error to be updated. If this trickery becomes necessary elsewhere, then we should make also error a Promise.
         return {
-            ..._.pick(h, ['listening', 'error']),
+            ..._.pick(srv, ['listening', 'error']),
             busy,
-            port: (h?.address() as any)?.port as number || configuredPort,
+            port: (srv?.address() as any)?.port as number || configuredPort,
+            configuredPort,
+            srv,
         }
     }}
 
