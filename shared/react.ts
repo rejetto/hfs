@@ -1,6 +1,15 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactElement, ReactNode, useCallback, useEffect, useState } from 'react'
+import {
+    createElement as h,
+    Fragment,
+    KeyboardEvent,
+    ReactElement,
+    ReactNode,
+    useCallback,
+    useEffect,
+    useState
+} from 'react'
 import { useIsMounted } from 'usehooks-ts'
 
 export function useStateMounted<T>(init: T) {
@@ -71,4 +80,9 @@ export function useBatch<Job=unknown,Result=unknown>(
     if (env && cached === undefined)
         env.batch.add(job)
     return { data: cached, ...env } as Env & { data: Result | undefined | null } // so you can cache.clear
+}
+
+const isMac = navigator.platform.match('Mac')
+export function isCtrlKey(ev: KeyboardEvent) {
+    return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }

@@ -235,3 +235,17 @@ export function isPrimitive(x: unknown): x is boolean | string | number | undefi
 export function isIP(address: string) {
     return /^([.:\da-f]+)$/i.test(address)
 }
+
+export function isWindowsDrive(s?: string) {
+    return s && /^[a-zA-Z]:$/.test(s)
+}
+
+export function isEqualLax(a: any,b: any): boolean {
+    return a == b //eslint-disable-line
+        || (a && b && typeof a === 'object' && typeof b === 'object'
+            && Object.entries(a).every(([k,v]) => isEqualLax(v, b[k])) )
+}
+
+export function xlate(input: any, table: Record<string, any>) {
+    return table[input] ?? input
+}
