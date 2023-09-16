@@ -5,6 +5,8 @@ import _ from 'lodash'
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 export const WIKI_URL = REPO_URL + 'wiki/'
 export const MINUTE = 60_000
+export const HOUR = 60 * MINUTE
+export const DAY = 24 * HOUR
 
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -198,7 +200,7 @@ export function hasProp<T extends object>(obj: T, key: PropertyKey): key is keyo
     return key in obj;
 }
 
-export function throw_(err: any) {
+export function throw_(err: any): never {
     throw err
 }
 
@@ -220,4 +222,12 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
 export function repeat(every: number, cb: () => unknown) {
     Promise.allSettled([cb()]).then(() =>
         setTimeout(() => repeat(every, cb), every) )
+}
+
+export function formatTimestamp(x: string) {
+    return x ? new Date(x).toLocaleString() : '-'
+}
+
+export function isPrimitive(x: unknown): x is boolean | string | number | undefined | null {
+    return !x || Object(x) !== x
 }

@@ -10,22 +10,16 @@ import { cert, getIps, getServerStatus, privateKey, startServer, stopServer } fr
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { debounceAsync, findDefined, MINUTE, repeat, Dict } from './misc'
+import { debounceAsync, findDefined, HOUR, MINUTE, repeat, Dict } from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
 import { createServer } from 'http'
 
-const client = new Client({ timeout: 5_000 })
-const original = client.getGateway
+const client = new Client({ timeout: 4_000 })
+const originalMethod = client.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
-client.getGateway = function getGatewayCaching() {
-    const promise = original.apply(client)
-    client.getGateway = () => promise // multiple callings = same job
-    promise.then(() => console.debug('caching gateway'), // store in cache only if successful.
-        ()=> client.getGateway = getGatewayCaching) // failed, try again
-    return promise
-}
-client.getGateway()
+client.getGateway = debounceAsync(() => originalMethod.apply(client), 0, { retain: HOUR, retainFailure: 30_000 })
+client.getGateway().catch(() => {})
 
 export let externalIp = Promise.resolve('') // poll external ip
 repeat(10 * MINUTE, () => {

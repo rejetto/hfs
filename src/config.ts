@@ -1,11 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import EventEmitter from 'events'
-import { argv, DAY, ORIGINAL_CWD, VERSION } from './const'
+import { argv, ORIGINAL_CWD, VERSION } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { debounceAsync, newObj, onOff, wait, with_ } from './misc'
+import { DAY, debounceAsync, newObj, onOff, wait, with_ } from './misc'
 import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'

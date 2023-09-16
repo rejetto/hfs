@@ -221,7 +221,8 @@ export async function getIps() {
         && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
     )).flat()
     const e = await externalIp
-    if (e) ips.unshift(e)
+    if (e && !ips.includes(e))
+        ips.unshift(e)
     return v4first(ips)
         .filter((x,i,a) => a.length > 1 || !x.startsWith('169.254')) // 169.254 = dhcp failure on the interface, but keep it if it's our only one
 

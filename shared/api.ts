@@ -10,7 +10,7 @@ const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute
     update: 600, // download can be lengthy
     get_nat: 10,
-    get_status: 20 // can be lengthy on slow machines because of the find-process-on-busy-port feature
+    get_status: 20, // can be lengthy on slow machines because of the find-process-on-busy-port feature
 }
 
 interface ApiCallOptions {
@@ -84,7 +84,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) {
         let req: undefined | ReturnType<typeof apiCall>
         const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
             .then(() => aborted ? undefined : req = apiCall<T>(cmd, params))
-            .then(res => aborted || setData(res), err => aborted || setError(err))
+            .then(res => aborted || setData(res), err => aborted || setError(err) || setData(undefined))
             .finally(() => loadingRef.current = reloadingRef.current = undefined)
         loadingRef.current = Object.assign(wholePromise, {
             abort() {
