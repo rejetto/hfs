@@ -1,15 +1,15 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Box, Button, FormHelperText, Link } from '@mui/material';
+import { Box, Button, FormHelperText } from '@mui/material';
 import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
-import { Info, Refresh, Warning } from '@mui/icons-material'
-import { Dict, Flex, iconTooltip, LinkBtn, modifiedSx, REPO_URL, wikiLink, with_ } from './misc'
+import { CardMembership, Refresh, Warning } from '@mui/icons-material'
+import { Dict, iconTooltip, InLink, LinkBtn, modifiedSx, REPO_URL, wait, wikiLink, with_ } from './misc'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
-import { alertDialog, closeDialog, confirmDialog, newDialog, toast } from './dialog'
+import { alertDialog, confirmDialog, newDialog, toast, waitDialog } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
@@ -102,7 +102,7 @@ export default function OptionsPage() {
                 helperText: wikiLink('HTTPS#certificate', "What is this?"),
                 error: with_(status?.https.error, e => isCertError(e) && (
                     status.https.listening ? e
-                        : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: makeCertAndSave }, "make one")] )),
+                        : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: suggestMakingCert }, "make one")] )),
             },
             httpsEnabled && { k: 'private_key', comp: FileField, md: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
@@ -305,55 +305,38 @@ function WildcardsSupported() {
     return wikiLink('Wildcards', "Wildcards supported")
 }
 
-function suggestMakingCert() {
-    newDialog({
-        Content: () => h(Box, {},
-            h(Box, { display: 'flex', gap: 1 },
-                h(Info), "You are enabling HTTPs. It needs a valid certificate + private key to work."
-            ),
-            h(Box, { mt: 4, display: 'flex', gap: 1, justifyContent: 'space-around', },
-                h(Button, { variant: 'contained', onClick(){
-                    closeDialog()
-                    makeCertAndSave().then()
-                } }, "Help me!"),
-                h(Button, { onClick: closeDialog }, "I will handle the matter myself"),
-            ),
-        )
-    })
-}
+export async function suggestMakingCert() {
+    return new Promise(resolve => {
+        const { close } = newDialog({
+            icon: CardMembership,
+            title: "Get a certificate",
+            onClose: resolve,
+            Content: () => h(Box, { p: 1, lineHeight: 1.5, },
+                h(Box, {}, "HTTPS needs a certificate to work."),
+                h(Box, {}, "We suggest you to ", h(InLink, { to: 'internet', onClick: close }, "get a free but proper certificate"), '.'),
+                h(Box, {}, "If you don't have a domain ", h(LinkBtn, { onClick: makeCertAndSave }, "make a self-signed certificate"),
+                    " but that ", wikiLink('HTTPS#certificate', " won't be perfect"), '.' ),
+            )
+        })
 
-export async function makeCertAndSave() {
-    if (!window.crypto.subtle)
-        return alertDialog("Retry this procedure on localhost", 'warning')
-    const { close } = newDialog({
-        title: "Get a certificate",
-        Content: () => h(Flex, { flexDirection: 'column' },
-            h('p', {}, "HTTPS needs a certificate to work."),
-            "We suggest you to ",
-            h(Link, {
-                target: 'cert',
-                href: 'https://letsencrypt.org/',
-                onClick: close,
-            }, h(Button, { size: 'small', color: 'success' }, "get a free but proper certificate")),
-            "or, if you are in a hurry",
-            h(Button, {
-                size: 'small',
-                color: 'warning',
-                async onClick() {
-                    try {
-                        const saved = await apiCall('save_pem', await makeCert({}))
-                        await apiCall('set_config', { values: saved })
-                        if (loaded) // when undefined we are not in this page
-                            Object.assign(loaded, saved)
-                        setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
-                        Object.assign(state.config, saved)
-                        await alertDialog("Certificate saved", 'success')
-                    }
-                    finally { close() }
-                }
-            }, "make a basic certificate"),
-            wikiLink('HTTPS#certificate', h(Flex, {}, h(Warning, { color: 'warning' }), "but BEWARE it won't be perfect"))
-        )
+        async function makeCertAndSave() {
+            if (!window.crypto.subtle)
+                return alertDialog("Retry this procedure on localhost", 'warning')
+            const stop = waitDialog()
+            try {
+                await wait(50) // give time to start animation before cpu intensive task
+                const saved = await apiCall('save_pem', await makeCert({}))
+                stop()
+                await apiCall('set_config', { values: saved })
+                if (loaded) // when undefined we are not in this page
+                    Object.assign(loaded, saved)
+                setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
+                Object.assign(state.config, saved)
+                close()
+                await alertDialog("Certificate saved", 'success')
+            }
+            finally { stop() }
+        }
     })
 }
 

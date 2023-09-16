@@ -19,6 +19,7 @@ import { ok } from 'assert'
 import _ from 'lodash'
 import { randomId } from './misc'
 import session from 'koa-session'
+import { acmeMiddleware } from './api.net'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
@@ -26,6 +27,7 @@ process.title = 'HFS ' + VERSION
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',') || [randomId(30)]
 export const app = new Koa({ keys })
 app.use(someSecurity)
+    .use(acmeMiddleware)
     .use(session({ key: 'hfs_$id', signed: true, rolling: true, sameSite: 'lax' }, app))
     .use(prepareState)
     .use(gzipper)

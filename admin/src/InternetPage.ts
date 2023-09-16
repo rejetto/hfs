@@ -1,12 +1,13 @@
 import { createElement as h, useEffect, useState } from 'react'
-import { Alert, Box, Button, Card, CardContent, CircularProgress, LinearProgress, Link } from '@mui/material'
-import { HomeWorkTwoTone, PublicTwoTone, RouterTwoTone } from '@mui/icons-material'
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
+import { CardMembership, HomeWorkTwoTone, Lock, PublicTwoTone, RouterTwoTone, Send } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
-import { closeDialog, with_ } from '@hfs/shared'
-import { Flex, LinkBtn } from './misc'
+import { closeDialog, DAY, formatTimestamp, with_ } from '@hfs/shared'
+import { Flex, LinkBtn, manipulateConfig } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
-import { NumberField } from '@hfs/mui-grid-form'
+import { Form, NumberField } from '@hfs/mui-grid-form'
 import md from './md'
+import { isCertError } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
@@ -18,10 +19,10 @@ export default function InternetPage() {
     const [checking, setChecking] = useState(false)
     const [mapping, setMapping] = useState(false)
     const [verifyAgain, setVerifyAgain] = useState(false)
-    const { data: status, reload: reloadStatus } = useApiEx('get_status')
-    const localColor = with_([status?.http?.error, status?.https?.error], ([h, s]) =>
+    const status = useApiEx('get_status')
+    const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
-    const { data: nat, reload, error, loading, element } = useApiEx('get_nat')
+    const { data: nat, reload: reloadNat, error, loading, element } = useApiEx('get_nat')
     const port = nat?.internalPort
     const wrongMap = nat?.mapped && nat.mapped.private.port !== port
     const doubleNat = nat?.externalIp && nat.externalIp !== nat.publicIp
@@ -30,21 +31,77 @@ export default function InternetPage() {
         setVerifyAgain(false)
         verify().then()
     }, [verifyAgain, nat, loading])
-    return h(Flex, { vert: true },
+    return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
         h(Alert, { severity: 'info' }, "This page helps you making your server work on the Internet"),
         baseUrlBox(),
         networkBox(),
+        httpsBox(),
     )
 
+    function httpsBox() {
+        const { error, listening } = status.data?.https ||{}
+        const [acme, setAcme] = useState<any>()
+        const cert = useApiEx('get_cert')
+        useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email'] }).then(setAcme) } , [])
+        if (!status || !acme) return h(CircularProgress)
+        return element || status.element || h(Card, {}, h(CardContent, {},
+            h(Flex, { gap: '.5em', fontSize: 'x-large', mb: 1, alignItems: 'center' }, "HTTPS",
+                h(Lock, { color: listening && !error ? 'success' : 'warning' }) ),
+            h(Box, { mt: 1 },
+                isCertError(error) && h(Alert, { severity: 'warning', sx: { mb: 1 } }, error),
+                cert.element || with_(cert.data, c => h(Box, {}, h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate", h('ul', {},
+                    h('li', {}, "Domain: ", c.subject?.CN || '-'),
+                    h('li', {}, "Issuer: ", c.issuer?.O || h('i', {}, 'self-signed')),
+                    h('li', {}, "Validity: ", ['validFrom', 'validTo'].map(k => formatTimestamp(c[k])).join(' – ')),
+                ))),
+                !listening && "Not enabled. " || error && "For HTTPS to work, you need a valid certificate.",
+                h(Divider, { sx: { my: 2 } }),
+                h(Form, {
+                    gap: 1,
+                    gridProps: {rowSpacing:1},
+                    values: acme,
+                    set(v, k) {
+                        setAcme((was: any) => ({ ...was, [k]: v }))
+                    },
+                    fields: [
+                        md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
+                        { k: 'acme_domain', label: "Certificate domain", sm: 6, required: true },
+                        { k: 'acme_email', label: "Certificate e-mail", sm: 6 },
+                    ],
+                    save: {
+                        children: "Request",
+                        startIcon: h(Send),
+                        async onClick() {
+                            const domain = acme.acme_domain
+                            const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
+                            if (fresh && !await confirmDialog("Your certificate is still good", { confirmText: "Make a new one anyway" }))
+                                return
+                            await apiCall('set_config', { values: acme })
+                            if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
+                            await apiCall('make_cert', { domain, email: acme.acme_email }, { timeout: 20_000 })
+                                .then(async () => {
+                                    await alertDialog("Certificate created", 'success')
+                                    await manipulateConfig('https_port', async v => {
+                                        return v < 0 && await confirmDialog("HTTPS is currently off", { confirmText: "Switch on" }) ? 443 : v
+                                    })
+                                    status.reload()
+                                    cert.reload()
+                                }, alertDialog)
+                        }
+                    },
+                })
+            )
+        ))
+    }
+
     function baseUrlBox() {
-        if (!status) return h(CircularProgress)
-        return h(Card, {}, h(CardContent, {},
+        return status.element || h(Card, {}, h(CardContent, {},
             h(Box, { fontSize: 'x-large', mb: 2 }, "Address / Domain"),
             h(Flex, { flexWrap: 'wrap', alignItems: 'center' },
-                status?.baseUrl || "Automatic, not configured",
+                status.data?.baseUrl || "Automatic, not configured",
                 h(Button, {
                     size: 'small',
-                    onClick() { changeBaseUrl().then(reloadStatus) }
+                    onClick() { changeBaseUrl().then(status.reload) }
                 }, "Change"),
             )
         ))
@@ -53,7 +110,7 @@ export default function InternetPage() {
     function networkBox() {
         if (error) return element
         if (!nat) return h(CircularProgress)
-        return h(Flex, { justifyContent: 'space-around', alignItems: 'center', maxWidth: '40em' },
+        return h(Flex, { justifyContent: 'space-around', alignItems: 'center' },
             h(Device, { name: "Local network", icon: HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
             }),
@@ -63,7 +120,7 @@ export default function InternetPage() {
                 color: nat?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
                     : h(LinkBtn, { fontSize: 'smaller', display: 'block', onClick: configure },
-                        "port ", wrongMap ? 'is wrong' : nat?.mapped ? nat.mapped.public.port : "unknown"),
+                        "port ", wrongMap ? 'is wrong' : nat?.externalPort || "unknown"),
             }),
             h(Sep),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: nat?.publicIp,
@@ -99,9 +156,9 @@ export default function InternetPage() {
             const { close } = alertDialog(h(Box, {}, msg + "Possible causes:", h('ul', {},
                 !nat.upnp && h('li', {}, "Your router may need to be configured. ", h(Link, { href: PORT_FORWARD_URL, target: 'help' }, "How?")),
                 h('li', {}, "There could be a firewall, try configuring or disabling it."),
-                nat.mapped?.public.port <= 1024 && h('li', {},
+                nat.externalPort <= 1024 && h('li', {},
                     "Your Internet Provider may be blocking ports under 1024. ",
-                    h(Button, { size: 'small', onClick() { close(); mapPort(HIGHER_PORT).then(retry) } }, "Try " + HIGHER_PORT) ),
+                    nat.upnp && h(Button, { size: 'small', onClick() { close(); mapPort(HIGHER_PORT).then(retry) } }, "Try " + HIGHER_PORT) ),
                 nat.mapped && h('li', {}, "A bug in your modem/router, try rebooting it."),
                 h('li', {}, MSG_ISP),
             )), 'warning')
@@ -125,7 +182,7 @@ export default function InternetPage() {
         if (!nat?.upnp)
             return alertDialog(h(Box, { lineHeight: 1.5 }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')
         const res = await promptDialog(md(`This will ask the router to map your port, so that it can be reached from the Internet.\nYou can set the same number of the local network (${port}), or a different one.`), {
-            value: nat?.mapped?.public.port || port,
+            value: nat?.externalPort || port,
             field: { label: "Port seen from the Internet", comp: NumberField },
             addToBar: nat?.mapped && [h(Button, { color: 'warning', onClick: remove }, "Remove")],
             dialogProps: { sx: { maxWidth: '20em' } },
@@ -140,18 +197,21 @@ export default function InternetPage() {
     }
 
     function fixPort() {
-        return mapPort(nat.mapped.public.port, "Forwarding corrected")
+        return mapPort(nat.externalPort, "Forwarding corrected")
     }
 
     async function mapPort(external: number, msg='') {
         setMapping(true)
         try {
             await apiCall('map_port', { external })
-            reload()
+            reloadNat()
             if (msg) toast(msg, 'success')
         }
-        catch {
-            return alertDialog("Operation failed", 'error')
+        catch(e) {
+            const msg = "Operation failed"
+                + (external && Math.min(external, nat.internalPort) ? ". Some routers refuse to work with ports under 1024." : '')
+            await alertDialog(msg, 'error')
+            throw e
         }
         finally {
             setMapping(false)

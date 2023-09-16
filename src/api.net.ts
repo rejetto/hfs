@@ -2,18 +2,24 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { Client } from 'nat-upnp'
-import { HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE, IS_MAC, IS_WINDOWS } from './const'
+import {
+    HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE,
+    IS_MAC, IS_WINDOWS
+} from './const'
 import axios from 'axios'
 import {parse} from 'node-html-parser'
 import _ from 'lodash'
-import { cert, getIps, getServerStatus, privateKey, startServer, stopServer } from './listen'
+import { cert, getCertObject, getIps, getServerStatus, privateKey } from './listen'
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { debounceAsync, findDefined, HOUR, MINUTE, repeat, Dict } from './misc'
+import { debounceAsync, HOUR, MINUTE, objSameKeys, repeat } from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
-import { createServer } from 'http'
+import { Dict } from './misc'
+import { createServer, RequestListener } from 'http'
+import { Middleware } from 'koa'
+import { lookup } from 'dns/promises'
 
 const client = new Client({ timeout: 4_000 })
 const originalMethod = client.getGateway
@@ -37,7 +43,6 @@ const getNatInfo = debounceAsync(async () => {
     const localIp = res?.address || (await getIps())[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
-    console.debug('responding')
     return {
         upnp: Boolean(res),
         localIp,
@@ -73,19 +78,49 @@ function findGateway(): Promise<string | undefined> {
         }) )
 }
 
-async function generateSSLCert(domain: string, email?: string) {
-    const acmeTokens: Dict<string> = {}
-    // create temporary server to answer the challenge
+let acmeMiddlewareEnabled = false
+const acmeTokens: Dict<string> = {}
+const acmeListener: RequestListener = (req, res) => { // node format
     const BASE = '/.well-known/acme-challenge/'
-    const srv = createServer((req, res) => {
-        const token = req.url?.startsWith(BASE) && req.url.slice(BASE.length) || ''
-        console.debug("got http challenge", token || req.url)
-        res.end(acmeTokens[token])
+    if (!req.url?.startsWith(BASE)) return
+    const token = req.url.slice(BASE.length)
+    console.debug("got http challenge", token)
+    res.statusCode = HTTP_OK
+    res.end(acmeTokens[token])
+    return true
+}
+export const acmeMiddleware: Middleware = (ctx, next) => { // koa format
+    if (!acmeMiddlewareEnabled || !Boolean(acmeListener(ctx.req, ctx.res)))
+        return next()
+}
+
+async function generateSSLCert(domain: string, email?: string) {
+    const { address: domainIp } = await lookup(domain).catch(e => {
+        throw e.code !== 'ENOTFOUND' ? e : new ApiError(HTTP_FAILED_DEPENDENCY, "this domain doesn't exist")
     })
-    await new Promise<void>((resolve, reject) =>
-        srv.listen(80, resolve).on('error', (e: any) => reject(e.code || e)) )
+    // will answer challenge through our koa app (if on port 80) or must we spawn a dedicated server?
+    const { http } = await getServerStatus()
+    const tempSrv = http.listening && http.port === 80 ? undefined : createServer(acmeListener)
+    if (tempSrv)
+        await new Promise<void>((resolve, reject) =>
+            tempSrv.listen(80, resolve).on('error', (e: any) => reject(e.code || e)) )
+    else
+        acmeMiddlewareEnabled = true
     console.debug('acme challenge server ready')
     try {
+        const { publicIp, upnp, externalPort } = await getNatInfo() // do this before stopping the server
+        if (publicIp !== domainIp)
+            throw new ApiError(HTTP_FAILED_DEPENDENCY, `please configure your domain to point to ${publicIp} (currently on ${domainIp})`)
+        let check = await checkPort(domain, 80) // some check services may not consider the domain, but we already verified that
+        if (check && !check.success && upnp && externalPort !== 80) { // consider a short-lived mapping
+            // @ts-ignore
+            await client.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs challenge', ttl: 0 }).catch(() => {})
+            check = await checkPort(domain, 80) // repeat test
+        }
+        if (!check)
+            throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
+        if (!check.success)
+            throw new ApiError(HTTP_FAILED_DEPENDENCY, "port 80 is not working on the specified domain")
         const client = new acme.Client({
             accountKey: await acme.crypto.createPrivateKey(),
             directoryUrl: acme.directory.letsencrypt.production
@@ -108,98 +143,88 @@ async function generateSSLCert(domain: string, email?: string) {
         return { key, cert }
     }
     finally {
-        await new Promise(res => srv.close(res))
+        acmeMiddlewareEnabled = false
+        if (tempSrv) await new Promise(res => tempSrv.close(res))
         console.debug('acme terminated')
+    }
+}
+
+async function checkPort(ip: string, port: number) {
+    interface PortScannerService {
+        url: string
+        headers: {[k: string]: string}
+        method: string
+        selector: string
+        body?: string
+        regexpFailure: string
+        regexpSuccess: string
+    }
+    const prjInfo = await getProjectInfo()
+    for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.checkServerServices), 2)) {
+        try {
+            return Promise.any(services.map(async svc => {
+                const service = new URL(svc.url).hostname
+                console.log('trying service', service)
+                const api = (axios as any)[svc.method]
+                const body = svc.body?.replace('$IP', ip).replace('$PORT', String(port)) || ''
+                const res = await api(svc.url, body, {headers: svc.headers})
+                const parsed = parse(res.data).querySelector(svc.selector)?.innerText
+                if (!parsed) throw console.debug('empty:' + service)
+                const success = new RegExp(svc.regexpSuccess).test(parsed)
+                const failure = new RegExp(svc.regexpFailure).test(parsed)
+                if (success === failure) throw console.debug('inconsistent:' + service) // this result cannot be trusted
+                console.debug(service, 'responded', success)
+                return { success, service }
+            }))
+        }
+        catch {}
     }
 }
 
 const apis: ApiHandlers = {
     get_nat: getNatInfo,
 
-    async map_port({ external }) {
-        const { gatewayIp, externalPort, internalPort } = await getNatInfo()
-        if (!gatewayIp)
+    async map_port({ external, internal }) {
+        const { upnp, externalPort, internalPort } = await getNatInfo()
+        if (!upnp)
             return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'upnp failed')
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         if (externalPort)
             try { await client.removeMapping({ public: { host: '', port: externalPort } }) }
             catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, 'removeMapping failed: ' + String(e) ) }
-        if (external) // must use the object form of 'public' to workaround a bug of the library
-            await client.createMapping({ private: internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
+        if (external) // must use the object form of 'public' to work around a bug of the library
+            await client.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
         return {}
     },
 
-    async check_server() {
+    async check_server({ port }) {
         const { publicIp, internalPort, externalPort } = await getNatInfo()
         if (!publicIp)
             return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'cannot detect public ip')
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
-        const prjInfo = await getProjectInfo()
-        const port = externalPort || internalPort
+        port ||= externalPort || internalPort
         console.log(`checking server ${publicIp}:${port}`)
-        interface PortScannerService {
-            url: string
-            headers: {[k: string]: string}
-            method: string
-            selector: string
-            body?: string
-            regexpFailure: string
-            regexpSuccess: string
-        }
-        for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.checkServerServices), 2)) {
-            try {
-                return Promise.any(services.map(async svc => {
-                    const service = new URL(svc.url).hostname
-                    console.log('trying service', service)
-                    const api = (axios as any)[svc.method]
-                    const body = svc.body?.replace('$IP', publicIp).replace('$PORT', String(port)) || ''
-                    const res = await api(svc.url, body, {headers: svc.headers})
-                    const parsed = parse(res.data).querySelector(svc.selector)?.innerText
-                    if (!parsed) throw console.debug('empty:' + service)
-                    const success = new RegExp(svc.regexpSuccess).test(parsed)
-                    const failure = new RegExp(svc.regexpFailure).test(parsed)
-                    if (success === failure) throw console.debug('inconsistent:' + service) // this result cannot be trusted
-                    console.debug(service, 'responded', success)
-                    return { success, service }
-                }))
-            }
-            catch {}
-        }
-        return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'no service available to detect upnp mapping')
+        return await checkPort(publicIp, port)
+            || new ApiError(HTTP_SERVICE_UNAVAILABLE)
     },
 
-    async make_cert({email, domain}) {
+    async make_cert({domain, email}) {
         if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
-        const { externalPort } = await getNatInfo() // do this before stopping the server
-        if (externalPort !== 80)
-            await client.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs challenge', ttl: 0 }).catch(() => {})
-        // we could have a server on port 80 already. With upnp it should be easy to forward to a different internal port and workaround the conflict, but we could as well be on a VPS with public ip and no forwarding at all
-        // therefore the catch-all solution is to temporarily disable the server on 80, without changing configuration, to avoid persisting if we crash in the middle
-        const restore = findDefined(await getServerStatus(), x => {
-            if (!x.listening || x.port !== 80) return
-            stopServer(x.srv)
-            return () => startServer(x.srv, { port: x.configuredPort }) // return a callback to restore the server
-        })
-        try {
-            // if possible, create a short-lived mapping
-            const res = await generateSSLCert(domain, email)
-            const SUFFIX = '-acme.pem'
-            const CERT_FILE = 'cert' + SUFFIX
-            const KEY_FILE = 'key' + SUFFIX
-            await fs.writeFile(CERT_FILE, res.cert)
-            await fs.writeFile(KEY_FILE, res.key)
-            cert.set(CERT_FILE) // update config
-            privateKey.set(KEY_FILE)
-            return {}
-        }
-        catch (e:any) { //TODO if this request was made on port 80, this reply will never be received because the server was shut down. Possible solution: GUI could ask for outcome on the temporary server
-            console.log(e?.message || String(e))
-            return new ApiError(HTTP_FAILED_DEPENDENCY, String(e))
-        }
-        finally { await restore?.() }
+        const res = await generateSSLCert(domain, email)
+        const CERT_FILE = 'acme.cert'
+        const KEY_FILE = 'acme.key'
+        await fs.writeFile(CERT_FILE, res.cert)
+        await fs.writeFile(KEY_FILE, res.key)
+        cert.set(CERT_FILE) // update config
+        privateKey.set(KEY_FILE)
+        return {}
     },
+
+    get_cert() {
+        return objSameKeys(_.pick(getCertObject(), ['subject', 'issuer', 'validFrom', 'validTo']), v => v)
+    }
 }
 
 export default apis

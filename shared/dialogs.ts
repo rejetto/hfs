@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, FunctionComponent, ReactNode, useEffect, useRef } from 'react'
+import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef } from 'react'
 import { proxy, useSnapshot } from 'valtio'
+import { isPrimitive } from '.'
 
 export interface DialogOptions {
     Content: FunctionComponent<any>,
@@ -120,7 +121,7 @@ function Dialog(d:DialogOptions) {
 }
 
 export function componentOrNode(x: ReactNode | FunctionComponent) {
-    return typeof x === 'function' ? h(x) : x
+    return isPrimitive(x) || isValidElement(x) ? x : h(x as any)
 }
 
 function onKeyDown(ev:any) {

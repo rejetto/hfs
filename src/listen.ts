@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, onlyTruthy, wait } from './misc'
+import { debounceAsync, objSameKeys, onlyTruthy, wait } from './misc'
 import { ADMIN_URI, argv, DEV } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -57,6 +57,12 @@ export function openAdmin() {
     console.log("openAdmin failed")
 }
 
+export function getCertObject() {
+    const o = new X509Certificate(httpsOptions.cert)
+    const some = _.pick(o, ['subject', 'issuer', 'validFrom', 'validTo'])
+    return objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
+}
+
 const considerHttps = debounceAsync(async () => {
     stopServer(httpsSrv).then()
     let port = httpsPortCfg.get()
@@ -68,8 +74,8 @@ const considerHttps = debounceAsync(async () => {
             { name: 'https' }
         )
         if (port >= 0) {
-            const cert = new X509Certificate(httpsOptions.cert)
-            const cn = cert.subject.split('CN=')[1]?.split('\n')[0]
+            const cert = getCertObject()
+            const cn = cert.subject?.CN
             if (cn)
                 console.log("certificate loaded for", cn)
             const now = new Date()
@@ -154,7 +160,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
 
     function listen(host?: string) {
         return new Promise<number>(async (resolve, reject) => {
-            srv?.listen({ port, host }, () => {
+            srv?.on('error', onError).listen({ port, host }, () => {
                 const ad = srv.address()
                 if (!ad)
                     return reject('no address')
@@ -162,8 +168,12 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                     srv.close()
                     return reject('type of socket not supported')
                 }
+                srv.removeListener('error', onError) // necessary in case someone calls stop/start many times
                 resolve(ad.port)
-            }).on('error', async e => {
+            })
+
+             async function onError(e?: Error) {
+                if (!srv) return
                 srv.error = String(e)
                 srv.busy = undefined
                 const { code } = e as any
@@ -175,7 +185,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 const k = (srv === httpSrv? portCfg : httpsPortCfg).key()
                 console.log(` >> try specifying a different port, enter this command: config ${k} 8011`)
                 resolve(0)
-            })
+            }
         })
     }
 }

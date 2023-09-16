@@ -21,7 +21,7 @@ import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInN
 import md, { replaceStringToReact } from './md'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, toast } from './dialog'
-import { isCertError, isKeyError, makeCertAndSave } from './OptionsPage'
+import { isCertError, isKeyError, suggestMakingCert } from './OptionsPage'
 import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 import _ from 'lodash'
@@ -44,7 +44,7 @@ export default function HomePage() {
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const { data: account } = useApiEx<Account>(username && 'get_account')
-    const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
+    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
     const { list: plugins } = useApiList('get_plugins')
     const [updates, setUpdates] = useState<undefined | any[]>()
     if (statusEl || !status)
@@ -61,7 +61,7 @@ export default function HomePage() {
         v && [md(`Protocol <u>${k}</u> cannot work: `), v,
             (isCertError(v) || isKeyError(v)) && [
                 SOLUTION_SEP, h(LinkBtn, {
-                    onClick() { makeCertAndSave().then(reloadCfg).then(reloadStatus) } },
+                    onClick() { suggestMakingCert().then(() => wait(999)).then(cfg.reload).then(reloadStatus) } },
                     "make one"
                 ), " or ", SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
@@ -87,12 +87,12 @@ export default function HomePage() {
                     async onClick() {
                         if (await confirmDialog("Go on only if you know what you are doing")
                         && await apiCall('set_config', { values: { ignore_proxies: true } }))
-                            reloadCfg()
+                            cfg.reload()
                     }
                 }, "ignore this warning"),
                 SOLUTION_SEP, wikiLink('Proxy-warning', "Explanation")
         ),
-        (cfg?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
+        (cfg.data?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
         status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
             h('ol',{},
                 h('li',{}, `configure FRP with type=http (best solution)`),
@@ -179,6 +179,6 @@ function cfgLink(text=`Options page`) {
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return cfg && !cfg.proxies && status?.proxyDetected
+    return cfg.data && !cfg.data.proxies && status?.proxyDetected
         && "A proxy was detected but none is configured"
 }
