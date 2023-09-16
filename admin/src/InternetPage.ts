@@ -3,7 +3,7 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Linea
 import { CardMembership, HomeWorkTwoTone, Lock, PublicTwoTone, RouterTwoTone, Send } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, with_ } from '@hfs/shared'
-import { Flex, LinkBtn, manipulateConfig } from './misc'
+import { Flex, LinkBtn, manipulateConfig, isIP, Btn } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { Form, NumberField } from '@hfs/mui-grid-form'
 import md from './md'
@@ -95,6 +95,9 @@ export default function InternetPage() {
     }
 
     function baseUrlBox() {
+        const url = status.data?.baseUrl
+        const hostname = url && new URL(url).hostname
+        const domain = !isIP(hostname) && hostname
         return status.element || h(Card, {}, h(CardContent, {},
             h(Box, { fontSize: 'x-large', mb: 2 }, "Address / Domain"),
             h(Flex, { flexWrap: 'wrap', alignItems: 'center' },
@@ -103,6 +106,12 @@ export default function InternetPage() {
                     size: 'small',
                     onClick() { changeBaseUrl().then(status.reload) }
                 }, "Change"),
+                domain && h(Btn, {
+                    size: 'small',
+                    variant: 'outlined',
+                    onClick: () => apiCall('check_domain', { domain })
+                        .then(() => alertDialog("Domain seems ok", 'success'))
+                }, "Check"),
             )
         ))
     }

@@ -13,7 +13,7 @@ import { cert, getCertObject, getIps, getServerStatus, privateKey } from './list
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { debounceAsync, HOUR, MINUTE, objSameKeys, repeat } from './misc'
+import { apiAssertTypes, debounceAsync, HOUR, MINUTE, objSameKeys, repeat } from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
 import { Dict } from './misc'
@@ -94,10 +94,17 @@ export const acmeMiddleware: Middleware = (ctx, next) => { // koa format
         return next()
 }
 
-async function generateSSLCert(domain: string, email?: string) {
+async function checkDomain(domain: string) {
     const { address: domainIp } = await lookup(domain).catch(e => {
         throw e.code !== 'ENOTFOUND' ? e : new ApiError(HTTP_FAILED_DEPENDENCY, "this domain doesn't exist")
     })
+    const { publicIp } = await getNatInfo() // do this before stopping the server
+    if (publicIp !== domainIp)
+        throw new ApiError(HTTP_FAILED_DEPENDENCY, `please configure your domain to point to ${publicIp} (currently on ${domainIp}) --- a change can take hours to be effective`)
+}
+
+async function generateSSLCert(domain: string, email?: string) {
+    await checkDomain(domain)
     // will answer challenge through our koa app (if on port 80) or must we spawn a dedicated server?
     const { http } = await getServerStatus()
     const tempSrv = http.listening && http.port === 80 ? undefined : createServer(acmeListener)
@@ -108,9 +115,7 @@ async function generateSSLCert(domain: string, email?: string) {
         acmeMiddlewareEnabled = true
     console.debug('acme challenge server ready')
     try {
-        const { publicIp, upnp, externalPort } = await getNatInfo() // do this before stopping the server
-        if (publicIp !== domainIp)
-            throw new ApiError(HTTP_FAILED_DEPENDENCY, `please configure your domain to point to ${publicIp} (currently on ${domainIp})`)
+        const { upnp, externalPort } = await getNatInfo() // do this before stopping the server
         let check = await checkPort(domain, 80) // some check services may not consider the domain, but we already verified that
         if (check && !check.success && upnp && externalPort !== 80) { // consider a short-lived mapping
             // @ts-ignore
@@ -183,6 +188,11 @@ async function checkPort(ip: string, port: number) {
 
 const apis: ApiHandlers = {
     get_nat: getNatInfo,
+
+    check_domain({ domain }) {
+        apiAssertTypes({ string: domain })
+        return checkDomain(domain)
+    },
 
     async map_port({ external, internal }) {
         const { upnp, externalPort, internalPort } = await getNatInfo()

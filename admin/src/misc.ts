@@ -82,7 +82,7 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
 })
 
 interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'> {
-    icon: SvgIconComponent
+    icon?: SvgIconComponent
     title?: ReactNode
     disabled?: boolean | string
     progress?: boolean | number
@@ -101,9 +101,9 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
         onClick = () => window.open(link)
     let ret: ReturnType<FC> = h(LoadingButton, {
         variant: 'contained',
-        startIcon: h(icon),
+        startIcon: icon && h(icon),
         loading: Boolean(loading || progress),
-        loadingPosition: 'start',
+        loadingPosition: icon && 'start',
         loadingIndicator: typeof progress !== 'number' ? undefined
             : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
         disabled,

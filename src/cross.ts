@@ -231,3 +231,7 @@ export function formatTimestamp(x: string) {
 export function isPrimitive(x: unknown): x is boolean | string | number | undefined | null {
     return !x || Object(x) !== x
 }
+
+export function isIP(address: string) {
+    return /^([.:\da-f]+)$/i.test(address)
+}

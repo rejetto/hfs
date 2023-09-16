@@ -18,6 +18,7 @@ import { hasPermission, urlToNode } from './vfs'
 import { mkdir, rename, rm } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getUploadMeta } from './upload'
+import { apiAssertTypes } from './misc'
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
@@ -118,11 +119,3 @@ export function notifyClient(ctx: Koa.Context, name: string, data: any) {
 }
 
 const NOTIFICATION_PREFIX = 'notificationChannel:'
-
-function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: any  } }) {
-    for (const [types,params] of Object.entries(paramsByType))
-        for (const type of types.split('_'))
-            for (const [name,val] of Object.entries(params))
-                if (typeof val !== type)
-                    throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
-}

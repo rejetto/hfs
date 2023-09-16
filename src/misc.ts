@@ -13,6 +13,8 @@ import { Readable } from 'stream'
 import { matcher } from 'micromatch'
 import { SocketAddress, BlockList } from 'node:net'
 import debounceAsync from './debounceAsync'
+import { ApiError } from './apiMiddleware'
+import { HTTP_BAD_REQUEST } from './const'
 export { debounceAsync }
 
 type ProcessExitHandler = (signal:string) => any
@@ -70,7 +72,7 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         all[0] = all[0]!.slice(1)
     const bl = new BlockList()
     for (const x of all) {
-        const m = /^([.:\d]+)(?:\/(\d+)|-(.+)|)$/.exec(x)
+        const m = /^([.:\da-f]+)(?:\/(\d+)|-(.+)|)$/i.exec(x)
         if (!m) {
             console.warn("error in network mask", x)
             continue
@@ -148,4 +150,12 @@ export class AsapStream<T> extends Readable {
             p.then(data => this.push(data), e => this.emit('error', e))
         Promise.allSettled(this.promises).then(() => this.push(null))
     }
+}
+
+export function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: any  } }) {
+    for (const [types,params] of Object.entries(paramsByType))
+        for (const type of types.split('_'))
+            for (const [name,val] of Object.entries(params))
+                if (typeof val !== type)
+                    throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
 }
