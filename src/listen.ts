@@ -26,12 +26,14 @@ export function getHttpsWorkingPort() {
     return httpsSrv?.listening && (httpsSrv.address() as any)?.port
 }
 
+const commonOptions = { requestTimeout: 0 }
+
 export const portCfg = defineConfig<number>('port', 80)
 portCfg.sub(async port => {
     while (!app)
         await wait(100)
     stopServer(httpSrv).then()
-    httpSrv = Object.assign(http.createServer({ requestTimeout: 0 }, app.callback()), { name: 'http' })
+    httpSrv = Object.assign(http.createServer(commonOptions, app.callback()), { name: 'http' })
     port = await startServer(httpSrv, { port })
     if (!port) return
     httpSrv.on('connection', newConnection)
@@ -70,7 +72,7 @@ const considerHttps = debounceAsync(async () => {
         while (!app)
             await wait(100)
         httpsSrv = Object.assign(
-            https.createServer(port === PORT_DISABLED ? {} : { key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
+            https.createServer(port === PORT_DISABLED ? {} : { ...commonOptions, key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
             { name: 'https' }
         )
         if (port >= 0) {
