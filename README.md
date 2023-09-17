@@ -149,6 +149,8 @@ Configuration can be done in several ways
 
 `NAME` stands for the property name that you want to change. See the [complete list](config.md).
 
+You can specify a different `config.yaml` at command line with `--config PATH` or similarly with an env `HFS_CONFIG`. 
+
 ### Where is it stored
 
 Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
