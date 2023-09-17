@@ -68,6 +68,7 @@ setInterval(() => {
 
 let reloadOnClose = false
 let uploadDialogIsOpen = false
+let everPaused = false
 
 function resetCounters() {
     Object.assign(uploadState, {
@@ -141,12 +142,16 @@ export function showUpload() {
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
                     [queueStr, etaStr].filter(Boolean).join(', '),
-                    iconBtn('trash', ()=>  {
+                    inQ > 0 && iconBtn('trash', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
                     }),
-                    iconBtn(paused ? 'play' : 'pause', () => {
+                    inQ > 0 && iconBtn(paused ? 'play' : 'pause', () => {
                         uploadState.paused = !uploadState.paused
+                        if (!everPaused) {
+                            everPaused = true
+                            alertDialog("Pause applies to the queue, but current file will still be uploaded")
+                        }
                     }),
                 ),
                 qs.map((q,idx) =>
