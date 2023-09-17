@@ -57,14 +57,12 @@ setInterval(() => {
     uploadState.speed = bytesSent / passed
     bytesSent = 0 // reset counter
     bytesSentTimestamp = now
-}, 1_000)
 
-// keep track of ETA
-setInterval(() => {
+    // keep track of ETA
     const qBytes = _.sumBy(uploadState.qs, q => _.sumBy(q.files, f => f.size))
     const left = (qBytes  - uploadState.partial)
     uploadState.eta = uploadState.speed && Math.round(left / uploadState.speed)
-}, 1000)
+}, 5_000)
 
 let reloadOnClose = false
 let uploadDialogIsOpen = false
