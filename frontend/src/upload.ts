@@ -145,7 +145,7 @@ export function showUpload() {
                         uploadState.qs = []
                         abortCurrentUpload()
                     }),
-                    iconBtn(paused ? '▶' : '⏸', () => {
+                    iconBtn(paused ? 'play' : 'pause', () => {
                         uploadState.paused = !uploadState.paused
                     }),
                 ),

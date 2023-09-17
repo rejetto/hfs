@@ -221,6 +221,12 @@
       "css": "comment",
       "code": 61669,
       "src": "fontawesome"
+    },
+    {
+      "uid": "0b28050bac9d3facf2f0226db643ece0",
+      "css": "pause",
+      "code": 59407,
+      "src": "fontawesome"
     }
   ]
 }

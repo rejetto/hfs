@@ -1,19 +1,9 @@
 @font-face {
   font-family: 'fontello';
-  src: url('fontello.woff2?44288867') format('woff2');
+  src: url('fontello.woff2?13611077') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
-/* Chrome hack: SVG is rendered more smooth in Windozze. 100% magic, uncomment if you need it. */
-/* Note, that will break hinting! In other OS-es font will be not as sharp as it could be */
-/*
-@media screen and (-webkit-min-device-pixel-ratio:0) {
-  @font-face {
-    font-family: 'fontello';
-    src: url('../font/fontello.svg?44288867#fontello') format('svg');
-  }
-}
-*/
 [class^="fa-"]:before, [class*=" fa-"]:before {
   font-family: "fontello";
   font-style: normal;
@@ -64,6 +54,7 @@
 .fa-key:before { content: '\e80c'; } /* '' */
 .fa-trash:before { content: '\e80d'; } /* '' */
 .fa-to_start:before { content: '\e80e'; } /* '' */
+.fa-pause:before { content: '\e80f'; } /* '' */
 .fa-to_end:before { content: '\e810'; } /* '' */
 .fa-image:before { content: '\e811'; } /* '' */
 .fa-camera:before { content: '\e812'; } /* '' */

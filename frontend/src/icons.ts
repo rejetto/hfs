@@ -32,6 +32,7 @@ const SYS_ICONS: Record<string, [string] | [string, string]> = {
     menu: ['☰'],
     list: ['☰','menu'],
     play: ['▶'],
+    pause: ['⏸'],
     edit: ['✏️'],
     zoom: ['↔'],
 }
