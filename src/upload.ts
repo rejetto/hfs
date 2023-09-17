@@ -30,7 +30,7 @@ export function getUploadMeta(path: string) {
 
 function setUploadMeta(path: string, ctx: Koa.Context) {
     return storeFileAttr(path, ATTR_UPLOADER, {
-        username: getCurrentUsername(ctx),
+        username: getCurrentUsername(ctx) || undefined,
         ip: ctx.ip,
     })
 }
