@@ -143,9 +143,10 @@ If you have access to HFS' console, you can enter commands. Start with `help` to
 Configuration can be done in several ways
 - accessing the Admin-panel with your browser
   - it will automatically open when you start HFS. Bookmark it. if your port is 8000 the address will be http://localhost:8000/~/admin 
-- after HFS has started you can enter console command in the form `config NAME VALUE`
 - passing via command line at start in the form `--NAME VALUE`
+- using envs in the form `HFS_NAME` (eg: `HFS_PORT`)
 - directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
+- after HFS has started you can enter console command in the form `config NAME VALUE`
 
 `NAME` stands for the property name that you want to change. See the [complete list](config.md).
 

@@ -5,7 +5,7 @@ import { argv, ORIGINAL_CWD, VERSION } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { DAY, debounceAsync, newObj, onOff, wait, with_ } from './misc'
+import { DAY, debounceAsync, newObj, onOff, tryJson, wait, with_ } from './misc'
 import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
@@ -121,7 +121,9 @@ export function getWholeConfig({ omit, only }: { omit?:string[], only?:string[] 
 export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
     const version = _.isString(newCfg.version) ? new Version(newCfg.version) : undefined
     // first time we consider also CLI args
-    const argCfg = !started && _.pickBy(newObj(configProps, (x, k) => argv[k]), x => x !== undefined)
+    const argCfg = !started && _.pickBy(newObj(configProps,
+        (x, k) => argv[k] ?? tryJson(process.env['HFS_' + k.toUpperCase()], _.identity)),
+            x => x !== undefined)
     if (! _.isEmpty(argCfg)) {
         saveConfigAsap() // don't set `save` argument, as it would interfere below at check `save===false`
         Object.assign(newCfg, argCfg)

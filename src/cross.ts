@@ -95,9 +95,9 @@ export function basename(path: string) {
     return path.slice(path.lastIndexOf('/') + 1 || path.lastIndexOf('\\') + 1)
 }
 
-export function tryJson(s?: string) {
+export function tryJson(s?: string, except?: (s?: string) => unknown) {
     try { return s && JSON.parse(s) }
-    catch {}
+    catch { return except?.(s) }
 }
 
 export function swap<T>(obj: T, k1: keyof T, k2: keyof T) {
