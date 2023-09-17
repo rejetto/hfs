@@ -13,13 +13,13 @@ import { cert, getCertObject, getIps, getServerStatus, privateKey } from './list
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { apiAssertTypes, debounceAsync, HOUR, MINUTE, objSameKeys, repeat } from './misc'
+import { apiAssertTypes, debounceAsync, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat } from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
 import { Dict } from './misc'
 import { createServer, RequestListener } from 'http'
 import { Middleware } from 'koa'
-import { lookup } from 'dns/promises'
+import { lookup, Resolver } from 'dns/promises'
 
 const client = new Client({ timeout: 4_000 })
 const originalMethod = client.getGateway
@@ -95,12 +95,21 @@ export const acmeMiddleware: Middleware = (ctx, next) => { // koa format
 }
 
 async function checkDomain(domain: string) {
-    const { address: domainIp } = await lookup(domain).catch(e => {
-        throw e.code !== 'ENOTFOUND' ? e : new ApiError(HTTP_FAILED_DEPENDENCY, "this domain doesn't exist")
-    })
+    const resolver = new Resolver()
+    const prjInfo = await getProjectInfo()
+    resolver.setServers(prjInfo.dnsServers)
+    const settled = await Promise.allSettled([
+        resolver.resolve(domain, 'A'),
+        resolver.resolve(domain, 'AAAA'),
+        lookup(domain).then(x => [x.address]),
+    ])
+    // merge all results
+    const ips = _.uniq(onlyTruthy(settled.map(x => x.status === 'fulfilled' && x.value)).flat())
+    if (!ips.length)
+        throw new ApiError(HTTP_FAILED_DEPENDENCY, "domain not working")
     const { publicIp } = await getNatInfo() // do this before stopping the server
-    if (publicIp !== domainIp)
-        throw new ApiError(HTTP_FAILED_DEPENDENCY, `please configure your domain to point to ${publicIp} (currently on ${domainIp}) --- a change can take hours to be effective`)
+    if (!ips.includes(publicIp))
+        throw new ApiError(HTTP_FAILED_DEPENDENCY, `please configure your domain to point to ${publicIp} (currently on ${ips[0]}) --- a change can take hours to be effective`)
 }
 
 async function generateSSLCert(domain: string, email?: string) {

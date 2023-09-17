@@ -56,8 +56,8 @@ export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: 
     }
 }
 
-export function isLocalHost(c: Connection | Koa.Context) {
-    const ip = c.socket.remoteAddress // don't use Context.ip as it is subject to proxied ips, and that's no use for localhost detection
+export function isLocalHost(c: Connection | Koa.Context | string) {
+    const ip = typeof c === 'string' ? c : c.socket.remoteAddress // don't use Context.ip as it is subject to proxied ips, and that's no use for localhost detection
     return ip && (ip === '::1' || ip.endsWith('127.0.0.1'))
 }
 
