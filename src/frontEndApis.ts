@@ -39,7 +39,7 @@ export const frontEndApis: ApiHandlers = {
         if (typeof uris?.[0] !== 'string')
             return new ApiError(HTTP_BAD_REQUEST, 'bad uris')
         return {
-            details: Promise.all(uris.map(async (uri: any) => {
+            details: await Promise.all(uris.map(async (uri: any) => {
                 if (typeof uri !== 'string')
                     return false // false means error
                 const node = await urlToNode(uri, ctx)
