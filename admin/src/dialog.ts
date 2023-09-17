@@ -63,9 +63,9 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
                 ...titleSx
             }
         },
-            componentOrNode(d.icon),
-            h(Box, { flex:1, minWidth: 40, ml: 1.5 }, componentOrNode(d.title)),
-            h(IconBtn, { icon: Close, title: "close", onClick: () => closeDialog() }),
+            d.icon && h(Box, { mr: 1 }, componentOrNode(d.icon)),
+            h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
+            h(IconBtn, { icon: Close, title: "close", sx: { ml: 1 }, onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,
@@ -127,7 +127,6 @@ export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText
     const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',
-        icon: '?',
         onClose: promise.resolve,
         ...rest,
         Content
@@ -162,7 +161,6 @@ export async function formDialog<T>(
 ) : Promise<T> {
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
-        icon: '?',
         onClose: resolve,
         ...options,
         Content

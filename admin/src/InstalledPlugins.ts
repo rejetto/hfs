@@ -85,7 +85,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 async onClick() {
                     const pl = await apiCall('get_plugin', { id })
                     const values = await formDialog({
-                        title: `${id} options`,
+                        title: `Options for ${id}`,
                         form: {
                             before: h(Box, { mx: 2, mb: 3 }, row.description),
                             fields: makeFields(row.config),
