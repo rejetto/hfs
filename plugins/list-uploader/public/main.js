@@ -15,8 +15,9 @@
                 : display === 'ip' || !x.username ? x.ip
                 : x.ip + ' (' + x.username + ')'
         }, [data])
-        return text && HFS.h('span', { className: 'uploader', title: HFS.t`Uploader` },
-            HFS.hIcon('upload'), ' ', text, ' – ')
+        const iconOnly = display === 'tooltip'
+        return text && HFS.h('span', { className: 'uploader', title: HFS.t`Uploader` + (iconOnly ? ' ' + text : '') },
+            HFS.hIcon('upload'), ' ', !iconOnly && text, ' – ')
     }
 
     function getDetails(batched) {
