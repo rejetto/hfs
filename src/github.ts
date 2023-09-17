@@ -12,7 +12,14 @@ import {
 } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
-import { HFS_REPO, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './const'
+import {
+    HFS_REPO,
+    HFS_REPO_BRANCH,
+    HTTP_BAD_REQUEST,
+    HTTP_CONFLICT,
+    HTTP_NOT_ACCEPTABLE,
+    HTTP_SERVER_ERROR
+} from './const'
 import { rename, rm } from 'fs/promises'
 import { join } from 'path'
 import { readFileSync } from 'fs'
@@ -189,7 +196,7 @@ let cache
 const FN = 'central.json'
 let latest = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8')) // initially built-in is our latest
 export function getProjectInfo() {
-    return cache ||= readGithubFile(HFS_REPO + '/main/' + FN)
+    return cache ||= readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .catch(() => latest) // fall back to latest
         .then(x => {
             if (!x) throw x // go catch
