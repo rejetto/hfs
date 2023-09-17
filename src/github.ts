@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import events from './events'
-import { DAY, httpString, httpStream, unzip, AsapStream } from './misc'
+import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync } from './misc'
 import {
     DISABLING_POSTFIX, findPluginByRepo,
     getAvailablePlugins,
@@ -192,18 +192,8 @@ export async function searchPlugins(text='') {
 }
 
 // centralized hosted information, to be used as little as possible
-let cache
 const FN = 'central.json'
-let latest = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8')) // initially built-in is our latest
-export function getProjectInfo() {
-    return cache ||= readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
-        .catch(() => latest) // fall back to latest
-        .then(x => {
-            if (!x) throw x // go catch
-            setTimeout(() => cache = undefined, DAY) // invalidate cache
-            return latest = JSON.parse(x)
-        }).catch(() => { // schedule next attempt
-            setTimeout(() => cache = undefined, 10_000) // invalidate cache sooner on errors
-            return latest
-        })
-}
+let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
+export const getProjectInfo = debounceAsync(
+    () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`).then(JSON.parse, () => builtIn), // fall back to latest
+    0, { retain: DAY, retainFailure: 60_000 } )
