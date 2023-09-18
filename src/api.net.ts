@@ -115,16 +115,18 @@ async function checkDomain(domain: string) {
 async function generateSSLCert(domain: string, email?: string) {
     await checkDomain(domain)
     // will answer challenge through our koa app (if on port 80) or must we spawn a dedicated server?
+    const { upnp, externalPort } = await getNatInfo()
     const { http } = await getServerStatus()
-    const tempSrv = http.listening && http.port === 80 ? undefined : createServer(acmeListener)
+    const tempSrv = externalPort === 80 || http.listening && http.port === 80 ? undefined : createServer(acmeListener)
     if (tempSrv)
-        await new Promise<void>((resolve, reject) =>
-            tempSrv.listen(80, resolve).on('error', (e: any) => reject(e.code || e)) )
-    else
-        acmeMiddlewareEnabled = true
+        await new Promise<void>((resolve) =>
+            tempSrv.listen(80, resolve).on('error', (e: any) => {
+                console.debug("cannot listen on 80", e.code || e)
+                resolve() // go on anyway
+            }) )
+    acmeMiddlewareEnabled = true
     console.debug('acme challenge server ready')
     try {
-        const { upnp, externalPort } = await getNatInfo() // do this before stopping the server
         let check = await checkPort(domain, 80) // some check services may not consider the domain, but we already verified that
         if (check && !check.success && upnp && externalPort !== 80) { // consider a short-lived mapping
             // @ts-ignore
