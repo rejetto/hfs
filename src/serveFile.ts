@@ -95,6 +95,7 @@ export function getRange(ctx: Koa.Context, totalSize: number) {
     ctx.set('Accept-Ranges', 'bytes')
     const { range } = ctx.request.header
     if (!range) {
+        ctx.state.includesLastByte = true
         ctx.response.length = totalSize
         return
     }

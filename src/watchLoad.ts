@@ -8,8 +8,8 @@ export type WatchLoadCanceller = () => void
 
 interface Options { failedOnFirstAttempt?: ()=>void, immediateFirst?: boolean }
 
-type WriteFile = typeof fs.writeFile
-interface WatchLoadReturn { unwatch:WatchLoadCanceller, save:WriteFile }
+type WriteFile = (data: string) => Promise<void>
+interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile }
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt, immediateFirst }:Options={}): WatchLoadReturn {
     let doing = false
     let watcher: FSWatcher | undefined
@@ -20,11 +20,11 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     install(true)
     return {
         unwatch: uninstall,
-        save(...args:Parameters<WriteFile>) {
-            return Promise.resolve(saving).then(() => // wait in case another is ongoing
-                saving = fs.writeFile(...args).finally(() => // save but also keep track of the current operation
-                    saving = undefined)) // clear
-        }
+        save: (data: string) => Promise.resolve(saving).catch(() => {}).then(() => {  // wait in case another is ongoing
+            console.debug('writing', path)
+            return saving = fs.writeFile(path, data, 'utf8').finally(() => // save but also keep track of the current operation
+                saving = undefined)
+        }) // clear
     }
 
     function install(first=false) {

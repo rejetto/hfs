@@ -68,7 +68,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             : [ev.pageX, ev.pageY - scrollY] as [number, number],
         Content() {
             const {t} = useI18N()
-            const [details] = useApi('get_file_details', { uris: [entry.uri] });
+            const details = useApi('get_file_details', { uris: [entry.uri] }).data
             const showProps = [ ...props,
                 with_(details?.[0]?.upload, x => x && [ t`Uploader`, x.ip + prefix(' (', x.username, ')') ])
             ]

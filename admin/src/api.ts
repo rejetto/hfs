@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, IconBtn, spinner, useStateMounted, wantArray } from './misc'
+import { Dict, err2msg, Falsy, IconBtn, spinner, useStateMounted, wantArray, xlate } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
@@ -13,26 +13,29 @@ export * from '@hfs/shared/api'
 setDefaultApiCallOptions({
     async onResponse(res: Response, body: any) {
         if (res.status === 401) {
-            state.loginRequired = body?.any !== false || 403
+            state.loginRequired = body?.possible !== false || 403
             throw new ApiError(res.status, "Unauthorized")
         }
     }
 })
 
+const ERRORS = { timeout: "Operation timeout" }
+// expand useApi with things that cannot be shared with Frontend
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
-    const [data, error, reload] = useApi<T>(...args)
-    const cmd = args[0]
-    const loading = data === undefined
-    const element = useMemo(() =>
-            !cmd ? null
-                : error ? h(Alert, { severity: 'error' }, String(error), h(IconBtn, { icon: Refresh, onClick: reload, sx: { m:'-8px 0 -8px 16px' } }))
-                    : loading ? spinner()
+    const res = useApi<T>(...args)
+    return {
+        ...res,
+        element: useMemo(() =>
+            !args[0] ? null
+                : res.error ? h(Alert, { severity: 'error' }, xlate(String(res.error), ERRORS),
+                                    h(IconBtn, { icon: Refresh, onClick: res.reload, sx: { m:'-10px 0 -8px 16px' } }) )
+                    : res.loading || res.data === undefined ? spinner()
                         : null,
-        [error, cmd, loading, reload])
-    return { data, error, reload, loading, element }
+            Object.values(res))
+    }
 }
 
-export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:any)=>x) }={}) {
+export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map }: { map?: (rec: S) => T }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -79,7 +82,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:a
                         }
                         if (op === 'error') {
                             if (par === 401)
-                                state.loginRequired = msg[2].any !== false || 403
+                                state.loginRequired = msg[2].possible !== false || 403
                             else
                                 setError(err2msg(par))
                             return
@@ -87,7 +90,7 @@ export function useApiList<T=any>(cmd:string|Falsy, params: Dict={}, { map=((x:a
                         if (op === 'props')
                             return setProps(par)
                         if (op === 'add') {
-                            const mappedPar = map(par)
+                            const mappedPar = map?.(par) ?? par
                             mappedPar.id ??= idGenerator.current = Math.max(idGenerator.current, Date.now()) + .001
                             bufferAdd.push(mappedPar)
                             apply()

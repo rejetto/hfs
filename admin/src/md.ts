@@ -9,10 +9,10 @@ const TAGS = {
     '**': 'b',
 }
 type OnText = (s: string) => ReactNode
-export default function md(text: string | TemplateStringsArray, { linkTarget='', onText=(x=>x) as OnText }={}) {
+export default function md(text: string | TemplateStringsArray, { linkTarget='_blank', onText=(x=>x) as OnText }={}) {
     if (typeof text !== 'string')
         text = text[0]
-    return replaceStringToReact(text, /(`|_|\*\*?)(.+)\1|(\n)|\[(.+)\]\((.+)\)|<([^ >/]+)>(.*)<\/\6>|<([^ >/]+) *\/>/g, m =>
+    return replaceStringToReact(text, /(`|_|\*\*?)(.+?)\1|(\n)|\[(.+?)\]\((.+?)\)|<([^ >/]+)>(.*?)<\/\6>|<([^ >/]+) *\/>/g, m =>
         m[4] ? h(Link, { href: m[5], target: linkTarget }, onText(m[4]))
             : m[3] ? h('br')
             : m[1] ? h((TAGS as any)[ m[1] ] || Fragment, {}, onText(m[2]))
@@ -28,6 +28,7 @@ export function replaceStringToReact(text: string, re: RegExp, cb: (match: RegEx
         res.push(onText(text.slice(last, match.index)))
         res.push(cb(match))
         last = match.index + match[0].length
+        if (!re.global) break
     }
     return h(Fragment, {}, ...res, onText(text.slice(last, Infinity)))
 }

@@ -2,7 +2,8 @@
 
 If the information you are searching for is not in this document, [please ask](https://github.com/rejetto/hfs/discussions). 
 
-A plug-in is a folder with a `plugin.js` file in it.
+A plug-in is a folder with a `plugin.js` file in it. To install a plugin you just copy the folder into `plugins` folder.
+You will find `plugins` folder near `config.yaml`, and then in `USER_FOLDER/.hfs` for Linux and Mac, or near `hfs.exe` on Windows. 
 
 Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
 
@@ -45,10 +46,29 @@ All the following properties are optional unless otherwise specified.
 - `description: string` try to explain what this plugin is for.
 - `version: number` use progressive numbers to distinguish each release
 - `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. Mandatory. [Refer to API version history](#api-version-history)   
-- `repo: string` pointer to a GitHub repo where this plugin is hosted.
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on.
+- `repo: string | object` pointer to a GitHub repo where this plugin is hosted.
+  - the string form is for GitHub repos. Example: "rejetto/file-icons"
+  - the object form will point to other custom repo. Object properties:
+    - `web: string` link to a web page 
+    - `main: string` link to the plugin.js (can be relative to `web`)
+    - `zip: string` link to the zip with the whole plugin (can be relative to `web`)
+    - `zipRoot: string` optional, in case the plugin in the zip is inside a folder
+    
+    Example: 
+    ```
+    { 
+      "web": "https://github.com/rejetto/file-icons", 
+      "zip": "/archive/refs/heads/main.zip",
+      "zipRoot: "file-icons-main/dist", 
+      "main": "https://raw.githubusercontent.com/rejetto/file-icons/main/dist/plugin.js" 
+    }
+    ```
+    Note that in this example we are pointing to a github repo just for clarity. You are not supposed to use this
+    complicated object form to link github, use the string form.
+    Plugins with custom repos are not included in search results, but the update feature will still work.   
 
-All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
+WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects).
 
 - `init` described in the previous section. 
@@ -66,8 +86,8 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   ```
   You'll find more examples by studying plugins like `vhosting` or `antibrute`.
   This API is based on [Koa](https://koajs.com), because that's what HFS is using.
-  To know what the Context object contains please refer to [Koa's documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
-  You don't get the `next` parameter as in standard Koa's middlewares because this is different, but we are now explaining how to achieve the same results.
+  To know what the Context object contains please refer to [Koa documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
+  You don't get the `next` parameter as in standard Koa middlewares because this is different, but we are now explaining how to achieve the same results.
   To interrupt other middlewares on this http request, return `true`.
   If you want to execute something in the "upstream" of middlewares, return a function.
 
@@ -142,11 +162,12 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `log(...args)` print log in a standard form for plugins.
 
-- `const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
+- `Const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
 
 - `getConnections: Connections[]` retrieve current list of active connections.
 
-- `storageDir: string` folder where a plugin is supposed to store run-time data.
+- `storageDir: string` folder where a plugin is supposed to store run-time data. This folder is preserved during
+  an update of the plugin, while the rest could be deleted. 
 
 - `events: EventEmitter` this is the main events emitter used by HFS.
 
@@ -323,12 +344,12 @@ Most React developers are used to JSX, which is not (currently) supported here.
 If you want, you can try solutions to JSX support, like transpiling.
 Anyway, React is not JSX, and can be easily used without.
 
-Any time you in JSX you do 
+Any time in JSX you do 
 ```jsx
 <button onClick={() => console.log('hi')}>Say hi</button>
 ```
 
-This is just transalted to
+This is just translated to
 ```js
 h('button', { onClick: () => console.log('hi') }, 'Say hi')
 ```
@@ -337,6 +358,9 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
+- 8.4 (v0.48.0) 
+  - HFS.fileShow 
+  - api.Const (api.const is now deprecated)
 - 8.3 (v0.47.0)
   - HFS.useBatch
   - FileMenuEntry.id, .subLabel

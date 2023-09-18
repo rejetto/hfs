@@ -8,11 +8,13 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, onlyTruthy, wait } from './misc'
+import { debounceAsync, objSameKeys, onlyTruthy, wait } from './misc'
 import { ADMIN_URI, argv, DEV } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
+import { X509Certificate } from 'crypto'
+import { externalIp } from './api.net'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -24,16 +26,18 @@ export function getHttpsWorkingPort() {
     return httpsSrv?.listening && (httpsSrv.address() as any)?.port
 }
 
+const commonOptions = { requestTimeout: 0 }
+
 export const portCfg = defineConfig<number>('port', 80)
 portCfg.sub(async port => {
     while (!app)
         await wait(100)
     stopServer(httpSrv).then()
-    httpSrv = Object.assign(http.createServer(app.callback()), { name: 'http' })
+    httpSrv = Object.assign(http.createServer(commonOptions, app.callback()), { name: 'http' })
     port = await startServer(httpSrv, { port })
     if (!port) return
     httpSrv.on('connection', newConnection)
-    printUrls(port, 'http')
+    printUrls(httpSrv.name)
     if (openBrowserAtStart.get() && !argv.updated)
         openAdmin()
 })
@@ -43,16 +47,22 @@ export function openAdmin() {
         const a = srv?.address()
         if (!a || typeof a === 'string') continue
         const baseUrl = srv!.name + '://localhost:' + a.port
-        open(baseUrl + ADMIN_URI, { wait: true}).catch(e => {
+        open(baseUrl + ADMIN_URI, { wait: true}).catch(async e => {
             console.debug(String(e))
             console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
-                ...Object.values(getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
+                ...Object.values(await getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))
             if (! anyAccountCanLoginAdmin())
                 console.log(`HINT: you can enter command: create-admin YOUR_PASSWORD`)
         })
         return true
     }
     console.log("openAdmin failed")
+}
+
+export function getCertObject() {
+    const o = new X509Certificate(httpsOptions.cert)
+    const some = _.pick(o, ['subject', 'issuer', 'validFrom', 'validTo'])
+    return objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
 }
 
 const considerHttps = debounceAsync(async () => {
@@ -62,10 +72,19 @@ const considerHttps = debounceAsync(async () => {
         while (!app)
             await wait(100)
         httpsSrv = Object.assign(
-            https.createServer(port < 0 ? {} : { key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
-            { name: 'https', error: undefined }
+            https.createServer(port === PORT_DISABLED ? {} : { ...commonOptions, key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
+            { name: 'https' }
         )
         if (port >= 0) {
+            const cert = getCertObject()
+            const cn = cert.subject?.CN
+            if (cn)
+                console.log("certificate loaded for", cn)
+            const now = new Date()
+            httpsSrv.error = new Date(cert.validFrom) > now ? "certificate not valid yet"
+                : new Date(cert.validTo) < now ? "certificate expired"
+                    : undefined
+
             const namesForOutput: any = { cert: 'certificate', private_key: 'private key' }
             const missing = httpsNeeds.find(x => !x.get())?.key()
             if (missing)
@@ -83,12 +102,12 @@ const considerHttps = debounceAsync(async () => {
     port = await startServer(httpsSrv, { port })
     if (!port) return
     httpsSrv.on('connection', newConnection)
-    printUrls(port, 'https')
+    printUrls(httpsSrv.name)
 })
 
 
-const cert = defineConfig('cert', '')
-const privateKey = defineConfig('private_key', '')
+export const cert = defineConfig('cert', '')
+export const privateKey = defineConfig('private_key', '')
 const httpsNeeds = [cert, privateKey]
 const httpsOptions = { cert: '', private_key: '' }
 type HttpsKeys = keyof typeof httpsOptions
@@ -110,15 +129,16 @@ for (const cfg of httpsNeeds) {
     })
 }
 
-export const httpsPortCfg = defineConfig('https_port', -1)
+const PORT_DISABLED = -1
+export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
 httpsPortCfg.sub(considerHttps)
 
 interface StartServer { port: number, host?:string }
-function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
+export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     return new Promise<number>(async resolve => {
         if (!srv) return 0
         try {
-            if (port < 0 || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
+            if (port === PORT_DISABLED || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
                 return resolve(0)
             // from a few tests, this seems enough to support the expect-100 http/1.1 mechanism, at least with curl -T, not used by chrome|firefox anyway
             srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
@@ -142,7 +162,7 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
 
     function listen(host?: string) {
         return new Promise<number>(async (resolve, reject) => {
-            srv?.listen({ port, host }, () => {
+            srv?.on('error', onError).listen({ port, host }, () => {
                 const ad = srv.address()
                 if (!ad)
                     return reject('no address')
@@ -150,8 +170,12 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                     srv.close()
                     return reject('type of socket not supported')
                 }
+                srv.removeListener('error', onError) // necessary in case someone calls stop/start many times
                 resolve(ad.port)
-            }).on('error', async e => {
+            })
+
+             async function onError(e?: Error) {
+                if (!srv) return
                 srv.error = String(e)
                 srv.busy = undefined
                 const { code } = e as any
@@ -163,12 +187,12 @@ function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 const k = (srv === httpSrv? portCfg : httpsPortCfg).key()
                 console.log(` >> try specifying a different port, enter this command: config ${k} 8011`)
                 resolve(0)
-            })
+            }
         })
     }
 }
 
-function stopServer(srv?: http.Server) {
+export function stopServer(srv?: http.Server) {
     return new Promise(resolve => {
         if (!srv?.listening)
             return resolve(null)
@@ -189,49 +213,51 @@ export async function getServerStatus() {
         https: await serverStatus(httpsSrv, httpsPortCfg.get()),
     }
 
-    async function serverStatus(h: typeof httpSrv, configuredPort?: number) {
-        const busy = await h?.busy
+    async function serverStatus(srv: typeof httpSrv, configuredPort: number) {
+        const busy = await srv?.busy
         await wait(0) // simple trick to wait for also .error to be updated. If this trickery becomes necessary elsewhere, then we should make also error a Promise.
         return {
-            ..._.pick(h, ['listening', 'error']),
+            ..._.pick(srv, ['listening', 'error']),
             busy,
-            port: (h?.address() as any)?.port || configuredPort,
+            port: (srv?.address() as any)?.port as number || configuredPort,
+            configuredPort,
+            srv,
         }
     }}
 
 const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
-export function getUrls() {
+export async function getIps() {
+    const ips = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
+        nets && !ignore.test(name)
+        && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
+    )).flat()
+    const e = await externalIp
+    if (e && !ips.includes(e))
+        ips.unshift(e)
+    return v4first(ips)
+        .filter((x,i,a) => a.length > 1 || !x.startsWith('169.254')) // 169.254 = dhcp failure on the interface, but keep it if it's our only one
+
+    function v4first(a: string[]) {
+        return _.sortBy(a, x => x.includes(':'))
+    }
+}
+
+export async function getUrls() {
+    const ips = (await getIps()).map(ip => ip.includes(':') ? '[' + ip + ']' : ip)
     return Object.fromEntries(onlyTruthy([httpSrv, httpsSrv].map(srv => {
         if (!srv?.listening)
             return false
         const port = (srv?.address() as any)?.port
         const appendPort = port === (srv.name === 'https' ? 443 : 80) ? '' : ':' + port
-        const urls = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
-                nets && !ignore.test(name) && nets.map(net => {
-                    if (net.internal) return
-                    let { address } = net
-                    if (address.includes(':'))
-                        address = '[' + address + ']'
-                    return srv.name + '://' + address + appendPort
-                })
-        ).flat())
+        const urls = ips.map(ip => `${srv.name}://${ip}${appendPort}`)
         return urls.length && [srv.name, urls]
     })))
 }
 
-function printUrls(port: number, proto: string) {
-    if (!port) return
-    for (const [name, nets] of Object.entries(networkInterfaces())) {
-        if (!nets || ignore.test(name)) continue
-        _.remove(nets, 'internal')
-        const first = nets[0]
-        if (!first) continue
-        const best = _.find(nets, { family: 'IPv4' }) || first
-        const appendPort = port === (proto==='https' ? 443 : 80) ? '' : ':' + port
-        let { address } = best
-        if (address.includes(':'))
-            address = '['+address+']'
-        console.log('network', name, proto + '://' + address + appendPort)
-    }
+function printUrls(srvName: string) {
+    getUrls().then(urls => {
+        for (const url of urls[srvName]!)
+            console.log('serving on', url)
+    })
 }

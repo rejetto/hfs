@@ -2,14 +2,15 @@
 
 import _ from 'lodash';
 import { useCallback, useEffect, useRef } from 'react';
-import { Dict, Falsy, getCookie, getPrefixUrl, pendingPromise, useStateMounted } from '.'
+import { Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait } from '.'
 
 export const API_URL = '/~/api/'
 
 const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute
     update: 600, // download can be lengthy
-    get_status: 20 // can be lengthy on slow machines because of the find-process-on-busy-port feature
+    get_nat: 10,
+    get_status: 20, // can be lengthy on slow machines because of the find-process-on-busy-port feature
 }
 
 interface ApiCallOptions {
@@ -26,15 +27,13 @@ export function setDefaultApiCallOptions(options: Partial<ApiCallOptions>) {
 export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptions={}) {
     _.defaults(options, defaultApiCallOptions)
     const stop = options.modal?.(cmd, params)
-    const csrf = getCsrf()
-    if (csrf)
-        params = { csrf, ...params }
     const controller = new AbortController()
+    let aborted = ''
     if (options.timeout !== false)
-        setTimeout(() => controller.abort('timeout'), 1000*(timeoutByApi[cmd] ?? options.timeout ?? 10))
+        setTimeout(() => controller.abort(aborted='timeout'), 1000*(timeoutByApi[cmd] ?? options.timeout ?? 10))
     return Object.assign(fetch(getPrefixUrl() + API_URL + cmd, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         signal: controller.signal,
         body: params && JSON.stringify(params),
     }).then(async res => {
@@ -53,10 +52,10 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         stop?.()
         if (err?.message?.includes('fetch'))
             throw Error("Network error")
-        throw err
+        throw aborted || err
     }), {
         abort() {
-            controller.abort('cancel')
+            controller.abort(aborted='cancel')
         }
     })
 }
@@ -70,25 +69,27 @@ export class ApiError extends Error {
     }
 }
 
-export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undefined, undefined | Error, ()=>void] {
-    const [ret, setRet] = useStateMounted<T | undefined>(undefined)
-    const [err, setErr] = useStateMounted<Error | undefined>(undefined)
+export function useApi<T=any>(cmd: string | Falsy, params?: object) {
+    const [data, setData] = useStateMounted<T | undefined>(undefined)
+    const [error, setError] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef<ReturnType<typeof apiCall>>()
     const reloadingRef = useRef<any>()
-    useEffect(()=>{
+    useEffect(() => {
         loadingRef.current?.abort()
-        setRet(undefined)
-        setErr(undefined)
+        setData(undefined)
+        setError(undefined)
         if (!cmd) return
         let aborted = false
-        const req = apiCall<T>(cmd, params)
-        const wholePromise = req.then(x => aborted || setRet(x), x => aborted || setErr(x))
-            .finally(()=> loadingRef.current = undefined)
+        let req: undefined | ReturnType<typeof apiCall>
+        const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
+            .then(() => aborted ? undefined : req = apiCall<T>(cmd, params))
+            .then(res => aborted || setData(res), err => aborted || setError(err) || setData(undefined))
+            .finally(() => loadingRef.current = reloadingRef.current = undefined)
         loadingRef.current = Object.assign(wholePromise, {
             abort() {
                 aborted = true
-                req.abort()
+                req?.abort()
             }
         })
         reloadingRef.current?.resolve(wholePromise)
@@ -96,23 +97,15 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object) : [T | undef
     const reload = useCallback(() => loadingRef.current
             || setForcer(v => v+1) || (reloadingRef.current = pendingPromise()),
         [setForcer])
-    return [ret, err, reload]
+    return { data, error, reload, loading: Boolean(loadingRef.current || reloadingRef.current) }
 }
 
 type EventHandler = (type:string, data?:any) => void
 
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
+    params = _.omitBy(params, _.isUndefined)
     console.debug('API EVENTS', cmd, params)
-    const processed: Record<string,string> = {}
-    for (const k in params) {
-        const v = params[k]
-        if (v !== undefined)
-            processed[k] = JSON.stringify(v)
-    }
-    const csrf = getCsrf()
-    if (csrf)
-        processed.csrf = JSON.stringify(csrf)
-    const source = new EventSource(getPrefixUrl() + API_URL + cmd + '?' + new URLSearchParams(processed))
+    const source = new EventSource(getPrefixUrl() + API_URL + cmd + '?' + new URLSearchParams(params))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {
@@ -128,10 +121,6 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
         cb('msg', data)
     }
     return source
-}
-
-function getCsrf() {
-    return getCookie('csrf')
 }
 
 export function useApiEvents(cmd: string, params: Dict={}) {

@@ -29,7 +29,7 @@ import { mkdir, readFile } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
-import { newCustomHtmlState, watchLoadCustomHtml } from './customHtml'
+import { watchLoadCustomHtml } from './customHtml'
 
 export const PATH = 'plugins'
 export const DISABLING_POSTFIX = '-disabled'
@@ -103,18 +103,47 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> 
 }
 
 export function findPluginByRepo<T>(repo: string) {
-    return _.find(plugins, pl => pl.getData()?.repo === repo)
-        || _.find(availablePlugins, { repo })
+    return _.find(plugins, pl => match(pl.getData()))
+        || _.find(availablePlugins, match)
+
+    function match(rec: any) {
+        return repo === (rec?.repo?.main ?? rec?.repo)
+    }
 }
 
 export function getPluginConfigFields(id: string) {
     return plugins[id]?.getData().config
 }
 
+const serverCode = defineConfig('server_code', '', async (script, { k }) => {
+    const res: any = {}
+    try {
+        new Function('exports', script)(res) // parse
+        return await initPlugin(res)
+    }
+    catch (e: any) {
+        return console.error(k + ':', e.message || String(e))
+    }
+})
+
+async function initPlugin<T>(pl: any, more?: T) {
+    return Object.assign(pl, await pl.init?.({
+        const: Const, // legacy, deprecated in 0.48
+        Const,
+        require,
+        getConnections,
+        events,
+        log: console.log,
+        getHfsConfig: getConfig,
+        customApiCall,
+        ...more
+    }))
+}
+
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     const after: Dict<CallMeAfter> = {}
     // run middleware plugins
-    for (const [id,pl] of Object.entries(plugins))
+    for (const [id,pl] of Object.entries(plugins).concat([['.', await serverCode.compiled()]]))
         try {
             const res = await pl.middleware?.(ctx)
             if (res === true)
@@ -211,12 +240,13 @@ type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
 type Stop = true
 type CallMeAfter = ()=>any
 
+export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string }
 export interface AvailablePlugin {
     id: string
     description?: string
     version?: number
     apiRequired?: number | [number,number]
-    repo?: string
+    repo?: Repo
     depend?: { repo: string, version?: number }[]
     branch?: string
     badApi?: string
@@ -320,29 +350,24 @@ function watchPlugin(id: string, path: string) {
                 setError(id, '')
             const alreadyRunning = plugins[id]
             console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
-            const { init, ...data } = await import(module)
-            delete data.default
+            const pluginData = await import(module)
             deleteModule(require.resolve(module)) // avoid caching at next import
-            calculateBadApi(data)
-            if (data.badApi)
-                console.log("plugin", id, data.badApi)
+            calculateBadApi(pluginData)
+            if (pluginData.badApi)
+                console.log("plugin", id, pluginData.badApi)
 
             await alreadyRunning?.unload(true)
             console.debug("starting plugin", id)
             const storageDir = resolve(module, '..', STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
             await mkdir(storageDir, { recursive: true })
-            const res = await init?.call(null, {
+            await initPlugin(pluginData, {
                 srcDir: __dirname,
                 storageDir,
-                const: Const,
-                require,
-                getConnections,
-                events,
                 log(...args: any[]) {
                     console.log('plugin', id+':', ...args)
                 },
                 getConfig: (cfgKey: string) =>
-                    pluginsConfig.get()?.[id]?.[cfgKey] ?? data.config?.[cfgKey]?.defaultValue,
+                    pluginsConfig.get()?.[id]?.[cfgKey] ?? pluginData.config?.[cfgKey]?.defaultValue,
                 setConfig: (cfgKey: string, value: any) =>
                     setPluginConfig(id, { [cfgKey]: value }),
                 subscribeConfig(cfgKey: string, cb: Callback<any>) {
@@ -352,22 +377,14 @@ function watchPlugin(id: string, path: string) {
                         const now = this.getConfig(cfgKey)
                         if (same(now, last)) return
                         try { cb(last = now) }
-                        catch(e){
-                            console.log('plugin', id, String(e))
-                        }
+                        catch(e){ this.log(String(e)) }
                     })
                 },
-                getHfsConfig: getConfig,
-                customApiCall(method: string, params?: any) {
-                    return mapPlugins(pl => pl.getData().customApi?.[method]?.(params))
-                }
             })
             const folder = dirname(module)
-            Object.assign(data, res, {
-                customHtml: newCustomHtmlState()
-            })
-            const customHtmlWatcher = watchLoadCustomHtml(data.customHtml, folder)
-            const plugin = plugins[id] = new Plugin(id, folder, data, customHtmlWatcher.unwatch)
+            const { state, unwatch } = watchLoadCustomHtml(folder)
+            pluginData.customHtml = state
+            const plugin = plugins[id] = new Plugin(id, folder, pluginData, unwatch)
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
@@ -389,6 +406,10 @@ function watchPlugin(id: string, path: string) {
         }
 
     }
+}
+
+function customApiCall(method: string, params?: any) {
+    return mapPlugins(pl => pl.getData().customApi?.[method]?.(params))
 }
 
 function getError(id: string) {
@@ -428,7 +449,7 @@ onProcessExit(() =>
 export function parsePluginSource(id: string, source: string) {
     const pl: AvailablePlugin = { id }
     pl.description = tryJson(/exports.description *= *(".*")/.exec(source)?.[1])
-    pl.repo = /exports.repo *= *"(.*)"/.exec(source)?.[1]
+    pl.repo = tryJson(/exports.repo *= *(.*);? *$/m.exec(source)?.[1])
     pl.version = Number(/exports.version *= *(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
     pl.depend = tryJson(/exports.depend *= *(\[.*\])/m.exec(source)?.[1])?.filter((x: any) =>

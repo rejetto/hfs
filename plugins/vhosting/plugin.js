@@ -1,5 +1,5 @@
 exports.description = "If you want to have different home folders, based on domain"
-exports.version = 3.12
+exports.version = 3.2
 exports.apiRequired = 2 // 2 is for the config 'array'
 
 exports.config = {
@@ -27,12 +27,11 @@ exports.init = api => {
         middleware(ctx) {
             let params // undefined if we are not going to work on api parameters
             if (ctx.path.startsWith(api.const.SPECIAL_URI)) { // special uris should be excluded...
-                // ...unless it's a frontend api with a path param
-                if (!ctx.path.startsWith(api.const.API_URI)) return
+                if (!ctx.path.startsWith(api.const.API_URI)) return // ...unless it's an api
                 let { referer } = ctx.headers
                 referer &&= new URL(referer).pathname
                 if (referer?.startsWith(ctx.state.revProxyPath + api.const.ADMIN_URI)) return // exclude apis for admin-panel
-                params = ctx.params
+                params = ctx.params || ctx.query // for api we'll translate params
             }
 
             const hosts = api.getConfig('hosts')
@@ -46,17 +45,18 @@ exports.init = api => {
                 return
             }
             let { root='' } = row
-            if (root.endsWith('/'))
-                root = root.slice(0, -1)
-            if (root && root[0] !== '/') // normalize
-                root = '/' + root
-            if (!root) return
-            if (!params)
-                ctx.path = root + ctx.path
-            else
-                for (const [k,v] of Object.entries(params))
-                    if (k.startsWith('uri'))
-                        params[k] = Array.isArray(v) ? v.map(x => root + x) : root + v
+            if (!root || root === '/') return
+            if (params === undefined) {
+                ctx.path = join(root, ctx.path)
+                return
+            }
+            for (const [k,v] of Object.entries(params))
+                if (k.startsWith('uri'))
+                    params[k] = Array.isArray(v) ? v.map(x => join(root, x)) : join(root, v)
         }
     }
+}
+
+function join(a, b) {
+    return a + (b && b[0] !== '/' ? '/' : '') + b
 }

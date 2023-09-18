@@ -8,7 +8,6 @@ import {
     ADMIN_URI,
     HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_NOT_ACCEPTABLE, HTTP_CONFLICT, HTTP_NOT_FOUND
 } from './const'
-import { randomId } from './misc'
 import Koa from 'koa'
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
 import { ctxAdminAccess } from './adminApis'
@@ -26,12 +25,10 @@ async function loggedIn(ctx:Koa.Context, username: string | false) {
         return ctx.throw(HTTP_SERVER_ERROR,'session')
     if (username === false) {
         delete s.username
-        ctx.cookies.set('csrf', '')
         return
     }
     s.username = normalizeUsername(username)
     await prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
-    ctx.cookies.set('csrf', randomId(), { signed:false, httpOnly: false })
 }
 
 function makeExp() {

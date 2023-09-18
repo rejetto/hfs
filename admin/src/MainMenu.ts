@@ -6,6 +6,7 @@ import {
     AccountTree,
     Extension,
     History,
+    Home,
     Logout,
     ManageAccounts,
     Monitor,
@@ -26,8 +27,11 @@ import LogoutPage from './LogoutPage';
 import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
-import { useApi } from './api'
+import { getHFS } from '@hfs/shared'
 import CustomHtmlPage from './CustomHtmlPage';
+import InternetPage from './InternetPage'
+import { replaceStringToReact } from './md'
+import { useWindowSize } from 'usehooks-ts'
 
 interface MenuEntry {
     path: string
@@ -38,10 +42,11 @@ interface MenuEntry {
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '', icon: Public, label: "Home", title: "Admin panel", comp: HomePage },
+    { path: '', icon: Home, label: "Home", title: "Admin panel", comp: HomePage },
     { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
     { path: 'options', icon: Settings, comp: OptionsPage },
+    { path: 'internet', icon: Public, comp: InternetPage },
     { path: 'monitoring', icon: Monitor, comp: MonitorPage },
     { path: 'logs', icon: History, comp: LogsPage },
     { path: 'language', icon: Translate, comp: LangPage },
@@ -50,23 +55,24 @@ export const mainMenu: MenuEntry[] = [
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
 
-let version: any // cache 'version', as it won't change at runtime, while the Drawer mechanism will unmount our menu each time
 export default function Menu({ onSelect }: { onSelect: ()=>void }) {
-    const [status] = useApi(!version && 'get_status')
-    version ||= status?.version?.replace('-', ' ')
+    const { VERSION } = getHFS()
+    const logo = 'hfs-logo.svg'
+    const short = useWindowSize().height < 700
     return h(Box, { display: 'flex', flexDirection: 'column', bgcolor: 'primary.main', minHeight: '100%', },
         h(List, {
             sx:{
-                pr: 1, color: 'primary.contrastText',
+                pr: 1, py: 0, color: 'primary.contrastText',
                 height: '100vh', boxSizing: 'border-box', // grow as screen permits, so we know the extra space for the logo
                 overflowY: 'auto', // ...and account for clipping
                 position: 'sticky', top: 0, // be independent (scrolling-wise)
                 display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
             }
         },
-            h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'flex-end' },
-                h(Typography, { variant:'h3' }, 'HFS'),
-                h(Box, { pb: 1, fontSize: 'small' }, version),
+            h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'center' },
+                h(Box, { fontSize: 'min(3rem, max(5vw, 4vh))' }, 'HFS'),
+                h(Box, { fontSize: 'small' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
+                short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
             mainMenu.map(it =>
                 h(ListItemButton, {
@@ -81,7 +87,7 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                     it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
                     h(ListItemText, { sx: { whiteSpace: 'nowrap' }, primary: getMenuLabel(it) })
                 ) ),
-            h(Box, { sx: { flex: 1, opacity: .7, background: 'url(hfs-logo.svg) no-repeat bottom', backgroundSize: 'contain', margin: 2 } }),
+            !short && h(Box, { sx: { flex: 1, opacity: .7, background: `url(${logo}) no-repeat bottom`, backgroundSize: 'contain', margin: 2 } }),
         )
     )
 }

@@ -1,4 +1,6 @@
-import { findFirst, getHFS } from './misc'
+// This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+
+import { findDefined, getHFS } from './misc'
 import { createElement as h, Fragment } from 'react'
 import { proxy, useSnapshot } from 'valtio'
 
@@ -33,7 +35,7 @@ export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: a
     let selectedLang = '' // keep track of where we find the translation
     const { langs, embedded } = state
     for (const key of keys) {
-        found = findFirst(langs, lang => translations[selectedLang=lang]?.translate?.[key])
+        found = findDefined(langs, lang => translations[selectedLang=lang]?.translate?.[key])
         if (found) break
         if (selectedLang && langs[0] !== embedded && !warns.has(key)) {
             warns.add(key)

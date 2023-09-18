@@ -17,8 +17,9 @@ import accountsApis from './api.accounts'
 import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import langApis from './api.lang'
+import netApis from './api.net'
 import { getConnections } from './connections'
-import { debounceAsync, isLocalHost, makeNetMatcher, onOff, wait, waitFor } from './misc'
+import { debounceAsync, isLocalHost, makeNetMatcher, onOff, tryJson, wait, waitFor } from './misc'
 import events from './events'
 import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
 import Koa from 'koa'
@@ -41,6 +42,7 @@ export const adminApis: ApiHandlers = {
     ...pluginsApis,
     ...monitorApis,
     ...langApis,
+    ...netApis,
 
     async set_config({ values: v }) {
         if (v) {
@@ -93,7 +95,7 @@ export const adminApis: ApiHandlers = {
             apiVersion: API_VERSION,
             compatibleApiVersion: COMPATIBLE_API_VERSION,
             ...await getServerStatus(),
-            urls: getUrls(),
+            urls: await getUrls(),
             baseUrl: baseUrl.get(), // can be retrieved with get_config, but it's very handy with urls and low overhead. Case is different because the context is
             updatePossible: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
             proxyDetected: getProxyDetected(),
@@ -156,9 +158,9 @@ export const adminApis: ApiHandlers = {
         })
 
         function parse(line: string) {
-            const m = /^(.+?) (.+?) (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (-|\d+)/.exec(line)
+            const m = /^(.+?) (.+?) (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (-|\d+) ?(.*)/.exec(line)
             if (!m) return
-            const [, ip, , user, date, time, method, uri, status, length] = m
+            const [, ip, , user, date, time, method, uri, status, length, extra] = m
             return { // keep object format same as events emitted by the log module
                 ip,
                 user: user === '-' ? undefined : user,
@@ -167,6 +169,7 @@ export const adminApis: ApiHandlers = {
                 uri,
                 status: Number(status),
                 length: length === '-' ? undefined : Number(length),
+                extra: tryJson(tryJson(extra)) || undefined,
             }
         }
     },
@@ -178,7 +181,7 @@ for (const [k, was] of Object.entries(adminApis))
             return new ApiError(HTTP_FORBIDDEN)
         if (ctxAdminAccess(ctx))
             return was(params, ctx)
-        const props = { any: anyAccountCanLoginAdmin() }
+        const props = { possible: anyAccountCanLoginAdmin() }
         return ctx.headers.accept === 'text/event-stream'
             ? new SendListReadable({ doAtStart: x => x.error(HTTP_UNAUTHORIZED, true, props) })
             : new ApiError(HTTP_UNAUTHORIZED, props)

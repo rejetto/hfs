@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
+    applyParentToChild,
     getNodeName,
     hasPermission,
     masksCouldGivePermission,
@@ -19,9 +20,11 @@ import _ from 'lodash'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 
-export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse }, ctx) => {
-    const node = await urlToNode( uri || '/', ctx)
-    const list = new SendListReadable()
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string }
+
+export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c }, ctx) => {
+    const node = await urlToNode(uri || '/', ctx)
+    const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
     if (!node)
         return fail(HTTP_NOT_FOUND)
     if (statusCodeForMissingPerm(node,'can_list',ctx))
@@ -29,7 +32,7 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
     if (node.default)
-        return (sse ? list.custom : _.identity)({ // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
+        return (list?.custom ?? _.identity)({ // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
             redirect: uri // tell the browser to access the folder (instead of using this api), so it will get the default file
         })
     if (!await nodeIsDirectory(node))
@@ -40,9 +43,10 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = hasPermission(node, 'can_upload', ctx)
-    const can_delete = hasPermission(node, 'can_delete', ctx)
+    const fakeChild = applyParentToChild({}, node) // we want to know if we want to delete children
+    const can_delete = hasPermission(fakeChild, 'can_delete', ctx)
     const props = { can_upload, can_delete, accept: node.accept }
-    if (!sse)
+    if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {
         if (can_upload || can_delete)
@@ -54,7 +58,7 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse
     return list
 
     function fail(code=ctx.status) {
-        if (!sse)
+        if (!list)
             return new ApiError(code)
         list.error(code, true)
         return list
@@ -91,43 +95,41 @@ export const file_list: ApiHandler = async ({ uri, offset, limit, search, c, sse
                 break
         }
     }
-}
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string }
-
-async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
-    let { source, default:def } = node
-    const name = getNodeName(node)
-    if (!source)
-        return name ? { n: name + '/' } : null
-    if (def)
-        return { n: name }
-    try {
-        const st = await stat(source)
-        const folder = st.isDirectory()
-        const { ctime, mtime } = st
-        const pl = node.can_list === WHO_NO_ONE ? 'l'
-            : !hasPermission(node, 'can_list', ctx) ? 'L'
-            : ''
-        // no download here, but maybe inside?
-        const pr = node.can_read === WHO_NO_ONE && !(folder && filesInsideCould()) ? 'r'
-            : !hasPermission(node, 'can_read', ctx) ? 'R'
-            : ''
-        const pd = hasPermission(node, 'can_delete', ctx) ? 'd' : ''
-        return {
-            n: name + (folder ? '/' : ''),
-            c: ctime,
-            m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
-            s: folder ? undefined : st.size,
-            p: (pr + pl + pd) || undefined
+    async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
+        let { source, default:def } = node
+        const name = getNodeName(node)
+        if (!source)
+            return name ? { n: name + '/' } : null
+        if (def)
+            return { n: name }
+        try {
+            const st = await stat(source)
+            const folder = st.isDirectory()
+            const { ctime, mtime } = st
+            const pl = node.can_list === WHO_NO_ONE ? 'l'
+                : !hasPermission(node, 'can_list', ctx) ? 'L'
+                : ''
+            // no download here, but maybe inside?
+            const pr = node.can_read === WHO_NO_ONE && !(folder && filesInsideCould()) ? 'r'
+                : !hasPermission(node, 'can_read', ctx) ? 'R'
+                : ''
+            const pd = !can_delete && hasPermission(node, 'can_delete', ctx) ? 'd' : ''
+            return {
+                n: name + (folder ? '/' : ''),
+                c: ctime,
+                m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
+                s: folder ? undefined : st.size,
+                p: (pr + pl + pd) || undefined
+            }
         }
-    }
-    catch {
-        return null
-    }
+        catch {
+            return null
+        }
 
-    function filesInsideCould(n: VfsNode=node): boolean | undefined {
-        return masksCouldGivePermission(n.masks, 'can_read')
-            || n.children?.some(c => c.can_read || filesInsideCould(c)) // we count on the boolean-compliant nature of the permission type here
+        function filesInsideCould(n: VfsNode=node): boolean | undefined {
+            return masksCouldGivePermission(n.masks, 'can_read')
+                || n.children?.some(c => c.can_read || filesInsideCould(c)) // we count on the boolean-compliant nature of the permission type here
+        }
     }
 }

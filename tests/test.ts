@@ -1,11 +1,11 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { wrapper } from 'axios-cookiejar-support'
 import { CookieJar } from 'tough-cookie'
-import { Done } from 'mocha'
 import { srpSequence } from '@hfs/shared/srp'
 import { createReadStream, rmSync } from 'fs'
 import { join } from 'path'
 import _ from 'lodash'
+import { findDefined } from '../src/cross'
 /*
 import { PORT, srv } from '../src'
 
@@ -24,7 +24,7 @@ const client = wrapper(axios.create({ jar, maxRedirects: 0 }))
 
 describe('basics', () => {
     //before(async () => appStarted)
-    it('frontend', req('/', /<body>/))
+    it('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
     it('force slash', req('/f1', 302))
     it('list', reqList('/f1/', { inList:['f2/', 'page'] }))
     it('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
@@ -110,7 +110,7 @@ describe('accounts', () => {
 describe('after-login', () => {
     before(() =>
         srpSequence(username, password, (cmd: string, params: any) =>
-            client.post(API+cmd, params).then(x => x.data))
+            reqApi(cmd, params, ()=>true)())
     )
     it('list protected', reqList('/for-admins/', { inList:['alfa.txt'] }))
     testUpload('upload', 200)
@@ -142,75 +142,58 @@ type Tester = number
     }
 
 function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<any>={}) {
-    return (done:Done) => {
-        const csrf = getCookie('csrf')
-        if (csrf)
-            Object.assign(requestOptions.data, { csrf })
+    // all url starts with /, so if one doesn't it's because the method is prefixed
+    const i = methodUrl.indexOf('/')
+    const method = methodUrl.slice(0,i) || requestOptions?.data && 'POST' || 'GET'
+    const url = BASE_URL+methodUrl.slice(i)
+    return () => client.request({ method, url, ...requestOptions })
+        .then(process, process)
 
-        // all url starts with /, so if one doesn't it's because the method is prefixed
-        const i = methodUrl.indexOf('/')
-        const method = methodUrl.slice(0,i) || requestOptions?.data && 'POST' || 'GET'
-        const url = BASE_URL+methodUrl.slice(i)
-        client.request({ method, url, ...requestOptions })
-            .then(process, process)
-            .catch(err => {
-                done(err)
-            })
-
-        function process(res:any) {
-            //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])
-            if (test && test instanceof RegExp)
-                test = { re:test }
-            if (typeof test === 'number')
-                test = { status: test }
-            if (typeof test === 'object') {
-                const { status, mime, re, inList, outList, length, permInList } = test
-                const gotMime = res.headers?.['content-type']
-                const gotStatus = (res.status|| res.response.status)
-                const gotLength = res.headers?.['content-length']
-                const err = mime && !gotMime?.startsWith(mime) && 'expected mime ' + mime + ' got ' + gotMime
-                    || status && gotStatus !== status && 'expected status ' + status + ' got ' + gotStatus
-                    || re && !(typeof res.data === 'string' && re.test(res.data)) && 'expected content '+String(re)+' got '+res.data
-                    || inList && !inList.every(x => isInList(res.data, x)) && 'expected in list '+inList
-                    || outList && !outList.every(x => !isInList(res.data, x)) && 'expected not in list '+outList
-                    || permInList && findFirst(permInList, (v, k) => {
-                        const got = _.find(res.data.list, { n: k })?.p
-                        const negate = v[0] === '!'
-                        return findFirst(v.slice(negate ? 1 : 0).split(''), char =>
-                            got?.includes(char) === negate ? `expected perm ${v} on ${k}, got ${got}` : undefined)
-                    })
-                    || test.empty && res.data && 'expected empty body'
-                    || length !== undefined && gotLength !== String(length) && "expected content-length " + length + " got " + gotLength
-                    || test.cb?.(res.data, res) === false && 'error'
-                    || ''
-                return done(err && Error(err))
-            }
-            const ok = test(res.data, res)
-            done(!ok && Error())
+    function process(res:any) {
+        //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])
+        if (test && test instanceof RegExp)
+            test = { re:test }
+        if (typeof test === 'number')
+            test = { status: test }
+        const { data } = res.response || res
+        if (typeof test === 'object') {
+            const { status, mime, re, inList, outList, length, permInList } = test
+            const gotMime = res.headers?.['content-type']
+            const gotStatus = (res.status|| res.response.status)
+            const gotLength = res.headers?.['content-length']
+            const err = mime && !gotMime?.startsWith(mime) && 'expected mime ' + mime + ' got ' + gotMime
+                || status && gotStatus !== status && 'expected status ' + status + ' got ' + gotStatus
+                || re && !(typeof data === 'string' && re.test(data)) && 'expected content '+String(re)+' got '+(data || '-empty-')
+                || inList && !inList.every(x => isInList(data, x)) && 'expected in list '+inList
+                || outList && !outList.every(x => !isInList(data, x)) && 'expected not in list '+outList
+                || permInList && findDefined(permInList, (v, k) => {
+                    const got = _.find(data.list, { n: k })?.p
+                    const negate = v[0] === '!'
+                    return findDefined(v.slice(negate ? 1 : 0).split(''), char =>
+                        got?.includes(char) === negate ? `expected perm ${v} on ${k}, got ${got}` : undefined)
+                })
+                || test.empty && data && 'expected empty body'
+                || length !== undefined && gotLength !== String(length) && "expected content-length " + length + " got " + gotLength
+                || test.cb?.(data, res) === false && 'error'
+                || ''
+            if (err)
+                throw Error(err)
         }
+        if (typeof test === 'function')
+            if (!test(data, res))
+                throw Error()
+        return data
     }
 }
 
-function getCookie(k: string) {
-    return jar.getCookiesSync(BASE_URL).find(c => c.key === k)?.value
-}
-
 function reqApi(api: string, params: object, test:Tester) {
-    return req(API+api, test, { data: params })
+    return req(API+api, test, { data: params, headers: { 'x-hfs-anti-csrf': '1'} })
 }
 
 function reqList(uri:string, tester:Tester, params?: object) {
-    return reqApi('file_list', { uri, ...params }, tester)
+    return reqApi('get_file_list', { uri, ...params }, tester)
 }
 
 function isInList(res:any, name:string) {
     return Array.isArray(res?.list) && Boolean((res.list as any[]).find(x => x.n===name))
-}
-
-export function findFirst<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string | number)=>O): any {
-    if (a) for (const k in a) {
-        const ret = cb((a as any)[k] as I, k)
-        if (ret !== undefined)
-            return ret
-    }
 }

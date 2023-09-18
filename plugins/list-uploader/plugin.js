@@ -14,6 +14,7 @@ exports.config = {
             "IP only": 'ip',
             "Username only": 'user',
             "IP + username": 'ip+user',
+            "Icon + text on mouse over": 'tooltip',
         },
         defaultValue: 'ip+user',
         frontend: true,

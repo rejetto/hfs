@@ -11,41 +11,36 @@ import { ERRORS } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-const RELOADER_PROP = Symbol('reloader')
-
 export function usePath() {
     return useLocation().pathname
 }
 
 export default function useFetchList() {
     const snap = useSnapState()
-    const desiredPath = usePath()
+    const uri = usePath() // this api can still work removing the initial slash, but then we'll have a mixed situation that will require plugins an extra effort
     const search = snap.remoteSearch || undefined
-    const lastPath = useRef('')
+    const lastUri = useRef('')
     const lastReq = useRef<any>()
+    const lastReloader = useRef(snap.listReloader)
     const isMounted = useIsMounted()
     const navigate = useNavigate()
     useEffect(()=>{
-        const previous = lastPath.current
-        lastPath.current = desiredPath
-        if (previous !== desiredPath) {
+        const previous = lastUri.current
+        lastUri.current = uri
+        if (previous !== uri) {
             state.showFilter = false
             state.stopSearch?.()
         }
         state.stoppedSearch = false
-        if (previous !== desiredPath && search) {
+        if (previous !== uri && search) {
             state.remoteSearch = ''
             return
         }
 
-        const params = {
-            uri: desiredPath,
-            search,
-            sse: true,
-            [RELOADER_PROP]: snap.listReloader, // symbol, so it won't be serialized, but will force reloading
-        }
-        if (_.isEqual(params, lastReq.current)) return
+        const params = { uri, search }
+        if (snap.listReloader === lastReloader.current && _.isEqual(params, lastReq.current)) return
         lastReq.current = params
+        lastReloader.current = snap.listReloader
 
         state.list = []
         state.filteredList = undefined
@@ -62,7 +57,7 @@ export default function useFetchList() {
                 state.list = sort([...state.list, ...chunk])
         }
         const timer = setInterval(flush, 1000)
-        const src = apiEvents('file_list', params, (type, data) => {
+        const src = apiEvents('get_file_list', params, (type, data) => {
             if (!isMounted()) return
             switch (type) {
                 case 'error':
@@ -80,7 +75,7 @@ export default function useFetchList() {
                     for (const entry of data) {
                         const [op, par] = entry
                         const error = op === 'error' && par
-                        if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then file_list the file (because we didn't know it was file or folder)
+                        if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
                             state.messageOnly = t('upload_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
                             continue
@@ -94,8 +89,8 @@ export default function useFetchList() {
                             lastReq.current = null
                             continue
                         }
-                        if (!desiredPath.endsWith('/'))  // now we know it was a folder for sure
-                            return navigate(desiredPath + '/')
+                        if (uri && !uri.endsWith('/'))  // now we know it was a folder for sure
+                            return navigate(uri + '/')
                         if (op === 'props') {
                             Object.assign(state, _.pick(par, ['can_upload', 'can_delete', 'accept']))
                             continue
@@ -116,7 +111,7 @@ export default function useFetchList() {
             clearInterval(timer)
             src.close()
         }
-    }, [desiredPath, search, snap.username, snap.listReloader, snap.loginRequired])
+    }, [uri, search, snap.username, snap.listReloader, snap.loginRequired])
 }
 
 export function reloadList() {

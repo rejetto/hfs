@@ -11,7 +11,7 @@ import EMBEDDED_TRANSLATIONS from './langs/embedded'
 
 const apis: ApiHandlers = {
 
-    list_langs() {
+    get_langs() {
         return new SendListReadable({
             doAtStart: async list => {
                 for await (let name of glob.stream(code2file('*'))) {

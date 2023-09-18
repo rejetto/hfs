@@ -15,12 +15,12 @@ export const BUILD_TIMESTAMP = fs.statSync(PKG_PATH).mtime.toISOString()
 const pkg = JSON.parse(fs.readFileSync(PKG_PATH,'utf8'))
 export const VERSION = pkg.version
 export const RUNNING_BETA = VERSION.includes('-')
-export const DAY = 86_400_000
 
 export const API_VERSION = 8.3
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
 
 export const HFS_REPO = 'rejetto/hfs'
+export const HFS_REPO_BRANCH = RUNNING_BETA ? 'next' : 'main'
 
 export const SPECIAL_URI = '/~/'
 export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
@@ -45,8 +45,10 @@ export const HTTP_RANGE_NOT_SATISFIABLE = 416
 export const HTTP_FOOL = 418
 export const HTTP_FAILED_DEPENDENCY = 424
 export const HTTP_SERVER_ERROR = 500
+export const HTTP_SERVICE_UNAVAILABLE = 503
 
 export const IS_WINDOWS = process.platform === 'win32'
+export const IS_MAC = process.platform === 'darwin'
 export const IS_BINARY = !basename(process.execPath).includes('node') // this won't be node if pkg was used
 export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname)
 
@@ -72,3 +74,4 @@ else if (!winExe) { // still considering whether to use this behavior with Windo
     process.chdir(dir)
 }
 console.log('cwd', process.cwd())
+console.log('node', process.version)

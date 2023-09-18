@@ -14,6 +14,7 @@ import { reloadList } from './useFetchList'
 import { logout } from './login'
 import { subscribeKey } from 'valtio/utils'
 import { uploadState } from './upload'
+import { fileShow } from './show'
 export * from '@hfs/shared'
 
 export const ERRORS: Record<number, string> = {
@@ -61,7 +62,7 @@ export function hfsEvent(name: string, params?:Dict) {
     return output
 }
 
-const tools = { h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, useBatch,
+const tools = { h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, useBatch, fileShow,
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
         return subscribeKey(up ? uploadState : state as any, up || k, cb, true)

@@ -28,7 +28,7 @@
         "Searching": "Cercando",
         "Searched": "Risultati ricerca",
         "Clear search": "Annulla ricerca",
-        "Interrupted": "interrotto",
+        "Interrupted": "Interrotto",
         "stopped_before": "Ricerca interrotta prima di trovare risultati",
         "empty_list": "Non c'è niente qui",
         "filter_none": "Nessun elemento corrisponde al filtro impostato",
@@ -127,6 +127,8 @@
         "showHelp_D_body": "download",
         "showHelp_Z_body": "cambia modalità zoom",
         "showHelp_F_body": "pieno schermo",
+        "Destination": "Destinazione",
+        "in_queue": "{n} in coda",
 
         "": "PLUGINS SECTION",
         "": "PLUGIN thumbnails",

@@ -55,7 +55,7 @@ body, input {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-input:not([type=checkbox]), select {
+input:not([type=checkbox],[type=range]), select {
     padding: 0.3em 0.4em;
     border-radius: 0.5em;
     background: var(--bg);
@@ -63,6 +63,9 @@ input:not([type=checkbox]), select {
     color: var(--good-contrast);
     max-width: 100%; box-sizing: border-box; // avoid scrolling
     width: 100%;
+}
+input[type=range] {
+    width: calc(100% - 1px); // chrome116 on android shows a scrollbar because of that 1px
 }
 input[type=checkbox] {
     transform: scale(1.7);
@@ -254,8 +257,13 @@ ul.dir {
             margin-right: 1em;
         }
         .link-wrapper {
-            &:not(:hover) .popup-menu-button { display: none; }
-            &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally
+            @media (hover: none) {
+                .popup-menu-button { display: none }
+            }
+            @media (hover: hover) {
+                &:not(:hover) .popup-menu-button { display: none; }
+                &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally. Using this on @media(hover:none) will result in some taps to be missed. It happened on a long folder with no spaces in the name to wrap.
+            }
             a {
                 &:last-of-type {
                     word-break: break-word;
@@ -426,7 +434,7 @@ button label {
 .miss-perm  { margin: .3em }
 
 .popup-menu-button {
-    font-size: .8em; padding: .2em .3em; position: absolute; opacity: .8;
+    font-size: .8em; padding: .2em .3em; position: absolute; opacity: .8; white-space: nowrap;
     &:hover { opacity: 1 }
 }
 
@@ -461,10 +469,10 @@ button label {
 #root>.tiles-mode {
     max-width: none;
     margin: 0 1em;
-    --tile-size: 5;
+    --tiles-size: 5;
     --name-lines: 3;
-    --name-height: calc(4.7em + var(--tile-size) * .4em + 1.2em * var(--name-lines));
-    --tile-width: calc(5em + 1em * var(--tile-size));
+    --name-height: calc(4.7em + var(--tiles-size) * .4em + 1.2em * var(--name-lines));
+    --tile-width: calc(5em + 1em * var(--tiles-size));
 
     ul.dir {
         display: grid;
@@ -493,7 +501,7 @@ button label {
                 a {
                     &:last-of-type { padding: 0; }
                     span { display: block; }
-                    .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
+                    .icon.icon { font-size: calc(1.2rem + .6rem * var(--tiles-size)); }
                     img.icon {
                         width: auto;
                         height: 1em;
@@ -685,7 +693,6 @@ button label {
     }
 }
 
-// mobile, landscape or portrait
-@media (max-width: 42em), (max-height: 600px) {
+@media (pointer: coarse) {
     #root>.tiles-mode .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
 }

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs from 'fs/promises'
-import { Promisable, try_, tryJson, wait } from './misc'
+import { Promisable, try_, tryJson, wait, isWindowsDrive } from './misc'
 import { promisify } from 'util'
 import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
@@ -67,10 +67,6 @@ export function watchDir(dir: string, cb: ()=>void) {
 
 export function dirTraversal(s?: string) {
     return s && /(^|[/\\])\.\.($|[/\\])/.test(s)
-}
-
-export function isWindowsDrive(s?: string) {
-    return s && /^[a-zA-Z]:$/.test(s)
 }
 
 // apply this to paths that may contain \ as separator (not supported by fast-glob) and other special chars to be escaped (parenthesis)

@@ -25,16 +25,18 @@ function MoreInfo() {
     const { data: connections } = useApiEvents('get_connection_stats')
     if (status && connections)
         Object.assign(status, connections)
+    const xl = useBreakpoint('xl')
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
     return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
-        md && pair('started'),
-        md && pair('http', { label: "HTTP", render: port }),
+        xl && pair('started'),
+        xl && pair('http', { label: "HTTP", render: port }),
         md && pair('https', { label: "HTTPS", render: port }),
         sm && pair('connections'),
         pair('sent', { render: formatBytes, minWidth: '4em' }),
         sm && pair('got', { render: formatBytes, minWidth: '4em' }),
         pair('outSpeed', { label: "Output speed", render: formatSpeed }),
+        md && pair('inSpeed', { label: "Input speed", render: formatSpeed }),
     )
 
     type Color = ChipProps['color']
@@ -163,7 +165,7 @@ function Connections() {
                         width: 110,
                         hideUnder: 'sm',
                         type: 'number',
-                        renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0)),
+                        renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0) || undefined),
                         mergeRender: { other: 'sent', fontSize: 'small', textAlign: 'right' }
                     },
                     {
@@ -212,6 +214,6 @@ function blockIp(ip: string) {
     return manipulateConfig('block', data => [...data, { ip }])
 }
 
-function formatSpeed(value: number) {
-    return !value ? '' : formatBytes(value * 1000, { post: "B/s", k: 1000, digits: 1 })
+function formatSpeed(value: number | undefined) {
+    return value === undefined ? '' : formatBytes(value * 1000, { post: "B/s", k: 1000, digits: 1 })
 }

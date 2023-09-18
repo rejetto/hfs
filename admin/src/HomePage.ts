@@ -2,12 +2,13 @@
 
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Button, Card, CardContent, LinearProgress, Link } from '@mui/material'
-import { apiCall, useApi, useApiEx, useApiList } from './api'
+import { apiCall, useApiEx, useApiList } from './api'
 import {
     Btn,
     dontBotherWithKeys,
     Flex,
     InLink,
+    LinkBtn,
     objSameKeys,
     onlyTruthy,
     prefix,
@@ -20,7 +21,7 @@ import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInN
 import md, { replaceStringToReact } from './md'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, toast } from './dialog'
-import { isCertError, isKeyError, makeCertAndSave } from './OptionsPage'
+import { isCertError, isKeyError, suggestMakingCert } from './OptionsPage'
 import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 import _ from 'lodash'
@@ -42,8 +43,8 @@ export default function HomePage() {
     const { username } = useSnapState()
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
-    const [account] = useApi<Account>(username && 'get_account')
-    const { data: cfg, reload: reloadCfg } = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
+    const { data: account } = useApiEx<Account>(username && 'get_account')
+    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
     const { list: plugins } = useApiList('get_plugins')
     const [updates, setUpdates] = useState<undefined | any[]>()
     if (statusEl || !status)
@@ -59,9 +60,8 @@ export default function HomePage() {
     const errors = serverErrors && onlyTruthy(Object.entries(serverErrors).map(([k,v]) =>
         v && [md(`Protocol <u>${k}</u> cannot work: `), v,
             (isCertError(v) || isKeyError(v)) && [
-                SOLUTION_SEP, h(Link, {
-                    sx: { cursor: 'pointer' },
-                    onClick() { makeCertAndSave().then(reloadCfg).then(reloadStatus) } },
+                SOLUTION_SEP, h(LinkBtn, {
+                    onClick() { suggestMakingCert().then(() => wait(999)).then(cfg.reload).then(reloadStatus) } },
                     "make one"
                 ), " or ", SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
@@ -87,12 +87,12 @@ export default function HomePage() {
                     async onClick() {
                         if (await confirmDialog("Go on only if you know what you are doing")
                         && await apiCall('set_config', { values: { ignore_proxies: true } }))
-                            reloadCfg()
+                            cfg.reload()
                     }
                 }, "ignore this warning"),
                 SOLUTION_SEP, wikiLink('Proxy-warning', "Explanation")
         ),
-        (cfg?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
+        (cfg.data?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
         status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
             h('ol',{},
                 h('li',{}, `configure FRP with type=http (best solution)`),
@@ -115,8 +115,7 @@ export default function HomePage() {
                         : h(Flex, { vert: true },
                             updates.map((x: any) =>
                                 h(Flex, { key: x.name, alignItems: 'flex-start', flexWrap: 'wrap' },
-                                    h(Card, {},
-                                        h(CardContent, {},
+                                    h(Card, {}, h(CardContent, {},
                                         h(Btn, {
                                             icon: UpdateIcon,
                                             ...!x.isNewer && { color: 'warning', variant: 'outlined' },
@@ -130,7 +129,7 @@ export default function HomePage() {
 }
 
 function renderChangelog(s: string) {
-    return md(s, { onText, linkTarget: '_blank' })
+    return md(s, { onText })
 
     function onText(s: string) {
         return replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues
@@ -180,6 +179,6 @@ function cfgLink(text=`Options page`) {
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return cfg && !cfg.proxies && status?.proxyDetected
+    return cfg.data && !cfg.data.proxies && status?.proxyDetected
         && "A proxy was detected but none is configured"
 }

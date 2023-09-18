@@ -7,7 +7,8 @@ import {
     Dialog as MuiDialog,
     DialogContent,
     DialogTitle,
-    IconButton
+    IconButton,
+    Modal
 } from '@mui/material'
 import {
     createElement as h, Dispatch, Fragment,
@@ -20,7 +21,7 @@ import {
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
-import { IconBtn, Flex } from './misc'
+import { IconBtn, Flex, Center } from './misc'
 import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
 export * from '@hfs/shared/dialogs'
@@ -44,23 +45,27 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
     const titleSx = useDialogBarColors() // don't move this hook inside the return. When closing+showing at once it throws about rendering with fewer hooks.
     d = { ...dialogsDefaults, ...d }
     const { sx, root, ...rest } = d.dialogProps||{}
+    if (d.noFrame)
+        return h(Modal, { open: true, children: h(Center, {}, h(d.Content)) })
     return h(MuiDialog, {
         open: true,
         maxWidth: 'lg',
         fullScreen: mobile,
         ...rest,
         ...root,
+        className: d.className,
         onClose: ()=> closeDialog(),
     },
         d.title && h(DialogTitle, {
             sx: {
-                position: 'sticky', top: 0, py: 1, pr: 1, zIndex: 2, boxShadow: '0 0 8px #0004',
+                position: 'sticky', top: 0, p: 1, zIndex: 2, boxShadow: '0 0 8px #0004',
                 display: 'flex', alignItems: 'center',
                 ...titleSx
             }
         },
+            d.icon && h(Box, { mr: 1 }, componentOrNode(d.icon)),
             h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
-            h(IconBtn, { icon: Close, title: "close", onClick: () => closeDialog() }),
+            h(IconBtn, { icon: Close, title: "close", sx: { ml: 1 }, onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,
@@ -95,7 +100,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
 
     const promise = pendingPromise()
     const dialog = newDialog({
-        className: 'dialog-alert-' + type,
+        className: 'dialog-alert dialog-alert-' + type,
         icon: '!',
         onClose: promise.resolve,
         ...rest,
@@ -117,12 +122,11 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
     return Object.assign(promise, dialog)
 }
 
-interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string }
-export function confirmDialog(msg: ReactNode, { href, ...rest }: ConfirmOptions={}) {
+interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string, confirmText?: string, dontText?: string }
+export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText="Don't",  ...rest }: ConfirmOptions={}) {
     const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',
-        icon: '?',
         onClose: promise.resolve,
         ...rest,
         Content
@@ -136,8 +140,8 @@ export function confirmDialog(msg: ReactNode, { href, ...rest }: ConfirmOptions=
                 h('a', {
                     href,
                     onClick: () => closeDialog(true),
-                }, h(Button, { variant: 'contained' }, "Confirm")),
-                h(Button, { onClick: () => closeDialog(false) }, "Don't"),
+                }, h(Button, { variant: 'contained' }, confirmText)),
+                h(Button, { onClick: () => closeDialog(false) }, dontText),
             ),
         )
     }
@@ -157,7 +161,6 @@ export async function formDialog<T>(
 ) : Promise<T> {
     return new Promise(resolve => newDialog({
         className: 'dialog-confirm',
-        icon: '?',
         onClose: resolve,
         ...options,
         Content
@@ -189,30 +192,27 @@ export async function formDialog<T>(
     }
 }
 
-export async function promptDialog(msg: string, props:any={}) : Promise<string | undefined> {
-    return formDialog<{ text: string }>({ ...props, form: {
+export async function promptDialog(msg: ReactNode, { value, field, save, addToBar=[], ...props }:any={}) : Promise<string | undefined> {
+    return formDialog<{ text: string }>({ ...props, values: { text: value }, form: {
         fields: [
-            { k: 'text', label: null, autoFocus: true,
-                before: h(Box, { mb: 2 }, msg),
-                ...props.field
-            },
+            { k: 'text', label: null, autoFocus: true,  ...field, before: h(Box, { mb: 2 }, msg) },
         ],
         save: {
             children: "Continue",
             startIcon: h(Forward),
-            ...props.save,
+            ...save,
         },
         saveOnEnter: true,
         barSx: { gap: 2 },
         addToBar: [
             h(Button, { onClick: closeDialog }, "Cancel"),
-            ...props.addToBar||[],
+            ...addToBar,
         ]
     } }).then(values => values?.text)
 }
 
 export function waitDialog() {
-    return newDialog({ Content: CircularProgress, closable: false }).close
+    return newDialog({ Content: () => h(CircularProgress, { size: '20vw'}), noFrame: true, closable: false }).close
 }
 
 export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info') {

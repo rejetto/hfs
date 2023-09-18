@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode, Who } from './VfsPage'
-import { iconTooltip, isWindowsDrive, onlyTruthy } from './misc'
+import { iconTooltip, onlyTruthy } from './misc'
 import { apiCall } from './api'
 import { alertDialog, confirmDialog } from './dialog'
 

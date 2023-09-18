@@ -4,8 +4,8 @@ import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment, ReactNode } from 'react'
 import { Alert, Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
-import { Delete, Error, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { IconBtn, xlate } from './misc'
+import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
+import { IconBtn, prefix, with_, xlate } from './misc'
 import { formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
@@ -16,6 +16,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     if (error)
         return showError(error)
+    const size = 'small'
     return h(DataTable, {
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         initializing,
@@ -44,12 +45,25 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             },
         ],
         actions: ({ row, id }) => updates ? [
-            h(UpdateButton, { id, updated: row.updated, then: () => updateEntry({ id }, { updated: true }) })
+            h(IconBtn, {
+                icon: Upgrade,
+                title: row.updated ? "Already updated" : "Update",
+                disabled: row.updated,
+                size,
+                async onClick() {
+                    await apiCall('update_plugin', { id }, { timeout: false }).catch(e => {
+                        throw e.code !== 424 ? e
+                            : Error("Failed dependencies: " + e.cause?.map((x: any) => prefix(`plugin "`, x.id || x.repo, `" `) + x.error).join('; '))
+                    })
+                    updateEntry({ id }, { updated: true })
+                    toast("Plugin updated")
+                }
+            })
         ] : [
             h(IconBtn, row.started ? {
                 icon: StopCircle,
                 title: h(Box, {}, `Stop ${id}`, h('br'), `Started ` + new Date(row.started as string).toLocaleString()),
-                size: 'small',
+                size,
                 color: 'success',
                 async onClick() {
                     await apiCall('stop_plugin', { id })
@@ -58,20 +72,20 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             } : {
                 icon: PlayCircle,
                 title: `Start ${id}`,
-                size: 'small',
+                size,
                 onClick: () => startPlugin(id),
             }),
             h(IconBtn, {
                 icon: Settings,
                 title: "Options",
-                size: 'small',
+                size,
                 disabled: !row.started && "Start plugin to access options"
                     || !row.config && "No options available for this plugin",
                 progress: false,
                 async onClick() {
                     const pl = await apiCall('get_plugin', { id })
                     const values = await formDialog({
-                        title: `${id} options`,
+                        title: `Options for ${id}`,
                         form: {
                             before: h(Box, { mx: 2, mb: 3 }, row.description),
                             fields: makeFields(row.config),
@@ -88,7 +102,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             h(IconBtn, {
                 icon: Delete,
                 title: "Uninstall",
-                size: 'small',
+                size,
                 confirm: "Remove?",
                 async onClick() {
                     await apiCall('uninstall_plugin', { id })
@@ -101,17 +115,21 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
 
 export function renderName({ row, value }: any) {
     const { repo } = row
-    const arr = repo?.split('/')
     return h(Fragment, {},
         errorIcon(row.badApi, true),
         errorIcon(row.error),
-        ...!repo ? [value] : [ h(Link, { href: 'https://github.com/' + repo, target: 'plugin' }, arr[1]), '\xa0by ', arr[0] ]
+        repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
+            : !repo ? value
+                : with_(repo?.split('/'), arr => h(Fragment, {},
+                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin' }, arr[1]),
+                    '\xa0by ', arr[0]
+                ))
     )
 
     function errorIcon(msg: ReactNode, warning=false) {
         return msg && h(Tooltip, {
             title: msg,
-            children: h(Error, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } })
+            children: h(ErrorIcon, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } })
         })
     }
 }
@@ -145,19 +163,6 @@ export function showError(error: any) {
         github_quota: "Request denied. You may have reached the limit, retry later.",
         ENOTFOUND: "Couldn't reach github.com",
     }))
-}
-
-export function UpdateButton({ id, updated, then }: { id: string, updated?: boolean, then: (id:string)=>void }) {
-    return h(IconBtn, {
-        icon: Upgrade,
-        title: updated ? "Already updated" : "Update",
-        disabled: updated,
-        async onClick() {
-            await apiCall('update_plugin', { id }, { timeout: false })
-            then?.(id)
-            toast("Plugin updated")
-        }
-    })
 }
 
 export async function startPlugin(id: string) {

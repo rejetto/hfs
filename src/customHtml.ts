@@ -1,38 +1,22 @@
-import { existsSync, writeFileSync } from 'fs'
-import events from './events'
 import { prefix } from './misc'
-import { customHeader } from './frontEndApis'
 import { watchLoad } from './watchLoad'
 import { proxy } from 'valtio/vanilla' // without /vanilla we trigger react dependency
 import Dict = NodeJS.Dict
 import { writeFile } from 'fs/promises'
 import { mapPlugins } from './plugins'
 
+const FILE = 'custom.html'
+
 export const customHtmlSections: ReadonlyArray<string> = ['beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
     'top', 'bottom', 'afterEntryName', 'beforeLogin']
 
 export const customHtmlState = proxy({
-    sections: newCustomHtmlState()
+    sections: watchLoadCustomHtml().state
 })
 
-type CustomHtml = ReturnType<typeof newCustomHtmlState>
-export function newCustomHtmlState() {
-    return new Map<string, string>()
-}
-
-const FILE = 'custom.html'
-
-if (!existsSync(FILE))
-    events.once('config ready', () => {
-        const legacy = prefix('[beforeHeader]\n', customHeader.get())
-        writeFileSync(FILE, legacy)
-        customHeader.set('') // get rid of it
-    })
-
-watchLoadCustomHtml(customHtmlState.sections)
-
-export function watchLoadCustomHtml(state: CustomHtml, folder='') {
-    return watchLoad(prefix('', folder, '/') + FILE, data => {
+export function watchLoadCustomHtml(folder='') {
+    const state = new Map<string, string>()
+    const res = watchLoad(prefix('', folder, '/') + FILE, data => {
         const re = /^\[(\w+)] *$/gm
         state.clear()
         if (!data) return
@@ -46,6 +30,7 @@ export function watchLoadCustomHtml(state: CustomHtml, folder='') {
             name = match?.[1]
         } while (name)
     })
+    return Object.assign(res, { state })
 }
 
 export function getSection(name: string) {

@@ -57,17 +57,16 @@ setInterval(() => {
     uploadState.speed = bytesSent / passed
     bytesSent = 0 // reset counter
     bytesSentTimestamp = now
-}, 1_000)
 
-// keep track of ETA
-setInterval(() => {
+    // keep track of ETA
     const qBytes = _.sumBy(uploadState.qs, q => _.sumBy(q.files, f => f.size))
     const left = (qBytes  - uploadState.partial)
     uploadState.eta = uploadState.speed && Math.round(left / uploadState.speed)
-}, 1000)
+}, 5_000)
 
 let reloadOnClose = false
 let uploadDialogIsOpen = false
+let everPaused = false
 
 function resetCounters() {
     Object.assign(uploadState, {
@@ -99,6 +98,8 @@ export function showUpload() {
         const { qs, paused, eta, skipExisting } = useSnapshot(uploadState)
         const { can_upload, accept } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
+        const inQ = _.sumBy(qs, q => q.files.length) - (uploadState.uploading ? 1 : 0)
+        const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
         const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
 
         return h(FlexV, { gap: 0, props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
@@ -138,18 +139,22 @@ export function showUpload() {
             h(UploadStatus),
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
-                    `${_.sumBy(qs, q => q.files.length)} in queue${prefix(', ', etaStr)}`,
-                    iconBtn('trash', ()=>  {
+                    [queueStr, etaStr].filter(Boolean).join(', '),
+                    inQ > 0 && iconBtn('trash', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
                     }),
-                    iconBtn(paused ? '▶' : '⏸', () => {
+                    inQ > 0 && iconBtn(paused ? 'play' : 'pause', () => {
                         uploadState.paused = !uploadState.paused
+                        if (!everPaused) {
+                            everPaused = true
+                            alertDialog("Pause applies to the queue, but current file will still be uploaded")
+                        }
                     }),
                 ),
                 qs.map((q,idx) =>
                     h('div', { key: q.to },
-                        h(Link, { to: q.to, onClick: close }, "Destination ", decodeURI(q.to)),
+                        h(Link, { to: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FilesList, {
                             files: Array.from(q.files),
                             remove(f) {

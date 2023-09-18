@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
 import { FieldProps } from '.'
 import { Autocomplete, InputAdornment, TextField } from '@mui/material'
 import { StandardTextFieldProps } from '@mui/material/TextField/TextField'
@@ -31,8 +31,7 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         setState(normalized)
         lastChange.current = normalized
     }, [normalized])
-    const valueFocusing = useRef('')
-    const autoFillDetected = useRef(false)
+    const valueFocusing = useRef<string | undefined>()
     const render = (params: any) => h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
@@ -43,16 +42,17 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
             const val = ev.target.value
             if (onTyping?.(val) === false) return
             setState(val)
-            if (typing || autoFillDetected.current)
+            if (typing || valueFocusing.current === undefined)
                 go(ev, val)
         },
         onKeyDown(ev) {
             props.onKeyDown?.(ev)
-            autoFillDetected.current = ev.code === undefined
-            if (ev.key === 'Enter')
+            if (ev.key === 'Enter' || ev.code === undefined) // undefined on autofill (chrome116)
                 go(ev)
         },
-        onFocus(ev) { valueFocusing.current = ev.target.value },
+        onFocus(ev) {
+            valueFocusing.current = ev.target.value
+        },
         onBlur(ev) {
             props.onBlur?.(ev)
             if (valueFocusing.current !== ev.target.value)

@@ -1,15 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import EventEmitter from 'events'
-import { argv, DAY, ORIGINAL_CWD, VERSION } from './const'
+import { argv, ORIGINAL_CWD, VERSION } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { debounceAsync, same, newObj, onOff, wait, with_ } from './misc'
-import { copyFileSync, existsSync, renameSync, statSync } from 'fs'
+import { DAY, debounceAsync, newObj, onOff, tryJson, wait, with_ } from './misc'
+import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
-import { homedir } from 'os'
 import { copyFile, stat } from 'fs/promises'
 
 const FILE = 'config.yaml'
@@ -32,19 +31,6 @@ const filePath = with_(argv.config || process.env.HFS_CONFIG, p => {
     catch {}
     return p
 })
-const legacyPosition = join(homedir(), FILE) // this was happening with npx on Windows for some time. Remove around v0.47
-if (!existsSync(filePath) && existsSync(legacyPosition))
-    try {
-        renameSync(legacyPosition, filePath)
-        console.log("moved from legacy position", legacyPosition)
-    }
-    catch {
-        try { // attempt copying, in case moving the source file proves to be impractical
-            copyFileSync(legacyPosition, filePath)
-            console.log("copied from legacy position", legacyPosition)
-        }
-        catch {}
-    }
 // takes a semver like 1.2.3-alpha1, but alpha and beta numbers must share the number progression
 export const versionToScalar = _.memoize((ver: string) => { // memoize so we don't have to care about converting same value twice
     // this regexp is supposed to be resistant to optional leading "v" and an optional custom name after a space
@@ -69,11 +55,11 @@ const CONFIG_CHANGE_EVENT_PREFIX = 'new.'
 export const currentVersion = new Version(VERSION)
 const configVersion = defineConfig('version', VERSION, v => new Version(v))
 
-type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T }) => R
+type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T, k: string }) => R
 export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Subscriber<T,CT>) {
     configProps[k] = { defaultValue }
     type Updater = (currentValue:T) => T
-    let compiled = compiler?.(defaultValue, { version: currentVersion, defaultValue })
+    let compiled = compiler?.(defaultValue, { k, version: currentVersion, defaultValue })
     const ret = { // consider a Class
         key() {
             return k
@@ -83,7 +69,7 @@ export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Sub
         },
         sub(cb: Subscriber<T>) {
             if (started) // initial event already passed, we'll make the first call
-                cb(getConfig(k), { was: defaultValue, defaultValue, version: configVersion.compiled() })
+                cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled() })
             const eventName = CONFIG_CHANGE_EVENT_PREFIX + k
             return onOff(cfgEvents, {
                 [eventName]() {
@@ -135,7 +121,9 @@ export function getWholeConfig({ omit, only }: { omit?:string[], only?:string[] 
 export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
     const version = _.isString(newCfg.version) ? new Version(newCfg.version) : undefined
     // first time we consider also CLI args
-    const argCfg = !started && _.pickBy(newObj(configProps, (x, k) => argv[k]), x => x !== undefined)
+    const argCfg = !started && _.pickBy(newObj(configProps,
+        (x, k) => argv[k] ?? tryJson(process.env['HFS_' + k.toUpperCase()], _.identity)),
+            x => x !== undefined)
     if (! _.isEmpty(argCfg)) {
         saveConfigAsap() // don't set `save` argument, as it would interfere below at check `save===false`
         Object.assign(newCfg, argCfg)
@@ -194,8 +182,7 @@ const saveDebounced = debounceAsync(async () => {
     if (await stat(bak).then(x => aWeekAgo > Number(x.mtime || x.ctime), () => true))
         await copyFile(filePath, bak).catch(() => {}) // ignore errors
 
-    const txt = yaml.stringify({ ...state, version: VERSION }, { lineWidth:1000 })
-    save(filePath, txt)
+    await save(yaml.stringify({ ...state, version: VERSION }, { lineWidth:1000 }))
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
 export const saveConfigAsap = () => void(saveDebounced())

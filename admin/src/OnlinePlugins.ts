@@ -7,15 +7,14 @@ import { IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
-import { renderName, showError, startPlugin, UpdateButton } from './InstalledPlugins'
+import { renderName, showError, startPlugin } from './InstalledPlugins'
 import { state, useSnapState } from './state'
-import _ from 'lodash'
-import { alertDialog } from './dialog'
+import { alertDialog, confirmDialog } from './dialog'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
     const debouncedSearch = useDebounce(search, 1000)
-    const { list, error, initializing, updateList } = useApiList('search_online_plugins', { text: debouncedSearch })
+    const { list, error, initializing } = useApiList('get_online_plugins', { text: debouncedSearch })
     const snap = useSnapState()
     if (error)
         return showError(error)
@@ -68,13 +67,7 @@ export default function OnlinePlugins() {
                 },
             ],
             actions: ({ row, id }) => [
-                row.update ? h(UpdateButton, {
-                    id,
-                    then() {
-                        updateList(list =>
-                            _.find(list, { id }).update = false )
-                    }
-                }) : h(IconBtn, {
+                h(IconBtn, {
                     icon: Download,
                     title: "Install",
                     progress: row.downloading,
@@ -85,7 +78,8 @@ export default function OnlinePlugins() {
                         const branch = row.branch || row.default_branch
                         try {
                             const res = await apiCall('download_plugin', { id, branch }, { timeout: false })
-                            await startPlugin(res.id)
+                            if (await confirmDialog(`Plugin ${id} downloaded`, { confirmText: "Start" }))
+                                await startPlugin(res.id)
                         }
                         catch(e: any) {
                             if (e.code !== 424) throw e
