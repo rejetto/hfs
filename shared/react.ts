@@ -41,6 +41,11 @@ export function dontBotherWithKeys(elements: ReactNode[]): (ReactNode|string)[] 
                 : h(Fragment, { key:i, children:e }) )
 }
 
+export function useRequestRender() {
+    const [state, setState] = useState(0)
+    return Object.assign(useCallback(() =>  setState(x => x + 1), [setState]), { state })
+}
+
 /* the idea is that you need a job done by a worker, but the worker will execute only after it collected jobs for some time
     by other "users" of the same worker, like other instances of the same component, but potentially also different components.
     User of this hook will just be returned with the single result of its own job.
@@ -52,29 +57,30 @@ export function useBatch<Job=unknown,Result=unknown>(
     { delay=0 }={}
 ) {
     interface Env {
-        batch: Set<Job>,
-        cache: Map<Job, Result | null>,
-        timeout?: ReturnType<typeof setTimeout>
+        batch: Set<Job>
+        cache: Map<Job, Result | null>
+        waiter: Promise<void>
     }
     const worker2env = (useBatch as any).worker2env ||= worker && new Map<typeof worker, Env>()
-    const env = worker && (worker2env.get(worker) || (() => {
+    const env = (worker2env.get(worker) || (() => {
         const ret = { batch: new Set<Job>(), cache: new Map<Job, Result>() } as Env
         worker2env.set(worker, ret)
         return ret
     })())
-    const [, setRefresher] = useState(0)
+    const requestRender = useRequestRender()
     useEffect(() => {
-        if (!env) return
-        env.timeout ||= setTimeout(async () => {
-            env.timeout = undefined
-            const jobs = [...env.batch.values()]
-            env.batch.clear()
-            const res = await worker(jobs)
-            let i = 0
-            for (const job of jobs)
-                env.cache.set(job, res[i++] ?? null)
-            setRefresher(x => x + 1)
-        }, delay)
+        (env.waiter ||= new Promise<void>(resolve => {
+            setTimeout(async () => {
+                env.timeout = undefined
+                const jobs = [...env.batch.values()]
+                env.batch.clear()
+                const res = await worker(jobs)
+                let i = 0
+                for (const job of jobs)
+                    env.cache.set(job, res[i++] ?? null)
+                resolve()
+            }, delay)
+        })).then(requestRender)
     }, [])
     const cached = env?.cache.get(job)
     if (env && cached === undefined)
