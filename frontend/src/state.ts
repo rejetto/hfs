@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { hIcon } from './misc'
+import { getHFS, hIcon } from './misc'
 
 export const state = proxy<{
     stopSearch?: ()=>void,
@@ -30,8 +30,9 @@ export const state = proxy<{
     can_upload?: boolean
     can_delete?: boolean
     accept?: string
-    tiles?: number
+    tilesSize: number
 }>({
+    tilesSize: getHFS().tilesSize || 0,
     iconsReady: false,
     username: '',
     list: [],
@@ -53,7 +54,7 @@ export function useSnapState() {
 }
 
 const SETTINGS_KEY = 'hfs_settings'
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'sortNumerics', 'invertOrder', 'foldersFirst', 'theme', 'tiles']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'sortNumerics', 'invertOrder', 'foldersFirst', 'theme', 'tilesSize']
 
 loadSettings()
 for (const k of SETTINGS_TO_STORE)

@@ -469,10 +469,10 @@ button label {
 #root>.tiles-mode {
     max-width: none;
     margin: 0 1em;
-    --tile-size: 5;
+    --tiles-size: 5;
     --name-lines: 3;
-    --name-height: calc(4.7em + var(--tile-size) * .4em + 1.2em * var(--name-lines));
-    --tile-width: calc(5em + 1em * var(--tile-size));
+    --name-height: calc(4.7em + var(--tiles-size) * .4em + 1.2em * var(--name-lines));
+    --tile-width: calc(5em + 1em * var(--tiles-size));
 
     ul.dir {
         display: grid;
@@ -501,7 +501,7 @@ button label {
                 a {
                     &:last-of-type { padding: 0; }
                     span { display: block; }
-                    .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
+                    .icon.icon { font-size: calc(1.2rem + .6rem * var(--tiles-size)); }
                     img.icon {
                         width: auto;
                         height: 1em;

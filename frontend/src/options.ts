@@ -4,7 +4,7 @@ import { newDialog } from './dialog'
 import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 import { Checkbox, FlexV, Select } from './components'
-import { hIcon } from './misc'
+import { hIcon, MAX_TILES_SIZE } from './misc'
 import { MenuLink } from './menu'
 import { t } from './i18n'
 
@@ -56,13 +56,13 @@ export function showOptions (){
             }, t`Numeric names`),
 
             h('div', {},
-                h('div', {}, t`Tiles mode:`, ' ', state.tiles || t`off`),
+                h('div', {}, t`Tiles mode:`, ' ', state.tilesSize || t`off`),
                 h('input', {
                     type: 'range',
-                    min: 0, max: 10,
-                    value: snap.tiles || 0,
+                    min: 0, max: MAX_TILES_SIZE,
+                    value: snap.tilesSize || 0,
                     onChange(ev: any) {
-                        state.tiles = Number(ev.target.value)
+                        state.tilesSize = Number(ev.target.value)
                     }
                 }),
             ),

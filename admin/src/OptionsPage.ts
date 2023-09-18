@@ -5,7 +5,7 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { CardMembership, Refresh, Warning } from '@mui/icons-material'
-import { Dict, iconTooltip, InLink, LinkBtn, modifiedSx, REPO_URL, wait, wikiLink, with_ } from './misc'
+import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILES_SIZE, modifiedSx, REPO_URL, wait, wikiLink, with_ } from './misc'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -147,7 +147,8 @@ export default function OptionsPage() {
             { k: 'session_duration', comp: NumberField, sm: 3, min: 5, unit: "seconds", required: true },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 3, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'update_to_beta', comp: BoolField, helperText: "Include betas in automatic updates" },
+            { k: 'update_to_beta', comp: BoolField, md: 3, helperText: "Include betas in automatic updates" },
+            { k: 'tiles_size', comp: NumberField, md: 3, min: 0, max: MAX_TILES_SIZE, label: "Default tiles size", helperText: "Zero for list mode" },
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
             },

@@ -108,6 +108,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
                     ['top','bottom']), // excluding sections we apply in this phase
                 fileMenuOnLink: fileMenuOnLink.get(),
+                tilesSize: tilesSize.get(), 
                 lang
             }, null, 4)
             .replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
@@ -166,3 +167,4 @@ export function serveGuiFiles(proxyPort:string | undefined, uri:string) {
 }
 
 const fileMenuOnLink = defineConfig('file_menu_on_link', true)
+const tilesSize = defineConfig('tiles_size', 0)

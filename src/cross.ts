@@ -7,6 +7,7 @@ export const WIKI_URL = REPO_URL + 'wiki/'
 export const MINUTE = 60_000
 export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
+export const MAX_TILES_SIZE = 10
 
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
