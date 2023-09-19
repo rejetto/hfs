@@ -13,7 +13,7 @@ import { cert, getCertObject, getIps, getServerStatus, privateKey } from './list
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { apiAssertTypes, DAY, debounceAsync, haveTimeout, HOUR, MINUTE, MONTH, objSameKeys, onlyTruthy, repeat, Dict} from './misc'
+import { apiAssertTypes, DAY, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat, Dict} from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
 import { createServer, RequestListener } from 'http'
@@ -283,11 +283,11 @@ events.once('https ready', () => renewAcme.set())
 async function renewCert() {
     const acmeLog = (...args: any[]) => console.log('[acme-renew]:', ...args)
     const now = new Date()
-    let cert: ReturnType<typeof getCertObject>;
-    try { cert = getCertObject() } catch (e) { return }
+    const cert = getCertObject()
+    if (!cert) return
     const validTo = new Date(cert.validTo)
     const isValid = now > new Date(cert.validFrom) && now < validTo &&
-                    validTo.getTime() - now.getTime() >= MONTH // it's not expiring in a day
+                    validTo.getTime() - now.getTime() >= 30 * DAY // it's not expiring in a month
     if (isValid) return acmeLog("cert is valid")
     await makeCert(acme_domain.get(), acme_email.get())
         .catch(e => {

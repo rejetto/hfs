@@ -61,6 +61,7 @@ export function openAdmin() {
 }
 
 export function getCertObject() {
+    if (!httpsOptions.cert) return
     const o = new X509Certificate(httpsOptions.cert)
     const some = _.pick(o, ['subject', 'issuer', 'validFrom', 'validTo'])
     return objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
@@ -78,6 +79,7 @@ const considerHttps = debounceAsync(async () => {
         )
         if (port >= 0) {
             const cert = getCertObject()
+            if (!cert) return
             const cn = cert.subject?.CN
             if (cn)
                 console.log("certificate loaded for", cn)

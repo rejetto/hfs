@@ -7,7 +7,6 @@ export const WIKI_URL = REPO_URL + 'wiki/'
 export const MINUTE = 60_000
 export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
-export const MONTH = 28 * DAY // approximative month length, choosing the shortest
 export const MAX_TILES_SIZE = 10
 
 export type Dict<T=any> = Record<string, T>
