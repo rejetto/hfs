@@ -13,7 +13,7 @@ import { cert, getCertObject, getIps, getServerStatus, privateKey } from './list
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { apiAssertTypes, debounceAsync, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat } from './misc'
+import { apiAssertTypes, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat } from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
 import { Dict } from './misc'
@@ -37,7 +37,7 @@ const getNatInfo = debounceAsync(async () => {
     const gettingIp = getPublicIp() // don't wait, do it in parallel
     const res = await client.getGateway().catch(() => null)
     const status = await getServerStatus()
-    const mappings = res && await client.getMappings().catch(() => null)
+    const mappings = res && await haveTimeout(5_000, client.getMappings()).catch(() => null)
     console.debug('mappings found', mappings)
     const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => null)
     const localIp = res?.address || (await getIps())[0]
@@ -130,7 +130,7 @@ async function generateSSLCert(domain: string, email?: string) {
         let check = await checkPort(domain, 80) // some check services may not consider the domain, but we already verified that
         if (check && !check.success && upnp && externalPort !== 80) { // consider a short-lived mapping
             // @ts-ignore
-            await client.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs challenge', ttl: 0 }).catch(() => {})
+            await client.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 30 }).catch(() => {})
             check = await checkPort(domain, 80) // repeat test
         }
         if (!check)

@@ -34,6 +34,10 @@ export function wait<T=undefined>(ms: number, val?: T): Promise<T | undefined> {
     return new Promise(res=> setTimeout(res,ms,val))
 }
 
+export function haveTimeout<T>(ms: number, job: Promise<T>, error?: any) {
+    return Promise.race([job, wait(ms).then(() => { throw error })])
+}
+
 export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>VR) {
     return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
 }

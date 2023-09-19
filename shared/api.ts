@@ -9,7 +9,6 @@ export const API_URL = '/~/api/'
 const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute
     update: 600, // download can be lengthy
-    get_nat: 10,
     get_status: 20, // can be lengthy on slow machines because of the find-process-on-busy-port feature
 }
 
