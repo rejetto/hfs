@@ -1,4 +1,12 @@
-This file contains details the configuration files.
+This file contains details about the configuration files.
+
+### Where is it stored
+
+Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
+
+These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
+if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
+You can decide a different cwd passing `--cwd SOME_FOLDER` parameter at command line.
 
 ### Configuration properties
 - `port` where to accept http connections. Default is 80.
