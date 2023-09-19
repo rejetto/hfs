@@ -143,7 +143,11 @@ async function initPlugin<T>(pl: any, more?: T) {
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     const after: Dict<CallMeAfter> = {}
     // run middleware plugins
-    for (const [id,pl] of Object.entries(plugins).concat([['.', await serverCode.compiled()]]))
+    const entries = Object.entries(plugins)
+    const sc = await serverCode.compiled()
+    if (sc)
+        entries.push(['.', await serverCode.compiled()])
+    for (const [id,pl] of entries)
         try {
             const res = await pl.middleware?.(ctx)
             if (res === true)
