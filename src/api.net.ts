@@ -13,13 +13,14 @@ import { cert, getCertObject, getIps, getServerStatus, privateKey } from './list
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { apiAssertTypes, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat } from './misc'
+import { apiAssertTypes, DAY, debounceAsync, haveTimeout, HOUR, MINUTE, MONTH, objSameKeys, onlyTruthy, repeat, Dict} from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
-import { Dict } from './misc'
 import { createServer, RequestListener } from 'http'
 import { Middleware } from 'koa'
 import { lookup, Resolver } from 'dns/promises'
+import { defineConfig } from './config'
+import events from './events'
 
 const client = new Client({ timeout: 4_000 })
 const originalMethod = client.getGateway
@@ -232,20 +233,66 @@ const apis: ApiHandlers = {
     },
 
     async make_cert({domain, email}) {
-        if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
-        const res = await generateSSLCert(domain, email)
-        const CERT_FILE = 'acme.cert'
-        const KEY_FILE = 'acme.key'
-        await fs.writeFile(CERT_FILE, res.cert)
-        await fs.writeFile(KEY_FILE, res.key)
-        cert.set(CERT_FILE) // update config
-        privateKey.set(KEY_FILE)
+        await makeCert(domain, email)
         return {}
     },
 
     get_cert() {
         return objSameKeys(_.pick(getCertObject(), ['subject', 'issuer', 'validFrom', 'validTo']), v => v)
     }
+}
+
+export const acme_domain = defineConfig<string>('acme_domain', '')
+export const acme_email = defineConfig<string>('acme_email', '')
+
+export async function makeCert(domain: string, email?: string) {
+    if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
+    const res = await generateSSLCert(domain, email)
+    const CERT_FILE = 'acme.cert'
+    const KEY_FILE = 'acme.key'
+    await fs.writeFile(CERT_FILE, res.cert)
+    await fs.writeFile(KEY_FILE, res.key)
+    cert.set(CERT_FILE) // update config
+    privateKey.set(KEY_FILE) 
+}
+
+export const renewAcme = {
+    timer: null,
+    reset() {
+        if (this.timer !== null)
+            clearTimeout(this.timer)
+        this.timer = null
+    },
+    set() {
+        if (this.timer !== null) {
+            setTimeout(this.set.bind(this), 5_000);
+        } else {
+            this.reset()
+            setImmediate(() => repeat(DAY, renewCert)
+                .then(v => ((this.timer as any) = v)))
+        }
+    }
+}
+
+defineConfig('acme_renew', false) // handle config changes
+events.once('https ready', () => renewAcme.set())
+/**
+ * checks if the cert is near expiration date.
+ * if so renews it
+ */
+async function renewCert() {
+    const acmeLog = (...args: any[]) => console.log('[acme-renew]:', ...args)
+    const now = new Date()
+    let cert: ReturnType<typeof getCertObject>;
+    try { cert = getCertObject() } catch (e) { return }
+    const validTo = new Date(cert.validTo)
+    const isValid = now > new Date(cert.validFrom) && now < validTo &&
+                    validTo.getTime() - now.getTime() >= MONTH // it's not expiring in a day
+    if (isValid) return acmeLog("cert is valid")
+    await makeCert(acme_domain.get(), acme_email.get())
+        .catch(e => {
+            acmeLog("error renewing cert:", e.toString())
+        })
 }
 
 export default apis

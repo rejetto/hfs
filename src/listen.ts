@@ -15,6 +15,7 @@ import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
 import { X509Certificate } from 'crypto'
 import { externalIp } from './api.net'
+import events from './events'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -33,7 +34,7 @@ portCfg.sub(async port => {
     while (!app)
         await wait(100)
     stopServer(httpSrv).then()
-    httpSrv = Object.assign(http.createServer(commonOptions, app.callback()), { name: 'http' })
+    httpSrv = Object.assign(http.createServer(commonOptions as any, app.callback()), { name: 'http' })
     port = await startServer(httpSrv, { port })
     if (!port) return
     httpSrv.on('connection', newConnection)
@@ -111,6 +112,7 @@ export const privateKey = defineConfig('private_key', '')
 const httpsNeeds = [cert, privateKey]
 const httpsOptions = { cert: '', private_key: '' }
 type HttpsKeys = keyof typeof httpsOptions
+const emitHttps = () => events.emit('https ready')
 for (const cfg of httpsNeeds) {
     let unwatch: ReturnType<typeof watchLoad>['unwatch']
     cfg.sub(async v => {
@@ -118,14 +120,14 @@ for (const cfg of httpsNeeds) {
         const k = cfg.key() as HttpsKeys
         httpsOptions[k] = v
         if (!v || v.includes('\n'))
-            return considerHttps()
+            return considerHttps().then(emitHttps)
         // v is a path
         httpsOptions[k] = ''
         unwatch = watchLoad(v, data => {
             httpsOptions[k] = data
             considerHttps()
         }, { immediateFirst: true }).unwatch
-        await considerHttps()
+        await considerHttps().then(emitHttps)
     })
 }
 
