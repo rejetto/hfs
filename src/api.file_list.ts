@@ -74,7 +74,8 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
                 continue
             const cbParams = { entry, ctx, listUri: uri, node: sub }
             try {
-                if (onDirEntryHandlers.some(cb => cb(cbParams) === false))
+                const res = await Promise.all(onDirEntryHandlers.map(cb => cb(cbParams)))
+                if (res.some(x => x === false))
                     continue
             }
             catch(e) {

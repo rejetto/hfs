@@ -92,7 +92,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   If you want to execute something in the "upstream" of middlewares, return a function.
 
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
-- `onDirEntry: ({ entry: DirEntry, listUri: string }) => void | false` by providing this callback you can manipulate the record
+- `onDirEntry: ({ entry: DirEntry, listUri: string }) => Promisable<void | false>` by providing this callback you can manipulate the record
   that is sent to the frontend (`entry`), or you can return false to exclude this entry from the results.
 - `config: { [key]: FieldDescriptor }` declare a set of admin-configurable values owned by the plugin
   that will be displayed inside Admin-panel for change. Each property is identified by its key,
@@ -358,7 +358,8 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
-- 8.4 (v0.48.2) 
+- 8.4 (v0.49.0)
+  - exports.onDirEntry: support async 
   - HFS.fileShow 
   - api.Const (api.const is now deprecated)
 - 8.3 (v0.47.0)
