@@ -59,7 +59,7 @@ export function useBatch<Job=unknown,Result=unknown>(
     interface Env {
         batch: Set<Job>
         cache: Map<Job, Result | null>
-        waiter: Promise<void>
+        waiter?: Promise<void>
     }
     const worker2env = (useBatch as any).worker2env ||= worker && new Map<typeof worker, Env>()
     const env = (worker2env.get(worker) || (() => {
@@ -78,6 +78,7 @@ export function useBatch<Job=unknown,Result=unknown>(
                 let i = 0
                 for (const job of jobs)
                     env.cache.set(job, res[i++] ?? null)
+                env.waiter = undefined
                 resolve()
             }, delay)
         })).then(requestRender)
