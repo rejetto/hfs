@@ -22,23 +22,23 @@ import { lookup, Resolver } from 'dns/promises'
 import { defineConfig } from './config'
 import events from './events'
 
-const client = new Client({ timeout: 4_000 })
-const originalMethod = client.getGateway
+const upnpClient = new Client({ timeout: 4_000 })
+const originalMethod = upnpClient.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
-client.getGateway = debounceAsync(() => originalMethod.apply(client), 0, { retain: HOUR, retainFailure: 30_000 })
-client.getGateway().catch(() => {})
+upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), 0, { retain: HOUR, retainFailure: 30_000 })
+upnpClient.getGateway().catch(() => {})
 
 export let externalIp = Promise.resolve('') // poll external ip
 repeat(10 * MINUTE, () => {
     const was = externalIp
-    externalIp = client.getPublicIp().catch(() => was) //fallback to previous value
+    externalIp = upnpClient.getPublicIp().catch(() => was) //fallback to previous value
 })
 
 const getNatInfo = debounceAsync(async () => {
     const gettingIp = getPublicIp() // don't wait, do it in parallel
-    const res = await client.getGateway().catch(() => null)
+    const res = await upnpClient.getGateway().catch(() => null)
     const status = await getServerStatus()
-    const mappings = res && await haveTimeout(5_000, client.getMappings()).catch(() => null)
+    const mappings = res && await upnpClient.getMappings().catch(() => null)
     console.debug('mappings found', mappings)
     const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => null)
     const localIp = res?.address || (await getIps())[0]
@@ -131,19 +131,19 @@ async function generateSSLCert(domain: string, email?: string) {
         let check = await checkPort(domain, 80) // some check services may not consider the domain, but we already verified that
         if (check && !check.success && upnp && externalPort !== 80) { // consider a short-lived mapping
             // @ts-ignore
-            await client.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 30 }).catch(() => {})
+            await upnpClient.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs challenge', ttl: 0 }).catch(() => {})
             check = await checkPort(domain, 80) // repeat test
         }
         if (!check)
             throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
         if (!check.success)
             throw new ApiError(HTTP_FAILED_DEPENDENCY, "port 80 is not working on the specified domain")
-        const client = new acme.Client({
+        const acmeClient = new acme.Client({
             accountKey: await acme.crypto.createPrivateKey(),
             directoryUrl: acme.directory.letsencrypt.production
         })
         const [key, csr] = await acme.crypto.createCsr({ commonName: domain })
-        const cert = await client.auto({
+        const cert = await acmeClient.auto({
             csr,
             email,
             challengePriority: ['http-01'],
@@ -213,10 +213,10 @@ const apis: ApiHandlers = {
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         if (externalPort)
-            try { await client.removeMapping({ public: { host: '', port: externalPort } }) }
+            try { await upnpClient.removeMapping({ public: { host: '', port: externalPort } }) }
             catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, 'removeMapping failed: ' + String(e) ) }
         if (external) // must use the object form of 'public' to work around a bug of the library
-            await client.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
+            await upnpClient.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
         return {}
     },
 
