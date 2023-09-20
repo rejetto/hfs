@@ -5,7 +5,7 @@ import { argv, ORIGINAL_CWD, VERSION } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { DAY, debounceAsync, newObj, onOff, tryJson, wait, with_ } from './misc'
+import { DAY, debounceAsync, newObj, onOff, throw_, tryJson, wait, with_ } from './misc'
 import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
@@ -86,10 +86,7 @@ export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Sub
             else
                 setConfig1(k, v)
         },
-        compiled: () => {
-            if (!compiler) throw "missing compiler"
-            return compiled as CT
-        }
+        compiled: () => compiled ?? throw_("missing compiler"),
     }
     if (compiler)
         ret.sub((...args) =>

@@ -44,21 +44,20 @@ exports.init = async api => {
         frontend_js: 'main.js',
         frontend_css: 'style.css',
         unload: () => save.flush(), // we may have pending savings
-        middleware: (ctx) =>
-            () => { // execute after other middlewares are done
-                if (ctx.status >= 300 || ctx.state.download_counter_ignore || ctx.state.includesLastByte === false) return
-                if (!(ctx.vfsNode || api.getConfig('archives') && ctx.state.archive)) return
-                ctx.state.completed.then(() => {
-                    const key = uri2key(ctx.path)
-                    const entries = ctx.vfsNode ? [key]
-                        : ctx.state.originalStream?.getArchiveEntries?.().filter(x => x.at(-1) !== '/').map(x => key + uri2key(x))
-                    if (!entries) return
-                    for (const k of entries)
-                        counters[k] = counters[k] + 1 || 1
-                    save()
-                })
-            },
-        onDirEntry: ({ entry, listUri }) => {
+        middleware: ctx => () => { // callback = execute after other middlewares are done
+            if (ctx.status >= 300 || ctx.state.download_counter_ignore || ctx.state.includesLastByte === false) return
+            if (!(ctx.vfsNode || api.getConfig('archives') && ctx.state.archive)) return
+            ctx.state.completed.then(() => {
+                const key = uri2key(ctx.path)
+                const entries = ctx.vfsNode ? [key]
+                    : ctx.state.originalStream?.getArchiveEntries?.().filter(x => x.at(-1) !== '/').map(x => key + uri2key(x))
+                if (!entries) return
+                for (const k of entries)
+                    counters[k] = counters[k] + 1 || 1
+                save()
+            })
+        },
+        onDirEntry({ entry, listUri })  {
             const k = uri2key(listUri + entry.n)
             const n = counters[k]
             if (n)

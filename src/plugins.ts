@@ -7,18 +7,8 @@ import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, PLUGINS_PUB_
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    adjustStaticPathForGlob,
-    Callback,
-    debounceAsync,
-    Dict,
-    getOrSet,
-    onProcessExit,
-    PendingPromise, pendingPromise,
-    same,
-    tryJson,
-    wait,
-    wantArray,
-    watchDir
+    adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onProcessExit,
+    PendingPromise, pendingPromise, same, tryJson, wait, wantArray, watchDir
 } from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.file_list'
@@ -89,17 +79,10 @@ export function setPluginConfig(id: string, changes: Dict) {
 }
 
 export function getPluginInfo(id: string) {
+    if (id === SERVER_CODE_ID)
+        return serverCodeReturned
     const running = plugins[id]?.getData()
     return running && Object.assign(running, {id}) || availablePlugins[id]
-}
-
-export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T) {
-    return _.map(plugins, (pl,plName) => {
-        try { return cb(pl,plName) }
-        catch(e) {
-            console.log('plugin error', plName, String(e))
-        }
-    }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
 
 export function findPluginByRepo<T>(repo: string) {
@@ -126,6 +109,21 @@ const serverCode = defineConfig('server_code', '', async (script, { k }) => {
     }
 })
 
+const SERVER_CODE_ID = '.'
+let serverCodeReturned: any
+serverCode.sub(() => serverCode.compiled().then(x => serverCodeReturned = x))
+export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
+    const entries = Object.entries(plugins)
+    if (includeServerCode && serverCodeReturned)
+        entries.push([SERVER_CODE_ID, serverCodeReturned])
+    return entries.map(([plName,pl]) => {
+        try { return cb(pl,plName) }
+        catch(e) {
+            console.log('plugin error', plName, String(e))
+        }
+    }).filter(x => x !== undefined) as Exclude<T,undefined>[]
+}
+
 async function initPlugin<T>(pl: any, more?: T) {
     return Object.assign(pl, await pl.init?.({
         const: Const, // legacy, deprecated in 0.48
@@ -143,11 +141,7 @@ async function initPlugin<T>(pl: any, more?: T) {
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     const after: Dict<CallMeAfter> = {}
     // run middleware plugins
-    const entries = Object.entries(plugins)
-    const sc = await serverCode.compiled()
-    if (sc)
-        entries.push(['.', await serverCode.compiled()])
-    for (const [id,pl] of entries)
+    await Promise.all(mapPlugins(async (pl, id) => {
         try {
             const res = await pl.middleware?.(ctx)
             if (res === true)
@@ -158,7 +152,8 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
         catch(e){
             printError(id, e)
         }
-    // expose public plugins' files
+    }))
+    // expose public plugins' files`
     if (!ctx.pluginBlockedRequest) {
         const { path } = ctx
         if (path.startsWith(PLUGINS_PUB_URI)) {

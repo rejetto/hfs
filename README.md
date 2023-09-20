@@ -68,7 +68,7 @@ If you don't like this behavior, disable it in the Admin-panel or enter this con
 
 If your system is not Windows/Linux/Mac or you just don't want to run the binaries, you can try this alternative version:
 
-1. [install node.js](https://nodejs.org)
+1. [install node.js](https://nodejs.org) version 18
 2. execute at command line `npx hfs@latest`
 
 The `@latest` part is optional, and ensures that you are always up to date.

@@ -34,16 +34,18 @@ export interface FieldDescriptor<T=any> extends FieldApi<T> {
     fromField?: (v: any) => T
     before?: ReactNode
     after?: ReactNode
+    getError?: GetError
     [extraProp: string]: any
 }
 
 // it seems necessary to cast (Multi)SelectField sometimes
 export type Field<T> = FC<FieldProps<T>>
 
+type GetError = (v: any, extra?: any) => Promisable<ValidationError>
 export type Promisable<T> = T | Promise<T>
 interface FieldApi<T> {
     // provide getError if you want your error to be visible by the Form component
-    getError?: (v: any, extra?: any) => Promisable<ValidationError>
+    getError?: GetError
     isEqual?: (a: T, b: T) => boolean,
 }
 export interface FieldProps<T> {

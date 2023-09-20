@@ -88,6 +88,11 @@ export function _log(...args: any[]) {
     return args[args.length-1]
 }
 
+export function _dbg(x: any) {
+    debugger
+    return x
+}
+
 export type PendingPromise<T=unknown> = Promise<T> & { resolve: (value?: T) => void, reject: (reason?: any) => void }
 export function pendingPromise<T>() {
     let takeOut

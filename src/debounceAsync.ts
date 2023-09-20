@@ -19,6 +19,7 @@ export default function debounceAsync<Cancelable extends boolean = false, A exte
     let lastSince = 0
     const interceptingWrapper = (...args: A) => runningDebouncer = debouncer(...args)
     return Object.assign(interceptingWrapper, {
+        clearRetain: () => last = undefined,
         flush: () => runningCallback ?? exec(),
         ...cancelable && {
             cancel() {

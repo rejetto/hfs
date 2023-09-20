@@ -28,7 +28,7 @@ import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './con
 const apis: ApiHandlers = {
 
     get_plugins({}, ctx) {
-        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize), ...getAvailablePlugins().map(serialize) ] })
+        const list = new SendListReadable({ addAtStart: [ ...mapPlugins(serialize, false), ...getAvailablePlugins().map(serialize) ] })
         return list.events(ctx, {
             pluginInstalled: p => list.add(serialize(p)),
             'pluginStarted pluginStopped pluginUpdated': p => {
