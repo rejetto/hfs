@@ -38,7 +38,7 @@ const getNatInfo = debounceAsync(async () => {
     const gettingIp = getPublicIp() // don't wait, do it in parallel
     const res = await upnpClient.getGateway().catch(() => null)
     const status = await getServerStatus()
-    const mappings = res && await upnpClient.getMappings().catch(() => null)
+    const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
     console.debug('mappings found', mappings)
     const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => null)
     const localIp = res?.address || (await getIps())[0]
