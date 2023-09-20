@@ -101,6 +101,8 @@ export function TextEditorField({ onChange, value, onBlur, setApi, ...props }: F
         },
         ...props,
         onKeyDown(ev) {
+            if (isCtrlKey(ev) === 'Enter')
+                return onChange(state, { was: value, event: ev })
             if (!ev.altKey || ev.key !== 'Tab') return
             ev.preventDefault()
             const focusable = document.querySelectorAll(focusableSelector)
@@ -117,9 +119,13 @@ const TextEditorAsInput = forwardRef<HTMLInputElement, any>(({ onChange, ...rest
     h(Box, { sx: { width: '100%', textarea: { outline: 0 } } },
         h(TextEditor, {
             ref,
-            onValueChange: value => onChange({ target: { value } }),
             padding: 2,
             style: { background: 'initial', borderBottom: 'initial' },
-            ...rest
+            ...rest,
+            onValueChange: value => onChange({ target: { value } }),
+            onKeyDown(ev) {
+                if (isCtrlKey(ev) === 'Enter')
+                    ev.preventDefault()
+            },
         })
     ))
