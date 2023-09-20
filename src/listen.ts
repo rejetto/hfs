@@ -106,6 +106,7 @@ const considerHttps = debounceAsync(async () => {
     if (!port) return
     httpsSrv.on('connection', newConnection)
     printUrls(httpsSrv.name)
+    events.emit('https ready')
 })
 
 
@@ -114,7 +115,6 @@ export const privateKey = defineConfig('private_key', '')
 const httpsNeeds = [cert, privateKey]
 const httpsOptions = { cert: '', private_key: '' }
 type HttpsKeys = keyof typeof httpsOptions
-const emitHttps = () => events.emit('https ready')
 for (const cfg of httpsNeeds) {
     let unwatch: ReturnType<typeof watchLoad>['unwatch']
     cfg.sub(async v => {
@@ -122,14 +122,14 @@ for (const cfg of httpsNeeds) {
         const k = cfg.key() as HttpsKeys
         httpsOptions[k] = v
         if (!v || v.includes('\n'))
-            return considerHttps().then(emitHttps)
+            return considerHttps()
         // v is a path
         httpsOptions[k] = ''
         unwatch = watchLoad(v, data => {
             httpsOptions[k] = data
             considerHttps()
         }, { immediateFirst: true }).unwatch
-        await considerHttps().then(emitHttps)
+        await considerHttps()
     })
 }
 
