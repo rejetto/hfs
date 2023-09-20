@@ -358,7 +358,7 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
-- 8.4 (v0.48.0) 
+- 8.4 (v0.48.2) 
   - HFS.fileShow 
   - api.Const (api.const is now deprecated)
 - 8.3 (v0.47.0)
