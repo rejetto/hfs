@@ -86,6 +86,7 @@ export class DirEntry {
     public readonly m?: string
     public readonly c?: string
     public readonly p?: string
+    public readonly icon?: string
     // we memoize these value for speed
     public readonly name: string
     public readonly uri: string
@@ -128,7 +129,7 @@ export class DirEntry {
     }
 
     getDefaultIcon() {
-        return hIcon(this.isFolder ? 'folder' : ext2type(this.ext) || 'file')
+        return hIcon(this.icon ?? (this.isFolder ? 'folder' : ext2type(this.ext) || 'file'))
     }
 }
 export type DirList = DirEntry[]
