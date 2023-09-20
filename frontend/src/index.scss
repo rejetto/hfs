@@ -87,8 +87,8 @@ select { text-align: center; } // it is surely cooler on the options dialog
 
     display: inline-block; text-align: center; // same size for font icons
 }
+img.file-icon { height: 1em; }
 .file-icon {
-    height: 1em;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
