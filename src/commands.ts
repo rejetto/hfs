@@ -105,7 +105,7 @@ const commands = {
     },
     update: {
         params: '',
-        cb: update
+        cb: () => update()
     },
     'check-update': {
         params: '',
