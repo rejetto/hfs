@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { Client } from 'nat-upnp'
+import { Client } from 'nat-upnp-ts'
 import {
     HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE,
     IS_MAC, IS_WINDOWS
