@@ -193,31 +193,33 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const small = useWindowSize().width < 800
     const showingButton = !menuOnLink || isFolder && small
     return h('li', { className, label: separator },
-        showFilter && h(Checkbox, {
-            value: selected[uri],
-            onChange(v){
-                if (v)
-                    return state.selected[uri] = true
-                delete state.selected[uri]
-            },
-        }),
-        h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-            isFolder ? h(Fragment, {},
-                h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
-                menuOnLink && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
-            )
-            : containerDir ? h(Fragment, {},
-                h('a', { href: uri, onClick, tabIndex: -1 }, ico),
-                h(Link, { to: containerDir, className:'container-folder', tabIndex: -1 }, containerName),
-                h('a', { href: uri, onClick }, entry.name)
-            ) : h('a', { href: uri, onClick }, ico, entry.name),
-        ),
-        h(CustomCode, { name: 'afterEntryName', props: { entry } }),
-        h('div', { className: 'entry-panel' },
-            h(EntryDetails, { entry, midnight }),
-            showingButton && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
-        ),
-        h('div'),
+        h(CustomCode, { name: 'entry', props: { entry }, ifEmpty: () => h(Fragment, {},
+            showFilter && h(Checkbox, {
+                value: selected[uri],
+                onChange(v){
+                    if (v)
+                        return state.selected[uri] = true
+                    delete state.selected[uri]
+                },
+            }),
+            h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
+                isFolder ? h(Fragment, {},
+                        h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
+                        menuOnLink && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
+                    )
+                    : containerDir ? h(Fragment, {},
+                        h('a', { href: uri, onClick, tabIndex: -1 }, ico),
+                        h(Link, { to: containerDir, className:'container-folder', tabIndex: -1 }, containerName),
+                        h('a', { href: uri, onClick }, entry.name)
+                    ) : h('a', { href: uri, onClick }, ico, entry.name),
+            ),
+            h(CustomCode, { name: 'afterEntryName', props: { entry } }),
+            h('div', { className: 'entry-panel' },
+                h(EntryDetails, { entry, midnight }),
+                showingButton && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
+            ),
+            h('div'),
+        ) }),
     )
 
     function fileMenu(ev: MouseEvent) {

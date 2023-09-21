@@ -257,6 +257,10 @@ This is a list of available frontend-events, with respective object parameter an
         - `getNextFiltered/getPreviousFiltered: ()=>Entry` as above, but considers the filtered-list instead
         - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
     - output `Html`
+- `entry`
+  - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
+  - parameter `{ entry: Entry }` (refer above for Entry object)
+  - output `Html`
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
     - parameter `{ entry: Entry }` (refer above for Entry object)
@@ -360,6 +364,7 @@ Where `h` is just `import { createElement as h } from 'react'`.
 ## API version history
 
 - 8.5 (v0.49.0)
+  - new event: entry
   - exports.onDirEntry: entry.icon
 - 8.4 (v0.48.2)
   - HFS.fileShow
