@@ -281,6 +281,26 @@ ul.dir {
                 }
             }
         }
+        .entry-comment {
+            display: inline;
+            &::before, &::after {
+                font-size: 1.5em;
+                font-family: serif;
+                line-height: 1px;
+                position: relative;
+            }
+            &::before {
+                content: open-quote;
+                margin-left: 0.5em;
+                margin-right: 0.1em;
+                top: 0.2em;
+            }
+            &::after {
+                content: "„";
+                top: -0.1em;
+                margin-left: 0.1em;
+            }
+        }
         .entry-panel {
             float: right;
             padding-top: 0.3em;

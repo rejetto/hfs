@@ -26,6 +26,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 ## Features
 
 - https
+- easy certificate generation
 - unicode
 - virtual file system
 - mobile friendly
@@ -44,6 +45,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - virtual hosting (plug-in)
 - anti-brute-force (plug-in)
 - [reverse-proxy support](https://github.com/rejetto/hfs/wiki/Reverse-proxy)
+- comments in file descript.ion
 
 ## Installation
 

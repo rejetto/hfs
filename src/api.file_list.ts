@@ -15,12 +15,17 @@ import {
 import { ApiError, ApiHandler, SendListReadable } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
-import { asyncGeneratorToArray, dirTraversal, pattern2filter } from './misc'
+import { asyncGeneratorToArray, basename, dirTraversal, parseFile, pattern2filter } from './misc'
 import _ from 'lodash'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
+import { defineConfig } from './config'
+import { dirname, join } from 'path'
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string }
+const DESCRIPT_ION = 'descript.ion'
+const descriptIon = defineConfig('descript_ion', true)
+
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string }
 
 export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c }, ctx) => {
     const node = await urlToNode(uri || '/', ctx)
@@ -67,11 +72,15 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     async function* produceEntries() {
         for await (const sub of walker) {
             if (ctx.aborted) break
-            if (!filter(getNodeName(sub)))
+            const name = getNodeName(sub)
+            if (descriptIon.get() && name === DESCRIPT_ION)
+                continue
+            if (!filter(name))
                 continue
             const entry = await nodeToDirEntry(ctx, sub)
             if (!entry)
                 continue
+            entry.comment = await getCommentFor(sub.source)
             const cbParams = { entry, ctx, listUri: uri, node: sub }
             try {
                 const res = await Promise.all(onDirEntryHandlers.map(cb => cb(cbParams)))
@@ -133,4 +142,21 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
                 || n.children?.some(c => c.can_read || filesInsideCould(c)) // we count on the boolean-compliant nature of the permission type here
         }
     }
+}
+
+async function getCommentFor(path?: string) {
+    return !path || !descriptIon.get() ? undefined
+        : readDescription(dirname(path)).then(x => x.get(basename(path)), () => undefined)
+}
+
+function readDescription(path: string) {
+    return parseFile(join(path, DESCRIPT_ION), txt => new Map(txt.split('\n').map(line => {
+        const quoted = line[0] === '"' ? 1 : 0
+        const i = quoted ? line.indexOf('"', 2) : line.indexOf(' ')
+        const fn = line.slice(quoted, i - quoted)
+        let comment = line.slice(i + 1)
+        if (comment.endsWith('\x04\xc2'))
+            comment = comment.slice(0, -2).replaceAll('\\n', '\n')
+        return [fn, comment]
+    })))
 }

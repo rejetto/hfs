@@ -87,6 +87,7 @@ export class DirEntry {
     public readonly c?: string
     public readonly p?: string
     public readonly icon?: string
+    public readonly comment?: string
     // we memoize these value for speed
     public readonly name: string
     public readonly uri: string

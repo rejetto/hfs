@@ -214,6 +214,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                     ) : h('a', { href: uri, onClick }, ico, entry.name),
             ),
             h(CustomCode, { name: 'afterEntryName', props: { entry } }),
+            entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
             h('div', { className: 'entry-panel' },
                 h(EntryDetails, { entry, midnight }),
                 showingButton && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),

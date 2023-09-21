@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import fs from 'fs/promises'
+import fs, { readFile, stat } from 'fs/promises'
 import { Promisable, try_, tryJson, wait, isWindowsDrive } from './misc'
 import { promisify } from 'util'
 import { createWriteStream, mkdirSync, watch } from 'fs'
@@ -166,4 +166,17 @@ export function storeFileAttr(path: string, k: string, v: any) {
 export async function loadFileAttr(path: string, k: string) {
     return tryJson(String(await promisify(fsx.get)(path, FILE_ATTR_PREFIX + k)))
         ?? undefined // normalize, as we get null instead of undefined on windows
+}
+
+// read and parse a file, caching unless timestamp has changed
+const cache = new Map<string, { ts: Date, parsed: unknown }>()
+export async function parseFile<T>(path: string, parse: (raw: string) => T) {
+    const { mtime: ts } = await stat(path)
+    const cached = cache.get(path)
+    if (ts === cached?.ts)
+        return cached.parsed as T
+    const raw = await readFile(path, 'utf8')
+    const parsed = parse(raw)
+    cache.set(path, { ts, parsed })
+    return parsed
 }
