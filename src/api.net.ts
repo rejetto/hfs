@@ -245,7 +245,7 @@ const apis: ApiHandlers = {
 export const acme_domain = defineConfig<string>('acme_domain', '')
 export const acme_email = defineConfig<string>('acme_email', '')
 
-export async function makeCert(domain: string, email?: string) {
+export const makeCert = debounceAsync(async (domain: string, email?: string) => {
     if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
     const res = await generateSSLCert(domain, email)
     const CERT_FILE = 'acme.cert'
@@ -254,33 +254,13 @@ export async function makeCert(domain: string, email?: string) {
     await fs.writeFile(KEY_FILE, res.key)
     cert.set(CERT_FILE) // update config
     privateKey.set(KEY_FILE) 
-}
-
-export const renewAcme = {
-    timer: null,
-    reset() {
-        if (this.timer !== null)
-            clearTimeout(this.timer)
-        this.timer = null
-    },
-    set() {
-        if (this.timer !== null) {
-            setTimeout(this.set.bind(this), 5_000);
-        } else {
-            this.reset()
-            setImmediate(() => repeat(DAY, renewCert)
-                .then(v => ((this.timer as any) = v)))
-        }
-    }
-}
+}, 0)
 
 defineConfig('acme_renew', false) // handle config changes
-events.once('https ready', () => renewAcme.set())
-/**
- * checks if the cert is near expiration date.
- * if so renews it
- */
-async function renewCert() {
+events.once('https ready', () => repeat(HOUR, renewCert))
+
+// checks if the cert is near expiration date, and if so renews it
+const renewCert = debounceAsync(async () => {
     const acmeLog = (...args: any[]) => console.log('[acme-renew]:', ...args)
     const now = new Date()
     const cert = getCertObject()
@@ -288,11 +268,9 @@ async function renewCert() {
     const validTo = new Date(cert.validTo)
     const isValid = now > new Date(cert.validFrom) && now < validTo &&
                     validTo.getTime() - now.getTime() >= 30 * DAY // it's not expiring in a month
-    if (isValid) return acmeLog("cert is valid")
+    if (isValid) return acmeLog("certificate is good")
     await makeCert(acme_domain.get(), acme_email.get())
-        .catch(e => {
-            acmeLog("error renewing cert:", e.toString())
-        })
-}
+        .catch(e => acmeLog("error: ", e.toString()))
+}, 0, { retain: DAY, retainFailure: HOUR })
 
 export default apis
