@@ -64,6 +64,12 @@ setInterval(() => {
     uploadState.eta = uploadState.speed && Math.round(left / uploadState.speed)
 }, 5_000)
 
+window.onbeforeunload = e => {
+    if (!uploadState.qs.length) return
+    e.preventDefault()
+    return e.returnValue = t("Uploading") // modern browsers ignore this message
+}
+
 let reloadOnClose = false
 let uploadDialogIsOpen = false
 let everPaused = false
