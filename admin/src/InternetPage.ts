@@ -5,7 +5,7 @@ import { apiCall, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, with_ } from '@hfs/shared'
 import { Flex, LinkBtn, manipulateConfig, isIP, Btn } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
-import { Form, NumberField } from '@hfs/mui-grid-form'
+import { BoolField, Form, NumberField } from '@hfs/mui-grid-form'
 import md from './md'
 import { isCertError } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
@@ -40,10 +40,11 @@ export default function InternetPage() {
 
     function httpsBox() {
         const { error, listening } = status.data?.https ||{}
-        const [acme, setAcme] = useState<any>()
+        const [values, setValues] = useState<any>()
         const cert = useApiEx('get_cert')
-        useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email'] }).then(setAcme) } , [])
-        if (!status || !acme) return h(CircularProgress)
+        useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email', 'acme_renew'] }).then(setValues) } , [])
+        useApiEx('set_config', { values })
+        if (!status || !values) return h(CircularProgress)
         return element || status.element || h(Card, {}, h(CardContent, {},
             h(Flex, { gap: '.5em', fontSize: 'x-large', mb: 1, alignItems: 'center' }, "HTTPS",
                 h(Lock, { color: listening && !error ? 'success' : 'warning' }) ),
@@ -59,26 +60,26 @@ export default function InternetPage() {
                 h(Form, {
                     gap: 1,
                     gridProps: {rowSpacing:1},
-                    values: acme,
+                    values,
                     set(v, k) {
-                        setAcme((was: any) => ({ ...was, [k]: v }))
+                        setValues((was: any) => ({ ...was, [k]: v }))
                     },
                     fields: [
                         md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
                         { k: 'acme_domain', label: "Certificate domain", sm: 6, required: true },
                         { k: 'acme_email', label: "Certificate e-mail", sm: 6 },
+                        { k: 'acme_renew', label: "Automatic renew one month before expiration", comp: BoolField, disabled: !values.acme_domain },
                     ],
                     save: {
                         children: "Request",
                         startIcon: h(Send),
                         async onClick() {
-                            const domain = acme.acme_domain
+                            const domain = values.acme_domain
                             const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
                             if (fresh && !await confirmDialog("Your certificate is still good", { confirmText: "Make a new one anyway" }))
                                 return
-                            await apiCall('set_config', { values: acme })
                             if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
-                            await apiCall('make_cert', { domain, email: acme.acme_email }, { timeout: 20_000 })
+                            await apiCall('make_cert', { domain, email: values.acme_email }, { timeout: 20_000 })
                                 .then(async () => {
                                     await alertDialog("Certificate created", 'success')
                                     await manipulateConfig('https_port', async v => {
