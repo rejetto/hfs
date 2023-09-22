@@ -28,8 +28,8 @@ export default function InternetPage() {
     const doubleNat = nat?.externalIp && nat.externalIp !== nat.publicIp
     useEffect(() => {
         if (!verifyAgain || !nat || loading) return
-        setVerifyAgain(false)
         verify().then()
+        setVerifyAgain(false)
     }, [verifyAgain, nat, loading])
     return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
         h(Alert, { severity: 'info' }, "This page helps you making your server work on the Internet"),
@@ -147,7 +147,7 @@ export default function InternetPage() {
 
     async function verify(): Promise<any> {
         setCheckResult(undefined)
-        if (!await confirmDialog("This test will check if your server is working properly on the Internet")) return
+        if (!verifyAgain && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
             const { success } = await apiCall('check_server', {})
@@ -161,7 +161,11 @@ export default function InternetPage() {
             const msg = "We couldn't reach your server from the Internet. "
             if (nat.upnp && !nat.mapped)
                 return confirmDialog(msg + "Try port-forwarding on your router", { confirmText: "Fix it" }).then(go => {
-                    if (go) mapPort(Math.max(nat.internalPort, HIGHER_PORT), "Port forwarded").then(retry)
+                    if (!go) return
+                    try { mapPort(nat.internalPort, '', '') }
+                    catch { mapPort(HIGHER_PORT, '') }
+                    toast("Port forwarded, now verify again", 'success')
+                    retry()
                  })
             const { close } = alertDialog(h(Box, {}, msg + "Possible causes:", h('ul', {},
                 !nat.upnp && h('li', {}, "Your router may need to be configured. ", h(Link, { href: PORT_FORWARD_URL, target: 'help' }, "How?")),
@@ -210,7 +214,7 @@ export default function InternetPage() {
         return mapPort(nat.externalPort, "Forwarding corrected")
     }
 
-    async function mapPort(external: number, msg='') {
+    async function mapPort(external: number, msg='', errMsg="Operation failed") {
         setMapping(true)
         try {
             await apiCall('map_port', { external })
@@ -218,9 +222,10 @@ export default function InternetPage() {
             if (msg) toast(msg, 'success')
         }
         catch(e) {
-            const msg = "Operation failed"
-                + (external && Math.min(external, nat.internalPort) ? ". Some routers refuse to work with ports under 1024." : '')
-            await alertDialog(msg, 'error')
+            if (errMsg) {
+                const msg = errMsg + (external && Math.min(external, nat.internalPort) ? ". Some routers refuse to work with ports under 1024." : '')
+                await alertDialog(msg, 'error')
+            }
             throw e
         }
         finally {
