@@ -15,6 +15,7 @@ import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
 import { X509Certificate } from 'crypto'
 import { externalIp } from './api.net'
+import events from './events'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -33,7 +34,7 @@ portCfg.sub(async port => {
     while (!app)
         await wait(100)
     stopServer(httpSrv).then()
-    httpSrv = Object.assign(http.createServer(commonOptions, app.callback()), { name: 'http' })
+    httpSrv = Object.assign(http.createServer(commonOptions as any, app.callback()), { name: 'http' })
     port = await startServer(httpSrv, { port })
     if (!port) return
     httpSrv.on('connection', newConnection)
@@ -60,6 +61,7 @@ export function openAdmin() {
 }
 
 export function getCertObject() {
+    if (!httpsOptions.cert) return
     const o = new X509Certificate(httpsOptions.cert)
     const some = _.pick(o, ['subject', 'issuer', 'validFrom', 'validTo'])
     return objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
@@ -77,6 +79,7 @@ const considerHttps = debounceAsync(async () => {
         )
         if (port >= 0) {
             const cert = getCertObject()
+            if (!cert) return
             const cn = cert.subject?.CN
             if (cn)
                 console.log("certificate loaded for", cn)
@@ -103,6 +106,7 @@ const considerHttps = debounceAsync(async () => {
     if (!port) return
     httpsSrv.on('connection', newConnection)
     printUrls(httpsSrv.name)
+    events.emit('https ready')
 })
 
 

@@ -13,31 +13,32 @@ import { cert, getCertObject, getIps, getServerStatus, privateKey } from './list
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { apiAssertTypes, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat } from './misc'
+import { apiAssertTypes, DAY, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat, Dict} from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
-import { Dict } from './misc'
 import { createServer, RequestListener } from 'http'
 import { Middleware } from 'koa'
 import { lookup, Resolver } from 'dns/promises'
+import { defineConfig } from './config'
+import events from './events'
 
-const client = new Client({ timeout: 4_000 })
-const originalMethod = client.getGateway
+const upnpClient = new Client({ timeout: 4_000 })
+const originalMethod = upnpClient.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
-client.getGateway = debounceAsync(() => originalMethod.apply(client), 0, { retain: HOUR, retainFailure: 30_000 })
-client.getGateway().catch(() => {})
+upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), 0, { retain: HOUR, retainFailure: 30_000 })
+upnpClient.getGateway().catch(() => {})
 
 export let externalIp = Promise.resolve('') // poll external ip
 repeat(10 * MINUTE, () => {
     const was = externalIp
-    externalIp = client.getPublicIp().catch(() => was) //fallback to previous value
+    externalIp = upnpClient.getPublicIp().catch(() => was) //fallback to previous value
 })
 
 const getNatInfo = debounceAsync(async () => {
     const gettingIp = getPublicIp() // don't wait, do it in parallel
-    const res = await client.getGateway().catch(() => null)
+    const res = await upnpClient.getGateway().catch(() => null)
     const status = await getServerStatus()
-    const mappings = res && await haveTimeout(5_000, client.getMappings()).catch(() => null)
+    const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
     console.debug('mappings found', mappings)
     const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => null)
     const localIp = res?.address || (await getIps())[0]
@@ -130,19 +131,19 @@ async function generateSSLCert(domain: string, email?: string) {
         let check = await checkPort(domain, 80) // some check services may not consider the domain, but we already verified that
         if (check && !check.success && upnp && externalPort !== 80) { // consider a short-lived mapping
             // @ts-ignore
-            await client.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 30 }).catch(() => {})
+            await upnpClient.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 30 }).catch(() => {})
             check = await checkPort(domain, 80) // repeat test
         }
         if (!check)
             throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
         if (!check.success)
             throw new ApiError(HTTP_FAILED_DEPENDENCY, "port 80 is not working on the specified domain")
-        const client = new acme.Client({
+        const acmeClient = new acme.Client({
             accountKey: await acme.crypto.createPrivateKey(),
             directoryUrl: acme.directory.letsencrypt.production
         })
         const [key, csr] = await acme.crypto.createCsr({ commonName: domain })
-        const cert = await client.auto({
+        const cert = await acmeClient.auto({
             csr,
             email,
             challengePriority: ['http-01'],
@@ -212,10 +213,10 @@ const apis: ApiHandlers = {
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         if (externalPort)
-            try { await client.removeMapping({ public: { host: '', port: externalPort } }) }
+            try { await upnpClient.removeMapping({ public: { host: '', port: externalPort } }) }
             catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, 'removeMapping failed: ' + String(e) ) }
         if (external) // must use the object form of 'public' to work around a bug of the library
-            await client.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
+            await upnpClient.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
         return {}
     },
 
@@ -232,20 +233,66 @@ const apis: ApiHandlers = {
     },
 
     async make_cert({domain, email}) {
-        if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
-        const res = await generateSSLCert(domain, email)
-        const CERT_FILE = 'acme.cert'
-        const KEY_FILE = 'acme.key'
-        await fs.writeFile(CERT_FILE, res.cert)
-        await fs.writeFile(KEY_FILE, res.key)
-        cert.set(CERT_FILE) // update config
-        privateKey.set(KEY_FILE)
+        await makeCert(domain, email)
         return {}
     },
 
     get_cert() {
         return objSameKeys(_.pick(getCertObject(), ['subject', 'issuer', 'validFrom', 'validTo']), v => v)
     }
+}
+
+export const acme_domain = defineConfig<string>('acme_domain', '')
+export const acme_email = defineConfig<string>('acme_email', '')
+
+export async function makeCert(domain: string, email?: string) {
+    if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
+    const res = await generateSSLCert(domain, email)
+    const CERT_FILE = 'acme.cert'
+    const KEY_FILE = 'acme.key'
+    await fs.writeFile(CERT_FILE, res.cert)
+    await fs.writeFile(KEY_FILE, res.key)
+    cert.set(CERT_FILE) // update config
+    privateKey.set(KEY_FILE) 
+}
+
+export const renewAcme = {
+    timer: null,
+    reset() {
+        if (this.timer !== null)
+            clearTimeout(this.timer)
+        this.timer = null
+    },
+    set() {
+        if (this.timer !== null) {
+            setTimeout(this.set.bind(this), 5_000);
+        } else {
+            this.reset()
+            setImmediate(() => repeat(DAY, renewCert)
+                .then(v => ((this.timer as any) = v)))
+        }
+    }
+}
+
+defineConfig('acme_renew', false) // handle config changes
+events.once('https ready', () => renewAcme.set())
+/**
+ * checks if the cert is near expiration date.
+ * if so renews it
+ */
+async function renewCert() {
+    const acmeLog = (...args: any[]) => console.log('[acme-renew]:', ...args)
+    const now = new Date()
+    const cert = getCertObject()
+    if (!cert) return
+    const validTo = new Date(cert.validTo)
+    const isValid = now > new Date(cert.validFrom) && now < validTo &&
+                    validTo.getTime() - now.getTime() >= 30 * DAY // it's not expiring in a month
+    if (isValid) return acmeLog("cert is valid")
+    await makeCert(acme_domain.get(), acme_email.get())
+        .catch(e => {
+            acmeLog("error renewing cert:", e.toString())
+        })
 }
 
 export default apis

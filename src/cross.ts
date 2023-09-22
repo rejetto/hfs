@@ -229,8 +229,8 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
     return ret
 }
 
-export function repeat(every: number, cb: () => unknown) {
-    Promise.allSettled([cb()]).then(() =>
+export function repeat(every: number, cb: () => unknown): Promise<ReturnType<typeof setTimeout>>{
+    return Promise.allSettled([cb()]).then(() =>
         setTimeout(() => repeat(every, cb), every) )
 }
 
