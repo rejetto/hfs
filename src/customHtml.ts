@@ -35,7 +35,7 @@ export function watchLoadCustomHtml(folder='') {
 
 export function getSection(name: string) {
     return (customHtmlState.sections.get(name) || '')
-        + mapPlugins(pl => pl.getData().customHtml.get(name)).join('\n')
+        + mapPlugins(pl => pl.getData().customHtml?.get(name)).join('\n')
 }
 
 export async function saveCustomHtml(sections: Dict<string>) {

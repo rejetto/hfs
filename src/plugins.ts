@@ -79,8 +79,6 @@ export function setPluginConfig(id: string, changes: Dict) {
 }
 
 export function getPluginInfo(id: string) {
-    if (id === SERVER_CODE_ID)
-        return serverCodeReturned
     const running = plugins[id]?.getData()
     return running && Object.assign(running, {id}) || availablePlugins[id]
 }
@@ -96,32 +94,6 @@ export function findPluginByRepo<T>(repo: string) {
 
 export function getPluginConfigFields(id: string) {
     return plugins[id]?.getData().config
-}
-
-const serverCode = defineConfig('server_code', '', async (script, { k }) => {
-    const res: any = {}
-    try {
-        new Function('exports', script)(res) // parse
-        return await initPlugin(res)
-    }
-    catch (e: any) {
-        return console.error(k + ':', e.message || String(e))
-    }
-})
-
-const SERVER_CODE_ID = '.'
-let serverCodeReturned: any
-serverCode.sub(() => serverCode.compiled().then(x => serverCodeReturned = x))
-export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
-    const entries = Object.entries(plugins)
-    if (includeServerCode && serverCodeReturned)
-        entries.push([SERVER_CODE_ID, serverCodeReturned])
-    return entries.map(([plName,pl]) => {
-        try { return cb(pl,plName) }
-        catch(e) {
-            console.log('plugin error', plName, String(e))
-        }
-    }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
 
 async function initPlugin<T>(pl: any, more?: T) {
@@ -196,6 +168,7 @@ export class Plugin {
                 console.warn('invalid', k)
             }
         }
+        plugins[id] = this
     }
     get version(): undefined | number {
         return this.data?.version
@@ -233,6 +206,31 @@ export class Plugin {
             this.data.unload = undefined
         this.unwatch()
     }
+}
+
+const serverCode = defineConfig('server_code', '', async (script, { k }) => {
+    const res: any = {}
+    try {
+        new Function('exports', script)(res) // parse
+        return new Plugin('.', '', await initPlugin(res), _.noop) // '.' is a name that will surely be not found among plugin folders
+    }
+    catch (e: any) {
+        return console.error(k + ':', e.message || String(e))
+    }
+})
+
+let serverCodePlugin: void | Plugin
+serverCode.sub(() => serverCode.compiled().then(x => serverCodePlugin = x))
+export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
+    const entries = Object.entries(plugins)
+    if (includeServerCode && serverCodePlugin)
+        entries.push([serverCodePlugin.id, serverCodePlugin])
+    return entries.map(([plName,pl]) => {
+        try { return cb(pl,plName) }
+        catch(e) {
+            console.log('plugin error', plName, String(e))
+        }
+    }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
 
 type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
@@ -383,7 +381,7 @@ function watchPlugin(id: string, path: string) {
             const folder = dirname(module)
             const { state, unwatch } = watchLoadCustomHtml(folder)
             pluginData.customHtml = state
-            const plugin = plugins[id] = new Plugin(id, folder, pluginData, unwatch)
+            const plugin = new Plugin(id, folder, pluginData, unwatch)
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
