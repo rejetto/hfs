@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { defineConfig, getWholeConfig, setConfig } from './config'
-import { getServerStatus, getUrls } from './listen'
+import { getIps, getServerStatus, getUrls } from './listen'
 import {
     API_VERSION,
     BUILD_TIMESTAMP,
@@ -96,6 +96,7 @@ export const adminApis: ApiHandlers = {
             compatibleApiVersion: COMPATIBLE_API_VERSION,
             ...await getServerStatus(),
             urls: await getUrls(),
+            ips: await getIps(false),
             baseUrl: baseUrl.get(), // can be retrieved with get_config, but it's very handy with urls and low overhead. Case is different because the context is
             updatePossible: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
             proxyDetected: getProxyDetected(),

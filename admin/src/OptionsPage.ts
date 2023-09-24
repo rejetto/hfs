@@ -5,7 +5,8 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { CardMembership, Refresh, Warning } from '@mui/icons-material'
-import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILES_SIZE, modifiedSx, REPO_URL, wait, wikiLink, with_, try_ } from './misc'
+import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILES_SIZE, modifiedSx, REPO_URL, ipLocalHost,
+    wait, wikiLink, with_, try_, ipForUrl } from './misc'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -58,7 +59,7 @@ export default function OptionsPage() {
         min: 1,
         unit: "KB/s",
         placeholder: "no limit",
-        md: 3,
+        md: 6,
     }
     const httpsEnabled = values.https_port >= 0
     return h(Form, {
@@ -85,16 +86,15 @@ export default function OptionsPage() {
             return { sm: 6 }
         },
         fields: [
-            { k: 'port', comp: ServerPort, md: 3, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: ServerPort, md: 3, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            { k: 'port', comp: ServerPort, sm: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: ServerPort, sm: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
                         suggestMakingCert().then()
                     return v
                 }
             },
-            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output", helperText: "Doesn't apply to localhost" },
-            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output per-ip" },
+            status && { k: 'listen_interface', comp: SelectField, sm: 4, options: [{ label: "any", value: '' }, '127.0.0.1', '::1', ...status?.ips] },
             httpsEnabled && values.port >= 0 && { k: 'force_https', comp: BoolField, sm: 12, md: 4, label: "Force HTTPS",
                 helperText: "Not applied to localhost"
             },
@@ -117,6 +117,8 @@ export default function OptionsPage() {
             { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", sm: 12, md: 4,
                 options: { "by clicking on file name": true, "by dedicated button": false  }
             },
+            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output", helperText: "Doesn't apply to localhost" },
+            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output per-ip" },
             { k: 'title', helperText: "You can see this in the tab of your browser" },
             { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
                 helperText: "The icon associated to your website" },
@@ -204,11 +206,12 @@ export default function OptionsPage() {
         if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
         await apiCall('set_config', { values: changes })
-        if (newPort !== undefined) {
+        if (newPort !== undefined || changes.listen_interface && !(loc.hostname === 'localhost' && ipLocalHost(changes.listen_interface))) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
+            const host = ipForUrl(changes.listen_interface || loc.hostname)
             // we have to jump protocol also in case of random port, because we want people to know their port while using GUI
-            return window.location.href = newPort <= 0 ? (onHttps ? 'http:' : 'https:') + '//' + loc.hostname + ':' + otherPort + loc.pathname
-                : loc.protocol + '//' + loc.hostname + ':' + newPort + loc.pathname
+            return window.location.href = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${host}:${otherPort}${loc.pathname}`
+                : `${loc.protocol}//${host}:${newPort || values[keys[0]]}${loc.pathname}`
         }
         const portChange = 'port' in changes || 'https_port' in changes
         setTimeout(reloadStatus, portChange || certChange ? 1000 : 0) // give some time to apply news

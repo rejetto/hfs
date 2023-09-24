@@ -259,3 +259,11 @@ export function isEqualLax(a: any,b: any): boolean {
 export function xlate(input: any, table: Record<string, any>) {
     return table[input] ?? input
 }
+
+export function ipLocalHost(ip: string) {
+    return ip === '::1' || ip.endsWith('127.0.0.1')
+}
+
+export function ipForUrl(ip: string) {
+    return ip.includes(':') ? '[' + ip + ']' : ip
+}

@@ -8,8 +8,8 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, objSameKeys, onlyTruthy, wait } from './misc'
-import { ADMIN_URI, argv, DEV } from './const'
+import { debounceAsync, ipForUrl, objSameKeys, onlyTruthy, wait, waitFor } from './misc'
+import { ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
@@ -29,19 +29,22 @@ export function getHttpsWorkingPort() {
 
 const commonOptions = { requestTimeout: 0 }
 
-export const portCfg = defineConfig<number>('port', 80)
-portCfg.sub(async port => {
-    while (!app)
-        await wait(100)
+const considerHttp = debounceAsync(async () => {
+    await waitFor(() => app)
     stopServer(httpSrv).then()
     httpSrv = Object.assign(http.createServer(commonOptions as any, app.callback()), { name: 'http' })
-    port = await startServer(httpSrv, { port })
+    const port = await startServer(httpSrv, { port: portCfg.get(), host: listenInterface.get() })
     if (!port) return
     httpSrv.on('connection', newConnection)
     printUrls(httpSrv.name)
     if (openBrowserAtStart.get() && !argv.updated)
         openAdmin()
 })
+
+export const portCfg = defineConfig<number>('port', 80)
+const listenInterface = defineConfig('listen_interface', '')
+portCfg.sub(considerHttp)
+listenInterface.sub(considerHttp)
 
 export function openAdmin() {
     for (const srv of [httpSrv, httpsSrv]) {
@@ -102,7 +105,7 @@ const considerHttps = debounceAsync(async () => {
         console.log("failed to create https server: check your private key and certificate", String(e))
         return
     }
-    port = await startServer(httpsSrv, { port })
+    port = await startServer(httpsSrv, { port, host: listenInterface.get() })
     if (!port) return
     httpsSrv.on('connection', newConnection)
     printUrls(httpsSrv.name)
@@ -136,6 +139,7 @@ for (const cfg of httpsNeeds) {
 const PORT_DISABLED = -1
 export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
 httpsPortCfg.sub(considerHttps)
+listenInterface.sub(considerHttps)
 
 interface StartServer { port: number, host?:string }
 export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
@@ -183,6 +187,8 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 srv.error = String(e)
                 srv.busy = undefined
                 const { code } = e as any
+                if (code === 'EACCES' && port < 1024)
+                    srv.error = `lacking permission on port ${port}, try with permission (${IS_WINDOWS ? 'administrator' : 'sudo'}) or port > 1024`
                 if (code === 'EADDRINUSE') {
                     srv.busy = findProcess('port', port).then(res => res?.[0]?.name || '', () => '')
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
@@ -231,12 +237,12 @@ export async function getServerStatus() {
 
 const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
-export async function getIps() {
+export async function getIps(external=true) {
     const ips = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
         nets && !ignore.test(name)
         && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
     )).flat()
-    const e = await externalIp
+    const e = external && await externalIp
     if (e && !ips.includes(e))
         ips.unshift(e)
     return v4first(ips)
@@ -248,13 +254,14 @@ export async function getIps() {
 }
 
 export async function getUrls() {
-    const ips = (await getIps()).map(ip => ip.includes(':') ? '[' + ip + ']' : ip)
+    const on = listenInterface.get()
+    const ips = on ? [on] : await getIps()
     return Object.fromEntries(onlyTruthy([httpSrv, httpsSrv].map(srv => {
         if (!srv?.listening)
             return false
         const port = (srv?.address() as any)?.port
         const appendPort = port === (srv.name === 'https' ? 443 : 80) ? '' : ':' + port
-        const urls = ips.map(ip => `${srv.name}://${ip}${appendPort}`)
+        const urls = ips.map(ip => `${srv.name}://${ipForUrl(ip)}${appendPort}`)
         return urls.length && [srv.name, urls]
     })))
 }

@@ -6,7 +6,7 @@ import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { PauseCircle, PlayCircle, LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, IconBtn, IconProgress, iconTooltip, manipulateConfig, useBreakpoint } from "./misc"
+import { formatBytes, IconBtn, IconProgress, iconTooltip, ipForUrl, manipulateConfig, useBreakpoint } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { toast } from "./dialog"
@@ -116,7 +116,7 @@ function Connections() {
                         headerName: "Address",
                         flex: 1,
                         maxWidth: 400,
-                        renderCell: ({ row, value }) => (value.includes(':') ? `[${value}]` : value) + ' :' + row.port,
+                        renderCell: ({ row, value }) => ipForUrl(value) + ' :' + row.port,
                         mergeRender: { other: 'user', fontSize: 'small' },
                     },
                     {

@@ -15,6 +15,7 @@ import { SocketAddress, BlockList } from 'node:net'
 import debounceAsync from './debounceAsync'
 import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST } from './const'
+import { ipLocalHost } from './cross'
 export { debounceAsync }
 
 type ProcessExitHandler = (signal:string) => any
@@ -58,7 +59,7 @@ export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: 
 
 export function isLocalHost(c: Connection | Koa.Context | string) {
     const ip = typeof c === 'string' ? c : c.socket.remoteAddress // don't use Context.ip as it is subject to proxied ips, and that's no use for localhost detection
-    return ip && (ip === '::1' || ip.endsWith('127.0.0.1'))
+    return ip && ipLocalHost(ip)
 }
 
 export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
