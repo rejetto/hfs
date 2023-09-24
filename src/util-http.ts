@@ -4,16 +4,19 @@ import { RequestOptions } from 'https'
 import http, { IncomingMessage } from 'node:http'
 import https from 'node:https'
 import { HTTP_TEMPORARY_REDIRECT } from './const'
+import _ from 'lodash'
 
-export function httpString(url: string, options?: XRequestOptions): Promise<IncomingMessage & { ok: boolean, body: string }> {
+// in case the response is not 2xx, it will throw and the error object is the Response object
+export function httpString(url: string, options?: XRequestOptions): Promise<string> {
     return httpStream(url, options).then(res =>
         new Promise(resolve => {
             let buf = ''
             res.on('data', chunk => buf += chunk.toString())
-            res.on('end', () => resolve(Object.assign(res, {
-                ok: (res.statusCode || 400) < 400,
-                body: buf
-            })))
+            res.on('end', () => {
+                if (!_.inRange(res.statusCode!, 200, 299))
+                    throw res
+                resolve(buf)
+            })
         })
     )
 }

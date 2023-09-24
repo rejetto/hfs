@@ -61,7 +61,7 @@ async function getPublicIp() {
     for (const urls of _.chunk(_.shuffle(prjInfo.publicIpServices), 2)) // small parallelization
         try {
             return await Promise.any(urls.map(url => httpString(url).then(res => {
-                const ip = res.body?.trim()
+                const ip = res.trim()
                 if (!/[.:0-9a-fA-F]/.test(ip))
                     throw Error("bad result: " + ip)
                 return ip

@@ -39,8 +39,7 @@ function downloadProgress(id: string, status: DownloadStatus) {
 
 // determine default branch, possibly without consuming api quota
 async function getGithubDefaultBranch(repo: string) {
-    const res = await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' })
-    return res.ok ? 'main'
+    return await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' })  ? 'main'
         : (await getRepoInfo(repo))?.default_branch as string
 }
 
@@ -110,7 +109,6 @@ export function getRepoInfo(id: string) {
 
 export function readGithubFile(uri: string) {
     return httpString('https://raw.githubusercontent.com/' + uri)
-        .then(res => res.body)
 }
 
 export async function readOnlinePlugin(repo: Repo, branch='') {
@@ -122,9 +120,7 @@ export async function readOnlinePlugin(repo: Repo, branch='') {
         if (!main) throw Error("missing repo.main")
         if (!main.includes('//'))
             main = pl.repo.web + main
-        const res = await httpString(main)
-        if (!res.ok) throw Error("bad repo.main")
-        return parsePluginSource(main, res.body) // use 'repo' as 'id' client-side
+        return parsePluginSource(main, await httpString(main)) // use 'repo' as 'id' client-side
     }
     branch ||= await getGithubDefaultBranch(repo)
     const res = await readGithubFile(`${repo}/${branch}/${DIST_ROOT}/plugin.js`)
@@ -141,22 +137,16 @@ export function getFolder2repo() {
 }
 
 async function apiGithub(uri: string) {
-    try {
-        const res = await httpString('https://api.github.com/'+uri, {
-            headers: {
-                'User-Agent': 'HFS',
-                Accept: 'application/vnd.github.v3+json',
-            }
-        })
-        if (!res.ok)
-            throw res.statusCode
-        return JSON.parse(res.body)
-    }
-    catch(e: any) {
+    return httpString('https://api.github.com/' + uri, {
+        headers: {
+            'User-Agent': 'HFS',
+            Accept: 'application/vnd.github.v3+json',
+        }
+    }).then(JSON.parse, e => {
         // https://docs.github.com/en/rest/overview/resources-in-the-rest-api?apiVersion=2022-11-28#rate-limiting
         throw e.message === '403' ? Error('github_quota')
             : e
-    }
+    })
 }
 
 export async function searchPlugins(text='') {
