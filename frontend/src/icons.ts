@@ -36,6 +36,7 @@ const SYS_ICONS: Record<string, [string] | [string, string]> = {
     edit: ['✏️'],
     zoom: ['↔'],
     delete: ['🗑️', 'trash'],
+    comment: ['💬']
 }
 
 document.fonts.ready.then(async ()=> {

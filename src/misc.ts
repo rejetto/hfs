@@ -9,14 +9,13 @@ import assert from 'assert'
 export * from './util-http'
 export * from './util-files'
 export * from './cross'
+export * from './debounceAsync'
 import { Readable } from 'stream'
 import { matcher } from 'micromatch'
 import { SocketAddress, BlockList } from 'node:net'
-import debounceAsync from './debounceAsync'
 import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST } from './const'
 import { ipLocalHost } from './cross'
-export { debounceAsync }
 
 type ProcessExitHandler = (signal:string) => any
 const cbs = new Set<ProcessExitHandler>()

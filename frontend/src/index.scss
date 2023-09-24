@@ -55,7 +55,7 @@ body, input {
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-input:not([type=checkbox],[type=range]), select {
+input:not([type=checkbox],[type=range]), select, textarea {
     padding: 0.3em 0.4em;
     border-radius: 0.5em;
     background: var(--bg);
@@ -71,6 +71,7 @@ input[type=checkbox] {
     transform: scale(1.7);
     accent-color: var(--button-bg);
 }
+textarea { font-size: 14pt }
 label input[type=checkbox] {
     margin-right: .8em;
 }
@@ -281,26 +282,6 @@ ul.dir {
                 }
             }
         }
-        .entry-comment {
-            display: inline;
-            &::before, &::after {
-                font-size: 1.5em;
-                font-family: serif;
-                line-height: 1px;
-                position: relative;
-            }
-            &::before {
-                content: open-quote;
-                margin-left: 0.5em;
-                margin-right: 0.1em;
-                top: 0.2em;
-            }
-            &::after {
-                content: "„";
-                top: -0.1em;
-                margin-left: 0.1em;
-            }
-        }
         .entry-panel {
             float: right;
             padding-top: 0.3em;
@@ -334,6 +315,27 @@ ul.dir {
                 opacity: .9;
             }
         }
+    }
+}
+.entry-comment {
+    display: inline;
+    white-space: pre-wrap;
+    &::before, &::after {
+        font-size: 1.5em;
+        font-family: serif;
+        line-height: 1px;
+        position: relative;
+    }
+    &::before {
+        content: "“";
+        margin-left: 0.5em;
+        margin-right: 0.1em;
+        top: 0.2em;
+    }
+    &::after {
+        content: "„";
+        top: -0.1em;
+        margin-left: 0.1em;
     }
 }
 
@@ -433,10 +435,11 @@ button label {
     margin-left: 0.5em;
 }
 .upload-list {
-    td:nth-child(1) { width: 0;  }
+    td:nth-child(1) { width: 0; }
     td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
     td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
 }
+.nowrap { white-space: nowrap }
 
 .dialog-login {
     form {

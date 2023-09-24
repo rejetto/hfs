@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, DragEvent, Fragment, useMemo, useState } from 'react'
+import { createElement as h, DragEvent, Fragment, useMemo } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
 import {
     closeDialog,
@@ -22,13 +22,15 @@ import { Link } from 'react-router-dom'
 import { t } from './i18n'
 import { subscribeKey } from 'valtio/utils'
 
+interface ToUpload { file: File, comment?: string }
 export const uploadState = proxy<{
     done: number
     doneByte: number
     errors: number
-    qs: { to: string, files: File[] }[]
+    adding: ToUpload[]
+    qs: { to: string, entries: ToUpload[] }[]
     paused: boolean
-    uploading?: File
+    uploading?: ToUpload
     progress: number // percentage
     partial: number // relative to uploading file. This is how much we have done of the current queue.
     speed: number
@@ -41,6 +43,7 @@ export const uploadState = proxy<{
     progress: 0,
     paused: false,
     qs: [],
+    adding: [],
     errors: 0,
     doneByte: 0,
     done: 0,
@@ -59,7 +62,7 @@ setInterval(() => {
     bytesSentTimestamp = now
 
     // keep track of ETA
-    const qBytes = _.sumBy(uploadState.qs, q => _.sumBy(q.files, f => f.size))
+    const qBytes = _.sumBy(uploadState.qs, q => _.sumBy(q.entries, x => x.file.size))
     const left = (qBytes  - uploadState.partial)
     uploadState.eta = uploadState.speed && Math.round(left / uploadState.speed)
 }, 5_000)
@@ -99,16 +102,20 @@ export function showUpload() {
         }
     })
 
+    function clear() {
+        uploadState.adding.splice(0,Infinity)
+    }
+
     function Content(){
-        const [files, setFiles] = useState([] as File[])
+        const adding = useSnapshot(uploadState.adding)
         const { qs, paused, eta, skipExisting } = useSnapshot(uploadState)
         const { can_upload, accept } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
-        const inQ = _.sumBy(qs, q => q.files.length) - (uploadState.uploading ? 1 : 0)
+        const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
         const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
-        const size = formatBytes(files.reduce((a, f) => a + f.size, 0))
+        const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
 
-        return h(FlexV, { gap: 0, props: acceptDropFiles(x => setFiles([ ...files, ...x ])) },
+        return h(FlexV, { gap: 0, props: acceptDropFiles(more => uploadState.adding.push(...more.map(f => ({ file: ref(f) })))) },
             h(FlexV, { className: 'upload-toolbar' },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, { margin: '0 0 1em' },
@@ -124,23 +131,25 @@ export function showUpload() {
                             h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
                             h(Checkbox, { value: skipExisting, onChange: v => uploadState.skipExisting = v }, t`Skip existing files`),
                         ),
-                        files.length > 0 && h(Flex, { justifyContent: 'center', flexWrap: 'wrap' },
+                        adding.length > 0 && h(Flex, { justifyContent: 'center', flexWrap: 'wrap' },
                             h('button', {
                                 className: 'upload-send',
                                 onClick() {
-                                    enqueue(files).then()
-                                    setFiles([])
+                                    enqueue(uploadState.adding).then()
+                                    clear()
                                 }
-                            }, t('send_files', { n: files.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
-                            h('button', { onClick() { setFiles([]) } }, t`Clear`),
+                            }, t('send_files', { n: adding.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
+                            h('button', { onClick: clear }, t`Clear`),
                         )
                     ),
             ),
             h(FilesList, {
-                files,
-                remove(f) {
-                    setFiles(files.filter(x => x !== f))
-                }
+                entries: adding,
+                actions: {
+                    delete: rec => _.remove(uploadState.adding, { file: rec.file }),
+                    comment: rec => promptDialog(t('enter_comment', "Comment for this file"), { def: rec.comment, type: 'textarea' })
+                        .then(s => _.find(uploadState.adding, { file: rec.file })!.comment = s || undefined),
+                },
             }),
             h(UploadStatus),
             qs.length > 0 && h('div', {},
@@ -162,14 +171,16 @@ export function showUpload() {
                     h('div', { key: q.to },
                         h(Link, { to: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FilesList, {
-                            files: Array.from(q.files),
-                            remove(f) {
-                                if (f === uploadState.uploading)
-                                    return abortCurrentUpload()
-                                const q = uploadState.qs[idx]
-                                _.pull(q.files, f)
-                                if (!q.files.length)
-                                    uploadState.qs.splice(idx,1)
+                            entries: Array.from(q.entries),
+                            actions: {
+                                delete: f => {
+                                    if (f === uploadState.uploading)
+                                        return abortCurrentUpload()
+                                    const q = uploadState.qs[idx]
+                                    _.pull(q.entries, f)
+                                    if (!q.entries.length)
+                                        uploadState.qs.splice(idx,1)
+                                }
                             }
                         }),
                     ))
@@ -178,7 +189,7 @@ export function showUpload() {
 
         function pickFiles(options: Parameters<typeof selectFiles>[1]) {
             selectFiles(list => {
-                setFiles([...files, ...Array.from(list || []).filter(simulateBrowserAccept)])
+                uploadState.adding.push( ...Array.from(list || []).filter(simulateBrowserAccept).map(f => ({ file: ref(f) })) )
             }, options)
         }
     }
@@ -189,19 +200,22 @@ function path(f: File, pre='') {
     return (prefix('', pre, '/') + (f.webkitRelativePath || f.name)).replaceAll('//','/')
 }
 
-function FilesList({ files, remove }: { files: File[], remove: (f:File) => any }) {
+function FilesList({ entries, actions }: { entries: Readonly<ToUpload[]>, actions: { [icon:string]: (rec :ToUpload) => any } }) {
     const { uploading, progress }  = useSnapshot(uploadState)
-    return !files.length ? null : h('table', { className: 'upload-list', width: '100%' },
+    return !entries.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
-            files.map((f,i) => {
-                const working = f === uploading
-                return h('tr', { key: i },
-                    h('td', {}, iconBtn('delete', () => remove(f))),
-                    h('td', {}, formatBytes(f.size)),
-                    h('td', { className: working ? 'ani-working' : undefined },
-                        path(f),
-                        working && h('span', { className: 'upload-progress' }, formatPerc(progress))
+            entries.map((e, i) => {
+                const working = e === uploading
+                return h(Fragment, { key: i },
+                    h('tr', {},
+                        h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) => iconBtn(icon, () => cb(e))) ),
+                        h('td', {}, formatBytes(e.file.size)),
+                        h('td', { className: working ? 'ani-working' : undefined },
+                            path(e.file),
+                            working && h('span', { className: 'upload-progress' }, formatPerc(progress))
+                        ),
                     ),
+                    e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
                 )
             })
         )
@@ -223,27 +237,27 @@ function formatTime(time: number, decimals=0, length=Infinity) {
 
 subscribe(uploadState, () => {
     const [cur] = uploadState.qs
-    if (!cur?.files.length) {
+    if (!cur?.entries.length) {
         notificationChannel = '' // renew channel at each queue for improved security
-        notificationSource.close()
+        notificationSource?.close()
         return
     }
-    if (cur?.files.length && !uploadState.uploading && !uploadState.paused)
-        startUpload(cur.files[0], cur.to).then()
+    if (cur?.entries.length && !uploadState.uploading && !uploadState.paused)
+        startUpload(cur.entries[0], cur.to).then()
 })
 
-export async function enqueue(files: File[]) {
-    if (_.remove(files, f => !simulateBrowserAccept(f)).length)
+export async function enqueue(entries: ToUpload[]) {
+    if (_.remove(entries, x => !simulateBrowserAccept(x.file)).length)
         await alertDialog(t('upload_file_rejected', "Some files were not accepted"), 'warning')
 
-    files = _.uniqBy(files, path)
-    if (!files.length) return
+    entries = _.uniqBy(entries, x => path(x.file))
+    if (!entries.length) return
     const to = location.pathname
     const q = _.find(uploadState.qs, { to })
     if (!q)
-        return uploadState.qs.push({ to, files: files.map(ref) })
-    const missing = _.differenceBy(files, q.files, path)
-    q.files.push(...missing.map(ref))
+        return uploadState.qs.push({ to, entries: entries.map(ref) })
+    const missing = _.differenceBy(entries, q.entries, x => path(x.file))
+    q.entries.push(...missing.map(ref))
 }
 
 function simulateBrowserAccept(f: File) {
@@ -262,13 +276,13 @@ function normalizeAccept(accept?: string) {
 let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
-let notificationSource: EventSource
+let notificationSource: EventSource | undefined
 let closeLast: undefined | (() => void)
 
-async function startUpload(f: File, to: string, resume=0) {
+async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     let resuming = false
     overrideStatus = 0
-    uploadState.uploading = f
+    uploadState.uploading = toUpload
     await subscribeNotifications()
     req = new XMLHttpRequest()
     req.onloadend = () => {
@@ -294,10 +308,11 @@ async function startUpload(f: File, to: string, resume=0) {
     req.open('POST', to + '?' + new URLSearchParams({
         notificationChannel,
         resume: String(resume),
+        comment: toUpload.comment || '',
         ...uploadState.skipExisting && { skipExisting: '1' },
     }), true)
     const form = new FormData()
-    form.append('file', f.slice(resume), path(f))
+    form.append('file', toUpload.file.slice(resume), path(toUpload.file))
     req.send(form)
 
     async function subscribeNotifications() {
@@ -307,15 +322,15 @@ async function startUpload(f: File, to: string, resume=0) {
             const {uploading} = uploadState
             if (!uploading) return
             if (name === 'upload.resumable') {
-                const size = data?.[path(uploading)]
-                if (!size || size > f.size) return
+                const size = data?.[path(uploading.file)]
+                if (!size || size > toUpload.file.size) return
                 const {expires} = data
                 const timeout = typeof expires !== 'number' ? 0
                     : (Number(new Date(expires)) - Date.now()) / 1000
                 closeLast?.()
                 const cancelSub = subscribeKey(uploadState, 'partial', v =>
                     v >= size && closeLast?.() )  // dismiss dialog as soon as we pass the threshold
-                const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/f.size)} = ${formatBytes(size)})`
+                const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/toUpload.file.size)} = ${formatBytes(size)})`
                 const dialog = confirmDialog(msg, { timeout })
                 closeLast = dialog.close
                 const confirmed = await dialog
@@ -324,10 +339,10 @@ async function startUpload(f: File, to: string, resume=0) {
                 if (uploading !== uploadState.uploading) return // too late
                 resuming = true
                 abortCurrentUpload()
-                return startUpload(f, to, size)
+                return startUpload(toUpload, to, size)
             }
             if (name === 'upload.status') {
-                overrideStatus = data?.[path(uploading)]
+                overrideStatus = data?.[path(uploading.file)]
                 if (overrideStatus >= 400)
                     abortCurrentUpload()
                 return
@@ -341,14 +356,14 @@ async function startUpload(f: File, to: string, resume=0) {
             413: t`file too large`,
         }
         const specifier = (ERRORS as any)[status]
-        const msg = t('failed_upload', f, "Couldn't upload {name}") + prefix(': ', specifier)
+        const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
         closeLast?.()
         closeLast = alertDialog(msg, 'error').close
     }
 
     function done() {
         uploadState.done++
-        uploadState.doneByte += f!.size
+        uploadState.doneByte += toUpload!.file.size
         reloadOnClose = true
     }
 
@@ -357,8 +372,8 @@ async function startUpload(f: File, to: string, resume=0) {
         uploadState.partial = 0
         const { qs } = uploadState
         if (!qs.length) return
-        qs[0].files.shift()
-        if (!qs[0].files.length)
+        qs[0].entries.shift()
+        if (!qs[0].entries.length)
             qs.shift()
         if (qs.length) return
         setTimeout(reloadList, 500) // workaround: reloading too quickly can meet the new file still with its temp name

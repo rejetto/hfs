@@ -99,7 +99,12 @@ function FilesList() {
         : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
 
     return h(Fragment, {},
-        h('ul', { ref, className: 'dir', ...acceptDropFiles(can_upload && enqueue) },
+        h('ul', {
+            ref,
+            className: 'dir',
+            ...acceptDropFiles(files => can_upload ? enqueue(files.map(file => ({ file })))
+                : alertDialog(t("Upload not available"), 'warning') )
+        },
             msgInstead ? h('p', {}, msgInstead)
                 : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry, idx) =>
                     h(Entry, {

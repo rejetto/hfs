@@ -15,6 +15,7 @@ import { getFreeDiskSync } from './util-os'
 import { socket2connection, updateConnection } from './connections'
 import { roundSpeed } from './throttler'
 import { getCurrentUsername } from './perm'
+import { setCommentFor } from './comments'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -103,7 +104,10 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 while (fs.existsSync(dest))
             }
             return fs.rename(tempName, dest, err => {
-                err && console.error("couldn't rename temp to", dest, String(err))
+                if (err)
+                    console.error("couldn't rename temp to", dest, String(err))
+                else if (ctx.query.comment)
+                    setCommentFor(dest, String(ctx.query.comment))
                 if (resumable)
                     delayedDelete(resumable, 0)
             })

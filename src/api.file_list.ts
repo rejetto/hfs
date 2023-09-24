@@ -15,15 +15,11 @@ import {
 import { ApiError, ApiHandler, SendListReadable } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
-import { asyncGeneratorToArray, basename, dirTraversal, parseFile, pattern2filter } from './misc'
+import { asyncGeneratorToArray, dirTraversal, pattern2filter } from './misc'
 import _ from 'lodash'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
-import { defineConfig } from './config'
-import { dirname, join } from 'path'
-
-const DESCRIPT_ION = 'descript.ion'
-const descriptIon = defineConfig('descript_ion', true)
+import { descriptIon, DESCRIPT_ION, getCommentFor } from './comments'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string }
 
@@ -142,21 +138,4 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
                 || n.children?.some(c => c.can_read || filesInsideCould(c)) // we count on the boolean-compliant nature of the permission type here
         }
     }
-}
-
-async function getCommentFor(path?: string) {
-    return !path || !descriptIon.get() ? undefined
-        : readDescription(dirname(path)).then(x => x.get(basename(path)), () => undefined)
-}
-
-function readDescription(path: string) {
-    return parseFile(join(path, DESCRIPT_ION), txt => new Map(txt.split('\n').map(line => {
-        const quoted = line[0] === '"' ? 1 : 0
-        const i = quoted ? line.indexOf('"', 2) : line.indexOf(' ')
-        const fn = line.slice(quoted, i - quoted)
-        let comment = line.slice(i + 1)
-        if (comment.endsWith('\x04\xc2'))
-            comment = comment.slice(0, -2).replaceAll('\\n', '\n')
-        return [fn, comment]
-    })))
 }
