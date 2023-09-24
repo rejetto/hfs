@@ -208,11 +208,12 @@ export class Plugin {
     }
 }
 
+const SERVER_CODE_ID = '.'
 const serverCode = defineConfig('server_code', '', async (script, { k }) => {
     const res: any = {}
     try {
         new Function('exports', script)(res) // parse
-        return new Plugin('.', '', await initPlugin(res), _.noop) // '.' is a name that will surely be not found among plugin folders
+        return new Plugin(SERVER_CODE_ID, '', await initPlugin(res), _.noop) // '.' is a name that will surely be not found among plugin folders
     }
     catch (e: any) {
         return console.error(k + ':', e.message || String(e))
@@ -223,9 +224,8 @@ let serverCodePlugin: void | Plugin
 serverCode.sub(() => serverCode.compiled().then(x => serverCodePlugin = x))
 export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
     const entries = Object.entries(plugins)
-    if (includeServerCode && serverCodePlugin)
-        entries.push([serverCodePlugin.id, serverCodePlugin])
     return entries.map(([plName,pl]) => {
+        if (!includeServerCode && plName === SERVER_CODE_ID) return
         try { return cb(pl,plName) }
         catch(e) {
             console.log('plugin error', plName, String(e))
