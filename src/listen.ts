@@ -260,8 +260,7 @@ export async function getUrls() {
 }
 
 function printUrls(srvName: string) {
-    getUrls().then(urls => {
-        for (const url of urls[srvName]!)
-            console.log('serving on', url)
-    })
+    getUrls().then(urls =>
+        _.each(urls[srvName], url =>
+            console.log('serving on', url)))
 }
