@@ -27,11 +27,10 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const name = getNodeName(node)
     const mimeString = typeof mime === 'string' ? mime
         : _.find(mime, (val,mask) => matches(name, mask))
-    const allowed = allowedReferer.get()
-    if (allowed) {
+    if (allowedReferer.get()) {
         const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
         if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
-        && !matches(ref, allowed))
+        && !matches(ref, allowedReferer.get()))
             return ctx.status = HTTP_FORBIDDEN
     }
 

@@ -146,7 +146,7 @@ export function showUpload() {
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
                     [queueStr, etaStr].filter(Boolean).join(', '),
-                    inQ > 0 && iconBtn('trash', ()=>  {
+                    inQ > 0 && iconBtn('delete', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
                     }),
@@ -196,7 +196,7 @@ function FilesList({ files, remove }: { files: File[], remove: (f:File) => any }
             files.map((f,i) => {
                 const working = f === uploading
                 return h('tr', { key: i },
-                    h('td', {}, iconBtn('trash', () => remove(f))),
+                    h('td', {}, iconBtn('delete', () => remove(f))),
                     h('td', {}, formatBytes(f.size)),
                     h('td', { className: working ? 'ani-working' : undefined },
                         path(f),

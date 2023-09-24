@@ -35,7 +35,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 return (state.can_delete || entry.p?.includes('d')) && {
                     id: 'delete',
                     label: t`Delete`,
-                    icon: 'trash',
+                    icon: 'delete',
                     onClick: () => deleteFiles([entry.uri])
                 }
             if (x === 'show')

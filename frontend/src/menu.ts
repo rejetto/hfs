@@ -64,7 +64,7 @@ export function MenuPanel() {
             }),
             h(MenuButton, changingButton === 'delete' ? {
                 id: 'delete-button',
-                icon: 'trash',
+                icon: 'delete',
                 label: t`Delete`,
                 className: 'show-sliding',
                 onClick: () => deleteFiles(Object.keys(selected))

@@ -205,6 +205,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
             h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
                 isFolder ? h(Fragment, {},
                         h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
+                        // popup button is here to be able to detect link-wrapper:hover
                         menuOnLink && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
                     )
                     : containerDir ? h(Fragment, {},
