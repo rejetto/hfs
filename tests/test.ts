@@ -98,6 +98,7 @@ describe('basics', () => {
     }))
 
     testUpload('upload.missing perm', 401)
+    it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
 })
 
 describe('accounts', () => {
@@ -108,16 +109,19 @@ describe('accounts', () => {
 })
 
 describe('after-login', () => {
-    before(() =>
-        srpSequence(username, password, (cmd: string, params: any) =>
-            reqApi(cmd, params, ()=>true)())
-    )
-    it('list protected', reqList('/for-admins/', { inList:['alfa.txt'] }))
+    before(() => login(username))
+    it('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
+    it('inherit.disabled', reqList('/for-disabled/', 401))
     testUpload('upload', 200)
     testUpload('upload.bad path', 418, '../../')
     after(() =>
         rmSync(join(__dirname, 'temp'), { recursive: true}))
 })
+
+function login(usr: string, pwd=password) {
+    return srpSequence(usr, pwd, (cmd: string, params: any) =>
+        reqApi(cmd, params, (x,res)=> !res.isAxiosError)())
+}
 
 function testUpload(name: string, tester: Tester, path = 'temp/') {
     it(name, req('PUT/for-admins/upload/'+join(path+'gpl.png'), tester, {

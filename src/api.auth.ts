@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Account, getAccount, getCurrentUsername, normalizeUsername } from './perm'
+import { Account, accountCanLogin, getAccount, getCurrentUsername, normalizeUsername } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
@@ -39,17 +39,17 @@ function makeExp() {
 export const login: ApiHandler = async ({ username, password }, ctx) => {
     if (!username || !password) // some validation
         return new ApiError(HTTP_BAD_REQUEST)
-    const acc = getAccount(username)
-    if (!acc)
+    const account = getAccount(username)
+    if (!account || !accountCanLogin(account))
         return new ApiError(HTTP_UNAUTHORIZED)
-    if (!acc.hashed_password)
+    if (!account.hashed_password)
         return new ApiError(HTTP_NOT_ACCEPTABLE)
-    if (!await verifyPassword(acc.hashed_password, password))
+    if (!await verifyPassword(account.hashed_password, password))
         return new ApiError(HTTP_UNAUTHORIZED)
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
     await loggedIn(ctx, username)
-    return { ...makeExp(), redirect: acc.redirect }
+    return { ...makeExp(), redirect: account.redirect }
 }
 
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
@@ -58,7 +58,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     const account = getAccount(username)
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
-    if (!account) // TODO simulate fake account to prevent knowing valid usernames
+    if (!account || !accountCanLogin(account)) // TODO simulate fake account to prevent knowing valid usernames
         return new ApiError(HTTP_UNAUTHORIZED)
     try {
         const { step1, ...rest } = await srpStep1(account)

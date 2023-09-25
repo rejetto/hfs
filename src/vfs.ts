@@ -19,7 +19,7 @@ import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
 import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './const'
 import events from './events'
-import { getCurrentUsernameExpanded } from './perm'
+import { expandUsername, getCurrentUsername } from './perm'
 
 export const WHO_ANYONE = true
 export const WHO_NO_ONE = false
@@ -244,7 +244,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx
         if (Array.isArray(who)) {
             const arr = who // shut up ts
             // check if I or any ancestor match `who`, but cache ancestors' usernames inside context state
-            const some = getOrSet(ctx.state, 'usernames', () => getCurrentUsernameExpanded(ctx))
+            const some = getOrSet(ctx.state, 'usernames', () => expandUsername(getCurrentUsername(ctx)))
                 .some((u: string) => arr.includes(u))
             return some ? 0 : HTTP_UNAUTHORIZED
         }

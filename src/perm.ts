@@ -17,6 +17,7 @@ export interface Account {
     ignore_limits?: boolean
     admin?: boolean
     redirect?: string
+    disabled?: boolean
 }
 interface Accounts { [username:string]: Account }
 
@@ -27,15 +28,15 @@ export function getCurrentUsername(ctx: Koa.Context): string {
 }
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
-export function getCurrentUsernameExpanded(ctx: Koa.Context) {
-    const who = getCurrentUsername(ctx)
-    if (!who)
-        return []
-    const ret = [who]
-    for (const u of ret) {
+export function expandUsername(who: string): string[] {
+    const ret = []
+    const q = [who]
+    for (const u of q) {
         const a = getAccount(u)
-        if (a?.belongs)
-            ret.push(...a.belongs)
+        if (!a || a.disabled) continue
+        ret.push(u)
+        if (a.belongs)
+            q.push(...a.belongs)
     }
     return ret
 }
@@ -129,7 +130,7 @@ export function renameAccount(from: string, to: string) {
 }
 
 // we consider all the following fields, when falsy, as equivalent to be missing. If this changes in the future, please adjust addAccount and setAccount
-const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin']
+const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin','disabled']
 
 export function addAccount(username: string, props: Partial<Account>) {
     username = normalizeUsername(username)
@@ -148,6 +149,8 @@ export function setAccount(acc: Account, changes: Partial<Account>) {
         if (!v)
             rest[k as keyof Account] = undefined
     Object.assign(acc, rest)
+    if (!acc.disabled)
+        delete acc.disabled
     if (changes.username)
         renameAccount(acc.username, changes.username)
     saveAccountsAsap()
@@ -182,7 +185,11 @@ export function accountHasPassword(account: Account) {
 }
 
 export function accountCanLogin(account: Account) {
-    return accountHasPassword(account)
+    return accountHasPassword(account) && !allDisabled(account)
+}
+
+function allDisabled(account: Account): boolean {
+    return Boolean(account.disabled || account.belongs?.map(u => getAccount(u, false)).every(a => a && allDisabled(a)))
 }
 
 export function accountCanLoginAdmin(account: Account) {

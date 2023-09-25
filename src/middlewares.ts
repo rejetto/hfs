@@ -23,7 +23,7 @@ import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
-import { getAccount } from './perm'
+import { accountCanLogin, getAccount } from './perm'
 import { socket2connection, updateConnection, normalizeIp } from './connections'
 import basicAuth from 'basic-auth'
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
@@ -234,7 +234,9 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     if (ctx.session)
         ctx.session.maxAge = sessionDuration.compiled()
     // calculate these once and for all
-    ctx.state.account = await getHttpAccount(ctx) ?? getAccount(ctx.session?.username, false)
+    const a = ctx.state.account = await getHttpAccount(ctx) ?? getAccount(ctx.session?.username, false)
+    if (a && !accountCanLogin(a))
+        ctx.state.account = undefined
     const conn = ctx.state.connection = socket2connection(ctx.socket)
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
     if (conn)

@@ -3,7 +3,7 @@
 import { createElement as h, useState, useEffect, Fragment } from "react"
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Close, Delete, Group, MilitaryTech, Person, PersonAdd } from '@mui/icons-material'
+import { Close, Delete, DoNotDisturb, Group, MilitaryTech, Person, PersonAdd } from '@mui/icons-material'
 import { IconBtn, iconTooltip, newDialog, reloadBtn, useBreakpoint } from './misc'
 import { TreeItem, TreeView } from '@mui/lab'
 import MenuButton from './MenuButton'
@@ -21,6 +21,7 @@ export interface Account {
     admin?: boolean
     adminActualAccess?: boolean
     ignore_limits?: boolean
+    disabled?: boolean
     redirect?: string
     belongs?: string[]
 }
@@ -166,5 +167,8 @@ export default function AccountsPage() {
 }
 
 export function account2icon(ac: Account, props={}) {
-    return h(ac.hasPassword ? Person : Group, props)
+    return h(Fragment, {},
+        h(ac.hasPassword ? Person : Group, props),
+        ac.disabled && h(DoNotDisturb),
+    )
 }
