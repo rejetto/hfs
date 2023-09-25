@@ -20,6 +20,7 @@ import _ from 'lodash'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { descriptIon, DESCRIPT_ION, getCommentFor } from './comments'
+import { basename } from 'path'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string }
 
@@ -68,7 +69,7 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     async function* produceEntries() {
         for await (const sub of walker) {
             if (ctx.aborted) break
-            const name = getNodeName(sub)
+            const name = basename(getNodeName(sub))
             if (descriptIon.get() && name === DESCRIPT_ION)
                 continue
             if (!filter(name))
