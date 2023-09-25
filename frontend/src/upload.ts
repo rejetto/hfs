@@ -1,18 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, DragEvent, Fragment, useMemo } from 'react'
+import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
-import {
-    basename,
-    closeDialog,
-    formatBytes,
-    formatPerc,
-    hIcon,
-    isMobile,
-    newDialog,
-    prefix,
-    selectFiles
-} from './misc'
+import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -119,7 +109,7 @@ export function showUpload() {
         return h(FlexV, { gap: 0, props: acceptDropFiles(more => uploadState.adding.push(...more.map(f => ({ file: ref(f) })))) },
             h(FlexV, { className: 'upload-toolbar' },
                 !can_upload ? t('no_upload_here', "No upload permission for the current folder")
-                    : h(FlexV, { margin: '0 0 1em' },
+                    : h(FlexV, {},
                         h(Flex, { justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' },
                             h('button', {
                                 className: 'upload-files',
@@ -152,7 +142,7 @@ export function showUpload() {
                         .then(s => _.find(uploadState.adding, { file: rec.file })!.comment = s || undefined),
                 },
             }),
-            h(UploadStatus),
+            h(UploadStatus, { margin: '.5em 0' }),
             qs.length > 0 && h('div', {},
                 h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
                     [queueStr, etaStr].filter(Boolean).join(', '),
@@ -383,21 +373,20 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             alertDialog(
                 h('div', {},
                     t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
-                    h('div', {}, h(UploadStatus))
+                    h(UploadStatus)
                 ),
                 'info'
             ).finally(resetCounters)
     }
 }
 
-function UploadStatus() {
+function UploadStatus(props: CSSProperties) {
     const { done, doneByte, errors } = useSnapshot(uploadState)
-    return h(Fragment, {},
-        [
-            done && t('upload_finished', { n: done, size: formatBytes(doneByte) }, "{n} finished ({size})"),
-            errors && t('upload_errors', { n: errors }, "{n} failed")
-        ].filter(Boolean).join(' – ')
-    )
+    const s = [
+        done && t('upload_finished', { n: done, size: formatBytes(doneByte) }, "{n} finished ({size})"),
+        errors && t('upload_errors', { n: errors }, "{n} failed")
+    ].filter(Boolean).join(' – ')
+    return !s ? null : h('div', { style: props }, s)
 }
 
 function abortCurrentUpload() {

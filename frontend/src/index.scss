@@ -320,6 +320,7 @@ ul.dir {
 .entry-comment {
     display: inline;
     white-space: pre-wrap;
+    word-break: break-word;
     &::before, &::after {
         font-size: 1.5em;
         font-family: serif;
@@ -435,6 +436,7 @@ button label {
     margin-left: 0.5em;
 }
 .upload-list {
+    margin-top: 1em;
     td:nth-child(1) { width: 0; }
     td:nth-child(2) { text-align: right; width: 0; white-space: nowrap; padding-left: 0.5em; }
     td:nth-child(3) { padding: .2em .5em; word-break: break-word; }
