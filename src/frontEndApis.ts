@@ -15,7 +15,7 @@ import { mkdir, rename, rm } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getUploadMeta } from './upload'
 import { apiAssertTypes } from './misc'
-import { setCommentFor } from './comments'
+import { getCommentFor, setCommentFor } from './comments'
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
@@ -77,6 +77,7 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(HTTP_UNAUTHORIZED)
         try {
             await rm(node.source, { recursive: true })
+            setCommentFor(node.source, '').then()
             return {}
         }
         catch (e: any) {
@@ -94,12 +95,19 @@ export const frontEndApis: ApiHandlers = {
         if (!hasPermission(node, 'can_delete', ctx))
             throw new ApiError(HTTP_UNAUTHORIZED)
         try {
-            if (node.name)
+            if (node.name) // virtual name = virtual rename
                 node.name = dest
-            else if (node.source)
-                await rename(node.source, join(dirname(node.source), dest))
-            else
-                throw new ApiError(HTTP_SERVER_ERROR)
+            else {
+                if (!node.source)
+                    throw new ApiError(HTTP_FAILED_DEPENDENCY)
+                const destSource = join(dirname(node.source), dest)
+                await rename(node.source, destSource)
+                getCommentFor(node.source).then(c => {
+                    if (!c) return
+                    setCommentFor(node.source!, '').then()
+                    setCommentFor(destSource, c).then()
+                })
+            }
             return {}
         }
         catch (e: any) {
