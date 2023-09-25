@@ -53,8 +53,10 @@ export default function useFetchList() {
         const buffer: DirList = []
         const flush = () => {
             const chunk = buffer.splice(0, Infinity)
-            if (chunk.length)
+            if (chunk.length) {
                 state.list = sort([...state.list, ...chunk])
+                updateFilteredList()
+            }
         }
         const timer = setInterval(flush, 1000)
         const src = apiEvents('get_file_list', params, (type, data) => {
@@ -149,9 +151,11 @@ const sortAgain = _.debounce(()=> state.list = sort(state.list), 100)
 for (const k of [ 'sortBy', 'invertOrder', 'foldersFirst', 'sortNumerics'] as const)
     subscribeKey(state, k, sortAgain)
 
-subscribeKey(state, 'patternFilter', v => {
+subscribeKey(state, 'patternFilter', updateFilteredList)
+function updateFilteredList() {
+    const v = state.patternFilter
     if (!v)
         return state.filteredList = undefined
     const filter = new RegExp(_.escapeRegExp(v),'i')
     state.filteredList = state.list.filter(x => filter.test(x.n))
-})
+}
