@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 2.1,
-    "hfs_version": "0.48.0",
+    "version": 2.2,
+    "hfs_version": "0.49.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{1 файл} few{# файла} other{# файлов}}",
@@ -137,10 +137,12 @@
         "showHelp_F_body": "полноэкранный режим",
         "Destination": "Назначение",
         "in_queue": "{n} в очереди",
+        "enter_comment": "Комментарий для файла",
+        "Comment": "Комментировать",
 
         "": "PLUGINS SECTION",
         "": "PLUGIN thumbnails",
-		"Enable tiles mode": "Просмотр в режиме плиток",
-		"thumbnails_switchBack": "Изменить вид можно в настройках"
+        "Enable tiles mode": "Просмотр в режиме плиток",
+        "thumbnails_switchBack": "Изменить вид можно в настройках"
     }
 }

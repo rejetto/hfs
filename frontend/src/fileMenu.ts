@@ -10,6 +10,7 @@ import { fileShow, getShowType } from './show'
 import { alertDialog, promptDialog } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
 import { navigate } from './App'
+import { inputComment } from './upload'
 
 interface FileMenuEntry {
     id?: string
@@ -25,6 +26,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+        state.can_upload && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
             if (x === 'open') {
                 if (entry.cantOpen) return
@@ -131,4 +133,16 @@ async function rename(entry: DirEntry) {
     catch(e: any) {
         await alertDialog(e)
     }
+}
+
+async function editComment(entry: DirEntry) {
+    const res = await inputComment(entry.name, entry.comment)
+    if (res === null) return
+    await apiCall('comment', { uri: entry.uri, comment: res })
+    updateEntry(entry, e => e.comment = res)
+    alertDialog(t`Operation successful`)
+}
+
+function updateEntry(entry: DirEntry, cb: (e: DirEntry) => unknown) {
+    cb(_.find(state.list, { n: entry.n })!)
 }

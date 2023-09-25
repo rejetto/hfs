@@ -130,6 +130,7 @@
         "Destination": "Destinazione",
         "in_queue": "{n} in coda",
         "enter_comment": "Comment for this file",
+        "Comment": "Comment",
 
         "": "PLUGINS SECTION",
         "": "PLUGIN thumbnails",

@@ -3,6 +3,7 @@
 import { createElement as h, DragEvent, Fragment, useMemo } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
 import {
+    basename,
     closeDialog,
     formatBytes,
     formatPerc,
@@ -147,7 +148,7 @@ export function showUpload() {
                 entries: adding,
                 actions: {
                     delete: rec => _.remove(uploadState.adding, { file: rec.file }),
-                    comment: rec => promptDialog(t('enter_comment', "Comment for this file"), { def: rec.comment, type: 'textarea' })
+                    comment: rec => inputComment(basename(rec.file.name), rec.comment)
                         .then(s => _.find(uploadState.adding, { file: rec.file })!.comment = s || undefined),
                 },
             }),
@@ -435,4 +436,8 @@ async function createFolder() {
     catch(e: any) {
         await alertDialog(e.code === 409 ? t('folder_exists', "Folder with same name already exists") : e)
     }
+}
+
+export function inputComment(filename: string, def?: string) {
+    return promptDialog(t('enter_comment', "Comment for " + filename), { def, type: 'textarea' })
 }

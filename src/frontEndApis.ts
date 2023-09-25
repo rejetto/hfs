@@ -7,18 +7,15 @@ import events from './events'
 import Koa from 'koa'
 import { dirTraversal, isValidFileName } from './util-files'
 import {
-    HTTP_BAD_REQUEST,
-    HTTP_CONFLICT,
-    HTTP_FORBIDDEN,
-    HTTP_NOT_FOUND,
-    HTTP_SERVER_ERROR,
-    HTTP_UNAUTHORIZED
+    HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN,
+    HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import { hasPermission, urlToNode } from './vfs'
 import { mkdir, rename, rm } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getUploadMeta } from './upload'
 import { apiAssertTypes } from './misc'
+import { setCommentFor } from './comments'
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
@@ -108,8 +105,20 @@ export const frontEndApis: ApiHandlers = {
         catch (e: any) {
             throw new ApiError(HTTP_SERVER_ERROR, e)
         }
-    }
+    },
 
+    async comment({ uri, comment }, ctx) {
+        apiAssertTypes({ string: { uri, comment } })
+        const node = await urlToNode(uri, ctx)
+        if (!node)
+            throw new ApiError(HTTP_NOT_FOUND)
+        if (!hasPermission(node, 'can_upload', ctx))
+            throw new ApiError(HTTP_UNAUTHORIZED)
+        if (!node.source)
+            throw new ApiError(HTTP_FAILED_DEPENDENCY)
+        await setCommentFor(node.source, comment)
+        return {}
+    },
 }
 
 export function notifyClient(ctx: Koa.Context, name: string, data: any) {

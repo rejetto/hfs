@@ -76,7 +76,6 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
             const entry = await nodeToDirEntry(ctx, sub)
             if (!entry)
                 continue
-            entry.comment = await getCommentFor(sub.source)
             const cbParams = { entry, ctx, listUri: uri, node: sub }
             try {
                 const res = await Promise.all(onDirEntryHandlers.map(cb => cb(cbParams)))
@@ -126,7 +125,8 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
                 c: ctime,
                 m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
                 s: folder ? undefined : st.size,
-                p: (pr + pl + pd) || undefined
+                p: (pr + pl + pd) || undefined,
+                comment: await getCommentFor(source),
             }
         }
         catch {
