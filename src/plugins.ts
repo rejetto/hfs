@@ -405,8 +405,8 @@ function watchPlugin(id: string, path: string) {
     }
 }
 
-function customApiCall(method: string, params?: any) {
-    return mapPlugins(pl => pl.getData().customApi?.[method]?.(params))
+function customApiCall(method: string, ...params: any[]) {
+    return mapPlugins(pl => pl.getData().customApi?.[method]?.(...params))
 }
 
 function getError(id: string) {

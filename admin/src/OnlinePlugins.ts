@@ -84,7 +84,7 @@ export default function OnlinePlugins() {
                         catch(e: any) {
                             if (e.code !== 424) throw e
                             const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
-                                e.data.map((x: any) => h('li', {}, x.repo + ': ' + x.error)) )
+                                e.data.map((x: any) => h('li', { key: x.repo }, x.repo + ': ' + x.error)) )
                             return alertDialog(msg, 'error')
                         }
                     }

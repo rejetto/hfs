@@ -181,7 +181,7 @@ The `api` object you get as parameter of the `init` contains the following:
   If you need something for your plugin that's not covered by `api`, you can test it with this method, but you should
   then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin.
 
-- `customApiCall: (method: string, params?: object) => any[]` this will invoke other plugins if they define `method`
+- `customApiCall: (method: string, ...params) => any[]` this will invoke other plugins if they define `method`
   exported inside `customApi: object` 
 
 ## Front-end specific
@@ -366,6 +366,7 @@ Where `h` is just `import { createElement as h } from 'react'`.
 - 8.5 (v0.49.0)
   - new event: entry
   - exports.onDirEntry: entry.icon
+  - customApiCall supports any number of parameters
 - 8.4 (v0.48.2)
   - HFS.fileShow
   - api.Const (api.const is now deprecated)

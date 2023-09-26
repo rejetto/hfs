@@ -180,8 +180,7 @@ function serialize(p: Readonly<Plugin> | AvailablePlugin) {
 
 async function checkDependencies(repo: Repo, branch?: string) {
     const rec = await readOnlinePlugin(repo, branch)
-    if (!rec) return
-    const miss = rec.depend && rec.depend.map((dep: any) => {
+    const miss = rec?.depend?.map((dep: any) => {
         const res = findPluginByRepo(dep.repo)
         const error = !res ? 'missing'
             : (res.version || 0) < dep.version ? 'version'
