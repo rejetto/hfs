@@ -3,7 +3,7 @@ import { wrapper } from 'axios-cookiejar-support'
 import { CookieJar } from 'tough-cookie'
 import { srpSequence } from '@hfs/shared/srp'
 import { createReadStream, rmSync } from 'fs'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import _ from 'lodash'
 import { findDefined } from '../src/cross'
 /*
@@ -101,6 +101,7 @@ describe('basics', () => {
     testUpload('upload.need account', UPLOAD_URI, 401)
     it('delete.no perm', reqApi('delete', { uri: '/for-admins' }, 403))
     it('delete.need account', reqApi('delete', { uri: '/for-admins/upload' }, 401))
+    it('rename.no perm', reqApi('delete', { uri: '/for-admins', dest: 'any' }, 403))
     it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
 })
 
@@ -118,8 +119,11 @@ describe('after-login', () => {
     testUpload('upload.never', '/random', 403)
     testUpload('upload.ok', UPLOAD_URI, 200)
     testUpload('upload.crossing', UPLOAD_URI.replace('temp', '../..'), 418)
-    it('delete.ok', reqApi('delete', { uri: UPLOAD_URI }, 200))
-    it('delete.miss', reqApi('delete', { uri: UPLOAD_URI }, 404))
+    const renameTo = 'z'
+    it('rename.ok', reqApi('rename', { uri: UPLOAD_URI, dest: renameTo }, 200))
+    it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_URI }, 404))
+    it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_URI) + '/' + renameTo }, 200))
+    it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_URI }, 404))
     after(() =>
         rmSync(join(__dirname, 'temp'), { recursive: true}))
 })
