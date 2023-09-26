@@ -15,22 +15,15 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     let watcher: FSWatcher | undefined
     const debounced = debounceAsync(load, 500, { maxWait: 1000 })
     let retry: NodeJS.Timeout
-    let saving: Promise<unknown> | undefined
     let last: string | undefined
     install(true)
-    return {
-        unwatch: uninstall,
-        save: (data: string) => Promise.resolve(saving).catch(() => {}).then(() => {  // wait in case another is ongoing
-            console.debug('writing', path)
-            return saving = fs.writeFile(path, data, 'utf8').finally(() => // save but also keep track of the current operation
-                saving = undefined)
-        }) // clear
-    }
+    const save = debounceAsync((data: string) => fs.writeFile(path, data, 'utf8'))
+    return { unwatch, save }
 
     function install(first=false) {
         try {
             watcher = watch(path, () => {
-                if (!saving)
+                if (!save.isWorking())
                     debounced().then()
             })
             debounced().catch(x=>x)
@@ -44,7 +37,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         }
     }
 
-    function uninstall() {
+    function unwatch() {
         watcher?.close()
         clearTimeout(retry)
         watcher = undefined
@@ -63,7 +56,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
                 return
             last = text
             console.debug('loaded', path)
-            uninstall(); install() // reinstall, as the original file could have been renamed. We watch by the name.
+            unwatch(); install() // reinstall, as the original file could have been renamed. We watch by the name.
             await parser(text)
         }
         finally {

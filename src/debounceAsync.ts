@@ -21,6 +21,7 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
     return Object.assign(interceptingWrapper, {
         clearRetain: () => last = undefined,
         flush: () => runningCallback ?? exec(),
+        isWorking: () => runningCallback,
         ...cancelable && {
             cancel() {
                 waitingSince = 0
