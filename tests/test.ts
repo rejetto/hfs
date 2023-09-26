@@ -99,6 +99,8 @@ describe('basics', () => {
     }))
 
     testUpload('upload.need account', UPLOAD_URI, 401)
+    it('delete.no perm', reqApi('delete', { uri: '/for-admins' }, 403))
+    it('delete.need account', reqApi('delete', { uri: '/for-admins/upload' }, 401))
     it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
 })
 
@@ -116,6 +118,8 @@ describe('after-login', () => {
     testUpload('upload.never', '/random', 403)
     testUpload('upload.ok', UPLOAD_URI, 200)
     testUpload('upload.crossing', UPLOAD_URI.replace('temp', '../..'), 418)
+    it('delete.ok', reqApi('delete', { uri: UPLOAD_URI }, 200))
+    it('delete.miss', reqApi('delete', { uri: UPLOAD_URI }, 404))
     after(() =>
         rmSync(join(__dirname, 'temp'), { recursive: true}))
 })

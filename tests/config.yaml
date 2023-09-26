@@ -39,6 +39,8 @@ vfs:
           source: tests
           can_upload:
             - admins
+          can_delete:
+            - admins
         - source: tests/alfa.txt
     - name: for-disabled
       can_list:
