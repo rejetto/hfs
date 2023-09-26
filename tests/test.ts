@@ -18,6 +18,7 @@ const username = 'rejetto'
 const password = 'password'
 const API = '/~/api/'
 const BASE_URL = 'http://localhost'
+const UPLOAD_URI = '/for-admins/upload/temp/gpl.png'
 
 const jar = new CookieJar()
 const client = wrapper(axios.create({ jar, maxRedirects: 0 }))
@@ -97,7 +98,7 @@ describe('basics', () => {
         headers: { Referer: 'https://some-website.com/try-to-trick/x.com/' }
     }))
 
-    testUpload('upload.missing perm', 401)
+    testUpload('upload.need account', UPLOAD_URI, 401)
     it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
 })
 
@@ -112,8 +113,9 @@ describe('after-login', () => {
     before(() => login(username))
     it('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
     it('inherit.disabled', reqList('/for-disabled/', 401))
-    testUpload('upload', 200)
-    testUpload('upload.bad path', 418, '../../')
+    testUpload('upload.never', '/random', 403)
+    testUpload('upload.ok', UPLOAD_URI, 200)
+    testUpload('upload.crossing', UPLOAD_URI.replace('temp', '../..'), 418)
     after(() =>
         rmSync(join(__dirname, 'temp'), { recursive: true}))
 })
@@ -123,8 +125,8 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> !res.isAxiosError)())
 }
 
-function testUpload(name: string, tester: Tester, path = 'temp/') {
-    it(name, req('PUT/for-admins/upload/'+join(path+'gpl.png'), tester, {
+function testUpload(name: string, dest: string, tester: Tester) {
+    it(name, req('PUT' + dest, tester, {
         data: createReadStream(join(__dirname, 'page/gpl.png'))
     }))
 }
