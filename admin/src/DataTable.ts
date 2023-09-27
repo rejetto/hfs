@@ -1,5 +1,5 @@
 import { DataGrid, DataGridProps, GridColDef, GridValidRowModel, useGridApiRef } from '@mui/x-data-grid'
-import { Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
+import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
 import { useWindowSize } from 'usehooks-ts'
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { newDialog, onlyTruthy } from '@hfs/shared'
@@ -17,8 +17,9 @@ interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridP
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
     initializing?: boolean
     noRows?: ReactNode
+    error?: ReactNode
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, ...rest }: DataTableProps) {
     const { width } = useWindowSize()
     const theme = useTheme()
     const apiRef = useGridApiRef()
@@ -80,6 +81,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         return null
 
     return h(Fragment, {},
+        error && h(Alert, { severity: 'error' }, error),
         initializing && h(Box, { position: 'relative' },
             h(LinearProgress, { // differently from "loading", this is not blocking user interaction
                 sx: { position: 'absolute', width: 'calc(100% - 2px)', borderRadius: 1, m: '1px 1px' }

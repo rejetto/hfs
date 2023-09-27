@@ -106,107 +106,107 @@ function Connections() {
                 }
             }),
         ),
-        error ? h(Alert, { severity: 'error' }, error)
-            : h(DataTable, {
-                rows,
-                noRows: filtered && "No downloads at the moment",
-                columns: [
-                    {
-                        field: 'ip',
-                        headerName: "Address",
-                        flex: 1,
-                        maxWidth: 400,
-                        renderCell: ({ row, value }) => ipForUrl(value) + ' :' + row.port,
-                        mergeRender: { other: 'user', fontSize: 'small' },
-                    },
-                    {
-                        field: 'user',
-                        headerName: "User",
-                        hideUnder: 'md',
-                    },
-                    {
-                        field: 'started',
-                        headerName: "Started",
-                        type: 'dateTime',
-                        width: 100,
-                        hideUnder: 'lg',
-                        valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
-                    },
-                    {
-                        field: 'path',
-                        headerName: "File",
-                        flex: 1.5,
-                        renderCell({ value, row }) {
-                            if (!value) return
-                            if (row.archive)
-                                return h(Fragment, {},
-                                    h(FolderZip, { sx: { mr: 1 } }),
-                                    row.archive,
-                                    h(Box, { ml: 2, color: 'text.secondary' }, value)
-                                )
-                            const i = value?.lastIndexOf('/')
+        h(DataTable, {
+            error,
+            rows,
+            noRows: filtered && "No downloads at the moment",
+            columns: [
+                {
+                    field: 'ip',
+                    headerName: "Address",
+                    flex: 1,
+                    maxWidth: 400,
+                    renderCell: ({ row, value }) => ipForUrl(value) + ' :' + row.port,
+                    mergeRender: { other: 'user', fontSize: 'small' },
+                },
+                {
+                    field: 'user',
+                    headerName: "User",
+                    hideUnder: 'md',
+                },
+                {
+                    field: 'started',
+                    headerName: "Started",
+                    type: 'dateTime',
+                    width: 100,
+                    hideUnder: 'lg',
+                    valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
+                },
+                {
+                    field: 'path',
+                    headerName: "File",
+                    flex: 1.5,
+                    renderCell({ value, row }) {
+                        if (!value) return
+                        if (row.archive)
                             return h(Fragment, {},
-                                row.op && h(IconProgress, {
-                                    icon: row.op === 'upload' ? Upload : Download,
-                                    progress: row.opProgress ?? row.opOffset,
-                                    offset: row.opOffset,
-                                    addTitle: row.opTotal && h('div', {}, "Total: " + formatBytes(row.opTotal)),
-                                    sx: { mr: 1 }
-                                }),
-                                h(Box, {}, value.slice(i + 1),
-                                    i > 0 && h(Box, { ml: 2, fontSize: 'x-small', color: 'text.secondary' }, value.slice(0, i))
-                                ),
+                                h(FolderZip, { sx: { mr: 1 } }),
+                                row.archive,
+                                h(Box, { ml: 2, color: 'text.secondary' }, value)
                             )
-                        }
-                    },
-                    {
-                        field: 'outSpeed',
-                        headerName: "Speed",
-                        width: 110,
-                        hideUnder: 'sm',
-                        type: 'number',
-                        renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0) || undefined),
-                        mergeRender: { other: 'sent', fontSize: 'small', textAlign: 'right' }
-                    },
-                    {
-                        field: 'sent',
-                        headerName: "Sent",
-                        type: 'number',
-                        hideUnder: 'md',
-                        renderCell: ({ value, row}) => formatBytes(Math.max(value||0, row.got||0))
-                    },
-                    {
-                        field: 'v',
-                        headerName: "Protocol",
-                        align: 'center',
-                        hideUnder: Infinity,
-                        renderCell: ({ value, row }) => h(Fragment, {},
-                            "IPv" + value,
-                            iconTooltip(Lock, "HTTPS", { opacity: .5 })
+                        const i = value?.lastIndexOf('/')
+                        return h(Fragment, {},
+                            row.op && h(IconProgress, {
+                                icon: row.op === 'upload' ? Upload : Download,
+                                progress: row.opProgress ?? row.opOffset,
+                                offset: row.opOffset,
+                                addTitle: row.opTotal && h('div', {}, "Total: " + formatBytes(row.opTotal)),
+                                sx: { mr: 1 }
+                            }),
+                            h(Box, {}, value.slice(i + 1),
+                                i > 0 && h(Box, { ml: 2, fontSize: 'x-small', color: 'text.secondary' }, value.slice(0, i))
+                            ),
                         )
-                    },
-                    {
-                        field: 'agent',
-                        headerName: "Agent",
-                        hideUnder: 'lg',
-                    },
-                ],
-                actionsProps: { hideUnder: 'sm' },
-                actions: ({ row }) => [
-                    h(IconBtn, {
-                        icon: LinkOff,
-                        title: "Disconnect",
-                        onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port']))
-                            .then(() => toast("Disconnection requested")),
-                    }),
-                    h(IconBtn, {
-                        icon: Block,
-                        title: "Block IP",
-                        disabled: row.ip === props?.you,
-                        onClick: () => blockIp(row.ip),
-                    }),
-                ]
-            })
+                    }
+                },
+                {
+                    field: 'outSpeed',
+                    headerName: "Speed",
+                    width: 110,
+                    hideUnder: 'sm',
+                    type: 'number',
+                    renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0) || undefined),
+                    mergeRender: { other: 'sent', fontSize: 'small', textAlign: 'right' }
+                },
+                {
+                    field: 'sent',
+                    headerName: "Sent",
+                    type: 'number',
+                    hideUnder: 'md',
+                    renderCell: ({ value, row}) => formatBytes(Math.max(value||0, row.got||0))
+                },
+                {
+                    field: 'v',
+                    headerName: "Protocol",
+                    align: 'center',
+                    hideUnder: Infinity,
+                    renderCell: ({ value, row }) => h(Fragment, {},
+                        "IPv" + value,
+                        iconTooltip(Lock, "HTTPS", { opacity: .5 })
+                    )
+                },
+                {
+                    field: 'agent',
+                    headerName: "Agent",
+                    hideUnder: 'lg',
+                },
+            ],
+            actionsProps: { hideUnder: 'sm' },
+            actions: ({ row }) => [
+                h(IconBtn, {
+                    icon: LinkOff,
+                    title: "Disconnect",
+                    onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port']))
+                        .then(() => toast("Disconnection requested")),
+                }),
+                h(IconBtn, {
+                    icon: Block,
+                    title: "Block IP",
+                    disabled: row.ip === props?.you,
+                    onClick: () => blockIp(row.ip),
+                }),
+            ]
+        })
     )
 }
 

@@ -28,9 +28,8 @@ function LogFile({ file }: { file: string }) {
                 x.notes = notes
         }
     })
-    if (error)
-        return error
     return h(DataTable, {
+        error,
         loading: connecting,
         rows: list as any,
         componentsProps: {

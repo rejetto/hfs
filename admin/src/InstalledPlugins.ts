@@ -2,7 +2,7 @@
 
 import { apiCall, useApiList } from './api'
 import { createElement as h, Fragment, ReactNode } from 'react'
-import { Alert, Box, Link, Tooltip } from '@mui/material'
+import { Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
 import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
 import { IconBtn, prefix, with_, xlate } from './misc'
@@ -14,10 +14,9 @@ import FileField from './FileField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
-    if (error)
-        return showError(error)
     const size = 'small'
     return h(DataTable, {
+        error,
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         initializing,
         disableColumnSelector: true,
@@ -156,13 +155,6 @@ const type2comp = {
     multiselect: MultiSelectField,
     array: ArrayField,
     real_path: FileField,
-}
-
-export function showError(error: any) {
-    return h(Alert, { severity: 'error' }, xlate(error, {
-        github_quota: "Request denied. You may have reached the limit, retry later.",
-        ENOTFOUND: "Couldn't reach github.com",
-    }))
 }
 
 export async function startPlugin(id: string) {

@@ -7,7 +7,7 @@ import { IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
-import { renderName, showError, startPlugin } from './InstalledPlugins'
+import { renderName, startPlugin } from './InstalledPlugins'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog } from './dialog'
 
@@ -16,8 +16,6 @@ export default function OnlinePlugins() {
     const debouncedSearch = useDebounce(search, 1000)
     const { list, error, initializing } = useApiList('get_online_plugins', { text: debouncedSearch })
     const snap = useSnapState()
-    if (error)
-        return showError(error)
     return h(Fragment, {},
         h(StringField, {
             value: search,
@@ -27,6 +25,7 @@ export default function OnlinePlugins() {
             label: "Search text"
         }),
         h(DataTable, {
+            error,
             rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
             noRows: "No compatible plugins have been found",
             initializing,

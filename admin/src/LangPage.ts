@@ -14,7 +14,7 @@ export default function LangPage() {
     const { list, error, connecting, reload } = useApiList('get_langs')
     const langs = useMemo(() => ['en', ..._.uniq(list.map(x => x.code))], [list])
     const large = useBreakpoint('md')
-    return error || h(Fragment, {},
+    return h(Fragment, {},
         large && h(Alert, { severity: 'info' }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
         h(Box, { mt: 1, maxWidth: '40em', flex: 1, display: 'flex', flexDirection: 'column' },
             h(Box, { mb: 1, display: 'flex' },
@@ -23,6 +23,7 @@ export default function LangPage() {
                 h(ForceLang, { langs }),
             ),
             h(DataTable, {
+                error,
                 loading: connecting,
                 rows: list as any,
                 hideFooter: true,

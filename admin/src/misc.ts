@@ -14,6 +14,7 @@ export async function manipulateConfig(k: string, work:(data:any) => any) {
 
 export function err2msg(code: string) {
     return {
+        github_quota: "Request denied. You may have reached the limit, retry later.",
         ENOENT: "Not found",
         ENOTDIR: "Not a folder",
     }[code] || code
