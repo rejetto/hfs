@@ -16,7 +16,7 @@ import {
     HFS_REPO,
     HFS_REPO_BRANCH,
     HTTP_BAD_REQUEST,
-    HTTP_CONFLICT,
+    HTTP_CONFLICT, HTTP_FORBIDDEN,
     HTTP_NOT_ACCEPTABLE,
     HTTP_SERVER_ERROR
 } from './const'
@@ -47,18 +47,21 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
     if (typeof repo !== 'string')
         repo = repo.main
     if (downloading[repo])
-        return new ApiError(HTTP_CONFLICT, "already downloading")
+        throw new ApiError(HTTP_CONFLICT, "already downloading")
+    const projectInfo = await getProjectInfo()
+    if (projectInfo?.plugins_blacklist?.includes(repo))
+        throw new ApiError(HTTP_FORBIDDEN, "blacklisted")
     console.log('downloading plugin', repo)
     downloadProgress(repo, true)
     try {
         if (repo.includes('//')) { // custom repo
             const pl = findPluginByRepo(repo)
             if (!pl)
-                return new ApiError(HTTP_BAD_REQUEST, "bad repo")
+                throw new ApiError(HTTP_BAD_REQUEST, "bad repo")
             const customRepo = ((pl as any).getData?.() || pl).repo
             let url = customRepo?.zip
             if (!url)
-                return new ApiError(HTTP_SERVER_ERROR, "bad plugin")
+                throw new ApiError(HTTP_SERVER_ERROR, "bad plugin")
             if (!url.includes('//'))
                 url = customRepo.web + url
             return await go(url, pl?.id, customRepo.zipRoot ?? DIST_ROOT)
@@ -66,7 +69,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
         branch ||= await getGithubDefaultBranch(repo)
         const short = repo.split('/')[1] // second part, repo without the owner
         if (!short)
-            return new ApiError(HTTP_BAD_REQUEST, "bad repo")
+            throw new ApiError(HTTP_BAD_REQUEST, "bad repo")
         const folder = overwrite ? _.findKey(getFolder2repo(), x => x===repo)! // use existing folder
             : getFolder2repo().hasOwnProperty(short) ? repo.replace('/','-') // longer form only if another plugin is using short form, to avoid overwriting
                 : short
