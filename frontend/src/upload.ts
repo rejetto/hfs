@@ -2,7 +2,7 @@
 
 import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
-import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles } from './misc'
+import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -411,7 +411,7 @@ async function createFolder() {
     if (!name) return
     const uri = location.pathname
     try {
-        await apiCall('create_folder', { uri, name })
+        await apiCall('create_folder', { uri, name }, { modal: working })
         reloadList()
         return alertDialog(h(() =>
             h(FlexV, {},

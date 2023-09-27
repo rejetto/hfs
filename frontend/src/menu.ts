@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { ComponentPropsWithoutRef, createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
-import { err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted } from './misc'
+import { err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted, working } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -207,9 +207,11 @@ export async function deleteFiles(uris: string[]) {
     }
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
         return false
+    const stop = working()
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
         apiCall('delete', { uri }).then(() => null, err => ({ uri, err }))
     )))
+    stop()
     reloadList()
     const e = errors.length
     alertDialog(h(Fragment, {},

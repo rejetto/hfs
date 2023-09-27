@@ -84,5 +84,3 @@ Object.assign(getHFS(), {
         }
     }
 })
-
-setDefaultApiCallOptions({ modal: working })

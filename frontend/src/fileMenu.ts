@@ -1,5 +1,5 @@
 import { t, useI18N } from './i18n'
-import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog, prefix, with_ } from './misc'
+import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog, prefix, with_, working } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
@@ -113,7 +113,7 @@ async function rename(entry: DirEntry) {
     if (!dest) return
     try {
         const { n, uri } = entry
-        await apiCall('rename', { uri, dest })
+        await apiCall('rename', { uri, dest }, { modal: working })
         const isCurrentFolder = uri === location.pathname
         if (!isCurrentFolder) {
             // update state instead of re-getting the list
@@ -138,7 +138,7 @@ async function rename(entry: DirEntry) {
 async function editComment(entry: DirEntry) {
     const res = await inputComment(entry.name, entry.comment)
     if (res === null) return
-    await apiCall('comment', { uri: entry.uri, comment: res })
+    await apiCall('comment', { uri: entry.uri, comment: res }, { modal: working })
     updateEntry(entry, e => e.comment = res)
     alertDialog(t`Operation successful`)
 }

@@ -31,7 +31,7 @@ const sessionRefresher = makeSessionRefresher(state)
 sessionRefresher(getHFS().session)
 
 export function logout(){
-    return apiCall('logout').catch(res => {
+    return apiCall('logout', {}, { modal: working }).catch(res => {
         if (res.code !== 401) // we expect 401
             throw res
         state.username = ''
