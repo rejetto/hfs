@@ -39,8 +39,8 @@ function downloadProgress(id: string, status: DownloadStatus) {
 
 // determine default branch, possibly without consuming api quota
 async function getGithubDefaultBranch(repo: string) {
-    return await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' })  ? 'main'
-        : (await getRepoInfo(repo))?.default_branch as string
+    const test = await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' }).then(() => 1, () => 0)
+    return test ? 'main' : (await getRepoInfo(repo))?.default_branch as string
 }
 
 export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }={}) {

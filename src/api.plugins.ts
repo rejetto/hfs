@@ -7,7 +7,7 @@ import {
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { Callback, newObj, onlyTruthy, onOff, waitFor } from './misc'
+import { Callback, newObj, onOff, waitFor } from './misc'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
@@ -31,7 +31,8 @@ const apis: ApiHandlers = {
     async get_plugin_updates() {
         return new SendListReadable({
             async doAtStart(list) {
-                const errs = await Promise.all(_.map(getFolder2repo(), async (repo, folder) => {
+                const errs: string[] = []
+                await Promise.allSettled(_.map(getFolder2repo(), async (repo, folder) => {
                     try {
                         if (!repo) return
                         //TODO shouldn't we consider other branches here?
@@ -45,12 +46,11 @@ const apis: ApiHandlers = {
                             list.add(online)
                         }
                     } catch (err: any) {
-                        if (err.message === '404') // the plugin is declaring a wrong repo
-                            return
-                        return err.code || err.message
+                        if (err.message !== '404') // the plugin is declaring a wrong repo
+                            errs.push(err.code || err.message)
                     }
                 }))
-                for (const x of _.uniq(onlyTruthy(errs)))
+                for (const x of _.uniq(errs))
                     list.error(x)
                 list.close()
             }

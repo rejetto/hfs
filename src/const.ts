@@ -31,6 +31,7 @@ export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
 export const HTTP_OK = 200
 export const HTTP_NO_CONTENT = 204
 export const HTTP_PARTIAL_CONTENT = 206
+export const HTTP_MOVED_PERMANENTLY = 301
 export const HTTP_TEMPORARY_REDIRECT = 302
 export const HTTP_NOT_MODIFIED = 304
 export const HTTP_BAD_REQUEST = 400

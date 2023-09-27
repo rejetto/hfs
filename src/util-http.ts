@@ -3,7 +3,6 @@
 import { RequestOptions } from 'https'
 import http, { IncomingMessage } from 'node:http'
 import https from 'node:https'
-import { HTTP_TEMPORARY_REDIRECT } from './const'
 import _ from 'lodash'
 
 // in case the response is not 2xx, it will throw and the error object is the Response object
@@ -31,7 +30,7 @@ export function httpStream(url: string, { body, ...options }:XRequestOptions ={}
             console.debug("http responded", res.statusCode, "to", url)
             if (!res.statusCode || res.statusCode >= 400)
                 return reject(new Error(String(res.statusCode), { cause: res }))
-            if (res.statusCode === HTTP_TEMPORARY_REDIRECT && res.headers.location)
+            if (res.headers.location)
                 return resolve(httpStream(res.headers.location, options))
             resolve(res)
         }).on('error', e => {
