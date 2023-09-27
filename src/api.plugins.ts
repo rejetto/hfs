@@ -1,20 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    AvailablePlugin,
-    enablePlugins,
-    getAvailablePlugins,
-    getPluginConfigFields,
-    mapPlugins,
-    Plugin,
-    pluginsConfig,
-    PATH as PLUGINS_PATH,
-    enablePlugin,
-    getPluginInfo,
-    setPluginConfig,
-    findPluginByRepo,
-    isPluginEnabled,
-    isPluginRunning, stopPlugin, startPlugin, Repo,
+    AvailablePlugin, enablePlugins, getAvailablePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
+    PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginEnabled, isPluginRunning,
+    stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies,
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
@@ -139,7 +128,7 @@ const apis: ApiHandlers = {
     },
 
     async download_plugin({ id, branch }) {
-        await checkDependencies(id, branch)
+        await checkDependencies(await readOnlinePlugin(id, branch))
         const res = await downloadPlugin(id, { branch })
         if (typeof res !== 'string')
             return res
@@ -151,7 +140,7 @@ const apis: ApiHandlers = {
         const found = getPluginInfo(id)
         if (!found)
             return new ApiError(HTTP_NOT_FOUND)
-        await checkDependencies(found.repo, )
+        await checkDependencies(found)
         const enabled = isPluginEnabled(id)
         await stopPlugin(id)
         await downloadPlugin(found.repo, { overwrite: true })
@@ -178,17 +167,8 @@ function serialize(p: Readonly<Plugin> | AvailablePlugin) {
     return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
 }
 
-async function checkDependencies(repo: Repo, branch?: string) {
-    const rec = await readOnlinePlugin(repo, branch)
-    const miss = rec?.depend?.map((dep: any) => {
-        const res = findPluginByRepo(dep.repo)
-        const error = !res ? 'missing'
-            : (res.version || 0) < dep.version ? 'version'
-                : !isPluginEnabled(res.id) ? 'disabled'
-                    : !isPluginRunning(res.id) ? 'stopped'
-                        : ''
-        return error && { repo: dep.repo, error, id: res?.id }
-    }).filter(Boolean)
-    if (miss?.length)
+export async function checkDependencies(plugin: CommonPluginInterface) {
+    const miss = await getMissingDependencies(plugin)
+    if (miss.length)
         throw new ApiError(HTTP_FAILED_DEPENDENCY, miss)
 }

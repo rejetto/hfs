@@ -3,12 +3,12 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, PLUGINS_PUB_URI } from './const'
+import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, PLUGINS_PUB_URI, HTTP_FAILED_DEPENDENCY } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onProcessExit,
-    PendingPromise, pendingPromise, same, tryJson, wait, wantArray, watchDir
+    adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
+    PendingPromise, pendingPromise, same, tryJson, wait, waitFor, wantArray, watchDir
 } from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.file_list'
@@ -151,7 +151,7 @@ function printError(id: string, e: any) {
 interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
 type OnDirEntry = (params:OnDirEntryParams) => void | false
 
-export class Plugin {
+export class Plugin implements CommonPluginInterface {
     started: Date | null = new Date()
 
     constructor(readonly id:string, readonly folder:string, private readonly data:any, private unwatch:()=>void){
@@ -170,9 +170,12 @@ export class Plugin {
         }
         plugins[id] = this
     }
-    get version(): undefined | number {
-        return this.data?.version
-    }
+    get version(): undefined | number { return this.data?.version }
+    get description(): undefined | string { return this.data?.description }
+    get apiRequired(): undefined | number | [number,number] { return this.data?.apiRequired }
+    get repo(): undefined | Repo { return this.data?.repo }
+    get depend(): undefined | Depend { return this.data?.depend }
+
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
     }
@@ -238,13 +241,16 @@ type Stop = true
 type CallMeAfter = ()=>any
 
 export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string }
-export interface AvailablePlugin {
+type Depend = { repo: string, version?: number }[]
+export interface CommonPluginInterface {
     id: string
     description?: string
     version?: number
     apiRequired?: number | [number,number]
     repo?: Repo
-    depend?: { repo: string, version?: number }[]
+    depend?: Depend
+}
+export interface AvailablePlugin extends CommonPluginInterface {
     branch?: string
     badApi?: string
     error?: string
@@ -326,8 +332,11 @@ function watchPlugin(id: string, path: string) {
 
     async function markItAvailable() {
         delete plugins[id]
-        const source = await readFile(module, 'utf8')
-        availablePlugins[id] = parsePluginSource(id, source)
+        availablePlugins[id] = await parsePlugin()
+    }
+
+    async function parsePlugin() {
+        return parsePluginSource(id, await readFile(module, 'utf8'))
     }
 
     async function stop() {
@@ -343,6 +352,10 @@ function watchPlugin(id: string, path: string) {
         if (starting) return
         try {
             starting = pendingPromise()
+            // if dependencies are not ready right now, we give some time. Not super-solid but good enough for now.
+            const info = await parsePlugin()
+            if (!await waitFor(async () => _.isEmpty(await getMissingDependencies(info)), { timeout: 5_000 }))
+                return console.debug("plugin missing dependencies", id)
             if (getPluginInfo(id))
                 setError(id, '')
             const alreadyRunning = plugins[id]
@@ -390,7 +403,7 @@ function watchPlugin(id: string, path: string) {
                     delete availablePlugins[id]
                 events.emit(wasInstalled ? 'pluginStarted' : 'pluginInstalled', plugin)
             }
-
+            events.emit('pluginStarted:'+id)
         } catch (e: any) {
             await markItAvailable()
             e = e.message || String(e)
@@ -464,4 +477,16 @@ function calculateBadApi(data: AvailablePlugin) {
     data.badApi = min! > API_VERSION ? "may not work correctly as it is designed for a newer version of HFS - check for updates"
         : max! < COMPATIBLE_API_VERSION ? "may not work correctly as it is designed for an older version of HFS - check for updates"
             : undefined
+}
+
+export async function getMissingDependencies(plugin: CommonPluginInterface) {
+    return onlyTruthy((plugin?.depend || []).map((dep: any) => {
+        const res = findPluginByRepo(dep.repo)
+        const error = !res ? 'missing'
+            : (res.version || 0) < dep.version ? 'version'
+                : !isPluginEnabled(res.id) ? 'disabled'
+                    : !isPluginRunning(res.id) ? 'stopped'
+                        : ''
+        return error && { repo: dep.repo, error, id: res?.id }
+    }))
 }

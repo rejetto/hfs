@@ -164,7 +164,8 @@ export function newObj<S extends (object | undefined | null),VR=any>(
     return Object.fromEntries(onlyTruthy(pairs)) as S extends undefined | null ? S : { [K in keyof S]:VR }
 }
 
-export async function waitFor<T>(cb: ()=> T, { interval=200, timeout=Infinity }={}) {
+// returns undefined if timeout is reached
+export async function waitFor<T>(cb: ()=> Promisable<T>, { interval=200, timeout=Infinity }={}) {
     const started = Date.now()
     while (1) {
         const res = await cb()
