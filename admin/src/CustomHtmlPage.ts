@@ -5,7 +5,7 @@ import { Field, FieldProps, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, TextField } from '@mui/material'
 import Editor from 'react-simple-code-editor'
-import { Dict, focusableSelector, IconBtn, isCtrlKey, modifiedSx, reloadBtn, wikiLink } from './misc';
+import { Dict, escapeHTML, focusableSelector, IconBtn, isCtrlKey, modifiedSx, reloadBtn, wikiLink } from './misc';
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
@@ -59,11 +59,6 @@ export default function CustomHtmlPage() {
     function save() {
         return apiCall('set_custom_html', { sections: all }).then(() => setSaved(all))
     }
-}
-
-function escapeHTML(unsafe: string) {
-    return unsafe.replace(/[\u0000-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u00FF]/g,
-        c => '&#' + ('000' + c.charCodeAt(0)).slice(-4) + ';')
 }
 
 type OP = ComponentProps<typeof Editor>
