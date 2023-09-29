@@ -28,8 +28,11 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
     const stop = options.modal?.(cmd, params)
     const controller = new AbortController()
     let aborted = ''
-    if (options.timeout !== false)
-        setTimeout(() => controller.abort(aborted='timeout'), 1000*(timeoutByApi[cmd] ?? options.timeout ?? 10))
+    const ms = 1000 * (timeoutByApi[cmd] ?? options.timeout ?? 10)
+    const timeout = ms && setTimeout(() => {
+        controller.abort(aborted = 'timeout')
+        console.debug('API TIMEOUT', cmd, params??'')
+    }, ms)
     return Object.assign(fetch(getPrefixUrl() + API_URL + cmd, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
@@ -42,7 +45,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         try { data = JSON.parse(body) }
         catch {}
         const result = data ?? body
-        console.debug(res.ok ? 'API' : 'API FAILED', cmd, params, '>>', result)
+        console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', result)
         await options.onResponse?.(res, result)
         if (!res.ok)
             throw new ApiError(res.status, data === undefined ? body : `Failed API ${cmd}: ${res.statusText}`, data)
@@ -52,7 +55,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         if (err?.message?.includes('fetch'))
             throw Error("Network error")
         throw aborted || err
-    }), {
+    }).finally(() => clearTimeout(timeout)), {
         abort() {
             controller.abort(aborted='cancel')
         }
