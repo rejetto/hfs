@@ -44,7 +44,6 @@ export default function InternetPage() {
         const [values, setValues] = useState<any>()
         const cert = useApiEx('get_cert')
         useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email', 'acme_renew'] }).then(setValues) } , [])
-        useApiEx('set_config', { values })
         if (!status || !values) return h(CircularProgress)
         return element || status.element || h(Card, {}, h(CardContent, {},
             h(Flex, { gap: '.5em', fontSize: 'x-large', mb: 1, alignItems: 'center' }, "HTTPS",
@@ -63,7 +62,11 @@ export default function InternetPage() {
                     gridProps: {rowSpacing:1},
                     values,
                     set(v, k) {
-                        setValues((was: any) => ({ ...was, [k]: v }))
+                        setValues((was: any) => {
+                            const values = { ...was, [k]: v }
+                            apiCall('set_config', { values })
+                            return values
+                        })
                     },
                     fields: [
                         md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
