@@ -242,7 +242,7 @@ export async function getIps(external=true) {
         nets && !ignore.test(name)
         && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
     )).flat()
-    const e = external && await externalIp
+    const e = external && externalIp
     if (e && !ips.includes(e))
         ips.unshift(e)
     return v4first(ips)

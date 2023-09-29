@@ -28,11 +28,8 @@ const originalMethod = upnpClient.getGateway
 upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), 0, { retain: HOUR, retainFailure: 30_000 })
 upnpClient.getGateway().catch(() => {})
 
-export let externalIp = Promise.resolve('') // poll external ip
-repeat(10 * MINUTE, () => {
-    const was = externalIp
-    externalIp = upnpClient.getPublicIp().catch(() => was) //fallback to previous value
-})
+export let externalIp = '' // poll external ip
+repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => externalIp = v))
 
 const getNatInfo = debounceAsync(async () => {
     const gettingIp4 = getPublicIp(4) // don't wait, do it in parallel
@@ -51,7 +48,7 @@ const getNatInfo = debounceAsync(async () => {
         gatewayIp,
         publicIp4: await gettingIp4,
         publicIp6: await gettingIp6,
-        externalIp: await externalIp,
+        externalIp,
         mapped,
         internalPort,
         externalPort: mapped?.public.port,
