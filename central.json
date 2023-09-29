@@ -21,8 +21,14 @@
         }
     ],
     "publicIpServices": [
-        "https://checkip.amazonaws.com",
-        "https://ipinfo.io/ip",
-        "https://ifconfig.io/ip"
+        "http://checkip.amazonaws.com",
+        "http://ipinfo.io/ip"
+    ],
+    "publicIpServices_049": [
+        { "url": "http://ipv6.icanhazip.com", "v": 6 },
+        { "url": "http://ifconfig.io/ip", "v": 6 },
+        { "url": "http://checkip.amazonaws.com" },
+        { "url": "http://ipinfo.io/ip" },
+        { "url": "http://ipv4.icanhazip.com", "v": 4 }
     ]
 }

@@ -15,6 +15,27 @@ type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
 
+interface Mapping {
+    public: { host: string; port: number }
+    private: { host: string; port: number }
+    protocol: string
+    enabled: boolean
+    description: string
+    ttl: number
+    local: boolean
+}
+export interface GetNat {
+    upnp: boolean,
+    localIp?: string
+    gatewayIp?: string
+    publicIp4?: string
+    publicIp6?: string
+    externalIp: string,
+    mapped?: Mapping
+    internalPort?: number
+    externalPort?: number
+}
+
 const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
 export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
     if (isNaN(Number(n)) || n < 0)
@@ -265,8 +286,12 @@ export function ipLocalHost(ip: string) {
     return ip === '::1' || ip.endsWith('127.0.0.1')
 }
 
+export function isIp6(ip: string) {
+    return ip.includes(':')
+}
+
 export function ipForUrl(ip: string) {
-    return ip.includes(':') ? '[' + ip + ']' : ip
+    return isIp6(ip) ? '[' + ip + ']' : ip
 }
 
 export function escapeHTML(text: string) {

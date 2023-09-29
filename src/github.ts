@@ -188,5 +188,7 @@ export async function searchPlugins(text='') {
 const FN = 'central.json'
 let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
 export const getProjectInfo = debounceAsync(
-    () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`).then(JSON.parse, () => builtIn), // fall back to latest
+    () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
+        .then(JSON.parse, () => null)
+        .then(x => Object.assign(Object.create(builtIn), x) ), // fall back to built-in
     0, { retain: DAY, retainFailure: 60_000 } )

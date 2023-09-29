@@ -49,7 +49,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 ## Installation
 
-NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of Node.js 16)
+NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of Node.js 18)
 
 1. go to https://github.com/rejetto/hfs/releases
 2. click on `Assets`
