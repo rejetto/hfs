@@ -79,7 +79,6 @@
     "lodash": "^4.17.21",
     "minimist": "^1.2.6",
     "nat-upnp-ts": "^2.0.1",
-    "node-html-parser": "^6.1.5",
     "open": "^8.4.0",
     "tssrp6a": "^3.0.0",
     "unzip-stream": "^0.3.1",

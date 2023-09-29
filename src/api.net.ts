@@ -6,8 +6,6 @@ import {
     HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE,
     IS_MAC, IS_WINDOWS
 } from './const'
-import axios from 'axios'
-import {parse} from 'node-html-parser'
 import _ from 'lodash'
 import { cert, getCertObject, getIps, getServerStatus, privateKey } from './listen'
 import { getProjectInfo } from './github'
@@ -191,22 +189,22 @@ async function checkPort(ip: string, port: number) {
     const prjInfo = await getProjectInfo()
     for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.checkServerServices), 2)) {
         try {
-            return Promise.any(services.map(async svc => {
-                const service = new URL(svc.url).hostname
+            return Promise.any(services.map(async ({ url, body, selector, regexpSuccess, regexpFailure, ...rest }) => {
+                const service = new URL(url).hostname
                 console.log('trying service', service)
-                const api = (axios as any)[svc.method]
-                const body = svc.body?.replace('$IP', ip).replace('$PORT', String(port)) || ''
-                const res = await api(svc.url, body, {headers: svc.headers})
-                const parsed = parse(res.data).querySelector(svc.selector)?.innerText
-                if (!parsed) throw console.debug('empty:' + service)
-                const success = new RegExp(svc.regexpSuccess).test(parsed)
-                const failure = new RegExp(svc.regexpFailure).test(parsed)
+                const res = await httpString(applySymbols(url)!, { ...rest, body: applySymbols(body) })
+                const success = new RegExp(regexpSuccess).test(res)
+                const failure = new RegExp(regexpFailure).test(res)
                 if (success === failure) throw console.debug('inconsistent:' + service) // this result cannot be trusted
                 console.debug(service, 'responded', success)
                 return { success, service }
             }))
         }
         catch {}
+    }
+
+    function applySymbols(s?: string) {
+        return s?.replace('$IP', ip).replace('$PORT', String(port))
     }
 }
 
