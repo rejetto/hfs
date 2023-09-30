@@ -15,7 +15,8 @@ import { matcher } from 'micromatch'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST } from './const'
-import { ipLocalHost, isIp6 } from './cross'
+import { ipLocalHost } from './cross'
+import { isIPv6 } from 'net'
 
 type ProcessExitHandler = (signal:string) => any
 const cbs = new Set<ProcessExitHandler>()
@@ -89,7 +90,7 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
 }
 
 function parseAddress(s: string) {
-    return new SocketAddress({ address: s, family: isIp6(s) ? 'ipv6' : 'ipv4' })
+    return new SocketAddress({ address: s, family: isIPv6(s) ? 'ipv6' : 'ipv4' })
 }
 
 export function makeMatcher(mask: string, emptyMaskReturns=false) {

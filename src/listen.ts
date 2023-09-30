@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, ipForUrl, isIp6, objSameKeys, onlyTruthy, wait, waitFor } from './misc'
+import { debounceAsync, ipForUrl, objSameKeys, onlyTruthy, wait, waitFor } from './misc'
 import { ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -16,6 +16,7 @@ import _ from 'lodash'
 import { X509Certificate } from 'crypto'
 import { externalIp } from './api.net'
 import events from './events'
+import { isIPv6 } from 'net'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -249,7 +250,7 @@ export async function getIps(external=true) {
         .filter((x,i,a) => a.length > 1 || !x.startsWith('169.254')) // 169.254 = dhcp failure on the interface, but keep it if it's our only one
 
     function v4first(a: string[]) {
-        return _.sortBy(a, isIp6) // works because `false` comes first
+        return _.sortBy(a, isIPv6) // works because `false` comes first
     }
 }
 

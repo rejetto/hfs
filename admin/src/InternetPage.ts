@@ -2,7 +2,7 @@ import { createElement as h, useEffect, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
 import { CardMembership, HomeWorkTwoTone, Lock, PublicTwoTone, RouterTwoTone, Send } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, GetNat, onlyTruthy, wantArray, with_ } from '@hfs/shared'
+import { closeDialog, DAY, formatTimestamp, GetNat, wantArray, with_ } from '@hfs/shared'
 import { Flex, LinkBtn, manipulateConfig, isIP, Btn } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { BoolField, Form, NumberField } from '@hfs/mui-grid-form'
@@ -24,9 +24,8 @@ export default function InternetPage() {
         h && s ? 'error' : h || s ? 'warning' : 'success')
     const { data: nat, reload: reloadNat, error, loading, element } = useApiEx<GetNat>('get_nat')
     const port = nat?.internalPort
-    const publicIps = onlyTruthy([nat?.publicIp4, nat?.publicIp6])
     const wrongMap = nat?.mapped && nat.mapped.private.port !== port && nat.mapped.private.port
-    const doubleNat = nat?.externalIp && !publicIps.includes(nat.externalIp)
+    const doubleNat = nat?.externalIp && nat?.publicIps && !nat.publicIps.includes(nat.externalIp)
     useEffect(() => {
         if (!verifyAgain || !nat || loading) return
         verify().then()
@@ -137,13 +136,13 @@ export default function InternetPage() {
                         "port ", wrongMap ? 'is wrong' : nat?.externalPort || "unknown"),
             }),
             h(Sep),
-            h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIps,
+            h(Device, { name: "Internet", icon: PublicTwoTone, ip: nat?.publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
                 below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller' },
                     doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    publicIps.length && nat.internalPort && h(LinkBtn, { onClick: verify }, "Verify")
+                    nat?.publicIps.length && nat.internalPort && h(LinkBtn, { onClick: verify }, "Verify")
                 )
             }),
         )

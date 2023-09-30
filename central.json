@@ -29,9 +29,13 @@
     ],
     "publicIpServices_049": [
         { "url": "http://ipv6.icanhazip.com", "v": 6 },
+        { "url": "http://checkip.amazonaws.com", "prefers": 4 },
         { "url": "http://ifconfig.io/ip", "v": 6 },
-        { "url": "http://checkip.amazonaws.com" },
-        { "url": "http://ipinfo.io/ip" },
-        { "url": "http://ipv4.icanhazip.com", "v": 4 }
+        { "url": "http://ipv4.icanhazip.com", "v": 4 },
+        { "url": "http://ip4only.me/api/", "v": 4, "after": "IPv4," },
+        { "url": "http://ip6only.me/api/", "v": 6, "after": "IPv6," },
+        { "url": "https://www.showmyip.com", "v": 46, "after": "IPv$V</td><td><b>" },
+        { "url": "https://dnschecker.org/whats-my-ip-address.php", "v": 46, "after": "ipv$V_html.+>" },
+        { "url": "http://ipinfo.io/ip", "prefers": 4 }
     ]
 }

@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 // all content here is shared between client and server
 import _ from 'lodash'
+import { isIPv6 } from 'net'
 
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 export const WIKI_URL = REPO_URL + 'wiki/'
@@ -28,8 +29,7 @@ export interface GetNat {
     upnp: boolean,
     localIp?: string
     gatewayIp?: string
-    publicIp4?: string
-    publicIp6?: string
+    publicIps: string[]
     externalIp: string,
     mapped?: Mapping
     internalPort?: number
@@ -286,15 +286,29 @@ export function ipLocalHost(ip: string) {
     return ip === '::1' || ip.endsWith('127.0.0.1')
 }
 
-export function isIp6(ip: string) {
-    return ip.includes(':')
-}
-
 export function ipForUrl(ip: string) {
-    return isIp6(ip) ? '[' + ip + ']' : ip
+    return isIPv6(ip) ? '[' + ip + ']' : ip
 }
 
 export function escapeHTML(text: string) {
     return text.replace(/[\u0000-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u00FF]/g,
         c => '&#' + ('000' + c.charCodeAt(0)).slice(-4) + ';')
+}
+
+export async function parallelJobs<T>(parallelization: number, promiseReturners: (() => Promise<T>)[]) {
+    const now = promiseReturners.slice(0, parallelization).map(x => x())
+    let i = now.length
+    while (now.length) {
+        now.splice(await raceIndex(now), 1)
+        const next = promiseReturners[i++]?.()
+        if (next)
+            now.push(next)
+    }
+
+    async function raceIndex(promises: Promise<unknown>[]) {
+        let ret: number
+        promises.forEach((p,i) => p.finally(() => ret ??= i))
+        await Promise.race(promises)
+        return ret!
+    }
 }

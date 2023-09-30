@@ -11,7 +11,8 @@ import { cert, getCertObject, getIps, getServerStatus, privateKey } from './list
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { apiAssertTypes, DAY, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat, Dict, isIp6, GetNat } from './misc'
+import { apiAssertTypes, DAY, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat, Dict, GetNat,
+    parallelJobs } from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
 import { createServer, RequestListener } from 'http'
@@ -19,6 +20,7 @@ import { Middleware } from 'koa'
 import { lookup, Resolver } from 'dns/promises'
 import { defineConfig } from './config'
 import events from './events'
+import { isIP, isIPv6 } from 'net'
 
 const upnpClient = new Client({ timeout: 4_000 })
 const originalMethod = upnpClient.getGateway
@@ -30,8 +32,7 @@ export let externalIp = '' // poll external ip
 repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => externalIp = v))
 
 const getNatInfo = debounceAsync(async () => {
-    const gettingIp4 = getPublicIp(4) // don't wait, do it in parallel
-    const gettingIp6 = getPublicIp(6)
+    const gettingIps = getPublicIps() // don't wait, do it in parallel
     const res = await upnpClient.getGateway().catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
@@ -40,40 +41,50 @@ const getNatInfo = debounceAsync(async () => {
     const localIp = res?.address || (await getIps())[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
-    const ret: GetNat = { // i'd like to use 'satisfies' but my ide is not supporting it
+    return {
         upnp: Boolean(res),
         localIp,
         gatewayIp,
-        publicIp4: await gettingIp4,
-        publicIp6: await gettingIp6,
+        publicIps: Object.values(await gettingIps),
         externalIp,
         mapped,
         internalPort,
         externalPort: mapped?.public.port,
-    }
-    return ret
+    } satisfies GetNat
 })
 
-async function getPublicIp(version?: number) {
+async function getPublicIps() {
+    const ret: any = {}
+    const attemptsMade: any = { 4: 0, 6: 0 }
     const prjInfo = await getProjectInfo()
-    const services = prjInfo.publicIpServices_049?.filter((x: any) => !x.v || version === x.v)
-    for (const chunk of _.chunk(_.shuffle(services), 2)) // small parallelization
-        try {
-            return await Promise.any(chunk.map(service => httpString(service.url).then(res => {
-                if (service.after) {
-                    const i = res.match(new RegExp(service.after, 'i'))?.index
-                    if (i == null) throw Error("cannot match: " + res)
-                    res = res.slice(i)
-                }
-                const ip = res.trim()
-                if (!/[.:0-9a-fA-F]/.test(ip))
-                    throw Error("bad result: " + ip)
-                if (version && version === 6 !== isIp6(ip)) // enforce result format
-                    throw Error("bad version: " + ip)
-                return ip
-            })))
+    // small parallelization. The logic is a bit complex because considers many things
+    await parallelJobs(2, prjInfo.publicIpServices_049.map((s: any) => async () => {
+        if (ret[4] && ret[6]) return // no more to do
+        if (s.v && s.v !== 46 && ret[s.v] || s.prefers && ret[s.prefers]) return // no good
+        const expected = String(s.v||'').split('')
+        const checkAttempt = expected.length === 1 ? expected[0]! : ret[4] ? 6 : ret[6] ? 4 : 0
+        if (attemptsMade[checkAttempt] > 1) return // give up on this (you may not have this version, after all)
+        console.debug("trying service", s.url)
+        for (const k of expected) attemptsMade[k]++
+        const res = await httpString(s.url).catch(() => null)
+        if (!res) return
+        for (const afterV of s.v && s.after && expected.length ? expected : ['']) {
+            if (ret[afterV]) continue
+            let workOn = res
+            if (s.after) {
+                const found = workOn.match(new RegExp(s.after.replace('$V', afterV), 'i'))
+                workOn = !found ? '' : workOn.slice(found.index! + found[0].length)
+            }
+            const ip = workOn.match(/[.:0-9a-fA-F]+/)?.[0]?.trim()
+            if (ip && isIP(ip)) {
+                ret[isIPv6(ip) ? 6 : 4] = ip
+                continue
+            }
+            if (s.v === afterV)
+                console.debug("bad reply", s.url)
         }
-        catch (e: any) { console.debug(String(e)) }
+    }))
+    return ret
 }
 
 function findGateway(): Promise<string | undefined> {
@@ -114,12 +125,12 @@ async function checkDomain(domain: string) {
     const domainIps = _.uniq(onlyTruthy(settled.map(x => x.status === 'fulfilled' && x.value)).flat())
     if (!domainIps.length)
         throw new ApiError(HTTP_FAILED_DEPENDENCY, "domain not working")
-    const { publicIp4, publicIp6 } = await getNatInfo() // do this before stopping the server
+    const { publicIps } = await getNatInfo() // do this before stopping the server
     for (const v6 of [false, true]) {
-        const domainIpsThisVersion = domainIps.filter(x => isIp6(x) === v6)
-        const ipThisVersion = v6 ? publicIp6 : publicIp4
-        if (domainIpsThisVersion.length && ipThisVersion && !domainIpsThisVersion.includes(ipThisVersion))
-            throw new ApiError(HTTP_FAILED_DEPENDENCY, `please configure your domain to point to ${publicIp4} or  (currently on ${domainIps[0]}) --- a change can take hours to be effective`)
+        const domainIpsThisVersion = domainIps.filter(x => isIPv6(x) === v6)
+        const ipsThisVersion = publicIps.filter(x => isIPv6(x) === v6)
+        if (domainIpsThisVersion.length && ipsThisVersion.length && !_.intersection(domainIpsThisVersion, ipsThisVersion).length)
+            throw new ApiError(HTTP_FAILED_DEPENDENCY, `configure your domain to point to ${ipsThisVersion} (currently on ${domainIpsThisVersion[0]}) – a change can take hours to be effective`)
     }
 }
 
@@ -231,15 +242,15 @@ const apis: ApiHandlers = {
     },
 
     async check_server({ port }) {
-        const { publicIp4, publicIp6, internalPort, externalPort } = await getNatInfo()
-        const publicIp = publicIp4 || publicIp6
-        if (!publicIp)
+        const { publicIps, internalPort, externalPort } = await getNatInfo()
+        const ip = publicIps[0]
+        if (!ip)
             return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'cannot detect public ip')
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         port ||= externalPort || internalPort
-        console.log(`checking server ${publicIp}:${port}`)
-        return await checkPort(publicIp, port)
+        console.log(`checking server ${ip}:${port}`)
+        return await checkPort(ip, port)
             || new ApiError(HTTP_SERVICE_UNAVAILABLE)
     },
 
