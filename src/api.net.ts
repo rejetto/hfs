@@ -190,7 +190,7 @@ async function checkPort(ip: string, port: number) {
             return Promise.any(services.map(async ({ url, body, selector, regexpSuccess, regexpFailure, ...rest }) => {
                 const service = new URL(url).hostname
                 console.log('trying service', service)
-                const res = await httpString(applySymbols(url)!, { ...rest, body: applySymbols(body) })
+                const res = await httpString(applySymbols(url)!, { family: isIPv6(ip) ? 6 : 4, body: applySymbols(body), ...rest })
                 const success = new RegExp(regexpSuccess).test(res)
                 const failure = new RegExp(regexpFailure).test(res)
                 if (success === failure) throw console.debug('inconsistent:' + service) // this result cannot be trusted
