@@ -5,13 +5,9 @@
 - admin/fs: check if source exists when set
 - plugins: after installing, switch to installed (and perhaps highlight new one)
 - plugins' log, accessible in admin
-- admin: check + update
 - frontend: hide closer button on login dialog accessing a protected resource, as it's no use
 - generation of links to give access to a file without password
-- easier nat life
-  - show public ip use, https://github.com/sindresorhus/public-ip
-  - configure router with upnp. If it fails, suggest a guide. https://github.com/indutny/node-nat-upnp
-  - offer ddns registration/update
+- offer ddns registration/update
 - admin/fs: sort items
 - admin/config: hide advanced settings
 - admin/fs: support insert/delete key
@@ -25,16 +21,11 @@
 - log filter plugin
 - admin: improve masks editor
 - admin: warn before changing page if we have unsaved changes
-- plugin: comments
 - plugin: upload quota per-account (possibly inheriting), and a default
-- plugin: make letsencrypt easier
-  - could be just automatic detection of files by certbot
-  - letsencrypt supports plugins to automatically configure webservers
-- node.comment
 - config: max connections/downloads (total/per-ip)
 - webdav?
 - log: ip2name
 - apis in separated log file with parameters?
 - search operators (size, type?)
 - ability to install as service in Windows
-    - an application to control the service as tray icon
+  - an application to control the service as tray icon
