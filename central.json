@@ -18,16 +18,14 @@
             "regexpSuccess": "Success:"
         },
         {
-            "url": "https://ifconfig.co/port/$PORT",
+            "url": "http://ifconfig.co/port/$PORT?ip=$IP",
             "regexpFailure": "reachable\": false",
             "regexpSuccess": "reachable\": true"
         }
     ],
     "publicIpServices": [
-        "http://checkip.amazonaws.com",
-        "http://ipinfo.io/ip"
-    ],
-    "publicIpServices_049": [
+        "http://ipv4.icanhazip.com",
+        { "v": 6, "type": "http", "url": "http://ipv6.icanhazip.com" },
         {
             "v": 4, "type": "dns",
             "ips": ["208.67.222.222", "208.67.220.220"],
@@ -38,8 +36,6 @@
             "ips": ["216.239.32.10", "216.239.34.10", "216.239.36.10", "216.239.38.10"],
             "name": "o-o.myaddr.l.google.com", "dnsRecord": "TXT"
         },
-        { "v": 4, "type": "http", "url": "http://ipv4.icanhazip.com" },
-        { "v": 6, "type": "http", "url": "http://ipv6.icanhazip.com" },
         {
             "v": 6, "type": "dns",
             "ips": ["2620:0:ccc::2", "2620:0:ccd::2"],

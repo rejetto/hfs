@@ -57,9 +57,12 @@ const getNatInfo = debounceAsync(async () => {
 
 async function getPublicIps() {
     const res = await getProjectInfo()
-    const groupedByVersion = Object.values(_.groupBy(res.publicIpServices_049, x => x.v))
+    const groupedByVersion = Object.values(_.groupBy(res.publicIpServices, x => x.v ?? 4))
     const ips = await promiseBestEffort(groupedByVersion.map(singleVersion =>
         Promise.any(singleVersion.map(async (svc: any) => {
+            if (typeof svc === 'string')
+                svc = { type: 'http', url: svc }
+            console.debug("trying ip service", svc.url || svc.name)
             if (svc.type === 'http')
                 return httpString(svc.url)
             if (svc.type !== 'dns') throw "unsupported"
