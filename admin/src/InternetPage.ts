@@ -154,10 +154,13 @@ export default function InternetPage() {
         if (!verifyAgain && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
-            const { success } = await apiCall('check_server', {})
-            setCheckResult(success)
-            if (success)
-                return toast("Your server is responding correctly over the Internet", 'success')
+            const res = await apiCall('check_server', {})
+            if (res.some((x: any) => x.success)) {
+                setCheckResult(true)
+                const specify = res.every((x: any) => x.success) ? '' : ` with address ${res.map((x: any) => x.ip).join(' + ')}`
+                return toast("Your server is responding correctly over the Internet" + specify, 'success')
+            }
+            setCheckResult(false)
             if (wrongMap)
                 return fixPort().then(retry)
             if (doubleNat)

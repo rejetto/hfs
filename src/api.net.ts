@@ -188,6 +188,7 @@ async function checkPort(ip: string, port: number) {
         regexpSuccess: string
     }
     const prjInfo = await getProjectInfo()
+    console.log(`checking server ${ip}:${port}`)
     for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.checkServerServices), 2)) {
         try {
             return Promise.any(services.map(async ({ url, body, selector, regexpSuccess, regexpFailure, ...rest }) => {
@@ -198,7 +199,7 @@ async function checkPort(ip: string, port: number) {
                 const failure = new RegExp(regexpFailure).test(res)
                 if (success === failure) throw console.debug('inconsistent:' + service) // this result cannot be trusted
                 console.debug(service, 'responded', success)
-                return { success, service }
+                return { success, service, ip, port }
             }))
         }
         catch {}
@@ -233,15 +234,13 @@ const apis: ApiHandlers = {
 
     async check_server({ port }) {
         const { publicIps, internalPort, externalPort } = await getNatInfo()
-        const ip = publicIps[0]
-        if (!ip)
-            return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'cannot detect public ip')
+        if (!publicIps.length)
+            return new ApiError(HTTP_FAILED_DEPENDENCY, 'cannot detect public ip')
         if (!internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         port ||= externalPort || internalPort
-        console.log(`checking server ${ip}:${port}`)
-        return await checkPort(ip, port)
-            || new ApiError(HTTP_SERVICE_UNAVAILABLE)
+        const res = await promiseBestEffort(publicIps.map(ip => checkPort(ip, port)))
+        return res.length ? res : new ApiError(HTTP_SERVICE_UNAVAILABLE)
     },
 
     async make_cert({domain, email}) {
