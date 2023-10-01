@@ -28,14 +28,27 @@
         "http://ipinfo.io/ip"
     ],
     "publicIpServices_049": [
-        { "url": "http://ipv6.icanhazip.com", "v": 6 },
-        { "url": "http://checkip.amazonaws.com", "prefers": 4 },
-        { "url": "http://ifconfig.io/ip", "v": 6 },
-        { "url": "http://ipv4.icanhazip.com", "v": 4 },
-        { "url": "http://ip4only.me/api/", "v": 4, "after": "IPv4," },
-        { "url": "http://ip6only.me/api/", "v": 6, "after": "IPv6," },
-        { "url": "https://www.showmyip.com", "v": 46, "after": "IPv$V</td><td><b>" },
-        { "url": "https://dnschecker.org/whats-my-ip-address.php", "v": 46, "after": "ipv$V_html.+>" },
-        { "url": "http://ipinfo.io/ip", "prefers": 4 }
+        {
+            "v": 4, "type": "dns",
+            "ips": ["208.67.222.222", "208.67.220.220"],
+            "name": "myip.opendns.com", "dnsRecord": "A"
+        },
+        {
+            "v": 4, "type": "dns",
+            "ips": ["216.239.32.10", "216.239.34.10", "216.239.36.10", "216.239.38.10"],
+            "name": "o-o.myaddr.l.google.com", "dnsRecord": "TXT"
+        },
+        { "v": 4, "type": "http", "url": "http://ipv4.icanhazip.com" },
+        { "v": 6, "type": "http", "url": "http://ipv6.icanhazip.com" },
+        {
+            "v": 6, "type": "dns",
+            "ips": ["2620:0:ccc::2", "2620:0:ccd::2"],
+            "name": "myip.opendns.com", "dnsRecord": "AAAA"
+        },
+        {
+            "v": 6, "type": "dns",
+            "ips": ["2001:4860:4802:32::a", "2001:4860:4802:34::a", "2001:4860:4802:36::a", "2001:4860:4802:38::a"],
+            "name": "o-o.myaddr.l.google.com", "dnsRecord": "TXT"
+        }
     ]
 }

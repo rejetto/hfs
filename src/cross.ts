@@ -1,7 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 // all content here is shared between client and server
 import _ from 'lodash'
-import { isIPv6 } from 'net'
 
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 export const WIKI_URL = REPO_URL + 'wiki/'
@@ -287,7 +286,7 @@ export function ipLocalHost(ip: string) {
 }
 
 export function ipForUrl(ip: string) {
-    return isIPv6(ip) ? '[' + ip + ']' : ip
+    return ip.includes(':') ? '[' + ip + ']' : ip
 }
 
 export function escapeHTML(text: string) {
@@ -295,20 +294,8 @@ export function escapeHTML(text: string) {
         c => '&#' + ('000' + c.charCodeAt(0)).slice(-4) + ';')
 }
 
-export async function parallelJobs<T>(parallelization: number, promiseReturners: (() => Promise<T>)[]) {
-    const now = promiseReturners.slice(0, parallelization).map(x => x())
-    let i = now.length
-    while (now.length) {
-        now.splice(await raceIndex(now), 1)
-        const next = promiseReturners[i++]?.()
-        if (next)
-            now.push(next)
-    }
-
-    async function raceIndex(promises: Promise<unknown>[]) {
-        let ret: number
-        promises.forEach((p,i) => p.finally(() => ret ??= i))
-        await Promise.race(promises)
-        return ret!
-    }
+// wait for all, but returns only those that resolved
+export async function promiseBestEffort<T>(promises: Promise<T>[]) {
+    const res = await Promise.allSettled(promises)
+    return res.filter(x => x.status === 'fulfilled').map((x: any) => x.value as T)
 }

@@ -11,8 +11,10 @@ import { cert, getCertObject, getIps, getServerStatus, privateKey } from './list
 import { getProjectInfo } from './github'
 import { httpString } from './util-http'
 import { exec } from 'child_process'
-import { apiAssertTypes, DAY, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat, Dict, GetNat,
-    parallelJobs } from './misc'
+import {
+    apiAssertTypes, DAY, debounceAsync, haveTimeout, HOUR, MINUTE, objSameKeys, onlyTruthy, repeat, Dict,
+    GetNat, promiseBestEffort, wantArray
+} from './misc'
 import acme from 'acme-client'
 import fs from 'fs/promises'
 import { createServer, RequestListener } from 'http'
@@ -36,7 +38,7 @@ const getNatInfo = debounceAsync(async () => {
     const res = await upnpClient.getGateway().catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
-    console.debug('mappings found', mappings)
+    console.debug('mappings found', mappings?.map(x => x.description))
     const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => undefined)
     const localIp = res?.address || (await getIps())[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
@@ -45,7 +47,7 @@ const getNatInfo = debounceAsync(async () => {
         upnp: Boolean(res),
         localIp,
         gatewayIp,
-        publicIps: Object.values(await gettingIps),
+        publicIps: await gettingIps,
         externalIp,
         mapped,
         internalPort,
@@ -54,37 +56,22 @@ const getNatInfo = debounceAsync(async () => {
 })
 
 async function getPublicIps() {
-    const ret: any = {}
-    const attemptsMade: any = { 4: 0, 6: 0 }
-    const prjInfo = await getProjectInfo()
-    // small parallelization. The logic is a bit complex because considers many things
-    await parallelJobs(2, prjInfo.publicIpServices_049.map((s: any) => async () => {
-        if (ret[4] && ret[6]) return // no more to do
-        if (s.v && s.v !== 46 && ret[s.v] || s.prefers && ret[s.prefers]) return // no good
-        const expected = String(s.v||'').split('')
-        const checkAttempt = expected.length === 1 ? expected[0]! : ret[4] ? 6 : ret[6] ? 4 : 0
-        if (attemptsMade[checkAttempt] > 1) return // give up on this (you may not have this version, after all)
-        console.debug("trying service", s.url)
-        for (const k of expected) attemptsMade[k]++
-        const res = await httpString(s.url).catch(() => null)
-        if (!res) return
-        for (const afterV of s.v && s.after && expected.length ? expected : ['']) {
-            if (ret[afterV]) continue
-            let workOn = res
-            if (s.after) {
-                const found = workOn.match(new RegExp(s.after.replace('$V', afterV), 'i'))
-                workOn = !found ? '' : workOn.slice(found.index! + found[0].length)
-            }
-            const ip = workOn.match(/[.:0-9a-fA-F]+/)?.[0]?.trim()
-            if (ip && isIP(ip)) {
-                ret[isIPv6(ip) ? 6 : 4] = ip
-                continue
-            }
-            if (s.v === afterV)
-                console.debug("bad reply", s.url)
-        }
-    }))
-    return ret
+    const res = await getProjectInfo()
+    const groupedByVersion = Object.values(_.groupBy(res.publicIpServices_049, x => x.v))
+    const ips = await promiseBestEffort(groupedByVersion.map(singleVersion =>
+        Promise.any(singleVersion.map(async (svc: any) => {
+            if (svc.type === 'http')
+                return httpString(svc.url)
+            if (svc.type !== 'dns') throw "unsupported"
+            const resolver = new Resolver({ timeout: 2_000 })
+            resolver.setServers(svc.ips)
+            return resolver.resolve(svc.name, svc.dnsRecord)
+        }).map(async ret => {
+            const validIps = wantArray(await ret).map(x => x.trim()).filter(isIP)
+            if (!validIps.length) throw "no good"
+            return validIps
+        }) )))
+    return _.uniq(ips.flat())
 }
 
 function findGateway(): Promise<string | undefined> {
