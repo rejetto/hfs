@@ -8,8 +8,8 @@ import {
     InsertDriveFileOutlined, Lock, RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
-import { reloadVfs, VfsNode, Who } from './VfsPage'
-import { iconTooltip, onlyTruthy } from './misc'
+import { reloadVfs, VfsNode } from './VfsPage'
+import { iconTooltip, onlyTruthy, Who } from './misc'
 import { apiCall } from './api'
 import { alertDialog, confirmDialog } from './dialog'
 

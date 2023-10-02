@@ -5,7 +5,7 @@ import createSSE from './sse'
 import { Readable } from 'stream'
 import { asyncGeneratorToReadable, onOff, removeStarting } from './misc'
 import events from './events'
-import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND, HTTP_UNAUTHORIZED } from './const'
+import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND } from './const'
 import _ from 'lodash'
 import { defineConfig } from './config'
 

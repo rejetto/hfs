@@ -1,22 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import {
-    defaultPerms,
-    getNodeName,
-    isSameFilenameAs,
-    nodeIsDirectory,
-    saveVfs,
-    urlToNode,
-    vfs,
-    VfsNode,
-    PERM_KEYS,
-    applyParentToChild
-} from './vfs'
+import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, isDirectory, isWindowsDrive, makeMatcher } from './misc'
+import { dirStream, isDirectory, isWindowsDrive, makeMatcher, defaultPerms,PERM_KEYS } from './misc'
 import {
     IS_WINDOWS,
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
@@ -43,10 +32,7 @@ async function urlToNodeOriginal(uri: string) {
 const apis: ApiHandlers = {
 
     async get_vfs() {
-        return {
-            root: await recur(),
-            defaultPerms,
-        }
+        return { root: await recur() }
 
         async function recur(node=vfs): Promise<VfsAdmin> {
             const { source } = node

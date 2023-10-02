@@ -14,11 +14,9 @@ import {
     StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import {
-    basename, Btn, formatBytes, formatTimestamp, IconBtn, isEqualLax, LinkBtn, modifiedSx, newDialog, objSameKeys,
-    onlyTruthy, prefix, wikiLink
-} from './misc'
-import { reloadVfs, VfsNode, VfsPerms, Who } from './VfsPage'
+import { basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, LinkBtn, modifiedSx,
+    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, Who, wikiLink } from './misc'
+import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
 import FileField from './FileField'
@@ -31,14 +29,13 @@ interface Account { username: string }
 interface FileFormProps {
     file: VfsNode
     anyMask?: boolean
-    defaultPerms: VfsPerms
     addToBar?: ReactNode
     statusApi: any
 }
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
-export default function FileForm({ file, anyMask, defaultPerms, addToBar, statusApi }: FileFormProps) {
+export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFormProps) {
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {

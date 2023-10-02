@@ -3,16 +3,8 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    dirStream,
-    dirTraversal,
-    enforceFinal,
-    getOrSet,
-    isDirectory,
-    typedKeys,
-    makeMatcher,
-    setHidden,
-    onlyTruthy,
-    typedEntries, throw_
+    dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys, makeMatcher, setHidden, onlyTruthy,
+    typedEntries, throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -21,29 +13,9 @@ import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './const'
 import events from './events'
 import { expandUsername, getCurrentUsername } from './perm'
 
-export const WHO_ANYONE = true
-export const WHO_NO_ONE = false
-export const WHO_ANY_ACCOUNT = '*'
-type AccountList = string[]
-export type Who = typeof WHO_ANYONE
-    | typeof WHO_NO_ONE
-    | typeof WHO_ANY_ACCOUNT
-    | keyof VfsPerm
-    | WhoObject
-    | AccountList // empty array shouldn't be used to keep the type boolean-able
-interface WhoObject { this?: Who, children?: Who }
-
-export interface VfsPerm {
-    can_read: Who
-    can_see: Who
-    can_list: Who
-    can_upload: Who
-    can_delete: Who
-}
-
 type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 
-export interface VfsNode extends Partial<VfsPerm> {
+export interface VfsNode extends VfsPerms {
     name?: string
     source?: string
     children?: VfsNode[]
@@ -52,7 +24,7 @@ export interface VfsNode extends Partial<VfsPerm> {
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
     accept?: string
-    propagate?: Record<keyof VfsPerm, boolean> // legacy pre-0.47
+    propagate?: Record<keyof VfsPerms, boolean> // legacy pre-0.47
     // fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
@@ -60,20 +32,10 @@ export interface VfsNode extends Partial<VfsPerm> {
     isFolder?: boolean
 }
 
-export const defaultPerms: VfsPerm = {
-    can_see: 'can_read',
-    can_read: WHO_ANYONE,
-    can_list: 'can_read',
-    can_upload: WHO_NO_ONE,
-    can_delete: WHO_NO_ONE,
-}
-
-export const PERM_KEYS = typedKeys(defaultPerms)
-
 export const MIME_AUTO = 'auto'
 
 function inheritFromParent(parent: VfsNode, child: VfsNode) {
-    for (const k of typedKeys(defaultPerms)) {
+    for (const k of PERM_KEYS) {
         let p: VfsNode | undefined = parent
         let inheritedPerm: Who | undefined
         while (p) {
@@ -93,10 +55,6 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
         child.mime ??= parent.mime
     child.accept ??= parent.accept
     return child
-}
-
-function isWhoObject(v: undefined | Who): v is WhoObject {
-    return v !== null && typeof v === 'object' && !Array.isArray(v)
 }
 
 export function isSameFilenameAs(name: string) {
@@ -215,11 +173,11 @@ export async function nodeIsDirectory(node: VfsNode) {
     return isFolder
 }
 
-export function hasPermission(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context): boolean {
+export function hasPermission(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context): boolean {
    return !statusCodeForMissingPerm(node, perm, ctx, false)
 }
 
-export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx: Koa.Context, assign=true) {
+export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context, assign=true) {
     const ret = getCode()
     if (ret && assign)
         ctx.status = ret
@@ -256,7 +214,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerm, ctx
 
 // it's responsibility of the caller to verify you have list permission on parent, as callers have different needs.
 // Too many parameters: consider object, but benchmark against degraded recursion on huge folders.
-export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string='', requiredPerm?: keyof VfsPerm): AsyncIterableIterator<VfsNode> {
+export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string='', requiredPerm?: keyof VfsPerms): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
     const took = prefixPath ? undefined : new Set()
     const maskApplier = parentMaskApplier(parent)
@@ -327,7 +285,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
     }
 }
 
-export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof VfsPerm): boolean {
+export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof VfsPerms): boolean {
     return masks !== undefined && Object.values(masks).some(props =>
         props[perm] || masksCouldGivePermission(props.masks, perm))
 }

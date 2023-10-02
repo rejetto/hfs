@@ -2,26 +2,17 @@
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { apiCall, useApiEx } from './api'
-import {
-    Alert,
-    Button,
-    Card, CardContent,
-    Grid,
-    Link,
-    List, ListItem, ListItemText,
-    Typography
-} from '@mui/material'
+import { Alert, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree from './VfsTree'
-import { IconBtn, newDialog, onlyTruthy, prefix, useBreakpoint } from './misc'
+import { Flex, IconBtn, newDialog, onlyTruthy, prefix, useBreakpoint, VfsPerms } from './misc'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
 import { AlertProps } from '@mui/material/Alert/Alert'
 import FileForm from './FileForm'
 import { Close, Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
-import { Flex } from './misc'
 
 let selectOnReload: string[] | undefined
 
@@ -56,7 +47,6 @@ export default function VfsPage() {
                     title: "Close",
                     onClick: selectNone
                 }),
-                defaultPerms: data?.defaultPerms as VfsPerms,
                 anyMask,
                 statusApi,
                 file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
@@ -159,13 +149,6 @@ export async function deleteFiles() {
     }
 }
 
-export interface VfsPerms {
-    can_see?: Who
-    can_read?: Who
-    can_list?: Who
-    can_upload?: Who
-    can_delete?: Who
-}
 export interface VfsNode extends VfsPerms {
     id: string
     name: string
@@ -183,14 +166,3 @@ export interface VfsNode extends VfsPerms {
     isRoot?: true
     accept?: string
 }
-
-const WHO_ANYONE = true
-const WHO_NO_ONE = false
-const WHO_ANY_ACCOUNT = '*'
-type AccountList = string[]
-export type Who = SimpleWho | { this?: SimpleWho, children?: SimpleWho }
-export type SimpleWho = typeof WHO_ANYONE
-    | typeof WHO_NO_ONE
-    | typeof WHO_ANY_ACCOUNT
-    | AccountList
-    | null

@@ -35,6 +35,39 @@ export interface GetNat {
     externalPort?: number
 }
 
+export interface VfsPerms {
+    can_see?: Who
+    can_read?: Who
+    can_list?: Who
+    can_upload?: Who
+    can_delete?: Who
+}
+export const WHO_ANYONE = true
+export const WHO_NO_ONE = false
+export const WHO_ANY_ACCOUNT = '*'
+type AccountList = string[]
+export type Who = typeof WHO_ANYONE
+    | typeof WHO_NO_ONE
+    | typeof WHO_ANY_ACCOUNT
+    | keyof VfsPerms
+    | WhoObject
+    | AccountList // use false instead of empty array to keep the type boolean-able
+interface WhoObject { this?: Who, children?: Who }
+
+export const defaultPerms: Required<VfsPerms> = {
+    can_see: 'can_read',
+    can_read: WHO_ANYONE,
+    can_list: 'can_read',
+    can_upload: WHO_NO_ONE,
+    can_delete: WHO_NO_ONE,
+}
+
+export const PERM_KEYS = typedKeys(defaultPerms)
+
+export function isWhoObject(v: undefined | Who): v is WhoObject {
+    return v !== null && typeof v === 'object' && !Array.isArray(v)
+}
+
 const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
 export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
     if (isNaN(Number(n)) || n < 0)
