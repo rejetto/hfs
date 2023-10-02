@@ -114,14 +114,14 @@ export default function VfsPage() {
             reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href }, href)))
         ]
     }
-    return h(Grid, { container:true, rowSpacing: 1, maxWidth: '80em', columnSpacing: 2 },
+    return h(Grid, { container:true, rowSpacing: 1, columnSpacing: 2 },
         alert && h(Grid, { item: true, mb: 2, xs: 12 }, h(Alert, alert)),
-        h(Grid, { item:true, [sideBreakpoint]: 6, lg: 5 },
+        h(Grid, { item:true, [sideBreakpoint]: 6, lg: 5, xl: 4 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
             h(VfsMenuBar),
             vfs && h(VfsTree, { id2node })),
-        isSideBreakpoint && sideContent && h(Grid, { item:true, [sideBreakpoint]: 6, lg: 7, maxWidth:'100%' },
+        isSideBreakpoint && sideContent && h(Grid, { item:true, [sideBreakpoint]: true, maxWidth:'100%' },
             h(Card, {}, h(CardContent, {}, sideContent) ))
     )
 }

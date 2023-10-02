@@ -20,7 +20,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const name = list?.length === 1 ? decodeURIComponent(basename(list[0]!)) : getNodeName(node)
     ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
-    const walker = !list ? walkNode(node, ctx, Infinity, '', 'can_read')
+    const walker = !list ? walkNode(node, ctx, Infinity, '', 'can_archive')
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const uri of list) {
                 const subNode = await urlToNode(uri, ctx, node)
@@ -29,7 +29,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 if (await nodeIsDirectory(subNode)) { // a directory needs to walked
                     if (hasPermission(subNode, 'can_list',ctx)) {
                         yield subNode // it could be empty
-                        yield* walkNode(subNode, ctx, Infinity, decodeURI(uri) + '/', 'can_read')
+                        yield* walkNode(subNode, ctx, Infinity, decodeURI(uri) + '/', 'can_archive')
                     }
                     continue
                 }
@@ -39,7 +39,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
             }
         })()
     const mappedWalker = filterMapGenerator(walker, async (el:VfsNode) => {
-        if (!hasPermission(el, 'can_read', ctx)) return // the fact you see it doesn't mean you can read it
+        if (!hasPermission(el, 'can_archive', ctx)) return // the fact you see it doesn't mean you can get it
         const { source } = el
         const name = getNodeName(el)
         if (ctx.req.aborted || !filter(name))

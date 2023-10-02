@@ -41,6 +41,7 @@ export interface VfsPerms {
     can_list?: Who
     can_upload?: Who
     can_delete?: Who
+    can_archive?: Who
 }
 export const WHO_ANYONE = true
 export const WHO_NO_ONE = false
@@ -60,6 +61,7 @@ export const defaultPerms: Required<VfsPerms> = {
     can_list: 'can_read',
     can_upload: WHO_NO_ONE,
     can_delete: WHO_NO_ONE,
+    can_archive: 'can_read'
 }
 
 export const PERM_KEYS = typedKeys(defaultPerms)

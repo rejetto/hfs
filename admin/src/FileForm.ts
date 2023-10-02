@@ -55,8 +55,9 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         }
         return _.defaults(ret, defaultPerms)
     }, [parent])
-    const showTimestamps = hasSource && Boolean(values.ctime)
-    const showSize = hasSource && !realFolder
+    const lg = useBreakpoint('lg')
+    const showTimestamps = lg || hasSource
+    const showSize = lg || (hasSource && !realFolder)
     const showAccept = file.accept! > '' || isDir && (file.can_upload ?? inheritedPerms.can_upload)
     const barColors = useDialogBarColors()
 
@@ -102,26 +103,27 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         },
         fields: [
             isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
-                : { k: 'name', required: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
-            { k: 'id', comp: LinkField, statusApi },
-            { k: 'source', label: "Source on disk", comp: FileField, files: !isDir, folders: isDir, multiline: true,
+                : { k: 'name', required: true, xl: 6, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
+            { k: 'source', label: "Source on disk", xl: true, comp: FileField, files: !isDir, folders: isDir, multiline: true,
                 helperText: !values.source && "Not on disk, this is a virtual folder",
             },
+            { k: 'id', comp: LinkField, statusApi, xs: 12 },
             perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_see', "If you can't see, you may still download with a direct link"),
+            perm('can_archive', "Should this be included when user downloads as ZIP", { label: "Who can zip", lg: isDir ? true : 12 }),
             isDir && perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
             isDir && perm('can_delete', [needSourceWarning, "Those who can delete can also rename"]),
-            isDir && perm('can_upload', needSourceWarning, { lg: showAccept ? 6 : 12, contentText: "subfolders" }),
-            showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", lg: 6,
-                helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
+            isDir && perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
-            showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: 'Created', toField: formatTimestamp },
-            showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: 'Modified', toField: formatTimestamp },
-            file.website && { k: 'default', comp: BoolField, label:"Serve index.html",
+            showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
+            showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
+            showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: file.website ? 4 : 12,
+                helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
+            file.website && { k: 'default', comp: BoolField, label:"Serve index.html", xl: true,
                 toField: Boolean, fromField: (v:boolean) => v ? 'index.html' : null,
                 helperText: md("This folder may be a website because contains `index.html`. Enabling this will show the website instead of the list of files.")
             },
-            isDir && { k: 'masks', multiline: true, lg: true,
+            isDir && { k: 'masks', multiline: true,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 sx: { '& textarea': { fontFamily: 'monospace' } },
                 helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Permissions', "(examples)")]
@@ -133,7 +135,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         return {
             showInherited: anyMask, // with masks, you may need to set a permission to override the mask
             otherPerms: _.without(Object.keys(defaultPerms), perm).map(x => ({ value: x, label: "As " +perm2word(x) })),
-            k: perm, lg: 6, comp: WhoField, parent, accounts, helperText,
+            k: perm, lg: 6, xl: 4, comp: WhoField, parent, accounts, helperText,
             label: "Who can " + perm2word(perm),
             inherit: inheritedPerms[perm],
             byMasks: byMasks?.[perm],
