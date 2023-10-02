@@ -132,8 +132,8 @@
         "enter_comment": "Comment for this file",
         "Comment": "Comment",
 
-        "": "PLUGINS SECTION",
-        "": "PLUGIN thumbnails",
+        "_PLUGINS SECTION": "",
+        "_PLUGIN thumbnails":  "",
         "Enable tiles mode": "Modalità griglia",
         "thumbnails_switchBack": "Puoi tornare alla lista com'era prima entrando in Opzioni"
     }

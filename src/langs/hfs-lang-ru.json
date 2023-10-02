@@ -140,8 +140,8 @@
         "enter_comment": "Комментарий для файла",
         "Comment": "Комментировать",
 
-        "": "PLUGINS SECTION",
-        "": "PLUGIN thumbnails",
+        "_PLUGINS SECTION": "",
+        "_PLUGIN thumbnails":  "",
         "Enable tiles mode": "Просмотр в режиме плиток",
         "thumbnails_switchBack": "Изменить вид можно в настройках"
     }
