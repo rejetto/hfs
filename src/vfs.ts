@@ -34,21 +34,27 @@ export interface VfsNode extends VfsPerms {
 
 export const MIME_AUTO = 'auto'
 
-function inheritFromParent(parent: VfsNode, child: VfsNode) {
+export function permsFromParent(parent: VfsNode, child: VfsNode) {
+    const ret: VfsPerms = {}
     for (const k of PERM_KEYS) {
         let p: VfsNode | undefined = parent
         let inheritedPerm: Who | undefined
         while (p) {
             inheritedPerm = p[k]
-            // // in case of object without children, parent is skipped in favor of the parent's parent
+            // in case of object without children, parent is skipped in favor of the parent's parent
             if (!isWhoObject(inheritedPerm)) break
             inheritedPerm = inheritedPerm.children
             if (inheritedPerm !== undefined) break
             p = p.parent
         }
-        if (inheritedPerm !== undefined)  // small optimization: don't expand the object
-            child[k] ??= inheritedPerm
+        if (inheritedPerm !== undefined && child[k] === undefined)  // small optimization: don't expand the object
+            ret[k] = inheritedPerm
     }
+    return _.isEmpty(ret) ? undefined : ret
+}
+
+function inheritFromParent(parent: VfsNode, child: VfsNode) {
+    Object.assign(child, permsFromParent(parent, child))
     if (typeof parent.mime === 'object' && typeof child.mime === 'object')
         _.defaults(child.mime, parent.mime)
     else

@@ -15,7 +15,7 @@ import {
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, LinkBtn, modifiedSx,
-    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, Who, wikiLink } from './misc'
+    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, Who, wikiLink } from './misc'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -46,19 +46,10 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     const isDir = file.type === 'folder'
     const hasSource = source !== undefined // we need a boolean
     const realFolder = hasSource && isDir
-    const inheritedPerms = useMemo(() => {
-        const ret = {}
-        let run = parent
-        while (run) {
-            _.defaults(ret, run, run.byMasks)
-            run = run.parent
-        }
-        return _.defaults(ret, defaultPerms)
-    }, [parent])
     const lg = useBreakpoint('lg')
     const showTimestamps = lg || hasSource
     const showSize = lg || (hasSource && !realFolder)
-    const showAccept = file.accept! > '' || isDir && (file.can_upload ?? inheritedPerms.can_upload)
+    const showAccept = file.accept! > '' || isDir && (file.can_upload ?? file.inherited?.can_upload)
     const barColors = useDialogBarColors()
 
     const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
@@ -72,7 +63,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         set(v, k) {
             if (k === 'link') return
             setValues(values => {
-                const nameIsVirtual = k === 'source' && values.source?.endsWith(values.name)
+                const nameIsVirtual = k === 'source' && values.name && values.source?.endsWith(values.name)
                 const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
                 return { ...values, name, [k]: v }
             })
@@ -93,8 +84,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
             sx: modifiedSx(!isEqualLax(values, rest)),
             async onClick() {
                 const props = _.omit(values, ['ctime','mtime','size','id'])
-                if (!props.masks)
-                    props.masks = null // undefined cannot be serialized
+                ;(props as any).masks ||= null // undefined cannot be serialized
                 await apiCall('set_vfs', { uri: values.id, props })
                 if (props.name !== file.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
                     state.selectedFiles[0].id = file.parent!.id + props.name + (isDir ? '/' : '')
@@ -131,13 +121,13 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         ]
     })
 
-    function perm(perm: keyof typeof inheritedPerms, helperText?: ReactNode, props: Partial<WhoFieldProps>={}) {
+    function perm(perm: keyof VfsPerms, helperText?: ReactNode, props: Partial<WhoFieldProps>={}) {
         return {
             showInherited: anyMask, // with masks, you may need to set a permission to override the mask
             otherPerms: _.without(Object.keys(defaultPerms), perm).map(x => ({ value: x, label: "As " +perm2word(x) })),
             k: perm, lg: 6, xl: 4, comp: WhoField, parent, accounts, helperText,
             label: "Who can " + perm2word(perm),
-            inherit: inheritedPerms[perm],
+            inherit: file.inherited?.[perm] ?? defaultPerms[perm],
             byMasks: byMasks?.[perm],
             isDir,
             ...props
@@ -183,11 +173,11 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
     const arrayMode = Array.isArray(thisValue)
     // a large side band will convey union across the fields
     return h(Box, { sx: { borderRight: objectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
-        h(SelectField as typeof SelectField<typeof thisValue>, {
+        h(SelectField as typeof SelectField<typeof thisValue | null>, {
             ...rest,
-            value: arrayMode ? [] : thisValue,
+            value: arrayMode ? [] : thisValue ?? null,
             onChange(v, { event }) {
-                onChange(objectMode ? { this: v, children: childrenValue } : v, { was: value, event })
+                onChange(objectMode ? { this: v ?? undefined, children: childrenValue } : v ?? undefined, { was: value, event })
             },
             options,
         }),
@@ -213,9 +203,9 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
                 label: "Permission for " + contentText,
                 parent, inherit, accounts, showInherited, otherPerms, isDir,
                 isChildren: true,
-                value: childrenValue ?? null,
+                value: childrenValue ?? undefined,
                 onChange(v, { event }) {
-                    onChange({ this: thisValue, children: v as any }, { was: value, event })
+                    onChange({ this: thisValue ?? undefined, children: v }, { was: value, event })
                 }
             })
         ),

@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 // all content here is shared between client and server
 import _ from 'lodash'
+import { VfsNode } from './vfs'
 
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 export const WIKI_URL = REPO_URL + 'wiki/'
@@ -63,6 +64,18 @@ export const defaultPerms: Required<VfsPerms> = {
     can_delete: WHO_NO_ONE,
     can_archive: 'can_read'
 }
+
+export type VfsNodeAdminSend = {
+    name: string
+    type?: 'folder'
+    size?: number
+    ctime?: Date
+    mtime?: Date
+    website?: true
+    byMasks?: VfsPerms
+    inherited?: VfsPerms
+    children?: VfsNodeAdminSend[]
+} & Omit<VfsNode, 'type' | 'children'>
 
 export const PERM_KEYS = typedKeys(defaultPerms)
 

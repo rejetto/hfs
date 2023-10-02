@@ -1,27 +1,18 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild } from './vfs'
+import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
+    permsFromParent } from './vfs'
 import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, isDirectory, isWindowsDrive, makeMatcher, defaultPerms,PERM_KEYS } from './misc'
+import { dirStream, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
 import {
     IS_WINDOWS,
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
 } from './const'
 import { getDrives } from './util-os'
 import { Stats } from 'fs'
-
-type VfsAdmin = {
-    type?: string,
-    size?: number,
-    ctime?: Date,
-    mtime?: Date,
-    website?: true,
-    byMasks?: any
-    children?: VfsAdmin[]
-} & Omit<VfsNode, 'type' | 'children'>
 
 // to manipulate the tree we need the original node
 async function urlToNodeOriginal(uri: string) {
@@ -34,28 +25,28 @@ const apis: ApiHandlers = {
     async get_vfs() {
         return { root: await recur() }
 
-        async function recur(node=vfs): Promise<VfsAdmin> {
+        async function recur(node=vfs): Promise<VfsNodeAdminSend> {
             const { source } = node
             const stats: false | Stats = Boolean(source) && await stat(source!).catch(() => false)
             const isDir = !source || stats && stats.isDirectory()
-            const copyStats: Pick<VfsAdmin, 'size' | 'ctime' | 'mtime'> = stats ? _.pick(stats, ['size', 'ctime', 'mtime'])
+            const copyStats: Pick<VfsNodeAdminSend, 'size' | 'ctime' | 'mtime'> = stats ? _.pick(stats, ['size', 'ctime', 'mtime'])
                 : { size: source ? -1 : undefined }
             if (copyStats.mtime && Number(copyStats.mtime) === Number(copyStats.ctime))
                 delete copyStats.mtime
-            let byMasks = node.original && _.pickBy(node, (v,k) =>
+            const inherited = node.parent && permsFromParent(node.parent, node.original || node)
+            const byMasks = node.original && _.pickBy(node, (v,k) =>
                 v !== (node.original as any)[k] // something is changing me...
-                && v !== (node.parent as any)[k] // ...and it's not inheritance...
+                && !(inherited && k in inherited) // ...and it's not inheritance...
                 && PERM_KEYS.includes(k as any)) // ...must be masks. Please limit this to perms
-            if (_.isEmpty(byMasks))
-                byMasks = undefined
             return {
                 ...copyStats,
                 ...node.original || node,
-                byMasks,
+                inherited,
+                byMasks: _.isEmpty(byMasks) ? undefined : byMasks,
                 website: Boolean(node.children?.find(isSameFilenameAs('index.html')))
                     || isDir && source && await stat(join(source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
-                name: node === vfs ? undefined : getNodeName(node),
+                name: node === vfs ? '' : getNodeName(node),
                 type: isDir ? 'folder' : undefined,
                 children: node.children && await Promise.all(node.children.map(child =>
                     recur(applyParentToChild(child, node)) ))

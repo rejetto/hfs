@@ -6,7 +6,7 @@ import { Alert, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemT
 import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree from './VfsTree'
-import { Flex, IconBtn, newDialog, onlyTruthy, prefix, useBreakpoint, VfsPerms } from './misc'
+import { Flex, IconBtn, newDialog, onlyTruthy, prefix, useBreakpoint, VfsNodeAdminSend } from './misc'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
 import { AlertProps } from '@mui/material/Alert/Alert'
@@ -149,20 +149,12 @@ export async function deleteFiles() {
     }
 }
 
-export interface VfsNode extends VfsPerms {
+export interface VfsNode extends Omit<VfsNodeAdminSend, 'ctime' | 'mtime' | 'children'> {
     id: string
-    name: string
-    type?: 'folder'
-    source?: string
-    size?: number
     ctime?: string
     mtime?: string
     default?: string
     children?: VfsNode[]
     parent?: VfsNode
-    website?: true
-    masks?: any
-    byMasks?: VfsPerms
     isRoot?: true
-    accept?: string
 }
