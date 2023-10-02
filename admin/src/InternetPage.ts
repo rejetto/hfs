@@ -69,8 +69,8 @@ export default function InternetPage() {
                     },
                     fields: [
                         md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
-                        { k: 'acme_domain', label: "Certificate domain", sm: 6, required: true },
-                        { k: 'acme_email', label: "Certificate e-mail", sm: 6 },
+                        { k: 'acme_domain', label: "Domain for certificate", sm: 6, required: true, helperText: "example: your.domain.com" },
+                        { k: 'acme_email', label: "E-mail for certificate", sm: 6 },
                         { k: 'acme_renew', label: "Automatic renew one month before expiration", comp: BoolField, disabled: !values.acme_domain },
                     ],
                     save: {

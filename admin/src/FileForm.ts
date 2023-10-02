@@ -108,7 +108,7 @@ export default function FileForm({ file, anyMask, defaultPerms, addToBar, status
                 : { k: 'name', required: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
             { k: 'id', comp: LinkField, statusApi },
             { k: 'source', label: "Source on disk", comp: FileField, files: !isDir, folders: isDir, multiline: true,
-                placeholder: "Not on disk, this is a virtual folder",
+                helperText: !values.source && "Not on disk, this is a virtual folder",
             },
             perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_see', "If you can't see, you may still download with a direct link"),
