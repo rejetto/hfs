@@ -240,7 +240,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
             parentsCache.set(name, item)
             inheritMasks(item, parent,  nodeName)
             if (!ctx || hasPermission(item, 'can_list', ctx)) // check perm before recursion
-                yield* walkNode(item, ctx, depth - 1, name + '/')
+                yield* walkNode(item, ctx, depth - 1, name + '/', requiredPerm)
         }
     if (!source)
         return
