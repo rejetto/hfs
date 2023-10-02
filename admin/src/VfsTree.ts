@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, ReactElement, useRef, useState } from 'react'
-import { TreeItem, TreeView } from '@mui/lab'
+import { TreeItem, TreeView } from '@mui/x-tree-view'
 import {
     ChevronRight, ExpandMore, TheaterComedy, Folder, Home,
     InsertDriveFileOutlined, Lock, RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff
@@ -21,11 +21,12 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
     const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
     const dragging = useRef<string>()
-    const ref = useRef<HTMLElement>()
+    const ref = useRef<HTMLUListElement>()
     if (!vfs)
         return null
     const treeId = 'vfs'
     return h(TreeView, {
+        // @ts-ignore the type declared on the lib doesn't seem to be compatible with useRef()
         ref,
         expanded,
         selected,
@@ -37,6 +38,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
             '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px' },
         },
         onNodeSelect(ev, ids) {
+            if (typeof ids === 'string') return // shut up ts
             setSelected(ids)
             state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
         }
