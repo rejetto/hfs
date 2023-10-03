@@ -2,14 +2,18 @@
 
 import { defineConfig } from './config'
 import { getConnections, normalizeIp } from './connections'
-import { makeNetMatcher, onlyTruthy } from './misc'
+import { makeNetMatcher, MINUTE, onlyTruthy } from './misc'
 import { Socket } from 'net'
 
-interface BlockingRule { ip: string }
+interface BlockingRule { ip: string, comment?: string, expire?: Date }
 
 const block = defineConfig('block', [] as BlockingRule[], rules => {
+    const now = new Date()
     const ret = !Array.isArray(rules) ? []
-        : onlyTruthy(rules.map(rule => makeNetMatcher(rule.ip, true)))
+        : onlyTruthy(rules.map(rule => {
+            rule.expire &&= new Date(rule.expire)
+            return !(rule.expire! > now) && makeNetMatcher(rule.ip, true)
+        }))
     // reapply new block to existing connections
     for (const { socket, ip } of getConnections())
         applyBlock(socket, ip)
@@ -20,3 +24,12 @@ export function applyBlock(socket: Socket, ip=normalizeIp(socket.remoteAddress||
     if (ip && block.compiled().find(rule => rule(ip)))
         return socket.destroy()
 }
+
+setInterval(() => { // twice a minute, check if any block has expired
+    const now = new Date()
+    const next = block.get().filter(x => !x.expire || x.expire > now)
+    const n = block.get().length - next.length
+    if (!n) return
+    console.log("blocking rules:", n, "expired")
+    block.set(next)
+}, MINUTE/2)

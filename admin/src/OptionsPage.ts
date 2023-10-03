@@ -154,7 +154,7 @@ export default function OptionsPage() {
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
             },
-            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true,
+            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, sm: 12,
                 fields: [
                     { k: 'k', label: "File mask", $width: 1, $column: {
                         renderCell: ({ value, id }: any) => h('code', {},
@@ -169,9 +169,12 @@ export default function OptionsPage() {
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v])),
             },
-            { k: 'block', label: "Blocked IPs", multiline: true, minRows:3, helperText: h(Fragment, {}, "Enter an IP address for each line. ",  h(WildcardsSupported)),
-                fromField: (all:string) => all.split('\n').map(s => s.trim()).filter(Boolean).map(ip => ({ ip })),
-                toField: (all: any) => !Array.isArray(all) ? '' : all.map(x => x?.ip).filter(Boolean).join('\n')
+            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: 12,
+                fields: [
+                    { k: 'ip', label: "Blocked IP", sm: 6, helperText: h(WildcardsSupported) },
+                    { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, helperText: "Leave empty for no expiration" },
+                    { k: 'comment' },
+                ],
             },
             { k: 'server_code', comp: TextEditorField, sm: 12, getError: v => try_(() => new Function(v) && null, e => e.message),
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
