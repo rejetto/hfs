@@ -9,12 +9,15 @@ import { useMyTheme } from './theme'
 import { useBreakpoint} from './misc'
 import { LoginRequired } from './LoginRequired'
 import { Menu } from '@mui/icons-material'
+import { LocalizationProvider } from '@mui/x-date-pickers'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
-            h(LoginRequired, {},
-                h(HashRouter, {}, h(Routed)) ) ) )
+            h(LocalizationProvider, { dateAdapter: AdapterDayjs },
+                h(LoginRequired, {},
+                    h(HashRouter, {}, h(Routed)) ) ) ) )
 }
 
 function ApplyTheme(props:any) {

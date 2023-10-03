@@ -1,12 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
-import { IconBtn, isOrderedEqual, setHidden, swap } from './misc'
+import { Dict, IconBtn, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo } from '@mui/icons-material'
 import { formDialog } from './dialog'
-import { DataGrid, GridActionsCellItem, GridAlignment } from '@mui/x-data-grid'
+import { DataGrid, GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
 import { FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
+import { DateTimeField } from './DateTimeField'
+import _ from 'lodash'
 
 type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean }
 export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, ...rest }: ArrayFieldProps<T>) {
@@ -14,7 +16,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
     const form = {
-        fields: fields.map(({ $width, $column, ...rest }) => rest)
+        fields: fields.map(({ $width, $column, $type, ...rest }) => _.defaults(rest, byType[$type]?.field))
     }
     setApi?.({ isEqual: isOrderedEqual }) // don't rely on stringify, as it wouldn't work with non-json values
     const [undo, setUndo] = useState<typeof value>()
@@ -34,13 +36,17 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                     }
                 },
                 columns: [
-                    ...fields.map(f => ({
-                        field: f.k,
-                        headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
-                        disableColumnMenu: true,
-                        ...f.$width >= 8 ? { width: f.$width } : { flex: f.$width || 1 },
-                        ...f.$column,
-                    })),
+                    ...fields.map(f => {
+                        const def = byType[f.$type]?.column
+                        return ({
+                            field: f.k,
+                            headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
+                            disableColumnMenu: true,
+                            ...def,
+                            ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
+                            ...f.$column,
+                        })
+                    }),
                     {
                         field: '',
                         type: 'actions',
@@ -116,4 +122,15 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
         setUndo(value)
     }
 
+}
+
+const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColDef> }> = {
+    dateTime: {
+        field: { comp: DateTimeField },
+        column: {
+            type: 'dateTime', minWidth: 90, flex: 0.5,
+            valueGetter: ({ value }) => value && new Date(value),
+            renderCell: ({ value }) => value && h(Box, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
+        }
+    }
 }
