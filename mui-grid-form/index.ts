@@ -191,7 +191,10 @@ export function Form<Values extends Dict>({
                 display: 'flex',
                 alignItems: 'center',
                 sx: Object.assign({},
-                    stickyBar && { width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', borderRadius: 1, position: 'sticky', bottom: 0, p: 1, m: -1 },
+                    stickyBar && {
+                        width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', borderRadius: 1,
+                        position: 'sticky', bottom: 0, p: 1, m: -1, boxShadow: '0px 0px 30px #000',
+                    },
                     barSx)
             },
                 h(LoadingButton, {

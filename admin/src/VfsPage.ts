@@ -122,7 +122,8 @@ export default function VfsPage() {
             h(VfsMenuBar),
             vfs && h(VfsTree, { id2node })),
         isSideBreakpoint && sideContent && h(Grid, { item:true, [sideBreakpoint]: true, maxWidth:'100%' },
-            h(Card, {}, h(CardContent, {}, sideContent) ))
+            h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
+                h(CardContent, {}, sideContent) ))
     )
 }
 
