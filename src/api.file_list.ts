@@ -37,12 +37,12 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     const can_upload = hasPermission(node, 'can_upload', ctx)
     const fakeChild = applyParentToChild({}, node) // we want to know if we want to delete children
     const can_delete = hasPermission(fakeChild, 'can_delete', ctx)
-    const props = { can_upload, can_delete, accept: node.accept }
+    const can_archive = hasPermission(fakeChild, 'can_archive', ctx)
+    const props = { can_archive, can_upload, can_delete, accept: node.accept }
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {
-        if (can_upload || can_delete)
-            list.props(props)
+        list.props(props)
         for await (const entry of produceEntries())
             list.add(entry)
         list.close()

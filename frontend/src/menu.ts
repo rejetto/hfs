@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { ComponentPropsWithoutRef, createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
-import { err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted, working } from './misc'
+import { defaultPerms, err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted, VfsPerms, working } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -17,7 +17,8 @@ import { reloadList } from './useFetchList'
 import { t, useI18N } from './i18n'
 
 export function MenuPanel() {
-    const { showFilter, remoteSearch, stopSearch, stoppedSearch, selected, can_upload, can_delete } = useSnapState()
+    const { showFilter, remoteSearch, stopSearch, stoppedSearch, selected, props } = useSnapState()
+    const { can_upload, can_delete, can_archive } = props ? { ...defaultPerms, ...props } : {} as VfsPerms
     const { uploading, qs }  = useSnapshot(uploadState)
     useEffect(() => {
         if (!showFilter)
@@ -87,6 +88,7 @@ export function MenuPanel() {
                 id: 'zip-button',
                 icon: 'archive',
                 label: t`Zip`,
+                disabled: !can_archive,
                 tooltip: list ? t('zip_tooltip_selected', "Download selected elements as a single zip file")
                     : t('zip_tooltip_whole', "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded."),
                 href: '?'+String(new URLSearchParams(_.pickBy({

@@ -100,7 +100,7 @@ export function showUpload() {
     function Content(){
         const adding = useSnapshot(uploadState.adding)
         const { qs, paused, eta, skipExisting } = useSnapshot(uploadState)
-        const { can_upload, accept } = useSnapState()
+        const { props } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
         const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
@@ -108,12 +108,12 @@ export function showUpload() {
 
         return h(FlexV, { gap: 0, props: acceptDropFiles(more => uploadState.adding.push(...more.map(f => ({ file: ref(f) })))) },
             h(FlexV, { className: 'upload-toolbar' },
-                !can_upload ? t('no_upload_here', "No upload permission for the current folder")
+                !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
                         h(Flex, { justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' },
                             h('button', {
                                 className: 'upload-files',
-                                onClick: () => pickFiles({ accept: normalizeAccept(accept) })
+                                onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
                             }, t`Pick files`),
                             !isMobile() && h('button', {
                                 className: 'upload-folder',
@@ -252,9 +252,9 @@ export async function enqueue(entries: ToUpload[]) {
 }
 
 function simulateBrowserAccept(f: File) {
-    const { accept } = state
-    if (!accept) return true
-    return normalizeAccept(accept)!.split(/ *[|,] */).some(pattern =>
+    const { props } = state
+    if (!props?.accept) return true
+    return normalizeAccept(props?.accept)!.split(/ *[|,] */).some(pattern =>
         pattern.startsWith('.') ? f.name.endsWith(pattern)
             : f.type.match(pattern.replace('.','\\.').replace('*', '.*')) // '.' for .ext and '*' for 'image/*'
     )

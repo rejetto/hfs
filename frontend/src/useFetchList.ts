@@ -47,8 +47,7 @@ export default function useFetchList() {
         state.selected = {}
         state.loading = true
         state.error = undefined
-        state.can_upload = undefined
-        state.can_delete = undefined
+        state.props = undefined
         // buffering entries is necessary against burst of events that will hang the browser
         const buffer: DirList = []
         const flush = () => {
@@ -94,11 +93,9 @@ export default function useFetchList() {
                         if (uri && !uri.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(uri + '/')
                         if (op === 'props') {
-                            Object.assign(state, _.pick(par, ['can_upload', 'can_delete', 'accept']))
+                            state.props = par
                             continue
                         }
-                        state.can_upload ??= false
-                        state.can_delete ??= false
                         if (op === 'add')
                             buffer.push(new DirEntry(par.n, par))
                     }

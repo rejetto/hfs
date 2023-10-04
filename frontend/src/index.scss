@@ -111,6 +111,10 @@ button {
     vertical-align: middle;
     cursor: pointer;
     &:hover { outline: 1px solid var(--mild-contrast); }
+    transition: background-color .5s;
+    &[disabled] {
+        background-color: var(--faint-contrast);
+    }
 }
 button.toggled {
     color: #fff;

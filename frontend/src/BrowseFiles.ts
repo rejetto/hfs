@@ -40,7 +40,7 @@ export function BrowseFiles() {
 }
 
 function FilesList() {
-    const { filteredList, list, loading, stoppedSearch, can_upload } = useSnapState()
+    const { filteredList, list, loading, stoppedSearch, props } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
     const pageSize = 100
     const [page, setPage] = useState(0)
@@ -102,7 +102,7 @@ function FilesList() {
         h('ul', {
             ref,
             className: 'dir',
-            ...acceptDropFiles(files => can_upload ? enqueue(files.map(file => ({ file })))
+            ...acceptDropFiles(files => props?.can_upload ? enqueue(files.map(file => ({ file })))
                 : alertDialog(t("Upload not available"), 'warning') )
         },
             msgInstead ? h('p', {}, msgInstead)

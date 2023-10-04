@@ -27,11 +27,15 @@ export const state = proxy<{
     adminUrl?: string,
     loginRequired?: boolean, // force user to login before proceeding
     messageOnly?: string, // no gui, just show this message
-    can_upload?: boolean
-    can_delete?: boolean
-    accept?: string
+    props?: {
+        can_upload?: boolean
+        accept?: string
+        can_delete?: boolean
+        can_archive?: boolean
+    }
     tilesSize: number
 }>({
+    props: {},
     tilesSize: getHFS().tilesSize || 0,
     iconsReady: false,
     username: '',

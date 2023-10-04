@@ -26,7 +26,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
-        state.can_upload && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
+        state.props?.can_upload && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
             if (x === 'open') {
                 if (entry.cantOpen) return
@@ -34,7 +34,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 return !isFolder ? open : h(Link, { to: uri, onClick: () => close() }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
-                return (state.can_delete || entry.p?.includes('d')) && {
+                return (state.props?.can_delete || entry.p?.includes('d')) && {
                     id: 'delete',
                     label: t`Delete`,
                     icon: 'delete',
@@ -49,7 +49,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 }
             return x
         }),
-        state.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
+        state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
         isFolder && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
     const props = [
