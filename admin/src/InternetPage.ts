@@ -82,6 +82,9 @@ export default function InternetPage() {
                             if (fresh && !await confirmDialog("Your certificate is still good", { confirmText: "Make a new one anyway" }))
                                 return
                             if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
+                            const res = await apiCall('check_domain', { domain }).catch(e =>
+                                confirmDialog(String(e), { confirmText: "Continue anyway" }) )
+                            if (res === false) return
                             await apiCall('make_cert', { domain, email: values.acme_email }, { timeout: 20_000 })
                                 .then(async () => {
                                     await alertDialog("Certificate created", 'success')

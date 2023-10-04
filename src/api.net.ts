@@ -3,7 +3,7 @@
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { Client } from 'nat-upnp-ts'
 import {
-    HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE,
+    HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE, HTTP_PRECONDITION_FAILED,
     IS_MAC, IS_WINDOWS
 } from './const'
 import _ from 'lodash'
@@ -120,12 +120,11 @@ async function checkDomain(domain: string) {
         const domainIpsThisVersion = domainIps.filter(x => isIPv6(x) === v6)
         const ipsThisVersion = publicIps.filter(x => isIPv6(x) === v6)
         if (domainIpsThisVersion.length && ipsThisVersion.length && !_.intersection(domainIpsThisVersion, ipsThisVersion).length)
-            throw new ApiError(HTTP_FAILED_DEPENDENCY, `configure your domain to point to ${ipsThisVersion} (currently on ${domainIpsThisVersion[0]}) – a change can take hours to be effective`)
+            throw new ApiError(HTTP_PRECONDITION_FAILED, `configure your domain to point to ${ipsThisVersion} (currently on ${domainIpsThisVersion[0]}) – a change can take hours to be effective`)
     }
 }
 
 async function generateSSLCert(domain: string, email?: string) {
-    await checkDomain(domain)
     // will answer challenge through our koa app (if on port 80) or must we spawn a dedicated server?
     const { upnp, externalPort } = await getNatInfo()
     const { http } = await getServerStatus()
