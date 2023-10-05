@@ -185,7 +185,7 @@ const saveDebounced = debounceAsync(async () => {
 export const saveConfigAsap = () => void(saveDebounced())
 
 console.log("config", filePath)
-const { save } = watchLoad(filePath, text => setConfig(yaml.parse(text)||{}, false), {
+const { save } = watchLoad(filePath, text => setConfig(yaml.parse(text, { uniqueKeys: false })||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
         setConfig({}, false)

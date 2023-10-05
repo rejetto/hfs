@@ -196,7 +196,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 }
                 console.error(srv.name, srv.error)
                 const k = (srv === httpSrv? portCfg : httpsPortCfg).key()
-                console.log(` >> try specifying a different port, enter this command: config ${k} 8011`)
+                console.log(` >> try specifying a different port, enter this command: config ${k} 1080`)
                 resolve(0)
             }
         })

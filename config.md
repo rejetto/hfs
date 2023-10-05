@@ -31,8 +31,8 @@ Configuration can be done in several ways
 - passing via command line at start in the form `--NAME VALUE`
 - using envs in the form `HFS_NAME` (eg: `HFS_PORT`)
 - directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
-  - if you don't want to use an editor, consider typing this command inside the folder where the config file is:
-    `echo "port: 1080" > config.yaml`. Be careful as it will overwrite the whole file. 
+  - if you don't want to use an editor, consider typing this (example) command inside the folder where the config file is:
+    `echo "port: 1080" >> config.yaml` 
 - after HFS has started you can enter console command in the form `config NAME VALUE`
 
 `NAME` stands for the property name that you want to change. See the complete list below.
