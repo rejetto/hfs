@@ -4,9 +4,38 @@ This file contains details about the configuration files.
 
 Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
 
-These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
+These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`.
 if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
-You can decide a different cwd passing `--cwd SOME_FOLDER` parameter at command line.
+Many things are stored in the CWD, like the plugins you install.
+You can decide a different CWD passing `--cwd SOME_FOLDER` parameter at command line.
+
+If you are not sure what your `cwd` is, look in the console, and you'll see that it is printed in one of the first lines.
+Here is an example, look at the 7th line:
+```
+HFS ~ HTTP File Server - Copyright 2021-2023, Massimo Melina <a@rejetto.com>
+License https://www.gnu.org/licenses/gpl-3.0.txt
+started 10/5/2023, 10:03:23 AM
+version 0.49.0
+build 2023-10-04T19:46:22.610Z
+pid 27302
+cwd /Users/rejetto/.hfs
+node v18.17.1
+config config.yaml
+```
+
+### How to modify configuration
+
+Configuration can be done in several ways
+- accessing the Admin-panel with your browser
+    - it will automatically open when you start HFS. Bookmark it. if your port is 8000 the address will be http://localhost:8000/~/admin
+- passing via command line at start in the form `--NAME VALUE`
+- using envs in the form `HFS_NAME` (eg: `HFS_PORT`)
+- directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
+  - if you don't want to use an editor, consider typing this command inside the folder where the config file is:
+    `echo "port: 1080" > config.yaml`. Be careful as it will overwrite the whole file. 
+- after HFS has started you can enter console command in the form `config NAME VALUE`
+
+`NAME` stands for the property name that you want to change. See the complete list below.
 
 ### Configuration properties
 - `port` where to accept http connections. Default is 80.
@@ -124,3 +153,9 @@ For each account entries, this is the list of properties you can have:
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
 - `admin` set `true` if you want to let this account log in to the Admin-panel. Default is `false`.
 - `belongs` an array of usernames of other accounts from which to inherit their permissions. Default is none.
+
+### Specify another file
+
+Do you need to load a different config file, even from a different folder?
+Use this parameter at command line `--config PATH` or similarly with an env `HFS_CONFIG`.
+The path you specify can be either a folder, or full-path to the file.
