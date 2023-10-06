@@ -57,11 +57,12 @@ NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of
    - If you cannot find your system in the list, see next section [Other systems](#other-systems).
 4. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
    - if a browser cannot be opened on the computer where you are installing HFS, 
-     you should enter this command in HFS console: `create-admin <PASSWORD>`
-   - if you are running as a service and cannot access the console, your best option is to stop it, launch it
-     at command line (not as a service), and follow previous instruction.
-     - if you can never access the console, even with the previous instructions, 
-       you can [edit config file add add your admin account](config.md#accounts)
+     you should enter this command in the HFS console: `create-admin <PASSWORD>`
+   - if you cannot access the console (like when you are running as a service), 
+       you can [edit the config file to add your admin account](config.md#accounts)
+   - if you don't want to use an editor you can create the file with this command: 
+     
+     `echo "create-admin: PASSWORD" > config.yaml` 
 
 If you access *Admin-panel* via localhost, by default HFS **won't** require you to login.
 If you don't like this behavior, disable it in the Admin-panel or enter this console command `config localhost_admin false`.

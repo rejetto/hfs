@@ -53,6 +53,20 @@ export function saveSrpInfo(account:Account, salt:string | bigint, verifier: str
 
 export const allowClearTextLogin = defineConfig('allow_clear_text_login', false)
 
+const createAdminConfig = defineConfig('create-admin', '')
+createAdminConfig.sub(v => {
+    if (!v) return
+    createAdmin(v)
+    createAdminConfig.set('')
+})
+
+export function createAdmin(pass: string, username='admin') {
+    const acc = addAccount(username, { admin: true })
+    if (!acc) return console.log("cannot create, already exists")
+    updateAccount(acc!, acc => { acc.password = pass })
+    console.log("account admin created")
+}
+
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
 type Changer = (account:Account)=> void | Promise<void>
