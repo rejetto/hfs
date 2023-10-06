@@ -6,7 +6,7 @@ import { Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
 import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
 import { IconBtn, prefix, with_, xlate } from './misc'
-import { formDialog, toast } from './dialog'
+import { alertDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
@@ -158,6 +158,12 @@ const type2comp = {
 }
 
 export async function startPlugin(id: string) {
-    await apiCall('start_plugin', { id })
-    toast("Plugin started", h(PlayCircle, { color: 'success' }))
+    try {
+        await apiCall('start_plugin', { id })
+        toast("Plugin started", h(PlayCircle, { color: 'success' }))
+        return true
+    }
+    catch(e: any) {
+        alertDialog(`Plugin ${id} didn't start, with error: ${String(e?.message || e)}`, 'error')
+    }
 }
