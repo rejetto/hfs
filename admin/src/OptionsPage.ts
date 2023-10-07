@@ -15,7 +15,7 @@ import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
 import md from './md'
-import { TextEditorField } from './CustomHtmlPage'
+import { TextEditorField } from './TextEditor'
 
 let loaded: Dict | undefined
 let exposedReloadStatus: undefined | (() => void)
