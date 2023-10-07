@@ -11,6 +11,8 @@ import { LoginRequired } from './LoginRequired'
 import { Menu } from '@mui/icons-material'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import ConfigFilePage from './ConfigFilePage'
+import { useSnapState } from './state'
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
@@ -35,7 +37,8 @@ function ApplyTheme(props:any) {
 function Routed() {
     const loc = useLocation().pathname.slice(1)
     const current = mainMenu.find(x => x.path === loc)
-    const title = current && (current.title || getMenuLabel(current))
+    let { title } = useSnapState()
+    title = current && (current.title || getMenuLabel(current)) || title
     const [open, setOpen] = useState(false)
     const large = useBreakpoint('lg')
     return h(Fragment, {},
@@ -62,8 +65,11 @@ function Routed() {
                 }
             },
                 title && large && h(Typography, { variant:'h2', mb:2 }, title),
-                h(Routes, {}, mainMenu.map((it,idx) =>
-                    h(Route, { key: idx, path: it.path, element: h(it.comp) })) )
+                h(Routes, {},
+                    mainMenu.map((it,idx) =>
+                        h(Route, { key: idx, path: it.path, element: h(it.comp) })),
+                    h(Route, { path: 'edit', element: h(ConfigFilePage) })
+                )
             ),
             h(Dialogs)
         )

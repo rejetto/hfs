@@ -99,7 +99,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     const reload = useCallback(() => loadingRef.current
             || setForcer(v => v+1) || (reloadingRef.current = pendingPromise()),
         [setForcer])
-    return { data, error, reload, loading: Boolean(loadingRef.current || reloadingRef.current) }
+    return { data, setData, error, reload, loading: Boolean(loadingRef.current || reloadingRef.current) }
 }
 
 type EventHandler = (type:string, data?:any) => void

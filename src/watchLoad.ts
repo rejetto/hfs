@@ -8,8 +8,8 @@ export type WatchLoadCanceller = () => void
 
 interface Options { failedOnFirstAttempt?: ()=>void, immediateFirst?: boolean }
 
-type WriteFile = (data: string) => Promise<void>
-interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile }
+type WriteFile = (data: string, options?: { reparse: boolean }) => Promise<void>
+interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile, getText: () => string | undefined, getPath: () => string }
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt, immediateFirst }:Options={}): WatchLoadReturn {
     let doing = false
     let watcher: FSWatcher | undefined
@@ -17,8 +17,12 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     let retry: NodeJS.Timeout
     let last: string | undefined
     install(true)
-    const save = debounceAsync((data: string) => fs.writeFile(path, data, 'utf8'))
-    return { unwatch, save }
+    const save = debounceAsync(async (data: string, { reparse=false }={}) => {
+        await fs.writeFile(path, data, 'utf8')
+        if (reparse)
+            await parser(data)
+    })
+    return { unwatch, save, getText: () => last, getPath: () => path }
 
     function install(first=false) {
         try {

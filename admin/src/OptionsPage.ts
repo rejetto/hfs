@@ -4,7 +4,8 @@ import { Box, Button, FormHelperText } from '@mui/material';
 import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
-import { CardMembership, Refresh, Warning } from '@mui/icons-material'
+import { Link } from 'react-router-dom'
+import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILES_SIZE, modifiedSx, REPO_URL, ipLocalHost,
     wait, wikiLink, with_, try_, ipForUrl } from './misc'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
@@ -75,13 +76,20 @@ export default function OptionsPage() {
             sx: modifiedSx( Object.keys(changes).length>0),
         },
         barSx: { gap: 2 },
-        addToBar: [h(Button, {
-            onClick() {
-                reloadConfig()
-                reloadStatus()
-            },
-            startIcon: h(Refresh),
-        }, "Reload")],
+        addToBar: [
+            h(Button, {
+                onClick() {
+                    reloadConfig()
+                    reloadStatus()
+                },
+                startIcon: h(Refresh),
+            }, "Reload"),
+            h(Button, { // @ts-ignore
+                component: Link,
+                to: "/edit",
+                startIcon: h(EditNote),
+            }, "Edit config file"),
+        ],
         defaults() {
             return { sm: 6 }
         },

@@ -179,13 +179,17 @@ const saveDebounced = debounceAsync(async () => {
     if (await stat(bak).then(x => aWeekAgo > Number(x.mtime || x.ctime), () => true))
         await copyFile(filePath, bak).catch(() => {}) // ignore errors
 
-    await save(yaml.stringify({ ...state, version: VERSION }, { lineWidth:1000 }))
+    await configFile.save(stringify({ ...state, version: VERSION }))
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
 export const saveConfigAsap = () => void(saveDebounced())
 
+function stringify(obj: any) {
+    return yaml.stringify(obj, { lineWidth:1000 })
+}
+
 console.log("config", filePath)
-const { save } = watchLoad(filePath, text => setConfig(yaml.parse(text, { uniqueKeys: false })||{}, false), {
+export const configFile = watchLoad(filePath, text => setConfig(yaml.parse(text, { uniqueKeys: false })||{}, false), {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
         setConfig({}, false)

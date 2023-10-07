@@ -1,16 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import {
-    createElement as h,
-    Fragment,
-    KeyboardEvent,
-    ReactElement,
-    ReactNode,
-    useCallback,
-    useEffect,
-    useState
-} from 'react'
-import { useIsMounted } from 'usehooks-ts'
+import { createElement as h, Fragment, KeyboardEvent, ReactElement, ReactNode,
+    useCallback, useEffect, useRef, useState } from 'react'
+import { useIsMounted, useWindowSize } from 'usehooks-ts'
 
 export function useStateMounted<T>(init: T) {
     const isMounted = useIsMounted()
@@ -87,6 +79,21 @@ export function useBatch<Job=unknown,Result=unknown>(
     if (env && cached === undefined)
         env.batch.add(job)
     return { data: cached, ...env } as Env & { data: Result | undefined | null } // so you can cache.clear
+}
+
+export function KeepInScreen({ margin, ...props }: any) {
+    const ref = useRef<HTMLDivElement>()
+    const [maxHeight, setMaxHeight] = useState<undefined | number>()
+    const size = useWindowSize()
+    useEffect(() => {
+        const el = ref.current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        const doc = document.documentElement
+        const limit = window.innerHeight || doc.clientHeight
+        setMaxHeight(limit - rect?.top - margin)
+    }, [size])
+    return h('div', { ref, style: { maxHeight, overflow: 'auto' }, ...props })
 }
 
 const isMac = navigator.platform.match('Mac')

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
-import { defineConfig, getWholeConfig, setConfig } from './config'
+import { configFile, defineConfig, getWholeConfig, setConfig } from './config'
 import { getIps, getServerStatus, getUrls } from './listen'
 import {
     API_VERSION,
@@ -34,6 +34,7 @@ import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtm
 import _ from 'lodash'
 import { getUpdates, localUpdateAvailable, update, updateSupported } from './update'
 import { consoleLog } from './consoleLog'
+import { resolve } from 'path'
 
 export const adminApis: ApiHandlers = {
 
@@ -61,9 +62,15 @@ export const adminApis: ApiHandlers = {
     },
 
     get_config: getWholeConfig,
-    update({ tag }) {
-        return update(tag)
+    get_config_text() {
+        return {
+            path: configFile.getPath(),
+            fullPath: resolve(configFile.getPath()),
+            text: configFile.getText(),
+        }
     },
+    set_config_text: ({ text }) => configFile.save(text, { reparse: true }),
+    update: ({ tag }) => update(tag),
     async check_update() {
         return { options: await getUpdates() }
     },
