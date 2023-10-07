@@ -2,6 +2,7 @@
 // all content here is shared between client and server
 import _ from 'lodash'
 import { VfsNode } from './vfs'
+export * from './cross-const'
 
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 export const WIKI_URL = REPO_URL + 'wiki/'

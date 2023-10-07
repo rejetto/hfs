@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import { homedir } from 'os'
 import { mkdirSync } from 'fs'
 import { basename, dirname, join } from 'path'
+export * from './cross-const'
 
 export const argv = minimist(process.argv.slice(2))
 export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
@@ -15,40 +16,7 @@ export const BUILD_TIMESTAMP = fs.statSync(PKG_PATH).mtime.toISOString()
 const pkg = JSON.parse(fs.readFileSync(PKG_PATH,'utf8'))
 export const VERSION = pkg.version
 export const RUNNING_BETA = VERSION.includes('-')
-
-export const API_VERSION = 8.4
-export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
-
-export const HFS_REPO = 'rejetto/hfs'
 export const HFS_REPO_BRANCH = RUNNING_BETA ? 'next' : 'main'
-
-export const SPECIAL_URI = '/~/'
-export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
-export const ADMIN_URI = SPECIAL_URI + 'admin/'
-export const API_URI = SPECIAL_URI + 'api/'
-export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
-
-export const HTTP_OK = 200
-export const HTTP_NO_CONTENT = 204
-export const HTTP_PARTIAL_CONTENT = 206
-export const HTTP_MOVED_PERMANENTLY = 301
-export const HTTP_TEMPORARY_REDIRECT = 302
-export const HTTP_NOT_MODIFIED = 304
-export const HTTP_BAD_REQUEST = 400
-export const HTTP_UNAUTHORIZED = 401
-export const HTTP_FORBIDDEN = 403
-export const HTTP_NOT_FOUND = 404
-export const HTTP_METHOD_NOT_ALLOWED = 405
-export const HTTP_NOT_ACCEPTABLE = 406
-export const HTTP_CONFLICT = 409
-export const HTTP_PRECONDITION_FAILED = 412
-export const HTTP_PAYLOAD_TOO_LARGE = 413
-export const HTTP_RANGE_NOT_SATISFIABLE = 416
-export const HTTP_FOOL = 418
-export const HTTP_FAILED_DEPENDENCY = 424
-export const HTTP_SERVER_ERROR = 500
-export const HTTP_SERVICE_UNAVAILABLE = 503
-
 export const IS_WINDOWS = process.platform === 'win32'
 export const IS_MAC = process.platform === 'darwin'
 export const IS_BINARY = !basename(process.execPath).includes('node') // this won't be node if pkg was used

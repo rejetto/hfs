@@ -3,13 +3,13 @@
 import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
 import { DataTable } from './DataTable'
-import { IconBtn } from './misc'
+import { HTTP_FAILED_DEPENDENCY, IconBtn } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
 import { renderName, startPlugin } from './InstalledPlugins'
 import { state, useSnapState } from './state'
-import { alertDialog, confirmDialog } from './dialog'
+import { alertDialog, confirmDialog, toast } from './dialog'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -73,23 +73,40 @@ export default function OnlinePlugins() {
                     disabled: row.installed && "Already installed",
                     tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
                     confirm: "WARNING - Proceed only if you trust this author and this plugin",
-                    async onClick() {
+                    onClick() {
                         const branch = row.branch || row.default_branch
-                        try {
-                            const res = await apiCall('download_plugin', { id, branch }, { timeout: false })
-                            if (await confirmDialog(`Plugin ${id} downloaded`, { confirmText: "Start" }))
-                                await startPlugin(res.id)
-                        }
-                        catch(e: any) {
-                            if (e.code !== 424) throw e
+                        installPlugin(id, branch).catch((e: any) => {
+                            if (e.code !== HTTP_FAILED_DEPENDENCY)
+                                return alertDialog(e)
                             const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
                                 e.data.map((x: any) => h('li', { key: x.repo }, x.repo + ': ' + x.error)) )
                             return alertDialog(msg, 'error')
-                        }
+                        })
                     }
                 })
             ]
         })
     )
+
+    async function installPlugin(id: string, branch?: string): Promise<any> {
+        try {
+            const res = await apiCall('download_plugin', { id, branch }, { timeout: false })
+            if (await confirmDialog(`Plugin ${id} downloaded`, { confirmText: "Start" }))
+                await startPlugin(res.id)
+        }
+        catch(e:any) {
+            let done = false
+            if (e.code === HTTP_FAILED_DEPENDENCY) // try to install automatically
+                for (const x of e.cause)
+                    if (x.error === 'missing') {
+                        toast("Installing dependency: " + x.repo)
+                        await installPlugin(x.repo)
+                        done = true
+                    }
+            if (done) // try again
+                return installPlugin(id, branch)
+            throw e
+        }
+    }
 }
 
