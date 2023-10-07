@@ -157,11 +157,22 @@ export default function InternetPage() {
         if (!verifyAgain && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
-            const res = await apiCall('check_server', {})
+            const url = status.data?.baseUrl
+            const urlResult = url && await apiCall('self_check', { url }).catch(() =>
+                alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
+            if (urlResult?.success) {
+                setCheckResult(true)
+                return alertDialog(h(Box, {}, "Your server is responding correctly over the Internet:",
+                    h('ul', {}, h('li', {}, urlResult.url))), 'success')
+            }
+            if (urlResult?.success === false)
+                await alertDialog(md(`Your configured address ${url} doesn't seem to work 😰\nstill, we are going to test your IP address 🤞`), 'warning')
+            const res = await apiCall('self_check', {})
             if (res.some((x: any) => x.success)) {
                 setCheckResult(true)
-                const specify = res.every((x: any) => x.success) ? '' : ` with address ${res.map((x: any) => x.ip).join(' + ')}`
-                return toast("Your server is responding correctly over the Internet" + specify, 'success')
+                const mild = urlResult.success === false && md(`Your server is responding over the Internet 👍\nbut not with configured address ${url} 👎\njust on your IP:`)
+                return alertDialog(h(Box, {}, mild || "Your server is responding correctly over the Internet:",
+                    h('ul', {}, ...res.map((x: any) => h('li', {}, x.url)))), mild ? 'warning' : 'success')
             }
             setCheckResult(false)
             if (wrongMap)
@@ -232,6 +243,7 @@ export default function InternetPage() {
             await apiCall('map_port', { external })
             reloadNat()
             if (msg) toast(msg, 'success')
+            setCheckResult(undefined) // things have changed, invalidate check result
         }
         catch(e) {
             if (errMsg) {

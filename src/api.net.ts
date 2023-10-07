@@ -2,9 +2,8 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { Client } from 'nat-upnp-ts'
-import {
-    HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE, HTTP_PRECONDITION_FAILED,
-    IS_MAC, IS_WINDOWS
+import { HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE,
+    HTTP_PRECONDITION_FAILED, IS_MAC, IS_WINDOWS, SPECIAL_URI
 } from './const'
 import _ from 'lodash'
 import { cert, getCertObject, getIps, getServerStatus, privateKey } from './listen'
@@ -31,7 +30,11 @@ upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), 0,
 upnpClient.getGateway().catch(() => {})
 
 export let externalIp = '' // poll external ip
-repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => externalIp = v))
+repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => {
+    if (v !== externalIp)
+        getPublicIps.clearRetain()
+    return externalIp = v
+}))
 
 const getNatInfo = debounceAsync(async () => {
     const gettingIps = getPublicIps() // don't wait, do it in parallel
@@ -52,10 +55,11 @@ const getNatInfo = debounceAsync(async () => {
         mapped,
         internalPort,
         externalPort: mapped?.public.port,
+        proto: status?.https?.listening ? 'https' : status?.http?.listening ? 'http' : undefined,
     } satisfies GetNat
 })
 
-async function getPublicIps() {
+const getPublicIps = debounceAsync(async () => {
     const res = await getProjectInfo()
     const groupedByVersion = Object.values(_.groupBy(res.publicIpServices, x => x.v ?? 4))
     const ips = await promiseBestEffort(groupedByVersion.map(singleVersion =>
@@ -75,7 +79,7 @@ async function getPublicIps() {
             return validIps
         }) )))
     return _.uniq(ips.flat())
-}
+}, 0, { retain: 10 * MINUTE })
 
 function findGateway(): Promise<string | undefined> {
     return new Promise((resolve, reject) =>
@@ -100,6 +104,14 @@ const acmeListener: RequestListener = (req, res) => { // node format
 export const acmeMiddleware: Middleware = (ctx, next) => { // koa format
     if (!acmeMiddlewareEnabled || !Boolean(acmeListener(ctx.req, ctx.res)))
         return next()
+}
+
+let selfCheckMiddlewareEnabled = false
+const CHECK_URL = SPECIAL_URI + 'self-check'
+export const selfCheckMiddleware: Middleware = (ctx, next) => { // koa format
+    if (!selfCheckMiddlewareEnabled || !ctx.url.startsWith(CHECK_URL))
+        return next()
+    ctx.body = 'HFS'
 }
 
 async function checkDomain(domain: string) {
@@ -138,11 +150,13 @@ async function generateSSLCert(domain: string, email?: string) {
     acmeMiddlewareEnabled = true
     console.debug('acme challenge server ready')
     try {
-        let check = await checkPort(domain, 80) // some check services may not consider the domain, but we already verified that
+        const checkUrl = `http://${domain}`
+        let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
         if (check && !check.success && upnp && externalPort !== 80) { // consider a short-lived mapping
+            console.debug("setting temporary port forward")
             // @ts-ignore
             await upnpClient.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 30 }).catch(() => {})
-            check = await checkPort(domain, 80) // repeat test
+            check = await selfCheck(checkUrl) // repeat test
         }
         //if (!check) throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
         if (!check?.success)
@@ -175,37 +189,57 @@ async function generateSSLCert(domain: string, email?: string) {
     }
 }
 
-async function checkPort(ip: string, port: number) {
+async function checkService(url: string, serviceKey: string) {
     interface PortScannerService {
+        type?: string
         url: string
         headers: {[k: string]: string}
         method: string
-        selector: string
         body?: string
         regexpFailure: string
         regexpSuccess: string
     }
     const prjInfo = await getProjectInfo()
-    console.log(`checking server ${ip}:${port}`)
-    for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.checkServerServices), 2)) {
-        try {
-            return await Promise.any(services.map(async ({ url, body, selector, regexpSuccess, regexpFailure, ...rest }) => {
-                const service = new URL(url).hostname
-                console.log('trying service', service)
-                const res = await httpString(applySymbols(url)!, { family: isIPv6(ip) ? 6 : 4, body: applySymbols(body), ...rest })
-                const success = new RegExp(regexpSuccess).test(res)
-                const failure = new RegExp(regexpFailure).test(res)
-                if (success === failure) throw console.debug('inconsistent:' + service) // this result cannot be trusted
-                console.debug(service, 'responded', success)
-                return { success, service, ip, port }
-            }))
+    console.log(`checking server ${url}`)
+    selfCheckMiddlewareEnabled = true
+    try {
+        const parsed = new URL(url)
+        const family = !isIP(parsed.hostname) ? undefined : isIPv6(parsed.hostname) ? 6 : 4
+        for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo[serviceKey]), 2)) {
+            try {
+                return await Promise.any(services.map(async (svc) => {
+                    if (!svc.url || svc.type) throw 'unsupported ' + svc.type // only default type supported for now
+                    let { url: serviceUrl, body, regexpSuccess, regexpFailure, ...rest } = svc
+                    const service = new URL(serviceUrl).hostname
+                    console.log('trying external service', service)
+                    body = applySymbols(body)
+                    serviceUrl = applySymbols(serviceUrl)!
+                    const res = await haveTimeout(10_000, httpString(serviceUrl, { family, ...rest, body }))
+                    const success = new RegExp(regexpSuccess).test(res)
+                    const failure = new RegExp(regexpFailure).test(res)
+                    if (success === failure) throw 'inconsistent: ' + service + ': ' + res // this result cannot be trusted
+                    console.debug(service, 'responded', success)
+                    return { success, service, url }
+                }))
+            }
+            catch (e: any) {
+                console.debug(e?.errors?.map(String) || e?.cause || String(e))
+            }
         }
-        catch {}
-    }
 
-    function applySymbols(s?: string) {
-        return s?.replace('$IP', ip).replace('$PORT', String(port))
+        function applySymbols(s?: string) {
+            return s?.replace('$IP', parsed.hostname)
+                .replace('$PORT', parsed.port || (parsed.protocol === 'https:' ? '443' : '80'))
+                .replace('$URL', url.replace(/\/$/, '') + CHECK_URL)
+        }
     }
+    finally {
+        selfCheckMiddlewareEnabled = false
+    }
+}
+
+function selfCheck(url: string) {
+    return checkService(url, 'selfCheckServices')
 }
 
 const apis: ApiHandlers = {
@@ -230,15 +264,21 @@ const apis: ApiHandlers = {
         return {}
     },
 
-    async check_server({ port }) {
-        const { publicIps, internalPort, externalPort } = await getNatInfo()
-        if (!publicIps.length)
+    async self_check({ url }) {
+        if (url)
+            return await selfCheck(url)
+                || new ApiError(HTTP_SERVICE_UNAVAILABLE)
+        const nat = await getNatInfo()
+        if (!nat.publicIps.length)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'cannot detect public ip')
-        if (!internalPort)
+        if (!nat.internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
-        port ||= externalPort || internalPort
-        const res = await promiseBestEffort(publicIps.map(ip => checkPort(ip, port)))
-        return res.length ? res : new ApiError(HTTP_SERVICE_UNAVAILABLE)
+        const finalPort = nat.externalPort || nat.internalPort
+        const proto = nat.proto || (getCertObject() ? 'https' : 'http')
+        const defPort = proto === 'https' ? 443 : 80
+        const results = onlyTruthy(await promiseBestEffort(nat.publicIps.map(ip =>
+            selfCheck(`${proto}://${ip}${finalPort === defPort ? '' : ':' + finalPort}`) )))
+        return results.length ? results : new ApiError(HTTP_SERVICE_UNAVAILABLE)
     },
 
     async make_cert({domain, email}) {

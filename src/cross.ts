@@ -35,6 +35,7 @@ export interface GetNat {
     mapped?: Mapping
     internalPort?: number
     externalPort?: number
+    proto?: string
 }
 
 export interface VfsPerms {
@@ -104,7 +105,7 @@ export function wait<T=undefined>(ms: number, val?: T): Promise<T | undefined> {
 }
 
 export function haveTimeout<T>(ms: number, job: Promise<T>, error?: any) {
-    return Promise.race([job, wait(ms).then(() => { throw error })])
+    return Promise.race([job, wait(ms).then(() => { throw error || Error('timeout') })])
 }
 
 export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Truthy<S[keyof S]>, key:keyof S)=>VR) {

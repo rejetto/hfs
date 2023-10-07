@@ -23,6 +23,18 @@
             "regexpSuccess": "reachable\": true"
         }
     ],
+    "selfCheckServices": [
+        {
+            "url": "https://api.val.town/v6/run/rejetto.checkHfs?args=[%22$URL%22]",
+            "regexpFailure": "false",
+            "regexpSuccess": "true"
+        },
+        {
+            "url": "http://hfstest.rejetto.com/v3?url=$URL",
+            "regexpFailure": "\"error\"",
+            "regexpSuccess": "\"good\""
+        }
+    ],
     "publicIpServices": [
         "http://ipv4.icanhazip.com",
         { "v": 6, "type": "http", "url": "http://ipv6.icanhazip.com" },
