@@ -190,7 +190,7 @@ async function checkPort(ip: string, port: number) {
     console.log(`checking server ${ip}:${port}`)
     for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.checkServerServices), 2)) {
         try {
-            return Promise.any(services.map(async ({ url, body, selector, regexpSuccess, regexpFailure, ...rest }) => {
+            return await Promise.any(services.map(async ({ url, body, selector, regexpSuccess, regexpFailure, ...rest }) => {
                 const service = new URL(url).hostname
                 console.log('trying service', service)
                 const res = await httpString(applySymbols(url)!, { family: isIPv6(ip) ? 6 : 4, body: applySymbols(body), ...rest })
