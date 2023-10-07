@@ -107,9 +107,10 @@ export async function* dirStream(path: string, deep=0) {
 
 export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {
     let pending: Promise<any> = Promise.resolve()
-    return new Promise(resolve =>
+    return new Promise((resolve, reject) =>
         stream.pipe(unzipper.Parse())
             .on('end', () => pending.then(resolve))
+            .on('error', reject)
             .on('entry', (entry: any) =>
                 pending = pending.then(async () => { // don't overlap writings
                     const { path, type } = entry
@@ -121,7 +122,7 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
                         return entry.autodrain()
                     console.debug('unzip', dest)
                     await prepareFolder(dest)
-                    const thisFile = entry.pipe(createWriteStream(dest))
+                    const thisFile = entry.pipe(createWriteStream(dest).on('error', reject))
                     await once(thisFile, 'finish')
                 }) )
     )

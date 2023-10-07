@@ -97,8 +97,8 @@ const commands = {
         }
     },
     update: {
-        params: '',
-        cb: () => update()
+        params: '[<version>=latest]',
+        cb: update
     },
     'check-update': {
         params: '',

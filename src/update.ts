@@ -68,15 +68,19 @@ export function updateSupported() {
     return IS_BINARY
 }
 
-export async function update(tag?: string) {
-    if (!updateSupported())
-        throw "only binary versions are supported for now"
+export async function update(tag: string='') {
+    if (!updateSupported()) throw "only binary versions supports automatic update for now"
     let updateSource: Readable | false = await localUpdateAvailable() && createReadStream(LOCAL_UPDATE)
     if (!updateSource) {
+        if (/^\d/.test(tag)) // work even if the tag is passed without the initial 'v' (useful for console commands)
+            tag = 'v' + tag
         const update = !tag ? (await getUpdates())[0]
-            : await getRepoInfo(HFS_REPO + '/releases/tags/' + tag) as Release
+            : await getRepoInfo(HFS_REPO + '/releases/tags/' + tag).catch(e => {
+                if (e.message === '404') console.error("version not found")
+                else throw e
+            }) as Release | undefined
         if (!update)
-            throw "no update found"
+            throw "update not found"
         const assetSearch = ({ win32: 'windows', darwin: 'mac', linux: 'linux' } as any)[process.platform]
         if (!assetSearch)
             throw "this feature doesn't support your platform: " + process.platform
@@ -114,7 +118,8 @@ export async function update(tag?: string) {
         console.log('quitting')
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
     }
-    catch {
+    catch (e: any) {
+        console.error(e?.message || String(e))
         pluginsWatcher.unpause()
     }
 }

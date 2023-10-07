@@ -52,7 +52,7 @@ function errorHandler(err:Error & { code:string, path:string }) {
 
 process.on('uncaughtException', err => {
     if ((err as any).syscall !== 'watch')
-        console.error(err)
+        console.error("uncaught:", err)
 })
 
 defineConfig('proxies', 0).sub(n => {
