@@ -26,6 +26,7 @@ function ApplyTheme(props:any) {
             bgcolor: 'background.default', color: 'text.primary',
             display: 'flex', flexDirection: 'column',
             minHeight: '100%', flex: 1,
+            maxWidth: '100%',
         },
         ...props
     })
@@ -52,10 +53,12 @@ function Routed() {
                     backgroundSize: 'contain',
                     px: { xs: 1, sm: 2, md: 3 },
                     pb: '1em',
+                    boxSizing: 'border-box', // keep padding inside the viewport
                     position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     width: '100%',
+                    overflowX: 'clip', // keep wide things in space
                 }
             },
                 title && large && h(Typography, { variant:'h2', mb:2 }, title),
