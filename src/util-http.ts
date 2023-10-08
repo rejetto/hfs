@@ -36,9 +36,7 @@ export function httpStream(url: string, { body, ...options }:XRequestOptions ={}
         }).on('error', e => {
             reject((req as any).res || e)
         })
-        if (body)
-            req.write(body)
-        req.end()
+        req.end(body)
     })
 }
 
