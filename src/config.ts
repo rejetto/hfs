@@ -72,10 +72,10 @@ export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Sub
                 cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled() })
             const eventName = CONFIG_CHANGE_EVENT_PREFIX + k
             return onOff(cfgEvents, {
-                [eventName]() {
+                [eventName](v, was, version) {
                     if (stack.includes(cb)) return // avoid infinite loop in case a subscriber changes the value
-                    stack.push(cb) // @ts-ignore arguments
-                    try { return cb.apply(this,arguments) }
+                    stack.push(cb)
+                    try { return cb(v, { k, was, version, defaultValue }) }
                     finally { stack.pop() }
                 }
             })
