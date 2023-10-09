@@ -144,9 +144,8 @@ async function generateSSLCert(domain: string, email?: string) {
             await upnpClient.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 30 }).catch(() => {})
             check = await checkPort(domain, 80) // repeat test
         }
-        if (!check)
-            throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
-        if (!check.success)
+        //if (!check) throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
+        if (!check?.success)
             throw new ApiError(HTTP_FAILED_DEPENDENCY, "port 80 is not working on the specified domain")
         const acmeClient = new acme.Client({
             accountKey: await acme.crypto.createPrivateKey(),
