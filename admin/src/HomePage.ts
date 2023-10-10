@@ -2,7 +2,7 @@
 
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Button, Card, CardContent, LinearProgress, Link } from '@mui/material'
-import { apiCall, useApiEx, useApiList } from './api'
+import { apiCall, apiEvents, useApiEvents, useApiEx, useApiList } from './api'
 import {
     Btn,
     dontBotherWithKeys,
@@ -46,6 +46,8 @@ export default function HomePage() {
     const { data: account } = useApiEx<Account>(username && 'get_account')
     const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
     const { list: plugins } = useApiList('get_plugins')
+    const [checkPlugins, setCheckPlugins] = useState(false)
+    const { list: pluginUpdates} = useApiList(checkPlugins && 'get_plugin_updates')
     const [updates, setUpdates] = useState<undefined | any[]>()
     if (statusEl || !status)
         return statusEl
@@ -100,6 +102,7 @@ export default function HomePage() {
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
             )),
         entry('', h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "Get support")),
+        pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
         status.updatePossible === 'local' ? h(Btn, {
                 icon: UpdateIcon,
                 onClick: () => update()
@@ -107,11 +110,14 @@ export default function HomePage() {
             : !updates ? h(Btn, {
                 variant: 'outlined',
                 icon: UpdateIcon,
-                onClick: () => apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
+                onClick() {
+                    setCheckPlugins(true)
+                    return apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
+                }
             }, "Check for updates")
             : with_(_.find(updates, 'isNewer'), newer =>
                 !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
-                    : newer && !status.updatePossible ? entry('', `Version ${newer.name} available`)
+                    : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
                         : h(Flex, { vert: true },
                             updates.map((x: any) =>
                                 h(Flex, { key: x.name, alignItems: 'flex-start', flexWrap: 'wrap' },
