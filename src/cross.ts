@@ -112,8 +112,8 @@ export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Tru
     return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
 }
 
-export function enforceFinal(sub:string, s:string) {
-    return !s || s.endsWith(sub) ? s : s+sub
+export function enforceFinal(sub:string, s:string, evenEmpty=false) {
+    return !evenEmpty && !s || s.endsWith(sub) ? s : s+sub
 }
 
 export function truthy<T>(value: T): value is Truthy<T> {

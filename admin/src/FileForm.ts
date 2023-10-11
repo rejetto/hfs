@@ -227,7 +227,7 @@ interface LinkFieldProps extends FieldProps<string> {
 function LinkField({ value, statusApi }: LinkFieldProps) {
     const { data, reload, error } = statusApi
     const urls: string[] = data?.urls.https || data?.urls.http
-    const link = (data?.baseUrl || urls?.[0] || '') + value
+    const link = (data?.baseUrl || '') + value
     return h(Box, { display: 'flex' },
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
@@ -249,11 +249,12 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
 export async function changeBaseUrl() {
     return new Promise(async resolve => {
         const res = await apiCall('get_status')
+        const { base_url } = await apiCall('get_config', { only: ['base_url'] })
         const urls: string[] = res.urls.https || res.urls.http
         const { close } = newDialog({
             title: "Base address",
             Content() {
-                const [v, setV] = useState(res.baseUrl || '')
+                const [v, setV] = useState(base_url || '')
                 const proto = new URL(v || urls[0]).protocol + '//'
                 const host = urls.includes(v) ? '' : v.slice(proto.length)
                 const check = h(Check, { sx: { ml: 2 } })
@@ -290,7 +291,7 @@ export async function changeBaseUrl() {
                             icon: Save,
                             children: "Save",
                             async onClick() {
-                                if (v !== res.baseUrl)
+                                if (v !== base_url)
                                     await apiCall('set_config', { values: { base_url: v.replace(/\/$/, '') } })
                                 resolve(v)
                                 close()

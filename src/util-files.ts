@@ -16,7 +16,7 @@ import fsx from 'fs-x-attributes'
 
 export async function isDirectory(path: string) {
     try { return (await fs.stat(path)).isDirectory() }
-    catch { return false }
+    catch {}
 }
 
 export async function readFileBusy(path: string): Promise<string> {

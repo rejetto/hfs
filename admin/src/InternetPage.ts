@@ -20,6 +20,7 @@ export default function InternetPage() {
     const [mapping, setMapping] = useState(false)
     const [verifyAgain, setVerifyAgain] = useState(false)
     const status = useApiEx('get_status')
+    const { data: config } = useApiEx('get_config', { only: ['base_url'] })
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     const { data: nat, reload: reloadNat, error, loading, element } = useApiEx<GetNat>('get_nat')
@@ -102,13 +103,13 @@ export default function InternetPage() {
     }
 
     function baseUrlBox() {
-        const url = status.data?.baseUrl
+        const url = config?.base_url
         const hostname = url && new URL(url).hostname
         const domain = !isIP(hostname) && hostname
         return status.element || h(Card, {}, h(CardContent, {},
             h(Box, { fontSize: 'x-large', mb: 2 }, "Address / Domain"),
             h(Flex, { flexWrap: 'wrap', alignItems: 'center' },
-                status.data?.baseUrl || "Automatic, not configured",
+                url || "Automatic, not configured",
                 h(Button, {
                     size: 'small',
                     onClick() { changeBaseUrl().then(status.reload) }
@@ -157,7 +158,7 @@ export default function InternetPage() {
         if (!verifyAgain && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
-            const url = status.data?.baseUrl
+            const url = config.base_url
             const urlResult = url && await apiCall('self_check', { url }).catch(() =>
                 alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
             if (urlResult?.success) {

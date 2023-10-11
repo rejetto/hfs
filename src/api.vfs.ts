@@ -6,13 +6,14 @@ import _ from 'lodash'
 import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
+import { dirStream, enforceFinal, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
 import {
     IS_WINDOWS,
     HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
 } from './const'
 import { getDrives } from './util-os'
 import { Stats } from 'fs'
+import { getBaseUrlOrDefault } from './listen'
 
 // to manipulate the tree we need the original node
 async function urlToNodeOriginal(uri: string) {
@@ -98,25 +99,32 @@ const apis: ApiHandlers = {
     async add_vfs({ parent, source, name }) {
         if (!source && !name)
             return new ApiError(HTTP_BAD_REQUEST, 'name or source required')
-        parent = parent ? await urlToNodeOriginal(parent) : vfs
-        if (!parent)
+        const parentNode = parent ? await urlToNodeOriginal(parent) : vfs
+        if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
-        if (!await nodeIsDirectory(parent))
+        if (!await nodeIsDirectory(parentNode))
             return new ApiError(HTTP_NOT_ACCEPTABLE, 'parent not a folder')
         if (isWindowsDrive(source))
             source += '\\' // slash must be included, otherwise it will refer to the cwd of that drive
+        const isDir = source && await isDirectory(source)
+        if (source && isDir === undefined)
+            return new ApiError(HTTP_NOT_FOUND, 'source not found')
         const child = { source, name }
         name = getNodeName(child) // could be not given as input
         const ext = extname(name)
         const noExt = ext ? name.slice(0, -ext.length) : name
         let idx = 2
-        while (parent.children?.find(isSameFilenameAs(name)))
+        while (parentNode.children?.find(isSameFilenameAs(name)))
             name = `${noExt} ${idx++}${ext}`
         child.name = name
         simplifyName(child)
-        ;(parent.children ||= []).unshift(child)
+        ;(parentNode.children ||= []).unshift(child)
         await saveVfs()
-        return { name }
+        const link = getBaseUrlOrDefault()
+            + (parent ? enforceFinal('/', parent) : '/')
+            + encodeURIComponent(getNodeName(child))
+            + (isDir ? '/' : '')
+        return { name, link }
     },
 
     async del_vfs({ uris }) {

@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { configFile, defineConfig, getWholeConfig, setConfig } from './config'
-import { getIps, getServerStatus, getUrls } from './listen'
+import { getBaseUrlOrDefault, getIps, getServerStatus, getUrls } from './listen'
 import {
     API_VERSION,
     BUILD_TIMESTAMP,
@@ -23,7 +23,7 @@ import { debounceAsync, isLocalHost, makeNetMatcher, onOff, tryJson, wait, waitF
 import events from './events'
 import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
 import Koa from 'koa'
-import { baseUrl, getProxyDetected } from './middlewares'
+import { getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
 import { createReadStream } from 'fs'
 import * as readline from 'readline'
@@ -104,7 +104,7 @@ export const adminApis: ApiHandlers = {
             ...await getServerStatus(),
             urls: await getUrls(),
             ips: await getIps(false),
-            baseUrl: baseUrl.get(), // can be retrieved with get_config, but it's very handy with urls and low overhead. Case is different because the context is
+            baseUrl: getBaseUrlOrDefault(),
             updatePossible: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()

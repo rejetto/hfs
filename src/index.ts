@@ -19,7 +19,8 @@ import { ok } from 'assert'
 import _ from 'lodash'
 import { randomId } from './misc'
 import session from 'koa-session'
-import { acmeMiddleware, selfCheckMiddleware } from './api.net'
+import { selfCheckMiddleware } from './selfCheck'
+import { acmeMiddleware } from './acme'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 

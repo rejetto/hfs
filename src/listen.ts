@@ -14,15 +14,21 @@ import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
 import { X509Certificate } from 'crypto'
-import { externalIp } from './api.net'
 import events from './events'
 import { isIPv6 } from 'net'
+import { defaultBaseUrl } from './nat'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
 let httpsSrv: undefined | http.Server & ServerExtra
 
 const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
+
+export const baseUrl = defineConfig('base_url', '')
+
+export function getBaseUrlOrDefault() {
+    return baseUrl.get() || defaultBaseUrl.get()
+}
 
 export function getHttpsWorkingPort() {
     return httpsSrv?.listening && (httpsSrv.address() as any)?.port
@@ -73,6 +79,8 @@ export function getCertObject() {
 
 const considerHttps = debounceAsync(async () => {
     stopServer(httpsSrv).then()
+    defaultBaseUrl.proto = 'http'
+    defaultBaseUrl.port = getCurrentPort(httpSrv) ?? 0
     let port = httpsPortCfg.get()
     try {
         while (!app)
@@ -111,6 +119,8 @@ const considerHttps = debounceAsync(async () => {
     httpsSrv.on('connection', newConnection)
     printUrls(httpsSrv.name)
     events.emit('https ready')
+    defaultBaseUrl.proto = 'https'
+    defaultBaseUrl.port = getCurrentPort(httpsSrv) ?? 0
 })
 
 
@@ -218,6 +228,10 @@ export function stopServer(srv?: http.Server) {
     })
 }
 
+function getCurrentPort(srv: typeof httpSrv) {
+    return (srv?.address() as any)?.port as number | undefined
+}
+
 export async function getServerStatus() {
     return {
         http: await serverStatus(httpSrv, portCfg.get()),
@@ -230,7 +244,7 @@ export async function getServerStatus() {
         return {
             ..._.pick(srv, ['listening', 'error']),
             busy,
-            port: (srv?.address() as any)?.port as number || configuredPort,
+            port: getCurrentPort(srv) || configuredPort,
             configuredPort,
             srv,
         }
@@ -243,11 +257,13 @@ export async function getIps(external=true) {
         nets && !ignore.test(name)
         && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
     )).flat()
-    const e = external && externalIp
+    const e = external && defaultBaseUrl.externalIp
     if (e && !ips.includes(e))
         ips.unshift(e)
-    return v4first(ips)
+    const ret = v4first(ips)
         .filter((x,i,a) => a.length > 1 || !x.startsWith('169.254')) // 169.254 = dhcp failure on the interface, but keep it if it's our only one
+    defaultBaseUrl.localIp = ret[0] || ''
+    return ret
 
     function v4first(a: string[]) {
         return _.sortBy(a, isIPv6) // works because `false` comes first

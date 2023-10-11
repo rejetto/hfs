@@ -34,7 +34,7 @@ import formidable from 'formidable'
 import { uploadWriter } from './upload'
 import { allowAdmin, favicon } from './adminApis'
 import { constants } from 'zlib'
-import { getHttpsWorkingPort } from './listen'
+import { baseUrl, getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
 import { getLangData } from './lang'
 
@@ -171,8 +171,6 @@ const errorMessages = {
     [HTTP_UNAUTHORIZED]: "Unauthorized",
     [HTTP_FORBIDDEN]: "Forbidden",
 }
-
-export const baseUrl = defineConfig('base_url', '')
 
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
     let { depth=0, folders, prepend } = ctx.query
