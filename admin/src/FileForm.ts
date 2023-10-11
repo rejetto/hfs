@@ -291,7 +291,7 @@ export async function changeBaseUrl() {
                             children: "Save",
                             async onClick() {
                                 if (v !== res.baseUrl)
-                                    await apiCall('set_config', { values: { base_url: v } })
+                                    await apiCall('set_config', { values: { base_url: v.replace(/\/$/, '') } })
                                 resolve(v)
                                 close()
                             },
