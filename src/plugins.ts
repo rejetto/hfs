@@ -12,7 +12,7 @@ import {
 } from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.file_list'
-import { VfsNode } from './vfs'
+import { MIME_AUTO, VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
 import { mkdir, readFile } from 'fs/promises'
@@ -132,7 +132,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
             const name = a.shift()!
             if (plugins.hasOwnProperty(name)) // do it only if the plugin is loaded
-                await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), 'auto')
+                await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), MIME_AUTO)
             return
         }
         await next()

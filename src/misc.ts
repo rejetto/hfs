@@ -94,7 +94,7 @@ function parseAddress(s: string) {
 }
 
 export function makeMatcher(mask: string, emptyMaskReturns=false) {
-    return mask ? matcher(mask.replace(/^(!)?/, '$1(') + ')') // adding () will allow us to use the pipe at root level
+    return mask ? matcher(mask.replace(/^(!)?/, '$1(') + ')', { nocase: true}) // adding () will allow us to use the pipe at root level
         : () => emptyMaskReturns
 }
 

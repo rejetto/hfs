@@ -45,7 +45,7 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     }
 }
 
-const mimeCfg = defineConfig<Record<string,string>>('mime', { '*': 'auto' })
+const mimeCfg = defineConfig<Record<string,string>>('mime', { '*': MIME_AUTO })
 
 export async function serveFile(ctx: Koa.Context, source:string, mime?:string, content?: string | Buffer) {
     if (!source)

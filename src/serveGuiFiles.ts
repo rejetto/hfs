@@ -24,6 +24,7 @@ import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig } from './config'
 import { getLangData } from './lang'
+import { MIME_AUTO } from './vfs'
 
 const logGui = defineConfig('log_gui', false)
 
@@ -54,7 +55,7 @@ function serveStatic(uri: string): Koa.Middleware {
         if (content === null)
             return ctx.status = HTTP_NOT_FOUND
         if (!serveApp)
-            return serveFile(ctx, fullPath, 'auto', content)
+            return serveFile(ctx, fullPath, MIME_AUTO, content)
         // we don't cache the index as it's small and may prevent plugins change to apply
         ctx.body = await treatIndex(ctx, uri, String(content))
     }
