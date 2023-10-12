@@ -68,11 +68,11 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
     return !suggestions ? render(null)
         : h(Autocomplete, { freeSolo: true, options: suggestions, renderInput: render })
 
-    function go(event: any, val: string=state) {
-        const newV = val.trim()
-        if (newV === lastChange.current) return // don't compare to 'value' as that represents only accepted changes, while we are interested also in changes through discarded values
-        lastChange.current = newV
-        onChange(newV, {
+    function go(event: any, newVal: string=state) {
+        newVal = newVal.trim()
+        if (newVal === lastChange.current) return // don't compare to 'value' as that represents only accepted changes, while we are interested also in changes through discarded values
+        lastChange.current = newVal
+        onChange(newVal, {
             was: value,
             event,
             cancel() {

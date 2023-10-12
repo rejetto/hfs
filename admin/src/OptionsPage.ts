@@ -172,7 +172,7 @@ export default function OptionsPage() {
                                     color: 'warning.main', ml: 1
                                 }))
                     } },
-                    { k: 'v', label: "Mime type", $width: 2 },
+                    { k: 'v', label: "Mime type", fromField: _.toLower, $width: 2 },
                 ],
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v])),
