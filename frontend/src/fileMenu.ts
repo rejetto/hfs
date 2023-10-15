@@ -30,7 +30,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         ...addToMenu.map(x => {
             if (x === 'open') {
                 if (entry.cantOpen) return
-                const open = { id: 'open', icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder ? undefined : '_blank' }
+                const open = { id: 'open', icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder || entry.web ? undefined : '_blank' }
                 return !isFolder ? open : h(Link, { to: uri, onClick: () => close() }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
@@ -90,7 +90,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                                 href: '#',
                                 ..._.omit(e, ['label', 'icon', 'onClick']),
                                 async onClick(event: MouseEvent) {
-                                    if (!e.href) // even with #, the
+                                    if (!e.href)
                                         event.preventDefault()
                                     if (false !== await e.onClick?.(event))
                                         close()

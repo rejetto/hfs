@@ -27,7 +27,7 @@ describe('basics', () => {
     //before(async () => appStarted)
     it('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
     it('force slash', req('/f1', 302))
-    it('list', reqList('/f1/', { inList:['f2/', 'page'] }))
+    it('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     it('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     it('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
     it('download', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))

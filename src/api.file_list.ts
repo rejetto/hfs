@@ -6,13 +6,12 @@ import { ApiError, ApiHandler, SendListReadable } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, pattern2filter, WHO_NO_ONE } from './misc'
-import _ from 'lodash'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { descriptIon, DESCRIPT_ION, getCommentFor } from './comments'
 import { basename } from 'path'
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string }
+ export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean }
 
 export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c }, ctx) => {
     const node = await urlToNode(uri || '/', ctx)
@@ -23,11 +22,7 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
         return fail()
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
-    if (node.default)
-        return (list?.custom ?? _.identity)({ // sse will wrap the object in a 'custom' message, otherwise we plainly return the object
-            redirect: uri // tell the browser to access the folder (instead of using this api), so it will get the default file
-        })
-    if (!await nodeIsDirectory(node))
+    if (await hasDefaultFile(node) || !await nodeIsDirectory(node))
         return fail(HTTP_METHOD_NOT_ALLOWED)
     offset = Number(offset)
     limit = Number(limit)
@@ -92,13 +87,17 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
         }
     }
 
+    async function hasDefaultFile(node: VfsNode) {
+        return node.default && await urlToNode(node.default, ctx, node)
+    }
+
     async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
-        let { source, default:def } = node
+        let { source } = node
         const name = getNodeName(node)
         if (!source)
             return name ? { n: name + '/' } : null
-        if (def)
-            return { n: name }
+        if (node.isFolder && await hasDefaultFile(node))
+            return { n: name, web: true }
         try {
             const st = await stat(source)
             const folder = st.isDirectory()

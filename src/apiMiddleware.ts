@@ -140,8 +140,8 @@ export class SendListReadable<T> extends Readable {
     ready() { // useful to indicate the end of an initial phase, but we leave open for updates
         this._push(['ready'])
     }
-    custom(data: any) {
-        this._push(data)
+    custom(name: string, data: any) {
+        this._push([name, data])
     }
     props(props: object) {
         this._push(['props', props])

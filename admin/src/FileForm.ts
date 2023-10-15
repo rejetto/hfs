@@ -42,6 +42,14 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         setValues(Object.assign(objSameKeys(defaultPerms, () => null), rest))
     }, [file]) //eslint-disable-line
 
+    const inheritedDefault = useMemo(() => {
+        let p = file.parent
+        while (p) {
+            if (p.default != null)
+                return p.default
+            p = p.parent
+        }
+    }, [file])
     const { source } = file
     const isDir = file.type === 'folder'
     const hasSource = source !== undefined // we need a boolean
@@ -50,6 +58,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     const showTimestamps = lg || hasSource
     const showSize = lg || (hasSource && !realFolder)
     const showAccept = file.accept! > '' || isDir && (file.can_upload ?? file.inherited?.can_upload)
+    const showWebsite = isDir
     const barColors = useDialogBarColors()
 
     const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
@@ -107,11 +116,13 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
-            showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: file.website ? 4 : 12,
+            showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
-            file.website && { k: 'default', comp: BoolField, label:"Serve index.html", xl: true,
-                toField: Boolean, fromField: (v:boolean) => v ? 'index.html' : null,
-                helperText: md("This folder may be a website because contains `index.html`. Enabling this will show the website instead of the list of files.")
+            showWebsite && { k: 'default', comp: BoolField, xl: true,
+                label: "Serve as website if index.html is found" + (inheritedDefault && values.default == null ? ' (inherited)' : ''),
+                value: values.default ?? inheritedDefault,
+                toField: Boolean, fromField: (v:boolean) => v && !inheritedDefault ? 'index.html' : v ? null : false,
+                helperText: md("...instead of showing list of files")
             },
             isDir && { k: 'masks', multiline: true,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,

@@ -19,7 +19,7 @@ export interface VfsNode extends VfsPerms {
     name?: string
     source?: string
     children?: VfsNode[]
-    default?: string
+    default?: string | false // we could have used empty string to override inherited default, but false is clearer, even reading the yaml, and works well with pickProps(), where empty strings are removed
     mime?: string | Record<string,string>
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
@@ -60,6 +60,7 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
     else
         child.mime ??= parent.mime
     child.accept ??= parent.accept
+    child.default ??= parent.default
     return child
 }
 

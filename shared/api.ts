@@ -161,7 +161,7 @@ export async function getNotification(channel: string, cb: (name: string, data:a
             if (type === 'connected')
                 return resolve(ret)
             if (type !== 'msg') return
-            for (const { name, data } of entries)
+            for (const [name, data] of entries)
                 if (name)
                     cb(name, data)
         })

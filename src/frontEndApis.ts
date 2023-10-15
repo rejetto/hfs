@@ -27,7 +27,7 @@ export const frontEndApis: ApiHandlers = {
         list.ready() // on chrome109 EventSource doesn't emit 'open' until something is sent
         return list.events(ctx, {
             [NOTIFICATION_PREFIX + channel](name, data) {
-                list.custom({ name, data })
+                list.custom(name, data)
             }
         })
     },

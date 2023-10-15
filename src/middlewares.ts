@@ -115,7 +115,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return serveFile(ctx, favicon.get())
     let node = await urlToNode(path, ctx)
     if (node?.default && (path.endsWith('/') || !node.default.match(/\.html?$/i))) // final/ needed on browser to make resource urls correctly
-        node = await urlToNode(node.default, ctx, node)
+        node = await urlToNode(node.default, ctx, node) ?? node
     if (!node)
         return sendErrorPage(ctx, HTTP_NOT_FOUND)
     if (ctx.method === 'POST') { // curl -F upload=@file url/

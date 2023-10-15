@@ -74,6 +74,7 @@ export default function useFetchList() {
                 case 'msg':
                     state.loginRequired = false
                     for (const entry of data) {
+                        if (!Array.isArray(entry)) continue // unexpected
                         const [op, par] = entry
                         const error = op === 'error' && par
                         if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
