@@ -30,7 +30,6 @@ console.log(`License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
-console.log('pid', process.pid)
 const winExe = IS_WINDOWS && process.execPath.match(/(?<!node)\.exe$/i)
 if (argv.cwd)
     process.chdir(argv.cwd)
@@ -45,3 +44,4 @@ else if (!winExe) { // still considering whether to use this behavior with Windo
 }
 console.log('cwd', process.cwd())
 console.log('node', process.version)
+console.log('pid', process.pid)
