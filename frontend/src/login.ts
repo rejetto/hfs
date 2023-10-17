@@ -103,7 +103,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
 
                 async function go(ev?: Event) {
                     ev?.stopPropagation()
-                    const usr = usrRef.current?.value
+                    const usr = usrRef.current?.value.trim()
                     const pwd = pwdRef.current?.value
                     if (going || !usr || !pwd) return
                     going = true
