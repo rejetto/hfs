@@ -102,6 +102,7 @@ export const adminApis: ApiHandlers = {
             apiVersion: API_VERSION,
             compatibleApiVersion: COMPATIBLE_API_VERSION,
             ...await getServerStatus(),
+            platform: process.platform,
             urls: await getUrls(),
             ips: await getIps(false),
             baseUrl: getBaseUrlOrDefault(),

@@ -2,13 +2,15 @@
 
 import { createElement as h } from 'react'
 import { Box } from '@mui/material'
-import { Add } from '@mui/icons-material'
+import { Add, Microsoft } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import addFiles, { addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
-import { reloadBtn } from './misc'
+import { basename, Btn, reloadBtn } from './misc'
+import { apiCall } from './api'
+import { alertDialog, confirmDialog } from './dialog'
 
-export default function VfsMenuBar() {
+export default function VfsMenuBar({ status }: any) {
     return h(Box, {
         display: 'flex',
         gap: 2,
@@ -30,5 +32,26 @@ export default function VfsMenuBar() {
             ]
         }, "Add"),
         reloadBtn(() => reloadVfs()),
+        status?.platform === 'win32' && h(Btn, {
+            icon: Microsoft,
+            variant: 'outlined',
+            onClick: windowsIntegration
+        }, "System integration"),
     )
+}
+
+async function windowsIntegration() {
+    const msg = h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
+        h('img', { src: 'win-shell.png', style: {
+            display: 'block',
+            width: 'min(30em, 80vw)',
+            marginTop: '1em',
+        }  }),
+    )
+    if (!await confirmDialog(msg)) return
+    const hint = alertDialog("Click YES to the next 2 dialogs. The second dialog may not appear, and you need to click on the bottom bar.", 'warning')
+    const { finish } = await apiCall('windows_integration', {}, { timeout: 60 })
+    hint.close()
+    return finish ? alertDialog("To finish the process, please execute the file you'll find on your desktop: " + basename(finish))
+        : alertDialog("Done!", 'success')
 }

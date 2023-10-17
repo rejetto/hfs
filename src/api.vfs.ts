@@ -3,7 +3,7 @@
 import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
     permsFromParent } from './vfs'
 import _ from 'lodash'
-import { stat } from 'fs/promises'
+import { stat, writeFile } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import { dirStream, enforceFinal, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
@@ -13,7 +13,9 @@ import {
 } from './const'
 import { getDrives } from './util-os'
 import { Stats } from 'fs'
-import { getBaseUrlOrDefault } from './listen'
+import { getBaseUrlOrDefault, getServerStatus } from './listen'
+import { homedir } from 'os'
+import open from 'open'
 
 // to manipulate the tree we need the original node
 async function urlToNodeOriginal(uri: string) {
@@ -204,7 +206,11 @@ const apis: ApiHandlers = {
                 }
             }
         })
-    }
+    },
+
+    async windows_integration() {
+        return { finish: await windowsIntegration() }
+    },
 
 }
 
@@ -224,4 +230,21 @@ function simplifyName(node: VfsNode) {
     const { name, ...noName } = node
     if (getNodeName(noName) === name)
         delete node.name
+}
+
+async function windowsIntegration() {
+    const status = await getServerStatus()
+    const url = 'http://localhost:' + status.http.port
+    const content = `Windows Registry Editor Version 5.00
+        `+ ['*', 'Directory'].map(k => `
+[HKEY_CLASSES_ROOT\\${k}\\shell\\AddToHFS3]
+@="Add to HFS (new)"
+
+[HKEY_CLASSES_ROOT\\${k}\\shell\\AddToHFS3\\command]
+@="powershell -Command \\"$p = '%1'.Replace('\\\\', '\\\\\\\\'); $j = '{ \\\\\\"source\\\\\\": \\\\\\"' + $p + '\\\\\\" }';  $wsh = New-Object -ComObject Wscript.Shell; try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }\\""
+    `)
+    const path = homedir() + '\\desktop\\hfs-windows-menu.reg'
+    await writeFile(path, content, 'utf8')
+    try { await open(path, { wait: true}) }
+    catch { return path }
 }

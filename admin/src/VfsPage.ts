@@ -119,7 +119,7 @@ export default function VfsPage() {
         h(Grid, { item:true, [sideBreakpoint]: 6, lg: 5, xl: 4 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
-            h(VfsMenuBar),
+            h(VfsMenuBar, { status }),
             vfs && h(VfsTree, { id2node })),
         isSideBreakpoint && sideContent && h(Grid, { item:true, [sideBreakpoint]: true, maxWidth:'100%' },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
