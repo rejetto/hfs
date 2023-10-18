@@ -52,8 +52,10 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         return result as T
     }, err => {
         stop?.()
-        if (err?.message?.includes('fetch'))
+        if (err?.message?.includes('fetch')) {
+            console.error(err.message)
             throw Error("Network error")
+        }
         throw aborted || err
     }).finally(() => clearTimeout(timeout)), {
         abort() {

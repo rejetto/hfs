@@ -186,8 +186,11 @@ export function hasPermission(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Cont
 
 export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context, assign=true) {
     const ret = getCode()
-    if (ret && assign)
+    if (ret && assign) {
         ctx.status = ret
+        if (ret === HTTP_UNAUTHORIZED) // this is necessary to support standard urls with credentials
+            ctx.set('WWW-Authenticate', 'Basic') // we support basic authentication
+    }
     return ret
 
     function getCode() {
