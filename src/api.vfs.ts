@@ -3,7 +3,7 @@
 import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
     permsFromParent } from './vfs'
 import _ from 'lodash'
-import { stat, writeFile } from 'fs/promises'
+import { stat, unlink, writeFile } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import { dirStream, enforceFinal, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
@@ -245,6 +245,9 @@ async function windowsIntegration() {
     `)
     const path = homedir() + '\\desktop\\hfs-windows-menu.reg'
     await writeFile(path, content, 'utf8')
-    try { await open(path, { wait: true}) }
+    try {
+        await open(path, { wait: true})
+        await unlink(path)
+    }
     catch { return path }
 }
