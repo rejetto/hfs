@@ -32,6 +32,7 @@ export const state = proxy<{
         accept?: string
         can_delete?: boolean
         can_archive?: boolean
+        can_comment?: boolean
     }
     tilesSize: number
 }>({

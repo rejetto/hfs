@@ -33,6 +33,10 @@ export const setCommentFor = singleFromBatch(async (jobs: [path: string, comment
     }))
 })
 
+export function areCommentsEnabled() {
+    return descriptIon.get()
+}
+
 const MULTILINE_SUFFIX = '\x04\xc2'
 function readDescription(path: string) {
     return parseFile(join(path, DESCRIPT_ION), txt => new Map(txt.split('\n').map(line => {

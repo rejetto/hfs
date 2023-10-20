@@ -8,7 +8,7 @@ import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, pattern2filter, WHO_NO_ONE } from './misc'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
-import { descriptIon, DESCRIPT_ION, getCommentFor } from './comments'
+import { descriptIon, DESCRIPT_ION, getCommentFor, areCommentsEnabled } from './comments'
 import { basename } from 'path'
 
  export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean }
@@ -33,7 +33,8 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     const fakeChild = applyParentToChild({}, node) // we want to know if we want to delete children
     const can_delete = hasPermission(fakeChild, 'can_delete', ctx)
     const can_archive = hasPermission(fakeChild, 'can_archive', ctx)
-    const props = { can_archive, can_upload, can_delete, accept: node.accept }
+    const can_comment = can_upload && areCommentsEnabled()
+    const props = { can_archive, can_upload, can_delete, accept: node.accept, can_comment }
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {

@@ -138,8 +138,9 @@ export function showUpload() {
                 entries: adding,
                 actions: {
                     delete: rec => _.remove(uploadState.adding, { file: rec.file }),
-                    comment: rec => inputComment(basename(rec.file.name), rec.comment)
-                        .then(s => _.find(uploadState.adding, { file: rec.file })!.comment = s || undefined),
+                    comment: !props?.can_comment ? null
+                        : (rec => inputComment(basename(rec.file.name), rec.comment)
+                            .then(s => _.find(uploadState.adding, { file: rec.file })!.comment = s || undefined)),
                 },
             }),
             h(UploadStatus, { margin: '.5em 0' }),
@@ -191,7 +192,7 @@ function path(f: File, pre='') {
     return (prefix('', pre, '/') + (f.webkitRelativePath || f.name)).replaceAll('//','/')
 }
 
-function FilesList({ entries, actions }: { entries: Readonly<ToUpload[]>, actions: { [icon:string]: (rec :ToUpload) => any } }) {
+function FilesList({ entries, actions }: { entries: Readonly<ToUpload[]>, actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
     const { uploading, progress }  = useSnapshot(uploadState)
     return !entries.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
@@ -199,7 +200,7 @@ function FilesList({ entries, actions }: { entries: Readonly<ToUpload[]>, action
                 const working = e === uploading
                 return h(Fragment, { key: i },
                     h('tr', {},
-                        h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) => iconBtn(icon, () => cb(e))) ),
+                        h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) => cb && iconBtn(icon, () => cb(e))) ),
                         h('td', {}, formatBytes(e.file.size)),
                         h('td', { className: working ? 'ani-working' : undefined },
                             path(e.file),

@@ -26,7 +26,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
-        state.props?.can_upload && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
+        state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
             if (x === 'open') {
                 if (entry.cantOpen) return
