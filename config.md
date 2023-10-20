@@ -42,6 +42,8 @@ Configuration can be done in several ways
 - `vfs` the files and folders you want to expose. For details see the dedicated following section.
 - `log` path of the log file. Default is `access.log`.
 - `log_rotation` frequency of log rotation. Accepted values are `daily`, `weekly`, `monthly`, or empty string to disable. Default is `weekly`.
+- `log_api` should api calls be logged? Default is `true`. 
+- `log_gui` should GUI files be logged? Default is `false`. 
 - `error_log` path of the log file for errors. Default is `error.log`.
 - `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
 - `dont_log_net` don't include in log entries if IP matches this network mask. Default is `127.0.0.1|::1`.
@@ -78,6 +80,17 @@ Configuration can be done in several ways
 - `min_available_mb` refuse to accept uploads if available disk space is below this threshold. Default is 100.
 - `dont_overwrite_uploading` uploading a file with name already present in the folder will be renamed if this is enabled. Default is false.
 - `keep_session_alive` keeps you logged in while the page is left open and the computer is on. Default is true.
+- `session_duration` after how many seconds should the login session expire. Default is a day. 
+- `acme_renew` automatically renew acme certificate close to expiration. Default is false.
+- `listen_interface` network interface to listen on, by specifying IP address. Default is any.
+- `base_url` URL to be used for links generation. Default is automatic.
+- `ignore_proxies` stop warning about detected proxies. Default is false. 
+- `descript_ion` enable reading and writing of comments in the old file format *DESCRIPT.ION*. Default is yes.
+- `descript_ion_encoding` text encoding to be used for file *DESCRIPT.ION*. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
+- `server_code` javascript code that works similarly to [a plugin](dev-plugins.md). 
+- `tiles_size` starting value for frontend's tiles size. Default is 0.
+- `update_to_beta` includes beta versions searching for updates. Default is false.
+- `create-admin` special entry to quickly create an admin account. The value will be set as password. As soon as the account is created, this entry is removed. 
 
 #### Virtual File System (VFS)
 
