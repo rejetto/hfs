@@ -157,7 +157,7 @@ export default function OptionsPage() {
             { k: 'session_duration', comp: NumberField, sm: 3, min: 5, unit: "seconds", required: true },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 3, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'update_to_beta', comp: BoolField, md: 3, helperText: "Include betas in automatic updates" },
+            { k: 'update_to_beta', comp: BoolField, md: 3, helperText: "Include betas searching updates" },
             { k: 'tiles_size', comp: NumberField, md: 3, min: 0, max: MAX_TILES_SIZE, label: "Default tiles size", helperText: "Zero for list mode" },
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
