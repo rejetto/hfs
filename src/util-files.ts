@@ -174,7 +174,7 @@ const cache = new Map<string, { ts: Date, parsed: unknown }>()
 export async function parseFile<T>(path: string, parse: (raw: string) => T) {
     const { mtime: ts } = await stat(path)
     const cached = cache.get(path)
-    if (ts === cached?.ts)
+    if (cached && Number(ts) === Number(cached.ts))
         return cached.parsed as T
     const raw = await readFile(path, 'utf8')
     const parsed = parse(raw)
