@@ -4,7 +4,7 @@ import { Box, Button, FormHelperText } from '@mui/material';
 import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
-import { Link } from 'react-router-dom'
+import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILES_SIZE, modifiedSx, REPO_URL, ipLocalHost,
     wait, wikiLink, with_, try_, ipForUrl } from './misc'
@@ -85,7 +85,7 @@ export default function OptionsPage() {
                 startIcon: h(Refresh),
             }, "Reload"),
             h(Button, { // @ts-ignore
-                component: Link,
+                component: RouterLink,
                 to: "/edit",
                 startIcon: h(EditNote),
             }, "Edit config file"),
@@ -162,6 +162,9 @@ export default function OptionsPage() {
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
             },
+            { k: 'descript_ion', comp: BoolField, label: "Support file DESCRIPT.ION", helperText: "Old file format, used for comments" },
+            { k: 'descript_ion_encoding', label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+                options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
             { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, sm: 12,
                 fields: [
                     { k: 'k', label: "File mask", $width: 1, $column: {

@@ -170,14 +170,14 @@ export async function loadFileAttr(path: string, k: string) {
 }
 
 // read and parse a file, caching unless timestamp has changed
-const cache = new Map<string, { ts: Date, parsed: unknown }>()
-export async function parseFile<T>(path: string, parse: (raw: string) => T) {
+export const parseFileCache = new Map<string, { ts: Date, parsed: unknown }>()
+export async function parseFile<T>(path: string, parse: (raw: Buffer) => T) {
     const { mtime: ts } = await stat(path)
-    const cached = cache.get(path)
+    const cached = parseFileCache.get(path)
     if (cached && Number(ts) === Number(cached.ts))
         return cached.parsed as T
-    const raw = await readFile(path, 'utf8')
+    const raw = await readFile(path)
     const parsed = parse(raw)
-    cache.set(path, { ts, parsed })
+    parseFileCache.set(path, { ts, parsed })
     return parsed
 }
