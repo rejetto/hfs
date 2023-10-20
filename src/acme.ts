@@ -91,14 +91,14 @@ export const makeCert = debounceAsync(async (domain: string, email?: string) => 
     privateKey.set(KEY_FILE)
 }, 0)
 
-defineConfig('acme_renew', false) // handle config changes
+const acmeDomain = defineConfig('acme_domain', '')
+const acmeEmail = defineConfig('acme_email', '')
+const acmeRenew = defineConfig('acme_renew', false) // handle config changes
 events.once('https ready', () => repeat(HOUR, renewCert))
-
-export const acme_domain = defineConfig<string>('acme_domain', '')
-export const acme_email = defineConfig<string>('acme_email', '')
 
 // checks if the cert is near expiration date, and if so renews it
 const renewCert = debounceAsync(async () => {
+    if (!acmeRenew.get()) return
     const cert = getCertObject()
     if (!cert) return
     const now = new Date()
@@ -106,7 +106,7 @@ const renewCert = debounceAsync(async () => {
     // not expiring in a month
     if (now > new Date(cert.validFrom) && now < validTo && validTo.getTime() - now.getTime() >= 30 * DAY)
         return console.log("certificate still good")
-    await makeCert(acme_domain.get(), acme_email.get())
+    await makeCert(acmeDomain.get(), acmeEmail.get())
         .catch(e => console.log("error renewing certificate: ", String(e)))
 }, 0, { retain: DAY, retainFailure: HOUR })
 
