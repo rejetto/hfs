@@ -15,7 +15,9 @@ export default function FileField({ value, onChange, files=true, folders=false, 
         ...props,
         value,
         onChange,
+        onTyping: (v: string) => !v.includes('\n') && v,
         InputProps: {
+            multiline: true,
             endAdornment: h(InputAdornment, { position: 'end' },
                 h(IconBtn, {
                     icon: Eject,

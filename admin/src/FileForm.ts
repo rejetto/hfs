@@ -103,7 +103,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         fields: [
             isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : { k: 'name', required: true, xl: 6, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
-            { k: 'source', label: "Source on disk", xl: true, comp: FileField, files: !isDir, folders: isDir, multiline: true,
+            { k: 'source', label: "Source on disk", xl: true, comp: FileField, files: !isDir, folders: isDir,
                 helperText: !values.source && "Not on disk, this is a virtual folder",
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },

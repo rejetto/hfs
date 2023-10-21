@@ -7,7 +7,7 @@ import { StandardTextFieldProps } from '@mui/material/TextField/TextField'
 
 interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
     typing?: boolean // change state as the user is typing
-    onTyping?: (v: string) => boolean
+    onTyping?: (v: string) => string | false
     min?: number
     max?: number
     required?: boolean
@@ -39,8 +39,12 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1.5 } }, props.sx),
         value: state,
         onChange(ev) {
-            const val = ev.target.value
-            if (onTyping?.(val) === false) return
+            let val = ev.target.value
+            if (onTyping) {
+                const res = onTyping(val)
+                if (res === false) return
+                val = res
+            }
             setState(val)
             if (typing || valueFocusing.current === undefined)
                 go(ev, val)
