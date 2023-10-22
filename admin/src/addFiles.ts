@@ -49,9 +49,9 @@ export async function addVirtual() {
         const name = await promptDialog("Enter folder name")
         if (!name) return
         const { id: parent } = getParent()
-        await apiCall('add_vfs', { parent, name })
-        reloadVfs([ parent + name ])
-        await alertDialog(`Folder "${name}" created`, 'success')
+        const res = await apiCall('add_vfs', { parent, name })
+        reloadVfs([ parent + encodeURI(res.name) + '/' ])
+        await alertDialog(`Folder "${res.name}" created`, 'success')
     }
     catch(e) {
         await alertDialog(e as Error)
