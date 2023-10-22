@@ -188,7 +188,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
     const ret = getCode()
     if (ret && assign) {
         ctx.status = ret
-        if (ret === HTTP_UNAUTHORIZED) // this is necessary to support standard urls with credentials
+        if (ret === HTTP_UNAUTHORIZED && !(node.default && node.source?.endsWith(node.default))) // this is necessary to support standard urls with credentials
             ctx.set('WWW-Authenticate', 'Basic') // we support basic authentication
     }
     return ret
