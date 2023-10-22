@@ -14,7 +14,7 @@ import {
     TextField,
     Typography
 } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center, err2msg } from './misc'
+import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center, err2msg, basename } from './misc'
 import { ArrowUpward, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
@@ -88,6 +88,8 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                     if (!v)
                         return setCwd(root)
                     const res = await apiCall('resolve_path', { path: v })
+                    if (res.isFolder === false)
+                        return files ? onSelect([v]) : setCwd(v.slice(0, -basename(v)))
                     setCwd(res.path)
                 },
             }),

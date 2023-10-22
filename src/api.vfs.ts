@@ -167,7 +167,7 @@ const apis: ApiHandlers = {
         if (closestFolder)
             while (path && !await isDirectory(path))
                 path = dirname(path)
-        return { path }
+        return { path, isFolder: await isDirectory(path) }
     },
 
     get_ls({ path, files=true, fileMask }, ctx) {
