@@ -7,10 +7,11 @@ import { reloadVfs } from './VfsPage'
 import addFiles, { addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
 import { basename, Btn, reloadBtn } from './misc'
-import { apiCall } from './api'
+import { apiCall, useApi } from './api'
 import { alertDialog, confirmDialog } from './dialog'
 
 export default function VfsMenuBar({ status }: any) {
+    const { data: integrated, reload } = useApi(status?.platform === 'win32' && 'windows_integrated')
     return h(Box, {
         display: 'flex',
         gap: 2,
@@ -35,8 +36,15 @@ export default function VfsMenuBar({ status }: any) {
         status?.platform === 'win32' && h(Btn, {
             icon: Microsoft,
             variant: 'outlined',
-            onClick: windowsIntegration
-        }, "System integration"),
+            ...(!integrated?.is ? {
+                children: "System integration",
+                onClick: () => windowsIntegration().then(reload),
+            } : {
+                confirm: true,
+                children: "Remove integration",
+                onClick: () => exec('windows_remove').then(reload),
+            })
+        }),
     )
 }
 
@@ -48,9 +56,13 @@ async function windowsIntegration() {
             marginTop: '1em',
         }  }),
     )
-    if (!await confirmDialog(msg)) return
+    return await confirmDialog(msg)
+        && exec('windows_integration')
+}
+
+async function exec(api: string) {
     const hint = alertDialog("Click YES to the next 2 dialogs. The second dialog may not appear, and you need to click on the bottom bar.", 'warning')
-    const { finish } = await apiCall('windows_integration', {}, { timeout: 60 })
+    const { finish } = await apiCall(api, {}, { timeout: false })
     hint.close()
     return finish ? alertDialog("To finish the process, please execute the file you'll find on your desktop: " + basename(finish))
         : alertDialog("Done!", 'success')

@@ -134,7 +134,7 @@ interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'>
     disabled?: boolean | string
     progress?: boolean | number
     link?: string
-    confirm?: string
+    confirm?: boolean | string
     tooltipProps?: TooltipProps
     onClick: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
@@ -156,7 +156,7 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
         disabled,
         ...rest,
         async onClick(...args) {
-            if (confirm && !await confirmDialog(confirm)) return
+            if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
             const ret = onClick?.apply(this,args)
             if (ret && ret instanceof Promise) {
                 setLoading(true)

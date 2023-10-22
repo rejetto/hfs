@@ -23,8 +23,9 @@ export default function addFiles() {
                 h(FilePicker, {
                     from: parent.source,
                     async onSelect(sel) {
-                        const errs = onlyTruthy(await Promise.all(sel.map(source =>
-                            apiCall('add_vfs', { parent: parent.id, source }).then(() => null, e => [source, e.message]))))
+                        const res = await Promise.all(sel.map(source =>
+                            apiCall('add_vfs', { parent: parent.id, source }).then(r => r, e => [source, e.message])))
+                        const errs = res.filter(Array.isArray)
                         if (errs.length)
                             await alertDialog(h(Box, {},
                                 "Some elements have been rejected",
@@ -33,7 +34,8 @@ export default function addFiles() {
                                         h('li', { key: file }, file, ': ', err))
                                 )
                             ), 'error')
-                        reloadVfs()
+                        const good = res.filter(x => x.name).map(x => parent.id + x.name)
+                        reloadVfs(good)
                         close()
                     }
                 })

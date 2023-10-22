@@ -16,6 +16,8 @@ import { Stats } from 'fs'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { homedir } from 'os'
 import open from 'open'
+import { promisify } from 'util'
+import { execFile } from 'child_process'
 
 // to manipulate the tree we need the original node
 async function urlToNodeOriginal(uri: string) {
@@ -212,6 +214,17 @@ const apis: ApiHandlers = {
         return { finish: await windowsIntegration() }
     },
 
+    async windows_integrated() {
+        return {
+            is: await promisify(execFile)('reg', ['query', WINDOWS_REG_KEY])
+                .then(x => x.stdout.includes('REG_SZ'), () => false)
+        }
+    },
+
+    async windows_remove() { // not using `reg delete` because it doesn't ask for admin permissions
+        return { finish: await runReg(['*', 'Directory'].map(k => `\n\n[-${WINDOWS_REG_KEY.replace('*', k)}]`).join('')) }
+    },
+
 }
 
 export default apis
@@ -232,22 +245,27 @@ function simplifyName(node: VfsNode) {
         delete node.name
 }
 
-async function windowsIntegration() {
-    const status = await getServerStatus()
-    const url = 'http://localhost:' + status.http.port
-    const content = `Windows Registry Editor Version 5.00
-        `+ ['*', 'Directory'].map(k => `
-[HKEY_CLASSES_ROOT\\${k}\\shell\\AddToHFS3]
-@="Add to HFS (new)"
+const WINDOWS_REG_KEY = 'HKEY_CLASSES_ROOT\\*\\shell\\AddToHFS3'
+const WINDOWS_REG_KEY2 = WINDOWS_REG_KEY + '\\command'
 
-[HKEY_CLASSES_ROOT\\${k}\\shell\\AddToHFS3\\command]
-@="powershell -Command \\"$p = '%1'.Replace('\\\\', '\\\\\\\\'); $j = '{ \\\\\\"source\\\\\\": \\\\\\"' + $p + '\\\\\\" }';  $wsh = New-Object -ComObject Wscript.Shell; try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }\\""
-    `)
+export async function runReg(content: string) {
     const path = homedir() + '\\desktop\\hfs-windows-menu.reg'
-    await writeFile(path, content, 'utf8')
+    await writeFile(path, 'Windows Registry Editor Version 5.00\n\n' + content, 'utf8')
     try {
         await open(path, { wait: true})
         await unlink(path)
     }
     catch { return path }
+}
+
+export async function windowsIntegration() {
+    const status = await getServerStatus()
+    const url = 'http://localhost:' + status.http.port
+    return runReg(['*', 'Directory'].map(k => `
+[${WINDOWS_REG_KEY.replace('*', k)}]
+@="Add to HFS (new)"
+
+[${WINDOWS_REG_KEY2.replace('*', k)}]
+@="powershell -Command \\"$p = '%1'.Replace('\\\\', '\\\\\\\\'); $j = '{ \\\\\\"source\\\\\\": \\\\\\"' + $p + '\\\\\\" }';  $wsh = New-Object -ComObject Wscript.Shell; try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }\\""
+    `).join(''))
 }
