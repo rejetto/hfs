@@ -44,4 +44,5 @@ else if (!winExe) { // still considering whether to use this behavior with Windo
 }
 console.log('cwd', process.cwd())
 console.log('node', process.version)
+console.log('platform', process.platform)
 console.log('pid', process.pid)
