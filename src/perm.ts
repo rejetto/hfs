@@ -164,8 +164,6 @@ export function setAccount(acc: Account, changes: Partial<Account>) {
         if (!v)
             rest[k as keyof Account] = undefined
     Object.assign(acc, rest)
-    if (!acc.disabled)
-        delete acc.disabled
     if (changes.username)
         renameAccount(acc.username, changes.username)
     saveAccountsAsap()

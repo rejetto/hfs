@@ -45,11 +45,6 @@ const apis: ApiHandlers = {
     },
 
     set_account({ username, changes }, ctx) {
-        const { admin } = changes
-        if (admin === null)
-            changes.admin = undefined
-        else if (admin !== undefined && typeof admin !== 'boolean')
-            return new ApiError(HTTP_BAD_REQUEST, "invalid admin")
         const acc = getAccount(username)
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
