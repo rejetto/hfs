@@ -78,10 +78,9 @@ export function getPrefixUrl() {
 export function makeSessionRefresher(state: any) {
     return function sessionRefresher(response: any) {
         if (!response) return
-        const { exp, username, adminUrl } = response
-        state.username = username
-        state.adminUrl = adminUrl
-        if (!username || !exp) return
+        const { exp } = response
+        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword']))
+        if (!response.username || !exp) return
         const delta = new Date(exp).getTime() - Date.now()
         const t = _.clamp(delta - 30_000, 4_000, 600_000)
         console.debug('session refresh in', Math.round(t / 1000))

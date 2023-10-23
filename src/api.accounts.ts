@@ -72,11 +72,15 @@ const apis: ApiHandlers = {
     },
 
     async change_password_others({ username, newPassword }) {
-        return changePasswordHelper(getAccount(username), newPassword)
+        const a = getAccount(username)
+        return a ? changePasswordHelper(a, newPassword)
+            : new ApiError(HTTP_NOT_FOUND)
     },
 
     async change_srp_others({ username, salt, verifier }) {
-        return changeSrpHelper(getAccount(username), salt, verifier)
+        const a = getAccount(username)
+        return a ? changeSrpHelper(a, salt, verifier)
+            : new ApiError(HTTP_NOT_FOUND)
     }
 
 }

@@ -19,7 +19,7 @@ export default function showUserPanel() {
             const snap = useSnapState()
             return h('div', { id: 'user-panel' },
                 h('div', {}, t`Username`, ': ', snap.username),
-                h(MenuButton, {
+                snap.canChangePassword && h(MenuButton, {
                     icon: 'password',
                     label: t`Change password`,
                     id: 'change-password',

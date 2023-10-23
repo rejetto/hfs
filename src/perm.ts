@@ -15,6 +15,7 @@ export interface Account {
     srp?: string
     belongs?: string[]
     ignore_limits?: boolean
+    disable_password_change?: boolean
     admin?: boolean
     redirect?: string
     disabled?: boolean
@@ -144,7 +145,7 @@ export function renameAccount(from: string, to: string) {
 }
 
 // we consider all the following fields, when falsy, as equivalent to be missing. If this changes in the future, please adjust addAccount and setAccount
-const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin','disabled']
+const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin','disabled','disable_password_change']
 
 export function addAccount(username: string, props: Partial<Account>) {
     username = normalizeUsername(username)

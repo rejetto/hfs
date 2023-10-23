@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Account, accountCanLogin, getAccount, getCurrentUsername, normalizeUsername } from './perm'
+import { Account, accountCanLogin, getAccount, getCurrentUsername, getFromAccount, normalizeUsername } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPParameters, SRPRoutines, SRPServerSession, SRPServerSessionStep1 } from 'tssrp6a'
@@ -123,14 +123,23 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
     return !ctx.session ? new ApiError(HTTP_SERVER_ERROR) : {
         username: getCurrentUsername(ctx),
         adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
+        canChangePassword: canChangePassword(ctx.state.account),
         ...makeExp(),
     }
 }
 
 export const change_password: ApiHandler = async ({ newPassword }, ctx) => {
-    return changePasswordHelper(ctx.state.account, newPassword)
+    const a = ctx.state.account
+    return !a || !canChangePassword(a) ? new ApiError(HTTP_UNAUTHORIZED)
+        : changePasswordHelper(a, newPassword)
 }
 
 export const change_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
-    return changeSrpHelper(ctx.state.account, salt, verifier)
+    const a = ctx.state.account
+    return !a || !canChangePassword(a) ? new ApiError(HTTP_UNAUTHORIZED)
+        : changeSrpHelper(a, salt, verifier)
+}
+
+function canChangePassword(account: Account | undefined) {
+    return account && !getFromAccount(account, a => a.disable_password_change)
 }

@@ -166,6 +166,7 @@ For each account entries, this is the list of properties you can have:
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
 - `admin` set `true` if you want to let this account log in to the Admin-panel. Default is `false`.
 - `belongs` an array of usernames of other accounts from which to inherit their permissions. Default is none.
+- `disable_password_change` set `true` if you want to forbid password change for users. Default is `false`.
 
 ### Specify another file
 

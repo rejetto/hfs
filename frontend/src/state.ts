@@ -35,7 +35,9 @@ export const state = proxy<{
         can_comment?: boolean
     }
     tilesSize: number
+    canChangePassword: boolean
 }>({
+    canChangePassword: false,
     props: {},
     tilesSize: getHFS().tilesSize || 0,
     iconsReady: false,

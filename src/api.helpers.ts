@@ -2,26 +2,22 @@
 
 import { Account, allowClearTextLogin, saveSrpInfo, updateAccount } from './perm'
 import { ApiError } from './apiMiddleware'
-import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_UNAUTHORIZED } from './const'
+import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE } from './const'
 
-export async function changePasswordHelper(account: Account | undefined, newPassword: string) {
+export async function changePasswordHelper(account: Account, newPassword: string) {
     if (!newPassword) // clear text version
         return new ApiError(HTTP_BAD_REQUEST, 'missing parameters')
-    if (!account)
-        return new ApiError(HTTP_UNAUTHORIZED)
     await updateAccount(account, account => {
         account.password = newPassword
     })
     return {}
 }
 
-export async function changeSrpHelper(account: Account | undefined, salt: string, verifier: string) {
+export async function changeSrpHelper(account: Account, salt: string, verifier: string) {
     if (allowClearTextLogin.get())
         return new ApiError(HTTP_NOT_ACCEPTABLE)
     if (!salt || !verifier)
         return new ApiError(HTTP_BAD_REQUEST, 'missing parameters')
-    if (!account)
-        return new ApiError(HTTP_UNAUTHORIZED)
     await updateAccount(account, account => {
         saveSrpInfo(account, salt, verifier)
         delete account.hashed_password // remove leftovers
