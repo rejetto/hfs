@@ -56,7 +56,7 @@ export type Who = typeof WHO_ANYONE
     | keyof VfsPerms
     | WhoObject
     | AccountList // use false instead of empty array to keep the type boolean-able
-interface WhoObject { this?: Who, children?: Who }
+export interface WhoObject { this?: Who, children?: Who }
 
 export const defaultPerms: Required<VfsPerms> = {
     can_see: 'can_read',

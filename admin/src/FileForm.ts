@@ -14,8 +14,10 @@ import {
     StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, LinkBtn, modifiedSx,
-    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, Who, wikiLink } from './misc'
+import {
+    basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, isWhoObject, LinkBtn, modifiedSx,
+    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, Who, WhoObject, wikiLink
+} from './misc'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -165,8 +167,10 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
                       isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = (byMasks !== undefined ? "As per mask: " : parent !== undefined ? "As parent: " : "Default: " )
         + who2desc(byMasks ?? inherit)
-    const objectMode =  value != null && typeof value === 'object' && !Array.isArray(value)
-    const childrenValue = objectMode && value.children
+    const objectMode =  isWhoObject(value)
+    const [forceObject, setForceObject] = useState(objectMode)
+    const showObjectMode = objectMode || forceObject
+    const childrenValue = objectMode ? value.children : undefined
     const thisValue = objectMode ? value.this : value
 
     const options = useMemo(() =>
@@ -185,12 +189,12 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
     const timeout = 500
     const arrayMode = Array.isArray(thisValue)
     // a large side band will convey union across the fields
-    return h(Box, { sx: { borderRight: objectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
+    return h(Box, { sx: { borderRight: showObjectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
         h(SelectField as typeof SelectField<typeof thisValue | null>, {
             ...rest,
             value: arrayMode ? [] : thisValue ?? null,
             onChange(v, { event }) {
-                onChange(objectMode ? { this: v ?? undefined, children: childrenValue } : v ?? undefined, { was: value, event })
+                onChange(showObjectMode ? simplify({ this: v ?? undefined, children: childrenValue }) : v ?? undefined, { was: value, event })
             },
             options,
         }),
@@ -207,22 +211,28 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
                 sx: { display: 'block', mt: -.5 },
                 onClick(event) {
                     if (thisValue === undefined) return
-                    onChange(objectMode ? thisValue : { this: value }, { was: value, event })
+                    setForceObject(!showObjectMode)
+                    if (objectMode)
+                        onChange(thisValue, { was: value, event })
                 }
-            }, objectMode ? "Different permission for " : "Same permission for ", contentText)
+            }, showObjectMode ? "Different permission for " : "Same permission for ", contentText)
         ),
-        !isChildren && h(Collapse, { in: objectMode, timeout },
+        !isChildren && h(Collapse, { in: showObjectMode, timeout },
             h(WhoField, {
                 label: "Permission for " + contentText,
                 parent, inherit, accounts, showInherited, otherPerms, isDir,
                 isChildren: true,
                 value: childrenValue ?? undefined,
                 onChange(v, { event }) {
-                    onChange({ this: thisValue ?? undefined, children: v }, { was: value, event })
+                    onChange(simplify({ this: thisValue ?? undefined, children: v }), { was: value, event })
                 }
             })
         ),
     )
+
+    function simplify(v: WhoObject) {
+        return v.this === v.children ? v.this : v
+    }
 }
 
 function who2desc(who: any) {
