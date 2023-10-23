@@ -134,13 +134,15 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
 
     function perm(perm: keyof VfsPerms, helperText?: ReactNode, props: Partial<WhoFieldProps>={}) {
         return {
+            comp: WhoField,
+            k: perm, lg: 6, xl: 4,
+            parent, accounts, helperText, isDir,
             showInherited: anyMask, // with masks, you may need to set a permission to override the mask
             otherPerms: _.without(Object.keys(defaultPerms), perm).map(x => ({ value: x, label: "As " +perm2word(x) })),
-            k: perm, lg: 6, xl: 4, comp: WhoField, parent, accounts, helperText,
             label: "Who can " + perm2word(perm),
             inherit: file.inherited?.[perm] ?? defaultPerms[perm],
             byMasks: byMasks?.[perm],
-            isDir,
+            fromField: (v?: Who) => v ?? null,
             ...props
         }
     }
