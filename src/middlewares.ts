@@ -4,7 +4,7 @@ import compress from 'koa-compress'
 import Koa from 'koa'
 import {
     ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
-    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST,
+    HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode, getNodeName } from './vfs'
@@ -114,8 +114,6 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (ctx.originalUrl === '/favicon.ico' && favicon.get()) // originalUrl to not be subject to changes (vhosting plugin)
         return serveFile(ctx, favicon.get())
     let node = await urlToNode(path, ctx)
-    if (node?.default && (path.endsWith('/') || !node.default.match(/\.html?$/i))) // final/ needed on browser to make resource urls correctly
-        node = await urlToNode(node.default, ctx, node) ?? node
     if (!node)
         return sendErrorPage(ctx, HTTP_NOT_FOUND)
     if (ctx.method === 'POST') { // curl -F upload=@file url/
@@ -133,10 +131,14 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             res()
         }))
     }
+    if (node.default && path.endsWith('/')) // final/ needed on browser to make resource urls correctly with html pages
+        node = await urlToNode(node.default, ctx, node) ?? node
     if (!await nodeIsDirectory(node))
-        return !node.source && await next()
-            || statusCodeForMissingPerm(node, 'can_read', ctx)
-            || serveFileNode(ctx, node)
+        return !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED)
+            : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node)
+            : ctx.status !== HTTP_UNAUTHORIZED ? null
+            : !path.endsWith('/') ? ctx.set('WWW-Authenticate', 'Basic') // this is necessary to support standard urls with credentials. Final / means we are dealing with default file...
+            : (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next) // ...for which we still provide fancy login
     if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
