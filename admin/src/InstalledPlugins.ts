@@ -5,7 +5,7 @@ import { createElement as h, Fragment, ReactNode } from 'react'
 import { Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
 import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { IconBtn, prefix, with_, xlate } from './misc'
+import { Btn, IconBtn, prefix, with_ } from './misc'
 import { alertDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
@@ -83,19 +83,28 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 progress: false,
                 async onClick() {
                     const pl = await apiCall('get_plugin', { id })
+                    let lastSaved = pl.config
                     const values = await formDialog({
                         title: `Options for ${id}`,
-                        form: {
+                        form: values => ({
                             before: h(Box, { mx: 2, mb: 3 }, row.description),
                             fields: makeFields(row.config),
-                        },
+                            save: { children: "Save and close" },
+                            barSx: { gap: 1 },
+                            addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
+                        }),
                         values: pl.config,
                         dialogProps: _.merge({ sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
                             row.configDialog),
                     })
-                    if (!values || _.isEqual(pl.config, values)) return
-                    await apiCall('set_plugin', { id, config: values })
-                    toast("Configuration saved")
+                    if (values && !_.isEqual(lastSaved, values))
+                        return save(values)
+
+                    async function save(values: any) {
+                        await apiCall('set_plugin', { id, config: values })
+                        Object.assign(lastSaved, values)
+                        toast("Configuration saved")
+                    }
                 }
             }),
             h(IconBtn, {

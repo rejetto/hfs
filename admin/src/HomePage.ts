@@ -2,7 +2,7 @@
 
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Button, Card, CardContent, LinearProgress, Link } from '@mui/material'
-import { apiCall, apiEvents, useApiEvents, useApiEx, useApiList } from './api'
+import { apiCall, useApiEx, useApiList } from './api'
 import {
     Btn,
     dontBotherWithKeys,
