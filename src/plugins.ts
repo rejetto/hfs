@@ -199,7 +199,7 @@ export class Plugin implements CommonPluginInterface {
         const { id } = this
         try {
             await this.data?.unload?.()
-            if (!reloading) // we already printed 'reloading'
+            if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
                 console.log('unloaded plugin', id)
         }
         catch(e) {
