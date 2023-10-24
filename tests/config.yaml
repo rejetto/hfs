@@ -128,5 +128,4 @@ accounts:
     disabled: true
   admins:
     admin: true
-version: 0.48.0
-open_browser_at_start: false
+version: 0.49.0-beta6
