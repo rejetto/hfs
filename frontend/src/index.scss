@@ -125,7 +125,7 @@ button, .breadcrumb { /* consistent focus color */
         outline: 3px solid var(--focus-color);
     }
 }
-a>button { width:100% } /* link buttons, fill parent space */
+a>button { width: 100%; height: 100%;  } /* link buttons, fill parent space */
 input, select, ul a {
     &:focus-visible {
         border-radius: .3em;
