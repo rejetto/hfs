@@ -17,7 +17,7 @@ import {
 import { formatPerc, WIKI_URL } from '../../src/cross'
 import { dontBotherWithKeys, useStateMounted } from '@hfs/shared'
 import { Promisable } from '@hfs/mui-grid-form'
-import { alertDialog, confirmDialog } from './dialog'
+import { alertDialog, confirmDialog, toast } from './dialog'
 import { LoadingButton, LoadingButtonProps } from '@mui/lab'
 import { Link as RouterLink } from 'react-router-dom'
 
@@ -53,7 +53,7 @@ export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgr
                 value: (offset || 1e-7) * 100,
                 variant: 'determinate',
                 size: 32,
-                sx: { display: 'flex', ...sx }, // workaround: without this the element is has 0 width when the space is crammy (monitor/file)
+                sx: { display: 'flex', ...sx }, // workaround: without this the element has 0 width when the space is crammy (monitor/file)
             }),
         })
     )
@@ -135,10 +135,11 @@ interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'>
     progress?: boolean | number
     link?: string
     confirm?: boolean | string
+    doneMessage?: boolean | string
     tooltipProps?: TooltipProps
     onClick: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
-export function Btn({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, ...rest }: BtnProps) {
+export function Btn({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, ...rest }: BtnProps) {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string') {
         title = disabled
@@ -160,7 +161,12 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
             const ret = onClick?.apply(this,args)
             if (ret && ret instanceof Promise) {
                 setLoading(true)
-                ret.catch(alertDialog).finally(()=> setLoading(false))
+                ret.then(async res => {
+                    if (doneMessage)
+                        toast(doneMessage === true ? "Operation completed" : doneMessage, 'success')
+                    return res
+                }, alertDialog)
+                    .finally(()=> setLoading(false))
             }
         }
     })

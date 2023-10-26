@@ -3,7 +3,7 @@
 import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
     permsFromParent } from './vfs'
 import _ from 'lodash'
-import { stat, unlink, writeFile } from 'fs/promises'
+import { stat } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import { dirStream, enforceFinal, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
@@ -14,8 +14,6 @@ import {
 import { getDrives } from './util-os'
 import { Stats } from 'fs'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
-import { homedir } from 'os'
-import open from 'open'
 import { promisify } from 'util'
 import { execFile } from 'child_process'
 
@@ -78,7 +76,7 @@ const apis: ApiHandlers = {
         if (_.isEmpty(oldParent!.children))
             delete oldParent!.children
         ;(parentNode.children ||= []).push(fromNode)
-        await saveVfs()
+        saveVfs()
         return {}
     },
 
@@ -96,7 +94,7 @@ const apis: ApiHandlers = {
             delete props.masks
         Object.assign(n, props)
         simplifyName(n)
-        await saveVfs()
+        saveVfs()
         return n
     },
 
@@ -123,7 +121,7 @@ const apis: ApiHandlers = {
         child.name = name
         simplifyName(child)
         ;(parentNode.children ||= []).unshift(child)
-        await saveVfs()
+        saveVfs()
         const link = getBaseUrlOrDefault()
             + (parent ? enforceFinal('/', parent) : '/')
             + encodeURIComponent(getNodeName(child))
@@ -211,18 +209,21 @@ const apis: ApiHandlers = {
     },
 
     async windows_integration() {
-        return { finish: await windowsIntegration() }
+        await windowsIntegration()
+        return {}
     },
 
     async windows_integrated() {
         return {
-            is: await promisify(execFile)('reg', ['query', WINDOWS_REG_KEY])
+            is: await reg('query', WINDOWS_REG_KEY)
                 .then(x => x.stdout.includes('REG_SZ'), () => false)
         }
     },
 
-    async windows_remove() { // not using `reg delete` because it doesn't ask for admin permissions
-        return { finish: await runReg(['*', 'Directory'].map(k => `\n\n[-${WINDOWS_REG_KEY.replace('*', k)}]`).join('')) }
+    async windows_remove() {
+        for (const k of ['*', 'Directory'])
+            await reg('delete', WINDOWS_REG_KEY.replace('*',k), '/f')
+        return {}
     },
 
 }
@@ -245,27 +246,24 @@ function simplifyName(node: VfsNode) {
         delete node.name
 }
 
-const WINDOWS_REG_KEY = 'HKEY_CLASSES_ROOT\\*\\shell\\AddToHFS3'
-const WINDOWS_REG_KEY2 = WINDOWS_REG_KEY + '\\command'
+const WINDOWS_REG_KEY = 'HKCU\\Software\\Classes\\*\\shell\\AddToHFS3'
 
-export async function runReg(content: string) {
-    const path = homedir() + '\\desktop\\hfs-windows-menu.reg'
-    await writeFile(path, 'Windows Registry Editor Version 5.00\n\n' + content, 'utf8')
-    try {
-        await open(path, { wait: true})
-        await unlink(path)
-    }
-    catch { return path }
-}
+if (IS_WINDOWS) // legacy 0.49.0-beta7 2023-10-27. Remove in 0.50
+    for (const k of ['*', 'Directory'])
+        reg('delete', `HKCR\\${k}\\shell\\AddToHFS3`, '/f').catch(() => {})
 
 export async function windowsIntegration() {
     const status = await getServerStatus()
     const url = 'http://localhost:' + status.http.port
-    return runReg(['*', 'Directory'].map(k => `
-[${WINDOWS_REG_KEY.replace('*', k)}]
-@="Add to HFS (new)"
+    for (const k of ['*', 'Directory']) {
+        await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
+        await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -Command "
+            $j = '{ \\"source\\": "' + ('%1'|convertTo-json) + '" }'; $wsh = New-Object -ComObject Wscript.Shell; 
+            try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; 
+            $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }"`)
+    }
+}
 
-[${WINDOWS_REG_KEY2.replace('*', k)}]
-@="powershell -Command \\"$p = '%1'.Replace('\\\\', '\\\\\\\\'); $j = '{ \\\\\\"source\\\\\\": \\\\\\"' + $p + '\\\\\\" }';  $wsh = New-Object -ComObject Wscript.Shell; try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }\\""
-    `).join(''))
+function reg(...pars: string[]) {
+    return promisify(execFile)('reg', pars)
 }

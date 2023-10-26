@@ -36,13 +36,14 @@ export default function VfsMenuBar({ status }: any) {
         status?.platform === 'win32' && h(Btn, {
             icon: Microsoft,
             variant: 'outlined',
+            doneMessage: true,
             ...(!integrated?.is ? {
                 children: "System integration",
                 onClick: () => windowsIntegration().then(reload),
             } : {
                 confirm: true,
                 children: "Remove integration",
-                onClick: () => exec('windows_remove').then(reload),
+                onClick: () => apiCall('windows_remove').then(reload),
             })
         }),
     )
@@ -57,13 +58,5 @@ async function windowsIntegration() {
         }  }),
     )
     return await confirmDialog(msg)
-        && exec('windows_integration')
-}
-
-async function exec(api: string) {
-    const hint = alertDialog("Click YES to the next 2 dialogs. The second dialog may not appear, and you need to click on the bottom bar.", 'warning')
-    const { finish } = await apiCall(api, {}, { timeout: false })
-    hint.close()
-    return finish ? alertDialog("To finish the process, please execute the file you'll find on your desktop: " + basename(finish))
-        : alertDialog("Done!", 'success')
+        && apiCall('windows_integration')
 }
