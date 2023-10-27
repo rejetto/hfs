@@ -1,14 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h } from 'react'
-import { Box } from '@mui/material'
+import { Alert, Box } from '@mui/material'
 import { Add, Microsoft } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import addFiles, { addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
-import { basename, Btn, reloadBtn } from './misc'
+import { Btn, reloadBtn } from './misc'
 import { apiCall, useApi } from './api'
-import { alertDialog, confirmDialog } from './dialog'
+import { confirmDialog } from './dialog'
 
 export default function VfsMenuBar({ status }: any) {
     const { data: integrated, reload } = useApi(status?.platform === 'win32' && 'windows_integrated')
@@ -56,6 +56,7 @@ async function windowsIntegration() {
             width: 'min(30em, 80vw)',
             marginTop: '1em',
         }  }),
+        h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
     )
     return await confirmDialog(msg)
         && apiCall('windows_integration')

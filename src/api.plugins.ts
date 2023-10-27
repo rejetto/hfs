@@ -103,6 +103,8 @@ const apis: ApiHandlers = {
                     for await (const pl of await searchPlugins(text)) {
                         const repo = pl.repo || pl.id // .repo property can be more trustworthy in case github user renamed and left the previous link in 'repo'
                         if (_.includes(folder2repo, repo)) continue // don't include installed plugins
+                        const missing = await getMissingDependencies(pl)
+                        if (missing.length) pl.missing = missing
                         list.add(pl)
                         // watch for events about this plugin, until this request is closed
                         undo.push(onOff(events, {

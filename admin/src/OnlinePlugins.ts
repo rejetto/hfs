@@ -10,6 +10,7 @@ import { useDebounce } from 'usehooks-ts'
 import { renderName, startPlugin } from './InstalledPlugins'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, toast } from './dialog'
+import _ from 'lodash'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -73,7 +74,8 @@ export default function OnlinePlugins() {
                     disabled: row.installed && "Already installed",
                     tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
                     confirm: "WARNING - Proceed only if you trust this author and this plugin",
-                    onClick() {
+                    async onClick() {
+                        if (row.missing && !await confirmDialog("This will also install: " + _.map(row.missing, 'repo').join(', '))) return
                         const branch = row.branch || row.default_branch
                         installPlugin(id, branch).catch((e: any) => {
                             if (e.code !== HTTP_FAILED_DEPENDENCY)
