@@ -3,7 +3,7 @@
 import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
     permsFromParent } from './vfs'
 import _ from 'lodash'
-import { stat } from 'fs/promises'
+import { mkdir, stat } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import { dirStream, enforceFinal, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
@@ -166,6 +166,11 @@ const apis: ApiHandlers = {
             while (path && !await isDirectory(path))
                 path = dirname(path)
         return { path, isFolder: await isDirectory(path) }
+    },
+
+    async mkdir({ path }) {
+        await mkdir(path, { recursive: true })
+        return {}
     },
 
     get_ls({ path, files=true, fileMask }, ctx) {

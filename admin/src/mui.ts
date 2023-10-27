@@ -93,11 +93,12 @@ interface IconBtnProps extends Omit<IconButtonProps, 'disabled'|'title'|'onClick
     progress?: boolean | number
     link?: string
     confirm?: string
+    doneMessage?: boolean | string // displayed only if the result of onClick !== false
     tooltipProps?: Partial<TooltipProps>
     onClick: (...args: Parameters<NonNullable<IconButtonProps['onClick']>>) => Promisable<any>
 }
 
-export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, ...rest }: IconBtnProps, ref: any) => {
+export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, sx, ...rest }: IconBtnProps, ref: any) => {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
@@ -107,12 +108,13 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
             ref,
             disabled: Boolean(loading || progress || disabled),
             ...rest,
+            sx: { height: 'fit-content', ...sx },
             async onClick(...args) {
                 if (confirm && !await confirmDialog(confirm)) return
                 const ret = onClick?.apply(this,args)
                 if (ret && ret instanceof Promise) {
                     setLoading(true)
-                    ret.catch(alertDialog).finally(()=> setLoading(false))
+                    ret.then(x => x !== false && execDoneMessage(doneMessage), alertDialog).finally(()=> setLoading(false))
                 }
             }
         },
@@ -135,7 +137,7 @@ interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'>
     progress?: boolean | number
     link?: string
     confirm?: boolean | string
-    doneMessage?: boolean | string
+    doneMessage?: boolean | string // displayed only if the result of onClick !== false
     tooltipProps?: TooltipProps
     onClick: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
@@ -161,11 +163,7 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
             const ret = onClick?.apply(this,args)
             if (ret && ret instanceof Promise) {
                 setLoading(true)
-                ret.then(async res => {
-                    if (doneMessage)
-                        toast(doneMessage === true ? "Operation completed" : doneMessage, 'success')
-                    return res
-                }, alertDialog)
+                ret.then(x => x !== false && execDoneMessage(doneMessage), alertDialog)
                     .finally(()=> setLoading(false))
             }
         }
@@ -173,6 +171,11 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
     if (title)
         ret = h(Tooltip, { title, ...tooltipProps, children: h('span',{},ret) })
     return ret
+}
+
+function execDoneMessage(msg: boolean | string | undefined) {
+    if (msg)
+        toast(msg === true ? "Operation completed" : msg, 'success')
 }
 
 export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxProps) {

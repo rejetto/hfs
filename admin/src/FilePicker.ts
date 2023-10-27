@@ -14,11 +14,12 @@ import {
     TextField,
     Typography
 } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center, err2msg, basename } from './misc'
-import { ArrowUpward, VerticalAlignTop } from '@mui/icons-material'
+import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center, err2msg, basename, IconBtn, Flex } from './misc'
+import { ArrowUpward, CreateNewFolder, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
 import { FixedSizeList } from 'react-window'
+import { promptDialog } from './dialog'
 
 export interface DirEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 
@@ -42,7 +43,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
             }
         }).finally(() => setReady(true))
     }, [from])
-    const { list, error, connecting } = useApiList<DirEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
+    const { list, error, connecting, reload } = useApiList<DirEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
     useEffect(() => {
         setSel([])
         setFilter('')
@@ -143,7 +144,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                             }
                         })
                 ),
-                h(Box, { display:'flex', gap: 1 },
+                h(Flex, {},
                     (multiple || folders || !files) && h(Button, {
                         variant: 'contained',
                         disabled: !cwd || !folders && !sel.length && files,
@@ -153,12 +154,25 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         }
                     }, files && (sel.length || !folders) ? `Select (${sel.length})` : `Select this folder`),
                     h(TextField, {
+                        size: 'small',
                         value: filter,
                         label: `Filter results (${filteredList.length}${filteredList.length < list.length ? '/'+list.length : ''})`,
                         onChange(ev) {
                             setFilterBounced(ev.target.value)
                         },
                         sx: { flex: 1 },
+                    }),
+                    h(IconBtn, {
+                        icon: CreateNewFolder,
+                        doneMessage: true,
+                        title: "Create folder",
+                        sx: { mt: '5px' },
+                        async onClick() {
+                            const s = await promptDialog("New folder name")
+                            if (!s) return false
+                            await apiCall('mkdir', { path: `${cwd}/${s}` })
+                            reload()
+                        }
                     }),
                 ),
             )
