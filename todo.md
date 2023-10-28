@@ -25,7 +25,6 @@
 - config: max connections/downloads (total/per-ip)
 - webdav?
 - log: ip2name
-- apis in separated log file with parameters?
 - search operators (size, type?)
 - ability to install as service in Windows
   - an application to control the service as tray icon
