@@ -35,6 +35,7 @@ import _ from 'lodash'
 import { getUpdates, localUpdateAvailable, update, updateSupported } from './update'
 import { consoleLog } from './consoleLog'
 import { resolve } from 'path'
+import { getErrorSections } from './errorPages'
 
 export const adminApis: ApiHandlers = {
 
@@ -78,7 +79,7 @@ export const adminApis: ApiHandlers = {
     get_custom_html() {
         return {
             sections: Object.fromEntries([
-                ...customHtmlSections.map(k => [k,'']),
+                ...customHtmlSections.concat(getErrorSections()).map(k => [k,'']),
                 ...customHtmlState.sections
             ])
         }

@@ -31,3 +31,10 @@ export const HTTP_FAILED_DEPENDENCY = 424
 export const HTTP_SERVER_ERROR = 500
 export const HTTP_SERVICE_UNAVAILABLE = 503
 
+export const HTTP_MESSAGES: Record<number, string> = {
+    [HTTP_UNAUTHORIZED]: "Unauthorized",
+    [HTTP_FORBIDDEN]: "Forbidden",
+    [HTTP_NOT_FOUND]: "Not found",
+    [HTTP_SERVER_ERROR]: "Server error",
+}
+

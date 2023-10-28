@@ -4,12 +4,12 @@ import React, { createElement as h } from 'react'
 import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
-import { Dict, getHFS, useBatch } from '@hfs/shared'
+import { Dict, getHFS, HTTP_MESSAGES, useBatch } from '@hfs/shared'
+import { apiCall, useApi } from '@hfs/shared/api'
 import { state } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
 import _ from 'lodash'
-import { apiCall, setDefaultApiCallOptions, useApi } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { logout } from './login'
 import { subscribeKey } from 'valtio/utils'
@@ -17,16 +17,9 @@ import { uploadState } from './upload'
 import { fileShow } from './show'
 export * from '@hfs/shared'
 
-export const ERRORS: Record<number, string> = {
-    401: "Unauthorized",
-    403: "Forbidden",
-    404: "Not found",
-    500: "Server error",
-}
-
 export function err2msg(err: number | Error) {
-    return typeof err === 'number' ? ERRORS[err]
-        : (ERRORS[(err as any).code] || err.message || String(err))
+    return typeof err === 'number' ? HTTP_MESSAGES[err]
+        : (HTTP_MESSAGES[(err as any).code] || err.message || String(err))
 }
 
 export function hIcon(name: string, props?:any) {

@@ -4,7 +4,7 @@ import { createElement as h, Fragment, useEffect, useMemo, useState } from 'reac
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { Dict, IconBtn, isCtrlKey, modifiedSx, reloadBtn, wikiLink } from './misc';
+import { Dict, HTTP_MESSAGES, IconBtn, isCtrlKey, modifiedSx, prefix, reloadBtn, wikiLink } from './misc';
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
@@ -19,10 +19,13 @@ export default function CustomHtmlPage() {
     useEffect(() => data && setSaved(data?.sections), [data])
     useEffect(() => setAll(saved), [saved])
     const options = useMemo(() => {
-        const keys = Object.keys(all)
+        const keys = _.sortBy(Object.keys(all), x => !isNaN(+x)) // http codes at the bottom
         if (!keys.includes(section))
-            setSection(keys?.[0] || '')
-        return keys.map(x => ({ value: x, label: _.startCase(x) + (all[x]?.trim() ? ' *' : '') }))
+            setSection(_.findKey(all, Boolean) || keys?.[0] || '') // prefer any key with content
+        return keys.map(x => ({
+            value: x,
+            label: (prefix('HTTP ', HTTP_MESSAGES[x as any]) || _.startCase(x)) + (all[x]?.trim() ? ' *' : '')
+        }))
     }, [useDebounce(all, 500)])
     const anyChange = useMemo(() => !_.isEqualWith(saved, all, (a,b) => !a && !b || undefined),
         [saved, all])

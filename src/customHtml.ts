@@ -17,7 +17,7 @@ export const customHtmlState = proxy({
 export function watchLoadCustomHtml(folder='') {
     const state = new Map<string, string>()
     const res = watchLoad(prefix('', folder, '/') + FILE, data => {
-        const re = /^\[(\w+)] *$/gm
+        const re = /^\[([^\]]+)] *$/gm
         state.clear()
         if (!data) return
         let name: string | undefined = 'top'

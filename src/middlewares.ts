@@ -15,7 +15,7 @@ import {
     filterMapGenerator,
     isLocalHost,
     stream2string,
-    tryJson
+    tryJson, Dict
 } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
@@ -37,6 +37,8 @@ import { constants } from 'zlib'
 import { baseUrl, getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
 import { getLangData } from './lang'
+import { getSection } from './customHtml'
+import { sendErrorPage } from './errorPages'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
@@ -157,23 +159,6 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
 }
 
 // to be used with errors whose recipient is possibly human
-export async function sendErrorPage(ctx: Koa.Context, code: number) {
-    ctx.status = code
-    const msg = (errorMessages as any)[ctx.status]
-    if (!msg) return
-    const lang = await getLangData(ctx)
-    if (!lang) return
-    const trans = (Object.values(lang)[0] as any)?.translate
-    if (!trans) return
-    ctx.body = trans[msg]
-}
-
-const errorMessages = {
-    [HTTP_NOT_FOUND]: "Not found",
-    [HTTP_UNAUTHORIZED]: "Unauthorized",
-    [HTTP_FORBIDDEN]: "Forbidden",
-}
-
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
     let { depth=0, folders, prepend } = ctx.query
     ctx.type = 'text'

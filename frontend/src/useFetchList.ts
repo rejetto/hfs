@@ -7,7 +7,7 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { ERRORS } from './misc'
+import { HTTP_MESSAGES, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -84,7 +84,7 @@ export default function useFetchList() {
                         }
                         if (error) {
                             state.stopSearch?.()
-                            state.error = (ERRORS as any)[error] || String(error)
+                            state.error = xlate(error, HTTP_MESSAGES)
                             if (error === 401 && snap.username)
                                 alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning').then()
                             state.loginRequired = error === 401
