@@ -105,7 +105,7 @@ function LogFile({ file }: { file: string }) {
             {
                 field: 'notes',
                 headerName: "Notes",
-                width: 100,
+                width: 105, // https://github.com/rejetto/hfs/discussions/388
                 hideUnder: 'sm',
                 cellClassName: 'wrap',
             },

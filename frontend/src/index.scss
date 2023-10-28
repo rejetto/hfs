@@ -308,12 +308,12 @@ ul.dir {
 
         &>div:last-of-type { clear:both }
         &.page-separator {
-            margin-top: 1em;
+            margin-top: .7em;
             position: relative;
             &::before {
                 content: attr(label);
                 position: absolute;
-                top: -1.8em;
+                top: -1.5em;
                 font-size: smaller;
                 margin-left: calc(50% - 1em);
                 opacity: .9;
@@ -498,10 +498,10 @@ button label {
 #root>.tiles-mode {
     max-width: none;
     margin: 0 1em;
-    --tiles-size: 5;
+    --tile-size: 5;
     --name-lines: 3;
-    --name-height: calc(4.7em + var(--tiles-size) * .4em + 1.2em * var(--name-lines));
-    --tile-width: calc(5em + 1em * var(--tiles-size));
+    --name-height: calc(4.7em + var(--tile-size) * .4em + 1.2em * var(--name-lines));
+    --tile-width: calc(5em + 1em * var(--tile-size));
 
     ul.dir {
         display: grid;
@@ -530,7 +530,7 @@ button label {
                 a {
                     &:last-of-type { padding: 0; }
                     span { display: block; }
-                    .icon.icon { font-size: calc(1.2rem + .6rem * var(--tiles-size)); }
+                    .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
                     img.icon {
                         width: auto;
                         height: 1em;
