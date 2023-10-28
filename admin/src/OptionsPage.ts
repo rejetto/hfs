@@ -7,7 +7,7 @@ import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILES_SIZE, modifiedSx, REPO_URL, ipLocalHost,
-    wait, wikiLink, with_, try_, ipForUrl } from './misc'
+    wait, wikiLink, with_, try_, ipForUrl, useBreakpoint } from './misc'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -47,6 +47,7 @@ export default function OptionsPage() {
     const reloadStatus = exposedReloadStatus = statusApi.reload
     useEffect(() => void(reloadStatus()), [data]) //eslint-disable-line
     useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
+    const sm = useBreakpoint('sm')
 
     const admins = useApiEx('get_admins').data?.list
 
@@ -88,7 +89,7 @@ export default function OptionsPage() {
                 component: RouterLink,
                 to: "/edit",
                 startIcon: h(EditNote),
-            }, "Edit config file"),
+            }, sm ? "Edit config file" : "File"),
         ],
         defaults() {
             return { sm: 6 }

@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useEffect, useRef, useState } from 'react';
+import { createElement as h, Fragment, useEffect, useState } from 'react';
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
 import { Btn, Flex, IconBtn, isCtrlKey, KeepInScreen, modifiedSx, reloadBtn } from './misc';
@@ -19,7 +19,7 @@ export default function ConfigFilePage() {
     useEffect(() => { setSaved(data?.text) }, [data])
     useEffect(() => { saved !== undefined && setText(saved || '') }, [saved])
     return h(Fragment, {},
-        h(Flex, { alignItems: 'center' },
+        h(Flex, { alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' },
             h(Btn, { icon: ContentCopy, onClick: copy }, "Copy excluding passwords"),
             edit ? h(Fragment, {},
                 reloadBtn(reload),
@@ -33,6 +33,7 @@ export default function ConfigFilePage() {
             ) : h(Btn, {
                 icon: EditNote,
                 variant: 'outlined',
+                labelFrom: 'sm',
                 onClick() {
                     setEdit(true)
                     const el = document.querySelector('main textarea')

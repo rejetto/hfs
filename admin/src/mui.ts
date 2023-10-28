@@ -137,11 +137,12 @@ interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'>
     progress?: boolean | number
     link?: string
     confirm?: boolean | string
+    labelFrom?: Breakpoint
     doneMessage?: boolean | string // displayed only if the result of onClick !== false
     tooltipProps?: TooltipProps
     onClick: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
-export function Btn({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, ...rest }: BtnProps) {
+export function Btn({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelFrom, children, ...rest }: BtnProps) {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string') {
         title = disabled
@@ -149,6 +150,7 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
     }
     if (link)
         onClick = () => window.open(link)
+    const showLabel = useBreakpoint(labelFrom || 'xs')
     let ret: ReturnType<FC> = h(LoadingButton, {
         variant: 'contained',
         startIcon: icon && h(icon),
@@ -158,6 +160,16 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
             : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
         disabled,
         ...rest,
+        children: showLabel && children,
+        sx: {
+            ...rest.sx,
+            ...!showLabel && {
+                minWidth: 'auto',
+                px: 2,
+                py: '7px',
+                '& span': { mx:0 },
+            }
+        },
         async onClick(...args) {
             if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
             const ret = onClick?.apply(this,args)
