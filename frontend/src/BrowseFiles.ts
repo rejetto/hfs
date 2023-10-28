@@ -1,19 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Link } from 'react-router-dom'
-import {
-    createElement as h,
-    Fragment,
-    memo,
-    MouseEvent,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from 'react'
+import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, getHFS } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -184,7 +174,7 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder } = entry
-    const { showFilter, selected } = useSnapState()
+    const { showFilter, selected, file_menu_on_link } = useSnapState()
     const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
     const containerName = containerDir && entry.n.slice(0, -entry.name.length)
     let className = isFolder ? 'folder' : 'file'
@@ -193,10 +183,9 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = getEntryIcon(entry)
-    const menuOnLink = getHFS().fileMenuOnLink
-    const onClick = !entry.web && menuOnLink && fileMenu || undefined
+    const onClick = !entry.web && file_menu_on_link && fileMenu || undefined
     const small = useWindowSize().width < 800
-    const showingButton = !menuOnLink || isFolder && small
+    const showingButton = !file_menu_on_link || isFolder && small
     return h('li', { className, label: separator },
         h(CustomCode, { name: 'entry', props: { entry }, ifEmpty: () => h(Fragment, {},
             showFilter && h(Checkbox, {
@@ -211,7 +200,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 isFolder ? h(Fragment, {},
                         h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
                         // popup button is here to be able to detect link-wrapper:hover
-                        menuOnLink && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
+                        file_menu_on_link && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
                     )
                     : containerDir ? h(Fragment, {},
                         h('a', { href: uri, onClick, tabIndex: -1 }, ico),
@@ -232,11 +221,11 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     function fileMenu(ev: MouseEvent) {
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
-        openFileMenu(entry, ev, [
-            menuOnLink && 'open',
+        openFileMenu(entry, ev, onlyTruthy([
+            file_menu_on_link && 'open',
             'delete',
             'show'
-        ])
+        ]))
     }
 
 })

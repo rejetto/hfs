@@ -3,9 +3,9 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { Dict, getHFS, hIcon } from './misc'
+import { FRONTEND_OPTIONS, getHFS, hIcon, objSameKeys, typedKeys } from './misc'
 
-export const state = proxy<{
+export const state = proxy<typeof FRONTEND_OPTIONS & {
     stopSearch?: ()=>void,
     stoppedSearch?: boolean,
     iconsReady: boolean,
@@ -19,11 +19,6 @@ export const state = proxy<{
     showFilter: boolean,
     selected: { [uri:string]: true }, // by using an object instead of an array, Entry components are not rendered when others get selected
     remoteSearch: string,
-    sortBy: string,
-    invertOrder: boolean,
-    foldersFirst: boolean,
-    sortNumerics: boolean,
-    theme: string,
     adminUrl?: string,
     loginRequired?: boolean, // force user to login before proceeding
     messageOnly?: string, // no gui, just show this message
@@ -34,12 +29,11 @@ export const state = proxy<{
         can_archive?: boolean
         can_comment?: boolean
     }
-    tilesSize: number
     canChangePassword: boolean
 }>({
     canChangePassword: false,
     props: {},
-    tilesSize: getHFS().tilesSize || 0,
+    ...objSameKeys(FRONTEND_OPTIONS, (v,k) => getHFS()[k] ?? v),
     iconsReady: false,
     username: '',
     list: [],
@@ -49,11 +43,6 @@ export const state = proxy<{
     showFilter: false,
     selected: {},
     remoteSearch: '',
-    sortBy: 'name',
-    invertOrder: false,
-    foldersFirst: true,
-    sortNumerics: false,
-    theme: '',
 })
 
 export function useSnapState() {
@@ -61,7 +50,9 @@ export function useSnapState() {
 }
 
 const SETTINGS_KEY = 'hfs_settings'
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['sortBy', 'sortNumerics', 'invertOrder', 'foldersFirst', 'theme', 'tilesSize']
+type StateKey = keyof typeof state
+const SETTINGS_WITHOUT_GUI: StateKey[] = ['file_menu_on_link']
+const SETTINGS_TO_STORE: StateKey[] = _.difference(typedKeys(FRONTEND_OPTIONS), SETTINGS_WITHOUT_GUI)
 
 loadSettings()
 for (const k of SETTINGS_TO_STORE)

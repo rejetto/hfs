@@ -13,14 +13,14 @@ import { Spinner } from "./components"
 function App() {
     useTheme()
     const { ready } = useSnapshot(pageState) // wait for all plugins to be loaded
-    const { messageOnly, tilesSize=0 } = useSnapState()
+    const { messageOnly, tile_size=0 } = useSnapState()
     if (messageOnly)
         return h('h1', { style: { textAlign: 'center'} }, messageOnly)
     if (!ready)
         return h(Spinner, { style: { margin: 'auto' } })
-    const style = { '--tiles-size': tilesSize }
+    const style = { '--tile-size': tile_size }
     return h(I18Nprovider, {},
-        h('div', { className: tilesSize ? 'tiles-mode' : 'list-mode', style },
+        h('div', { className: tile_size ? 'tiles-mode' : 'list-mode', style },
             h(BrowserRouter, {},
                 h(NavigationExtractor, {},
                     h(Routes, {},

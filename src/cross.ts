@@ -9,7 +9,18 @@ export const WIKI_URL = REPO_URL + 'wiki/'
 export const MINUTE = 60_000
 export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
-export const MAX_TILES_SIZE = 10
+export const MAX_TILE_SIZE = 10
+export const FRONTEND_OPTIONS = {
+    file_menu_on_link: true,
+    tile_size: 0,
+    sort_by: 'name',
+    invert_order: false,
+    folders_first: true,
+    sort_numerics: false,
+    theme: '',
+}
+export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
+export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
