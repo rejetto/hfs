@@ -118,23 +118,23 @@ export function reloadList() {
     state.listReloader = Date.now()
 }
 
-const { compare:localCompare } = new Intl.Collator(navigator.language)
+const { compare: localCompare } = new Intl.Collator(navigator.language)
 
 function sort(list: DirList) {
-    const { sortBy, foldersFirst, sortNumerics } = state
+    const { sort_by, folders_first, sort_numerics } = state
     // optimization: precalculate string comparisons
-    const bySize = sortBy === 'size'
-    const byExt = sortBy === 'extension'
-    const byTime = sortBy === 'time'
-    const invert = state.invertOrder ? -1 : 1
+    const bySize = sort_by === 'size'
+    const byExt = sort_by === 'extension'
+    const byTime = sort_by === 'time'
+    const invert = state.invert_order ? -1 : 1
     return list.sort((a,b) =>
-        foldersFirst && -compare(a.isFolder, b.isFolder)
+        folders_first && -compare(a.isFolder, b.isFolder)
         || invert * (bySize ? compare(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
                 : byTime ? compare(a.t, b.t)
                     : 0
         )
-        || sortNumerics && (invert * compare(parseFloat(a.n), parseFloat(b.n)))
+        || sort_numerics && (invert * compare(parseFloat(a.n), parseFloat(b.n)))
         || invert * localCompare(a.n, b.n) // fallback to name/path
     )
 }
@@ -146,7 +146,7 @@ function compare(a:any, b:any) {
 
 // update list on sorting criteria
 const sortAgain = _.debounce(()=> state.list = sort(state.list), 100)
-for (const k of [ 'sortBy', 'invertOrder', 'foldersFirst', 'sortNumerics'] as const)
+for (const k of [ 'sort_by', 'invert_order', 'folders_first', 'sort_numerics'] as const)
     subscribeKey(state, k, sortAgain)
 
 subscribeKey(state, 'patternFilter', updateFilteredList)

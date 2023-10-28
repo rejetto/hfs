@@ -4,12 +4,12 @@ import { newDialog } from './dialog'
 import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 import { Checkbox, FlexV, Select } from './components'
-import { hIcon, MAX_TILES_SIZE } from './misc'
+import { FRONTEND_OPTIONS, hIcon, MAX_TILE_SIZE, SORT_BY_OPTIONS, THEME_OPTIONS } from './misc'
 import { MenuLink } from './menu'
 import { t } from './i18n'
+import _ from 'lodash'
 
 export function showOptions (){
-    const options = ['name', 'extension', 'size', 'time']
     newDialog({
         title: t`Options`,
         className: 'options-dialog',
@@ -27,48 +27,48 @@ export function showOptions (){
                 target: 'admin',
             }),
             h(Select, {
-                options: options.map(x => ({
+                options: SORT_BY_OPTIONS.map(x => ({
                     value: x,
                     label: t("Sort by:", { by: t(x) }, t`Sort by` + ': ' + t(x))
                 })),
-                value: snap.sortBy,
+                value: snap.sort_by,
                 onChange(v) {
-                    state.sortBy = v
+                    state.sort_by = v
                 }
             }),
             h(Checkbox, {
-                value: snap.invertOrder,
+                value: snap.invert_order,
                 onChange(v) {
-                    state.invertOrder = v
+                    state.invert_order = v
                 }
             }, t`Invert order`),
             h(Checkbox, {
-                value: snap.foldersFirst,
+                value: snap.folders_first,
                 onChange(v) {
-                    state.foldersFirst = v
+                    state.folders_first = v
                 }
             }, t`Folders first`),
             h(Checkbox, {
-                value: snap.sortNumerics,
+                value: snap.sort_numerics,
                 onChange(v) {
-                    state.sortNumerics = v
+                    state.sort_numerics = v
                 }
             }, t`Numeric names`),
 
             h('div', {},
-                h('div', {}, t`Tiles mode:`, ' ', state.tilesSize || t`off`),
+                h('div', {}, t`Tiles mode:`, ' ', state.tile_size || t`off`),
                 h('input', {
                     type: 'range',
-                    min: 0, max: MAX_TILES_SIZE,
-                    value: snap.tilesSize || 0,
+                    min: 0, max: MAX_TILE_SIZE,
+                    value: snap.tile_size,
                     onChange(ev: any) {
-                        state.tilesSize = Number(ev.target.value)
+                        state.tile_size = Number(ev.target.value)
                     }
                 }),
             ),
 
             h(Select, {
-                options: ['', 'light', 'dark'].map(s => ({ label: t(["theme:", "Theme:", ]) + ' ' + t(s || "auto"), value: s })),
+                options: _.map(THEME_OPTIONS, (value, label) => ({ label: t(["theme:", "Theme:", ]) + ' ' + t(label), value })),
                 value: snap.theme,
                 onChange(v) {
                     state.theme = v
