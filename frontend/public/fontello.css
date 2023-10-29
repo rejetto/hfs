@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'fontello';
-  src: url('fontello.woff2?13611077') format('woff2');
+  src: url('fontello.woff2?11723613') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
@@ -68,6 +68,7 @@
 .fa-crown:before { content: '\e844'; } /* '' */
 .fa-download:before { content: '\f02e'; } /* '' */
 .fa-upload:before { content: '\f02f'; } /* '' */
+.fa-link:before { content: '\f08e'; } /* '' */
 .fa-filter:before { content: '\f0b0'; } /* '' */
 .fa-zoom:before { content: '\f0b2'; } /* '' */
 .fa-menu:before { content: '\f0c9'; } /* '' */

@@ -194,7 +194,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = getEntryIcon(entry)
     const menuOnLink = getHFS().fileMenuOnLink
-    const onClick = menuOnLink && fileMenu || undefined
+    const onClick = !entry.web && menuOnLink && fileMenu || undefined
     const small = useWindowSize().width < 800
     const showingButton = !menuOnLink || isFolder && small
     return h('li', { className, label: separator },
