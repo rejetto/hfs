@@ -33,7 +33,6 @@
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
-    "@types/node": "^16.11.21",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
     "@types/react-window": "^1.8.5",

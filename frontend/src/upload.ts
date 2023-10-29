@@ -98,8 +98,7 @@ export function showUpload() {
     }
 
     function Content(){
-        const adding = useSnapshot(uploadState.adding)
-        const { qs, paused, eta, skipExisting } = useSnapshot(uploadState)
+        const { qs, paused, eta, skipExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
         const { props } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
