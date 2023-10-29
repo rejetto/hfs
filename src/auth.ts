@@ -20,10 +20,10 @@ export async function srpStep1(account: Account) {
 
 export async function srpCheck(username: string, password: string) {
     const account = getAccount(username)
-    if (!account?.srp || !password) return false
+    if (!account?.srp || !password) return
     const { step1, salt, pubKey } = await srpStep1(account)
     const client = await srpClientPart(username, password, salt, pubKey)
-    return await step1.step2(client.A, client.M1).then(() => true, () => false)
+    return await step1.step2(client.A, client.M1).then(() => account, () => {})
 }
 
 // centralized log-in state

@@ -7,7 +7,8 @@ import { ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode, getNodeName } from './vfs'
-import { DAY, asyncGeneratorToReadable, dirTraversal, filterMapGenerator, isLocalHost, stream2string, tryJson } from './misc'
+import { DAY, asyncGeneratorToReadable, dirTraversal, filterMapGenerator, isLocalHost, stream2string, tryJson,
+    splitAt } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -17,7 +18,7 @@ import { applyBlock } from './block'
 import { accountCanLogin, getAccount } from './perm'
 import { socket2connection, updateConnection, normalizeIp } from './connections'
 import basicAuth from 'basic-auth'
-import { loggedIn, srpCheck } from './auth'
+import { srpCheck } from './auth'
 import { basename, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
@@ -208,7 +209,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     if (ctx.session)
         ctx.session.maxAge = sessionDuration.compiled()
     // calculate these once and for all
-    const a = ctx.state.account = await getHttpAccount(ctx) ?? getAccount(ctx.session?.username, false)
+    const a = ctx.state.account = await urlLogin() || await getHttpAccount() || getAccount(ctx.session?.username, false)
     if (a && !accountCanLogin(a))
         ctx.state.account = undefined
     const conn = ctx.state.connection = socket2connection(ctx.socket)
@@ -216,13 +217,23 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     if (conn)
         updateConnection(conn, { ctx, op: undefined })
     await next()
-}
 
-async function getHttpAccount(ctx: Koa.Context) {
-    const credentials = basicAuth(ctx.req)
-    const account = getAccount(credentials?.name||'')
-    if (account && await srpCheck(account.username, credentials!.pass))
-        return account
+    async function urlLogin() {
+        const { login }  = ctx.query
+        if (!login) return
+        const [u,p] = splitAt(':', String(login))
+        const a = await srpCheck(u, p)
+        if (a) {
+            ctx.session!.username = a.username
+            ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1))
+        }
+        return a
+    }
+
+    async function getHttpAccount() {
+        const credentials = basicAuth(ctx.req)
+        return srpCheck(credentials?.name||'', credentials?.pass||'')
+    }
 }
 
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

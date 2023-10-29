@@ -116,6 +116,13 @@ export function enforceFinal(sub:string, s:string, evenEmpty=false) {
     return !evenEmpty && !s || s.endsWith(sub) ? s : s+sub
 }
 
+export function splitAt(sub: string | number, all: string): [string, string] {
+    if (typeof sub === 'number')
+        return [all.slice(0, sub), all.slice(sub + 1)]
+    const i = all.indexOf(sub)
+    return i < 0 ? [all,''] : [all.slice(0, i), all.slice(i + sub.length)]
+}
+
 export function truthy<T>(value: T): value is Truthy<T> {
     return Boolean(value)
 }
