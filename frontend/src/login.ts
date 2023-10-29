@@ -3,7 +3,7 @@
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
-import { getHFS, getPrefixUrl, hIcon, makeSessionRefresher, srpSequence, working } from './misc'
+import { getHFS, getPrefixUrl, hIcon, makeSessionRefresher, srpClientSequence, working } from './misc'
 import { useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
@@ -12,7 +12,7 @@ import { CustomCode } from './components'
 
 async function login(username:string, password:string) {
     const stopWorking = working()
-    return srpSequence(username, password, apiCall).then(res => {
+    return srpClientSequence(username, password, apiCall).then(res => {
         stopWorking()
         sessionRefresher(res)
         state.loginRequired = false

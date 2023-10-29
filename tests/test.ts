@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import { wrapper } from 'axios-cookiejar-support'
 import { CookieJar } from 'tough-cookie'
-import { srpSequence } from '@hfs/shared/srp'
+import { srpClientSequence } from '../src/srp'
 import { createReadStream, rmSync } from 'fs'
 import { dirname, join } from 'path'
 import _ from 'lodash'
@@ -129,7 +129,7 @@ describe('after-login', () => {
 })
 
 function login(usr: string, pwd=password) {
-    return srpSequence(usr, pwd, (cmd: string, params: any) =>
+    return srpClientSequence(usr, pwd, (cmd: string, params: any) =>
         reqApi(cmd, params, (x,res)=> !res.isAxiosError)())
 }
 

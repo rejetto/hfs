@@ -4,7 +4,7 @@ import _ from 'lodash'
 import { apiCall } from './api'
 export * from './react'
 export * from './dialogs'
-export * from './srp'
+export * from '../src/srp'
 export * from '../src/cross'
 
 (window as any)._ = _
