@@ -2,21 +2,12 @@
 
 import compress from 'koa-compress'
 import Koa from 'koa'
-import {
-    ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
+import { ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode, getNodeName } from './vfs'
-import {
-    DAY,
-    asyncGeneratorToReadable,
-    dirTraversal,
-    filterMapGenerator,
-    isLocalHost,
-    stream2string,
-    tryJson, Dict
-} from './misc'
+import { DAY, asyncGeneratorToReadable, dirTraversal, filterMapGenerator, isLocalHost, stream2string, tryJson } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -26,8 +17,7 @@ import { applyBlock } from './block'
 import { accountCanLogin, getAccount } from './perm'
 import { socket2connection, updateConnection, normalizeIp } from './connections'
 import basicAuth from 'basic-auth'
-import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
-import { srpStep1 } from './api.auth'
+import { loggedIn, srpCheck } from './auth'
 import { basename, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
@@ -36,8 +26,6 @@ import { allowAdmin, favicon } from './adminApis'
 import { constants } from 'zlib'
 import { baseUrl, getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
-import { getLangData } from './lang'
-import { getSection } from './customHtml'
 import { sendErrorPage } from './errorPages'
 
 const forceHttps = defineConfig('force_https', true)
@@ -215,6 +203,7 @@ export function getProxyDetected() {
     return !ignoreProxies.get() && proxyDetected
         && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
 }
+
 export const prepareState: Koa.Middleware = async (ctx, next) => {
     if (ctx.session)
         ctx.session.maxAge = sessionDuration.compiled()
@@ -234,16 +223,6 @@ async function getHttpAccount(ctx: Koa.Context) {
     const account = getAccount(credentials?.name||'')
     if (account && await srpCheck(account.username, credentials!.pass))
         return account
-}
-
-async function srpCheck(username: string, password: string) {
-    const account = getAccount(username)
-    if (!account?.srp || !password) return false
-    const { step1, salt, pubKey } = await srpStep1(account)
-    const client = new SRPClientSession(new SRPRoutines(new SRPParameters()))
-    const clientRes1 = await client.step1(username, password)
-    const clientRes2 = await clientRes1.step2(BigInt(salt), BigInt(pubKey))
-    return await step1.step2(clientRes2.A, clientRes2.M1).then(() => true, () => false)
 }
 
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

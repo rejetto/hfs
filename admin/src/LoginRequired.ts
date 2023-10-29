@@ -5,7 +5,7 @@ import { createElement as h, Fragment, useEffect, useRef, useState } from 'react
 import { Center, getHFS, makeSessionRefresher } from './misc'
 import { Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
-import { srpSequence } from '@hfs/shared'
+import { srpClientSequence } from '@hfs/shared'
 import { Alert, Box } from '@mui/material'
 
 export function LoginRequired({ children }: any) {
@@ -57,7 +57,7 @@ function LoginForm() {
 }
 
 async function login(username: string, password: string) {
-    const res = await srpSequence(username, password, apiCall).catch(err => {
+    const res = await srpClientSequence(username, password, apiCall).catch(err => {
         throw err?.code === 401 ? "Wrong username or password"
             : err === 'trust' ? "Login aborted: server identity cannot be trusted"
             : err?.name === 'AbortError' ? "Server didn't respond"
