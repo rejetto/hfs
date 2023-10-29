@@ -182,6 +182,7 @@ Some actions you can take for improved security:
 - Appending `#LOGIN` to address will bring up the login dialog
 - Appending ?lang=CODE to address will force a specific language
 - right/ctrl/command click on toggle-all checkbox will invert each checkbox state
+- Appending `?login=USER:PASSWORD` will automatically log in the browser
 
 ## Contribute
 
