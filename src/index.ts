@@ -25,7 +25,8 @@ import { acmeMiddleware } from './acme'
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
 process.title = 'HFS ' + VERSION
-const keys = process.env.COOKIE_SIGN_KEYS?.split(',') || [randomId(30)]
+const keys = process.env.COOKIE_SIGN_KEYS?.split(',')
+    || [randomId(30)] // randomness at start gives some extra security, btu also invalidates existing sessions
 export const app = new Koa({ keys })
 app.use(someSecurity)
     .use(selfCheckMiddleware)

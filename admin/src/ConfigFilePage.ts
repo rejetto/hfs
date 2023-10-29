@@ -41,7 +41,7 @@ export default function ConfigFilePage() {
                     setTimeout(() => el.focus(), 500)
                 }
             }, "Edit"),
-            h(Box, { flex: 1}, h(DisplayField, { label: "File path", value: data?.fullPath }))
+            h(Box, { flex: 1, minWidth: 'fit-content' }, h(DisplayField, { label: "File path", value: data?.fullPath }))
         ),
         element || text !== undefined && // avoids bad undo behaviour on start
             h(KeepInScreen, { margin: 10 }, h(TextEditor, {
