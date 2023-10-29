@@ -106,7 +106,7 @@ export function showUpload() {
         const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
 
-        return h(FlexV, { gap: 0, props: acceptDropFiles(more => uploadState.adding.push(...more.map(f => ({ file: ref(f) })))) },
+        return h(FlexV, { gap: '.5em', props: acceptDropFiles(more => uploadState.adding.push(...more.map(f => ({ file: ref(f) })))) },
             h(FlexV, { className: 'upload-toolbar' },
                 !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
