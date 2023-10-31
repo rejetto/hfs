@@ -18,7 +18,7 @@ let selectOnReload: string[] | undefined
 
 export default function VfsPage() {
     const [id2node] = useState(() => new Map<string, VfsNode>())
-    const { vfs, selectedFiles } = useSnapState()
+    const { vfs, selectedFiles, movingFile } = useSnapState()
     const { data, reload, element } = useApiEx('get_vfs')
     useMemo(() => vfs || reload(), [vfs, reload])
     const anyMask = useMemo(() =>
@@ -62,6 +62,11 @@ export default function VfsPage() {
                 )
             )
 
+    // this will take care of closing the dialog, for user's convenience, after "cut" button is pressed
+    const [closeDialog, setCloseDialog] = useState(() => _.noop)
+    useEffect(() => {
+        if (movingFile === selectedFiles[0]?.id) closeDialog()
+    }, [movingFile, closeDialog])
     useEffect(() => {
         if (isSideBreakpoint || !sideContent) return
         const { close } = newDialog({
@@ -69,8 +74,9 @@ export default function VfsPage() {
             Content: () => sideContent,
             onClose: selectNone,
         })
+        setCloseDialog(() => close)
         return close
-    },[isSideBreakpoint, selectedFiles])
+    }, [isSideBreakpoint, selectedFiles])
 
     useEffect(() => {
         state.vfs = undefined

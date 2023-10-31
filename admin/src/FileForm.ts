@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { state } from './state'
+import { state, useSnapState } from './state'
 import { createElement as h, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, } from '@mui/material'
+import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList } from '@mui/material'
 import {
     BoolField,
     DisplayField,
@@ -24,7 +24,8 @@ import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Check, ContentCopy, Delete, Edit, Save } from '@mui/icons-material'
+import { Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, Save } from '@mui/icons-material'
+import { moveVfs } from './VfsTree'
 
 interface Account { username: string }
 
@@ -62,6 +63,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     const showAccept = file.accept! > '' || isDir && (file.can_upload ?? file.inherited?.can_upload)
     const showWebsite = isDir
     const barColors = useDialogBarColors()
+    const { movingFile } = useSnapState()
 
     const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
     if (element || !data)
@@ -82,6 +84,26 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         barSx: { gap: 2, width: '100%', ...barColors },
         stickyBar: true,
         addToBar: [
+            h(IconBtn, {
+                icon: ContentCut,
+                disabled: isRoot || movingFile === file.id,
+                title: "You can also use drag & drop to move items",
+                onClick() {
+                    state.movingFile = file.id
+                    alertDialog(h(Box, {}, "Now that this is marked for moving, click on the destination folder, and then the paste button ", h(ContentPaste)), 'info')
+                },
+            }),
+            movingFile && h(IconBtn, {
+                icon: ContentPaste,
+                disabled: file.type !== 'folder'
+                    || file.id.startsWith(movingFile) // can't move below myself
+                    || file.id === movingFile.replace(/[^/]+\/?$/,''), // can't move to the same parent
+                title: movingFile,
+                onClick() {
+                    state.movingFile = ''
+                    return moveVfs(movingFile, file.id)
+                },
+            }),
             !isRoot && h(IconBtn, {
                 icon: Delete,
                 title: "Delete",

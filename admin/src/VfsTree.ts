@@ -35,7 +35,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
         sx: {
             overflowX: 'auto',
             maxWidth: ref.current && `calc(100vw - ${16 + ref.current.offsetLeft}px)`, // limit possible horizontal scrolling to this element
-            '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px' },
+            '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px', paddingLeft: '15px' },
         },
         onNodeSelect(ev, ids) {
             if (typeof ids === 'string') return // shut up ts
@@ -72,9 +72,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                     const from = dragging.current
                     if (!from) return
                     if (await confirmDialog(`Moving ${from} under ${id}`))
-                        apiCall('move_vfs', { from, parent: id }).then(() => {
-                            reloadVfs([ id + from.slice(1 + from.lastIndexOf('/', from.length-2)) ])
-                        }, alertDialog)
+                        moveVfs(from, id)
                 },
                 sx: {
                     display: 'flex',
@@ -134,4 +132,10 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
             : node.children?.map(recur))
     }
 
+}
+
+export function moveVfs(from: string, to: string) {
+    apiCall('move_vfs', { from, parent: to }).then(() => {
+        reloadVfs([ to + from.slice(1 + from.lastIndexOf('/', from.length-2)) ])
+    }, alertDialog)
 }

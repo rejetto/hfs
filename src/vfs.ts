@@ -15,17 +15,18 @@ import { expandUsername, getCurrentUsername } from './perm'
 
 type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 
-export interface VfsNode extends VfsPerms {
+export interface VfsNodeStored extends VfsPerms {
     name?: string
     source?: string
     children?: VfsNode[]
     default?: string | false // we could have used empty string to override inherited default, but false is clearer, even reading the yaml, and works well with pickProps(), where empty strings are removed
-    mime?: string | Record<string,string>
+    mime?: string | Record<string, string>
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
     accept?: string
     propagate?: Record<keyof VfsPerms, boolean> // legacy pre-0.47
-    // fields that are only filled at run-time
+}
+export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
     parent?: VfsNode // available when original is available

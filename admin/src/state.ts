@@ -11,6 +11,7 @@ export const state = proxy<{
     title: string
     config: Dict
     vfs: VfsNode | undefined
+    movingFile: string
     selectedFiles: VfsNode[]
     loginRequired: boolean | number
     username: string
@@ -19,6 +20,7 @@ export const state = proxy<{
     title: '',
     config: {},
     selectedFiles: [],
+    movingFile: '',
     vfs: undefined,
     loginRequired: false,
     username: '',

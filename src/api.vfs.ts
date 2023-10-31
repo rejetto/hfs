@@ -65,6 +65,8 @@ const apis: ApiHandlers = {
             return new ApiError(HTTP_NOT_FOUND, 'from not found')
         if (fromNode === vfs)
             return new ApiError(HTTP_BAD_REQUEST, 'from is root')
+        if (parent.startsWith(from))
+            return new ApiError(HTTP_BAD_REQUEST, 'incompatible parent')
         const parentNode = await urlToNodeOriginal(parent)
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
