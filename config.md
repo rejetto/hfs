@@ -65,7 +65,7 @@ Configuration can be done in several ways
     block:
       - ip: 192.168.0.90
     ```
-  Syntax supports, other than simple address, `*` as wildcard and CIDR format.
+  [Syntax supports wildcards and more.](https://github.com/rejetto/hfs/wiki/Wildcards#network-masks)
 - `plugins_config` this is a generic place where you can find/put configuration for each plugin, at least those that need configuration.
 - `enable_plugins` if a plugin is not present in this list, it won't run. Defaults is `[ antibrute ]`.
 - `localhost_admin` should Admin be accessed without credentials when on localhost. Default is true.
