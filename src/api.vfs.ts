@@ -255,10 +255,6 @@ function simplifyName(node: VfsNode) {
 
 const WINDOWS_REG_KEY = 'HKCU\\Software\\Classes\\*\\shell\\AddToHFS3'
 
-if (IS_WINDOWS) // legacy 0.49.0-beta7 2023-10-27. Remove in 0.50
-    for (const k of ['*', 'Directory'])
-        reg('delete', `HKCR\\${k}\\shell\\AddToHFS3`, '/f').catch(() => {})
-
 export async function windowsIntegration() {
     const status = await getServerStatus()
     const url = 'http://localhost:' + status.http.port

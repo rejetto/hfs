@@ -13,7 +13,7 @@ exports.configDialog = {
 const byIp = {}
 
 exports.init = api => {
-    const LOGIN_URI = api.const.API_URI + 'loginSrp1'
+    const LOGIN_URI = api.Const.API_URI + 'loginSrp1'
     const { getOrSet } = api.require('./misc')
     return {
         async middleware(ctx) {

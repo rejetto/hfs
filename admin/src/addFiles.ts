@@ -7,7 +7,6 @@ import { reloadVfs } from './VfsPage'
 import { state } from './state'
 import { apiCall } from './api'
 import FilePicker from './FilePicker'
-import { onlyTruthy } from './misc'
 
 export default function addFiles() {
     const { close } = newDialog({
