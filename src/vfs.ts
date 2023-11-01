@@ -24,7 +24,6 @@ export interface VfsNodeStored extends VfsPerms {
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
     accept?: string
-    propagate?: Record<keyof VfsPerms, boolean> // legacy pre-0.47
 }
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
@@ -138,12 +137,6 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
 export let vfs: VfsNode = {}
 defineConfig<VfsNode>('vfs', {}).sub(data =>
     vfs = (function recur(node) {
-        if (node.propagate) { // legacy pre-0.47
-            for (const [k,v] of typedEntries(node.propagate))
-                if (v === false)
-                    node[k] = { this: node[k] }
-            delete node.propagate
-        }
         if (node.children)
             for (const c of node.children)
                 recur(c)

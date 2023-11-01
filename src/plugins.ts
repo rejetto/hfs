@@ -3,7 +3,7 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, PLUGINS_PUB_URI, HTTP_FAILED_DEPENDENCY } from './const'
+import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import {
@@ -98,7 +98,6 @@ export function getPluginConfigFields(id: string) {
 
 async function initPlugin<T>(pl: any, more?: T) {
     return Object.assign(pl, await pl.init?.({
-        const: Const, // legacy, deprecated in 0.48
         Const,
         require,
         getConnections,
