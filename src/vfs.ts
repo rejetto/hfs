@@ -18,6 +18,7 @@ type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 export interface VfsNodeStored extends VfsPerms {
     name?: string
     source?: string
+    url?: string
     children?: VfsNode[]
     default?: string | false // we could have used empty string to override inherited default, but false is clearer, even reading the yaml, and works well with pickProps(), where empty strings are removed
     mime?: string | Record<string, string>
@@ -166,12 +167,13 @@ export function getNodeName(node: VfsNode) {
 export async function nodeIsDirectory(node: VfsNode) {
     if (node.isFolder !== undefined)
         return node.isFolder
-    const isFolder = Boolean(node.children?.length || !node.source || await isDirectory(node.source))
-    if (node.isTemp)
-        node.isFolder = isFolder
-    else
-        setHidden(node, { isFolder }) // don't make it to the storage
+    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (!node.source || await isDirectory(node.source)))
+    setHidden(node, { isFolder }) // don't make it to the storage (a node.isTemp doesn't need it to be hidden)
     return isFolder
+}
+
+export function nodeIsLink(node: VfsNode) {
+    return node.url
 }
 
 export function hasPermission(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context): boolean {

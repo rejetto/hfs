@@ -55,11 +55,12 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     }, [file])
     const { source } = file
     const isDir = file.type === 'folder'
+    const isLink = values.url !== undefined
     const hasSource = source !== undefined // we need a boolean
     const realFolder = hasSource && isDir
     const lg = useBreakpoint('lg')
-    const showTimestamps = lg || hasSource
-    const showSize = lg || (hasSource && !realFolder)
+    const showTimestamps = !isLink && (lg || hasSource)
+    const showSize = !isLink && lg || (hasSource && !realFolder)
     const showAccept = file.accept! > '' || isDir && (file.can_upload ?? file.inherited?.can_upload)
     const showWebsite = isDir
     const barColors = useDialogBarColors()
@@ -74,7 +75,6 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     return h(Form, {
         values,
         set(v, k) {
-            if (k === 'link') return
             setValues(values => {
                 const nameIsVirtual = k === 'source' && values.name && values.source?.endsWith(values.name)
                 const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
@@ -126,14 +126,15 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
         },
         fields: [
             isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
-                : { k: 'name', required: true, xl: 6, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
-            { k: 'source', label: "Source on disk", xl: true, comp: FileField, files: !isDir, folders: isDir,
-                helperText: !values.source && "Not on disk, this is a virtual folder",
+                : { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
+            isLink ? { k: 'url', label: "URL", lg: 12, required: true }
+                : { k: 'source', label: "Source on disk", xl: true, comp: FileField, files: !isDir, folders: isDir,
+                    helperText: !values.source && "Not on disk, this is a virtual folder",
             },
-            { k: 'id', comp: LinkField, statusApi, xs: 12 },
-            perm('can_read', "Who can see but not download will be asked to login"),
+            !isLink && { k: 'id', comp: LinkField, statusApi, xs: 12 },
+            !isLink && perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_see', "If you can't see, you may still download with a direct link"),
-            perm('can_archive', "Should this be included when user downloads as ZIP", { label: "Who can zip", lg: isDir ? true : 12 }),
+            !isLink && perm('can_archive', "Should this be included when user downloads as ZIP", { label: "Who can zip", lg: isDir ? true : 12 }),
             isDir && perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
             isDir && perm('can_delete', [needSourceWarning, "Those who can delete can also rename"]),
             isDir && perm('can_upload', needSourceWarning, { contentText: "subfolders" }),

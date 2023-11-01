@@ -3,9 +3,8 @@
 import { state, useSnapState } from './state'
 import { createElement as h, ReactElement, useRef, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
-import {
-    ChevronRight, ExpandMore, TheaterComedy, Folder, Home,
-    InsertDriveFileOutlined, Lock, RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff
+import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
+    RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
@@ -84,6 +83,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 h(Box, { display: 'flex', flex: 0, },
                     isRoot ? iconTooltip(Home, "home, or root if you like")
                         : folder ? iconTooltip(FolderIcon, "Folder")
+                            : node.url ? iconTooltip(Link, "Web-link")
                             : iconTooltip(FileIcon, "File"),
                     // attributes
                     h(Box, { sx: {
@@ -92,7 +92,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                     } },
                         node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
                         node.can_upload !== undefined && iconTooltip(Upload, "Upload permission"),
-                        !isRoot && !node.source && iconTooltip(Cloud, "Virtual (no source)"),
+                        !isRoot && !node.source && !node.url && iconTooltip(Cloud, "Virtual (no source)"),
                         isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
                         isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
                         node.default && iconTooltip(Web, "Act as website"),

@@ -175,7 +175,8 @@ interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
-    const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
+    const isLink = Boolean(entry.url)
+    const containerDir = isFolder || isLink ? '' : uri.substring(0, (uri.lastIndexOf('/') || -1) +1)
     const containerName = containerDir && entry.n.slice(0, -entry.name.length)
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
@@ -183,14 +184,16 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = getEntryIcon(entry)
-    const onClick = !entry.web && file_menu_on_link && fileMenu || undefined
+    const onClick = !isLink && !entry.web && file_menu_on_link && fileMenu || undefined
     const small = useWindowSize().width < 800
     const showingButton = !file_menu_on_link || isFolder && small
     return h('li', { className, label: separator },
         h(CustomCode, { name: 'entry', props: { entry }, ifEmpty: () => h(Fragment, {},
             showFilter && h(Checkbox, {
+                disabled: isLink,
                 value: selected[uri],
                 onChange(v){
+                    debugger
                     if (v)
                         return state.selected[uri] = true
                     delete state.selected[uri]
