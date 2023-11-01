@@ -272,10 +272,10 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
                 source: join(source, path),
                 rename: renameUnderPath(parent.rename, path),
             }
-            if (!canSee(item)) continue
-            if (isFolder)
+            if (isFolder) // store it even if we can't see it (masks), as its children can be produced by dirStream
                 parentsCache.set(name, item)
-            yield item
+            if (canSee(item))
+                yield item
         }
     }
     catch(e) {
