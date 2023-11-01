@@ -224,7 +224,8 @@ kbd {
     font-size: 90%;
 }
 #folder-stats {
-    margin: 0.5em 0 0 0.5em;
+    margin-left: .5em;
+    line-height: 2em;
     float: right;
     .icon {
         margin-right: .3em;
