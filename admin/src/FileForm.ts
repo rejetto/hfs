@@ -128,8 +128,10 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
             isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
             isLink ? { k: 'url', label: "URL", lg: 12, required: true }
-                : { k: 'source', label: "Source on disk", xl: true, comp: FileField, files: !isDir, folders: isDir,
-                    helperText: !values.source && "Not on disk, this is a virtual folder",
+                : { k: 'source', label: "Load content from disk", xl: true, comp: FileField, files: !isDir, folders: isDir,
+                    placeholder: "no",
+                    helperText: values.source ? "Content from this path will be listed, but you can also add more"
+                        : "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk.",
             },
             !isLink && { k: 'id', comp: LinkField, statusApi, xs: 12 },
             !isLink && perm('can_read', "Who can see but not download will be asked to login"),
