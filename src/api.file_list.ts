@@ -11,7 +11,7 @@ import Koa from 'koa'
 import { descriptIon, DESCRIPT_ION, getCommentFor, areCommentsEnabled } from './comments'
 import { basename } from 'path'
 
- export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean }
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string }
 
 export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c }, ctx) => {
     const node = await urlToNode(uri || '/', ctx)
@@ -94,8 +94,10 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     }
 
     async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
-        let { source } = node
+        let { source, url } = node
         const name = getNodeName(node)
+        if (url)
+            return name ? { n: name, url } : null
         if (!source)
             return name ? { n: name + '/' } : null
         if (node.isFolder && await hasDefaultFile(node))

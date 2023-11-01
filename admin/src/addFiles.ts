@@ -1,12 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { alertDialog, newDialog, promptDialog } from './dialog'
+import { alertDialog, newDialog, promptDialog, toast } from './dialog'
 import { createElement as h, Fragment } from 'react'
 import { Box } from '@mui/material'
 import { reloadVfs } from './VfsPage'
 import { state } from './state'
 import { apiCall } from './api'
 import FilePicker from './FilePicker'
+import { focusSelector } from '@hfs/shared'
 
 export default function addFiles() {
     const { close } = newDialog({
@@ -51,6 +52,20 @@ export async function addVirtual() {
         const res = await apiCall('add_vfs', { parent, name })
         reloadVfs([ parent + encodeURI(res.name) + '/' ])
         await alertDialog(`Folder "${res.name}" created`, 'success')
+    }
+    catch(e) {
+        await alertDialog(e as Error)
+    }
+}
+
+export async function addLink() {
+    try {
+        const { id: parent } = getParent()
+        const res = await apiCall('add_vfs', { parent, name: 'new link', url: 'https://google.com' })
+        reloadVfs([ parent + encodeURI(res.name) ])
+        toast("Link created", 'success', {
+            onClose: () => focusSelector('input[name=url]')
+        })
     }
     catch(e) {
         await alertDialog(e as Error)

@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, hasPermission, nodeIsDirectory, urlToNode, VfsNode, walkNode } from './vfs'
+import { getNodeName, hasPermission, nodeIsDirectory, nodeIsLink, urlToNode, VfsNode, walkNode } from './vfs'
 import Koa from 'koa'
 import { filterMapGenerator, isWindowsDrive, pattern2filter, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
@@ -39,6 +39,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
             }
         })()
     const mappedWalker = filterMapGenerator(walker, async (el:VfsNode) => {
+        if (nodeIsLink(el)) return
         if (!hasPermission(el, 'can_archive', ctx)) return // the fact you see it doesn't mean you can get it
         const { source } = el
         const name = getNodeName(el)

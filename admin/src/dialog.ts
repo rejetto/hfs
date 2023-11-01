@@ -1,25 +1,20 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import {
-    Box,
-    Button,
-    CircularProgress,
-    Dialog as MuiDialog,
-    DialogContent,
-    DialogTitle,
-    IconButton,
-    Modal
+import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, IconButton, Modal
 } from '@mui/material'
-import {
-    createElement as h, Dispatch, Fragment,
-    isValidElement,
-    ReactElement, ReactNode, SetStateAction,
-    useEffect,
-    useRef,
-    useState
+import { createElement as h, Dispatch, Fragment, isValidElement, ReactElement, ReactNode, SetStateAction,
+    useEffect, useRef, useState
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
-import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise } from '@hfs/shared'
+import {
+    newDialog,
+    closeDialog,
+    dialogsDefaults,
+    DialogOptions,
+    componentOrNode,
+    pendingPromise,
+    focusSelector
+} from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center } from './misc'
 import { useDark } from './theme'
@@ -36,9 +31,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
             if (!el) return
             el.focus()
             if (mobile) return
-            const input = el.querySelector('[autofocus]') || el.querySelector('input,textarea')
-            if (input && input instanceof HTMLElement)
-                input.focus()
+            focusSelector('[autofocus]') || focusSelector('input,textarea')
         })
         return () => clearTimeout(h)
     }, [ref.current])
@@ -215,9 +208,10 @@ export function waitDialog() {
     return newDialog({ Content: () => h(CircularProgress, { size: '20vw'}), noFrame: true, closable: false }).close
 }
 
-export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info') {
+export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info', options?: Partial<DialogOptions>) {
     const ms = 3000
     const dialog = newDialog({
+        ...options,
         Content,
         dialogProps: {
             fullScreen: false,

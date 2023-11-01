@@ -86,6 +86,7 @@ export class DirEntry {
     public readonly p?: string
     public readonly icon?: string
     public readonly web?: true
+    public readonly url?: string
     public comment?: string
     // we memoize these value for speed
     public readonly name: string
@@ -98,7 +99,7 @@ export class DirEntry {
     constructor(n: string, rest?: any) {
         Object.assign(this, rest) // we actually allow any custom property to be memorized
         this.n = n // must do it after rest to avoid overwriting
-        this.uri = (n[0] === '/' ? '' : location.pathname) + pathEncode(this.n)
+        this.uri = rest?.url || ((n[0] === '/' ? '' : location.pathname) + pathEncode(this.n))
         if (rest?.web) // this is actually a folder pointing to a default file, and it requires a final slash for correct handling
             this.uri += '/'
         this.isFolder = this.n.endsWith('/')
@@ -131,7 +132,7 @@ export class DirEntry {
     }
 
     getDefaultIcon() {
-        return hIcon(this.icon ?? (this.isFolder ? 'folder' : this.web ? 'link' : ext2type(this.ext) || 'file'))
+        return hIcon(this.icon ?? (this.isFolder ? 'folder' : this.web || this.url ? 'link' : ext2type(this.ext) || 'file'))
     }
 }
 export type DirList = DirEntry[]

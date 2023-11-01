@@ -87,3 +87,11 @@ export function makeSessionRefresher(state: any) {
         setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
     }
 }
+
+export function focusSelector(selector: string, root=document) {
+    const res = root.querySelector(selector)
+    if (res && res instanceof HTMLElement) {
+        res.focus()
+        return true
+    }
+}

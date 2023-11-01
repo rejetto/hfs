@@ -1,7 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
-    permsFromParent } from './vfs'
+import {
+    getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
+    permsFromParent, nodeIsLink
+} from './vfs'
 import _ from 'lodash'
 import { mkdir, stat } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
@@ -23,6 +25,8 @@ async function urlToNodeOriginal(uri: string) {
     return n?.isTemp ? n.original : n
 }
 
+const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url', ...PERM_KEYS]
+
 const apis: ApiHandlers = {
 
     async get_vfs() {
@@ -31,7 +35,7 @@ const apis: ApiHandlers = {
         async function recur(node=vfs): Promise<VfsNodeAdminSend> {
             const { source } = node
             const stats: false | Stats = Boolean(source) && await stat(source!).catch(() => false)
-            const isDir = !source || stats && stats.isDirectory()
+            const isDir = !nodeIsLink(node) && (!source || stats && stats.isDirectory())
             const copyStats: Pick<VfsNodeAdminSend, 'size' | 'ctime' | 'mtime'> = stats ? _.pick(stats, ['size', 'ctime', 'mtime'])
                 : { size: source ? -1 : undefined }
             if (copyStats.mtime && Number(copyStats.mtime) === Number(copyStats.ctime))
@@ -86,7 +90,7 @@ const apis: ApiHandlers = {
         const n = await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
-        props = pickProps(props, ['name','source','masks','default','accept', ...PERM_KEYS]) // sanitize
+        props = pickProps(props, ALLOWED_KEYS) // sanitize
         if (props.name && props.name !== getNodeName(n)) {
             const parent = await urlToNodeOriginal(dirname(uri))
             if (parent?.children?.find(x => getNodeName(x) === props.name))
@@ -100,7 +104,7 @@ const apis: ApiHandlers = {
         return n
     },
 
-    async add_vfs({ parent, source, name }) {
+    async add_vfs({ parent, source, name, ...rest }) {
         if (!source && !name)
             return new ApiError(HTTP_BAD_REQUEST, 'name or source required')
         const parentNode = parent ? await urlToNodeOriginal(parent) : vfs
@@ -113,7 +117,7 @@ const apis: ApiHandlers = {
         const isDir = source && await isDirectory(source)
         if (source && isDir === undefined)
             return new ApiError(HTTP_NOT_FOUND, 'source not found')
-        const child = { source, name }
+        const child = { source, name, ...pickProps(rest, ALLOWED_KEYS) }
         name = getNodeName(child) // could be not given as input
         const ext = extname(name)
         const noExt = ext ? name.slice(0, -ext.length) : name
@@ -124,7 +128,7 @@ const apis: ApiHandlers = {
         simplifyName(child)
         ;(parentNode.children ||= []).unshift(child)
         saveVfs()
-        const link = getBaseUrlOrDefault()
+        const link = rest.url ? undefined : getBaseUrlOrDefault()
             + (parent ? enforceFinal('/', parent) : '/')
             + encodeURIComponent(getNodeName(child))
             + (isDir ? '/' : '')
