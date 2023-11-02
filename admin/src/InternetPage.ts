@@ -2,9 +2,9 @@ import { createElement as h, useEffect, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
 import { CardMembership, HomeWorkTwoTone, Lock, PublicTwoTone, RouterTwoTone, Send } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, wantArray, with_ } from '@hfs/shared'
-import { Flex, LinkBtn, manipulateConfig, isIP, Btn } from './misc'
-import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
+import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'
+import { Flex, LinkBtn, isIP, Btn } from './misc'
+import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, NumberField } from '@hfs/mui-grid-form'
 import md from './md'
 import { isCertError } from './OptionsPage'
@@ -48,17 +48,18 @@ export default function InternetPage() {
         useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email', 'acme_renew'] }).then(setValues) } , [])
         if (!status || !values) return h(CircularProgress)
         return element || status.element || h(Card, {}, h(CardContent, {},
-            h(Flex, { gap: '.5em', fontSize: 'x-large', mb: 1, alignItems: 'center' }, "HTTPS",
-                h(Lock, { color: listening && !error ? 'success' : 'warning' }) ),
-            h(Box, { mt: 1 },
-                isCertError(error) && h(Alert, { severity: 'warning', sx: { mb: 1 } }, error),
+            h(Flex, { vert: true },
+                h(Box, { fontSize: 'x-large' }, "HTTPS",
+                    h(Lock, { color: listening && !error ? 'success' : 'warning', sx: { ml: 1, verticalAlign: 'text-top' } }) ),
+                isCertError(error) && h(Alert, { severity: 'warning' }, error),
+                !listening && h(LinkBtn, { onClick: notEnabled }, "Not enabled")
+                    || error && "For HTTPS to work, you need a valid certificate",
                 cert.element || with_(cert.data, c => h(Box, {}, h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate", h('ul', {},
                     h('li', {}, "Domain: ", c.subject?.CN || '-'),
                     h('li', {}, "Issuer: ", c.issuer?.O || h('i', {}, 'self-signed')),
                     h('li', {}, "Validity: ", ['validFrom', 'validTo'].map(k => formatTimestamp(c[k])).join(' – ')),
                 ))),
-                !listening && "Not enabled. " || error && "For HTTPS to work, you need a valid certificate.",
-                h(Divider, { sx: { my: 2 } }),
+                h(Divider),
                 h(Form, {
                     gap: 1,
                     gridProps: {rowSpacing:1},
@@ -91,10 +92,8 @@ export default function InternetPage() {
                             await apiCall('make_cert', { domain, email: values.acme_email }, { timeout: 20_000 })
                                 .then(async () => {
                                     await alertDialog("Certificate created", 'success')
-                                    await manipulateConfig('https_port', async v => {
-                                        return v < 0 && await confirmDialog("HTTPS is currently off", { confirmText: "Switch on" }) ? 443 : v
-                                    })
-                                    status.reload()
+                                    if (!listening)
+                                        await notEnabled()
                                     cert.reload()
                                 }, alertDialog)
                         }
@@ -102,6 +101,17 @@ export default function InternetPage() {
                 })
             )
         ))
+    }
+
+    async function notEnabled() {
+        if (!await confirmDialog("HTTPS is currently disabled.\nFull configuration is available in the Options page.", { confirmText: "Enable it"})) return
+        const stop = waitDialog()
+        try {
+            await apiCall('set_config', { values: { https_port: 443 } })
+            await wait(1000)
+            status.reload()
+        }
+        finally { stop() }
     }
 
     function baseUrlBox() {

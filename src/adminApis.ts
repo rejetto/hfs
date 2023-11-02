@@ -19,7 +19,7 @@ import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import netApis from './api.net'
 import { getConnections } from './connections'
-import { debounceAsync, isLocalHost, makeNetMatcher, onOff, tryJson, wait, waitFor } from './misc'
+import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, onOff, tryJson, wait, waitFor } from './misc'
 import events from './events'
 import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
 import Koa from 'koa'
@@ -46,19 +46,18 @@ export const adminApis: ApiHandlers = {
     ...langApis,
     ...netApis,
 
-    async set_config({ values: v }) {
-        if (v) {
-            await setConfig(v)
-            if (v.port === 0 || v.https_port === 0)
-                return await waitFor(async () => {
-                    const st = await getServerStatus()
-                    // wait for all random ports to be done, so we communicate new numbers
-                    if ((v.port !== 0 || st.http.listening)
-                    && (v.https_port !== 0 || st.https.listening))
-                        return st
-                }, { timeout: 1000 })
-                    ?? new ApiError(HTTP_SERVER_ERROR, "something went wrong changing ports")
-        }
+    async set_config({ values }) {
+        apiAssertTypes({ object: { values } })
+        setConfig(values)
+        if (values.port === 0 || values.https_port === 0)
+            return await waitFor(async () => {
+                const st = await getServerStatus()
+                // wait for all random ports to be done, so we communicate new numbers
+                if ((values.port !== 0 || st.http.listening)
+                && (values.https_port !== 0 || st.https.listening))
+                    return st
+            }, { timeout: 1000 })
+                ?? new ApiError(HTTP_SERVER_ERROR, "something went wrong changing ports")
         return {}
     },
 
