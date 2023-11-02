@@ -73,6 +73,7 @@ export class ApiError extends Error {
     }
 }
 
+export type UseApi<T=unknown> = ReturnType<typeof useApi<T>>
 export function useApi<T=any>(cmd: string | Falsy, params?: object, options: ApiCallOptions={}) {
     const [data, setData] = useStateMounted<T | undefined>(undefined)
     const [error, setError] = useStateMounted<Error | undefined>(undefined)

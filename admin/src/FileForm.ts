@@ -13,7 +13,7 @@ import {
     SelectField,
     StringField
 } from '@hfs/mui-grid-form'
-import { apiCall, useApiEx } from './api'
+import { apiCall, UseApi, useApiEx } from './api'
 import {
     basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, isWhoObject, LinkBtn, modifiedSx,
     newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, Who, WhoObject, wikiLink
@@ -33,7 +33,7 @@ interface FileFormProps {
     file: VfsNode
     anyMask?: boolean
     addToBar?: ReactNode
-    statusApi: any
+    statusApi: UseApi
 }
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
@@ -186,13 +186,10 @@ interface WhoFieldProps extends FieldProps<Who | undefined> {
     contentText?: string
 }
 function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, otherPerms, byMasks,
-                      isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
+        hideValues, isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = (byMasks !== undefined ? "As per mask: " : parent !== undefined ? "As parent: " : "Default: " )
         + who2desc(byMasks ?? inherit)
     const objectMode =  isWhoObject(value)
-    const [forceObject, setForceObject] = useState(objectMode)
-    const showObjectMode = objectMode || forceObject
-    const childrenValue = objectMode ? value.children : undefined
     const thisValue = objectMode ? value.this : value
 
     const options = useMemo(() =>
@@ -204,19 +201,19 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
             ...otherPerms,
             { value: [], label: "Select accounts" },
         // don't offer inherited value twice, unless it was already selected, or it is forced
-        ].map(x => (x.value === thisValue || showInherited || x.value !== inherit)
+        ].map(x => !hideValues?.includes(x.value) && (x.value === thisValue || showInherited || x.value !== inherit)
             && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
     [inherit, parent, thisValue])
 
     const timeout = 500
     const arrayMode = Array.isArray(thisValue)
     // a large side band will convey union across the fields
-    return h(Box, { sx: { borderRight: showObjectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
+    return h(Box, { sx: { borderRight: objectMode ? '8px solid #8884' : undefined, transition: `all ${timeout}ms` } },
         h(SelectField as typeof SelectField<typeof thisValue | null>, {
             ...rest,
             value: arrayMode ? [] : thisValue ?? null,
             onChange(v, { event }) {
-                onChange(showObjectMode ? simplify({ this: v ?? undefined, children: childrenValue }) : v ?? undefined, { was: value, event })
+                onChange(objectMode ? simplify({ ...value, this: v ?? undefined }) : v ?? undefined, { was: value, event })
             },
             options,
         }),
@@ -232,21 +229,20 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
             !isChildren && isDir && h(LinkBtn, {
                 sx: { display: 'block', mt: -.5 },
                 onClick(event) {
-                    if (thisValue === undefined) return
-                    setForceObject(!showObjectMode)
-                    if (objectMode)
-                        onChange(thisValue, { was: value, event })
+                    onChange(objectMode ? thisValue : { this: thisValue, children: thisValue == null ? !inherit : undefined  } , { was: value, event })
                 }
-            }, showObjectMode ? "Different permission for " : "Same permission for ", contentText)
+            }, objectMode ? "Different permission for " : "Same permission for ", contentText)
         ),
-        !isChildren && h(Collapse, { in: showObjectMode, timeout },
+        !isChildren && h(Collapse, { in: objectMode, timeout },
             h(WhoField, {
                 label: "Permission for " + contentText,
                 parent, inherit, accounts, showInherited, otherPerms, isDir,
+                value: objectMode && value?.children,
                 isChildren: true,
-                value: childrenValue ?? undefined,
+                hideValues: [thisValue ?? inherit, thisValue],
                 onChange(v, { event }) {
-                    onChange(simplify({ this: thisValue ?? undefined, children: v }), { was: value, event })
+                    if (objectMode) // shut up ts
+                        onChange(simplify({ ...value, children: v }), { was: value, event })
                 }
             })
         ),
@@ -267,7 +263,7 @@ function who2desc(who: any) {
 }
 
 interface LinkFieldProps extends FieldProps<string> {
-    statusApi: any // receive status from parent, to avoid asking server at each click on a file
+    statusApi: UseApi<any> // receive status from parent, to avoid asking server at each click on a file
 }
 function LinkField({ value, statusApi }: LinkFieldProps) {
     const { data, reload, error } = statusApi

@@ -21,11 +21,14 @@ export default function VfsPage() {
     const { vfs, selectedFiles, movingFile } = useSnapState()
     const { data, reload, element } = useApiEx('get_vfs')
     useMemo(() => vfs || reload(), [vfs, reload])
-    const anyMask = useMemo(() =>
-        (function someMask(node: typeof vfs) {
-            return !_.isEmpty(node?.masks) || node?.children?.some(someMask)
-        })(vfs),
-        [vfs])
+    const anyMask = useMemo(() => {
+        let f = selectedFiles[0]
+        while (f)
+            if (_.isEmpty(f.masks))
+                f = f.parent as  any
+            else
+                return true
+    }, [selectedFiles])
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
     const statusApi = useApiEx('get_status')
