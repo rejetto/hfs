@@ -27,7 +27,7 @@ code {
 
 .wrap .MuiDataGrid-cellContent { white-space: normal }
 
-ol, ul { margin-top: .2em; padding-left: 1.5em; }
+ol, ul { margin-top: .2em; margin-bottom: .2em; padding-left: 1.5em; }
 
 .dialog-alert .MuiDialogContent-root {
   max-width: 45em;

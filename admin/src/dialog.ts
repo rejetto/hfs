@@ -19,6 +19,7 @@ import { Form, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center } from './misc'
 import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
+import md from './md'
 export * from '@hfs/shared/dialogs'
 
 dialogsDefaults.Container = function Container(d:DialogOptions) {
@@ -128,7 +129,7 @@ export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText
 
     function Content() {
         return h(Fragment, {},
-            h(Box, { mb: 2 }, msg),
+            h(Box, { mb: 2 }, typeof msg === 'string' ? md(msg) : msg),
             h(Flex, {},
                 h('a', {
                     href,
