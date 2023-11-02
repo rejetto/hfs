@@ -232,7 +232,7 @@ function getCurrentPort(srv: typeof httpSrv) {
     return (srv?.address() as any)?.port as number | undefined
 }
 
-export async function getServerStatus() {
+export async function getServerStatus(includeSrv=true) {
     return {
         http: await serverStatus(httpSrv, portCfg.get()),
         https: await serverStatus(httpsSrv, httpsPortCfg.get()),
@@ -246,7 +246,7 @@ export async function getServerStatus() {
             busy,
             port: getCurrentPort(srv) || configuredPort,
             configuredPort,
-            srv,
+            srv: includeSrv ? srv : undefined,
         }
     }}
 
