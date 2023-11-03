@@ -210,6 +210,8 @@ There are several ways to contribute
 
 ## More
 
+- [APIs](https://github.com/rejetto/hfs/wiki/APIs)
+
 - [Build yourself](dev.md)
 
 - [License](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
