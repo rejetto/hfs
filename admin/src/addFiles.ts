@@ -18,7 +18,7 @@ export default function addFiles() {
             return h(Fragment, {},
                 h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } },
                     "Selected elements will be added under ",
-                    parent.isRoot ? h('i', {}, 'Home') : parent.id
+                    parent.isRoot ? h('i', {}, "Home") : decodeURI(parent.id)
                 ),
                 h(FilePicker, {
                     from: parent.source,
