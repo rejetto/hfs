@@ -125,7 +125,8 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
             }
         },
         fields: [
-            isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
+            isDir && hasSource && h(Alert, { severity: 'info' }, `To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"`),
+            isRoot ? h(Alert, { severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
             isLink ? { k: 'url', label: "URL", lg: 12, required: true }
                 : { k: 'source', label: "Load content from disk", xl: true, comp: FileField, files: !isDir, folders: isDir,
