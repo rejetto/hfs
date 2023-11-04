@@ -120,7 +120,7 @@ export default function InternetPage() {
         const domain = !isIP(hostname) && hostname
         return config && h(Card, {}, h(CardContent, {},
             h(Box, { fontSize: 'x-large', mb: 2 }, "Address / Domain"),
-            h(Flex, { flexWrap: 'wrap', alignItems: 'center' },
+            h(Flex, { flexWrap: 'wrap' },
                 url || "Automatic, not configured",
                 h(Button, {
                     size: 'small',
@@ -139,7 +139,7 @@ export default function InternetPage() {
     function networkBox() {
         if (error) return element
         if (!nat) return h(CircularProgress)
-        return h(Flex, { justifyContent: 'space-around', alignItems: 'center' },
+        return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Local network", icon: HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
             }),

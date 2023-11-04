@@ -55,7 +55,7 @@ export default function VfsPage() {
                 file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
             })
             : h(Fragment, {},
-                h(Flex, { alignItems: 'center' },
+                h(Flex, {},
                     h(Typography, {variant: 'h6'}, selectedFiles.length + ' selected'),
                     h(Button, { onClick: deleteFiles, startIcon: h(Delete) }, "Remove"),
                 ),
@@ -74,7 +74,7 @@ export default function VfsPage() {
         if (isSideBreakpoint || !sideContent) return
         const { close } = newDialog({
             title: selectedFiles.length > 1 ? "Multiple selection" :
-                h(Flex, { alignItems: 'center' }, vfsNodeIcon(selectedFiles[0] as VfsNode), selectedFiles[0].name || "Home"),
+                h(Flex, {}, vfsNodeIcon(selectedFiles[0] as VfsNode), selectedFiles[0].name || "Home"),
             Content: () => sideContent,
             onClose: selectNone,
         })

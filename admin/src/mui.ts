@@ -4,16 +4,8 @@
 import { Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
 import { createElement as h, FC, forwardRef, Fragment, ReactNode } from 'react'
-import {
-    Box, BoxProps, Breakpoint,
-    ButtonProps,
-    CircularProgress,
-    IconButton,
-    IconButtonProps,
-    Link, LinkProps,
-    Tooltip,
-    TooltipProps, useMediaQuery
-} from '@mui/material'
+import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
+    Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, WIKI_URL } from '../../src/cross'
 import { dontBotherWithKeys, useStateMounted } from '@hfs/shared'
 import { Promisable } from '@hfs/mui-grid-form'
@@ -65,7 +57,8 @@ export function Flex({ gap='.8em', vert=false, center=false, children=null, prop
             display: 'flex',
             gap,
             flexDirection: vert ? 'column' : undefined,
-            ...center && { alignItems: 'center', justifyContent: 'center' },
+            alignItems: vert ? undefined : 'center',
+            ...center && { justifyContent: 'center' },
             ...rest,
         },
         ...props
