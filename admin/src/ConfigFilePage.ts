@@ -19,7 +19,7 @@ export default function ConfigFilePage() {
     useEffect(() => { setSaved(data?.text) }, [data])
     useEffect(() => { saved !== undefined && setText(saved || '') }, [saved])
     return h(Fragment, {},
-        h(Flex, { alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' },
+        h(Flex, { flexWrap: 'wrap', justifyContent: 'space-between' },
             h(Btn, { icon: ContentCopy, onClick: copy }, "Copy excluding passwords"),
             edit ? h(Fragment, {},
                 reloadBtn(reload),

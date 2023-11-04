@@ -119,7 +119,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                         }, showCols.map(col =>
                             h(Box, { key: col.field, gridColumn: col.flex && '1/-1' },
                                 h(Box, { bgcolor: '#0003', p: 1 }, col.headerName || col.field),
-                                h(Flex, { minHeight: '2.5em', px: 1, alignItems: 'center', wordBreak: 'break-word' },
+                                h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word' },
                                     renderCell(col, rowToShow) )
                             ) ))
                     }

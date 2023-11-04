@@ -42,7 +42,7 @@ export default function AccountsPage() {
 
     const sideContent = !(sel.length > 0) || !list ? null // this clever test is true both when some accounts are selected and when we are in "new account" modes
         : selectionMode && sel.length > 1 ? h(Fragment, {},
-                h(Flex, { alignItems: 'center' },
+                h(Flex, {},
                     h(Typography, {variant: 'h6'}, sel.length + " selected"),
                     h(Button, { onClick: deleteAccounts, startIcon: h(Delete) }, "Remove"),
                 ),
