@@ -5,7 +5,7 @@ import { apiCall, useApiEx } from './api'
 import { Alert, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
-import VfsTree from './VfsTree'
+import VfsTree, { vfsNodeIcon } from './VfsTree'
 import { Flex, IconBtn, newDialog, onlyTruthy, prefix, useBreakpoint, VfsNodeAdminSend } from './misc'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
@@ -73,7 +73,8 @@ export default function VfsPage() {
     useEffect(() => {
         if (isSideBreakpoint || !sideContent) return
         const { close } = newDialog({
-            title: selectedFiles.length > 1 ? "Multiple selection" : selectedFiles[0].name,
+            title: selectedFiles.length > 1 ? "Multiple selection" :
+                h(Flex, { alignItems: 'center' }, vfsNodeIcon(selectedFiles[0] as VfsNode), selectedFiles[0].name || "Home"),
             Content: () => sideContent,
             onClose: selectNone,
         })

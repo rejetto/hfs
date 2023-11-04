@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef } from 'react'
-import { proxy, useSnapshot } from 'valtio'
-import { isPrimitive } from '.'
+import { proxy, ref, useSnapshot } from 'valtio'
+import { isPrimitive, objSameKeys } from '.'
 
 export interface DialogOptions {
     Content: FunctionComponent<any>,
@@ -133,6 +133,7 @@ function onKeyDown(ev:any) {
 export function newDialog(options: DialogOptions) {
     const $id = Math.random()
     options.$id = $id // object identity is not working because of the proxy. This is a possible workaround
+    options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
     dialogs.push(options)
     return { close }
 

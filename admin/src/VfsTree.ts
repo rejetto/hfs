@@ -81,10 +81,7 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                 }
             },
                 h(Box, { display: 'flex', flex: 0, },
-                    isRoot ? iconTooltip(Home, "home, or root if you like")
-                        : folder ? iconTooltip(FolderIcon, "Folder")
-                            : node.url ? iconTooltip(Link, "Web-link")
-                            : iconTooltip(FileIcon, "File"),
+                    vfsNodeIcon(node),
                     // attributes
                     h(Box, { sx: {
                         flex: 0, ml: '2px', my: '2px', '&>*': { fontSize: '87%', opacity: .6, mt: '-2px' },
@@ -138,4 +135,11 @@ export function moveVfs(from: string, to: string) {
     apiCall('move_vfs', { from, parent: to }).then(() => {
         reloadVfs([ to + from.slice(1 + from.lastIndexOf('/', from.length-2)) ])
     }, alertDialog)
+}
+
+export function vfsNodeIcon(node: VfsNode) {
+    return node.isRoot ? iconTooltip(Home, "home, or root if you like")
+        : node.type === 'folder' ? iconTooltip(FolderIcon, "Folder")
+            : node.url ? iconTooltip(Link, "Web-link")
+                : iconTooltip(FileIcon, "File")
 }
