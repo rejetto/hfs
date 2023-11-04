@@ -8,7 +8,7 @@ import { alertDialog, toast, useDialogBarColors } from './dialog'
 import { IconBtn, isEqualLax, modifiedSx } from './misc'
 import { Account, account2icon } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
-import { Delete } from '@mui/icons-material'
+import { AutoDelete, Delete } from '@mui/icons-material'
 import { isMobile } from './misc'
 
 interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
@@ -37,7 +37,14 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 icon: Delete,
                 title: "Delete",
                 confirm: "Delete?",
-                onClick: () => apiCall('del_account', { username: account.username }).then(() => reload())
+                onClick: () => apiCall('del_account', { username: account.username }).then(reload)
+            }),
+            h(IconBtn, {
+                icon: AutoDelete,
+                title: "Invalidate past sessions",
+                doneMessage: true,
+                disabled: account.invalidated,
+                onClick: () => apiCall('invalidate_sessions', { username: account.username }).then(reload)
             }),
             addToBar,
             h(Box, { flex:1 }),

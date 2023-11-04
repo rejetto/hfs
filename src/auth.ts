@@ -26,6 +26,10 @@ export async function srpCheck(username: string, password: string) {
     return await step1.step2(client.A, client.M1).then(() => account, () => {})
 }
 
+export function getCurrentUsername(ctx: Context): string {
+    return ctx.state.account?.username || ''
+}
+
 // centralized log-in state
 export async function loggedIn(ctx: Context, username: string | false) {
     const s = ctx.session
@@ -35,6 +39,9 @@ export async function loggedIn(ctx: Context, username: string | false) {
         delete s.username
         return
     }
+    invalidSessions.delete(username)
     s.username = normalizeUsername(username)
     await prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
 }
+
+export const invalidSessions = new Set<string>() // since session are currently stored in cookies, we need to memorize this until we meet again

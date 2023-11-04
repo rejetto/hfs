@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Account, accountCanLogin, getAccount, getCurrentUsername, getFromAccount } from './perm'
+import { Account, accountCanLogin, getAccount, getFromAccount } from './perm'
 import { verifyPassword } from './crypt'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
@@ -9,7 +9,7 @@ import { ADMIN_URI, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP
 import { changeSrpHelper, changePasswordHelper } from './api.helpers'
 import { ctxAdminAccess } from './adminApis'
 import { sessionDuration } from './middlewares'
-import { loggedIn, srpStep1 } from './auth'
+import { getCurrentUsername, loggedIn, srpStep1 } from './auth'
 import { defineConfig } from './config'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
