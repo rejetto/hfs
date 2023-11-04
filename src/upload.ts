@@ -14,7 +14,7 @@ import { defineConfig } from './config'
 import { getFreeDiskSync } from './util-os'
 import { socket2connection, updateConnection } from './connections'
 import { roundSpeed } from './throttler'
-import { getCurrentUsername } from './perm'
+import { getCurrentUsername } from './auth'
 import { setCommentFor } from './comments'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)

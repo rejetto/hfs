@@ -14,17 +14,9 @@ import { Flex } from './misc'
 import { alertDialog, confirmDialog } from './dialog'
 import { useSnapState } from './state'
 import { importAccountsCsv } from './importAccountsCsv'
+import { AccountAdminSend } from '../../src/api.accounts'
 
-export interface Account {
-    username: string
-    hasPassword?: boolean
-    admin?: boolean
-    adminActualAccess?: boolean
-    ignore_limits?: boolean
-    disabled?: boolean
-    redirect?: string
-    belongs?: string[]
-}
+export type Account = AccountAdminSend
 
 export default function AccountsPage() {
     const { username } = useSnapState()
@@ -52,7 +44,7 @@ export default function AccountsPage() {
                             h(ListItemText, {}, username))))
             )
             : h(AccountForm, {
-                account: selectedAccount || { username: '', hasPassword: sel === 'new-user' },
+                account: selectedAccount || { username: '', hasPassword: sel === 'new-user', adminActualAccess: false, invalidated: true },
                 groups: list.filter(x => !x.hasPassword).map( x => x.username ),
                 addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
                     icon: Close,

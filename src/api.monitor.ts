@@ -6,7 +6,7 @@ import { pendingPromise, typedEntries, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
-import { getCurrentUsername } from './perm'
+import { getCurrentUsername } from './auth'
 
 const apis: ApiHandlers = {
 

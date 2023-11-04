@@ -3,15 +3,16 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys, makeMatcher, setHidden, onlyTruthy,
-    typedEntries, throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS
+    dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy,
+    throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
 import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './const'
 import events from './events'
-import { expandUsername, getCurrentUsername } from './perm'
+import { expandUsername } from './perm'
+import { getCurrentUsername } from './auth'
 
 type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 
@@ -210,7 +211,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
             return some ? 0 : HTTP_UNAUTHORIZED
         }
         return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
-            : who === WHO_ANY_ACCOUNT ? (ctx.state.account ? 0 : HTTP_UNAUTHORIZED)
+            : who === WHO_ANY_ACCOUNT ? (getCurrentUsername(ctx) ? 0 : HTTP_UNAUTHORIZED)
                 : throw_(Error('invalid permission: ' + JSON.stringify(who)))
     }
 }

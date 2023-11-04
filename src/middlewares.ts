@@ -18,7 +18,7 @@ import { applyBlock } from './block'
 import { accountCanLogin, getAccount } from './perm'
 import { socket2connection, updateConnection, normalizeIp } from './connections'
 import basicAuth from 'basic-auth'
-import { srpCheck } from './auth'
+import { invalidSessions, srpCheck } from './auth'
 import { basename, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
@@ -206,8 +206,11 @@ export function getProxyDetected() {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
-    if (ctx.session)
+    if (ctx.session) {
+        if (invalidSessions.delete(ctx.session.username))
+            delete ctx.session.username
         ctx.session.maxAge = sessionDuration.compiled()
+    }
     // calculate these once and for all
     const a = ctx.state.account = await urlLogin() || await getHttpAccount() || getAccount(ctx.session?.username, false)
     if (a && !accountCanLogin(a))
