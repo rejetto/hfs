@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, ipForUrl, objSameKeys, onlyTruthy, wait, waitFor } from './misc'
+import { debounceAsync, ipForUrl, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
 import { ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -96,9 +96,19 @@ const considerHttps = debounceAsync(async () => {
             if (cn)
                 console.log("certificate loaded for", cn)
             const now = new Date()
-            httpsSrv.error = new Date(cert.validFrom) > now ? "certificate not valid yet"
-                : new Date(cert.validTo) < now ? "certificate expired"
-                    : undefined
+            const from = new Date(cert.validFrom)
+            const to = new Date(cert.validTo)
+            updateError() // error will change at from and to dates of the certificate
+            const cancelTo = runAt(to.getTime(), updateError)
+            const cancelFrom = runAt(from.getTime(), updateError)
+            httpsSrv.on('close', () => {
+                cancelTo()
+                cancelFrom()
+            })
+            function updateError() {
+                if (!httpsSrv) return
+                httpsSrv.error = from > now ? "certificate not valid yet" : to < now ? "certificate expired" : undefined
+            }
 
             const namesForOutput: any = { cert: 'certificate', private_key: 'private key' }
             const missing = httpsNeeds.find(x => !x.get())?.key()

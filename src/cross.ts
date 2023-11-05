@@ -339,3 +339,24 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
     const res = await Promise.allSettled(promises)
     return res.filter(x => x.status === 'fulfilled').map((x: any) => x.value as T)
 }
+
+export function runAt(ts: number, cb: Callback) {
+    let cancel = false
+    let t: any
+    setTimeout(async () => {
+        if (missing() < 0) return
+        const max = 0x7FFFFFFF
+        while (!cancel && missing() > max)
+            await wait(max)
+        if (cancel) return
+        t = setTimeout(cb, missing())
+
+        function missing() {
+            return ts - Date.now()
+        }
+    })
+    return () => {
+        cancel = true
+        clearTimeout(t)
+    }
+}
