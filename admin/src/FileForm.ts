@@ -14,10 +14,8 @@ import {
     StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
-import {
-    basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, isWhoObject, LinkBtn, modifiedSx,
-    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, Who, WhoObject, wikiLink
-} from './misc'
+import { basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, isWhoObject, LinkBtn, modifiedSx,
+    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, wantArray, Who, WhoObject, wikiLink } from './misc'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -110,7 +108,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
                 confirm: "Delete?",
                 onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs()),
             }),
-            addToBar
+            ...wantArray(addToBar)
         ],
         onError: alertDialog,
         save: {

@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { apiCall, useApiEx } from './api'
-import { Alert, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
@@ -45,11 +45,12 @@ export default function VfsPage() {
 
     const sideContent = !selectedFiles.length ? null
         : selectedFiles.length === 1 ? h(FileForm, {
-                addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
-                    icon: Close,
-                    title: "Close",
-                    onClick: selectNone
-                }),
+                addToBar: isSideBreakpoint && [
+                    h(Box, { flex: 1 }),
+                    // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
+                    vfsNodeIcon(selectedFiles[0] as VfsNode),
+                    h(IconBtn, { icon: Close, title: "Close", onClick: selectNone })
+                ],
                 anyMask,
                 statusApi,
                 file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way

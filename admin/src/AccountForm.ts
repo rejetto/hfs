@@ -5,7 +5,7 @@ import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
 import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
-import { IconBtn, isEqualLax, modifiedSx } from './misc'
+import { IconBtn, isEqualLax, modifiedSx, wantArray } from './misc'
 import { Account, account2icon } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
@@ -46,9 +46,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 disabled: account.invalidated,
                 onClick: () => apiCall('invalidate_sessions', { username: account.username }).then(reload)
             }),
-            addToBar,
-            h(Box, { flex:1 }),
-            account2icon(values, { fontSize: 'large', sx: { p: 1 }})
+            ...wantArray(addToBar),
         ],
         fields: [
             { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, xl: group ? 12 : 4,
