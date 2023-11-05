@@ -12,7 +12,7 @@ const block = defineConfig('block', [] as BlockingRule[], rules => {
     const ret = !Array.isArray(rules) ? []
         : onlyTruthy(rules.map(rule => {
             rule.expire &&= new Date(rule.expire)
-            return !(rule.expire! > now) && makeNetMatcher(rule.ip, true)
+            return !(rule.expire! > now) && makeNetMatcher(rule.ip)
         }))
     // reapply new block to existing connections
     for (const { socket, ip } of getConnections())

@@ -183,7 +183,7 @@ export default function OptionsPage() {
             },
             { k: 'block', label: false, comp: ArrayField, prepend: true, sm: 12,
                 fields: [
-                    { k: 'ip', label: "Blocked IP", sm: 6, helperText: h(WildcardsSupported) },
+                    { k: 'ip', label: "Blocked IP", sm: 6, required: true, helperText: h(WildcardsSupported) },
                     { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, helperText: "Leave empty for no expiration" },
                     { k: 'comment' },
                 ],
