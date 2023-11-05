@@ -2,13 +2,14 @@ import { createElement as h, useEffect, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
 import { CardMembership, HomeWorkTwoTone, Lock, PublicTwoTone, RouterTwoTone, Send } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, GetNat, wantArray, with_ } from '@hfs/shared'
+import { closeDialog, DAY, formatTimestamp, wantArray, with_ } from '@hfs/shared'
 import { Flex, LinkBtn, manipulateConfig, isIP, Btn } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { BoolField, Form, NumberField } from '@hfs/mui-grid-form'
 import md from './md'
 import { isCertError } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
+import { getNatInfo } from '../../src/nat'
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
@@ -23,6 +24,7 @@ export default function InternetPage() {
     const { data: config } = useApiEx('get_config', { only: ['base_url'] })
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
+    type GetNat = Awaited<ReturnType<typeof getNatInfo>>
     const { data: nat, reload: reloadNat, error, loading, element } = useApiEx<GetNat>('get_nat')
     const port = nat?.internalPort
     const wrongMap = nat?.mapped && nat.mapped.private.port !== port && nat.mapped.private.port

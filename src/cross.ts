@@ -26,17 +26,6 @@ interface Mapping {
     ttl: number
     local: boolean
 }
-export interface GetNat {
-    upnp: boolean,
-    localIp?: string
-    gatewayIp?: string
-    publicIps: string[]
-    externalIp: string,
-    mapped?: Mapping
-    internalPort?: number
-    externalPort?: number
-    proto?: string
-}
 
 export interface VfsPerms {
     can_see?: Who

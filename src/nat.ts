@@ -1,7 +1,7 @@
 import { proxy } from 'valtio'
 import { Client } from 'nat-upnp-ts'
 import { debounceAsync } from './debounceAsync'
-import { GetNat, haveTimeout, HOUR, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
+import { haveTimeout, HOUR, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
 import { httpString } from './util-http'
@@ -81,10 +81,11 @@ export const getNatInfo = debounceAsync(async () => {
         publicIps: defaultBaseUrl.publicIps = await gettingIps,
         externalIp: defaultBaseUrl.externalIp,
         mapped,
+        mapped80: _.find(mappings, x => x.private.host === localIp && x.private.port === 80 && x.public.port === 80),
         internalPort,
         externalPort,
         proto: status?.https?.listening ? 'https' : status?.http?.listening ? 'http' : '',
-    } satisfies GetNat
+    }
 })
 
 function findGateway(): Promise<string | undefined> {

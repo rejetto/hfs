@@ -29,24 +29,24 @@ export const acmeMiddleware: Middleware = (ctx, next) => { // koa format
 
 async function generateSSLCert(domain: string, email?: string) {
     // will answer challenge through our koa app (if on port 80) or must we spawn a dedicated server?
-    const { upnp, externalPort } = await getNatInfo()
+    const nat = await getNatInfo()
     const { http } = await getServerStatus()
-    const tempSrv = externalPort === 80 || http.listening && http.port === 80 ? undefined : createServer(acmeListener)
+    const tempSrv = nat.externalPort === 80 || http.listening && http.port === 80 ? undefined : createServer(acmeListener)
     if (tempSrv)
-        await new Promise<void>((resolve) =>
+        await new Promise<void>(resolve =>
             tempSrv.listen(80, resolve).on('error', (e: any) => {
                 console.debug("cannot listen on 80", e.code || e)
                 resolve() // go on anyway
             }) )
     acmeMiddlewareEnabled = true
     console.debug('acme challenge server ready')
+    let tempMap: any
     try {
         const checkUrl = `http://${domain}`
         let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
-        if (check && !check.success && upnp && externalPort !== 80) { // consider a short-lived mapping
+        if (check && !check.success && nat.upnp && !nat.mapped80) {
             console.debug("setting temporary port forward")
-            // @ts-ignore
-            await upnpClient.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 30 }).catch(() => {})
+            tempMap = await upnpClient.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 0 }).catch(() => {})
             check = await selfCheck(checkUrl) // repeat test
         }
         //if (!check) throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
@@ -63,17 +63,16 @@ async function generateSSLCert(domain: string, email?: string) {
             challengePriority: ['http-01'],
             skipChallengeVerification: true, // on NAT, trying to connect to your external ip will likely get your modem instead of the challenge server
             termsOfServiceAgreed: true,
-            async challengeCreateFn(_, c, ka) {
-                console.debug("producing challenge")
-                acmeTokens[c.token] = ka
-            },
-            async challengeRemoveFn(_, c) {
-                delete acmeTokens[c.token]
-            },
+            async challengeCreateFn(_, c, ka) { acmeTokens[c.token] = ka },
+            async challengeRemoveFn(_, c) { delete acmeTokens[c.token] },
         })
         return { key, cert }
     }
     finally {
+        if (tempMap) {
+            console.debug("removing temporary port forward")
+            upnpClient.removeMapping({ public: { host: '', port: 80 } }).catch(() => {})
+        }
         acmeMiddlewareEnabled = false
         if (tempSrv) await new Promise(res => tempSrv.close(res))
         console.debug('acme terminated')
