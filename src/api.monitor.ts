@@ -72,7 +72,7 @@ const apis: ApiHandlers = {
                 v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
                 got: socket.bytesRead,
                 sent: socket.bytesWritten,
-                ..._.pick(conn, ['op', 'opTotal', 'opOffset', 'opProgress']),
+                ..._.pick(conn, ['op', 'opTotal', 'opOffset', 'opProgress', 'country']),
                 started,
                 secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
                 ...fromCtx(conn.ctx),

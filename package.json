@@ -72,6 +72,7 @@
     "formidable": "^3.5.1",
     "fs-x-attributes": "^1.0.2",
     "iconv-lite": "^0.6.3",
+    "ip2location-nodejs": "^9.6.0",
     "koa": "^2.13.4",
     "koa-compress": "^5.1.0",
     "koa-mount": "^4.0.0",

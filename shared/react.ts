@@ -3,6 +3,7 @@
 import { createElement as h, Fragment, KeyboardEvent, ReactElement, ReactNode,
     useCallback, useEffect, useRef, useState } from 'react'
 import { useIsMounted, useWindowSize } from 'usehooks-ts'
+import { Falsy } from '.'
 
 export function useStateMounted<T>(init: T) {
     const isMounted = useIsMounted()
@@ -44,7 +45,7 @@ export function useRequestRender() {
     As an additional feature, results are cached. You can clear the cache by calling cache.clear()
 */
 export function useBatch<Job=unknown,Result=unknown>(
-    worker: ((jobs: Job[]) => Promise<Result[]>),
+    worker: Falsy | ((jobs: Job[]) => Promise<Result[]>),
     job: undefined | Job,
     { delay=0 }={}
 ) {
@@ -54,28 +55,28 @@ export function useBatch<Job=unknown,Result=unknown>(
         waiter?: Promise<void>
     }
     const worker2env = (useBatch as any).worker2env ||= worker && new Map<typeof worker, Env>()
-    const env = (worker2env.get(worker) || (() => {
+    const env = worker2env && (worker2env.get(worker) || (() => {
         const ret = { batch: new Set<Job>(), cache: new Map<Job, Result>() } as Env
         worker2env.set(worker, ret)
         return ret
     })())
     const requestRender = useRequestRender()
     useEffect(() => {
-        (env.waiter ||= new Promise<void>(resolve => {
+        worker && (env.waiter ||= new Promise<void>(resolve => {
             setTimeout(async () => {
-                env.timeout = undefined
+                if (!env.batch.size)
+                    return resolve()
                 const jobs = [...env.batch.values()]
                 env.batch.clear()
                 const res = await worker(jobs)
-                let i = 0
-                for (const job of jobs)
-                    env.cache.set(job, res[i++] ?? null)
+                jobs.forEach((job, i) =>
+                    env.cache.set(job, res[i] ?? null) )
                 env.waiter = undefined
                 resolve()
             }, delay)
         })).then(requestRender)
-    }, [])
-    const cached = env?.cache.get(job)
+    }, [worker])
+    const cached = env && env.cache.get(job) // don't use ?. as env can be falsy
     if (env && cached === undefined)
         env.batch.add(job)
     return { data: cached, ...env } as Env & { data: Result | undefined | null } // so you can cache.clear

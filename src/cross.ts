@@ -21,7 +21,7 @@ export const FRONTEND_OPTIONS = {
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
-
+export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown'])
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
@@ -80,6 +80,10 @@ export type VfsNodeAdminSend = {
 } & Omit<VfsNodeStored, 'children'>
 
 export const PERM_KEYS = typedKeys(defaultPerms)
+
+function constMap<T extends string>(a: T[]): { [K in T]: K } {
+    return Object.fromEntries(a.map(x => [x, x])) as { [K in T]: K };
+}
 
 export function isWhoObject(v: undefined | Who): v is WhoObject {
     return v !== null && typeof v === 'object' && !Array.isArray(v)

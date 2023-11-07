@@ -16,6 +16,7 @@ export class Connection {
     opProgress?: number
     opOffset?: number
     ctx?: Context
+    country?: string
     private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 

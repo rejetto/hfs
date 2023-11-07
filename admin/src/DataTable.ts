@@ -10,6 +10,7 @@ const ACTIONS = 'Actions'
 
 interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
     columns: Array<GridColDef<R> & {
+        hidden?: boolean
         hideUnder?: Breakpoint | number
         mergeRender?: { other: string, override?: Partial<GridColDef<R>> } & BoxProps
     }>
@@ -61,9 +62,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     }, [columns, actions, actionsLength])
     const hideCols = useMemo(() => {
         if (!width) return
-        const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder }) =>
-            hideUnder
-            && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder])
+        const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder, hidden }) =>
+            (hidden || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
             && field))
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
