@@ -2,7 +2,7 @@
 
 import { Socket } from 'net'
 import events from './events'
-import Koa from 'koa'
+import { Context } from 'koa'
 import _ from 'lodash'
 
 export class Connection {
@@ -15,7 +15,7 @@ export class Connection {
     opTotal?: number
     opProgress?: number
     opOffset?: number
-    ctx?: Koa.Context
+    ctx?: Context
     private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 
@@ -55,6 +55,10 @@ export function socket2connection(socket: Socket) {
     return all.find(x => // socket exposed by Koa is TLSSocket which encapsulates simple Socket, and I've found no way to access it for simple comparison
         x.socket.remotePort === socket.remotePort // but we can still match them because IP:PORT is key
         && x.socket.remoteAddress === socket.remoteAddress )
+}
+
+export function getConnection(ctx: Context) {
+    return _.find(all, { ctx })
 }
 
 export function updateConnection(conn: Connection, change: Partial<Connection>) {
