@@ -217,6 +217,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         ctx.state.account = undefined
     const conn = ctx.state.connection = socket2connection(ctx.socket)
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
+    ctx.state.browsing = undefined
     if (conn)
         updateConnection(conn, { ctx, op: undefined })
     await next()

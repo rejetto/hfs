@@ -4,7 +4,7 @@ import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { PauseCircle, PlayCircle, LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
-import { Alert, Box, Chip, ChipProps } from '@mui/material'
+import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
 import { formatBytes, IconBtn, IconProgress, iconTooltip, ipForUrl, manipulateConfig, useBreakpoint } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
@@ -85,7 +85,7 @@ function Connections() {
     const [filtered, setFiltered] = useState(true)
     const [paused, setPaused] = useState(false)
     const rows = useMemo(() =>
-            list?.filter((x: any) => !filtered || x.path).map((x: any, id: number) => ({ id, ...x })),
+            list?.filter((x: any) => !filtered || x.op).map((x: any, id: number) => ({ id, ...x })),
         [!paused && list, filtered]) //eslint-disable-line
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center' },
@@ -144,9 +144,11 @@ function Connections() {
                                 row.archive,
                                 h(Box, { ml: 2, color: 'text.secondary' }, value)
                             )
+                        if (!row.op)
+                            return h(Box, {}, value, h(Box, { fontSize: 'x-small' }, "browsing"))
                         const i = value?.lastIndexOf('/')
                         return h(Fragment, {},
-                            row.op && h(IconProgress, {
+                            h(IconProgress, {
                                 icon: row.op === 'upload' ? Upload : Download,
                                 progress: row.opProgress ?? row.opOffset,
                                 offset: row.opOffset,

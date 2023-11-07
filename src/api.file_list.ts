@@ -10,6 +10,7 @@ import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { descriptIon, DESCRIPT_ION, getCommentFor, areCommentsEnabled } from './comments'
 import { basename } from 'path'
+import { getConnection, updateConnection } from './connections'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string }
 
@@ -38,6 +39,8 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {
+        ctx.state.browsing = uri
+        updateConnection(getConnection(ctx)!, { ctx })
         list.props(props)
         for await (const entry of produceEntries())
             list.add(entry)

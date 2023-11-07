@@ -80,13 +80,16 @@ const apis: ApiHandlers = {
         }
 
         function fromCtx(ctx?: Koa.Context) {
-            return ctx && {
+            if (!ctx) return
+            const path = ctx.state.browsing && decodeURIComponent(ctx.state.browsing)
+                || ctx.state.uploadPath && decodeURIComponent(ctx.state.uploadPath)
+                || (ctx.fileSource || ctx.state.archive) && decodeURIComponent(ctx.path)  // downloads
+            return {
                 user: getCurrentUsername(ctx),
                 agent: getBrowser(ctx.get('user-agent')),
                 archive: ctx.state.archive,
                 upload: ctx.state.uploadProgress,
-                path: ctx.state.uploadPath && decodeURIComponent(ctx.state.uploadPath)
-                    || (ctx.fileSource || ctx.state.archive) && decodeURIComponent(ctx.path)  // only uploads and downloads
+                ...path && { path },
             }
         }
     },
