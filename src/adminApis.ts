@@ -36,6 +36,7 @@ import { getUpdates, localUpdateAvailable, update, updateSupported } from './upd
 import { consoleLog } from './consoleLog'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
+import { ip2country } from './geo'
 
 export const adminApis: ApiHandlers = {
 
@@ -73,6 +74,13 @@ export const adminApis: ApiHandlers = {
     update: ({ tag }) => update(tag),
     async check_update() {
         return { options: await getUpdates() }
+    },
+
+    async ip_country({ ips }) {
+        const res = await Promise.allSettled(ips.map(ip2country))
+        return {
+            codes: res.map(x => x.status === 'rejected' || x.value === '-' ? '' : x.value)
+        }
     },
 
     get_custom_html() {

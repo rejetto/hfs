@@ -1,15 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from "lodash"
-import { createElement as h, useMemo, Fragment, useState } from "react"
+import { createElement as h, useMemo, Fragment, useState, ReactNode } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { PauseCircle, PlayCircle, LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
-import { Box, Chip, ChipProps } from '@mui/material'
+import { Box, Chip, ChipProps, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, IconBtn, IconProgress, iconTooltip, ipForUrl, manipulateConfig, useBreakpoint } from "./misc"
+import { formatBytes, IconBtn, IconProgress, iconTooltip, ipForUrl, manipulateConfig, useBreakpoint, useBatch, CFG } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { toast } from "./dialog"
+import { ALL as COUNTRIES } from './countries'
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -80,8 +81,22 @@ function MoreInfo() {
 
 }
 
+function Country({ code, ip, def }: { code: string, ip?: string, def: ReactNode }) {
+    const { data } = useBatch(code === undefined && ip && ip2countryBatch, ip, { delay: 100 }) // query if necessary
+    code ||= data || ''
+    const country = code && _.find(COUNTRIES, { code })
+    return country ? h(Tooltip, { title: country.name, children: h('span', {}, country.flag, ' ', code ) })
+        : h(Fragment, {}, def)
+}
+
+async function ip2countryBatch(ips: string[]) {
+    const res = await apiCall('ip_country', { ips })
+    return res.codes as string[]
+}
+
 function Connections() {
     const { list, error, props } = useApiList('get_connections')
+    const config = useApiEx('get_config', { only: [CFG.geo_enable] })
     const [filtered, setFiltered] = useState(true)
     const [paused, setPaused] = useState(false)
     const rows = useMemo(() =>
@@ -118,6 +133,13 @@ function Connections() {
                     maxWidth: 400,
                     renderCell: ({ row, value }) => ipForUrl(value) + ' :' + row.port,
                     mergeRender: { other: 'user', fontSize: 'small' },
+                },
+                {
+                    field: 'country',
+                    hidden: config.data?.[CFG.geo_enable] !== true,
+                    headerName: "Country",
+                    hideUnder: 'md',
+                    renderCell: ({ value, row }) => h(Country, { code: value, ip: row.ip, def: '-' }),
                 },
                 {
                     field: 'user',
@@ -182,7 +204,7 @@ function Connections() {
                     headerName: "Protocol",
                     align: 'center',
                     hideUnder: Infinity,
-                    renderCell: ({ value, row }) => h(Fragment, {},
+                    renderCell: ({ value }) => h(Fragment, {},
                         "IPv" + value,
                         iconTooltip(Lock, "HTTPS", { opacity: .5 })
                     )

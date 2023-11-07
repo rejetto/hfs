@@ -40,6 +40,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - real-time monitoring of connections
 - [show some files](https://github.com/rejetto/hfs/discussions/270)
 - speed throttler
+- geographic firewall
 - admin web interface
 - multi-language front-end
 - virtual hosting (plug-in)

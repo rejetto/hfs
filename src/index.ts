@@ -21,6 +21,8 @@ import { randomId } from './misc'
 import session from 'koa-session'
 import { selfCheckMiddleware } from './selfCheck'
 import { acmeMiddleware } from './acme'
+import './geo'
+import { geoFilter } from './geo'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
@@ -29,10 +31,11 @@ const keys = process.env.COOKIE_SIGN_KEYS?.split(',')
     || [randomId(30)] // randomness at start gives some extra security, btu also invalidates existing sessions
 export const app = new Koa({ keys })
 app.use(someSecurity)
-    .use(selfCheckMiddleware)
     .use(acmeMiddleware)
     .use(session({ key: 'hfs_$id', signed: true, rolling: true, sameSite: 'lax' }, app))
     .use(prepareState)
+    .use(geoFilter)
+    .use(selfCheckMiddleware)
     .use(gzipper)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
     .use(pluginsMiddleware)
