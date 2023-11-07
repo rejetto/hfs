@@ -1,0 +1,194 @@
+---
+openapi: 3.0.0
+info:
+  title: HFS REST API
+  contact:
+    name: Massimo Melina
+    email: a@rejetto.com
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /~/api/get_file_list:
+    get:
+      tags:
+      - Front-end
+      description: returns all files of a specified folder
+      parameters:
+      - name: uri
+        in: query
+        description: path to the folder containing the files. Default is `/`
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: offset
+        in: query
+        description: number of records to skip
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: number
+      - name: limit
+        in: query
+        description: max number of records to return
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: number
+      - name: search
+        in: query
+        description: "search for files with the specified pattern, also in subfolders."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: c
+        in: query
+        description: "request separated `c` and `m` properties in entries. Pass any string to turn it on. By default only `m` is provided, and when missing it is copied from `c`."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: all files accordingly to the specified parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+  /{folder}:
+    post:
+      tags:
+      - Front-end
+      summary: Uploads a file to a specific folder
+      description: Equivalent to curl -F upload=@FILE FOLDER/
+      parameters:
+      - name: folder
+        in: path
+        description: The folder path where the file will be uploaded
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/folder_body'
+            encoding:
+              file:
+                contentType: application/octet-stream
+                headers:
+                  Content-Disposition:
+                    style: simple
+                    explode: false
+                    schema:
+                      type: string
+                      description: "Form field name and filename, e.g., 'form-data; name=\"file\"; filename=\"example.txt\"'"
+                style: form
+        required: true
+      responses:
+        "200":
+          description: File uploaded successfully
+        "400":
+          description: Bad request
+  /{folder}/{file}:
+    put:
+      tags:
+      - Front-end
+      summary: Uploads a file to a specific folder
+      description: Equivalent to curl -T FILE URL/
+      parameters:
+      - name: folder
+        in: path
+        description: The folder path where the file will be uploaded
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: file
+        in: path
+        description: The uploaded file name
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/octet-stream: {}
+        required: true
+      responses:
+        "200":
+          description: File uploaded successfully
+components:
+  schemas:
+    DirEntry:
+      required:
+      - "n"
+      type: object
+      properties:
+        "n":
+          type: string
+          description: name of the entry. Can be a relative path in case you used `search`.
+        c:
+          type: string
+          description: creation time
+          format: date-time
+        m:
+          type: string
+          description: modification time
+          format: date-time
+        s:
+          type: number
+          description: "size, in bytes"
+        p:
+          pattern: "[rR]?[lL]?d?"
+          type: string
+          description: |
+            permissions, only when are different from the parent folder.
+            Meaning of each character:
+            - r: cannot be downloaded
+            - R: can be downloaded only with other credentials
+            - l: folder cannot be listed
+            - L: folder can be listed only with other credetnials
+            - d: can be deleted
+        comment:
+          type: string
+          description: assigned comment
+      description: front-end list item format. Common properties are kept short to optimize space.
+    inline_response_200:
+      type: object
+      properties:
+        can_archive:
+          type: boolean
+          description: if you can download this folder as zip
+        can_upload:
+          type: boolean
+          description: if you can upload in this folder
+        can_delete:
+          type: boolean
+          description: if you can delete items in this folder
+        can_comment:
+          type: boolean
+          description: if you can coment items in this folder
+        list:
+          type: array
+          description: entries from this folder
+          items:
+            $ref: '#/components/schemas/DirEntry'
+    folder_body:
+      type: object
+      properties:
+        file:
+          type: string
+          description: The file to upload.
+          format: binary
