@@ -30,6 +30,11 @@
             "regexpSuccess": "true"
         },
         {
+            "url": "https://byhmniehcu2jzoeododjam6i5a0yszsf.lambda-url.eu-central-1.on.aws/?url=$URL",
+            "regexpFailure": "false",
+            "regexpSuccess": "true"
+        },
+        {
             "url": "http://hfstest.rejetto.com/v3?url=$URL",
             "regexpFailure": "\"error\"",
             "regexpSuccess": "\"good\""
