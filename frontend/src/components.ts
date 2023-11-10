@@ -82,7 +82,7 @@ export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any
         if (html?.trim?.())
             ret.push(h(Html, { key: 'x', code: html }))
         return ret
-    }, props ? Object.values(props) : [])
+    }, [name, ...props ? Object.values(props) : []])
     return children.length || !ifEmpty ? h(Fragment, {}, children) : h(ifEmpty)
 }
 

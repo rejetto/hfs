@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWindowSize } from 'usehooks-ts'
 import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy } from './misc'
@@ -9,7 +9,7 @@ import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
-import { useAuthorized } from './login'
+import { loginDialog, useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
@@ -20,13 +20,19 @@ export const MISSING_PERM = "Missing permission"
 export function BrowseFiles() {
     useFetchList()
     const { error } = useSnapState()
-    return useAuthorized() && h(Fragment, {},
+    const navigate = useNavigate()
+    return useAuthorized() ? h(Fragment, {},
         h(CustomCode, { name: 'beforeHeader' }),
         h(Head),
         h(CustomCode, { name: 'afterHeader' }),
         error ? h(ErrorMsg, { err: error }) : h(FilesList),
         h(CustomCode, { name: 'afterList' }),
-    )
+    ) : h(CustomCode, { name: 'unauthorized',
+        ifEmpty: () => h('h1', {
+            className: 'unauthorized',
+            onClick: () => loginDialog(navigate)
+        }, t`Unauthorized`)
+    })
 }
 
 function FilesList() {
