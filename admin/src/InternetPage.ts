@@ -1,6 +1,6 @@
 import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
-import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RestartAlt, RouterTwoTone, Send,
+import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RestartAlt, RouterTwoTone, Send, Storage,
     SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'
@@ -166,7 +166,7 @@ export default function InternetPage() {
         const url = config.data?.base_url
         const hostname = url && new URL(url).hostname
         const domain = !isIP(hostname) && hostname
-        return config.element || h(TitleCard, { title: "Address / Domain" },
+        return config.element || h(TitleCard, { icon: Public, title: "Address / Domain" },
             h(Flex, { flexWrap: 'wrap' },
                 url || "Automatic, not configured",
                 h(Button, {
@@ -186,12 +186,13 @@ export default function InternetPage() {
     function networkBox() {
         if (error) return element
         if (!nat) return h(CircularProgress)
+        const direct = nat?.publicIps.includes(nat?.localIp)
         return h(Flex, { justifyContent: 'space-around' },
-            h(Device, { name: "Local network", icon: HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
+            h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
             }),
-            h(Sep),
-            h(Device, {
+            !direct && h(Sep),
+            !direct && h(Device, {
                 name: "Router", icon: RouterTwoTone, ip: nat?.gatewayIp,
                 color: nat?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
