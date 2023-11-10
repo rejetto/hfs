@@ -109,7 +109,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                     going = true
                     try {
                         const res = await login(usr, pwd)
-                        close()
+                        close(true)
                         if (res?.redirect)
                             navigate(getPrefixUrl() + res.redirect)
                     } catch (err: any) {
@@ -132,13 +132,10 @@ export function useAuthorized() {
         state.loginRequired = true
     const navigate = useNavigate()
     useEffect(() => {
-        (async () => {
-            if (!loginRequired)
-                return closeLoginDialog?.()
-            if (closeLoginDialog) return
-            while (state.loginRequired)
-                await loginDialog(navigate)
-        })()
+        if (!loginRequired)
+            return closeLoginDialog?.()
+        if (!closeLoginDialog)
+            loginDialog(navigate).then()
     }, [loginRequired, navigate])
     return loginRequired ? null : true
 }
