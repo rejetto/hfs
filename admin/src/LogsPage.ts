@@ -6,20 +6,27 @@ import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { formatBytes, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
-import { typedKeys, xlate } from './misc';
+import { Flex, typedKeys, usePauseButton } from './misc';
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
     const files = typedKeys(logLabels)
+    const { pause, pauseButton } = usePauseButton()
     return h(Fragment, {},
-        h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
-            files.map(f => h(Tab, { label: logLabels[f], key: f })) ),
-        h(LogFile, { key: tab, file: files[tab] }), // without key, some state is accidentally preserved across files
+        h(Flex, { gap: 0  },
+            h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
+                files.map(f => h(Tab, { label: logLabels[f], key: f })) ),
+            h(Box, { flex: 1 }),
+            pauseButton,
+        ),
+        h(LogFile, { key: tab, pause, file: files[tab] }), // without key, some state is accidentally preserved across files
     )
 }
 
-function LogFile({ file }: { file: string }) {
+function LogFile({ file, pause }: { file: string, pause?: boolean }) {
     const { list, error, connecting } = useApiList('get_log', { file }, {
+        invert: true,
+        pause,
         map(x) {
             const { extra } = x
             if (!extra) return
