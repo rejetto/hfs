@@ -21,7 +21,7 @@ export default function InternetPage() {
     const [mapping, setMapping] = useState(false)
     const [verifyAgain, setVerifyAgain] = useState(false)
     const status = useApiEx('get_status')
-    const { data: config } = useApiEx('get_config', { only: ['base_url'] })
+    const { data: config, reload: reloadConfig } = useApiEx('get_config', { only: ['base_url'] })
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     type GetNat = Awaited<ReturnType<typeof getNatInfo>>
@@ -108,13 +108,13 @@ export default function InternetPage() {
         const url = config?.base_url
         const hostname = url && new URL(url).hostname
         const domain = !isIP(hostname) && hostname
-        return status.element || h(Card, {}, h(CardContent, {},
+        return config && h(Card, {}, h(CardContent, {},
             h(Box, { fontSize: 'x-large', mb: 2 }, "Address / Domain"),
             h(Flex, { flexWrap: 'wrap', alignItems: 'center' },
                 url || "Automatic, not configured",
                 h(Button, {
                     size: 'small',
-                    onClick() { changeBaseUrl().then(status.reload) }
+                    onClick() { changeBaseUrl().then(reloadConfig) }
                 }, "Change"),
                 domain && h(Btn, {
                     size: 'small',
