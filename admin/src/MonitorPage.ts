@@ -6,7 +6,18 @@ import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { PauseCircle, PlayCircle, LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Box, Chip, ChipProps, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, IconBtn, IconProgress, iconTooltip, ipForUrl, manipulateConfig, useBreakpoint, useBatch, CFG } from "./misc"
+import {
+    formatBytes,
+    IconBtn,
+    IconProgress,
+    iconTooltip,
+    ipForUrl,
+    manipulateConfig,
+    useBreakpoint,
+    useBatch,
+    CFG,
+    usePauseButton
+} from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { toast } from "./dialog"
@@ -98,10 +109,10 @@ function Connections() {
     const { list, error, props } = useApiList('get_connections')
     const config = useApiEx('get_config', { only: [CFG.geo_enable] })
     const [filtered, setFiltered] = useState(true)
-    const [paused, setPaused] = useState(false)
+    const { pause, pauseButton } = usePauseButton()
     const rows = useMemo(() =>
             list?.filter((x: any) => !filtered || x.op).map((x: any, id: number) => ({ id, ...x })),
-        [!paused && list, filtered]) //eslint-disable-line
+        [!pause && list, filtered]) //eslint-disable-line
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center' },
             h(SelectField as Field<boolean>, {
@@ -112,14 +123,7 @@ function Connections() {
             }),
 
             h(Box, { flex: 1 }),
-            h(IconBtn, {
-                title: paused ? "Resume" : "Pause",
-                icon: paused ? PlayCircle : PauseCircle,
-                sx: { mr: 1 },
-                onClick() {
-                    setPaused(!paused)
-                }
-            }),
+            pauseButton,
         ),
         h(DataTable, {
             error,

@@ -35,7 +35,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     }
 }
 
-export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map }: { map?: (rec: S) => T }={}) {
+export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause }: { pause?: boolean, invert?: boolean, map?: (rec: S) => T }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -44,13 +44,16 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map 
     const [initializing, setInitializing] = useStateMounted(true)
     const [reloader, setReloader] = useState(0)
     const idGenerator = useRef(0)
+    const [pausedList, setPausedList] = useState<typeof list | undefined>()
+    useEffect(() => setPausedList(pause ? list : undefined), [pause])
     useEffect(() => {
         if (!cmd) return
         const bufferAdd: T[] = []
         const apply = _.debounce(() => {
             const chunk = bufferAdd.splice(0, Infinity)
-            if (chunk.length)
-                setList(list => [ ...list, ...chunk ])
+            if (!chunk.length) return
+            if (invert) chunk.reverse() // setList callback can be called twice (and will, in dev)
+            setList(list => invert ? [ ...chunk, ...list ] : [ ...list, ...chunk ])
         }, 1000, { maxWait: 1000 })
         setError(undefined)
         setLoading(true)
@@ -145,7 +148,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map 
             apply.flush()
         }
     }, [reloader, cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, props, loading, error, initializing, connecting, setList, updateList, updateEntry, reload }
+    return { list: pausedList ?? list, props, loading, error, initializing, connecting, setList, updateList, updateEntry, reload }
 
     function reload() {
         setReloader(x => x + 1)
