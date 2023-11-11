@@ -22,6 +22,7 @@ export const FRONTEND_OPTIONS = {
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown'])
+export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T

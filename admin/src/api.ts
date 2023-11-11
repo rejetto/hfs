@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, IconBtn, spinner, useStateMounted, wantArray, xlate } from './misc'
+import { Dict, err2msg, Falsy, IconBtn, LIST, spinner, useStateMounted, wantArray, xlate } from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
@@ -75,34 +75,34 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map 
                         if (!Array.isArray(msg))
                             return console.debug('illegal list packet', msg)
                         const [op, par] = msg
-                        if (op === 'ready') {
+                        if (op === LIST.ready) {
                             apply.flush()
                             setInitializing(false)
                             return
                         }
-                        if (op === 'error') {
+                        if (op === LIST.error) {
                             if (par === 401)
                                 state.loginRequired = msg[2].possible !== false || 403
                             else
                                 setError(err2msg(par))
                             return
                         }
-                        if (op === 'props')
+                        if (op === LIST.props)
                             return setProps(par)
-                        if (op === 'add') {
+                        if (op === LIST.add) {
                             const mappedPar = map?.(par) ?? par
                             mappedPar.id ??= idGenerator.current = Math.max(idGenerator.current, Date.now()) + .001
                             bufferAdd.push(mappedPar)
                             apply()
                             return
                         }
-                        if (op === 'remove') {
+                        if (op === LIST.remove) {
                             const match = _.matches(par)
                             if (_.isEmpty(_.remove(bufferAdd, match))) // first remove from the buffer
                                 removeOnList.push(match)
                             return
                         }
-                        if (op === 'update') {
+                        if (op === LIST.update) {
                             const change = msg[2]
                             const found = _.find(bufferAdd, par)
                             if (found)
