@@ -7,7 +7,7 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { HTTP_MESSAGES, xlate } from './misc'
+import { HTTP_MESSAGES, LIST, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -76,7 +76,7 @@ export default function useFetchList() {
                     for (const entry of data) {
                         if (!Array.isArray(entry)) continue // unexpected
                         const [op, par] = entry
-                        const error = op === 'error' && par
+                        const error = op === LIST.error && par
                         if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
                             state.messageOnly = t('upload_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
@@ -93,11 +93,11 @@ export default function useFetchList() {
                         }
                         if (uri && !uri.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(uri + '/')
-                        if (op === 'props') {
+                        if (op === LIST.props) {
                             state.props = par
                             continue
                         }
-                        if (op === 'add')
+                        if (op === LIST.add)
                             buffer.push(new DirEntry(par.n, par))
                     }
                     if (src?.readyState === src?.CLOSED)

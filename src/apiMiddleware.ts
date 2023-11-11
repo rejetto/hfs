@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, onOff, removeStarting } from './misc'
+import { asyncGeneratorToReadable, LIST, onOff, removeStarting } from './misc'
 import events from './events'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND } from './const'
 import _ from 'lodash'
@@ -113,41 +113,41 @@ export class SendListReadable<T> extends Readable {
             this.processBuffer()
     }
     add(rec: T | T[]) {
-        this._push(['add', rec])
+        this._push([LIST.add, rec])
     }
     remove(search: Partial<T>) {
         const match = _.matches(search)
         const idx = _.findIndex(this.buffer, x => match(x[1]))
         const found = this.buffer[idx]
         const op = found?.[0]
-        if (op === 'remove') return
+        if (op === LIST.remove) return
         if (found) {
             this.buffer.splice(idx, 1)
-            if (op === 'add') return
+            if (op === LIST.add) return
         }
-        this._push(['remove', search])
+        this._push([LIST.remove, search])
     }
     update(search: Partial<T>, change: Partial<T>) {
         if (_.isEmpty(change)) return
         const match = _.matches(search)
         const found = _.find(this.buffer, x => match(x[1]))
         const op = found?.[0]
-        if (op === 'remove') return
-        if (op === 'add' || op === 'update')
-            return Object.assign(found[op === 'add' ? 1 : 2], change)
-        return this._push(['update', search, change])
+        if (op === LIST.remove) return
+        if (op === LIST.add || op === LIST.update)
+            return Object.assign(found[op === LIST.add ? 1 : 2], change)
+        return this._push([LIST.update, search, change])
     }
     ready() { // useful to indicate the end of an initial phase, but we leave open for updates
-        this._push(['ready'])
+        this._push([LIST.ready])
     }
     custom(name: string, data: any) {
-        this._push([name, data])
+        this._push(data === undefined ? [name] : [name, data])
     }
     props(props: object) {
-        this._push(['props', props])
+        this._push([LIST.props, props])
     }
     error(msg: NonNullable<typeof this.lastError>, close=false, props?: object) {
-        this._push(['error', msg, props])
+        this._push([LIST.error, msg, props])
         this.lastError = msg
         if (close)
             this.close()
