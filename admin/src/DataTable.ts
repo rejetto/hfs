@@ -88,6 +88,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             }) ),
         h(DataGrid, {
             initialState,
+            style: { height: 0, flex: 'auto' }, // limit table to available screen space
             columns: manipulatedColumns,
             apiRef,
             slots: {
