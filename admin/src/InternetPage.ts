@@ -169,16 +169,19 @@ export default function InternetPage() {
         return config.element || h(TitleCard, { icon: Public, title: "Address / Domain" },
             h(Flex, { flexWrap: 'wrap' },
                 url || "Automatic, not configured",
-                h(Button, {
-                    size: 'small',
-                    onClick() { changeBaseUrl().then(config.reload) }
-                }, "Change"),
-                domain && h(Btn, {
-                    size: 'small',
-                    variant: 'outlined',
-                    onClick: () => apiCall('check_domain', { domain })
-                        .then(() => alertDialog("Domain seems ok", 'success'))
-                }, "Check"),
+                h(Flex, {}, // keep buttons together when wrapping
+                    h(Btn, {
+                        size: 'small',
+                        variant: 'outlined',
+                        onClick: () =>changeBaseUrl().then(config.reload)
+                    }, "Change"),
+                    domain && h(Btn, {
+                        size: 'small',
+                        variant: 'outlined',
+                        onClick: () => apiCall('check_domain', { domain })
+                            .then(() => alertDialog("Domain seems ok", 'success'))
+                    }, "Check"),
+                ),
             )
         )
     }
