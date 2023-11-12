@@ -29,7 +29,7 @@ export default function ConfigFilePage() {
                     sx: modifiedSx(text !== saved),
                     onClick: save,
                 }),
-                h(Alert, { severity: 'warning', sx: { flex: 1 } }, "Be careful, you can easily break things here"),
+                h(Alert, { severity: 'warning', sx: { flex: 1, minWidth: '10em' } }, "Be careful, you can easily break things here"),
             ) : h(Btn, {
                 icon: EditNote,
                 variant: 'outlined',
