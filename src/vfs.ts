@@ -9,7 +9,7 @@ import {
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
-import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './const'
+import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, MIME_AUTO } from './const'
 import events from './events'
 import { expandUsername } from './perm'
 import { getCurrentUsername } from './auth'
@@ -33,8 +33,6 @@ export interface VfsNode extends VfsNodeStored { // include fields that are only
     parent?: VfsNode // available when original is available
     isFolder?: boolean
 }
-
-export const MIME_AUTO = 'auto'
 
 export function permsFromParent(parent: VfsNode, child: VfsNode) {
     const ret: VfsPerms = {}

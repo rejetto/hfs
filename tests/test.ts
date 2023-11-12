@@ -30,7 +30,7 @@ describe('basics', () => {
     it('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     it('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     it('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
-    it('download', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
+    it('download.mime', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
     it('download.partial', req('/f1/f2/alfa.txt', /a[^d]+$/, { // only "abc" is expected
         headers: { Range: 'bytes=0-2' }
     }))
@@ -165,6 +165,7 @@ function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<
 
     function process(res:any) {
         //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])
+        if (res.code === "ECONNREFUSED") throw res
         if (test && test instanceof RegExp)
             test = { re:test }
         if (typeof test === 'number')

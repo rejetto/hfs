@@ -21,6 +21,7 @@ export const IS_WINDOWS = process.platform === 'win32'
 export const IS_MAC = process.platform === 'darwin'
 export const IS_BINARY = !basename(process.execPath).includes('node') // this won't be node if pkg was used
 export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname)
+export const MIME_AUTO = 'auto'
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()

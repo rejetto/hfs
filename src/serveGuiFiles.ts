@@ -2,16 +2,8 @@
 
 import Koa from 'koa'
 import fs from 'fs/promises'
-import {
-    API_VERSION,
-    FRONTEND_URI,
-    HTTP_METHOD_NOT_ALLOWED,
-    HTTP_NO_CONTENT,
-    HTTP_NOT_FOUND,
-    PLUGINS_PUB_URI,
-    VERSION,
-    SPECIAL_URI
-} from './const'
+import { API_VERSION, MIME_AUTO, FRONTEND_URI, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
+    PLUGINS_PUB_URI, VERSION, SPECIAL_URI } from './const'
 import { serveFile } from './serveFile'
 import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
 import { refresh_session } from './api.auth'
@@ -24,7 +16,6 @@ import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
-import { MIME_AUTO } from './vfs'
 
 const logGui = defineConfig('log_gui', false)
 _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values

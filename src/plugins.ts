@@ -3,16 +3,14 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, PLUGINS_PUB_URI } from './const'
+import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, MIME_AUTO, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import {
-    adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
-    PendingPromise, pendingPromise, same, tryJson, wait, waitFor, wantArray, watchDir
-} from './misc'
+import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
+    PendingPromise, pendingPromise, same, tryJson, wait, waitFor, wantArray, watchDir } from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.file_list'
-import { MIME_AUTO, VfsNode } from './vfs'
+import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
 import { mkdir, readFile } from 'fs/promises'
