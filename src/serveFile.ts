@@ -2,16 +2,9 @@
 
 import Koa from 'koa'
 import { createReadStream, stat } from 'fs'
-import {
-    HTTP_BAD_REQUEST,
-    HTTP_FORBIDDEN,
-    HTTP_METHOD_NOT_ALLOWED,
-    HTTP_NO_CONTENT,
-    HTTP_NOT_FOUND,
-    HTTP_NOT_MODIFIED,
-    HTTP_OK, HTTP_PARTIAL_CONTENT, HTTP_RANGE_NOT_SATISFIABLE
-} from './const'
-import { getNodeName, MIME_AUTO, VfsNode } from './vfs'
+import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, HTTP_NOT_MODIFIED,
+    HTTP_OK, HTTP_PARTIAL_CONTENT, HTTP_RANGE_NOT_SATISFIABLE, MIME_AUTO } from './const'
+import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
 import { matches } from './misc'
