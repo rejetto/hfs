@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import compress from 'koa-compress'
-import Koa from 'koa'
+import Koa, { Middleware } from 'koa'
 import { ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED,
 } from './const'
@@ -28,6 +28,8 @@ import { constants } from 'zlib'
 import { baseUrl, getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
 import { sendErrorPage } from './errorPages'
+import session from 'koa-session'
+import { app } from './index'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
@@ -245,3 +247,11 @@ export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
         && (tryJson(await stream2string(ctx.req)) || {})
     await next()
 }
+
+export const sessionMiddleware: Middleware = (ctx, next) =>
+    session({
+        key: 'hfs_$id' + (ctx.secure ? '' : '_http'), // once https cookie is created, http cannot
+        signed: true,
+        rolling: true,
+        sameSite: 'lax'
+    }, app)(ctx, next)
