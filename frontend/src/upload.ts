@@ -2,7 +2,9 @@
 
 import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
-import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working } from './misc'
+import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working,
+    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE
+} from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -280,7 +282,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (req?.readyState !== 4) return
         const status = overrideStatus || req.status
         closeLast?.()
-        if (status && status !== 409) // 0 = user-aborted, 409 = skipped because existing
+        if (status && status !== HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
             if (status >= 400)
                 error(status)
             else
@@ -344,7 +346,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     function error(status: number) {
         if (uploadState.errors++) return
         const ERRORS = {
-            413: t`file too large`,
+            [HTTP_PAYLOAD_TOO_LARGE]: t`file too large`,
         }
         const specifier = (ERRORS as any)[status]
         const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
@@ -423,7 +425,7 @@ async function createFolder() {
             )))
     }
     catch(e: any) {
-        await alertDialog(e.code === 409 ? t('folder_exists', "Folder with same name already exists") : e)
+        await alertDialog(e.code === HTTP_CONFLICT ? t('folder_exists', "Folder with same name already exists") : e)
     }
 }
 

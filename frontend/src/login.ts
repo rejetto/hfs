@@ -3,7 +3,8 @@
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
-import { getHFS, getPrefixUrl, hIcon, makeSessionRefresher, srpClientSequence, working } from './misc'
+import { getHFS, getPrefixUrl, hIcon, makeSessionRefresher, srpClientSequence, working,
+    HTTP_CONFLICT, HTTP_UNAUTHORIZED,} from './misc'
 import { useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
@@ -21,8 +22,8 @@ async function login(username:string, password:string) {
     }, (err: any) => {
         stopWorking()
         throw Error(err.message === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
-            : err.code === 401 ? t('login_bad_credentials', "Invalid credentials")
-                : err.code === 409 ? t('login_bad_cookies', "Cookies not working - login failed")
+            : err.code === HTTP_UNAUTHORIZED ? t('login_bad_credentials', "Invalid credentials")
+                : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")
                     : t(err.message))
     })
 }
@@ -32,7 +33,7 @@ sessionRefresher(getHFS().session)
 
 export function logout(){
     return apiCall('logout', {}, { modal: working }).catch(res => {
-        if (res.code !== 401) // we expect 401
+        if (res.code !== HTTP_UNAUTHORIZED) // we expect this error code
             throw res
         state.username = ''
         reloadList()

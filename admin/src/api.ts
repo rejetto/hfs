@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, IconBtn, LIST, spinner, useStateMounted, wantArray, xlate } from './misc'
+import { Dict, err2msg, Falsy, IconBtn, LIST, spinner, useStateMounted, wantArray, xlate,
+    HTTP_FORBIDDEN, HTTP_UNAUTHORIZED,} from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
@@ -12,8 +13,8 @@ export * from '@hfs/shared/api'
 
 setDefaultApiCallOptions({
     async onResponse(res: Response, body: any) {
-        if (res.status === 401) {
-            state.loginRequired = body?.possible !== false || 403
+        if (res.status === HTTP_UNAUTHORIZED) {
+            state.loginRequired = body?.possible !== false || HTTP_FORBIDDEN
             throw new ApiError(res.status, "Unauthorized")
         }
     }
@@ -84,8 +85,8 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                             return
                         }
                         if (op === LIST.error) {
-                            if (par === 401)
-                                state.loginRequired = msg[2].possible !== false || 403
+                            if (par === HTTP_UNAUTHORIZED)
+                                state.loginRequired = msg[2].possible !== false || HTTP_FORBIDDEN
                             else
                                 setError(err2msg(par))
                             return

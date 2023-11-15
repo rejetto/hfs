@@ -5,7 +5,7 @@ import { Alert, Box } from '@mui/material'
 import { apiCall, useApiEx } from './api'
 import { alertDialog } from "./dialog"
 import { useSnapState } from './state'
-import { Btn } from './misc'
+import { Btn, HTTP_UNAUTHORIZED } from './misc'
 import { Logout, PowerSettingsNew } from '@mui/icons-material'
 
 export default function LogoutPage() {
@@ -22,7 +22,7 @@ export default function LogoutPage() {
                     size: 'large',
                     variant: 'contained',
                     onClick: ()  => apiCall('logout').catch(err => // we expect 401
-                            err.code !== 401 && alertDialog(err))
+                            err.code !== HTTP_UNAUTHORIZED && alertDialog(err))
                 }, "I want to logout")
             ),
         h(Btn, {
