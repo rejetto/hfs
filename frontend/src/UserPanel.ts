@@ -7,7 +7,7 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
 import { MenuButton } from './menu'
-import { hIcon, working } from './misc'
+import { hIcon, HTTP_NOT_ACCEPTABLE, working } from './misc'
 import { t } from './i18n'
 
 export default function showUserPanel() {
@@ -35,7 +35,7 @@ export default function showUserPanel() {
                         const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
                         try {
                             await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }, { modal: working }).catch(e => {
-                                if (e.code !== 406) // 406 = server was configured to support clear text authentication
+                                if (e.code !== HTTP_NOT_ACCEPTABLE) // server doesn't support clear text authentication
                                     throw e
                                 return apiCall('change_password', { newPassword: pwd }, { modal: working }) // unencrypted version
                             })

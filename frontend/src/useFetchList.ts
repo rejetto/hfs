@@ -7,7 +7,7 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { HTTP_MESSAGES, LIST, xlate } from './misc'
+import { HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -77,7 +77,7 @@ export default function useFetchList() {
                         if (!Array.isArray(entry)) continue // unexpected
                         const [op, par] = entry
                         const error = op === LIST.error && par
-                        if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
+                        if (error === HTTP_METHOD_NOT_ALLOWED) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
                             state.messageOnly = t('upload_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
                             continue
@@ -85,9 +85,9 @@ export default function useFetchList() {
                         if (error) {
                             state.stopSearch?.()
                             state.error = xlate(error, HTTP_MESSAGES)
-                            if (error === 401 && snap.username)
+                            if (error === HTTP_UNAUTHORIZED && snap.username)
                                 alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning').then()
-                            state.loginRequired = error === 401
+                            state.loginRequired = error === HTTP_UNAUTHORIZED
                             lastReq.current = null
                             continue
                         }
