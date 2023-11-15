@@ -13,5 +13,6 @@ import nl from './hfs-lang-nl.json'
 import el from './hfs-lang-el.json'
 import de from './hfs-lang-de.json'
 import fi from './hfs-lang-fi.json'
+import hu from './hfs-lang-hu.json'
 
-export default { it, zh, ru, sr, ko, ms, 'zh-tw': zh_tw, fr, pt, vi, es, nl, el, de, fi }
+export default { it, zh, ru, sr, ko, ms, 'zh-tw': zh_tw, fr, pt, vi, es, nl, el, de, fi, hu }
