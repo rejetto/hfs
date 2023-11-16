@@ -4,7 +4,7 @@ import { stat, rename, unlink } from 'node:fs/promises'
 import { IP2Location } from 'ip2location-nodejs'
 import _ from 'lodash'
 import { Middleware } from 'koa'
-import { updateConnection } from './connections'
+import { disconnect, updateConnection } from './connections'
 
 const ip2location = new IP2Location()
 const enabled = defineConfig(CFG.geo_enable, false)
@@ -22,7 +22,7 @@ export const geoFilter: Middleware = async (ctx, next) => {
         const country = connection.country ??= await ip2country(ctx.ip)
         updateConnection(connection, { country })
         if (country ? list.get().includes(country) !== allow.get() : !allowUnknown.get())
-            return ctx.socket.destroy()
+            return disconnect(ctx)
     }
     return next()
 }

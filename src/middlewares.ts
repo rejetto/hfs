@@ -1,14 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import compress from 'koa-compress'
-import Koa, { Middleware } from 'koa'
+import Koa from 'koa'
 import { ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode, getNodeName } from './vfs'
-import { DAY, asyncGeneratorToReadable, dirTraversal, filterMapGenerator, isLocalHost, stream2string, tryJson,
-    splitAt } from './misc'
+import { DAY, asyncGeneratorToReadable, dirTraversal, filterMapGenerator, isLocalHost, stream2string, tryJson, splitAt
+} from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -16,7 +16,7 @@ import mount from 'koa-mount'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { accountCanLogin, getAccount } from './perm'
-import { socket2connection, updateConnection, normalizeIp } from './connections'
+import { socket2connection, updateConnection, normalizeIp, disconnect } from './connections'
 import basicAuth from 'basic-auth'
 import { invalidSessions, srpCheck } from './auth'
 import { basename, dirname } from 'path'
@@ -33,6 +33,7 @@ import { app } from './index'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
+const forceBaseUrl = defineConfig('force_base_url', false)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
 
@@ -196,6 +197,8 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     catch {
         return ctx.status = HTTP_FOOL
     }
+    if (forceBaseUrl.get() && !isLocalHost(ctx) && ctx.host === baseUrl.compiled())
+        return disconnect(ctx)
     return next()
 }
 
@@ -248,7 +251,7 @@ export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
     await next()
 }
 
-export const sessionMiddleware: Middleware = (ctx, next) =>
+export const sessionMiddleware: Koa.Middleware = (ctx, next) =>
     session({
         key: 'hfs_$id' + (ctx.secure ? '' : '_http'), // once https cookie is created, http cannot
         signed: true,

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { defineConfig } from './config'
-import { getConnections, normalizeIp } from './connections'
+import { disconnect, getConnections, normalizeIp } from './connections'
 import { makeNetMatcher, MINUTE, onlyTruthy } from './misc'
 import { Socket } from 'net'
 
@@ -22,7 +22,7 @@ const block = defineConfig('block', [] as BlockingRule[], rules => {
 
 export function applyBlock(socket: Socket, ip=normalizeIp(socket.remoteAddress||'')) {
     if (ip && block.compiled().find(rule => rule(ip)))
-        return socket.destroy()
+        return disconnect(socket)
 }
 
 setInterval(() => { // twice a minute, check if any block has expired

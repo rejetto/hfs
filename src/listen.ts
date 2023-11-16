@@ -24,7 +24,8 @@ let httpsSrv: undefined | http.Server & ServerExtra
 
 const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
 
-export const baseUrl = defineConfig('base_url', '')
+export const baseUrl = defineConfig('base_url', '',
+    x => /\/\/[^\/]+/.exec(x)?.[1]) // compiled is host only
 
 export function getBaseUrlOrDefault() {
     return baseUrl.get() || defaultBaseUrl.get()
