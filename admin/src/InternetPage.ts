@@ -182,7 +182,16 @@ export default function InternetPage() {
                             .then(() => alertDialog("Domain seems ok", 'success'))
                     }, "Check"),
                 ),
-            )
+            ),
+            h(ConfigForm<{ force_base_url: boolean }>, {
+                keys: ['force_base_url'],
+                saveOnChange: true,
+                form: {
+                    fields: [
+                        { k: 'force_base_url', comp: BoolField, label: "Accept requests only using domain (and localhost)" }
+                    ]
+                },
+            })
         )
     }
 
@@ -251,7 +260,7 @@ export default function InternetPage() {
                     catch { mapPort(HIGHER_PORT, '') }
                     toast("Port forwarded, now verify again", 'success')
                     retry()
-                 })
+                })
             const cfg = await apiCall('get_config', { only: [CFG.geo_enable, CFG.geo_allow] })
             const { close } = alertDialog(h(Box, {}, msg + "Possible causes:", h('ul', {},
                 cfg[CFG.geo_enable] && cfg[CFG.geo_allow] != null && h('li', {}, "You may be blocking a country from where the test is performed"),
@@ -345,22 +354,29 @@ function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: 
     )))
 }
 
-type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'>
-function ConfigForm<T=any>({ keys, form, ...rest }: Partial<FormRest<T>> & { keys: (keyof T)[], form: ((values: T) => FormRest<T>) }) {
+type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
+function ConfigForm<T=any>({ keys, form, saveOnChange, ...rest }: Partial<FormRest<T>> & {
+    keys: (keyof T)[],
+    form: FormRest<T> | ((values: T) => FormRest<T>),
+    saveOnChange?: boolean
+}) {
     const config = useApiEx('get_config', { only: keys })
     const [values, setValues] = useState<any>(config.data)
     useEffect(() => setValues((v: any) => config.data || v), [config.data])
+    const modified = values && !_.isEqual(values, config.data)
+    useEffect(() => {
+        if (modified && saveOnChange) save()
+    }, [modified])
     if (!values)
         return config.element
-    const formProps = form(values)
-    const modified = !_.isEqual(values, config.data)
+    const formProps = _.isFunction(form) ? form(values) : form
     return h(Form, {
         values,
         set(v, k) {
             setValues((was: any) => ({ ...was, [k]: v }))
         },
-        save: {
-            onClick: () => apiCall('set_config', { values }).then(config.reload),
+        save: saveOnChange ? false : {
+            onClick: save,
             sx: modifiedSx(modified),
         },
         ...Array.isArray(formProps) ? { fields: formProps } : formProps,
@@ -376,4 +392,8 @@ function ConfigForm<T=any>({ keys, form, ...rest }: Partial<FormRest<T>> & { key
             ...rest.addToBar||[],
         ],
     })
+
+    function save() {
+        return apiCall('set_config', { values }).then(config.reload)
+    }
 }

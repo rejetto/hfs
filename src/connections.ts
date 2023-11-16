@@ -68,3 +68,9 @@ export function updateConnection(conn: Connection, change: Partial<Connection>) 
     Object.assign(conn, change)
     events.emit('connectionUpdated', conn, change)
 }
+
+export function disconnect(what: Context | Socket) {
+    if ('socket' in what)
+        what = what.socket
+    return what.destroy()
+}
