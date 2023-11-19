@@ -224,7 +224,7 @@ const serverCode = defineConfig('server_code', '', async (script, { k }) => {
 })
 
 let serverCodePlugin: void | Plugin
-serverCode.sub(() => serverCode.compiled().then(x => serverCodePlugin = x))
+serverCode.sub(() => serverCode.compiled()?.then(x => serverCodePlugin = x))
 export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
     const entries = Object.entries(plugins)
     return entries.map(([plName,pl]) => {

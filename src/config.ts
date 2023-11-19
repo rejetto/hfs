@@ -86,7 +86,7 @@ export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Sub
             else
                 setConfig1(k, v)
         },
-        compiled: () => compiled ?? throw_("missing compiler"),
+        compiled: () => (compiler ? compiled : throw_("missing compiler")) as CT,
     }
     if (compiler)
         ret.sub((...args) =>
