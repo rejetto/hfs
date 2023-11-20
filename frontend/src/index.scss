@@ -42,7 +42,7 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 body, button, select, input { font-size: 12pt; }
-#root>div {
+.list-wrapper {
     max-width: 54em;
     margin: auto;
     min-height: 100vh;
@@ -498,7 +498,7 @@ button label {
 
 .unauthorized { text-align: center }
 
-#root>.tiles-mode {
+.tiles-mode {
     max-width: none;
     margin: 0 1em;
     --tile-size: 5;

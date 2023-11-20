@@ -21,22 +21,34 @@ export function BrowseFiles() {
     useFetchList()
     const { error } = useSnapState()
     const navigate = useNavigate()
-    return useAuthorized() ? h(Fragment, {},
-        h(CustomCode, { name: 'beforeHeader' }),
-        h(Head),
-        h(CustomCode, { name: 'afterHeader' }),
-        error ? h(ErrorMsg, { err: error }) : h(FilesList),
-        h(CustomCode, { name: 'afterList' }),
-    ) : h(CustomCode, { name: 'unauthorized',
-        ifEmpty: () => h('h1', {
-            className: 'unauthorized',
-            onClick: () => loginDialog(navigate)
-        }, t`Unauthorized`)
-    })
+    const { props, tile_size=0 } = useSnapState()
+    if (!useAuthorized())
+        return h(CustomCode, { name: 'unauthorized',
+            ifEmpty: () => h('h1', {
+                className: 'unauthorized',
+                onClick: () => loginDialog(navigate)
+            }, t`Unauthorized`)
+        })
+    return h('div', { // element dedicated to drop-files to cover full screen
+        ...acceptDropFiles(files =>
+            props?.can_upload ? enqueue(files.map(file => ({ file })))
+                : alertDialog(t("Upload not available"), 'warning') )
+    },
+        h('div', {
+            className: 'list-wrapper ' + (tile_size ? 'tiles-mode' : 'list-mode'),
+            style: { '--tile-size': tile_size },
+        },
+            h(CustomCode, { name: 'beforeHeader' }),
+            h(Head),
+            h(CustomCode, { name: 'afterHeader' }),
+            error ? h(ErrorMsg, { err: error }) : h(FilesList),
+            h(CustomCode, { name: 'afterList' }),
+        )
+    )
 }
 
 function FilesList() {
-    const { filteredList, list, loading, stoppedSearch, props } = useSnapState()
+    const { filteredList, list, loading, stoppedSearch } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
     const pageSize = 100
     const [page, setPage] = useState(0)
@@ -95,12 +107,7 @@ function FilesList() {
         : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
 
     return h(Fragment, {},
-        h('ul', {
-            ref,
-            className: 'dir',
-            ...acceptDropFiles(files => props?.can_upload ? enqueue(files.map(file => ({ file })))
-                : alertDialog(t("Upload not available"), 'warning') )
-        },
+        h('ul', { ref, className: 'dir' },
             msgInstead ? h('p', {}, msgInstead)
                 : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry, idx) =>
                     h(Entry, {
