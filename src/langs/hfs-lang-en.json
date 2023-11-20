@@ -138,6 +138,7 @@
         "Destination": "Destination",
         "in_queue": "{n} in queue",
         "enter_comment": "Comment for this file",
-        "Comment": "Comment"
+        "Comment": "Comment",
+        "upload_dd_hint": "You can upload files doing drag&drop on the files list"
     }
 }
