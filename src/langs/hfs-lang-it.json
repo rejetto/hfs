@@ -131,6 +131,7 @@
         "in_queue": "{n} in coda",
         "enter_comment": "Comment for this file",
         "Comment": "Comment",
+        "upload_dd_hint": "Puoi uploadare file trascinandoli sulla lista principale",
 
         "_PLUGINS SECTION": "",
         "_PLUGIN thumbnails":  "",
