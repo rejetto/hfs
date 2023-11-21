@@ -7,6 +7,7 @@ import { DataTable } from './DataTable'
 import { formatBytes, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import { Flex, typedKeys, usePauseButton } from './misc';
+import { GridColDef } from '@mui/x-data-grid'
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
@@ -35,10 +36,19 @@ function LogFile({ file, pause }: { file: string, pause?: boolean }) {
                 x.notes = notes
         }
     })
+    const tsColumn: GridColDef = {
+        field: 'ts',
+        headerName: "Timestamp",
+        type: 'dateTime',
+        width: 90,
+        valueGetter: ({ value }) => new Date(value as string),
+        renderCell: ({ value }) => h(Box, { lineHeight: '1em' }, value.toLocaleDateString(), h(Box, {}, value.toLocaleTimeString()))
+    }
     return h(DataTable, {
         error,
         loading: connecting,
         rows: list as any,
+        compact: true,
         componentsProps: {
             pagination: {
                 showFirstButton: true,
@@ -46,14 +56,7 @@ function LogFile({ file, pause }: { file: string, pause?: boolean }) {
             }
         },
         columns: file === 'console' ? [
-            {
-                field: 'ts',
-                headerName: "Timestamp",
-                type: 'dateTime',
-                width: 90,
-                valueGetter: ({ value }) => new Date(value as string),
-                renderCell: ({ value }) => h(Box, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
-            },
+            tsColumn,
             {
                 field: 'k',
                 headerName: "Level",
@@ -81,14 +84,7 @@ function LogFile({ file, pause }: { file: string, pause?: boolean }) {
                 maxWidth: 200,
                 hideUnder: 'lg',
             },
-            {
-                field: 'ts',
-                headerName: "Timestamp",
-                type: 'dateTime',
-                width: 90,
-                valueGetter: ({ value }) => new Date(value as string),
-                renderCell: ({ value }) => h(Box, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
-            },
+            tsColumn,
             {
                 field: 'method',
                 headerName: "Method",
