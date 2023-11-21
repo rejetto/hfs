@@ -56,7 +56,7 @@ export const currentVersion = new Version(VERSION)
 const configVersion = defineConfig('version', VERSION, v => new Version(v))
 
 type Subscriber<T,R=void> = (v:T, more: { was?: T, version?: Version, defaultValue: T, k: string }) => R
-export function defineConfig<T, CT=T>(k: string, defaultValue: T, compiler?: Subscriber<T,CT>) {
+export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler?: Subscriber<T,CT>) {
     configProps[k] = { defaultValue }
     type Updater = (currentValue:T) => T
     let compiled = compiler?.(defaultValue, { k, version: currentVersion, defaultValue })
