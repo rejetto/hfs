@@ -19,8 +19,9 @@ interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridP
     initializing?: boolean
     noRows?: ReactNode
     error?: ReactNode
+    compact?: true
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, ...rest }: DataTableProps) {
     const { width } = useWindowSize()
     const theme = useTheme()
     const apiRef = useGridApiRef()
@@ -38,7 +39,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                     const { columns } = params.api.store.getSnapshot()
                     const showOther = columns.columnVisibilityModel[other] === false
                     return h(Box, {}, col.renderCell ? col.renderCell(params) : params.formattedValue,
-                        showOther && h(Box, props, renderCell({ ...columns.lookup[other], ...override }, params.row)))
+                        showOther && h(Box, { ...compact && { lineHeight: '1em', fontSize: 'smaller' }, ...props },
+                            renderCell({ ...columns.lookup[other], ...override }, params.row) ) )
                 }
             }
         })
@@ -89,6 +91,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         h(DataGrid, {
             initialState,
             style: { height: 0, flex: 'auto' }, // limit table to available screen space
+            density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
             apiRef,
             slots: {
