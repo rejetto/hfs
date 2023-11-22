@@ -69,7 +69,7 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                 display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
             }
         },
-            h(Box, { display: 'flex', px: 2, py: 1, gap: 2, alignItems: 'center' },
+            h(Box, { display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' },
                 h(Box, { fontSize: 'min(3rem, max(5vw, 4vh))' }, 'HFS'),
                 h(Box, { fontSize: 'small' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),

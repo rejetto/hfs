@@ -42,7 +42,7 @@ function LogFile({ file, pause }: { file: string, pause?: boolean }) {
         type: 'dateTime',
         width: 90,
         valueGetter: ({ value }) => new Date(value as string),
-        renderCell: ({ value }) => h(Box, { lineHeight: '1em' }, value.toLocaleDateString(), h(Box, {}, value.toLocaleTimeString()))
+        renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
     }
     return h(DataTable, {
         error,
