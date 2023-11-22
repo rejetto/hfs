@@ -54,8 +54,8 @@ function Routed() {
                 sx: {
                     background: 'url(cup.svg) no-repeat right fixed',
                     backgroundSize: 'contain',
-                    px: { xs: 1, sm: 2, md: 3 },
-                    pb: '1em',
+                    px: { xs: 1, md: 2, lg: 3 },
+                    pb: { xs: 1, md: 2 },
                     boxSizing: 'border-box', // keep padding inside the viewport
                     position: 'relative',
                     display: 'flex',

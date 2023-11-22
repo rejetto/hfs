@@ -3,7 +3,7 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import { createElement as h, FC, forwardRef, Fragment, ReactNode, useState } from 'react'
+import { createElement as h, FC, forwardRef, Fragment, ReactNode, useCallback, useState } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, WIKI_URL } from '../../src/cross'
@@ -200,12 +200,24 @@ export function LinkBtn({ ...rest }: LinkProps) {
 }
 
 export function usePauseButton() {
-    const [pause, setPause] = useState(false)
+    const [go, btn] = useToggleButton(v => ({
+        title: v ? "Pause" : "Resume",
+        icon: v ? PauseCircle : PlayCircle,
+        sx: { rotate: v ? '180deg' : '0deg' },
+    }), true)
+    return { pause: !go, pauseButton: btn }
+}
+
+export function useToggleButton(iconBtn: (state:boolean) => Omit<IconBtnProps, 'onClick'>, def=false) {
+    const [state, setState] = useState(def)
+    const toggle = useCallback(() => setState(x => !x), [])
+    const props = iconBtn(state)
     const el = h(IconBtn, {
-        title: pause ? "Resume" : "Pause",
-        icon: pause ? PlayCircle : PauseCircle,
         size: 'small',
-        onClick() { setPause(x => !x) }
+        color: state ? 'primary' : 'default',
+        ...props,
+        sx: { transition: 'all .5s', ...props.sx },
+        onClick: toggle,
     })
-    return { pause, pauseButton: el }
+    return [state, el] as const
 }
