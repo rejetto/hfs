@@ -12,7 +12,7 @@ export function useStateMounted<T>(init: T) {
         if (isMounted())
             set(newValue)
     }, [isMounted, set])
-    return [v, setIfMounted, isMounted] as [T, typeof setIfMounted, typeof isMounted]
+    return [v, setIfMounted, isMounted] as const
 }
 
 export function reactFilter(elements: any[]) {
