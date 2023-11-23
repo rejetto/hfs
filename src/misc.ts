@@ -110,23 +110,6 @@ export function same(a: any, b: any) {
     catch { return false }
 }
 
-export async function stream2string(stream: Readable): Promise<string> {
-    return new Promise((resolve, reject) => {
-        let data = ''
-        stream.on('data', chunk =>
-            data += chunk)
-        stream.on('error', reject)
-        stream.on('end', () => {
-            try {
-                resolve(data)
-            }
-            catch(e) {
-                reject(e)
-            }
-        })
-    })
-}
-
 export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
     const iterator = generator[Symbol.asyncIterator]()
     return new Readable({
