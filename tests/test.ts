@@ -1,11 +1,9 @@
-import axios, { AxiosRequestConfig } from 'axios'
-import { wrapper } from 'axios-cookiejar-support'
-import { CookieJar } from 'tough-cookie'
 import { srpClientSequence } from '../src/srp'
 import { createReadStream, rmSync } from 'fs'
 import { dirname, join } from 'path'
 import _ from 'lodash'
-import { findDefined } from '../src/cross'
+import { findDefined, tryJson } from '../src/cross'
+import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 /*
 import { PORT, srv } from '../src'
 
@@ -20,13 +18,10 @@ const API = '/~/api/'
 const BASE_URL = 'http://localhost'
 const UPLOAD_URI = '/for-admins/upload/temp/gpl.png'
 
-const jar = new CookieJar()
-const client = wrapper(axios.create({ jar, maxRedirects: 0 }))
-
 describe('basics', () => {
     //before(async () => appStarted)
     it('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
-    it('force slash', req('/f1', 302))
+    it('force slash', req('/f1', 302, { noRedirect: true }))
     it('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
     it('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
     it('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
@@ -130,12 +125,13 @@ describe('after-login', () => {
 
 function login(usr: string, pwd=password) {
     return srpClientSequence(usr, pwd, (cmd: string, params: any) =>
-        reqApi(cmd, params, (x,res)=> !res.isAxiosError)())
+        reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
 function testUpload(name: string, dest: string, tester: Tester) {
-    it(name, req('PUT' + dest, tester, {
-        data: createReadStream(join(__dirname, 'page/gpl.png'))
+    it(name, req(dest, tester, {
+        method: 'PUT',
+        body: createReadStream(join(__dirname, 'page/gpl.png'))
     }))
 }
 
@@ -155,34 +151,36 @@ type Tester = number
         cb?: TesterFunction
     }
 
-function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<any>={}) {
-    // all url starts with /, so if one doesn't it's because the method is prefixed
-    const i = methodUrl.indexOf('/')
-    const method = methodUrl.slice(0,i) || requestOptions?.data && 'POST' || 'GET'
-    const url = BASE_URL+methodUrl.slice(i)
-    return () => client.request({ method, url, ...requestOptions })
-        .then(process, process)
+const jar = {}
 
-    function process(res:any) {
+function req(url: string, test:Tester, requestOptions: XRequestOptions={}) {
+    // passing 'path' keeps it as it is, avoiding internal resolving
+    return () => httpStream(BASE_URL + url, { path: url, jar, ...requestOptions }).catch(e => {
+        if (e.code === "ECONNREFUSED")
+            throw e
+        return e.cause
+    }).then(process)
+
+    async function process(res:any) {
         //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])
-        if (res.code === "ECONNREFUSED") throw res
         if (test && test instanceof RegExp)
             test = { re:test }
         if (typeof test === 'number')
             test = { status: test }
-        const { data } = res.response || res
+        const data = await stream2string(res)
+        const obj = tryJson(data)
         if (typeof test === 'object') {
             const { status, mime, re, inList, outList, length, permInList } = test
             const gotMime = res.headers?.['content-type']
-            const gotStatus = (res.status|| res.response.status)
+            const gotStatus = res.statusCode
             const gotLength = res.headers?.['content-length']
             const err = mime && !gotMime?.startsWith(mime) && 'expected mime ' + mime + ' got ' + gotMime
                 || status && gotStatus !== status && 'expected status ' + status + ' got ' + gotStatus
-                || re && !(typeof data === 'string' && re.test(data)) && 'expected content '+String(re)+' got '+(data || '-empty-')
-                || inList && !inList.every(x => isInList(data, x)) && 'expected in list '+inList
-                || outList && !outList.every(x => !isInList(data, x)) && 'expected not in list '+outList
+                || re && !re.test(data) && 'expected content '+String(re)+' got '+(data || '-empty-')
+                || inList && !inList.every(x => isInList(obj, x)) && 'expected in list '+inList
+                || outList && !outList.every(x => !isInList(obj, x)) && 'expected not in list '+outList
                 || permInList && findDefined(permInList, (v, k) => {
-                    const got = _.find(data.list, { n: k })?.p
+                    const got = _.find(obj.list, { n: k })?.p
                     const negate = v[0] === '!'
                     return findDefined(v.slice(negate ? 1 : 0).split(''), char =>
                         got?.includes(char) === negate ? `expected perm ${v} on ${k}, got ${got}` : undefined)
@@ -195,14 +193,18 @@ function req(methodUrl: string, test:Tester, requestOptions: AxiosRequestConfig<
                 throw Error(err)
         }
         if (typeof test === 'function')
-            if (!test(data, res))
-                throw Error()
-        return data
+            if (!test(obj ?? data, res))
+                throw Error("failed test: " + test)
+        return obj ?? data
     }
 }
 
 function reqApi(api: string, params: object, test:Tester) {
-    return req(API+api, test, { data: params, headers: { 'x-hfs-anti-csrf': '1'} })
+    const isGet = api.startsWith('/')
+    return req(API+api, test, {
+        body: JSON.stringify(params),
+        headers: isGet ? undefined : { 'x-hfs-anti-csrf': '1'}
+    })
 }
 
 function reqList(uri:string, tester:Tester, params?: object) {
