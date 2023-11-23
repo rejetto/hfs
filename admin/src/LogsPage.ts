@@ -1,30 +1,40 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useState } from 'react';
+import { createElement as h, Fragment, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { formatBytes, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
-import { Flex, typedKeys, usePauseButton } from './misc';
+import { Flex, typedKeys, useBreakpoint, usePauseButton, useToggleButton } from './misc';
 import { GridColDef } from '@mui/x-data-grid'
+import _ from 'lodash'
+import { SmartToy } from '@mui/icons-material'
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
     const files = typedKeys(logLabels)
     const { pause, pauseButton } = usePauseButton()
+    const [showApi, showApiButton] = useToggleButton(v => ({
+        title: v ? "hide APIs" : "show APIs",
+        icon: SmartToy,
+        sx: { rotate: v ? '0deg' : '180deg' },
+        disabled: tab >= 2,
+    }), true)
+    const shorterLabels = !useBreakpoint('sm') && { error_log: "Errors" }
     return h(Fragment, {},
         h(Flex, { gap: 0  },
             h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
-                files.map(f => h(Tab, { label: logLabels[f], key: f })) ),
+                files.map(f => h(Tab, { label: _.get(shorterLabels, f) || logLabels[f], key: f })) ),
             h(Box, { flex: 1 }),
+            showApiButton,
             pauseButton,
         ),
-        h(LogFile, { key: tab, pause, file: files[tab] }), // without key, some state is accidentally preserved across files
+        h(LogFile, { key: tab, pause, showApi, file: files[tab] }), // without key, some state is accidentally preserved across files
     )
 }
 
-function LogFile({ file, pause }: { file: string, pause?: boolean }) {
+function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, showApi: boolean }) {
     const { list, error, connecting } = useApiList('get_log', { file }, {
         invert: true,
         pause,
@@ -34,6 +44,7 @@ function LogFile({ file, pause }: { file: string, pause?: boolean }) {
             const notes = extra.dl ? "fully downloaded" : extra.ul ? "uploaded " + formatBytes(extra.size) : ''
             if (notes)
                 x.notes = notes
+            return x
         }
     })
     const tsColumn: GridColDef = {
@@ -47,7 +58,7 @@ function LogFile({ file, pause }: { file: string, pause?: boolean }) {
     return h(DataTable, {
         error,
         loading: connecting,
-        rows: list as any,
+        rows: useMemo(() => showApi ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]),
         compact: true,
         componentsProps: {
             pagination: {
