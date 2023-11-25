@@ -1,18 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import {
-    getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
-    permsFromParent, nodeIsLink
-} from './vfs'
+import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
+    permsFromParent, nodeIsLink } from './vfs'
 import _ from 'lodash'
 import { mkdir, stat } from 'fs/promises'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import { dirStream, enforceFinal, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
-import {
-    IS_WINDOWS,
-    HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
-} from './const'
+import { IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE } from './const'
 import { getDrives } from './util-os'
 import { Stats } from 'fs'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
@@ -220,7 +215,16 @@ const apis: ApiHandlers = {
     },
 
     async windows_integration() {
-        await windowsIntegration()
+        const status = await getServerStatus(true)
+        const h = status.http.listening ? status.http : status.https
+        const url = h.srv!.name + '://localhost:' + h.port
+        for (const k of ['*', 'Directory']) {
+            await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
+            await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -Command "
+            $j = '{ \\"source\\": "' + ('%1'|convertTo-json) + '" }'; $j = [System.Text.Encoding]::UTF8.GetBytes($j); $wsh = New-Object -ComObject Wscript.Shell; 
+            try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; 
+            $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }"`)
+        }
         return {}
     },
 
@@ -259,17 +263,9 @@ function simplifyName(node: VfsNode) {
 
 const WINDOWS_REG_KEY = 'HKCU\\Software\\Classes\\*\\shell\\AddToHFS3'
 
-export async function windowsIntegration() {
-    const status = await getServerStatus()
-    const url = 'http://localhost:' + status.http.port
-    for (const k of ['*', 'Directory']) {
-        await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
-        await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -Command "
-            $j = '{ \\"source\\": "' + ('%1'|convertTo-json) + '" }'; $wsh = New-Object -ComObject Wscript.Shell; $j = [System.Text.Encoding]::UTF8.GetBytes($j);
-            try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; 
-            $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }"`)
-    }
-}
+if (IS_WINDOWS) // legacy 0.49.0-beta7 2023-10-27. Remove in 0.50
+    for (const k of ['*', 'Directory'])
+        reg('delete', `HKCR\\${k}\\shell\\AddToHFS3`, '/f').catch(() => {})
 
 function reg(...pars: string[]) {
     return promisify(execFile)('reg', pars)
