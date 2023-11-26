@@ -1,7 +1,7 @@
 {
     "author": "H.F.P. Pit - PH5HP",
-    "version": 1.0,
-    "hfs_version": "0.46.0",
+    "version": 1.1,
+    "hfs_version": "0.50.0",
     "translate": {
         "Select": "Selecteer",
         "n_files": "{n,plural,one{# bestand} other{# bestanden}}",
@@ -120,6 +120,7 @@
         "off": "uit",
         "Operation successful": "Operatie succesvol",
         "Uploader": "Uploader",
-        "Download counter": "Download teller"
+        "Download counter": "Download teller",
+	    "upload_dd_hint": "U kunt bestanden uploaden door te veslepen&lost te laten in de bestanden lijst"
     }
 }
