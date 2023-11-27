@@ -121,7 +121,7 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
     })
 }
 
-// produces as soon as a promise resolves, not sequentially
+// produces as promises resolve, not sequentially
 export class AsapStream<T> extends Readable {
     finished = false
     constructor(private promises: Promise<T>[]) {

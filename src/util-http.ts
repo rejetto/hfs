@@ -4,6 +4,8 @@ import https, { RequestOptions } from 'node:https'
 import http, { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import _ from 'lodash'
+import { text as stream2string } from 'node:stream/consumers'
+export { stream2string }
 
 // in case the response is not 2xx, it will throw and the error object is the Response object
 export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
@@ -11,23 +13,6 @@ export async function httpString(url: string, options?: XRequestOptions): Promis
     if (!_.inRange(res.statusCode!, 200, 299))
         throw res
     return await stream2string(res)
-}
-
-export async function stream2string(stream: Readable): Promise<string> {
-    return new Promise((resolve, reject) => {
-        let data = ''
-        stream.on('data', chunk =>
-            data += chunk)
-        stream.on('error', reject)
-        stream.on('end', () => {
-            try {
-                resolve(data)
-            }
-            catch(e) {
-                reject(e)
-            }
-        })
-    })
 }
 
 export interface XRequestOptions extends RequestOptions {
@@ -39,10 +24,14 @@ export interface XRequestOptions extends RequestOptions {
 
 export function httpStream(url: string, { body, jar, noRedirect, ...options }: XRequestOptions ={}): Promise<IncomingMessage> {
     return new Promise((resolve, reject) => {
-        if (body)
+        options.headers ??= {}
+        if (body) {
             options.method ||= 'POST'
+            if (!(body instanceof Readable))
+                options.headers['Content-Length'] ??= Buffer.byteLength(body)
+        }
         if (jar)
-            (options.headers ||= {}).cookie = _.map(jar, (v,k) => `${k}=${v}; `).join('')
+            options.headers.cookie = _.map(jar, (v,k) => `${k}=${v}; `).join('')
                 + (options.headers.cookie || '') // preserve parameter
         const proto = url.startsWith('https:') ? https : http
         const req = proto.request(url, options, res => {
