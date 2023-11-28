@@ -35,7 +35,7 @@ export default function InternetPage() {
         setVerifyAgain(false)
     }, [verifyAgain, nat, loading])
     return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
-        h(Alert, { severity: 'info' }, "This page helps you making your server work on the Internet"),
+        h(Alert, { severity: 'info' }, "This page makes sure your site is working correctly on the Internet"),
         baseUrlBox(),
         networkBox(),
         httpsBox(),
