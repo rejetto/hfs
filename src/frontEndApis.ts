@@ -10,7 +10,7 @@ import {
     HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN,
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
-import { hasPermission, urlToNode } from './vfs'
+import { hasPermission, statusCodeForMissingPerm, urlToNode } from './vfs'
 import { mkdir, rename, rm } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getUploadMeta } from './upload'
@@ -55,8 +55,9 @@ export const frontEndApis: ApiHandlers = {
         const parentNode = await urlToNode(uri, ctx)
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
-        if (!hasPermission(parentNode, 'can_upload', ctx))
-            return new ApiError(HTTP_FORBIDDEN)
+        const err = statusCodeForMissingPerm(parentNode, 'can_upload', ctx)
+        if (err)
+            return new ApiError(err)
         try {
             await mkdir(join(parentNode.source!, name))
             return {}

@@ -16,7 +16,8 @@ const username = 'rejetto'
 const password = 'password'
 const API = '/~/api/'
 const BASE_URL = 'http://localhost'
-const UPLOAD_URI = '/for-admins/upload/temp/gpl.png'
+const UPLOAD_ROOT = '/for-admins/upload'
+const UPLOAD_DEST = UPLOAD_ROOT + '/temp/gpl.png'
 
 describe('basics', () => {
     //before(async () => appStarted)
@@ -93,7 +94,8 @@ describe('basics', () => {
         headers: { Referer: 'https://some-website.com/try-to-trick/x.com/' }
     }))
 
-    testUpload('upload.need account', UPLOAD_URI, 401)
+    testUpload('upload.need account', UPLOAD_DEST, 401)
+    it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
     it('delete.no perm', reqApi('delete', { uri: '/for-admins' }, 403))
     it('delete.need account', reqApi('delete', { uri: '/for-admins/upload' }, 401))
     it('rename.no perm', reqApi('delete', { uri: '/for-admins', dest: 'any' }, 403))
@@ -109,16 +111,17 @@ describe('accounts', () => {
 
 describe('after-login', () => {
     before(() => login(username))
+    it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 200))
     it('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
     it('inherit.disabled', reqList('/for-disabled/', 401))
     testUpload('upload.never', '/random', 403)
-    testUpload('upload.ok', UPLOAD_URI, 200)
-    testUpload('upload.crossing', UPLOAD_URI.replace('temp', '../..'), 418)
+    testUpload('upload.ok', UPLOAD_DEST, 200)
+    testUpload('upload.crossing', UPLOAD_DEST.replace('temp', '../..'), 418)
     const renameTo = 'z'
-    it('rename.ok', reqApi('rename', { uri: UPLOAD_URI, dest: renameTo }, 200))
-    it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_URI }, 404))
-    it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_URI) + '/' + renameTo }, 200))
-    it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_URI }, 404))
+    it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
+    it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
+    it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_DEST) + '/' + renameTo }, 200))
+    it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
     after(() =>
         rmSync(join(__dirname, 'temp'), { recursive: true}))
 })
