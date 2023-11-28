@@ -322,7 +322,8 @@ export default function InternetPage() {
         }
         catch(e) {
             if (errMsg) {
-                const msg = errMsg + (external && Math.min(external, nat!.internalPort!) ? ". Some routers refuse to work with ports under 1024." : '')
+                const low = external && Math.min(external, nat!.internalPort!) < 1024
+                const msg = errMsg + (low ? ". Some routers refuse to work with ports under 1024." : '')
                 await alertDialog(msg, 'error')
             }
             throw e
