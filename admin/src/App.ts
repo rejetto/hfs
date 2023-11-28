@@ -41,6 +41,7 @@ function Routed() {
     title = current && (current.title || getMenuLabel(current)) || title
     const [open, setOpen] = useState(false)
     const large = useBreakpoint('lg')
+    const xs = current?.noPaddingOnMobile ? 0 : 1
     return h(Fragment, {},
         !large && h(StickyBar, { title, openMenu: () => setOpen(true) }),
         !large && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
@@ -54,8 +55,8 @@ function Routed() {
                 sx: {
                     background: 'url(cup.svg) no-repeat right fixed',
                     backgroundSize: 'contain',
-                    px: { xs: 1, md: 2, lg: 3 },
-                    pb: { xs: 1, md: 2 },
+                    px: { xs, md: 2, lg: 3 },
+                    pb: { xs, md: 2 },
                     boxSizing: 'border-box', // keep padding inside the viewport
                     position: 'relative',
                     display: 'flex',

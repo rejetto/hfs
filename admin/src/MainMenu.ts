@@ -39,6 +39,7 @@ interface MenuEntry {
     label?: string
     title?: string
     comp: FC
+    noPaddingOnMobile?: true
 }
 
 export const mainMenu: MenuEntry[] = [
@@ -47,10 +48,10 @@ export const mainMenu: MenuEntry[] = [
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
     { path: 'options', icon: Settings, comp: OptionsPage },
     { path: 'internet', icon: Public, comp: InternetPage },
-    { path: 'monitoring', icon: Monitor, comp: MonitorPage },
-    { path: 'logs', icon: History, comp: LogsPage },
+    { path: 'monitoring', icon: Monitor, comp: MonitorPage, noPaddingOnMobile: true },
+    { path: 'logs', icon: History, comp: LogsPage, noPaddingOnMobile: true },
     { path: 'language', icon: Translate, comp: LangPage },
-    { path: 'plugins', icon: Extension, comp: PluginsPage },
+    { path: 'plugins', icon: Extension, comp: PluginsPage, noPaddingOnMobile: true },
     { path: 'html', icon: Code, label: "Custom HTML", comp: CustomHtmlPage },
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
