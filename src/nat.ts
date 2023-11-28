@@ -31,7 +31,9 @@ export const upnpClient = new Client({ timeout: 4_000 })
 const originalMethod = upnpClient.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
 upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), 0, { retain: HOUR, retainFailure: 30_000 })
-upnpClient.getGateway().catch(() => {})
+upnpClient.getGateway().then(res => {
+    console.debug('upnp', res.gateway.description)
+}, () => {})
 
 // poll external ip
 repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => {
