@@ -1,10 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode } from 'react'
+import { createElement as h, Fragment, ReactNode, useMemo } from 'react'
 import { FieldProps } from '.'
-import { FormControl, FormControlLabel, FormLabel, IconButton, InputAdornment, MenuItem, Radio, RadioGroup,
-    StandardTextFieldProps, TextField, Tooltip
-} from '@mui/material'
+import { Autocomplete, FormControl, FormControlLabel, FormLabel, IconButton, InputAdornment, MenuItem, Radio,
+    RadioGroup, StandardTextFieldProps, TextField, Tooltip } from '@mui/material'
 import { SxProps } from '@mui/system'
 import { Clear } from '@mui/icons-material'
 
@@ -29,20 +28,36 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
 }
 
 export function MultiSelectField<T>(props: FieldProps<T[]> & CommonSelectProps<T>) {
-    const { value, onChange, setApi, options, sx, clearable, clearValue, ...rest } = props
-    return h(TextField, {
-        ...commonSelectProps({ clearValue: [], ...props }),
-        ...rest,
-        SelectProps: { multiple: true },
-        sx: { ...rest.sx, '& div[role=button]': { whiteSpace: 'unset' } },
-        value: !Array.isArray(value) ? [] : value.map(x => JSON.stringify(x)),
-        onChange(event) {
-            try {
-                let v: any = event.target.value
-                v = Array.isArray(v) ? v.map(x => JSON.parse(x)) : []
-                onChange(v as T[], { was: value, event })
-            }
-            catch {}
+    const { value, onChange, setApi, options, sx, clearable, clearValue, placeholder, ...rest } = props
+    const { select, InputProps, ...common } = commonSelectProps({ clearValue: [], ...props, clearable: false })
+    const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
+    const valueAsOptions = useMemo(() => !Array.isArray(value) ? []
+            : value.map(x => normalizedOptions.find(o => o.value === x) || { value: x, label: String(x) }),
+        [value, normalizedOptions])
+    return h(Autocomplete<SelectPair<T>, true>, {
+        multiple: true,
+        options: normalizedOptions,
+        filterSelectedOptions: true,
+        onChange: (event, sel) => onChange(sel.map(x => x.value) as T[], { was: value, event }),
+        isOptionEqualToValue: (option, val) => option.value === val.value,
+        getOptionLabel: x => x.label,
+        renderOption: (props, x) => h('span', props, x.label),
+        ...common,
+        value: valueAsOptions,
+        renderInput: params => h(TextField, {
+            ...rest,
+            placeholder: valueAsOptions.length ? undefined : placeholder, // TextField's own logic doesn't know about the main field not being empty
+            SelectProps: { multiple: true },
+            sx: { ...rest.sx, '& div[role=button]': { whiteSpace: 'unset' } },
+            ...params,
+        }),
+        sx: {
+            '.MuiAutocomplete-tag': { height: 24 }, // too tall, otherwise
+            '.MuiAutocomplete-inputRoot': { pt: '21px' }, // some extra margin from label
+            'input[type][type]': { p: '4px' },
+            '.MuiChip-deleteIcon[class]': { position: 'absolute', right: '-0.6em', opacity: 0, color: 'text.primary', transition: 'all .2s' },
+            '.MuiChip-root:hover .MuiChip-deleteIcon': { opacity: 1 },
+            ...sx,
         }
     })
 }
@@ -59,8 +74,7 @@ interface CommonSelectProps<T> extends HelperCommon<T> {
 }
 function commonSelectProps<T>(props: CommonSelectProps<T>) {
     const { options, disabled, start, end, clearable, clearValue, value } = props
-    const normalizedOptions = !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label }))
-        : options.map(o => typeof o === 'string' || typeof o === 'number' ? { value: o, label: String(o) } : o as SelectPair<T>)
+    const normalizedOptions = normalizeOptions(options)
     const jsonValue = JSON.stringify(value)
     const currentOption = normalizedOptions.find(x => JSON.stringify(x.value) === jsonValue)
     const showClear = clearable && (Array.isArray(value) ? value.length > 0 : value)
@@ -88,6 +102,11 @@ function commonSelectProps<T>(props: CommonSelectProps<T>) {
             children: h(Fragment, { key: i }, o?.label) // without this fragment/key, a label as h(span) will produce warnings
         }))
     }
+}
+
+function normalizeOptions<T>(options: SelectOptions<T>) {
+    return !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label }))
+        : options.map(o => typeof o === 'string' || typeof o === 'number' ? { value: o, label: String(o) } : o as SelectPair<T>)
 }
 
 export function RadioField<T>({ label, options, value, onChange }: FieldProps<T> & { options:SelectPair<T>[] }) {

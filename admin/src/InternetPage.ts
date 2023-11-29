@@ -51,7 +51,7 @@ export default function InternetPage() {
     function geoBox() {
         const countryOptions = useMemo(() => _.sortBy(COUNTRIES, 'name').map(x => ({
             value: x.code,
-            label: h('span', { style: { whiteSpace: 'nowrap' } }, `${x.flag} ${x.name}`)
+            label: `${x.flag} ${x.name}`
         })), [COUNTRIES])
         return h(TitleCard, { title: "Geo IP", icon: Public },
             h(ConfigForm<{
