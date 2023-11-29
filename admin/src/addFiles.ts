@@ -9,22 +9,24 @@ import { apiCall } from './api'
 import FilePicker from './FilePicker'
 import { focusSelector } from '@hfs/shared'
 
+let lastFolder: undefined | string
 export default function addFiles() {
     const { close } = newDialog({
         title: "Add files or folders",
         dialogProps: { sx:{ minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content() {
-            const parent = getParent()
+            const parent = getFolderFromSelected()
             return h(Fragment, {},
                 h(Box, { sx:{ typography: 'body1', px: 1, py: 2 } },
                     "Selected elements will be added under ",
                     parent.isRoot ? h('i', {}, "Home") : decodeURI(parent.id)
                 ),
                 h(FilePicker, {
-                    from: parent.source,
+                    from: lastFolder ?? parent.source,
                     async onSelect(sel) {
                         const res = await Promise.all(sel.map(source =>
                             apiCall('add_vfs', { parent: parent.id, source }).then(r => r, e => [source, e.message])))
+                        lastFolder = sel[0].slice(0, sel[0].lastIndexOf('/'))
                         const errs = res.filter(Array.isArray)
                         if (errs.length)
                             await alertDialog(h(Box, {},
@@ -48,7 +50,7 @@ export async function addVirtual() {
     try {
         const name = await promptDialog("Enter folder name")
         if (!name) return
-        const { id: parent } = getParent()
+        const { id: parent } = getFolderFromSelected()
         const res = await apiCall('add_vfs', { parent, name })
         reloadVfs([ parent + encodeURI(res.name) + '/' ])
         await alertDialog(`Folder "${res.name}" created`, 'success')
@@ -60,7 +62,7 @@ export async function addVirtual() {
 
 export async function addLink() {
     try {
-        const { id: parent } = getParent()
+        const { id: parent } = getFolderFromSelected()
         const res = await apiCall('add_vfs', { parent, name: 'new link', url: 'https://google.com' })
         reloadVfs([ parent + encodeURI(res.name) ])
         toast("Link created", 'success', {
@@ -72,7 +74,7 @@ export async function addLink() {
     }
 }
 
-function getParent() {
+function getFolderFromSelected() {
     const f = state.selectedFiles[0] || state.vfs
     return f.type === 'folder' ? f : f.parent!
 }
