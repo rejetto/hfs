@@ -265,7 +265,7 @@ export async function windowsIntegration() {
     for (const k of ['*', 'Directory']) {
         await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
         await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -Command "
-            $j = '{ \\"source\\": "' + ('%1'|convertTo-json) + '" }'; $wsh = New-Object -ComObject Wscript.Shell; 
+            $j = '{ \\"source\\": "' + ('%1'|convertTo-json) + '" }'; $wsh = New-Object -ComObject Wscript.Shell; $j = [System.Text.Encoding]::UTF8.GetBytes($j);
             try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; 
             $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }"`)
     }
