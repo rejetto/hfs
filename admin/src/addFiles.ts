@@ -34,8 +34,8 @@ export default function addFiles() {
                                         h('li', { key: file }, file, ': ', err))
                                 )
                             ), 'error')
-                        const good = res.filter(x => x.name).map(x => parent.id + x.name)
-                        reloadVfs(good)
+                        const ids = res.filter(x => x.name).map(x => parent.id + encodeURI(x.name) + (x.link.endsWith('/') ? '/' : ''))
+                        reloadVfs(ids)
                         close()
                     }
                 })
