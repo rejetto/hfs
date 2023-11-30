@@ -14,8 +14,29 @@ import {
     StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
-import { basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, isWhoObject, LinkBtn, modifiedSx,
-    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, wantArray, Who, WhoObject, wikiLink } from './misc'
+import {
+    _log,
+    basename,
+    Btn,
+    defaultPerms,
+    formatBytes,
+    formatTimestamp,
+    IconBtn,
+    isEqualLax,
+    isWhoObject,
+    LinkBtn,
+    modifiedSx,
+    newDialog,
+    objSameKeys,
+    onlyTruthy,
+    prefix,
+    useBreakpoint,
+    VfsPerms,
+    wantArray,
+    Who,
+    WhoObject,
+    wikiLink
+} from './misc'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -70,6 +91,14 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     const accounts = data.list
 
     const needSourceWarning = !hasSource && "Works only on folders with source! "
+    const show: Record<keyof VfsPerms, boolean> = {
+        can_read: !isLink,
+        can_see: true,
+        can_archive: !isLink,
+        can_list: isDir,
+        can_upload: isDir && hasSource,
+        can_delete: isDir && hasSource,
+    }
     return h(Form, {
         values,
         set(v, k) {
@@ -133,12 +162,12 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
                         : "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk.",
             },
             !isLink && { k: 'id', comp: LinkField, statusApi, xs: 12 },
-            !isLink && perm('can_read', "Who can see but not download will be asked to login"),
+            perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_see', "If you can't see, you may still download with a direct link"),
-            !isLink && perm('can_archive', "Should this be included when user downloads as ZIP", { label: "Who can zip", lg: isDir ? true : 12 }),
-            isDir && perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
-            isDir && perm('can_delete', [needSourceWarning, "Those who can delete can also rename"]),
-            isDir && perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
+            perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? true : 12 }),
+            perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
+            perm('can_delete', [needSourceWarning, "Those who can delete can also rename"]),
+            perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
@@ -159,12 +188,15 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     })
 
     function perm(perm: keyof VfsPerms, helperText?: ReactNode, props: Partial<WhoFieldProps>={}) {
+        if (!show[perm]) return null
+        const dontShow = [perm, ...onlyTruthy(_.map(show, (v,k) => !v && k))]
+        const others = _.difference(Object.keys(defaultPerms), dontShow)
         return {
             comp: WhoField,
             k: perm, lg: 6, xl: 4,
             parent, accounts, helperText, isDir,
             showInherited: anyMask, // with masks, you may need to set a permission to override the mask
-            otherPerms: _.without(Object.keys(defaultPerms), perm).map(x => ({ value: x, label: "As " +perm2word(x) })),
+            otherPerms: others.map(x => ({ value: x, label: "As " +perm2word(x) })),
             label: "Who can " + perm2word(perm),
             inherit: file.inherited?.[perm] ?? defaultPerms[perm],
             byMasks: byMasks?.[perm],
@@ -177,7 +209,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
 
 function perm2word(perm: string) {
     const word = perm.split('_')[1]
-    return word === 'read' ? 'download' : word
+    return word === 'read' ? 'download' : word === 'archive' ? 'zip' : word
 }
 
 interface WhoFieldProps extends FieldProps<Who | undefined> {
@@ -205,7 +237,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
         // don't offer inherited value twice, unless it was already selected, or it is forced
         ].map(x => !hideValues?.includes(x.value) && (x.value === thisValue || showInherited || x.value !== inherit)
             && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
-    [inherit, parent, thisValue])
+        [inherit, parent, thisValue])
 
     const timeout = 500
     const arrayMode = Array.isArray(thisValue)
@@ -221,7 +253,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
         }),
         h(Collapse, { in: arrayMode, timeout },
             arrayMode && h(MultiSelectField as Field<string[]>, {
-                label: accounts?.length ? "Choose accounts for " + rest.label : "You didn't create any account yet",
+                label: accounts?.length ? "Accounts for " + rest.label : "You didn't create any account yet",
                 value: thisValue,
                 onChange,
                 options: accounts?.map(a => ({ value: a.username, label: a.username })) || [],
