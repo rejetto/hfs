@@ -28,7 +28,7 @@ export const acmeMiddleware: Middleware = (ctx, next) => { // koa format
         return next()
 }
 
-async function generateSSLCert(domain: string, email?: string) {
+async function generateSSLCert(domain: string, email?: string, altNames?: string[]) {
     // will answer challenge through our koa app (if on port 80) or must we spawn a dedicated server?
     const nat = await getNatInfo()
     const { http } = await getServerStatus()
@@ -58,7 +58,7 @@ async function generateSSLCert(domain: string, email?: string) {
             directoryUrl: acme.directory.letsencrypt.production
         })
         acme.setLogger(console.debug)
-        const [key, csr] = await acme.crypto.createCsr({ commonName: domain })
+        const [key, csr] = await acme.crypto.createCsr({ commonName: domain, altNames })
         const cert = await acmeClient.auto({
             csr,
             email,
@@ -81,9 +81,9 @@ async function generateSSLCert(domain: string, email?: string) {
     }
 }
 
-export const makeCert = debounceAsync(async (domain: string, email?: string) => {
+export const makeCert = debounceAsync(async (domain: string, email?: string, altNames?: string[]) => {
     if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
-    const res = await generateSSLCert(domain, email)
+    const res = await generateSSLCert(domain, email, altNames)
     const CERT_FILE = 'acme.cert'
     const KEY_FILE = 'acme.key'
     await fs.writeFile(CERT_FILE, res.cert)

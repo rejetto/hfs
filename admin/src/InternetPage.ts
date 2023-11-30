@@ -103,7 +103,7 @@ export default function InternetPage() {
             cert.element || with_(cert.data, c => h(Box, {},
                 h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate",
                 h('ul', {},
-                    h('li', {}, "Domain: ", c.subject?.CN || '-'),
+                    h('li', {}, "Domain: ", c.altNames?.join(' + ') ||'-'),
                     h('li', {}, "Issuer: ", c.issuer?.O || h('i', {}, 'self-signed')),
                     h('li', {}, "Validity: ", ['validFrom', 'validTo'].map(k => formatTimestamp(c[k])).join(' – ')),
                 )
@@ -122,7 +122,7 @@ export default function InternetPage() {
                 },
                 fields: [
                     md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
-                    { k: 'acme_domain', label: "Domain for certificate", sm: 6, required: true, helperText: "example: your.domain.com" },
+                    { k: 'acme_domain', label: "Domain for certificate", sm: 6, required: true, helperText: md("Example: your.domain.com\nMultiple domains separated by commas") },
                     { k: 'acme_email', label: "E-mail for certificate", sm: 6 },
                     { k: 'acme_renew', label: "Automatic renew one month before expiration", comp: BoolField, disabled: !values.acme_domain },
                 ],
@@ -130,7 +130,7 @@ export default function InternetPage() {
                     children: "Request",
                     startIcon: h(Send),
                     async onClick() {
-                        const domain = values.acme_domain
+                        const [domain, ...altNames] = values.acme_domain.split(',')
                         const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
                         if (fresh && !await confirmDialog("Your certificate is still good", { confirmText: "Make a new one anyway" }))
                             return
@@ -138,7 +138,7 @@ export default function InternetPage() {
                         const res = await apiCall('check_domain', { domain }).catch(e =>
                             confirmDialog(String(e), { confirmText: "Continue anyway" }) )
                         if (res === false) return
-                        await apiCall('make_cert', { domain, email: values.acme_email }, { timeout: 20_000 })
+                        await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
                             .then(async () => {
                                 await alertDialog("Certificate created", 'success')
                                 if (!listening)

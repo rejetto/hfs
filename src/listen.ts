@@ -73,9 +73,10 @@ export function openAdmin() {
 
 export function getCertObject() {
     if (!httpsOptions.cert) return
-    const o = new X509Certificate(httpsOptions.cert)
-    const some = _.pick(o, ['subject', 'issuer', 'validFrom', 'validTo'])
-    return objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
+    const all = new X509Certificate(httpsOptions.cert)
+    const some = _.pick(all, ['subject', 'issuer', 'validFrom', 'validTo'])
+    const ret = objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
+    return Object.assign(ret, { altNames: all.subjectAltName?.replace(/DNS:/g, '').split(/, */) })
 }
 
 const considerHttps = debounceAsync(async () => {
