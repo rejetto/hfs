@@ -132,7 +132,7 @@ export class DirEntry {
     }
 
     getDefaultIcon() {
-        return hIcon(this.icon ?? (this.isFolder ? 'folder' : this.web || this.url ? 'link' : ext2type(this.ext) || 'file'))
+        return hIcon(this.icon ?? (this.isFolder || this.web ? 'folder' : this.url ? 'link' : ext2type(this.ext) || 'file'))
     }
 }
 export type DirList = DirEntry[]
