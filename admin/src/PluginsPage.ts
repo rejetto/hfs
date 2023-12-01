@@ -13,6 +13,7 @@ const TABS = {
 }
 const LABELS = Object.keys(TABS)
 const PANES = Object.values(TABS)
+export const PLUGIN_ERRORS = { ENOTFOUND: "Cannot reach github.com" }
 
 export default function PluginsPage() {
     const [tab, setTab] = useState(0)
