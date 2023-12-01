@@ -26,6 +26,8 @@ const apis: ApiHandlers = {
             resolver.resolve(domain, 'AAAA'),
             lookup(domain).then(x => [x.address]),
         ])
+        if (settled[0].status === 'rejected' && settled[0].reason.code === 'ECONNREFUSED')
+            throw new ApiError(HTTP_SERVICE_UNAVAILABLE, "cannot resolve domain")
         // merge all results
         const domainIps = _.uniq(onlyTruthy(settled.map(x => x.status === 'fulfilled' && x.value)).flat())
         if (!domainIps.length)
