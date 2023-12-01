@@ -5,7 +5,7 @@ import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Close, Delete, DoNotDisturb, Group, MilitaryTech, Person, PersonAdd } from '@mui/icons-material'
 import { IconBtn, iconTooltip, newDialog, reloadBtn, useBreakpoint, with_ } from './misc'
-import { TreeItem, TreeView } from '@mui/lab'
+import { TreeItem, TreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import md from './md'
@@ -101,7 +101,7 @@ export default function AccountsPage() {
             ) ),
         h(Grid, { item: true, md: 5 },
             !list?.length && h(Alert, { severity: 'info' }, md`To access administration <u>remotely</u> you will need to create a user account with admin permission`),
-            h(TreeView, {
+            h(TreeView<true>, { // true because it's not detecting multiSelect correctly (ts495)
                 multiSelect: true,
                 sx: { pr: 4, pb: 2, minWidth: '15em' },
                 selected: selectionMode ? sel : [],
