@@ -3,7 +3,7 @@
 import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
 import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working,
-    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE
+    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed
 } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
@@ -100,7 +100,7 @@ export function showUpload() {
     }
 
     function Content(){
-        const { qs, paused, eta, skipExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
+        const { qs, paused, eta, speed, skipExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
         const { props } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
@@ -148,7 +148,7 @@ export function showUpload() {
             h(UploadStatus, { margin: '.5em 0' }),
             qs.length > 0 && h('div', {},
                 h(Flex, { justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
-                    [queueStr, etaStr].filter(Boolean).join(', '),
+                    [queueStr, etaStr, speed && formatSpeed(speed)].filter(Boolean).join(', '),
                     inQ > 0 && iconBtn('delete', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
