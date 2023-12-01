@@ -173,7 +173,7 @@ export default function InternetPage() {
                     h(Btn, {
                         size: 'small',
                         variant: 'outlined',
-                        onClick: () =>changeBaseUrl().then(config.reload)
+                        onClick: () => void(changeBaseUrl().then(config.reload))
                     }, "Change"),
                     domain && h(Btn, {
                         size: 'small',
