@@ -3,21 +3,11 @@
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState, ReactNode } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { PauseCircle, PlayCircle, LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
+import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Box, Chip, ChipProps, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
-import {
-    formatBytes,
-    IconBtn,
-    IconProgress,
-    iconTooltip,
-    ipForUrl,
-    manipulateConfig,
-    useBreakpoint,
-    useBatch,
-    CFG,
-    usePauseButton
-} from "./misc"
+import { formatBytes, IconBtn, IconProgress, iconTooltip, ipForUrl, manipulateConfig, useBreakpoint, useBatch,
+    CFG, usePauseButton, formatSpeed } from "./misc"
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { toast } from "./dialog"
@@ -47,8 +37,8 @@ function MoreInfo() {
         sm && pair('connections'),
         pair('sent', { render: formatBytes, minWidth: '4em' }),
         sm && pair('got', { render: formatBytes, minWidth: '4em' }),
-        pair('outSpeed', { label: "Output speed", render: formatSpeed }),
-        md && pair('inSpeed', { label: "Input speed", render: formatSpeed }),
+        pair('outSpeed', { label: "Output speed", render: formatSpeedK }),
+        md && pair('inSpeed', { label: "Input speed", render: formatSpeedK }),
     )
 
     type Color = ChipProps['color']
@@ -193,7 +183,7 @@ function Connections() {
                     width: 110,
                     hideUnder: 'sm',
                     type: 'number',
-                    renderCell: ({ value, row }) => formatSpeed(Math.max(value||0, row.inSpeed||0) || undefined),
+                    renderCell: ({ value, row }) => formatSpeedK(Math.max(value||0, row.inSpeed||0) || undefined),
                     mergeRender: { other: 'sent', fontSize: 'small', textAlign: 'right' }
                 },
                 {
@@ -242,6 +232,6 @@ function blockIp(ip: string) {
     return manipulateConfig('block', data => [...data, { ip }])
 }
 
-function formatSpeed(value: number | undefined) {
-    return value === undefined ? '' : formatBytes(value * 1000, { post: "B/s", k: 1000, digits: 1 })
+function formatSpeedK(value: number | undefined) {
+    return value === undefined ? '' : formatSpeed(value * 1000, { digits: 1 })
 }
