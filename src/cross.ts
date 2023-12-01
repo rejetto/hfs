@@ -101,6 +101,12 @@ export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
     return nAsString + ' ' + (MULTIPLIERS[i]||'') + post
 } // formatBytes
 
+export function formatSpeed(n: number, options: { digits?: number }={}) {
+    return formatBytes(n, { post: 'B/s', k: 1000, ...options })
+        .replace('K', 'k') // ref https://en.wikipedia.org/wiki/Data-rate_units
+
+}
+
 export function prefix(pre:string, v:string|number|undefined|null|false, post:string='') {
     return v ? pre+v+post : ''
 }
