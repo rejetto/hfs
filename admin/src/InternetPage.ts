@@ -218,7 +218,7 @@ export default function InternetPage() {
                     doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    nat?.publicIps.length && nat.internalPort && h(LinkBtn, { onClick: verify }, "Verify")
+                    nat?.publicIps.length > 0 && nat.internalPort && h(LinkBtn, { onClick: verify }, "Verify")
                 )
             }),
         )
