@@ -3,7 +3,7 @@ import { dirname, join } from 'path'
 import { basename } from './cross'
 import { parseFile, parseFileCache } from './util-files'
 import { writeFile } from 'fs/promises'
-import { singleFromBatch } from './misc'
+import { singleWorkerFromBatchWorker } from './misc'
 import _ from 'lodash'
 import iconv from 'iconv-lite'
 
@@ -16,7 +16,7 @@ export async function getCommentFor(path?: string) {
         : readDescription(dirname(path)).then(x => x.get(basename(path)), () => undefined)
 }
 
-export const setCommentFor = singleFromBatch(async (jobs: [path: string, comment: string][]) => {
+export const setCommentFor = singleWorkerFromBatchWorker(async (jobs: [path: string, comment: string][]) => {
     const byFolder = _.groupBy(jobs, job => dirname(job[0]))
     return Promise.allSettled(_.map(byFolder, async (jobs, folder) => {
         const comments = await readDescription(folder).catch(() => new Map())

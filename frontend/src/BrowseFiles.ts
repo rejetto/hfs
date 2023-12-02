@@ -22,6 +22,10 @@ export function BrowseFiles() {
     const { error } = useSnapState()
     const navigate = useNavigate()
     const { props, tile_size=0 } = useSnapState()
+    const propsDropFiles = useMemo(() => acceptDropFiles(files =>
+        props?.can_upload ? enqueue(files.map(file => ({ file })))
+            : alertDialog(t("Upload not available"), 'warning') ),
+        [props])
     if (!useAuthorized())
         return h(CustomCode, { name: 'unauthorized',
             ifEmpty: () => h('h1', {
@@ -29,11 +33,7 @@ export function BrowseFiles() {
                 onClick: () => loginDialog(navigate)
             }, t`Unauthorized`)
         })
-    return h('div', { // element dedicated to drop-files to cover full screen
-        ...acceptDropFiles(files =>
-            props?.can_upload ? enqueue(files.map(file => ({ file })))
-                : alertDialog(t("Upload not available"), 'warning') )
-    },
+    return h('div', propsDropFiles, // element dedicated to drop-files to cover full screen
         h('div', {
             className: 'list-wrapper ' + (tile_size ? 'tiles-mode' : 'list-mode'),
             style: { '--tile-size': tile_size },
@@ -145,7 +145,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
     const shrink = nPages > 20
     const from = _.floor(current, -1)
     const to = from + 10
-    return h('div', { id:'paging' },
+    return h('div', { id: 'paging' },
         h('button', {
             className: !current ? 'toggled' : undefined,
             onClick() { pageChange(0) },
@@ -206,7 +206,6 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 disabled: isLink,
                 value: selected[uri],
                 onChange(v){
-                    debugger
                     if (v)
                         return state.selected[uri] = true
                     delete state.selected[uri]

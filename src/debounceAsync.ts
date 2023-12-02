@@ -69,7 +69,7 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
 }
 
 // given a function that works on a batch of requests, returns the function that works on a single request
-export function singleFromBatch<Args extends any[]>(batchWorker: (batch: Args[]) => unknown) {
+export function singleWorkerFromBatchWorker<Args extends any[]>(batchWorker: (batch: Args[]) => unknown) {
     let batch: Args[] = []
     const debounced = debounceAsync(async () => {
         const ret = batchWorker(batch)

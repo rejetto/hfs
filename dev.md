@@ -47,11 +47,14 @@ Additionally, you have the following folders:
 
 # Guidelines
 
-- For strings, I'm trying to use double-quotes or backticks for text that's read by the user, and single-quotes elsewhere.
+- For strings, I'm using double-quotes for text that's read by the user, and single-quotes elsewhere. Backticks can be any. 
 - All objects that go in yaml should use snake_case.
   - Reason: we want something that is both easy for the user and maps directly in our code.
     Spaces and kebab-case don't play well with javascript and camel is less readable for the user.
 - API names should start with get_ if and only if they provide information without making changes.
+- All parameters that contain a *uri* should have a name that starts with `uri`.
+- React parts don't use JSX. I used JSX for a couple of years before deciding that it is not good enough to pay the
+  price of using an extra language that is also necessary to switched in and out multiple times when stuff is nested.  
 
 # Project design
 
