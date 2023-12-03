@@ -42,8 +42,11 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     const account = getAccount(username)
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
-    if (!account || !accountCanLogin(account)) // TODO simulate fake account to prevent knowing valid usernames
+    if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
+        ctx.state.logExtra = { u: username }
+        ctx.state.dont_log = false // log even if log_api is false
         return new ApiError(HTTP_UNAUTHORIZED)
+    }
     try {
         const { step1, ...rest } = await srpStep1(account)
         const sid = Math.random()
@@ -77,6 +80,8 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         }
     }
     catch(e) {
+        ctx.state.dont_log = false // log even if log_api is false
+        ctx.state.logExtra = { u: username }
         return new ApiError(HTTP_UNAUTHORIZED, String(e))
     }
     finally {

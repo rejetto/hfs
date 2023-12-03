@@ -4,12 +4,13 @@ import { createElement as h, Fragment, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { formatBytes, tryJson } from '@hfs/shared'
+import { formatBytes, HTTP_UNAUTHORIZED, prefix, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import { Flex, typedKeys, useBreakpoint, usePauseButton, useToggleButton } from './misc';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
 import { SmartToy } from '@mui/icons-material'
+import md from './md'
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
@@ -40,10 +41,10 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
         pause,
         map(x) {
             const { extra } = x
-            if (!extra) return
-            const notes = extra.dl ? "fully downloaded" : extra.ul ? "uploaded " + formatBytes(extra.size) : ''
-            if (notes)
-                x.notes = notes
+            x.notes = extra?.dl ? "fully downloaded"
+                : extra?.ul ? "uploaded " + formatBytes(extra.size)
+                : x.status === HTTP_UNAUTHORIZED && x.uri.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
+                : x.notes
             return x
         }
     })
@@ -122,6 +123,7 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 width: 105, // https://github.com/rejetto/hfs/discussions/388
                 hideUnder: 'sm',
                 cellClassName: 'wrap',
+                renderCell: ({ value }) => value && md(value),
             },
             {
                 field: 'uri',

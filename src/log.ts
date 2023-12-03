@@ -105,7 +105,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const uri = ctx.originalUrl
         const extra = ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
             || ctx.state.uploadPath && { ul: ctx.state.uploadPath, size: ctx.state.uploadSize }
-            || undefined
+            || ctx.state.logExtra
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri, extra }))
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
