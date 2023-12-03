@@ -193,6 +193,10 @@ export function basename(path: string) {
     return path.slice(path.lastIndexOf('/') + 1 || path.lastIndexOf('\\') + 1)
 }
 
+export function dirname(path: string) {
+    return path.slice(0, path.lastIndexOf('/', path.length - 1))
+}
+
 export function tryJson(s?: string, except?: (s?: string) => unknown) {
     try { return s && JSON.parse(s) }
     catch { return except?.(s) }

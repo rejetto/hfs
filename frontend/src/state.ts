@@ -12,6 +12,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     username: string,
     list: DirList,
     filteredList?: DirList,
+    clip: DirList
     loading: boolean,
     error?: string,
     listReloader: number,
@@ -37,6 +38,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     iconsReady: false,
     username: '',
     list: [],
+    clip: [],
     loading: false,
     listReloader: 0,
     patternFilter: '',

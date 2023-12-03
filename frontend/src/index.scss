@@ -104,7 +104,7 @@ a {
 button {
     background-color: var(--button-bg);
     color: var(--button-text);
-    padding: 0.5em 1em;
+    padding: .5em;
     border: transparent;
     text-decoration: none;
     border-radius: 0.3em;
@@ -483,7 +483,8 @@ button label {
 
     display: flex;
     flex-direction: column;
-    gap: 1em;
+    gap: .7em 1em;
+    justify-content: space-between;
     a {
         display: flex;
         align-items: flex-start;
@@ -497,6 +498,14 @@ button label {
 }
 
 .unauthorized { text-align: center }
+
+#clipBar {
+    position: sticky; bottom: 0;
+    background: var(--bg);
+    box-shadow: 0 0 .3em .3em var(--bg);
+
+    display: flex; align-items: center; gap: 0.5em;
+}
 
 .tiles-mode {
     max-width: none;
@@ -682,11 +691,12 @@ button label {
             border: 1px solid var(--ghost-contrast)
         }
     }
+    button { padding: .5em 1em; }
 }
 @media (max-width: 42em) {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }
-    #menu-bar, #filter-bar {
+    #menu-bar, #filter-bar, #clipBar {
         button label { display: none } /* icons only */
     }
     #filter-bar {

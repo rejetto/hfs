@@ -14,6 +14,7 @@ import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { openFileMenu } from './fileMenu'
+import { ClipBar } from './clip'
 
 export const MISSING_PERM = "Missing permission"
 
@@ -43,6 +44,7 @@ export function BrowseFiles() {
             h(CustomCode, { name: 'afterHeader' }),
             error ? h(ErrorMsg, { err: error }) : h(FilesList),
             h(CustomCode, { name: 'afterList' }),
+            h(ClipBar),
         )
     )
 }

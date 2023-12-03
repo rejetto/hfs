@@ -167,7 +167,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
             perm('can_see', "If you can't see, you may still download with a direct link"),
             perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? true : 12 }),
             perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
-            perm('can_delete', [needSourceWarning, "Those who can delete can also rename"]),
+            perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },

@@ -39,6 +39,8 @@ const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // fals
     comment: ['💬'],
     link: ['↗'],
     info: ['ⓘ', false],
+    cut: ['✄'],
+    paste: ['📋'],
 }
 
 document.fonts.ready.then(async ()=> {

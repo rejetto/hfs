@@ -233,6 +233,24 @@
       "css": "link",
       "code": 61582,
       "src": "fontawesome"
+    },
+    {
+      "uid": "b429436ec5a518c78479d44ef18dbd60",
+      "css": "paste",
+      "code": 61674,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "8772331a9fec983cdb5d72902a6f9e0e",
+      "css": "cut",
+      "code": 59417,
+      "src": "fontawesome"
+    },
+    {
+      "uid": "c8585e1e5b0467f28b70bce765d5840c",
+      "css": "copy",
+      "code": 61637,
+      "src": "fontawesome"
     }
   ]
 }

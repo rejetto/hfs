@@ -1,7 +1,7 @@
 {
     "author": "YOUR NAME HERE",
     "version": 1.0,
-    "hfs_version": "0.50.0",
+    "hfs_version": "0.51.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -140,6 +140,14 @@
         "enter_comment": "Comment for this file",
         "Comment": "Comment",
         "upload_dd_hint": "You can upload files doing drag&drop on the files list",
-        "Upload not available": "Upload not available"
+        "Upload not available": "Upload not available",
+        "Cut": "Cut",
+        "n_items": "{n,plural, one{# item} other{# items}}",
+        "good_bad": "{good} moved, {bad} failed",
+        "after_cut": "Your selection is now in the clipboard.\nGo to destination folder to paste.",
+        "Cancel clipboard": "Cancel clipboard",
+        "to_clipboard_source": "To folder",
+        "Paste": "Paste",
+        "clipboard_list": "Items in clipboard:"
     }
 }

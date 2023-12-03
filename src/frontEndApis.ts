@@ -12,7 +12,7 @@ import {
 } from './const'
 import { hasPermission, statusCodeForMissingPerm, urlToNode } from './vfs'
 import { mkdir, rename, rm } from 'fs/promises'
-import { dirname, join } from 'path'
+import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
 import { apiAssertTypes } from './misc'
 import { getCommentFor, setCommentFor } from './comments'
@@ -113,6 +113,23 @@ export const frontEndApis: ApiHandlers = {
         }
         catch (e: any) {
             throw new ApiError(HTTP_SERVER_ERROR, e)
+        }
+    },
+
+    async move_files({ uri_from, uri_to }, ctx) {
+        apiAssertTypes({ array: { uri_from }, string: { uri_to } })
+        const destNode = await urlToNode(uri_to, ctx)
+        const code = !destNode ? HTTP_NOT_FOUND : statusCodeForMissingPerm(destNode, 'can_upload', ctx)
+        if (code) return new ApiError(code)
+        return {
+            errors: await Promise.all(uri_from.map(async (src: any) => {
+                if (typeof src !== 'string') return HTTP_BAD_REQUEST
+                const srcNode = await urlToNode(src, ctx)
+                if (!srcNode) return HTTP_NOT_FOUND
+                return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
+                    || rename(srcNode.source!, join(destNode!.source!, basename(srcNode.source!)))
+                        .catch(e => e.code || String(e))
+            }))
         }
     },
 

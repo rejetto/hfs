@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { state, useSnapState } from './state'
+import { DirList, state, useSnapState } from './state'
 import { ComponentPropsWithoutRef, createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
 import { defaultPerms, err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted, VfsPerms, working } from './misc'
@@ -15,6 +15,7 @@ import { useSnapshot } from 'valtio'
 import { apiCall } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { t, useI18N } from './i18n'
+import { cut } from './clip'
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, stoppedSearch, selected, props } = useSnapState()
@@ -71,7 +72,14 @@ export function MenuPanel() {
                 className: changingButton === 'upload' ? 'show-sliding ' + (uploading ? 'ani-working' : '') : 'before-sliding',
                 onClick: showUpload,
             }),
-            h(MenuButton, getSearchProps()),
+            h(MenuButton, showFilter && can_delete ? {
+                id: 'cut-button',
+                icon: 'cut',
+                label: t`Cut`,
+                onClick() {
+                    cut(onlyTruthy(Object.keys(selected).map(uri => _.find(state.list, { uri }))))
+                }
+            } : getSearchProps()),
             h(MenuButton, {
                 id: 'options-button',
                 icon: 'settings',

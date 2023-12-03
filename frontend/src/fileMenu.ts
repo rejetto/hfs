@@ -11,6 +11,7 @@ import { alertDialog, promptDialog } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
 import { navigate } from './App'
 import { inputComment } from './upload'
+import { cut } from './clip'
 
 interface FileMenuEntry {
     id?: string
@@ -50,6 +51,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             return x
         }),
         state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
+        state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
         isFolder && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
     const props = [
