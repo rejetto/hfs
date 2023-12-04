@@ -12,6 +12,7 @@ import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { toast } from "./dialog"
 import { ALL as COUNTRIES } from './countries'
+import { agentIcons } from './LogsPage'
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -207,6 +208,7 @@ function Connections() {
                     field: 'agent',
                     headerName: "Agent",
                     hideUnder: 'lg',
+                    renderCell: ({ value }) => agentIcons(value)
                 },
             ],
             actionsProps: { hideUnder: 'sm' },

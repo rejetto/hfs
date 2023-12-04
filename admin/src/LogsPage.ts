@@ -1,10 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo, useState } from 'react';
-import { Box, Tab, Tabs } from '@mui/material'
+import { Box, Tab, Tabs, Tooltip } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { formatBytes, HTTP_UNAUTHORIZED, prefix, tryJson } from '@hfs/shared'
+import { Dict, formatBytes, HTTP_UNAUTHORIZED, prefix, shortenAgent, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import { Flex, typedKeys, useBreakpoint, usePauseButton, useToggleButton } from './misc';
 import { GridColDef } from '@mui/x-data-grid'
@@ -43,7 +43,7 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
             const { extra } = x
             x.notes = extra?.dl ? "fully downloaded"
                 : extra?.ul ? "uploaded " + formatBytes(extra.size)
-                : x.status === HTTP_UNAUTHORIZED && x.uri.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
+                : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
                 : x.notes
             return x
         }
@@ -118,6 +118,14 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 valueFormatter: ({ value }) => formatBytes(value as number)
             },
             {
+                headerName: "Agent",
+                hideUnder: 'xl',
+                field: 'extra',
+                valueGetter: ({ value }) => value?.ua,
+                renderCell: ({ value }) =>
+                    value && agentIcons(value),
+            },
+            {
                 field: 'notes',
                 headerName: "Notes",
                 width: 105, // https://github.com/rejetto/hfs/discussions/388
@@ -147,4 +155,36 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
             },
         ]
     })
+}
+
+export function agentIcons(agent: string) {
+    const short = shortenAgent(agent)
+    const browserIcon = icon(short, {
+        Chrome: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg',
+        Chromium: 'https://upload.wikimedia.org/wikipedia/commons/f/fe/Chromium_Material_Icon.svg',
+        Firefox: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/Firefox_logo%2C_2019.svg',
+        Safari: 'https://upload.wikimedia.org/wikipedia/commons/5/52/Safari_browser_logo.svg',
+        Edge: 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Edge_Logo_2019.svg',
+        Opera: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Opera_2015_icon.svg',
+    })
+    const os = _.findKey(OSS, re => re.test(agent))
+    const osIcon = os && {
+        linux: '🐧',
+        win: '⊞',
+        mac: '',
+        ios: '',
+    }[os]
+    return h(Tooltip, { title: agent, children: h('span', {}, browserIcon || short, ' ', osIcon) })
+
+    function icon(k: string, map: Dict<string>) {
+        const src = map[k]
+        return src && h('img', { src, style: { height: '1em', verticalAlign: 'text-bottom', marginRight: '.2em' } })
+    }
+}
+
+const OSS = {
+    mac: /Mac OS/,
+    ios: /iPhone OS/,
+    win: /Windows NT/,
+    linux: /Linux/,
 }

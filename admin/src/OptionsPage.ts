@@ -95,16 +95,16 @@ export default function OptionsPage() {
             return { sm: 6 }
         },
         fields: [
-            { k: 'port', comp: ServerPort, sm: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: ServerPort, sm: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            { k: 'port', comp: ServerPort, md: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: ServerPort, md: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
                         suggestMakingCert().then()
                     return v
                 }
             },
-            status && { k: 'listen_interface', comp: SelectField, sm: 4, options: [{ label: "any", value: '' }, '127.0.0.1', '::1', ...status?.ips] },
-            httpsEnabled && values.port >= 0 && { k: 'force_https', comp: BoolField, sm: 12, md: 4, label: "Force HTTPS",
+            status && { k: 'listen_interface', comp: SelectField, md: 4, options: [{ label: "any", value: '' }, '127.0.0.1', '::1', ...status?.ips] },
+            httpsEnabled && values.port >= 0 && { k: 'force_https', comp: BoolField, md: 4, label: "Force HTTPS",
                 helperText: "Not applied to localhost"
             },
             httpsEnabled && { k: 'cert', comp: FileField, md: 4, label: "HTTPS certificate file",
@@ -128,23 +128,7 @@ export default function OptionsPage() {
             },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output per-ip" },
-            { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
-            { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log",
-                helperText: "If you want errors in a different log"
-            },
-            { k: 'log_rotation', comp: SelectField, md: 3, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
-                helperText: "To keep log-files smaller"
-            },
-            { k: 'dont_log_net', comp: NetmaskField, label: "Don't log address", md: 3, placeholder: "no exception",
-                helperText: h(WildcardsSupported)
-            },
-            { k: 'log_gui', sm: 3, comp: BoolField, label: "Log interface loading" },
-            { k: 'log_api', sm: 3, comp: BoolField, label: "Log API requests" },
-            { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, label: "How many HTTP proxies between this server and users?",
-                error: proxyWarning(values, status),
-                helperText: "Wrong number will prevent detection of users' IP address"
-            },
-            { k: 'dont_overwrite_uploading', comp: BoolField, label: "Don't overwrite uploading",
+            { k: 'dont_overwrite_uploading', comp: BoolField, sm: 12, md: 6, label: "Don't overwrite uploading",
                 helperText: "Files will be numbered to avoid overwriting" },
             { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",
                 helperText: "Leave empty to never delete" },
@@ -161,7 +145,11 @@ export default function OptionsPage() {
             { k: 'descript_ion', comp: BoolField, label: "Support file DESCRIPT.ION", helperText: "Old file format, used for comments" },
             { k: 'descript_ion_encoding', label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
                 options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
-            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, sm: 12,
+            { k: 'proxies', comp: NumberField, min: 0, max: 9, label: "How many HTTP proxies between this server and users?",
+                error: proxyWarning(values, status),
+                helperText: "Wrong number will prevent detection of users' IP address"
+            },
+            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, md: 6,
                 fields: [
                     { k: 'k', label: "File mask", $width: 1, $column: {
                         renderCell: ({ value, id }: any) => h('code', {},
@@ -186,8 +174,24 @@ export default function OptionsPage() {
             { k: 'server_code', comp: TextEditorField, sm: 12, getError: v => try_(() => new Function(v) && null, e => e.message),
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
-            h(Divider, {}, "Front-end options", h(Box, { fontSize: 'small' }, "Following options affect only the front-end")),
-            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", sm: 6, md: 4,
+
+            h(Divider, {}, "Log", h(Box, { fontSize: 'small' })),
+            { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
+            { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log",
+                helperText: "If you want errors in a different log"
+            },
+            { k: 'log_rotation', comp: SelectField, md: 3, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
+                helperText: "To keep log-files smaller"
+            },
+            { k: 'dont_log_net', comp: NetmaskField, label: "Don't log address", md: 3, placeholder: "no exception",
+                helperText: h(WildcardsSupported)
+            },
+            { k: 'log_gui', sm: 4, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
+            { k: 'log_api', sm: 4, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
+            { k: 'log_ua', sm: 4, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information" },
+
+            h(Divider, {}, "Front-end", h(Box, { fontSize: 'small' }, "Following options affect only the front-end")),
+            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 4,
                 options: { "by clicking on file name": true, "by dedicated button": false  }
             },
             { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },

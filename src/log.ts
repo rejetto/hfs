@@ -61,6 +61,7 @@ errorLogFile.sub(path => {
 
 const logRotation = defineConfig('log_rotation', 'weekly')
 const dontLogNet = defineConfig('dont_log_net', '127.0.0.1|::1', v => makeNetMatcher(v))
+const logUA = defineConfig('log_ua', false)
 
 const debounce = _.debounce(cb => cb(), 1000)
 
@@ -103,9 +104,11 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const user = getCurrentUsername(ctx)
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
-        const extra = ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
+        let extra = ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
             || ctx.state.uploadPath && { ul: ctx.state.uploadPath, size: ctx.state.uploadSize }
             || ctx.state.logExtra
+        if (logUA.get())
+            extra = Object.assign({ ua: ctx.get('user-agent') }, extra)
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri, extra }))
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries

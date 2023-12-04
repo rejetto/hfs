@@ -394,3 +394,36 @@ export function runAt(ts: number, cb: Callback) {
         clearTimeout(t)
     }
 }
+
+export function shortenAgent(agent: string) {
+    return _.findKey(BROWSERS, re => re.test(agent))
+        || /^[^/(]+ ?/.exec(agent)?.[0]
+        || agent
+}
+const BROWSERS = {
+    YaBrowser: /yabrowser/i,
+    AlamoFire: /alamofire/i,
+    Edge: /edge|edga|edgios|edg/i,
+    PhantomJS: /phantomjs/i,
+    Konqueror: /konqueror/i,
+    Amaya: /amaya/i,
+    Epiphany: /epiphany/i,
+    SeaMonkey: /seamonkey/i,
+    Flock: /flock/i,
+    OmniWeb: /omniweb/i,
+    Opera: /opera|OPR\//i,
+    Chromium: /chromium/i,
+    Facebook: /FBA[NV]/,
+    Chrome: /chrome|crios/i,
+    WinJs: /msapphost/i,
+    IE: /msie|trident/i,
+    Firefox: /firefox|fxios/i,
+    Safari: /safari/i,
+    PS5: /playstation 5/i,
+    PS4: /playstation 4/i,
+    PS3: /playstation 3/i,
+    PSP: /playstation portable/i,
+    PS: /playstation/i,
+    Xbox: /xbox/i,
+    UC: /UCBrowser/i,
+}
