@@ -152,7 +152,7 @@ async function update(tag?: string) {
     const restarting = Date.now()
     let warning: undefined | ReturnType<typeof alertDialog>
     while (await apiCall('NONE').then(() => 0, e => !e.code)) { // while we get no response
-        if (!warning && Date.now() - restarting > 10_000)
+        if (!warning && Date.now() - restarting > 15_000)
             warning = alertDialog("This is taking too long, please check your server", 'warning')
         await wait(500)
     }
