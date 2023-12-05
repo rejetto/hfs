@@ -1,4 +1,5 @@
-import { DataGrid, DataGridProps, GridColDef, GridValidRowModel, useGridApiRef } from '@mui/x-data-grid'
+import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, GridValidRowModel, useGridApiRef
+} from '@mui/x-data-grid'
 import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
 import { useWindowSize } from 'usehooks-ts'
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
@@ -27,7 +28,26 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
     const manipulatedColumns = useMemo(() => {
+        const { localeText } = enUS.components.MuiDataGrid.defaultProps
         const ret = columns.map(col => {
+            const { type } = col
+            if (!type || type === 'string') // offer negated version of default string operators
+                col.filterOperators ??= getGridStringOperators().map(op => op.value.includes('Empty') ? op : [ // isEmpty already has isNotEmpty
+                    op,
+                    {
+                        ...op,
+                        value: '!' + op.value,
+                        getApplyFilterFn(item, col) {
+                            const res = op.getApplyFilterFn(item, col)
+                            return res && _.negate(res)
+                        },
+                        ...op.getApplyFilterFnV7 && { getApplyFilterFnV7(item, col) {
+                            const res = op.getApplyFilterFnV7?.(item, col)
+                            return res ? _.negate(res) : null
+                        } },
+                        label: "(not) " + ((localeText as any)['filterOperator' + _.upperFirst(op.value)] || op.value)
+                    } satisfies typeof op
+                ]).flat()
             const { mergeRender } = col
             if (!mergeRender)
                 return col
