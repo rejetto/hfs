@@ -151,7 +151,7 @@ export default function OptionsPage() {
             },
             { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, md: 6,
                 fields: [
-                    { k: 'k', label: "File mask", $width: 1, $column: {
+                    { k: 'k', label: "File mask", helperText: h(WildcardsSupported), $width: 1, $column: {
                         renderCell: ({ value, id }: any) => h('code', {},
                             value,
                             value === '*' && id < _.size(values.mime) - 1
@@ -159,7 +159,9 @@ export default function OptionsPage() {
                                     color: 'warning.main', ml: 1
                                 }))
                     } },
-                    { k: 'v', label: "Mime type", fromField: _.toLower, $width: 2 },
+                    { k: 'v', label: "Mime type", placeholder: "auto", $width: 2,
+                        toField: (x: any) => x === 'auto' ? '' : x, fromField: (x: string) => !x ? 'auto' : x.toLowerCase(),
+                        helperText: "Leave empty to get automatic value", },
                 ],
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v])),
