@@ -1,9 +1,12 @@
 import Koa from 'koa'
-import { hasProp, tryJson, wantArray } from './misc'
+import { hasProp, onlyTruthy, tryJson, wantArray } from './misc'
 import { readFile } from 'fs/promises'
 import { defineConfig } from './config'
 import { watchLoad } from './watchLoad'
 import EMBEDDED_TRANSLATIONS from './langs/embedded'
+import { mapPlugins } from './plugins'
+import { join } from 'path'
+import _ from 'lodash'
 
 const PREFIX = 'hfs-lang-'
 const SUFFIX = '.json'
@@ -28,7 +31,8 @@ export async function getLangData(ctx: Koa.Context) {
     while (i < langs.length) {
         let k = langs[i] || '' // shut up ts
         if (!k || k === EMBEDDED_LANGUAGE) break
-        try { ret[k!] = JSON.parse(await readFile(`hfs-lang-${k}.json`, 'utf8')) }
+        const fn = code2file(k)
+        try { ret[k] = JSON.parse(await readFile(fn, 'utf8')) }
         catch {
             if (hasProp(EMBEDDED_TRANSLATIONS, k))
                 ret[k] = EMBEDDED_TRANSLATIONS[k]
@@ -41,6 +45,11 @@ export async function getLangData(ctx: Koa.Context) {
                 }
             }
         }
+        const fromPlugins = onlyTruthy(await Promise.all(mapPlugins(async pl =>
+            tryJson(await readFile(join(pl.folder, fn), 'utf8').catch(() => ''))?.translate )))
+        if (fromPlugins.length)
+            _.defaults((ret[k] ||= {}).translate ||= {}, ...fromPlugins) // be sure we have an entry for k
+
         i++
     }
     return ret

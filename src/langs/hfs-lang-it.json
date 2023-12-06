@@ -140,11 +140,6 @@
         "Cancel clipboard": "Annulla appunti",
         "to_clipboard_source": "Torna all'origine'",
         "Paste": "Incolla",
-        "clipboard_list": "Elementi negli appunti",
-
-        "_PLUGINS SECTION": "",
-        "_PLUGIN thumbnails":  "",
-        "Enable tiles mode": "Modalità griglia",
-        "thumbnails_switchBack": "Puoi tornare alla lista com'era prima entrando in Opzioni"
+        "clipboard_list": "Elementi negli appunti"
     }
 }
