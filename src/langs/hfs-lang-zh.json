@@ -1,6 +1,6 @@
 {
-    "author": "yx3016 & MircoH0",
-    "version": 1.2,
+    "author": "yx3016 & MircoH0 & CMJNB",
+    "version": 1.3,
     "hfs_version": "0.46.0",
     "translate": {
         "Select": "选择",
@@ -78,7 +78,7 @@
         "Folders first": "文件夹在前",
         "Numeric names": "数字名称",
         "theme:": "主题:",
-        "auto": "auto",
+        "auto": "自动",
         "light": "明亮",
         "dark": "暗黑",
         "parent folder": "上层文件夹",
@@ -120,6 +120,23 @@
         "off": "关闭",
         "Operation successful": "操作执行成功",
         "Uploader": "上传者",
-        "Download counter": "下载计数"
+        "Download counter": "下载计数",
+        "Switch zoom mode": "切换缩放模式",
+        "Full screen": "全屏",
+        "File Show help": "文件显示帮助",
+        "showHelpMain": "您可以使用键盘进行一些操作：",
+        "showHelp_←/→": "←/→",
+        "showHelp_↑/↓": "↑/↓",
+        "showHelp_space": "空格",
+        "showHelp_←/→_body": "转到上一个/下一个文件",
+        "showHelp_↑/↓_body": "滚动长图",
+        "showHelp_space_body": "选择",
+        "showHelp_D_body": "下载",
+        "showHelp_Z_body": "缩放模式",
+        "showHelp_F_body": "全屏",
+        "Destination": "目的地",
+        "in_queue": "{n} 在队列中",
+        "enter_comment": "对此文件的评论",
+        "Comment": "评论"
     }
 }
