@@ -351,8 +351,8 @@ function watchPlugin(id: string, path: string) {
             starting = pendingPromise()
             // if dependencies are not ready right now, we give some time. Not super-solid but good enough for now.
             const info = await parsePlugin()
-            if (!await waitFor(async () => _.isEmpty(await getMissingDependencies(info)), { timeout: 5_000 }))
-                return console.debug("plugin missing dependencies", id)
+            if (!await waitFor(() => _.isEmpty(getMissingDependencies(info)), { timeout: 5_000 }))
+                throw Error("plugin missing dependencies: " + _.map(getMissingDependencies(info), x => x.repo).join(', '))
             if (getPluginInfo(id))
                 setError(id, '')
             const alreadyRunning = plugins[id]
@@ -424,7 +424,9 @@ function getError(id: string) {
 }
 
 function setError(id: string, error: string) {
-    getPluginInfo(id).error = error
+    const info = getPluginInfo(id)
+    if (!info) return
+    info.error = error
     events.emit('pluginUpdated', { id, error })
 }
 
@@ -476,7 +478,7 @@ function calculateBadApi(data: AvailablePlugin) {
             : undefined
 }
 
-export async function getMissingDependencies(plugin: CommonPluginInterface) {
+export function getMissingDependencies(plugin: CommonPluginInterface) {
     return onlyTruthy((plugin?.depend || []).map((dep: any) => {
         const res = findPluginByRepo(dep.repo)
         const error = !res ? 'missing'
