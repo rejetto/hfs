@@ -1,6 +1,6 @@
 import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
-import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RestartAlt, RouterTwoTone, Send, Storage,
+import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
     SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'

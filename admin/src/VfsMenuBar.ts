@@ -8,7 +8,6 @@ import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
 import { Btn, reloadBtn } from './misc'
 import { apiCall, useApi } from './api'
-import { confirmDialog } from './dialog'
 
 export default function VfsMenuBar({ status }: any) {
     const { data: integrated, reload } = useApi(status?.platform === 'win32' && 'windows_integrated')
@@ -40,7 +39,15 @@ export default function VfsMenuBar({ status }: any) {
             doneMessage: true,
             ...(!integrated?.is ? {
                 children: "System integration",
-                onClick: () => windowsIntegration().then(reload),
+                onClick: () => apiCall('windows_integration').then(reload),
+                confirm: h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
+                    h('img', { src: 'win-shell.png', style: {
+                            display: 'block',
+                            width: 'min(30em, 80vw)',
+                            marginTop: '1em',
+                        }  }),
+                    h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
+                )
             } : {
                 confirm: true,
                 children: "Remove integration",
@@ -48,17 +55,4 @@ export default function VfsMenuBar({ status }: any) {
             })
         }),
     )
-}
-
-async function windowsIntegration() {
-    const msg = h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
-        h('img', { src: 'win-shell.png', style: {
-            display: 'block',
-            width: 'min(30em, 80vw)',
-            marginTop: '1em',
-        }  }),
-        h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
-    )
-    return await confirmDialog(msg)
-        && apiCall('windows_integration')
 }

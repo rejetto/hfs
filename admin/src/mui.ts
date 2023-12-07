@@ -130,7 +130,7 @@ interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'>
     disabled?: boolean | string
     progress?: boolean | number
     link?: string
-    confirm?: boolean | string
+    confirm?: boolean | ReactNode
     labelFrom?: Breakpoint
     doneMessage?: boolean | string // displayed only if the result of onClick !== false
     tooltipProps?: TooltipProps

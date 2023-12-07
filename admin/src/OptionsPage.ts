@@ -95,8 +95,8 @@ export default function OptionsPage() {
             return { sm: 6 }
         },
         fields: [
-            { k: 'port', comp: ServerPort, md: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: ServerPort, md: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            { k: 'port', comp: PortField, md: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: PortField, md: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
                         suggestMakingCert().then()
@@ -265,7 +265,7 @@ export function isKeyError(error: any) {
     return /private key/.test(error)
 }
 
-function ServerPort({ label, value, onChange, setApi, status, suggestedPort=1, error, helperText }: FieldProps<number | null>) {
+function PortField({ label, value, onChange, setApi, status, suggestedPort=1, error, helperText }: FieldProps<number | null>) {
     const lastCustom = useRef(suggestedPort)
     if (value! > 0)
         lastCustom.current = value!

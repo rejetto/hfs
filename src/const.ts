@@ -7,6 +7,10 @@ import { mkdirSync } from 'fs'
 import { basename, dirname, join } from 'path'
 export * from './cross-const'
 
+export const API_VERSION = 8.6
+export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
+export const HFS_REPO = 'rejetto/hfs'
+
 export const argv = minimist(process.argv.slice(2))
 export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
 export const ORIGINAL_CWD = process.cwd()

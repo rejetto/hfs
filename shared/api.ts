@@ -84,12 +84,15 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         loadingRef.current?.abort()
         setData(undefined)
         setError(undefined)
-        if (!cmd) return
         let aborted = false
         let req: undefined | ReturnType<typeof apiCall>
         const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
-            .then(() => aborted ? undefined : req = apiCall<T>(cmd, params, options))
-            .then(res => aborted || setData(res), err => aborted || setError(err) || setData(undefined))
+            .then(() => !cmd || aborted ? undefined : req = apiCall<T>(cmd, params, options))
+            .then(res => aborted || setData(res), err => {
+                if (aborted) return
+                setError(err)
+                setData(undefined)
+            })
             .finally(() => loadingRef.current = reloadingRef.current = undefined)
         loadingRef.current = Object.assign(wholePromise, {
             abort() {
@@ -99,9 +102,11 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         })
         reloadingRef.current?.resolve(wholePromise)
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
-    const reload = useCallback(() => loadingRef.current
-            || setForcer(v => v+1) || (reloadingRef.current = pendingPromise()),
-        [setForcer])
+    const reload = useCallback(() => {
+        if (loadingRef.current) return
+        setForcer(v => v + 1)
+        reloadingRef.current = pendingPromise()
+    }, [setForcer])
     return { data, setData, error, reload, loading: Boolean(loadingRef.current || reloadingRef.current) }
 }
 

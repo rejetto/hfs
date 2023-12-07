@@ -154,7 +154,7 @@ export function getNodeName(node: VfsNode) {
     if (!source)
         return '' // should happen only for root
     if (source === '/')
-        return 'root'
+        return 'root' // better name than
     if (/^[a-zA-Z]:\\?$/.test(source))
         return source.slice(0, 2) // exclude trailing slash
     const base = basename(source)

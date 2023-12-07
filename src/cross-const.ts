@@ -1,9 +1,3 @@
-
-export const API_VERSION = 8.4
-export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
-
-export const HFS_REPO = 'rejetto/hfs'
-
 export const SPECIAL_URI = '/~/'
 export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
 export const ADMIN_URI = SPECIAL_URI + 'admin/'
