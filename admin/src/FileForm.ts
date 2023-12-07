@@ -3,40 +3,12 @@
 import { state, useSnapState } from './state'
 import { createElement as h, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList } from '@mui/material'
-import {
-    BoolField,
-    DisplayField,
-    Field,
-    FieldProps,
-    Form,
-    MultiSelectField,
-    SelectField,
-    StringField
+import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
-import {
-    _log,
-    basename,
-    Btn,
-    defaultPerms,
-    formatBytes,
-    formatTimestamp,
-    IconBtn,
-    isEqualLax,
-    isWhoObject,
-    LinkBtn,
-    modifiedSx,
-    newDialog,
-    objSameKeys,
-    onlyTruthy,
-    prefix,
-    useBreakpoint,
-    VfsPerms,
-    wantArray,
-    Who,
-    WhoObject,
-    wikiLink
-} from './misc'
+import { basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, isWhoObject,
+    LinkBtn, modifiedSx, newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, wantArray,
+    Who, WhoObject, wikiLink, matches } from './misc'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -303,17 +275,23 @@ interface LinkFieldProps extends FieldProps<string> {
 function LinkField({ value, statusApi }: LinkFieldProps) {
     const { data, reload, error } = statusApi
     const urls: string[] = data?.urls.https || data?.urls.http
-    const link = (data?.baseUrl || '') + value
+    const baseHost = data?.baseUrl && new URL(data.baseUrl).hostname
+    const root = useMemo(() => baseHost && data.roots?.find((row: any) => matches(baseHost, row.host))?.root,
+        [data])
+    if (root)
+        value &&= value.indexOf(root) === 1 ? value.slice(root.length) : undefined
+    const link = prefix(data?.baseUrl || '', value)
     return h(Box, { display: 'flex' },
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
-            value: link,
+            value: link || `outside of configured base address (${baseHost})`,
             error,
             end: h(Box, {},
                 h(IconBtn, {
                     icon: ContentCopy,
                     title: "Copy",
+                    disabled: !link,
                     onClick: () => navigator.clipboard.writeText(link)
                 }),
                 h(IconBtn, { icon: Edit, title: "Change", onClick() { changeBaseUrl().then(reload) } }),

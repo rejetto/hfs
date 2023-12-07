@@ -22,6 +22,7 @@ setDefaultApiCallOptions({
 
 const ERRORS = { timeout: "Operation timeout" }
 // expand useApi with things that cannot be shared with Frontend
+export type ApiObject<T=any> = ReturnType<typeof useApiEx<T>>
 export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     const res = useApi<T>(...args)
     return {

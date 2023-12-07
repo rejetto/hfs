@@ -161,7 +161,7 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
             || URL.protocol + '//' + URL.host + ctx.state.revProxyPath
         prepend = base + ctx.originalUrl.split('?')[0]! as string
     }
-    const walker = walkNode(node, ctx, depth === '*' ? Infinity : Number(depth))
+    const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth) })
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = await nodeIsDirectory(el)
         return !folders && isFolder ? undefined
@@ -246,6 +246,11 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
 }
 
+declare module "koa" {
+    interface BaseContext {
+        params: Record<string, any>
+    }
+}
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
     ctx.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
         && (tryJson(await stream2string(ctx.req)) || {})

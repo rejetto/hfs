@@ -8,14 +8,14 @@ import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriv
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
-import { iconTooltip, onlyTruthy, Who } from './misc'
-import { apiCall } from './api'
+import { iconTooltip, onlyTruthy, Who, with_ } from './misc'
+import { apiCall, ApiObject } from './api'
 import { alertDialog, confirmDialog } from './dialog'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
 
-export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
+export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
     const { vfs, selectedFiles } = useSnapState()
     const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
@@ -94,7 +94,8 @@ export default function VfsTree({ id2node }:{ id2node: Map<string, VfsNode> }) {
                         isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
                         node.default && iconTooltip(Web, "Act as website"),
                         node.masks && iconTooltip(TheaterComedy, "Masks"),
-                        node.size === -1 && iconTooltip(HighlightOff, "Source not found")
+                        node.size === -1 && iconTooltip(HighlightOff, "Source not found"),
+                        with_(statusApi.data?.roots?.find((row: any) => row.root === id.slice(1)), row => row && iconTooltip(Home, `home for ${row.host}`))
                     ),
                 ),
                 isRoot ? "Home" : (() => { // special rendering if the whole source is not too long, and the name was not customized

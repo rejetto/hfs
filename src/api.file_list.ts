@@ -11,15 +11,17 @@ import Koa from 'koa'
 import { descriptIon, DESCRIPT_ION, getCommentFor, areCommentsEnabled } from './comments'
 import { basename } from 'path'
 import { getConnection, updateConnection } from './connections'
+import { ctxAdminAccess } from './adminApis'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string }
 
-export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c }, ctx) => {
+export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c, onlyFolders, admin }, ctx) => {
     const node = await urlToNode(uri || '/', ctx)
     const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
     if (!node)
         return fail(HTTP_NOT_FOUND)
-    if (statusCodeForMissingPerm(node,'can_list',ctx))
+    admin &&= ctxAdminAccess(ctx) // validate 'admin' flag
+    if (!admin && statusCodeForMissingPerm(node, 'can_list', ctx))
         return fail()
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
@@ -28,12 +30,12 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     offset = Number(offset)
     limit = Number(limit)
     const filter = pattern2filter(search)
-    const walker = walkNode(node, ctx, search ? Infinity : 0)
+    const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, depth: search ? Infinity : 0 })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
-    const can_upload = hasPermission(node, 'can_upload', ctx)
+    const can_upload = admin || hasPermission(node, 'can_upload', ctx)
     const fakeChild = applyParentToChild({}, node) // we want to know if we want to delete children
-    const can_delete = hasPermission(fakeChild, 'can_delete', ctx)
-    const can_archive = hasPermission(fakeChild, 'can_archive', ctx)
+    const can_delete = admin || hasPermission(fakeChild, 'can_delete', ctx)
+    const can_archive = admin || hasPermission(fakeChild, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
     const props = { can_archive, can_upload, can_delete, accept: node.accept, can_comment }
     if (!list)

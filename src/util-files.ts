@@ -74,14 +74,15 @@ export function adjustStaticPathForGlob(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
 }
 
-export async function* dirStream(path: string, deep=0) {
+export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyFolders = false }={}) {
     if (!await isDirectory(path))
         throw Error('ENOTDIR')
-    const dirStream = glob.stream(deep ? '**/*' : '*', {
+    const dirStream = glob.stream(depth ? '**/*' : '*', {
         cwd: path,
         dot: true,
-        deep: deep + 1,
-        onlyFiles: false,
+        deep: depth + 1,
+        onlyFiles,
+        onlyDirectories: onlyFolders,
         suppressErrors: true,
         objectMode: true,
     })
@@ -98,10 +99,10 @@ export async function* dirStream(path: string, deep=0) {
     async function getItemsToSkip(path: string) {
         if (!IS_WINDOWS) return
         const winPath = path.replace(/\//g, '\\')
-        const out = await runCmd('dir', ['/ah', '/b', deep ? '/s' : '/c', winPath]) // cannot pass '', so we pass /c as a noop parameter
+        const out = await runCmd('dir', ['/ah', '/b', depth ? '/s' : '/c', winPath]) // cannot pass '', so we pass /c as a noop parameter
             .catch(()=>'') // error in case of no matching file
         return out.split('\r\n').slice(0,-1).map(x =>
-            !deep ? x : x.slice(winPath.length + 1).replace(/\\/g, '/'))
+            !depth ? x : x.slice(winPath.length + 1).replace(/\\/g, '/'))
     }
 }
 

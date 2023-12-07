@@ -20,7 +20,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const name = list?.length === 1 ? decodeURIComponent(basename(list[0]!)) : getNodeName(node)
     ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
-    const walker = !list ? walkNode(node, ctx, Infinity, '', 'can_archive')
+    const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const uri of list) {
                 const subNode = await urlToNode(uri, ctx, node)
@@ -29,7 +29,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 if (await nodeIsDirectory(subNode)) { // a directory needs to walked
                     if (hasPermission(subNode, 'can_list',ctx)) {
                         yield subNode // it could be empty
-                        yield* walkNode(subNode, ctx, Infinity, decodeURI(uri) + '/', 'can_archive')
+                        yield* walkNode(subNode, { ctx, prefixPath: decodeURI(uri) + '/', requiredPerm: 'can_archive' })
                     }
                     continue
                 }

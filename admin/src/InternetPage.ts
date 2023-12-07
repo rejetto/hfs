@@ -4,9 +4,9 @@ import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwo
     SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'
-import { PORT_DISABLED, Flex, LinkBtn, isIP, Btn, modifiedSx, IconBtn, CFG } from './misc'
+import { PORT_DISABLED, Flex, LinkBtn, isIP, Btn, CFG } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
-import { BoolField, Form, FormProps, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
+import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import md from './md'
 import { suggestMakingCert } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
@@ -14,6 +14,7 @@ import { getNatInfo } from '../../src/nat'
 import { ALL, WITH_IP } from './countries'
 import _ from 'lodash'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
+import { ConfigForm } from './ConfigForm'
 
 const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
@@ -354,48 +355,4 @@ function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: 
         h(Box, { fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, verticalAlign: 'bottom', mb: '2px' } }), title),
         children
     )))
-}
-
-type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
-function ConfigForm<T=any>({ keys, form, saveOnChange, ...rest }: Partial<FormRest<T>> & {
-    keys: (keyof T)[],
-    form: FormRest<T> | ((values: T) => FormRest<T>),
-    saveOnChange?: boolean
-}) {
-    const config = useApiEx('get_config', { only: keys })
-    const [values, setValues] = useState<any>(config.data)
-    useEffect(() => setValues((v: any) => config.data || v), [config.data])
-    const modified = values && !_.isEqual(values, config.data)
-    useEffect(() => {
-        if (modified && saveOnChange) save()
-    }, [modified])
-    if (!values)
-        return config.element
-    const formProps = _.isFunction(form) ? form(values) : form
-    return h(Form, {
-        values,
-        set(v, k) {
-            setValues((was: any) => ({ ...was, [k]: v }))
-        },
-        save: saveOnChange ? false : {
-            onClick: save,
-            sx: modifiedSx(modified),
-        },
-        ...Array.isArray(formProps) ? { fields: formProps } : formProps,
-        ...rest,
-        barSx: { gap: 1, ...rest.barSx },
-        addToBar: [
-            h(IconBtn, {
-                icon: RestartAlt,
-                disabled: !modified,
-                title: "Reset",
-                onClick(){ setValues(config.data) }
-            }),
-            ...rest.addToBar||[],
-        ],
-    })
-
-    function save() {
-        return apiCall('set_config', { values }).then(config.reload)
-    }
 }

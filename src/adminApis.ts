@@ -37,6 +37,7 @@ import { consoleLog } from './consoleLog'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
 import { ip2country } from './geo'
+import { roots } from './roots'
 
 export const adminApis: ApiHandlers = {
 
@@ -114,6 +115,7 @@ export const adminApis: ApiHandlers = {
             urls: await getUrls(),
             ips: await getIps(false),
             baseUrl: getBaseUrlOrDefault(),
+            roots: roots.get(),
             updatePossible: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()

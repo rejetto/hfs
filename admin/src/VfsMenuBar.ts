@@ -6,22 +6,23 @@ import { Add, Microsoft } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
-import { Btn, reloadBtn } from './misc'
-import { apiCall, useApi } from './api'
+import { Btn, CFG, Flex, newDialog, reloadBtn } from './misc'
+import { apiCall, ApiObject, useApi } from './api'
+import { ConfigForm } from './ConfigForm'
+import { ArrayField } from './ArrayField'
+import { BoolField } from '@hfs/mui-grid-form'
+import VfsPathField from './VfsPathField'
 
-export default function VfsMenuBar({ status }: any) {
-    const { data: integrated, reload } = useApi(status?.platform === 'win32' && 'windows_integrated')
-    return h(Box, {
-        display: 'flex',
-        gap: 2,
+export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
+    const isWindows = statusApi.data?.platform === 'win32'
+    const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
+    return h(Flex, {
         mb: 2,
-        sx: {
-            position: 'sticky',
-            top: 0,
-            zIndex: 2,
-            backgroundColor: 'background.paper',
-            width: 'fit-content',
-        },
+        position: 'sticky',
+        top: 0,
+        zIndex: 2,
+        backgroundColor: 'background.paper',
+        width: 'fit-content',
     },
         h(MenuButton, {
             variant: 'contained',
@@ -32,8 +33,9 @@ export default function VfsMenuBar({ status }: any) {
                 { children: "web-link", onClick: addLink  },
             ]
         }, "Add"),
+        h(Btn, { variant: 'outlined', onClick: roots }, "Roots"),
         reloadBtn(() => reloadVfs()),
-        status?.platform === 'win32' && h(Btn, {
+        isWindows && h(Btn, {
             icon: Microsoft,
             variant: 'outlined',
             doneMessage: true,
@@ -55,4 +57,37 @@ export default function VfsMenuBar({ status }: any) {
             })
         }),
     )
+
+    function roots() {
+        const { close } = newDialog({
+            dialogProps: { maxWidth: 'sm' },
+            Content: () => h(ConfigForm<{ roots: any, roots_mandatory: boolean }>, {
+                onSave() {
+                    statusApi.reload() // this config is affecting status data
+                    close()
+                },
+                keys: [CFG.roots, CFG.roots_mandatory],
+                form: {
+                    fields: [
+                        {
+                            k: 'roots',
+                            label: "Roots for different domains",
+                            helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
+                            comp: ArrayField,
+                            fields: [
+                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: domain.*|other.*" },
+                                { k: 'root', label: "Home/Root", comp: VfsPathField, placeholder: "default", helperText: "Root path in VFS" },
+                            ]
+                        },
+                        {
+                            k: 'roots_mandatory',
+                            label: "Block requests that are not using any of the domains above",
+                            helperText: "localhost connections are not included",
+                            comp: BoolField,
+                        }
+                    ]
+                }
+            })
+        })
+    }
 }

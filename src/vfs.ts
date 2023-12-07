@@ -215,14 +215,20 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
 }
 
 // it's responsibility of the caller to verify you have list permission on parent, as callers have different needs.
-// Too many parameters: consider object, but benchmark against degraded recursion on huge folders.
-export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=0, prefixPath:string='', requiredPerm?: keyof VfsPerms): AsyncIterableIterator<VfsNode> {
+export async function* walkNode(parent: VfsNode, {
+    ctx,
+    depth = Infinity,
+    prefixPath = '',
+    requiredPerm,
+    onlyFolders = false
+}: { ctx?: Koa.Context,depth?: number, prefixPath?: string, requiredPerm?: undefined | keyof VfsPerms, onlyFolders?: boolean } = {}): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
     const took = prefixPath ? undefined : new Set()
     const maskApplier = parentMaskApplier(parent)
     const parentsCache = new Map() // we use this only if depth > 0
     if (children)
         for (const child of children) {
+            if (onlyFolders && !await nodeIsDirectory(child)) continue
             const nodeName = getNodeName(child)
             const name = prefixPath + nodeName
             took?.add(name)
@@ -236,7 +242,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
             parentsCache.set(name, item)
             inheritMasks(item, parent,  nodeName)
             if (!ctx || hasPermission(item, 'can_list', ctx)) // check perm before recursion
-                yield* walkNode(item, ctx, depth - 1, name + '/', requiredPerm)
+                yield* walkNode(item, { ctx, depth: depth - 1, prefixPath: name + '/', requiredPerm, onlyFolders })
         }
     if (!source)
         return
@@ -249,7 +255,7 @@ export async function* walkNode(parent:VfsNode, ctx?: Koa.Context, depth:number=
         let lastDir = prefixPath.slice(0, -1) || '.'
         parentsCache.set(lastDir, parent)
         // it's important to keep using dirStream in deep-mode, as it is manyfold faster (it parallelizes)
-        for await (const [path, isFolder] of dirStream(source, depth)) {
+        for await (const [path, isFolder] of dirStream(source, { depth, onlyFolders })) {
             if (ctx?.req.aborted)
                 return
             const name = prefixPath + (parent.rename?.[path] || path)

@@ -122,17 +122,18 @@ export default function VfsPage() {
         severity: 'info',
         children: [
             "Your shared files can be browsed from ",
-            reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href }, href)))
+            reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href)))
         ]
     }
     return h(Grid, { container:true, rowSpacing: 1, columnSpacing: 2 },
-        alert && h(Grid, { item: true, mb: 2, xs: 12 }, h(Alert, alert)),
-        h(Grid, { item:true, [sideBreakpoint]: 6, lg: 5, xl: 4 },
-            h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
+        h(Grid, { item: true, mb: 2, xs: 12 },
             h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
-            h(VfsMenuBar, { status }),
-            vfs && h(VfsTree, { id2node })),
-        isSideBreakpoint && sideContent && h(Grid, { item:true, [sideBreakpoint]: true, maxWidth:'100%' },
+            alert && h(Alert, alert) ),
+        h(Grid, { item: true, [sideBreakpoint]: 7, lg: 6, xl: 5 },
+            h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
+            h(VfsMenuBar, { statusApi }),
+            vfs && h(VfsTree, { id2node, statusApi }) ),
+        isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth:'100%' },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent) ))
     )

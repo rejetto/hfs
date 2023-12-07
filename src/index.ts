@@ -23,6 +23,7 @@ import { selfCheckMiddleware } from './selfCheck'
 import { acmeMiddleware } from './acme'
 import './geo'
 import { geoFilter } from './geo'
+import { rootsMiddleware } from './roots'
 import events from './events'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
@@ -43,6 +44,7 @@ app.use(sessionMiddleware)
     .use(headRequests)
     .use(logMw)
     .use(throttler)
+    .use(rootsMiddleware)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
     .use(serveGuiAndSharedFiles)
     .on('error', errorHandler)

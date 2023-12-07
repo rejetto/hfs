@@ -2,6 +2,7 @@
 // all content here is shared between client and server
 import _ from 'lodash'
 import { VfsNodeStored } from './vfs'
+import picomatch from 'picomatch/lib/picomatch' // point directly to the browser-compatible source
 export * from './cross-const'
 
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
@@ -21,7 +22,8 @@ export const FRONTEND_OPTIONS = {
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
-export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown'])
+export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown',
+    'roots', 'roots_mandatory'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -393,6 +395,15 @@ export function runAt(ts: number, cb: Callback) {
         cancel = true
         clearTimeout(t)
     }
+}
+
+export function makeMatcher(mask: string, emptyMaskReturns=false) {
+    return mask ? picomatch(mask.replace(/^(!)?/, '$1(') + ')', { nocase: true}) // adding () will allow us to use the pipe at root level
+        : () => emptyMaskReturns
+}
+
+export function matches(s: string, mask: string, emptyMaskReturns=false) {
+    return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
 }
 
 export function shortenAgent(agent: string) {

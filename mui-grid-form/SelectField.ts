@@ -28,7 +28,7 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
 }
 
 export function MultiSelectField<T>(props: FieldProps<T[]> & CommonSelectProps<T>) {
-    const { value, onChange, setApi, options, sx, clearable, clearValue, placeholder, ...rest } = props
+    const { value, onChange, setApi, options, sx, clearable, clearValue, placeholder, autocompleteProps, ...rest } = props
     const { select, InputProps, ...common } = commonSelectProps({ clearValue: [], ...props, clearable: false })
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
     const valueAsOptions = useMemo(() => !Array.isArray(value) ? []
@@ -43,6 +43,7 @@ export function MultiSelectField<T>(props: FieldProps<T[]> & CommonSelectProps<T
         getOptionLabel: x => x.label,
         renderOption: (props, x) => h('span', props, x.label),
         ...common,
+        ...autocompleteProps,
         value: valueAsOptions,
         renderInput: params => h(TextField, {
             ...rest,

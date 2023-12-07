@@ -11,11 +11,10 @@ export * from './util-files'
 export * from './cross'
 export * from './debounceAsync'
 import { Readable } from 'stream'
-import { matcher } from 'micromatch'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST } from './const'
-import { ipLocalHost } from './cross'
+import { ipLocalHost, makeMatcher } from './cross'
 import { isIPv6 } from 'net'
 
 type ProcessExitHandler = (signal:string) => any
@@ -91,15 +90,6 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
 
 function parseAddress(s: string) {
     return new SocketAddress({ address: s, family: isIPv6(s) ? 'ipv6' : 'ipv4' })
-}
-
-export function makeMatcher(mask: string, emptyMaskReturns=false) {
-    return mask ? matcher(mask.replace(/^(!)?/, '$1(') + ')', { nocase: true}) // adding () will allow us to use the pipe at root level
-        : () => emptyMaskReturns
-}
-
-export function matches(s: string, mask: string, emptyMaskReturns=false) {
-    return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
 }
 
 export function same(a: any, b: any) {
