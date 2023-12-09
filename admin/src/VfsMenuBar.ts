@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h } from 'react'
-import { Alert, Box } from '@mui/material'
+import { Alert, Box, Button } from '@mui/material'
 import { Add, Microsoft } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import addFiles, { addLink, addVirtual } from './addFiles'
@@ -12,6 +12,7 @@ import { ConfigForm } from './ConfigForm'
 import { ArrayField } from './ArrayField'
 import { BoolField } from '@hfs/mui-grid-form'
 import VfsPathField from './VfsPathField'
+import { promptDialog } from './dialog'
 
 export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
     const isWindows = statusApi.data?.platform === 'win32'
@@ -41,15 +42,18 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
             doneMessage: true,
             ...(!integrated?.is ? {
                 children: "System integration",
-                onClick: () => apiCall('windows_integration').then(reload),
-                confirm: h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
-                    h('img', { src: 'win-shell.png', style: {
-                            display: 'block',
-                            width: 'min(30em, 80vw)',
-                            marginTop: '1em',
-                        }  }),
-                    h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
-                )
+                async onClick() {
+                    const msg = h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
+                        h('img', { src: 'win-shell.png', style: {
+                                display: 'block',
+                                width: 'min(30em, 80vw)',
+                                marginTop: '1em',
+                            }  }),
+                        h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
+                    )
+                    const parent = await promptDialog(msg, { field: { comp: VfsPathField, label: "Add to this folder" }, form: { saveOnEnter: false } })
+                    return !parent ? false : apiCall('windows_integration', { parent }).then(reload)
+                }
             } : {
                 confirm: true,
                 children: "Remove integration",

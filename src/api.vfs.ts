@@ -214,14 +214,14 @@ const apis: ApiHandlers = {
         })
     },
 
-    async windows_integration() {
+    async windows_integration({ parent }) {
         const status = await getServerStatus(true)
         const h = status.http.listening ? status.http : status.https
         const url = h.srv!.name + '://localhost:' + h.port
         for (const k of ['*', 'Directory']) {
             await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
             await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -Command "
-            $j = '{ \\"source\\": "' + ('%1'|convertTo-json) + '" }'; $j = [System.Text.Encoding]::UTF8.GetBytes($j); $wsh = New-Object -ComObject Wscript.Shell; 
+            $j = '{ \\"parent\\": \\"${parent}\\", \\"source\\": "' + ('%1'|convertTo-json) + '" }'; $j = [System.Text.Encoding]::UTF8.GetBytes($j); $wsh = New-Object -ComObject Wscript.Shell; 
             try { $res = Invoke-WebRequest -Uri '${url}/~/api/add_vfs' -Method POST -Headers @{ 'x-hfs-anti-csrf' = '1' } -ContentType 'application/json' -TimeoutSec 1 -Body $j; 
             $json = $res.Content | ConvertFrom-Json; $link = $json.link; $link | Set-Clipboard; } catch { $wsh.Popup('Server is down', 0, 'Error', 16); }"`)
         }

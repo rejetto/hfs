@@ -187,22 +187,27 @@ export async function formDialog<T>(
 }
 
 export async function promptDialog(msg: ReactNode, { value, field, save, addToBar=[], ...props }:any={}) : Promise<string | undefined> {
-    return formDialog<{ text: string }>({ ...props, values: { text: value }, form: {
-        fields: [
-            { k: 'text', label: null, autoFocus: true,  ...field, before: h(Box, { mb: 2 }, msg) },
-        ],
-        save: {
-            children: "Continue",
-            startIcon: h(Forward),
-            ...save,
-        },
-        saveOnEnter: true,
-        barSx: { gap: 2 },
-        addToBar: [
-            h(Button, { onClick: closeDialog }, "Cancel"),
-            ...addToBar,
-        ]
-    } }).then(values => values?.text)
+    return formDialog<{ text: string }>({
+        ...props,
+        values: { text: value },
+        form: {
+            fields: [
+                { k: 'text', label: null, autoFocus: true, ...field, before: h(Box, { mb: 2 }, msg) },
+            ],
+            save: {
+                children: "Continue",
+                startIcon: h(Forward),
+                ...save,
+            },
+            saveOnEnter: true,
+            barSx: { gap: 2 },
+            addToBar: [
+                h(Button, { onClick: closeDialog }, "Cancel"),
+                ...addToBar,
+            ],
+            ...props.form,
+        }
+    }).then(values => values?.text)
 }
 
 export function waitDialog() {
