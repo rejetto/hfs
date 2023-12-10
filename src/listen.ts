@@ -9,7 +9,7 @@ import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
 import { debounceAsync, ipForUrl, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
-import { ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
+import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
@@ -159,7 +159,6 @@ for (const cfg of httpsNeeds) {
     })
 }
 
-const PORT_DISABLED = -1
 export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
 httpsPortCfg.sub(considerHttps)
 listenInterface.sub(considerHttps)

@@ -4,7 +4,7 @@ import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RestartAl
     SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'
-import { Flex, LinkBtn, isIP, Btn, modifiedSx, IconBtn, CFG } from './misc'
+import { PORT_DISABLED, prefix, Flex, LinkBtn, isIP, Btn, modifiedSx, IconBtn, CFG } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, FormProps, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import md from './md'
@@ -91,15 +91,17 @@ export default function InternetPage() {
     }
 
     function httpsBox() {
-        const { error, listening } = status.data?.https ||{}
         const [values, setValues] = useState<any>()
         const cert = useApiEx('get_cert')
         useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email', 'acme_renew'] }).then(setValues) } , [])
         if (!status || !values) return h(CircularProgress)
-        return element || status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: listening && !error ? 'success' : 'warning' },
+        const { https } = status.data ||{}
+        const disabled = https?.port === PORT_DISABLED
+        const error = https?.error
+        return element || status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
             isCertError(error) && h(Alert, { severity: 'warning' }, error),
-            !listening && h(LinkBtn, { onClick: notEnabled }, "Not enabled")
-                || error && "For HTTPS to work, you need a valid certificate",
+            prefix("Error: ", error)
+                || disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled"),
             cert.element || with_(cert.data, c => h(Box, {},
                 h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate",
                 h('ul', {},
@@ -141,7 +143,7 @@ export default function InternetPage() {
                         await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
                             .then(async () => {
                                 await alertDialog("Certificate created", 'success')
-                                if (!listening)
+                                if (disabled)
                                     await notEnabled()
                                 cert.reload()
                             }, alertDialog)
