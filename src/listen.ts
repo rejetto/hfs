@@ -93,25 +93,25 @@ const considerHttps = debounceAsync(async () => {
         )
         if (port >= 0) {
             const cert = getCertObject()
-            if (!cert) return
-            const cn = cert.subject?.CN
-            if (cn)
-                console.log("certificate loaded for", cn)
-            const now = new Date()
-            const from = new Date(cert.validFrom)
-            const to = new Date(cert.validTo)
-            updateError() // error will change at from and to dates of the certificate
-            const cancelTo = runAt(to.getTime(), updateError)
-            const cancelFrom = runAt(from.getTime(), updateError)
-            httpsSrv.on('close', () => {
-                cancelTo()
-                cancelFrom()
-            })
-            function updateError() {
-                if (!httpsSrv) return
-                httpsSrv.error = from > now ? "certificate not valid yet" : to < now ? "certificate expired" : undefined
+            if (cert) {
+                const cn = cert.subject?.CN
+                if (cn)
+                    console.log("certificate loaded for", cn)
+                const now = new Date()
+                const from = new Date(cert.validFrom)
+                const to = new Date(cert.validTo)
+                updateError() // error will change at from and to dates of the certificate
+                const cancelTo = runAt(to.getTime(), updateError)
+                const cancelFrom = runAt(from.getTime(), updateError)
+                httpsSrv.on('close', () => {
+                    cancelTo()
+                    cancelFrom()
+                })
+                function updateError() {
+                    if (!httpsSrv) return
+                    httpsSrv.error = from > now ? "certificate not valid yet" : to < now ? "certificate expired" : undefined
+                }
             }
-
             const namesForOutput: any = { cert: 'certificate', private_key: 'private key' }
             const missing = httpsNeeds.find(x => !x.get())?.key()
             if (missing)

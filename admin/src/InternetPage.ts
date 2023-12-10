@@ -4,11 +4,11 @@ import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RestartAl
     SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'
-import { PORT_DISABLED, prefix, Flex, LinkBtn, isIP, Btn, modifiedSx, IconBtn, CFG } from './misc'
+import { PORT_DISABLED, Flex, LinkBtn, isIP, Btn, modifiedSx, IconBtn, CFG } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, FormProps, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import md from './md'
-import { isCertError } from './OptionsPage'
+import { suggestMakingCert } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
 import { getNatInfo } from '../../src/nat'
 import { ALL, WITH_IP } from './countries'
@@ -99,10 +99,9 @@ export default function InternetPage() {
         const disabled = https?.port === PORT_DISABLED
         const error = https?.error
         return element || status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
-            isCertError(error) && h(Alert, { severity: 'warning' }, error),
-            prefix("Error: ", error)
-                || disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled"),
-            cert.element || with_(cert.data, c => c.none ? "No certificate configured" : h(Box, {},
+            error ? h(Alert, { severity: 'warning' }, error) :
+                (disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled")),
+            cert.element || with_(cert.data, c => c.none ? h(LinkBtn, { onClick: () => suggestMakingCert().then(cert.reload) }, "No certificate configured") : h(Box, {},
                 h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate",
                 h('ul', {},
                     h('li', {}, "Domain: ", c.altNames?.join(' + ') ||'-'),
