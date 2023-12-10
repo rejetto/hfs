@@ -79,7 +79,7 @@ const apis: ApiHandlers = {
     },
 
     get_cert() {
-        return getCertObject() || new ApiError(HTTP_NOT_FOUND)
+        return getCertObject() || { none: true }
     }
 }
 

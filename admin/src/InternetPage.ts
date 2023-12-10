@@ -102,7 +102,7 @@ export default function InternetPage() {
             isCertError(error) && h(Alert, { severity: 'warning' }, error),
             prefix("Error: ", error)
                 || disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled"),
-            cert.element || with_(cert.data, c => h(Box, {},
+            cert.element || with_(cert.data, c => c.none ? "No certificate configured" : h(Box, {},
                 h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate",
                 h('ul', {},
                     h('li', {}, "Domain: ", c.altNames?.join(' + ') ||'-'),
