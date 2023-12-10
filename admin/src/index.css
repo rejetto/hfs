@@ -25,7 +25,7 @@ code {
   background-color: #8882;
 }
 .MuiDataGrid-cell {
-  line-height: 1em;
+  line-height: 1.1em;
 }
 
 .wrap .MuiDataGrid-cellContent { white-space: normal }

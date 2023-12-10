@@ -58,7 +58,7 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
     return h(DataTable, {
         error,
         loading: connecting,
-        rows: useMemo(() => showApi ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]),
+        rows: useMemo(() => showApi || list?.[0]?.uri === undefined ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]), //TODO TypeError: l.uri is undefined
         compact: true,
         componentsProps: {
             pagination: {
