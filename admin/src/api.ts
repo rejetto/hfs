@@ -86,7 +86,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                         }
                         if (op === LIST.error) {
                             if (par === HTTP_UNAUTHORIZED)
-                                state.loginRequired = msg[2].possible !== false || HTTP_FORBIDDEN
+                                state.loginRequired = msg[2]?.possible !== false || HTTP_FORBIDDEN
                             else
                                 setError(err2msg(par))
                             return
