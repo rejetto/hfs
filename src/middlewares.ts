@@ -15,8 +15,8 @@ import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
-import { accountCanLogin, getAccount } from './perm'
-import { socket2connection, updateConnection, normalizeIp, disconnect } from './connections'
+import { Account, accountCanLogin, getAccount } from './perm'
+import { socket2connection, updateConnection, normalizeIp, disconnect, Connection } from './connections'
 import basicAuth from 'basic-auth'
 import { invalidSessions, srpCheck } from './auth'
 import { basename, dirname } from 'path'
@@ -218,10 +218,10 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         ctx.session.maxAge = sessionDuration.compiled()
     }
     // calculate these once and for all
+    const conn = ctx.state.connection = socket2connection(ctx.socket)!
     const a = ctx.state.account = await urlLogin() || await getHttpAccount() || getAccount(ctx.session?.username, false)
     if (a && !accountCanLogin(a))
         ctx.state.account = undefined
-    const conn = ctx.state.connection = socket2connection(ctx.socket)
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
     ctx.state.browsing = undefined
     if (conn)
@@ -249,6 +249,13 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
 declare module "koa" {
     interface BaseContext {
         params: Record<string, any>
+    }
+    interface DefaultState {
+        account?: Account
+        revProxyPath: string
+        connection: Connection
+        serveApp?: boolean
+        browsing?: string
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

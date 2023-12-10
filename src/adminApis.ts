@@ -21,7 +21,7 @@ import netApis from './api.net'
 import { getConnections } from './connections'
 import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, onOff, tryJson, wait, waitFor } from './misc'
 import events from './events'
-import { accountCanLoginAdmin, accountsConfig, getFromAccount } from './perm'
+import { accountCanLoginAdmin, accountsConfig } from './perm'
 import Koa from 'koa'
 import { getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
@@ -214,7 +214,7 @@ export const title = defineConfig('title', "File server")
 export function ctxAdminAccess(ctx: Koa.Context) {
     return !ctx.ips.length // we consider localhost_admin only if no proxy is being used
         && localhostAdmin.get() && isLocalHost(ctx)
-        || getFromAccount(ctx.state.account, a => a.admin)
+        || ctx.state.account && accountCanLoginAdmin(ctx.state.account)
 }
 
 const frpDebounced = debounceAsync(async () => {
