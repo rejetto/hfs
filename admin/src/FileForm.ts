@@ -74,6 +74,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     }, [file])
     const { source } = file
     const isDir = file.type === 'folder'
+    const isUnknown = !file.type && source && file.size! < 0 // the type is lost
     const isLink = values.url !== undefined
     const hasSource = source !== undefined // we need a boolean
     const realFolder = hasSource && isDir
@@ -156,7 +157,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
             isRoot ? h(Alert, { severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
             isLink ? { k: 'url', label: "URL", lg: 12, required: true }
-                : { k: 'source', label: "Load content from disk", xl: true, comp: FileField, files: !isDir, folders: isDir,
+                : { k: 'source', label: "Load content from disk", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
                     placeholder: "no",
                     helperText: values.source ? "Content from this path will be listed, but you can also add more"
                         : "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk.",
