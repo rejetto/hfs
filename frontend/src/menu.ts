@@ -34,12 +34,6 @@ export function MenuPanel() {
         setTimeout(() => setStarted1secAgo(true), 1000)
     }, [stopSearch, setStarted1secAgo])
 
-    useEffect(() => {
-        if (!can_delete || localStorage.warn_can_delete) return
-        localStorage.warn_can_delete = 1
-        alertDialog(t('delete_hint', "To delete, first click Select")).then()
-    }, [can_delete])
-
     // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
     const ofs = location.pathname.length
     const list = useMemo(() => Object.keys(selected).map(s => s.slice(ofs, s.endsWith('/') ? -1 : Infinity)).join('*'), [selected])
