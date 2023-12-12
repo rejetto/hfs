@@ -160,6 +160,8 @@ export function getNodeName(node: VfsNode) {
     const base = basename(source)
     if (/^[./\\]*$/.test(base)) // if empty or special-chars-only
         return basename(resolve(source)) // resolve to try to get more
+    if (base.includes('\\')) // source was Windows but now we are running posix. This probably happens only debugging, so it's DX
+        return source.slice(source.lastIndexOf('\\') + 1)
     return base
 }
 
