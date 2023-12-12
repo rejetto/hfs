@@ -101,10 +101,10 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
         const name = getNodeName(node)
         if (url)
             return name ? { n: name, url } : null
-        if (!source)
+        if (!source) // virtual folder
             return name ? { n: name + '/' } : null
         if (node.isFolder && await hasDefaultFile(node))
-            return { n: name, web: true }
+            return { n: name + '/', web: true }
         try {
             const st = await stat(source)
             const folder = st.isDirectory()

@@ -213,7 +213,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 },
             }),
             h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                isFolder ? h(Fragment, {},
+                isFolder && !entry.web ? h(Fragment, {}, // internal navigation, use Link component
                         h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
                         // popup button is here to be able to detect link-wrapper:hover
                         file_menu_on_link && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)

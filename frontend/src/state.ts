@@ -100,8 +100,6 @@ export class DirEntry {
         Object.assign(this, rest) // we actually allow any custom property to be memorized
         this.n = n // must do it after rest to avoid overwriting
         this.uri = rest?.url || ((n[0] === '/' ? '' : location.pathname) + pathEncode(this.n))
-        if (rest?.web) // this is actually a folder pointing to a default file, and it requires a final slash for correct handling
-            this.uri += '/'
         this.isFolder = this.n.endsWith('/')
         if (!this.isFolder) {
             const i = this.n.lastIndexOf('.') + 1
