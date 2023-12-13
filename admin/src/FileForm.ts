@@ -22,14 +22,13 @@ interface Account { username: string }
 
 interface FileFormProps {
     file: VfsNode
-    anyMask?: boolean
     addToBar?: ReactNode
     statusApi: UseApi
 }
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
-export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFormProps) {
+export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -168,7 +167,6 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
             comp: WhoField,
             k: perm, lg: 6, xl: 4,
             parent, accounts, helperText, isDir,
-            showInherited: anyMask, // with masks, you may need to set a permission to override the mask
             otherPerms: others.map(x => ({ value: x, label: "As " +perm2word(x) })),
             label: "Who can " + perm2word(perm),
             inherit: file.inherited?.[perm] ?? defaultPerms[perm],
@@ -192,7 +190,7 @@ interface WhoFieldProps extends FieldProps<Who | undefined> {
     isDir: boolean
     contentText?: string
 }
-function WhoField({ value, onChange, parent, inherit, accounts, helperText, showInherited, otherPerms, byMasks,
+function WhoField({ value, onChange, parent, inherit, accounts, helperText, otherPerms, byMasks,
         hideValues, isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = (byMasks !== undefined ? "As per mask: " : parent !== undefined ? "As parent: " : "Default: " )
         + who2desc(byMasks ?? inherit)
@@ -207,8 +205,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
             { value: '*' },
             ...otherPerms,
             { value: [], label: "Select accounts" },
-        // don't offer inherited value twice, unless it was already selected, or it is forced
-        ].map(x => !hideValues?.includes(x.value) && (x.value === thisValue || showInherited || x.value !== inherit)
+        ].map(x => !hideValues?.includes(x.value)
             && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
         [inherit, parent, thisValue])
 
@@ -243,7 +240,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
         !isChildren && h(Collapse, { in: objectMode, timeout },
             h(WhoField, {
                 label: "Permission for " + contentText,
-                parent, inherit, accounts, showInherited, otherPerms, isDir,
+                parent, inherit, accounts, otherPerms, isDir,
                 value: objectMode && value?.children,
                 isChildren: true,
                 hideValues: [thisValue ?? inherit, thisValue],

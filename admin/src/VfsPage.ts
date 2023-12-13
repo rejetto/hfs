@@ -21,14 +21,6 @@ export default function VfsPage() {
     const { vfs, selectedFiles, movingFile } = useSnapState()
     const { data, reload, element } = useApiEx('get_vfs')
     useMemo(() => vfs || reload(), [vfs, reload])
-    const anyMask = useMemo(() => {
-        let f = selectedFiles[0]
-        while (f)
-            if (_.isEmpty(f.masks))
-                f = f.parent as  any
-            else
-                return true
-    }, [selectedFiles])
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
     const statusApi = useApiEx('get_status')
@@ -51,7 +43,6 @@ export default function VfsPage() {
                     vfsNodeIcon(selectedFiles[0] as VfsNode),
                     h(IconBtn, { icon: Close, title: "Close", onClick: selectNone })
                 ],
-                anyMask,
                 statusApi,
                 file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
             })
