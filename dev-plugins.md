@@ -73,7 +73,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 
 - `init` described in the previous section. 
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
-  You can also include external files, by entering a full URL. 
+  You can also include external files, by entering a full URL. Multiple files can be specified as `['file1.css', 'file2.css']`.  
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL.
 - `middleware: (Context) => void | true | function` a function that will be used as a middleware: use this to interfere with http activity.
