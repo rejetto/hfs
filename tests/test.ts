@@ -15,7 +15,7 @@ const appStarted = new Promise(resolve =>
 const username = 'rejetto'
 const password = 'password'
 const API = '/~/api/'
-const BASE_URL = 'http://localhost'
+const BASE_URL = 'http://localhost:81'
 const UPLOAD_ROOT = '/for-admins/upload'
 const UPLOAD_DEST = UPLOAD_ROOT + '/temp/gpl.png'
 
