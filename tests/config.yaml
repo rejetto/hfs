@@ -126,4 +126,4 @@ accounts:
     disabled: true
   admins:
     admin: true
-version: 0.50.1
+version: 0.50.3
