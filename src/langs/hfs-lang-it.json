@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
     "version": 1.8,
-    "hfs_version": "0.49.0",
+    "hfs_version": "0.50.0",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -132,6 +132,7 @@
         "enter_comment": "Comment for this file",
         "Comment": "Comment",
         "upload_dd_hint": "Puoi uploadare file trascinandoli sulla lista principale",
+        "Upload not available": "Upload non disponibile",
 
         "_PLUGINS SECTION": "",
         "_PLUGIN thumbnails":  "",

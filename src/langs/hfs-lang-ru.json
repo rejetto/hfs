@@ -140,6 +140,7 @@
         "enter_comment": "Комментарий для файла",
         "Comment": "Комментировать",
         "upload_dd_hint": "Вы можете загрузить файлы перетащив их в список файлов",
+        "Upload not available": "Загрузка недоступна",
 
         "_PLUGINS SECTION": "",
         "_PLUGIN thumbnails":  "",

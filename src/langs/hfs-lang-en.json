@@ -1,7 +1,7 @@
 {
     "author": "YOUR NAME HERE",
     "version": 1.0,
-    "hfs_version": "0.49.0",
+    "hfs_version": "0.50.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -139,6 +139,7 @@
         "in_queue": "{n} in queue",
         "enter_comment": "Comment for this file",
         "Comment": "Comment",
-        "upload_dd_hint": "You can upload files doing drag&drop on the files list"
+        "upload_dd_hint": "You can upload files doing drag&drop on the files list",
+        "Upload not available": "Upload not available"
     }
 }
