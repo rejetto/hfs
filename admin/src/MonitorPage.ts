@@ -83,7 +83,7 @@ function MoreInfo() {
 
 }
 
-function Country({ code, ip, def }: { code: string, ip?: string, def: ReactNode }) {
+export function Country({ code, ip, def }: { code: string, ip?: string, def?: ReactNode }) {
     const { data } = useBatch(code === undefined && ip && ip2countryBatch, ip, { delay: 100 }) // query if necessary
     code ||= data || ''
     const country = code && _.find(COUNTRIES, { code })

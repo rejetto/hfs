@@ -11,6 +11,7 @@ import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
 import { SmartToy } from '@mui/icons-material'
 import md from './md'
+import { Country } from './MonitorPage'
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
@@ -36,11 +37,14 @@ export default function LogsPage() {
 }
 
 function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, showApi: boolean }) {
+    const [showCountry, setShowCountry] = useState(false)
     const { list, error, connecting } = useApiList('get_log', { file }, {
         invert: true,
         pause,
         map(x) {
             const { extra } = x
+            if (extra?.country && !showCountry)
+                setShowCountry(true)
             x.notes = extra?.dl ? "fully downloaded"
                 : extra?.ul ? "uploaded " + formatBytes(extra.size)
                 : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
@@ -87,7 +91,21 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 flex: .6,
                 minWidth: 100,
                 maxWidth: 230,
-                mergeRender: { other: 'user' },
+                mergeRender: {
+                    other: 'user',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: '.5em',
+                    override: { renderCell: ({ value, row }) => h(Fragment, {}, h('span', {}, value), h(Country, { code: row.extra?.country })) }
+                },
+            },
+            {
+                headerName: "Country",
+                field: 'country',
+                valueGetter: ({ row }) => row.extra?.country,
+                hidden: !showCountry,
+                hideUnder: 'lg',
+                renderCell: ({ value }) => h(Country, { code: value, def: '-' }),
             },
             {
                 field: 'user',

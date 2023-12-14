@@ -17,12 +17,13 @@ setInterval(checkFiles, DAY) // keep updated at run-time
 export const ip2country = _.memoize((ip: string) => ip2location.getCountryShortAsync(ip).then(v => v === '-' ? '' : v, () => ''))
 
 export const geoFilter: Middleware = async (ctx, next) => {
-    if (allow.get() !== null && !isLocalHost(ctx)) {
+    if (enabled.get() && !isLocalHost(ctx)) {
         const { connection }  = ctx.state
         const country = connection.country ??= await ip2country(ctx.ip)
         updateConnection(connection, { country })
-        if (country ? list.get().includes(country) !== allow.get() : !allowUnknown.get())
-            return disconnect(ctx)
+        if (allow.get() !== null)
+            if (country ? list.get().includes(country) !== allow.get() : !allowUnknown.get())
+                return disconnect(ctx)
     }
     return next()
 }

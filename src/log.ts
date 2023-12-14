@@ -11,6 +11,7 @@ import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './auth'
 import { DAY, makeNetMatcher, tryJson } from './misc'
 import events from './events'
+import { getConnection } from './connections'
 
 class Logger {
     stream?: Writable
@@ -106,7 +107,10 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const uri = ctx.originalUrl
         let extra = ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
             || ctx.state.uploadPath && { ul: ctx.state.uploadPath, size: ctx.state.uploadSize }
-            || ctx.state.logExtra
+        const conn = getConnection(ctx)
+        if (conn?.country)
+            Object.assign(extra ||= {}, { country: conn.country })
+        extra = extra ? Object.assign(extra, ctx.state.logExtra) : ctx.state.logExtra
         if (logUA.get())
             extra = Object.assign({ ua: ctx.get('user-agent') }, extra)
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri, extra }))
