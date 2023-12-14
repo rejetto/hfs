@@ -39,7 +39,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
             group.updateLimit(v))
         return { group, count:0, destroy: unsub }
     })
-    const conn = ctx.state.connection as Connection | undefined
+    const conn = ctx.state.connection
     if (!conn) throw 'assert throttler connection'
 
     const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr])
@@ -83,6 +83,13 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         ctx.response.length = downloadTotal
     ts.once('end', () => // in case of compressed response, we offer calculation of real size
         ctx.state.length = ts.getBytesSent() - offset)
+}
+
+declare module "koa" {
+    interface DefaultState {
+        length?: number
+        originalStream?: Parameters<Koa.Middleware>[0]['body']
+    }
 }
 
 export function roundSpeed(n: number) {

@@ -43,8 +43,8 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
     if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
-        ctx.state.logExtra = { u: username }
-        ctx.state.dont_log = false // log even if log_api is false
+        ctx.logExtra({ u: username })
+        ctx.state.dontLog = false // log even if log_api is false
         return new ApiError(HTTP_UNAUTHORIZED)
     }
     try {
@@ -80,8 +80,8 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         }
     }
     catch(e) {
-        ctx.state.dont_log = false // log even if log_api is false
-        ctx.state.logExtra = { u: username }
+        ctx.logExtra({ u: username })
+        ctx.state.dontLog = false // log even if log_api is false
         return new ApiError(HTTP_UNAUTHORIZED, String(e))
     }
     finally {

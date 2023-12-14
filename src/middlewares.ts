@@ -192,7 +192,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
         // we have some dev-proxies to ignore
         && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
             proxyDetected = ctx
-            ctx.state.when = new Date()
+            ctx.state.whenProxyDetected = new Date()
         }
     }
     catch {
@@ -205,7 +205,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
 
 // limited to http proxies
 export function getProxyDetected() {
-    if (proxyDetected?.state.when < Date.now() - DAY)
+    if (proxyDetected?.state.whenProxyDetected < Date.now() - DAY)
         proxyDetected = undefined
     return !ignoreProxies.get() && proxyDetected
         && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
@@ -251,11 +251,11 @@ declare module "koa" {
         params: Record<string, any>
     }
     interface DefaultState {
-        account?: Account
+        account?: Account // user logged in
         revProxyPath: string
         connection: Connection
-        serveApp?: boolean
-        browsing?: string
+        serveApp?: boolean // please, serve the frontend app
+        browsing?: string // for admin/monitoring
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

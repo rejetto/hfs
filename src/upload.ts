@@ -159,3 +159,10 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
     }
 }
+
+declare module "koa" {
+    interface DefaultState {
+        uploadSize?: number
+        uploadPath?: string
+    }
+}

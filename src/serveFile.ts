@@ -119,3 +119,9 @@ export function getRange(ctx: Koa.Context, totalSize: number) {
     ctx.response.length = end - start + 1
     return { start, end }
 }
+
+declare module "koa" {
+    interface DefaultState {
+        includesLastByte?: boolean
+    }
+}

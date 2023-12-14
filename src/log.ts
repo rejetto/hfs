@@ -9,9 +9,10 @@ import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './auth'
-import { DAY, makeNetMatcher, tryJson } from './misc'
+import { DAY, makeNetMatcher, tryJson, Dict, Falsy } from './misc'
 import events from './events'
 import { getConnection } from './connections'
+import { app } from './index'
 
 class Logger {
     stream?: Writable
@@ -73,7 +74,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     // don't await, as we don't want to hold the middlewares chain
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     ctx.state.completed.then(() => {
-        if (ctx.state.dont_log) return
+        if (ctx.state.dontLog) return
         if (dontLogNet.compiled()(ctx.ip)) return
         const isError = ctx.status >= 400
         const logger = isError && accessErrorLog || accessLogger
@@ -105,14 +106,14 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const user = getCurrentUsername(ctx)
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
-        let extra = ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
-            || ctx.state.uploadPath && { ul: ctx.state.uploadPath, size: ctx.state.uploadSize }
+        ctx.logExtra(ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
+            || ctx.state.uploadPath && { ul: ctx.state.uploadPath, size: ctx.state.uploadSize })
         const conn = getConnection(ctx)
         if (conn?.country)
-            Object.assign(extra ||= {}, { country: conn.country })
-        extra = extra ? Object.assign(extra, ctx.state.logExtra) : ctx.state.logExtra
+            ctx.logExtra({ country: conn.country })
         if (logUA.get())
-            extra = Object.assign({ ua: ctx.get('user-agent') }, extra)
+            ctx.logExtra({ ua: ctx.get('user-agent') })
+        const extra = ctx.state.logExtra
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri, extra }))
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
@@ -125,10 +126,28 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             ctx.req.httpVersion,
             ctx.status,
             length?.toString() ?? '-',
-            extra ? JSON.stringify(JSON.stringify(extra)) : '',
+            _.isEmpty(extra) ? '' : JSON.stringify(JSON.stringify(extra)),
         ))
     })
 }
+
+declare module "koa" {
+    interface BaseContext {
+        logExtra(o: Falsy | Dict<any>): void
+    }
+    interface DefaultState {
+        dontLog?: boolean // don't log this request
+        logExtra?: object
+        completed?: Promise<unknown>
+    }
+}
+
+events.on('app', () => { // wait for app to be set
+    app.context.logExtra = function(o) { // no => as we need 'this'
+        if (o)
+            Object.assign((this as any).state.logExtra ||= {}, o)
+    }
+})
 
 function doubleDigit(n: number) {
     return n > 9 ? n : '0'+n

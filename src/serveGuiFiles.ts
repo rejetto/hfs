@@ -29,7 +29,7 @@ function serveStatic(uri: string): Koa.Middleware {
     subscribe(customHtmlState, () => cache = {}) // reset cache at every change
     return async (ctx) => {
         if (!logGui.get())
-            ctx.state.dont_log = true
+            ctx.state.dontLog = true
         if(ctx.method === 'OPTIONS') {
             ctx.status = HTTP_NO_CONTENT
             ctx.set({ Allow: 'OPTIONS, GET' })
@@ -149,7 +149,7 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
         }) )
     return function (ctx, next) {
         if (!logGui.get())
-            ctx.state.dont_log = true
+            ctx.state.dontLog = true
         return proxy(ctx, next)
     } as Koa.Middleware
 }

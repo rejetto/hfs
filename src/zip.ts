@@ -78,3 +78,9 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
 }
 
 const zipSeconds = defineConfig('zip_calculate_size_for_seconds', 1)
+
+declare module "koa" {
+    interface DefaultState {
+        archive?: string
+    }
+}

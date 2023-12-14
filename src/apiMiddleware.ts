@@ -23,7 +23,7 @@ const logApi = defineConfig('log_api', true)
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
         if (!logApi.get())
-            ctx.state.dont_log = true
+            ctx.state.dontLog = true
         const isPost = ctx.params
         const params = isPost ? ctx.params || {} : ctx.query
         const apiName = ctx.path

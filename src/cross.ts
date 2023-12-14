@@ -129,6 +129,10 @@ export function enforceFinal(sub:string, s:string, evenEmpty=false) {
     return !evenEmpty && !s || s.endsWith(sub) ? s : s+sub
 }
 
+export function removeStarting(sub: string, s: string) {
+    return s.startsWith(sub) ? s.slice(sub.length) : s
+}
+
 export function splitAt(sub: string | number, all: string): [string, string] {
     if (typeof sub === 'number')
         return [all.slice(0, sub), all.slice(sub + 1)]
@@ -229,10 +233,6 @@ export function findDefined<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string
         if (ret !== undefined)
             return ret
     }
-}
-
-export function removeStarting(sub: string, s: string) {
-    return s.startsWith(sub) ? s.slice(sub.length) : s
 }
 
 export function newObj<S extends (object | undefined | null),VR=any>(

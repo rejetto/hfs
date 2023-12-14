@@ -85,8 +85,7 @@ const considerHttps = debounceAsync(async () => {
     defaultBaseUrl.port = getCurrentPort(httpSrv) ?? 0
     let port = httpsPortCfg.get()
     try {
-        while (!app)
-            await wait(100)
+        await waitFor(() => app)
         httpsSrv = Object.assign(
             https.createServer(port === PORT_DISABLED ? {} : { ...commonOptions, key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
             { name: 'https' }
