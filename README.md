@@ -184,6 +184,7 @@ Some actions you can take for improved security:
 - Appending ?lang=CODE to address will force a specific language
 - right/ctrl/command click on toggle-all checkbox will invert each checkbox state
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
+- Appending `?overwrite` on uploads, will try override the dont_overwrite_uploading configuration, provided you also have delete permission
 
 ## Contribute
 

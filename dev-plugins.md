@@ -363,8 +363,9 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
-- 8.6 (v0.51.0)
+- 8.61 (v0.51.0)
   - plugin's own hfs-lang files
+  - props.can_overwrite
 - 8.5 (v0.49.0)
   - new event: entry
   - exports.onDirEntry: entry.icon

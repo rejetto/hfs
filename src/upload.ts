@@ -19,7 +19,7 @@ import { setCommentFor } from './comments'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
-const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
+export const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
 
 const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
 

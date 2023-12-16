@@ -12,6 +12,7 @@ import { descriptIon, DESCRIPT_ION, getCommentFor, areCommentsEnabled } from './
 import { basename } from 'path'
 import { getConnection, updateConnection } from './connections'
 import { ctxAdminAccess } from './adminApis'
+import { dontOverwriteUploading } from './upload'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string }
 
@@ -37,7 +38,8 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c,
     const can_delete = admin || hasPermission(fakeChild, 'can_delete', ctx)
     const can_archive = admin || hasPermission(fakeChild, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
-    const props = { can_archive, can_upload, can_delete, accept: node.accept, can_comment }
+    const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
+    const props = { can_archive, can_upload, can_delete, can_overwrite, accept: node.accept, can_comment }
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {
