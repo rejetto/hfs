@@ -9,7 +9,7 @@ import Koa from 'koa'
 import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
     PendingPromise, pendingPromise, same, tryJson, wait, waitFor, wantArray, watchDir } from './misc'
 import { defineConfig, getConfig } from './config'
-import { DirEntry } from './api.file_list'
+import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
