@@ -9,7 +9,7 @@ import mimetypes from 'mime-types'
 import { defineConfig } from './config'
 import { Dict, makeMatcher, matches } from './misc'
 import _ from 'lodash'
-import path from 'path'
+import { basename } from 'path'
 import { promisify } from 'util'
 import { updateConnection } from './connections'
 
@@ -47,7 +47,7 @@ const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>
 export async function serveFile(ctx: Koa.Context, source:string, mime?:string, content?: string | Buffer) {
     if (!source)
         return
-    const fn = path.basename(source)
+    const fn = basename(source)
     mime = mime ?? mimeCfg.compiled()(fn)
     if (mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''

@@ -43,7 +43,6 @@ export default function useFetchList() {
         lastReloader.current = snap.listReloader
 
         state.list = []
-        state.filteredList = undefined
         state.selected = {}
         state.loading = true
         state.error = undefined
@@ -52,10 +51,8 @@ export default function useFetchList() {
         const buffer: DirList = []
         const flush = () => {
             const chunk = buffer.splice(0, Infinity)
-            if (chunk.length) {
+            if (chunk.length)
                 state.list = sort([...state.list, ...chunk])
-                updateFilteredList()
-            }
         }
         const timer = setInterval(flush, 1000)
         const src = apiEvents('get_file_list', params, (type, data) => {
@@ -149,11 +146,12 @@ const sortAgain = _.debounce(()=> state.list = sort(state.list), 100)
 for (const k of [ 'sort_by', 'invert_order', 'folders_first', 'sort_numerics'] as const)
     subscribeKey(state, k, sortAgain)
 
-subscribeKey(state, 'patternFilter', updateFilteredList)
-function updateFilteredList() {
+const updateFilteredList = _.debounce(() => {
     const v = state.patternFilter
     if (!v)
         return state.filteredList = undefined
     const filter = new RegExp(_.escapeRegExp(v),'i')
     state.filteredList = state.list.filter(x => filter.test(x.n))
-}
+})
+subscribeKey(state, 'list', updateFilteredList)
+subscribeKey(state, 'patternFilter', updateFilteredList)
