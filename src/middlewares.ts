@@ -30,6 +30,7 @@ import { defineConfig } from './config'
 import { sendErrorPage } from './errorPages'
 import session from 'koa-session'
 import { app } from './index'
+import events from './events'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
@@ -251,10 +252,13 @@ export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
     await next()
 }
 
-export const sessionMiddleware: Koa.Middleware = (ctx, next) =>
-    session({
-        key: 'hfs_$id' + (ctx.secure ? '' : '_http'), // once https cookie is created, http cannot
-        signed: true,
-        rolling: true,
-        sameSite: 'lax'
-    }, app)(ctx, next)
+// once https cookie is created, http cannot do the same. The solution is to use 2 different cookies.
+// But koa-session doesn't support 2 cookies, so I made this hacky solution: keep track of the options object, to modify the key at run-time.
+let internalSessionMw: any
+let options: any
+events.on('app', () => // wait for app to be defined
+    internalSessionMw = session(options = { signed: true, rolling: true, sameSite: 'lax' } as const, app) )
+export const sessionMiddleware: Koa.Middleware = (ctx, next) => {
+    options.key = 'hfs_' + ctx.protocol
+    return internalSessionMw(ctx, next)
+}
