@@ -1,4 +1,4 @@
-import { statusCodeForMissingPerm, VfsNode } from './vfs'
+import { getNodeByName, hasPermission, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL,
@@ -96,7 +96,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         if (!ctx.req.aborted) {
             let dest = fullPath
             await setUploadMeta(tempName, ctx)
-            if (dontOverwriteUploading.get() && fs.existsSync(dest)) {
+            if (dontOverwriteUploading.get() && fs.existsSync(dest) && !overwriteAnyway()) {
                 const ext = extname(dest)
                 const base = dest.slice(0, -ext.length)
                 let i = 1
@@ -119,6 +119,12 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         delayedDelete(tempName, sec)
     })
     return ret
+
+    function overwriteAnyway() {
+        if (ctx.query.overwrite === undefined) return
+        const n = getNodeByName(path, base)
+        return n && hasPermission(n, 'can_delete', ctx)
+    }
 
     function trackProgress() {
         let lastGot = 0

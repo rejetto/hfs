@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
     dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy,
-    throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS
+    throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -94,28 +94,11 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     if (!name)
         return parent
     const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, url.endsWith('/') ? -1 : undefined)
-    if (dirTraversal(name) || /[\\/]/.test(name)) {
-        if (ctx)
-            ctx.status = HTTP_FOOL
+    const ret = getNodeByName(name, parent)
+    if (!ret)
         return
-    }
-    // does the tree node have a child that goes by this name?
-    const child = parent.children?.find(isSameFilenameAs(name))
-    if (!child && !parent.source) return // on tree or on disk, or it doesn't exist
-
-    const ret = applyParentToChild(child, parent, name)
-    if (child)
+    if (ret?.original)
         return urlToNode(rest, ctx, ret, getRest)
-    let onDisk = name
-    if (parent.rename) { // reverse the mapping
-        for (const [from, to] of Object.entries(parent.rename))
-            if (name === to) {
-                onDisk = from
-                break // found, search no more
-            }
-        ret.rename = renameUnderPath(parent.rename, name)
-    }
-    ret.source = enforceFinal('/', parent.source!) + onDisk
     if (parent.default)
         inheritFromParent({ mime: { '*': MIME_AUTO } }, ret)
     if (rest)
@@ -128,9 +111,31 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         catch {
             if (!getRest)
                 return
-            getRest(onDisk)
+            const rest = ret.source.slice(parent.source!.length) // parent has source, otherwise !ret.source || ret.original
+            getRest(removeStarting('/', rest))
             return parent
-        }
+    }
+    return ret
+}
+
+export function getNodeByName(name: string, parent: VfsNode) {
+    if (dirTraversal(name) || /[\\/]/.test(name)) return
+    // does the tree node have a child that goes by this name?
+    const child = parent.children?.find(isSameFilenameAs(name))
+    if (!child && !parent.source) return // on tree or on disk, or it doesn't exist
+    const ret = applyParentToChild(child, parent, name)
+    if (child)
+        return ret
+    let onDisk = name
+    if (parent.rename) { // reverse the mapping
+        for (const [from, to] of Object.entries(parent.rename))
+            if (name === to) {
+                onDisk = from
+                break // found, search no more
+            }
+        ret.rename = renameUnderPath(parent.rename, name)
+    }
+    ret.source = enforceFinal('/', parent.source!) + onDisk
     return ret
 }
 
