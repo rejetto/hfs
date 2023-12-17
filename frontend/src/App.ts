@@ -9,6 +9,7 @@ import { useSnapState } from './state'
 import { I18Nprovider } from './i18n'
 import { proxy, useSnapshot } from "valtio"
 import { Spinner } from "./components"
+import { getHFS, getPrefixUrl } from '@hfs/shared'
 
 function App() {
     useTheme()
@@ -30,10 +31,9 @@ function App() {
     )
 }
 
-// expose navigate function for programmatic usage
-export let navigate: ReturnType<typeof useNavigate>
 function NavigationExtractor(props: any) {
-    navigate = useNavigate()
+    const go = useNavigate() // expose navigate function for programmatic usage
+    getHFS().navigate = (uri: string) => go((uri.startsWith('/') ? getPrefixUrl() : '') + uri)
     return h(Fragment, props)
 }
 

@@ -21,7 +21,6 @@ export const MISSING_PERM = "Missing permission"
 export function BrowseFiles() {
     useFetchList()
     const { error } = useSnapState()
-    const navigate = useNavigate()
     const { props, tile_size=0 } = useSnapState()
     const propsDropFiles = useMemo(() => acceptDropFiles(files =>
         props?.can_upload ? enqueue(files.map(file => ({ file })))
@@ -31,7 +30,7 @@ export function BrowseFiles() {
         return h(CustomCode, { name: 'unauthorized',
             ifEmpty: () => h('h1', {
                 className: 'unauthorized',
-                onClick: () => loginDialog(navigate)
+                onClick: () => loginDialog()
             }, t`Unauthorized`)
         })
     return h('div', propsDropFiles, // element dedicated to drop-files to cover full screen

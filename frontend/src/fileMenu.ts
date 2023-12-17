@@ -1,5 +1,5 @@
 import { t, useI18N } from './i18n'
-import { dontBotherWithKeys, formatBytes, hfsEvent, hIcon, newDialog, prefix, with_, working } from './misc'
+import { dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
@@ -9,7 +9,6 @@ import { Link } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
 import { alertDialog, promptDialog } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
-import { navigate } from './App'
 import { inputComment } from './upload'
 import { cut } from './clip'
 
@@ -129,7 +128,7 @@ async function rename(entry: DirEntry) {
         }
         alertDialog(t`Operation successful`).then(() => {
             if (isCurrentFolder)
-                navigate(uri + '../' + pathEncode(dest) + '/')
+                getHFS().navigate(uri + '../' + pathEncode(dest) + '/')
         })
     }
     catch(e: any) {

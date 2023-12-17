@@ -42,7 +42,7 @@ export function logout(){
 
 export let closeLoginDialog: undefined | (() => void)
 let lastPromise: Promise<any>
-export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
+export async function loginDialog() {
     return lastPromise = new Promise(resolve => {
         if (closeLoginDialog)
             return lastPromise
@@ -112,7 +112,7 @@ export async function loginDialog(navigate: ReturnType<typeof useNavigate>) {
                         const res = await login(usr, pwd)
                         close(true)
                         if (res?.redirect)
-                            navigate(getPrefixUrl() + res.redirect)
+                            getHFS().navigate(res.redirect)
                     } catch (err: any) {
                         await alertDialog(err)
                         usrRef.current?.focus()
@@ -131,17 +131,11 @@ export function useAuthorized() {
     const { loginRequired } = useSnapState()
     if (location.hash === '#LOGIN')
         state.loginRequired = true
-    const navigate = useNavigate()
     useEffect(() => {
         if (!loginRequired)
             return closeLoginDialog?.()
         if (!closeLoginDialog)
-            loginDialog(navigate).then()
-    }, [loginRequired, navigate])
+            loginDialog().then()
+    }, [loginRequired])
     return loginRequired ? null : true
-}
-
-function tElement(s: string) {
-    const {t} = useI18N()
-    return t(s)
 }

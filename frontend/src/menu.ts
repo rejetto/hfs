@@ -186,7 +186,6 @@ export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: Men
 
 function LoginButton() {
     const snap = useSnapState()
-    const navigate = useNavigate()
     const {t} = useI18N()
     return MenuButton(snap.username ? {
         id: 'user-button',
@@ -199,7 +198,7 @@ function LoginButton() {
         icon: 'login',
         label: t`Login`,
         onClickAnimation: false,
-        onClick: () => loginDialog(navigate),
+        onClick: () => loginDialog(),
     })
 }
 
