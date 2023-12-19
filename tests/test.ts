@@ -1,9 +1,10 @@
 import { srpClientSequence } from '../src/srp'
-import { createReadStream, rmSync } from 'fs'
+import { createReadStream } from 'fs'
 import { dirname, join } from 'path'
 import _ from 'lodash'
 import { findDefined, tryJson } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
+import { rm } from 'fs/promises'
 /*
 import { PORT, srv } from '../src'
 
@@ -123,7 +124,7 @@ describe('after-login', () => {
     it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_DEST) + '/' + renameTo }, 200))
     it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
     after(() =>
-        rmSync(join(__dirname, 'temp'), { recursive: true}))
+        rm(join(__dirname, 'temp'), { recursive: true}).catch(() => 0))
 })
 
 function login(usr: string, pwd=password) {
