@@ -1,9 +1,9 @@
 import Koa from 'koa'
 import { getLangData } from './lang'
 import { getSection } from './customHtml'
-import { HTTP_FORBIDDEN, HTTP_MESSAGES, HTTP_NOT_FOUND } from './cross'
+import { HTTP_FORBIDDEN, HTTP_MESSAGES, HTTP_NOT_FOUND, HTTP_TOO_MANY_REQUESTS } from './cross'
 
-const declaredErrorPages = [HTTP_NOT_FOUND, HTTP_FORBIDDEN].map(String)
+const declaredErrorPages = [HTTP_NOT_FOUND, HTTP_FORBIDDEN, HTTP_TOO_MANY_REQUESTS].map(String)
 
 export function getErrorSections() {
     return declaredErrorPages

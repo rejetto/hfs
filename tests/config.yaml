@@ -128,4 +128,6 @@ accounts:
     disabled: true
   admins:
     admin: true
-version: 0.50.4
+version: 0.51.0-alpha3
+max_downloads_per_account: 2
+max_downloads: 1

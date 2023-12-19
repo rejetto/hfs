@@ -6,8 +6,10 @@ import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
-import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILE_SIZE, modifiedSx, REPO_URL, ipLocalHost,
-    wait, wikiLink, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS, useBreakpoint } from './misc'
+import {
+    Dict, iconTooltip, InLink, LinkBtn, MAX_TILE_SIZE, modifiedSx, REPO_URL, ipLocalHost,
+    wait, wikiLink, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS, useBreakpoint, CFG
+} from './misc'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -62,6 +64,13 @@ export default function OptionsPage() {
         unit: "KB/s",
         placeholder: "no limit",
         sm: 6,
+    }
+    const maxDownloadsDefaults = {
+        comp: NumberField,
+        min: 0,
+        placeholder: "no limit",
+        toField: (x: any) => x || '',
+        sm: 4,
     }
     const httpsEnabled = values.https_port >= 0
     return h(Form, {
@@ -127,7 +136,10 @@ export default function OptionsPage() {
                 helperText: "Access Admin-panel without entering credentials"
             },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output", helperText: "Doesn't apply to localhost" },
-            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output per-ip" },
+            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output per-IP" },
+            { k : CFG.max_downloads, ...maxDownloadsDefaults, helperText: "Number of simultaneous downloads" },
+            { k : CFG.max_downloads_per_ip, ...maxDownloadsDefaults, label: "Max downloads per-IP" },
+            { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
             { k: 'dont_overwrite_uploading', comp: BoolField, sm: 12, md: 6, label: "Don't overwrite uploading",
                 helperText: "Files will be numbered to avoid overwriting" },
             { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",

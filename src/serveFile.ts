@@ -3,19 +3,24 @@
 import Koa from 'koa'
 import { createReadStream, stat } from 'fs'
 import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, HTTP_NOT_MODIFIED,
-    HTTP_OK, HTTP_PARTIAL_CONTENT, HTTP_RANGE_NOT_SATISFIABLE, MIME_AUTO } from './const'
+    HTTP_OK, HTTP_PARTIAL_CONTENT, HTTP_RANGE_NOT_SATISFIABLE, HTTP_TOO_MANY_REQUESTS, MIME_AUTO } from './const'
 import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { Dict, makeMatcher, matches } from './misc'
+import { CFG, Dict, makeMatcher, matches } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'
 import { updateConnection } from './connections'
+import { getCurrentUsername } from './auth'
+import { sendErrorPage } from './errorPages'
 
 const allowedReferer = defineConfig('allowed_referer', '')
+const limitDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
+const limitDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
+const limitDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
 
-export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
+export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const { source, mime } = node
     const name = getNodeName(node)
     const mimeString = typeof mime === 'string' ? mime
@@ -30,7 +35,10 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     ctx.vfsNode = node // useful to tell service files from files shared by the user
     if ('dl' in ctx.query) // please, download
         ctx.attachment(name)
-    return serveFile(ctx, source||'', mimeString)
+    await serveFile(ctx, source||'', mimeString)
+
+    if (await limitDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
+        await limitDownloads(ctx) || await limitDownloadsPerIp(ctx)
 
     function host() {
         const s = ctx.get('host')
@@ -123,5 +131,32 @@ export function getRange(ctx: Koa.Context, totalSize: number) {
 declare module "koa" {
     interface DefaultState {
         includesLastByte?: boolean
+    }
+}
+function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey: (ctx: Koa.Context) => T | undefined) {
+    const map = new Map<T, number>()
+    return (ctx: Koa.Context) => {
+        if (!ctx.body) return // no file sent, cache hit
+        const k = cbKey(ctx)
+        if (k === undefined) return // undefined = skip limit
+        const max = configMax.get()
+        const now = map.get(k) || 0
+        if (max && now >= max)
+            return tooMany()
+        map.set(k, now + 1)
+        ctx.req.on('close', () => {
+            const n = map.get(k)!
+            if (n > 1)
+                map.set(k, n - 1)
+            else
+                map.delete(k)
+        })
+        return false // limit is enforced but passed
+
+        async function tooMany() {
+            ctx.set('retry-after', '3600')
+            await sendErrorPage(ctx, HTTP_TOO_MANY_REQUESTS)
+            return true
+        }
     }
 }

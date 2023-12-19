@@ -2,9 +2,11 @@ import { srpClientSequence } from '../src/srp'
 import { createReadStream } from 'fs'
 import { dirname, join } from 'path'
 import _ from 'lodash'
-import { findDefined, tryJson } from '../src/cross'
+import { findDefined, randomId, tryJson, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
-import { rm } from 'fs/promises'
+import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
+import { rm, writeFile } from 'fs/promises'
+import { Readable } from 'stream'
 /*
 import { PORT, srv } from '../src'
 
@@ -17,8 +19,10 @@ const username = 'rejetto'
 const password = 'password'
 const API = '/~/api/'
 const BASE_URL = 'http://localhost:81'
-const UPLOAD_ROOT = '/for-admins/upload'
-const UPLOAD_DEST = UPLOAD_ROOT + '/temp/gpl.png'
+const UPLOAD_ROOT = '/for-admins/upload/'
+const UPLOAD_DEST = UPLOAD_ROOT + 'temp/gpl.png'
+const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to saturate buffers
+const throttle = BIG_CONTENT.length /1000 /0.5 // KB, finish in 0.5s, quick but still overlapping downloads
 
 describe('basics', () => {
     //before(async () => appStarted)
@@ -95,7 +99,7 @@ describe('basics', () => {
         headers: { Referer: 'https://some-website.com/try-to-trick/x.com/' }
     }))
 
-    testUpload('upload.need account', UPLOAD_DEST, 401)
+    it('upload.need account', reqUpload( UPLOAD_DEST, 401))
     it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
     it('delete.no perm', reqApi('delete', { uri: '/for-admins' }, 403))
     it('delete.need account', reqApi('delete', { uri: '/for-admins/upload' }, 401))
@@ -110,19 +114,31 @@ describe('accounts', () => {
     it('accounts.remove', reqApi('del_account', { username }, 200))
 })
 
+describe('limits', () => {
+    const fn = 'tests/big'
+    before(() => writeFile(fn, BIG_CONTENT))
+    it('max_dl', () => testMaxDl('/' + fn, 1, 2))
+    after(() => rm(fn))
+})
+
 describe('after-login', () => {
     before(() => login(username))
     it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 200))
     it('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
     it('inherit.disabled', reqList('/for-disabled/', 401))
-    testUpload('upload.never', '/random', 403)
-    testUpload('upload.ok', UPLOAD_DEST, 200)
-    testUpload('upload.crossing', UPLOAD_DEST.replace('temp', '../..'), 418)
+    it('upload.never', reqUpload('/random', 403))
+    it('upload.ok', reqUpload(UPLOAD_DEST, 200))
+    it('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 418))
     const renameTo = 'z'
     it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
     it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
     it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_DEST) + '/' + renameTo }, 200))
     it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
+    it('max_dl.account', async () => {
+        const uri = UPLOAD_ROOT + 'temp/big'
+        await reqUpload(uri, 200, BIG_CONTENT)()
+        await testMaxDl(uri, 2, 1)
+    })
     after(() =>
         rm(join(__dirname, 'temp'), { recursive: true}).catch(() => 0))
 })
@@ -132,11 +148,22 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function testUpload(name: string, dest: string, tester: Tester) {
-    it(name, req(dest, tester, {
+function reqUpload(dest: string, tester: Tester, body?: Readable | string) {
+    return req(dest, tester, {
         method: 'PUT',
-        body: createReadStream(join(__dirname, 'page/gpl.png'))
-    }))
+        body: body ?? createReadStream(join(__dirname, 'page/gpl.png'))
+    })
+}
+
+async function testMaxDl(uri: string, good: number, bad: number) {
+    let i = 0
+    const reqs = []
+    while (good--)
+        reqs.push( req(uri + '?' + (++i), 200, { throttle })() )
+    await wait(10) // ensure it the slots are taken
+    while (bad--)
+        reqs.push( req(uri + '?' + (++i), 429, { throttle })() )
+    await Promise.all(reqs)
 }
 
 type TesterFunction = ((data: any, fullResponse: any) => boolean)
@@ -157,7 +184,7 @@ type Tester = number
 
 const jar = {}
 
-function req(url: string, test:Tester, requestOptions: XRequestOptions={}) {
+function req(url: string, test:Tester, requestOptions: XRequestOptions & { throttle?: number }={}) {
     // passing 'path' keeps it as it is, avoiding internal resolving
     return () => httpStream(BASE_URL + url, { path: url, jar, ...requestOptions }).catch(e => {
         if (e.code === "ECONNREFUSED")
@@ -171,7 +198,9 @@ function req(url: string, test:Tester, requestOptions: XRequestOptions={}) {
             test = { re:test }
         if (typeof test === 'number')
             test = { status: test }
-        const data = await stream2string(res)
+        const { throttle } = requestOptions
+        const stream = throttle ? res.pipe(new ThrottledStream(new ThrottleGroup(throttle))) : res
+        const data = await stream2string(stream)
         const obj = tryJson(data)
         if (typeof test === 'object') {
             const { status, mime, re, inList, outList, length, permInList } = test

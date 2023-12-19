@@ -23,6 +23,7 @@ export const HTTP_PAYLOAD_TOO_LARGE = 413
 export const HTTP_RANGE_NOT_SATISFIABLE = 416
 export const HTTP_FOOL = 418
 export const HTTP_FAILED_DEPENDENCY = 424
+export const HTTP_TOO_MANY_REQUESTS = 429
 export const HTTP_SERVER_ERROR = 500
 export const HTTP_SERVICE_UNAVAILABLE = 503
 
@@ -31,5 +32,6 @@ export const HTTP_MESSAGES: Record<number, string> = {
     [HTTP_FORBIDDEN]: "Forbidden",
     [HTTP_NOT_FOUND]: "Not found",
     [HTTP_SERVER_ERROR]: "Server error",
+    [HTTP_TOO_MANY_REQUESTS]: "Too many requests",
 }
 
