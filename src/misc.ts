@@ -121,7 +121,8 @@ export class AsapStream<T> extends Readable {
         if (this.finished) return
         this.finished = true
         for (const p of this.promises)
-            p.then(data => this.push(data), e => this.emit('error', e))
+            p.then(x => x !== undefined && this.push(x),
+                e => this.emit('error', e) )
         Promise.allSettled(this.promises).then(() => this.push(null))
     }
 }
