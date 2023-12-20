@@ -132,7 +132,6 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         const conn = socket2connection(ctx.socket)
         if (!conn) return ()=>{}
         const opTotal = reqSize + resume
-        ctx.state.uploadPath = ctx.path + path
         ctx.state.uploadSize = opTotal
         updateConnection(conn, { ctx, op: 'upload', opTotal, opOffset: resume / opTotal })
         const h = setInterval(() => {
@@ -169,6 +168,5 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
 declare module "koa" {
     interface DefaultState {
         uploadSize?: number
-        uploadPath?: string
     }
 }

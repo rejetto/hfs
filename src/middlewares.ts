@@ -13,7 +13,7 @@ import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
-import { Readable } from 'stream'
+import { Readable, Writable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount } from './perm'
 import { socket2connection, updateConnection, normalizeIp, disconnect, Connection } from './connections'
@@ -99,6 +99,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         const folder = await urlToNode(dirname(decPath), ctx, vfs, v => rest = v+'/'+rest)
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
+        ctx.state.uploadPath = decPath
         const dest = uploadWriter(folder, rest, ctx)
         if (dest) {
             await pipeline(ctx.req, dest)
@@ -115,11 +116,16 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         if (ctx.request.type !== 'multipart/form-data')
             return ctx.status = HTTP_BAD_REQUEST
         ctx.body = {}
+        ctx.state.uploads = []
         const form = formidable({
             maxFileSize: Infinity,
             allowEmptyFiles: true,
-            //@ts-ignore wrong in the .d.ts file
-            fileWriteStreamHandler: f => uploadWriter(node, f.originalFilename, ctx)
+            fileWriteStreamHandler: f => {
+                const fn = (f as any).originalFilename
+                ctx.state.uploadPath = decodeURI(ctx.path) + fn
+                ctx.state.uploads!.push(fn)
+                return uploadWriter(node!, fn, ctx) || new Writable()
+            }
         })
         return new Promise<void>(res => form.parse(ctx.req, err => {
             if (err) console.error(String(err))
@@ -256,6 +262,8 @@ declare module "koa" {
         connection: Connection
         serveApp?: boolean // please, serve the frontend app
         browsing?: string // for admin/monitoring
+        uploadPath?: string // current one
+        uploads?: string[] // in case of request with potentially multiple uploads (POST), we register all filenames (no full path)
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {

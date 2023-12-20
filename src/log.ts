@@ -107,7 +107,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
         ctx.logExtra(ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
-            || ctx.state.uploadPath && { ul: ctx.state.uploadPath, size: ctx.state.uploadSize })
+            || ctx.state.uploadSize !== undefined && { size: ctx.state.uploadSize, ul: ctx.state.uploads })
         const conn = getConnection(ctx)
         if (conn?.country)
             ctx.logExtra({ country: conn.country })

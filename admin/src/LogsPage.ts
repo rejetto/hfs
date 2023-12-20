@@ -4,7 +4,7 @@ import { createElement as h, Fragment, useMemo, useState } from 'react';
 import { Box, Tab, Tabs, Tooltip } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { Dict, formatBytes, HTTP_UNAUTHORIZED, prefix, shortenAgent, tryJson } from '@hfs/shared'
+import { Dict, formatBytes, HTTP_UNAUTHORIZED, prefix, shortenAgent, splitAt, tryJson } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import { Flex, typedKeys, useBreakpoint, usePauseButton, useToggleButton } from './misc';
 import { GridColDef } from '@mui/x-data-grid'
@@ -49,7 +49,7 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
             if (extra?.ua && !showAgent)
                 setShowAgent(true)
             x.notes = extra?.dl ? "fully downloaded"
-                : extra?.ul ? "uploaded " + formatBytes(extra.size)
+                : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra.size)
                 : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
                 : x.notes
             return x
@@ -162,9 +162,11 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 minWidth: 100,
                 mergeRender: { other: 'method', fontSize: 'small' },
                 renderCell: ({ value, row }) => {
-                    if (row.extra?.ul)
-                        return row.extra?.ul
                     value = decodeURIComponent(value)
+                    const ul = row.extra?.ul
+                    if (ul)
+                        return typeof ul === 'string' ? ul // legacy pre-0.51
+                            : splitAt('?', value)[0] + ul.join(' + ')
                     if (!value.startsWith(API_URL))
                         return value
                     const ofs = API_URL.length
