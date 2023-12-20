@@ -38,6 +38,7 @@ export default function LogsPage() {
 
 function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, showApi: boolean }) {
     const [showCountry, setShowCountry] = useState(false)
+    const [showAgent, setShowAgent] = useState(false)
     const { list, error, connecting } = useApiList('get_log', { file }, {
         invert: true,
         pause,
@@ -45,6 +46,8 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
             const { extra } = x
             if (extra?.country && !showCountry)
                 setShowCountry(true)
+            if (extra?.ua && !showAgent)
+                setShowAgent(true)
             x.notes = extra?.dl ? "fully downloaded"
                 : extra?.ul ? "uploaded " + formatBytes(extra.size)
                 : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
@@ -138,8 +141,9 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
             {
                 headerName: "Agent",
                 hideUnder: 'xl',
-                field: 'extra',
-                valueGetter: ({ value }) => value?.ua,
+                field: 'ua',
+                hidden: !showAgent,
+                valueGetter: ({ row }) => row.extra?.ua,
                 renderCell: ({ value }) =>
                     value && agentIcons(value),
             },
