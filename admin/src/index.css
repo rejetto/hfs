@@ -28,7 +28,7 @@ code {
   line-height: 1.1em;
 }
 
-.wrap .MuiDataGrid-cellContent { white-space: normal }
+.wrap[role=cell] { white-space: normal !important }
 
 ol, ul { margin-top: .2em; margin-bottom: .2em; padding-left: 1.5em; }
 
