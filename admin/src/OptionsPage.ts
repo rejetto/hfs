@@ -61,7 +61,7 @@ export default function OptionsPage() {
         min: 1,
         unit: "KB/s",
         placeholder: "no limit",
-        md: 6,
+        sm: 6,
     }
     const httpsEnabled = values.https_port >= 0
     return h(Form, {
@@ -118,7 +118,7 @@ export default function OptionsPage() {
             },
             { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
                 helperText: "The icon associated to your website" },
-            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer },
+            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer, sm: 12, md: 6 },
             { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start",
                 helperText: "Browser is automatically launched with HFS"
             },
