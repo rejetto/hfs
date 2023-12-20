@@ -112,7 +112,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         if (conn?.country)
             ctx.logExtra({ country: conn.country })
         if (logUA.get())
-            ctx.logExtra({ ua: ctx.get('user-agent') })
+            ctx.logExtra({ ua: ctx.get('user-agent') || undefined })
         const extra = ctx.state.logExtra
         events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri, extra }))
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
