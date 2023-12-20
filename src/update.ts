@@ -68,14 +68,15 @@ export function updateSupported() {
     return IS_BINARY
 }
 
-export async function update(tag: string='') {
+export async function update(tagOrUrl: string='') {
     if (!updateSupported()) throw "only binary versions supports automatic update for now"
-    let updateSource: Readable | false = await localUpdateAvailable() && createReadStream(LOCAL_UPDATE)
+    let updateSource: Readable | false = tagOrUrl.includes('://') ? await httpStream(tagOrUrl)
+        : await localUpdateAvailable() && createReadStream(LOCAL_UPDATE)
     if (!updateSource) {
-        if (/^\d/.test(tag)) // work even if the tag is passed without the initial 'v' (useful for console commands)
-            tag = 'v' + tag
-        const update = !tag ? (await getUpdates())[0]
-            : await getRepoInfo(HFS_REPO + '/releases/tags/' + tag).catch(e => {
+        if (/^\d/.test(tagOrUrl)) // work even if the tag is passed without the initial 'v' (useful for console commands)
+            tagOrUrl = 'v' + tagOrUrl
+        const update = !tagOrUrl ? (await getUpdates())[0]
+            : await getRepoInfo(HFS_REPO + '/releases/tags/' + tagOrUrl).catch(e => {
                 if (e.message === '404') console.error("version not found")
                 else throw e
             }) as Release | undefined

@@ -185,6 +185,7 @@ Some actions you can take for improved security:
 - right/ctrl/command click on toggle-all checkbox will invert each checkbox state
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
 - Appending `?overwrite` on uploads, will try override the dont_overwrite_uploading configuration, provided you also have delete permission
+- Right-click on "check for updates" will let you input a URL of a version to install
 
 ## Contribute
 

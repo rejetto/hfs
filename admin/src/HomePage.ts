@@ -3,24 +3,12 @@
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Button, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
-import {
-    Btn,
-    dontBotherWithKeys,
-    Flex,
-    InLink,
-    LinkBtn,
-    objSameKeys,
-    onlyTruthy,
-    prefix,
-    REPO_URL,
-    wait,
-    wikiLink,
-    with_
-} from './misc'
+import { Btn, dontBotherWithKeys, Flex, InLink, LinkBtn, objSameKeys, onlyTruthy, prefix, REPO_URL,
+    wait, wikiLink, with_ } from './misc'
 import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInNew, Warning } from '@mui/icons-material'
 import md, { replaceStringToReact } from './md'
 import { state, useSnapState } from './state'
-import { alertDialog, confirmDialog, toast } from './dialog'
+import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { isCertError, isKeyError, suggestMakingCert } from './OptionsPage'
 import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
@@ -113,7 +101,16 @@ export default function HomePage() {
                 onClick() {
                     setCheckPlugins(true)
                     return apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
-                }
+                },
+                async onContextMenu(ev) {
+                    ev.preventDefault()
+                    if (!status.updatePossible)
+                        return alertDialog("Automatic update is only for binary versions", 'warning')
+                    const res = await promptDialog("Enter a link to the zip to install")
+                    if (res)
+                        await update(res)
+                },
+                title: status.updatePossible && "Right-click if you want to install a zip",
             }, "Check for updates")
             : with_(_.find(updates, 'isNewer'), newer =>
                 !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
