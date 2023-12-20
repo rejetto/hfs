@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
-import { Dict, IconBtn, isOrderedEqual, setHidden, swap } from './misc'
+import { Dict, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo } from '@mui/icons-material'
 import { formDialog } from './dialog'
 import { DataGrid, GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
@@ -9,6 +9,7 @@ import { FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import { DateTimeField } from './DateTimeField'
 import _ from 'lodash'
+import { IconBtn } from './mui'
 
 type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean }
 export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, ...rest }: ArrayFieldProps<T>) {

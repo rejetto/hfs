@@ -1,7 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall } from './api'
-export * from './mui'
 export * from '@hfs/shared'
 
 export async function manipulateConfig(k: string, work:(data:any) => any) {

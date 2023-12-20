@@ -4,9 +4,9 @@ import { createElement as h, Fragment, useMemo, useState } from 'react';
 import { Box, Tab, Tabs, Tooltip } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { Dict, formatBytes, HTTP_UNAUTHORIZED, prefix, shortenAgent, splitAt, tryJson } from '@hfs/shared'
+import { Dict, formatBytes, HTTP_UNAUTHORIZED, prefix, shortenAgent, splitAt, tryJson, typedKeys } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
-import { Flex, typedKeys, useBreakpoint, usePauseButton, useToggleButton } from './misc';
+import { Flex, useBreakpoint, usePauseButton, useToggleButton } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
 import { SmartToy } from '@mui/icons-material'

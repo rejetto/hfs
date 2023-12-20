@@ -5,13 +5,14 @@ import { createElement as h, Fragment, ReactNode } from 'react'
 import { Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
 import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { Btn, HTTP_FAILED_DEPENDENCY, IconBtn, prefix, with_, xlate } from './misc'
+import { HTTP_FAILED_DEPENDENCY, prefix, with_, xlate } from './misc'
 import { alertDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
+import { Btn, IconBtn } from './mui'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')

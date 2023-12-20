@@ -4,7 +4,8 @@ import { createElement as h, Fragment, useEffect, useMemo, useState } from 'reac
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { Dict, HTTP_MESSAGES, IconBtn, isCtrlKey, modifiedSx, prefix, reloadBtn, wikiLink } from './misc';
+import { Dict, HTTP_MESSAGES, isCtrlKey, prefix  } from './misc';
+import { IconBtn, modifiedSx, reloadBtn, wikiLink } from './mui';
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'

@@ -3,8 +3,8 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Linea
 import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
     SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'
-import { PORT_DISABLED, Flex, LinkBtn, isIP, Btn, CFG } from './misc'
+import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG } from './misc'
+import { Flex, LinkBtn, Btn } from './mui'
 import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import md from './md'

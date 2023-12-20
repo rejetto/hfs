@@ -3,7 +3,8 @@
 import { createElement as h, Fragment, useEffect, useState } from 'react';
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { Btn, Flex, focusSelector, IconBtn, isCtrlKey, KeepInScreen, modifiedSx, reloadBtn } from './misc';
+import { focusSelector, isCtrlKey, KeepInScreen } from './misc';
+import { Btn, Flex, IconBtn, modifiedSx, reloadBtn } from './mui';
 import { Save, ContentCopy, EditNote } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
 import { state } from './state';

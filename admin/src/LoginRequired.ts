@@ -2,11 +2,12 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { Center, getHFS, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, makeSessionRefresher } from './misc'
+import { getHFS, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, makeSessionRefresher } from './misc'
 import { Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
 import { srpClientSequence } from '@hfs/shared'
 import { Alert, Box } from '@mui/material'
+import { Center } from './mui'
 
 export function LoginRequired({ children }: any) {
     const { loginRequired } = useSnapState()

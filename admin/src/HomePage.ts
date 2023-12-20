@@ -3,8 +3,9 @@
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Button, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
-import { Btn, dontBotherWithKeys, Flex, InLink, LinkBtn, objSameKeys, onlyTruthy, prefix, REPO_URL,
-    wait, wikiLink, with_ } from './misc'
+import { dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL,
+    wait, with_ } from './misc'
+import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
 import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInNew, Warning } from '@mui/icons-material'
 import md, { replaceStringToReact } from './md'
 import { state, useSnapState } from './state'

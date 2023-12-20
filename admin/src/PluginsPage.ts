@@ -4,7 +4,7 @@ import { createElement as h, Fragment, useState } from "react"
 import { Tab, Tabs } from '@mui/material'
 import InstalledPlugins from "./InstalledPlugins"
 import OnlinePlugins from "./OnlinePlugins"
-import { useBreakpoint } from "./misc"
+import { useBreakpoint } from "./mui"
 
 const TABS = {
     "Installed": InstalledPlugins,

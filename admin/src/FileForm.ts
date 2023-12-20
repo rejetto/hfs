@@ -6,9 +6,9 @@ import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList } from '
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
-import { basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, isWhoObject,
-    LinkBtn, modifiedSx, newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, wantArray,
-    Who, WhoObject, wikiLink, matches } from './misc'
+import { basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog,
+    objSameKeys, onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches } from './misc'
+import { Btn, IconBtn, LinkBtn, modifiedSx, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
 import _ from 'lodash'

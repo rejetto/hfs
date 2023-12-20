@@ -3,7 +3,7 @@
 import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
 import { DataTable } from './DataTable'
-import { HTTP_FAILED_DEPENDENCY, IconBtn, xlate } from './misc'
+import { HTTP_FAILED_DEPENDENCY, xlate } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
@@ -12,6 +12,7 @@ import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import _ from 'lodash'
 import { PLUGIN_ERRORS } from './PluginsPage'
+import { IconBtn } from './mui'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')

@@ -1,8 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, IconBtn, LIST, spinner, useStateMounted, wantArray, xlate,
+import { Dict, err2msg, Falsy, LIST, useStateMounted, wantArray, xlate,
     HTTP_FORBIDDEN, HTTP_UNAUTHORIZED,} from './misc'
+import { IconBtn, spinner } from './mui'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'

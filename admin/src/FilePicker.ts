@@ -3,18 +3,9 @@
 import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { apiCall, useApiList } from './api'
 import _ from 'lodash'
-import {
-    Alert,
-    Box,
-    Button,
-    Checkbox,
-    ListItemIcon,
-    ListItemText,
-    MenuItem,
-    TextField,
-    Typography
-} from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, spinner, Center, err2msg, basename, IconBtn, Flex } from './misc'
+import { Alert, Box, Button, Checkbox, ListItemIcon, ListItemText, MenuItem, TextField, Typography } from '@mui/material'
+import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename } from './misc'
+import { spinner, Center, IconBtn, Flex } from './mui'
 import { ArrowUpward, CreateNewFolder, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'

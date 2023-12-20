@@ -5,8 +5,9 @@ import { Alert, Box } from '@mui/material'
 import { apiCall, useApiEx } from './api'
 import { alertDialog } from "./dialog"
 import { useSnapState } from './state'
-import { Btn, HTTP_UNAUTHORIZED } from './misc'
+import { HTTP_UNAUTHORIZED } from './misc'
 import { Logout, PowerSettingsNew } from '@mui/icons-material'
+import { Btn } from './mui'
 
 export default function LogoutPage() {
     const { element } = useApiEx('get_config', { only: [] }) // sort of noop, just to get the 'element' part

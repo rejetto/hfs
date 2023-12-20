@@ -1,12 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h } from 'react'
-import { Alert, Box, Button } from '@mui/material'
+import { Alert, Box } from '@mui/material'
 import { Add, Microsoft } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import addFiles, { addLink, addVirtual } from './addFiles'
 import MenuButton from './MenuButton'
-import { Btn, CFG, Flex, newDialog, reloadBtn } from './misc'
+import { CFG, newDialog } from './misc'
+import { Btn, Flex, reloadBtn } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import { ConfigForm } from './ConfigForm'
 import { ArrayField } from './ArrayField'

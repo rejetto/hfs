@@ -5,7 +5,7 @@ import { useWindowSize } from 'usehooks-ts'
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { newDialog, onlyTruthy } from '@hfs/shared'
 import _ from 'lodash'
-import { Center, Flex } from './misc'
+import { Center, Flex } from './mui'
 
 const ACTIONS = 'Actions'
 

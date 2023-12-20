@@ -8,7 +8,8 @@ import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriv
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
-import { iconTooltip, onlyTruthy, Who, with_ } from './misc'
+import { onlyTruthy, Who, with_ } from './misc'
+import { iconTooltip } from './mui'
 import { apiCall, ApiObject } from './api'
 import { alertDialog, confirmDialog } from './dialog'
 
