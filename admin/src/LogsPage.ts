@@ -4,13 +4,17 @@ import { createElement as h, Fragment, useMemo, useState } from 'react';
 import { Box, Tab, Tabs, Tooltip } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { Dict, formatBytes, HTTP_UNAUTHORIZED, NBSP, prefix, shortenAgent, splitAt, tryJson, typedKeys } from '@hfs/shared'
+import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, typedKeys, NBSP
+} from '@hfs/shared'
 import { logLabels } from './OptionsPage'
-import { Flex, useBreakpoint, usePauseButton, useToggleButton, Country } from './mui';
+import { NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
-import { SmartToy } from '@mui/icons-material'
+import { Settings, SmartToy } from '@mui/icons-material'
 import md from './md'
+import { ConfigForm } from './ConfigForm'
+import { BoolField, SelectField } from '@hfs/mui-grid-form'
+import { useDialogBarColors } from './dialog'
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
@@ -26,13 +30,57 @@ export default function LogsPage() {
     return h(Fragment, {},
         h(Flex, { gap: 0  },
             h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
-                files.map(f => h(Tab, { label: _.get(shorterLabels, f) || logLabels[f], key: f })) ),
+                files.map(f => h(Tab, {
+                    label: _.get(shorterLabels, f) || logLabels[f],
+                    key: f,
+                    sx: { minWidth: 0, px: { xs: 1.5, sm: 2 } } // save space
+                }))),
             h(Box, { flex: 1 }),
             showApiButton,
             pauseButton,
+            h(IconBtn, { icon: Settings, title: "Options", onClick: showLogOptions })
         ),
         h(LogFile, { key: tab, pause, showApi, file: files[tab] }), // without key, some state is accidentally preserved across files
     )
+
+    function showLogOptions() {
+        newDialog({
+            title: "Log options",
+            dialogProps: { sx: { maxWidth: '40em' } },
+            Content() {
+                return h(ConfigForm<{
+                    [CFG.log]: string
+                    [CFG.error_log]: string
+                    [CFG.log_rotation]: string
+                    [CFG.dont_log_net]: string
+                    [CFG.log_gui]: boolean
+                    [CFG.log_api]: boolean
+                    [CFG.log_ua]: boolean
+                }>, {
+                    keys: [ CFG.log, CFG.error_log, CFG.log_rotation, CFG.dont_log_net, CFG.log_gui, CFG.log_api, CFG.log_ua ],
+                    barSx: { gap: 2, width: '100%', ...useDialogBarColors() },
+                    form: {
+                        stickyBar: true,
+                        fields: [
+                            { k: CFG.log, label: logLabels.log, sm: 6, helperText: "Requests are logged here" },
+                            { k: CFG.error_log, label: logLabels.error_log, sm: 6, placeholder: "errors go to main log",
+                                helperText: "If you want errors in a different log"
+                            },
+                            { k: CFG.log_rotation, comp: SelectField, sm: 6, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
+                                helperText: "To keep log-files smaller"
+                            },
+                            { k: CFG.dont_log_net, comp: NetmaskField, label: "Don't log address", sm: 6, placeholder: "no exception",
+                                helperText: h(WildcardsSupported)
+                            },
+                            { k: CFG.log_gui, sm: 6, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
+                            { k: CFG.log_api, sm: 6, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
+                            { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information" },
+                        ]
+                    }
+                })
+            }
+        })
+    }
 }
 
 function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, showApi: boolean }) {

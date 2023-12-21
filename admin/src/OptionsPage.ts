@@ -8,7 +8,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, MAX_TILE_SIZE, REPO_URL, isIpLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
     CFG } from './misc'
-import { iconTooltip, InLink, LinkBtn, modifiedSx, wikiLink, useBreakpoint } from './mui'
+import { iconTooltip, InLink, LinkBtn, modifiedSx, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -36,8 +36,6 @@ export const logLabels = {
     error_log: "Access error",
     console: "Console",
 }
-
-const NetmaskField = StringField
 
 export default function OptionsPage() {
     const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
@@ -188,21 +186,6 @@ export default function OptionsPage() {
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
 
-            h(Section, { title: "Log" }),
-            { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
-            { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log",
-                helperText: "If you want errors in a different log"
-            },
-            { k: 'log_rotation', comp: SelectField, md: 3, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
-                helperText: "To keep log-files smaller"
-            },
-            { k: 'dont_log_net', comp: NetmaskField, label: "Don't log address", md: 3, placeholder: "no exception",
-                helperText: h(WildcardsSupported)
-            },
-            { k: 'log_gui', sm: 4, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
-            { k: 'log_api', sm: 4, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
-            { k: 'log_ua', sm: 4, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information" },
-
             h(Section, { title: "Front-end", subtitle: "Following options affect only the front-end" }),
             { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 4,
                 options: { "by clicking on file name": true, "by dedicated button": false  }
@@ -345,10 +328,6 @@ function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
             helperText: h(WildcardsSupported)
         })
     )
-}
-
-function WildcardsSupported() {
-    return wikiLink('Wildcards', "Wildcards supported")
 }
 
 export async function suggestMakingCert() {

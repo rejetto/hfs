@@ -8,7 +8,7 @@ import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, I
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
 import { dontBotherWithKeys, useBatch, useStateMounted } from '@hfs/shared'
-import { Promisable } from '@hfs/mui-grid-form'
+import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { LoadingButton, LoadingButtonProps } from '@mui/lab'
 import { Link as RouterLink } from 'react-router-dom'
@@ -77,6 +77,10 @@ export function wikiLink(uri: string, content: ReactNode) {
     if (Array.isArray(content))
         content = dontBotherWithKeys(content)
     return h(Link, { href: WIKI_URL + uri, target: 'help' }, content)
+}
+
+export function WildcardsSupported() {
+    return wikiLink('Wildcards', "Wildcards supported")
 }
 
 export function reloadBtn(onClick: any, props?: any) {
@@ -233,6 +237,8 @@ export function useToggleButton(iconBtn: (state:boolean) => Omit<IconBtnProps, '
     })
     return [state, el] as const
 }
+
+export const NetmaskField = StringField
 
 export function Country({ code, ip, def, long, short }: { code: string, ip?: string, def?: ReactNode, long?: boolean, short?: boolean }) {
     const good = ip && !isIpLocalHost(ip) && !isIpLan(ip)

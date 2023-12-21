@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, removeStarting } from './misc'
+import { asyncGeneratorToReadable, CFG, removeStarting } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND } from './const'
 import { defineConfig } from './config'
 
@@ -16,7 +16,7 @@ type ApiHandlerResult = Record<string,any> | ApiError | Readable | AsyncGenerato
 export type ApiHandler = (params:any, ctx:Koa.Context) => ApiHandlerResult | Promise<ApiHandlerResult>
 export type ApiHandlers = Record<string, ApiHandler>
 
-const logApi = defineConfig('log_api', true)
+const logApi = defineConfig(CFG.log_api, true)
 
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {

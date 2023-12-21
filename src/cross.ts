@@ -23,6 +23,7 @@ export const FRONTEND_OPTIONS = {
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown',
+    'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'roots_mandatory'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>

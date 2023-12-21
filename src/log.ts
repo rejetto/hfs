@@ -9,7 +9,7 @@ import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './auth'
-import { DAY, makeNetMatcher, tryJson, Dict, Falsy } from './misc'
+import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG } from './misc'
 import events from './events'
 import { getConnection } from './connections'
 import { app } from './index'
@@ -47,8 +47,8 @@ class Logger {
 }
 
 // we'll have names same as config keys. These are used also by the get_log api.
-const accessLogger = new Logger('log')
-const accessErrorLog = new Logger('error_log')
+const accessLogger = new Logger(CFG.log)
+const accessErrorLog = new Logger(CFG.error_log)
 export const loggers = [accessLogger, accessErrorLog]
 
 defineConfig(accessLogger.name, 'logs/access.log').sub(path => {
@@ -62,9 +62,9 @@ errorLogFile.sub(path => {
     accessErrorLog.setPath(path)
 })
 
-const logRotation = defineConfig('log_rotation', 'weekly')
-const dontLogNet = defineConfig('dont_log_net', '127.0.0.1|::1', v => makeNetMatcher(v))
-const logUA = defineConfig('log_ua', false)
+const logRotation = defineConfig(CFG.log_rotation, 'weekly')
+const dontLogNet = defineConfig(CFG.dont_log_net, '127.0.0.1|::1', v => makeNetMatcher(v))
+const logUA = defineConfig(CFG.log_ua, false)
 
 const debounce = _.debounce(cb => cb(), 1000)
 

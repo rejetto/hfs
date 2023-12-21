@@ -9,7 +9,7 @@ import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from 
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { FRONTEND_OPTIONS, getOrSet, newObj, onlyTruthy } from './misc'
+import { CFG, FRONTEND_OPTIONS, getOrSet, newObj, onlyTruthy } from './misc'
 import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio/vanilla'
 import { customHtmlState, getSection } from './customHtml'
@@ -17,7 +17,7 @@ import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
 
-export const logGui = defineConfig('log_gui', false)
+export const logGui = defineConfig(CFG.log_gui, false)
 _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
 
 // in case of dev env we have our static files within the 'dist' folder'
