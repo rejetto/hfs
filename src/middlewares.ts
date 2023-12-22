@@ -2,7 +2,7 @@
 
 import compress from 'koa-compress'
 import Koa from 'koa'
-import { ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
+import { ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV, VERSION,
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED,
 } from './const'
 import { FRONTEND_URI } from './const'
@@ -151,7 +151,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.state.serveApp = true
         return serveFrontendFiles(ctx, next)
     }
-    ctx.set({ server:'HFS '+BUILD_TIMESTAMP })
+    ctx.set({ server: `HFS ${VERSION} ${BUILD_TIMESTAMP}` })
     return ctx.query.get === 'zip' ? zipStreamFromFolder(node, ctx)
         : ctx.query.get === 'list' ? sendFolderList(node, ctx)
         : serveFrontendFiles(ctx, next)
