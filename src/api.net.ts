@@ -9,7 +9,7 @@ import { getProjectInfo } from './github'
 import { apiAssertTypes, onlyTruthy, promiseBestEffort } from './misc'
 import { lookup, Resolver } from 'dns/promises'
 import { isIPv6 } from 'net'
-import { getNatInfo, upnpClient } from './nat'
+import { getNatInfo, getPublicIps, upnpClient } from './nat'
 import { makeCert } from './acme'
 import { selfCheck } from './selfCheck'
 
@@ -32,7 +32,7 @@ const apis: ApiHandlers = {
         const domainIps = _.uniq(onlyTruthy(settled.map(x => x.status === 'fulfilled' && x.value)).flat())
         if (!domainIps.length)
             throw new ApiError(HTTP_FAILED_DEPENDENCY, "domain not working")
-        const { publicIps } = await getNatInfo() // do this before stopping the server
+        const publicIps = await getPublicIps() // do this before stopping the server
         for (const v6 of [false, true]) {
             const domainIpsThisVersion = domainIps.filter(x => isIPv6(x) === v6)
             const ipsThisVersion = publicIps.filter(x => isIPv6(x) === v6)

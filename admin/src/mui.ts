@@ -12,6 +12,7 @@ import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { LoadingButton, LoadingButtonProps } from '@mui/lab'
 import { Link as RouterLink } from 'react-router-dom'
+import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import _ from 'lodash'
 import { ALL as COUNTRIES } from './countries'
 import { apiCall } from '@hfs/shared/api'
@@ -147,7 +148,7 @@ interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'>
     labelFrom?: Breakpoint
     doneMessage?: boolean | string // displayed only if the result of onClick !== false
     tooltipProps?: TooltipProps
-    onClick: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
+    onClick?: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
 export function Btn({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelFrom, children, ...rest }: BtnProps) {
     const [loading, setLoading] = useStateMounted(false)
@@ -199,8 +200,8 @@ function execDoneMessage(msg: boolean | string | undefined) {
         toast(msg === true ? "Operation completed" : msg, 'success')
 }
 
-export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxProps) {
-    return h(Tooltip, { title: tooltip, children: h(icon, { sx }) })
+export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxProps, props?: SvgIconProps) {
+    return h(Tooltip, { title: tooltip, children: h(icon, { sx, ...props }) })
 }
 
 export function InLink(props:any) {

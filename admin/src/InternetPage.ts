@@ -1,12 +1,12 @@
-import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
+import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
-import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
-    SvgIconComponent } from '@mui/icons-material'
-import { apiCall, useApiEx } from './api'
+import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
+    Error as ErrorIcon, SvgIconComponent } from '@mui/icons-material'
+import { apiCall, useApiEvents, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG,
-    useRequestRender } from './misc'
+    useRequestRender, replace, restartAnimation, prefix } from './misc'
 import { Flex, LinkBtn, Btn, Country } from './mui'
-import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
+import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import md from './md'
 import { suggestMakingCert } from './OptionsPage'
@@ -48,7 +48,58 @@ export default function InternetPage() {
         networkBox(),
         httpsBox(),
         geoBox(),
+        ddnsBox(),
     )
+
+    function ddnsBox() {
+        const { data } = useApiEvents('get_dynamic_dns_error')
+        const ref = useRef<any>()
+        useEffect(() => ref.current && restartAnimation(ref.current, '1s blink'), [data]);
+        return h(TitleCard, { icon: Dns, title: "Dynamic DNS updater" },
+            data && h(Flex, {},
+                data.error ? h(ErrorIcon, { color: 'error', ref }) : h(Check, { color: 'success', ref }),
+                formatTimestamp(data.ts), ' – ',
+                prefix("Error: ", data.error) || "Updated successfully",
+            ),
+            "This tool can keep your domain updated with your latest IP address. Not every service is compatible, and most of them have their own software for the job, which is superior, but we offer this lightweight solution in case you are more keen to it.",
+            h(ConfigForm<{
+                [CFG.dynamic_dns_url]: string,
+            }>, {
+                keys: [CFG.dynamic_dns_url],
+                form: (v, { setValues }) => ({
+                    fields: [
+                        h(Flex, {},
+                            _.map({
+                                NoIP: {
+                                    url: 'https://$username:$password@dynupdate.no-ip.com/nic/update?hostname=$domain',
+                                    fields: ['username', 'password', 'domain'],
+                                },
+                                DuckDNS: {
+                                    url: 'https://www.duckdns.org/update/$domain/$token>OK',
+                                    fields: [{ k: 'domain', helperText: "do NOT include the .duckdns.org part" }, 'token'],
+                                }
+                            }, ({ url, fields }, label) =>
+                                h(Btn, {
+                                    key: url,
+                                    onClick: () => formDialog({
+                                        title: label + " wizard",
+                                        form: {
+                                            maxWidth: '20em',
+                                            before: h(Box, { mb: 1 }, "Following information is stored non-encrypted"),
+                                            fields: fields.map(k => _.isString(k) ? { k } : k)
+                                        }
+                                    }).then(symbols => symbols && setValues({ [CFG.dynamic_dns_url]: replace(url, symbols as any, '$') }))
+                                }, label + " wizard")
+                            )
+                        ),
+                        { k: CFG.dynamic_dns_url, label: "Updater URL",
+                            helperText: "Refer to your DNS service provider to know what URL can automatically keep your domain updated. Supported symbols are $IP4, $IP6, $IPX. Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used."
+                        },
+                    ]
+                })
+            })
+        )
+    }
 
     function geoBox() {
         const countryOptions = useMemo(() => _.sortBy(COUNTRIES, 'name').map(x => ({
@@ -208,7 +259,7 @@ export default function InternetPage() {
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
             }),
-            !direct && h(Sep),
+            !direct && h(DataLine),
             !direct && h(Device, {
                 name: "Router", icon: RouterTwoTone, ip: data?.gatewayIp,
                 color: data?.mapped && (wrongMap ? 'warning' : 'success'),
@@ -216,7 +267,7 @@ export default function InternetPage() {
                     : h(LinkBtn, { fontSize: 'smaller', display: 'block', onClick: configure },
                         "port ", wrongMap ? 'is wrong' : data?.externalPort || "unknown"),
             }),
-            h(Sep),
+            h(DataLine),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: data?.publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
                 below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller' },
@@ -337,7 +388,7 @@ export default function InternetPage() {
     }
 }
 
-function Sep() {
+function DataLine() {
     return h(Box, { flex: 1, className: 'animated-dashed-line' })
 }
 

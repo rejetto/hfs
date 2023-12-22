@@ -107,6 +107,7 @@ Configuration can be done in several ways
 - `geo_allow` set true if `geo_list` should be treated as white-list, set false for black-list. Default will ignore the list.
 - `geo_list` list of country codes to be used as white-list or black-list. Default is empty.
 - `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
+- `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address. Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.  
 - `create-admin` special entry to quickly create an admin account. The value will be set as password. As soon as the account is created, this entry is removed. 
 
 #### Virtual File System (VFS)

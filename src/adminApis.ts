@@ -39,6 +39,7 @@ import { getErrorSections } from './errorPages'
 import { ip2country } from './geo'
 import { roots } from './roots'
 import { SendListReadable } from './SendList'
+import { get_dynamic_dns_error } from './ddns'
 
 export const adminApis: ApiHandlers = {
 
@@ -48,6 +49,7 @@ export const adminApis: ApiHandlers = {
     ...monitorApis,
     ...langApis,
     ...netApis,
+    get_dynamic_dns_error,
 
     async set_config({ values }) {
         apiAssertTypes({ object: { values } })

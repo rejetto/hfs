@@ -4,15 +4,19 @@ import https, { RequestOptions } from 'node:https'
 import http, { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import _ from 'lodash'
-import { text as stream2string } from 'node:stream/consumers'
+import { text as stream2string, buffer } from 'node:stream/consumers'
 export { stream2string }
 
-// in case the response is not 2xx, it will throw and the error object is the Response object
 export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
-    const res = await httpStream(url, options)
-    if (!_.inRange(res.statusCode!, 200, 299))
-        throw res
-    return await stream2string(res)
+    return await stream2string(await httpStream(url, options))
+}
+
+export async function httpWithBody(url: string, options?: XRequestOptions): Promise<IncomingMessage & { ok: boolean, body: Buffer | undefined }> {
+    const req = await httpStream(url, options)
+    return Object.assign(req, {
+        ok: _.inRange(req.statusCode!, 200, 300),
+        body: req.statusCode ? await buffer(req) : undefined,
+    })
 }
 
 export interface XRequestOptions extends RequestOptions {
@@ -20,9 +24,11 @@ export interface XRequestOptions extends RequestOptions {
     // basic cookie store
     jar?: Record<string, string>
     noRedirect?: boolean
+    // throw for http-level errors. Default is true.
+    httpThrow?: boolean
 }
 
-export function httpStream(url: string, { body, jar, noRedirect, ...options }: XRequestOptions ={}): Promise<IncomingMessage> {
+export function httpStream(url: string, { body, jar, noRedirect, httpThrow, ...options }: XRequestOptions ={}): Promise<IncomingMessage> {
     return new Promise((resolve, reject) => {
         options.headers ??= {}
         if (body) {
@@ -42,7 +48,7 @@ export function httpStream(url: string, { body, jar, noRedirect, ...options }: X
                 if (v) jar[k] = v
                 else delete jar[k]
             }
-            if (!res.statusCode || res.statusCode >= 400)
+            if (!res.statusCode || (httpThrow ?? true) && res.statusCode >= 400)
                 return reject(new Error(String(res.statusCode), { cause: res }))
             if (res.headers.location && !noRedirect)
                 return resolve(httpStream(res.headers.location, options))

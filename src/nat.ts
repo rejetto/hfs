@@ -4,7 +4,7 @@ import { debounceAsync } from './debounceAsync'
 import { haveTimeout, HOUR, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
-import { httpString } from './util-http'
+import {  httpString } from './util-http'
 import { Resolver } from 'dns/promises'
 import { isIP } from 'net'
 import { baseUrl, getIps, getServerStatus } from './listen'
@@ -23,10 +23,6 @@ export const defaultBaseUrl = proxy({
     }
 })
 
-export function getBaseUrlOrDefault() {
-    return baseUrl.get() || defaultBaseUrl.get()
-}
-
 export const upnpClient = new Client({ timeout: 4_000 })
 const originalMethod = upnpClient.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
@@ -42,7 +38,7 @@ repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => {
     return defaultBaseUrl.externalIp = v
 }))
 
-const getPublicIps = debounceAsync(async () => {
+export const getPublicIps = debounceAsync(async () => {
     const res = await getProjectInfo()
     const groupedByVersion = Object.values(_.groupBy(res.publicIpServices, x => x.v ?? 4))
     const ips = await promiseBestEffort(groupedByVersion.map(singleVersion =>

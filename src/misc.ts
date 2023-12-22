@@ -105,6 +105,9 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
     const iterator = generator[Symbol.asyncIterator]()
     return new Readable({
         objectMode: true,
+        destroy() {
+            iterator.return?.()
+        },
         read() {
             iterator.next().then(it =>
                 this.push(it.done ? null : it.value))

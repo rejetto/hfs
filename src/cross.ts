@@ -22,7 +22,7 @@ export const FRONTEND_OPTIONS = {
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
-export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown',
+export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'roots_mandatory'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
@@ -325,9 +325,13 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
     return ret
 }
 
-export function repeat(every: number, cb: () => unknown): Promise<ReturnType<typeof setTimeout>>{
-    return Promise.allSettled([cb()]).then(() =>
-        setTimeout(() => repeat(every, cb), every) )
+export function repeat(everyMs: number, cb: Callback): Callback {
+    let stop = false
+    setTimeout(async () => {
+        while (!stop && await Promise.allSettled([cb()]))
+            await wait(everyMs)
+    })
+    return () => stop = true
 }
 
 export function formatTimestamp(x: string) {
@@ -415,6 +419,13 @@ export function makeMatcher(mask: string, emptyMaskReturns=false) {
 
 export function matches(s: string, mask: string, emptyMaskReturns=false) {
     return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
+}
+
+export function replace(s: string, symbols: Dict<string | Callback<string>>, delimiter='') {
+    const [open, close] = splitAt(' ', delimiter)
+    for (const [k, v] of typedEntries(symbols))
+        s = s.replace(open + k + close, _.isFunction(v) ? v() : v)
+    return s
 }
 
 export function shortenAgent(agent: string) {
