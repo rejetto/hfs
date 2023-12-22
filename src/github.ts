@@ -115,7 +115,6 @@ export async function readOnlinePlugin(repo: Repo, branch='') {
     }
     branch ||= await getGithubDefaultBranch(repo)
     const res = await readGithubFile(`${repo}/${branch}/${DIST_ROOT}/plugin.js`)
-    if (!res) throw Error("missing plugin.js")
     const pl = parsePluginSource(repo, res) // use 'repo' as 'id' client-side
     pl.branch = branch
     return pl
@@ -165,7 +164,7 @@ export async function searchPlugins(text='') {
     return new AsapStream(list.items.map(async (it: any) => {
         const repo = it.full_name as string
         if (projectInfo?.plugins_blacklist?.includes(repo)) return
-        const pl = await readOnlineCompatiblePlugin(repo, it.default_branch)
+        const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
         if (!pl) return
         Object.assign(pl, { // inject some extra useful fields
             downloading: downloading[repo],
