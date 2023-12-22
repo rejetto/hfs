@@ -2,10 +2,17 @@ import { defineConfig } from './config'
 import { ADMIN_URI, API_URI, CFG, isLocalHost, makeMatcher, SPECIAL_URI } from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
+import _ from 'lodash'
 
-export const roots = defineConfig(CFG.roots, [] as { host: string, root: string }[], list => {
-    const matchers = list.map((row: any) => typeof row?.host === 'string' ? makeMatcher(row.host) : () => false)
-    return (host: string) => list[matchers.findIndex(m => m(host))]
+export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string }, map => {
+    if (_.isArray(map)) { // legacy pre 0.51.0-alpha5, remove in 0.52
+        roots.set(Object.fromEntries(map.map(x => [x.host, x.root])))
+        return
+    }
+    const list = Object.keys(map)
+    const matchers = list.map(hostMask => makeMatcher(hostMask))
+    const values = Object.values(map)
+    return (host: string) => values[matchers.findIndex(m => m(host))]
 })
 const rootsMandatory = defineConfig(CFG.roots_mandatory, false)
 
@@ -19,15 +26,16 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             if (referer?.startsWith(ctx.state.revProxyPath + ADMIN_URI)) return // exclude apis for admin-panel
             params = ctx.params || ctx.query // for api we'll translate params
         }
-        if (!roots.get()?.length) return
-        const row = roots.compiled()(ctx.host)
-        if (!row) {
+        if (_.isEmpty(roots.get())) return
+        const host2root = roots.compiled()
+        if (!host2root) return
+        const root = host2root(ctx.host)
+        if (root === '' || root === '/') return
+        if (root === undefined) {
             if (!rootsMandatory.get() || isLocalHost(ctx)) return
             disconnect(ctx)
             return true // true will avoid calling next
         }
-        const { root='' } = row
-        if (!root || root === '/') return
         if (!params) {
             ctx.path = join(root, ctx.path)
             return

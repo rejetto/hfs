@@ -38,6 +38,7 @@ describe('basics', () => {
     it('bad range', req('/f1/f2/alfa.txt', 416, {
         headers: { Range: 'bytes=7-' }
     }))
+    it('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL.replace('localhost', '127.0.0.1') })) // host 127.0.0.1 is rooted in /f1
     it('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
     it('traversal', req('/f1/page/.%2e/.%2e/README.md', 418))
     it('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
@@ -184,9 +185,9 @@ type Tester = number
 
 const jar = {}
 
-function req(url: string, test:Tester, requestOptions: XRequestOptions & { throttle?: number }={}) {
+function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }: XRequestOptions & { throttle?: number, baseUrl?: string }={}) {
     // passing 'path' keeps it as it is, avoiding internal resolving
-    return () => httpStream(BASE_URL + url, { path: url, jar, ...requestOptions }).catch(e => {
+    return () => httpStream((baseUrl || BASE_URL) + url, { path: url, jar, ...requestOptions }).catch(e => {
         if (e.code === "ECONNREFUSED")
             throw e
         return e.cause
@@ -198,7 +199,6 @@ function req(url: string, test:Tester, requestOptions: XRequestOptions & { throt
             test = { re:test }
         if (typeof test === 'number')
             test = { status: test }
-        const { throttle } = requestOptions
         const stream = throttle ? res.pipe(new ThrottledStream(new ThrottleGroup(throttle))) : res
         const data = await stream2string(stream)
         const obj = tryJson(data)

@@ -90,6 +90,13 @@ Configuration can be done in several ways
 - `server_code` javascript code that works similarly to [a plugin](dev-plugins.md). 
 - `tiles_size` starting value for frontend's tiles size. Default is 0.
 - `update_to_beta` includes beta versions searching for updates. Default is false.
+- `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.
+  ```
+  roots:
+    music.domain.com: /music
+    image.domain.com: /image
+  ``` 
+- `roots_mandatory` disconnect any request not made with one of the hosts specified in `roots`. Default is false. 
 - `max_downloads` limit the number of concurrent downloads on the whole server. Default is unlimited.
 - `max_downloads_per_ip` limit the number of concurrent downloads for the same IP address. Default is unlimited.
 - `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in, and will override other similar settings. Default is unlimited.

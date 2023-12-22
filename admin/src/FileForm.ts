@@ -273,7 +273,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     const { data, reload, error } = statusApi
     const urls: string[] = data?.urls.https || data?.urls.http
     const baseHost = data?.baseUrl && new URL(data.baseUrl).hostname
-    const root = useMemo(() => baseHost && data.roots?.find((row: any) => matches(baseHost, row.host))?.root,
+    const root = useMemo(() => baseHost && _.find(data.roots, (root, host) => matches(baseHost, host)),
         [data])
     if (root)
         value &&= value.indexOf(root) === 1 ? value.slice(root.length) : undefined

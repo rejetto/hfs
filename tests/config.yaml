@@ -131,3 +131,5 @@ accounts:
 version: 0.51.0-alpha4
 max_downloads_per_account: 2
 max_downloads: 1
+roots:
+  127.0.0.1:*: f1/

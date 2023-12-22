@@ -12,6 +12,7 @@ import { onlyTruthy, Who, with_ } from './misc'
 import { iconTooltip } from './mui'
 import { apiCall, ApiObject } from './api'
 import { alertDialog, confirmDialog } from './dialog'
+import _ from 'lodash'
 
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
@@ -96,7 +97,8 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                         node.default && iconTooltip(Web, "Act as website"),
                         node.masks && iconTooltip(TheaterComedy, "Masks"),
                         node.size === -1 && iconTooltip(HighlightOff, "Source not found"),
-                        with_(statusApi.data?.roots?.find((row: any) => row.root === id.slice(1)), row => row && iconTooltip(Home, `home for ${row.host}`))
+                        with_(_.findKey(statusApi.data?.roots, root => root === id.slice(1)), host =>
+                            host && iconTooltip(Home, `home for ${host}`))
                     ),
                 ),
                 isRoot ? "Home" : (() => { // special rendering if the whole source is not too long, and the name was not customized
