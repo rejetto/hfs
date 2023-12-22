@@ -122,7 +122,7 @@ export default function HomePage() {
                                     h(Card, {}, h(CardContent, {},
                                         h(Btn, {
                                             icon: UpdateIcon,
-                                            ...!x.isNewer && { color: 'warning', variant: 'outlined' },
+                                            ...!x.isNewer && x.prerelease && { color: 'warning', variant: 'outlined' },
                                             onClick: () => update(x.tag_name)
                                         }, prefix("Install ", x.name, x.isNewer ? '' : " (older)")),
                                         h(Box, { mt: 1 }, renderChangelog(x.body))

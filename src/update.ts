@@ -26,8 +26,8 @@ export async function getUpdates() {
     const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
     const verStable = ver(stable)
     const ret = await getBetas()
-    stable.isNewer = currentVersion.olderThan(stable.tag_name) || RUNNING_BETA
-    if (stable.isNewer)
+    stable.isNewer = currentVersion.olderThan(stable.tag_name)
+    if (stable.isNewer || RUNNING_BETA)
         ret.push(stable)
     return ret
 
