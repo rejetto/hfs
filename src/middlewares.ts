@@ -204,7 +204,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     catch {
         return ctx.status = HTTP_FOOL
     }
-    if (forceBaseUrl.get() && !isLocalHost(ctx) && ctx.host === baseUrl.compiled())
+    if (forceBaseUrl.get() && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
         return disconnect(ctx)
     return next()
 }
