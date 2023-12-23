@@ -140,8 +140,9 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
             },
             {
                 headerName: "Agent",
-                hideUnder: 'xl',
+                hideUnder: 'md',
                 field: 'ua',
+                width: 60,
                 hidden: !showAgent,
                 valueGetter: ({ row }) => row.extra?.ua,
                 renderCell: ({ value }) =>
@@ -182,33 +183,34 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
 }
 
 export function agentIcons(agent: string) {
+    const UW = 'https://upload.wikimedia.org/wikipedia/commons/'
     const short = shortenAgent(agent)
     const browserIcon = icon(short, {
-        Chrome: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg',
-        Chromium: 'https://upload.wikimedia.org/wikipedia/commons/f/fe/Chromium_Material_Icon.svg',
-        Firefox: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/Firefox_logo%2C_2019.svg',
-        Safari: 'https://upload.wikimedia.org/wikipedia/commons/5/52/Safari_browser_logo.svg',
-        Edge: 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Edge_Logo_2019.svg',
-        Opera: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Opera_2015_icon.svg',
+        Chrome: UW + 'e/e1/Google_Chrome_icon_%28February_2022%29.svg',
+        Chromium: UW + 'f/fe/Chromium_Material_Icon.svg',
+        Firefox: UW + 'a/a0/Firefox_logo%2C_2019.svg',
+        Safari: UW + '5/52/Safari_browser_logo.svg',
+        Edge: UW + 'f/f6/Edge_Logo_2019.svg',
+        Opera: UW + '4/49/Opera_2015_icon.svg',
     })
     const os = _.findKey(OSS, re => re.test(agent))
-    const osIcon = os && {
-        linux: '🐧',
-        win: '⊞',
-        mac: '',
-        ios: '',
-    }[os]
-    return h(Tooltip, { title: agent, children: h('span', {}, browserIcon || short, ' ', osIcon) })
+    const osIcon = os && (icon(os, {
+        android: UW + 'd/d7/Android_robot.svg',
+        linux: UW + '0/0a/Tux-shaded.svg',
+        win: UW + '0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg',
+        //apple: UW + '7/74/Apple_logo_dark_grey.svg', // doesn't adapt well to every background color
+    }) || { apple: '' }[os])
+    return h(Tooltip, { title: agent, children: h('span', { fontSize: '18px' }, browserIcon || short, ' ', osIcon) })
 
     function icon(k: string, map: Dict<string>) {
         const src = map[k]
-        return src && h('img', { src, style: { height: '1em', verticalAlign: 'text-bottom', marginRight: '.2em' } })
+        return src && h('img', { src, style: { height: '1em', verticalAlign: 'bottom', marginRight: '.2em' } })
     }
 }
 
 const OSS = {
-    mac: /Mac OS/,
-    ios: /iPhone OS/,
+    apple: /Mac OS|iPhone OS/,
     win: /Windows NT/,
+    android: /Android/,
     linux: /Linux/,
 }
