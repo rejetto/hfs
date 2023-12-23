@@ -99,7 +99,8 @@ events.once('https ready', () => repeat(HOUR, renewCert))
 
 // checks if the cert is near expiration date, and if so renews it
 const renewCert = debounceAsync(async () => {
-    if (!acmeRenew.get()) return
+    const domain = acmeDomain.get()
+    if (!acmeRenew.get() || !domain) return
     const cert = getCertObject()
     if (!cert) return
     const now = new Date()
@@ -107,7 +108,7 @@ const renewCert = debounceAsync(async () => {
     // not expiring in a month
     if (now > new Date(cert.validFrom) && now < validTo && validTo.getTime() - now.getTime() >= 30 * DAY)
         return console.log("certificate still good")
-    await makeCert(acmeDomain.get(), acmeEmail.get())
+    await makeCert(domain, acmeEmail.get())
         .catch(e => console.log("error renewing certificate: ", String(e)))
 }, 0, { retain: DAY, retainFailure: HOUR })
 
