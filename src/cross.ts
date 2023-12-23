@@ -93,14 +93,14 @@ export function isWhoObject(v: undefined | Who): v is WhoObject {
 }
 
 const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
-export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
+export function formatBytes(n: number, { post='B', k=1024, digits=NaN, sep=' ' }={}) {
     if (isNaN(Number(n)) || n < 0)
         return ''
     const i = n && Math.floor(Math.log2(n) / Math.log2(k))
     n /= k ** i
     const nAsString = i && !isNaN(digits) ? n.toFixed(digits)
         : _.round(n, isNaN(digits) ? (n >= 100 ? 0 : 1) : digits)
-    return nAsString + ' ' + (MULTIPLIERS[i]||'') + post
+    return nAsString + sep + (MULTIPLIERS[i]||'') + post
 } // formatBytes
 
 export function formatSpeed(n: number, options: { digits?: number }={}) {

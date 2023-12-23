@@ -4,6 +4,7 @@ export const ADMIN_URI = SPECIAL_URI + 'admin/'
 export const API_URI = SPECIAL_URI + 'api/'
 export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
 export const PORT_DISABLED = -1
+export const NBSP = '\xA0'
 
 export const HTTP_OK = 200
 export const HTTP_NO_CONTENT = 204

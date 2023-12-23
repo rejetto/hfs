@@ -4,7 +4,7 @@ import { createElement as h, Fragment, useMemo, useState } from 'react';
 import { Box, Tab, Tabs, Tooltip } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { Dict, formatBytes, HTTP_UNAUTHORIZED, prefix, shortenAgent, splitAt, tryJson, typedKeys } from '@hfs/shared'
+import { Dict, formatBytes, HTTP_UNAUTHORIZED, NBSP, prefix, shortenAgent, splitAt, tryJson, typedKeys } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import { Flex, useBreakpoint, usePauseButton, useToggleButton } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
@@ -49,7 +49,7 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
             if (extra?.ua && !showAgent)
                 setShowAgent(true)
             x.notes = extra?.dl ? "fully downloaded"
-                : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra.size)
+                : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra.size, { sep: NBSP })
                 : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
                 : x.notes
             return x
