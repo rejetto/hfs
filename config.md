@@ -80,7 +80,10 @@ Configuration can be done in several ways
 - `min_available_mb` refuse to accept uploads if available disk space is below this threshold. Default is 100.
 - `dont_overwrite_uploading` uploading a file with name already present in the folder will be renamed if this is enabled. Default is false.
 - `keep_session_alive` keeps you logged in while the page is left open and the computer is on. Default is true.
-- `session_duration` after how many seconds should the login session expire. Default is a day. 
+- `session_duration` after how many seconds should the login session expire. Default is a day.
+- `acme_domain` domain used for ACME certificate generation. Default is none. 
+- `acme_email` email used for ACME certificate generation. Default is none.
+- `force_base_url` disconnect any connection that's not using the domain used for ACME certificate generation. Default is none.
 - `acme_renew` automatically renew acme certificate close to expiration. Default is false.
 - `listen_interface` network interface to listen on, by specifying IP address. Default is any.
 - `base_url` URL to be used for links generation. Default is automatic.
@@ -100,6 +103,10 @@ Configuration can be done in several ways
 - `max_downloads` limit the number of concurrent downloads on the whole server. Default is unlimited.
 - `max_downloads_per_ip` limit the number of concurrent downloads for the same IP address. Default is unlimited.
 - `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in, and will override other similar settings. Default is unlimited.
+- `geo_enable` when enabled, country is determined for each request/connection. Necessary database will be downloaded every month (2MB).
+- `geo_allow` set true if `geo_list` should be treated as white-list, set false for black-list. Default will ignore the list.
+- `geo_list` list of country codes to be used as white-list or black-list. Default is empty.
+- `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
 - `create-admin` special entry to quickly create an admin account. The value will be set as password. As soon as the account is created, this entry is removed. 
 
 #### Virtual File System (VFS)
