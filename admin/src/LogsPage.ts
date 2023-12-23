@@ -163,19 +163,16 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 minWidth: 100,
                 mergeRender: { other: 'method', fontSize: 'small' },
                 renderCell: ({ value, row }) => {
-                    value = decodeURIComponent(value)
+                    const [path, query] = splitAt('?', value).map(decodeURIComponent)
                     const ul = row.extra?.ul
                     if (ul)
                         return typeof ul === 'string' ? ul // legacy pre-0.51
-                            : splitAt('?', value)[0] + ul.join(' + ')
-                    if (!value.startsWith(API_URL))
-                        return value
-                    const ofs = API_URL.length
-                    const i = value.indexOf('?', ofs)
-                    const name = value.slice(ofs, i > 0 ? i : Infinity)
-                    const params = i < 0 ? ''
-                        : Array.from(new URLSearchParams(value.slice(i))).map(x => `${x[0]}=${tryJson(x[1]) ?? x[1]}`).join(' ; ')
-                    return `API ${name} ${params}`
+                            : path + ul.join(' + ')
+                    if (!path.startsWith(API_URL))
+                        return [path, query && h(Box, { key: 0, component: 'span', color: 'text.secondary', fontSize: 'smaller' }, '?', query)]
+                    const name = path.slice(API_URL.length)
+                    const params = query && ': ' + Array.from(new URLSearchParams(query)).map(x => `${x[0]}=${tryJson(x[1]) ?? x[1]}`).join(' ; ')
+                    return "API " + name + params
                 }
             },
         ]

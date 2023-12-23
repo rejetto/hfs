@@ -13,7 +13,7 @@ export function useMyTheme() {
     return useMemo(() => createTheme({
         palette: lightMode || {
             mode: 'dark',
-            text: { primary: '#bbb' },
+            text: { primary: '#bbb', secondary: '#777' },
             primary: { main: '#469', light: '#68c' },
             secondary: { main: '#969' },
         },
