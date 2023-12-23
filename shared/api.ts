@@ -80,6 +80,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef<ReturnType<typeof apiCall>>()
     const reloadingRef = useRef<any>()
+    const dataRef = useRef<T>()
     useEffect(() => {
         loadingRef.current?.abort()
         setData(undefined)
@@ -88,10 +89,10 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         let req: undefined | ReturnType<typeof apiCall>
         const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
             .then(() => !cmd || aborted ? undefined : req = apiCall<T>(cmd, params, options))
-            .then(res => aborted || setData(res), err => {
+            .then(res => aborted || setData(dataRef.current = res), err => {
                 if (aborted) return
                 setError(err)
-                setData(undefined)
+                setData(dataRef.current = undefined)
             })
             .finally(() => loadingRef.current = reloadingRef.current = undefined)
         loadingRef.current = Object.assign(wholePromise, {
@@ -107,7 +108,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         setForcer(v => v + 1)
         reloadingRef.current = pendingPromise()
     }, [setForcer])
-    return { data, setData, error, reload, loading: Boolean(loadingRef.current || reloadingRef.current) }
+    return { data, setData, error, reload, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current,  }
 }
 
 type EventHandler = (type:string, data?:any) => void

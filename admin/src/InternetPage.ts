@@ -3,7 +3,8 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Linea
 import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
     SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG } from './misc'
+import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG,
+    useRequestRender } from './misc'
 import { Flex, LinkBtn, Btn } from './mui'
 import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
@@ -26,21 +27,21 @@ export default function InternetPage() {
     const [checkResult, setCheckResult] = useState<boolean | undefined>()
     const [checking, setChecking] = useState(false)
     const [mapping, setMapping] = useState(false)
-    const [verifyAgain, setVerifyAgain] = useState(false)
     const status = useApiEx('get_status')
     const config = useApiEx('get_config', { only: ['base_url'] })
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     type GetNat = Awaited<ReturnType<typeof getNatInfo>>
-    const { data: nat, reload: reloadNat, error, loading, element } = useApiEx<GetNat>('get_nat')
-    const port = nat?.internalPort
-    const wrongMap = nat?.mapped && nat.mapped.private.port !== port && nat.mapped.private.port
-    const doubleNat = nat?.externalIp && nat?.publicIps && !nat.publicIps.includes(nat.externalIp)
+    const nat = useApiEx<GetNat>('get_nat')
+    const { data } = nat
+    const port = data?.internalPort
+    const wrongMap = data?.mapped && data.mapped.private.port !== port && data.mapped.private.port
+    const doubleNat = data?.externalIp && data?.publicIps && !data.publicIps.includes(data.externalIp)
+    const verifyAgain = useRequestRender()
     useEffect(() => {
-        if (!verifyAgain || !nat || loading) return
-        verify().then()
-        setVerifyAgain(false)
-    }, [verifyAgain, nat, loading])
+        if (verifyAgain.state) // skip first
+            verify(true).then()
+    }, [verifyAgain.state])
     return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
         h(Alert, { severity: 'info' }, "This page makes sure your site is working correctly on the Internet"),
         baseUrlBox(),
@@ -99,7 +100,7 @@ export default function InternetPage() {
         const { https } = status.data ||{}
         const disabled = https?.port === PORT_DISABLED
         const error = https?.error
-        return element || status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
+        return nat.element || status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
             error ? h(Alert, { severity: 'warning' }, error) :
                 (disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled")),
             cert.element || with_(cert.data, c => c.none ? h(LinkBtn, { onClick: () => suggestMakingCert().then(cert.reload) }, "No certificate configured") : h(Box, {},
@@ -198,38 +199,40 @@ export default function InternetPage() {
     }
 
     function networkBox() {
-        if (error) return element
-        if (!nat) return h(CircularProgress)
-        const direct = nat?.publicIps.includes(nat?.localIp)
+        if (nat.error) return nat.element
+        if (!data) return h(CircularProgress)
+        const direct = data?.publicIps.includes(data?.localIp)
         return h(Flex, { justifyContent: 'space-around' },
-            h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
+            h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
             }),
             !direct && h(Sep),
             !direct && h(Device, {
-                name: "Router", icon: RouterTwoTone, ip: nat?.gatewayIp,
-                color: nat?.mapped && (wrongMap ? 'warning' : 'success'),
+                name: "Router", icon: RouterTwoTone, ip: data?.gatewayIp,
+                color: data?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
                     : h(LinkBtn, { fontSize: 'smaller', display: 'block', onClick: configure },
-                        "port ", wrongMap ? 'is wrong' : nat?.externalPort || "unknown"),
+                        "port ", wrongMap ? 'is wrong' : data?.externalPort || "unknown"),
             }),
             h(Sep),
-            h(Device, { name: "Internet", icon: PublicTwoTone, ip: nat?.publicIps,
+            h(Device, { name: "Internet", icon: PublicTwoTone, ip: data?.publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
                 below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller' },
                     doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    nat?.publicIps.length > 0 && nat.internalPort && h(LinkBtn, { onClick: verify }, "Verify")
+                    data?.publicIps.length > 0 && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
                 )
             }),
         )
     }
 
-    async function verify(): Promise<any> {
-        if (!nat) return // shut up ts
+    async function verify(again=false): Promise<any> {
+        await nat.loading
+        const data = nat.getData() // fresh data
+        if (!data) return
         setCheckResult(undefined)
-        if (!verifyAgain && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
+        if (!again && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
             const url = config.data?.base_url
@@ -251,27 +254,27 @@ export default function InternetPage() {
             }
             setCheckResult(false)
             if (wrongMap)
-                return fixPort().then(retry)
+                return fixPort().then(verifyAgain)
             if (doubleNat)
                 return alertDialog(MSG_ISP, 'warning')
             const msg = "We couldn't reach your server from the Internet. "
-            if (nat.upnp && !nat.mapped)
-                return confirmDialog(msg + "Try port-forwarding on your router", { confirmText: "Fix it" }).then(go => {
+            if (data.upnp && !data!.mapped)
+                return confirmDialog(msg + "Try port-forwarding on your router", { confirmText: "Fix it" }).then(async go => {
                     if (!go) return
-                    try { mapPort(nat.internalPort!, '', '') }
-                    catch { mapPort(HIGHER_PORT, '') }
-                    toast("Port forwarded, now verify again", 'success')
-                    retry()
+                    try { await mapPort(data!.internalPort!, '', '') }
+                    catch { await mapPort(HIGHER_PORT, '') }
+                    toast("Port forwarded, now we verify again", 'success')
+                    verifyAgain()
                 })
             const cfg = await apiCall('get_config', { only: [CFG.geo_enable, CFG.geo_allow] })
             const { close } = alertDialog(h(Box, {}, msg + "Possible causes:", h('ul', {},
                 cfg[CFG.geo_enable] && cfg[CFG.geo_allow] != null && h('li', {}, "You may be blocking a country from where the test is performed"),
-                !nat.upnp && h('li', {}, "Your router may need to be configured. ", h(Link, { href: PORT_FORWARD_URL, target: 'help' }, "How?")),
+                !data.upnp && h('li', {}, "Your router may need to be configured. ", h(Link, { href: PORT_FORWARD_URL, target: 'help' }, "How?")),
                 h('li', {}, "There could be a firewall, try configuring or disabling it."),
-                (nat.externalPort || nat.internalPort!) <= 1024 && h('li', {},
+                (data.externalPort || data.internalPort!) <= 1024 && h('li', {},
                     "Your Internet Provider may be blocking ports under 1024. ",
-                    nat.upnp && h(Button, { size: 'small', onClick() { close(); mapPort(HIGHER_PORT).then(retry) } }, "Try " + HIGHER_PORT) ),
-                nat.mapped && h('li', {}, "A bug in your modem/router, try rebooting it."),
+                    data.upnp && h(Button, { size: 'small', onClick() { close(); mapPort(HIGHER_PORT).then(verifyAgain) } }, "Try " + HIGHER_PORT) ),
+                data.mapped && h('li', {}, "A bug in your modem/router, try rebooting it."),
                 h('li', {}, MSG_ISP),
             )), 'warning')
         }
@@ -281,23 +284,19 @@ export default function InternetPage() {
         finally {
             setChecking(false)
         }
-
-        function retry() {
-            setVerifyAgain(true)
-        }
     }
 
     async function configure() {
-        if (!nat) return // shut up ts
+        if (!data) return // shut up ts
         if (wrongMap)
             return await confirmDialog(`There is a port-forwarding but it is pointing to the wrong port (${wrongMap})`, { confirmText: "Fix it" })
                 && fixPort()
-        if (!nat.upnp)
+        if (!data.upnp)
             return alertDialog(h(Box, { lineHeight: 1.5 }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')
         const res = await promptDialog(md(`This will ask the router to map your port, so that it can be reached from the Internet.\nYou can set the same number of the local network (${port}), or a different one.`), {
-            value: nat.externalPort || port,
+            value: data.externalPort || port,
             field: { label: "Port seen from the Internet", comp: NumberField },
-            addToBar: nat.mapped && [h(Button, { color: 'warning', onClick: remove }, "Remove")],
+            addToBar: data.mapped && [h(Button, { color: 'warning', onClick: remove }, "Remove")],
             dialogProps: { sx: { maxWidth: '20em' } },
         })
         if (res)
@@ -310,21 +309,21 @@ export default function InternetPage() {
     }
 
     function fixPort() {
-        if (!nat?.externalPort) return alertDialog("externalPort not found", 'error')
-        return mapPort(nat.externalPort, "Forwarding corrected")
+        if (!data?.externalPort) return alertDialog("externalPort not found", 'error')
+        return mapPort(data.externalPort, "Forwarding corrected")
     }
 
     async function mapPort(external: number, msg='', errMsg="Operation failed") {
         setMapping(true)
         try {
             await apiCall('map_port', { external })
-            reloadNat()
+            nat.reload()
             if (msg) toast(msg, 'success')
             setCheckResult(undefined) // things have changed, invalidate check result
         }
         catch(e) {
             if (errMsg) {
-                const low = external && Math.min(external, nat!.internalPort!) < 1024
+                const low = external && Math.min(external, data!.internalPort!) < 1024
                 const msg = errMsg + (low ? ". Some routers refuse to work with ports under 1024." : '')
                 await alertDialog(msg, 'error')
             }
