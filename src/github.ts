@@ -180,5 +180,5 @@ let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
 export const getProjectInfo = debounceAsync(
     () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .then(JSON.parse, () => null)
-        .then(x => Object.assign(Object.create(builtIn), DEV ? null : x) ), // fall back to built-in
+        .then(x => Object.assign({ ...builtIn }, DEV ? null : x) ), // fall back to built-in
     0, { retain: DAY, retainFailure: 60_000 } )
