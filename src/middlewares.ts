@@ -94,7 +94,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return allowAdmin(ctx) ? serveAdminPrefixed(ctx,next)
             : sendErrorPage(ctx, HTTP_FORBIDDEN)
     if (ctx.method === 'PUT') { // curl -T file url/
-        const decPath = decodeURI(path)
+        const decPath = decodeURIComponent(path)
         let rest = basename(decPath)
         const folder = await urlToNode(dirname(decPath), ctx, vfs, v => rest = v+'/'+rest)
         if (!folder)

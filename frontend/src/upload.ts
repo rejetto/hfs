@@ -190,8 +190,8 @@ export function showUpload() {
 
 }
 
-function path(f: File, pre='') {
-    return (prefix('', pre, '/') + (f.webkitRelativePath || f.name)).replaceAll('//','/')
+function path(f: File) {
+    return (f.webkitRelativePath || f.name).replaceAll('//','/')
 }
 
 function FilesList({ entries, actions }: { entries: Readonly<ToUpload[]>, actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
@@ -299,15 +299,13 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         bytesSent += e.loaded - lastProgress
         lastProgress = e.loaded
     }
-    req.open('POST', to + '?' + new URLSearchParams({
+    req.open('PUT', to + encodeURIComponent(path(toUpload.file)) + '?' + new URLSearchParams({
         notificationChannel,
         ...resume && { resume: String(resume) },
         ...toUpload.comment && { comment: toUpload.comment },
         ...uploadState.skipExisting && { skipExisting: '1' },
     }), true)
-    const form = new FormData()
-    form.append('file', toUpload.file.slice(resume), path(toUpload.file))
-    req.send(form)
+    req.send(toUpload.file.slice(resume))
 
     async function subscribeNotifications() {
         if (notificationChannel) return
