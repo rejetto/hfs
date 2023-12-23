@@ -301,8 +301,8 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     }
     req.open('POST', to + '?' + new URLSearchParams({
         notificationChannel,
-        resume: String(resume),
-        comment: toUpload.comment || '',
+        ...resume && { resume: String(resume) },
+        ...toUpload.comment && { comment: toUpload.comment },
         ...uploadState.skipExisting && { skipExisting: '1' },
     }), true)
     const form = new FormData()
