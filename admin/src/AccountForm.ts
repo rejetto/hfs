@@ -11,9 +11,11 @@ import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
 import { isMobile } from './misc'
+import { state, useSnapState } from './state'
 
 interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
 export default function AccountForm({ account, done, groups, addToBar, reload }: FormProps) {
+    const { username } = useSnapState()
     const [values, setValues] = useState<Account & { password?: string, password2?: string }>(account)
     const [belongsOptions, setBelongOptions] = useState<string[]>([])
     useEffect(() => {
@@ -38,6 +40,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 icon: Delete,
                 title: "Delete",
                 confirm: "Delete?",
+                ...username === account.username && { disabled: true, title: "Cannot delete current account" },
                 onClick: () => apiCall('del_account', { username: account.username }).then(reload)
             }),
             h(IconBtn, {
@@ -81,13 +84,12 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             sx: modifiedSx( !isEqualLax(values, account)),
             async onClick() {
                 const { password='', password2, adminActualAccess, hasPassword, ...withoutPassword } = values
-                const { username } = values
                 if (add) {
                     const got = await apiCall('add_account', withoutPassword)
                     if (password)
-                        try { await apiNewPassword(username, password) }
+                        try { await apiNewPassword(values.username, password) }
                         catch(e) {
-                            apiCall('del_account', { username }).then() // best effort, don't wait
+                            apiCall('del_account', { username: values.username }).then() // best effort, don't wait
                             throw e
                         }
                     done(got?.username)
@@ -100,6 +102,8 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 })
                 if (password)
                     await apiNewPassword(username, password)
+                if (account.username === username)
+                    state.username = values.username
                 setTimeout(() => toast("Account modified", 'success'), 1) // workaround: showing a dialog at this point is causing a crash if we are in a dialog
                 done(got?.username) // username may have been changed, so we pass it back
             }

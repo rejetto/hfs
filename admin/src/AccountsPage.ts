@@ -142,7 +142,7 @@ export default function AccountsPage() {
 
     async function deleteAccounts() {
         if (sel.length > _.pull(sel, username).length)
-            await alertDialog("Won't delete current account", 'warning')
+            if (!await confirmDialog(`Will delete the rest but not current account (${username})`)) return
         if (!sel.length) return
         if (!await confirmDialog(`Delete ${sel.length} item(s)?`)) return
         try {
