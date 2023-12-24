@@ -18,6 +18,9 @@ code {
     monospace;
 }
 
+.MuiSvgIcon-root {
+  vertical-align: bottom;
+}
 .MuiTreeItem-content {
   box-sizing: border-box; /* avoid unwanted scrolling caused by its width:100% + padding */
 }

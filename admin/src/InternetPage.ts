@@ -351,7 +351,7 @@ function Device({ name, icon, color, ip, below }: any) {
 
 function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: SvgIconComponent, color?: SvgIconProps['color'], children?: ReactNode }) {
     return h(Card, {}, h(CardContent, {}, h(Flex, { vert: true },
-        h(Box, { fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, verticalAlign: 'bottom', mb: '2px' } }), title),
+        h(Box, { fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
         children
     )))
 }

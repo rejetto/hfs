@@ -185,7 +185,7 @@ function execDoneMessage(msg: boolean | string | undefined) {
 }
 
 export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxProps) {
-    return h(Tooltip, { title: tooltip, children: h(icon, { sx: { verticalAlign: 'bottom', ...sx } }) })
+    return h(Tooltip, { title: tooltip, children: h(icon, { sx }) })
 }
 
 export function InLink(props:any) {

@@ -137,8 +137,7 @@ function renderChangelog(s: string) {
 
     function onText(s: string) {
         return replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues
-            h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' },
-                h(OpenInNew, { sx: { verticalAlign: 'bottom' } }) ))
+            h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew) ))
     }
 }
 
@@ -169,7 +168,7 @@ function entry(color: Color, ...content: ReactNode[]) {
             color: th => color && th.palette[color]?.main,
         },
         h(({ success: CheckCircle, info: Info, '': Info, warning: Warning, error: Error })[color], {
-            sx: { mb: '-3px', mr: 1, color: color ? undefined : 'primary.main' }
+            sx: { mr: 1, color: color ? undefined : 'primary.main' }
         }),
         ...content)
 }

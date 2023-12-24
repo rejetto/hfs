@@ -9,10 +9,11 @@ import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/i
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
     focusSelector } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
-import { IconBtn, Flex, Center } from './mui'
+import { IconBtn, Flex, Center, Btn } from './mui'
 import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
 import md from './md'
+import _ from 'lodash'
 export * from '@hfs/shared/dialogs'
 
 dialogsDefaults.Container = function Container(d:DialogOptions) {
@@ -47,12 +48,13 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
             sx: {
                 position: 'sticky', top: 0, p: 1, zIndex: 2, boxShadow: '0 0 8px #0004',
                 display: 'flex', alignItems: 'center',
+                gap: 1,
                 ...titleSx
-            }
+            },
         },
-            d.icon && h(Box, { mr: 1 }, componentOrNode(d.icon)),
+            d.icon && componentOrNode(d.icon),
             h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
-            h(IconBtn, { icon: Close, title: "close", sx: { ml: 1 }, onClick: () => closeDialog() }),
+            h(IconBtn, { icon: Close, title: "close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,
@@ -88,21 +90,15 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
     const promise = pendingPromise()
     const dialog = newDialog({
         className: 'dialog-alert dialog-alert-' + type,
-        icon: '!',
+        icon: opt.icon ?? h(type2ico[type], { color: type }),
         onClose: promise.resolve,
+        title: _.upperFirst(type),
         ...rest,
         Content() {
             return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
-                h(IconButton, {
-                    onClick() {
-                        dialog.close()
-                    },
-                    size: 'small',
-                    sx: { position: 'absolute', right: 0, top: 0, opacity: .5 }
-                }, h(Close)),
-                opt.icon ?? h(type2ico[type], { color: type, fontSize: 'large' }),
                 isValidElement(msg) ? msg
-                    : h(Box, { fontSize: 'large', mb: 1, lineHeight: '1.8em' }, String(msg)),
+                    : h(Box, { fontSize: 'large', lineHeight: '1.8em' }, String(msg)),
+                h(Btn, { sx: { mt: 1 }, size: 'small', onClick: dialog.close }, 'Close')
             )
         }
     })
