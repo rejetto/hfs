@@ -71,6 +71,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     const now = new Date()
     await next()
     console.debug(ctx.status, ctx.method, ctx.originalUrl)
+    const conn = getConnection(ctx) // collect reference before close
     // don't await, as we don't want to hold the middlewares chain
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     ctx.state.completed.then(() => {
@@ -108,7 +109,6 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const uri = ctx.originalUrl
         ctx.logExtra(ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
             || ctx.state.uploadSize !== undefined && { size: ctx.state.uploadSize, ul: ctx.state.uploads })
-        const conn = getConnection(ctx)
         if (conn?.country)
             ctx.logExtra({ country: conn.country })
         if (logUA.get())

@@ -20,7 +20,8 @@ export const geoFilter: Middleware = async (ctx, next) => {
     if (enabled.get() && !isLocalHost(ctx)) {
         const { connection }  = ctx.state
         const country = connection.country ??= await ip2country(ctx.ip)
-        updateConnection(connection, { country })
+        if (country)
+            updateConnection(connection, { country })
         if (allow.get() !== null)
             if (country ? list.get().includes(country) !== allow.get() : !allowUnknown.get())
                 return disconnect(ctx)
