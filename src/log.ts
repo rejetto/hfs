@@ -13,6 +13,7 @@ import { DAY, makeNetMatcher, tryJson, Dict, Falsy } from './misc'
 import events from './events'
 import { getConnection } from './connections'
 import { app } from './index'
+import { logGui } from './serveGuiFiles'
 
 class Logger {
     stream?: Writable
@@ -75,7 +76,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     // don't await, as we don't want to hold the middlewares chain
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     ctx.state.completed.then(() => {
-        if (ctx.state.dontLog) return
+        if (ctx.state.dontLog || ctx.state.considerAsGui && !logGui.get()) return
         if (dontLogNet.compiled()(ctx.ip)) return
         const isError = ctx.status >= 400
         const logger = isError && accessErrorLog || accessLogger

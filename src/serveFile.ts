@@ -136,7 +136,7 @@ declare module "koa" {
 function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey: (ctx: Koa.Context) => T | undefined) {
     const map = new Map<T, number>()
     return (ctx: Koa.Context) => {
-        if (!ctx.body) return // no file sent, cache hit
+        if (!ctx.body || ctx.state.considerAsGui) return // no file sent, cache hit
         const k = cbKey(ctx)
         if (k === undefined) return // undefined = skip limit
         const max = configMax.get()
@@ -154,7 +154,7 @@ function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey:
         return false // limit is enforced but passed
 
         async function tooMany() {
-            ctx.set('retry-after', '3600')
+            ctx.set('retry-after', '60')
             await sendErrorPage(ctx, HTTP_TOO_MANY_REQUESTS)
             return true
         }
