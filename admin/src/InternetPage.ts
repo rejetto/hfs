@@ -4,7 +4,7 @@ import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RestartAl
     SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'
-import { PORT_DISABLED, Flex, LinkBtn, isIP, Btn, modifiedSx, IconBtn, CFG } from './misc'
+import { PORT_DISABLED, Flex, LinkBtn, isIP, Btn, modifiedSx, IconBtn, CFG, Country } from './misc'
 import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, FormProps, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import md from './md'
@@ -51,7 +51,7 @@ export default function InternetPage() {
     function geoBox() {
         const countryOptions = useMemo(() => _.sortBy(COUNTRIES, 'name').map(x => ({
             value: x.code,
-            label: `${x.flag} ${x.name}`
+            label: x.name,
         })), [COUNTRIES])
         return h(TitleCard, { title: "Geo IP", icon: Public },
             h(ConfigForm<{
@@ -76,6 +76,7 @@ export default function InternetPage() {
                             label: `Selected countries (${values[CFG.geo_list]?.length || 0})`,
                             placeholder: "none",
                             options: countryOptions,
+                            renderOption: (v: any) => h(Country, { code: v.value, long: true }),
                             clearable: true,
                         },
                         values[CFG.geo_allow] != null && {
