@@ -221,3 +221,5 @@ There are several ways to contribute
 - [License](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
 
 - [To-do list](todo.md) 
+
+- Flag images are public-domain, downloaded from https://flagpedia.net

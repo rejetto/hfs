@@ -17,6 +17,15 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+img.flag {
+  width: 1.5em;
+  height: 1em;
+  vertical-align: text-top;
+  margin-top: 1px;
+}
+.icon-w-text {
+  margin-right: .5em;
+}
 
 .MuiSvgIcon-root {
   vertical-align: bottom;

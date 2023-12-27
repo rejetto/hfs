@@ -1,17 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from "lodash"
-import { createElement as h, useMemo, Fragment, useState, ReactNode } from "react"
+import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Box, Chip, ChipProps, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, ipForUrl, manipulateConfig, useBatch, CFG, formatSpeed } from "./misc"
-import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint } from './mui'
+import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed } from "./misc"
+import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { toast } from "./dialog"
-import { ALL as COUNTRIES } from './countries'
 import { agentIcons } from './LogsPage'
 
 export default function MonitorPage() {
@@ -81,19 +80,6 @@ function MoreInfo() {
                 : "off"
     }
 
-}
-
-export function Country({ code, ip, def }: { code: string, ip?: string, def?: ReactNode }) {
-    const { data } = useBatch(code === undefined && ip && ip2countryBatch, ip, { delay: 100 }) // query if necessary
-    code ||= data || ''
-    const country = code && _.find(COUNTRIES, { code })
-    return country ? h(Tooltip, { title: country.name, children: h('span', {}, country.flag, ' ', code ) })
-        : h(Fragment, {}, def)
-}
-
-async function ip2countryBatch(ips: string[]) {
-    const res = await apiCall('ip_country', { ips })
-    return res.codes as string[]
 }
 
 function Connections() {

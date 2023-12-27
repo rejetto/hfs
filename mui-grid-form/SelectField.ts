@@ -2,14 +2,16 @@
 
 import { createElement as h, Fragment, ReactNode, useMemo } from 'react'
 import { FieldProps } from '.'
-import { Autocomplete, FormControl, FormControlLabel, FormLabel, IconButton, InputAdornment, MenuItem, Radio,
-    RadioGroup, StandardTextFieldProps, TextField, Tooltip } from '@mui/material'
+import {
+    Autocomplete, Chip, FormControl, FormControlLabel, FormLabel, IconButton, InputAdornment, MenuItem, Radio,
+    RadioGroup, StandardTextFieldProps, TextField, Tooltip
+} from '@mui/material'
 import { SxProps } from '@mui/system'
 import { Clear } from '@mui/icons-material'
 
-type SelectOptions<T> = { [label:string]:T } | SelectOption<T>[]
+type SelectOptions<T> = { [label:string]: T } | SelectOption<T>[]
 type SelectOption<T> = SelectPair<T> | (T extends string | number ? T : never)
-interface SelectPair<T> { label: string, value:T }
+interface SelectPair<T> { label: string, value: T }
 
 export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
     const { value, onChange, setApi, options, sx, ...rest } = props
@@ -27,7 +29,7 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
     })
 }
 
-export function MultiSelectField<T>(props: FieldProps<T[]> & CommonSelectProps<T>) {
+export function MultiSelectField<T>({ renderOption, ...props }: FieldProps<T[]> & CommonSelectProps<T> & { renderOption?: (option: SelectPair<T>) => ReactNode }) {
     const { value, onChange, setApi, options, sx, clearable, clearValue, placeholder, autocompleteProps, ...rest } = props
     const { select, InputProps, ...common } = commonSelectProps({ clearValue: [], ...props, clearable: false })
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
@@ -41,7 +43,7 @@ export function MultiSelectField<T>(props: FieldProps<T[]> & CommonSelectProps<T
         onChange: (event, sel) => onChange(sel.map(x => x.value) as T[], { was: value, event }),
         isOptionEqualToValue: (option, val) => option.value === val.value,
         getOptionLabel: x => x.label,
-        renderOption: (props, x) => h('span', props, x.label),
+        renderOption: (props, x) => h('span', props, renderOption?.(x) ?? x.label),
         ...common,
         ...autocompleteProps,
         value: valueAsOptions,
@@ -52,6 +54,9 @@ export function MultiSelectField<T>(props: FieldProps<T[]> & CommonSelectProps<T
             sx: { ...rest.sx, '& div[role=button]': { whiteSpace: 'unset' } },
             ...params,
         }),
+        renderTags: (tagValue, getTagProps) =>
+            tagValue.map((option, index) =>
+                h(Chip, { label: renderOption?.(option) ?? option.label, ...getTagProps({ index }) })),
         sx: {
             '.MuiAutocomplete-tag': { height: 24 }, // too tall, otherwise
             '.MuiAutocomplete-inputRoot': { pt: '21px' }, // some extra margin from label

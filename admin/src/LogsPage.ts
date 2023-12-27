@@ -6,12 +6,11 @@ import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { Dict, formatBytes, HTTP_UNAUTHORIZED, NBSP, prefix, shortenAgent, splitAt, tryJson, typedKeys } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
-import { Flex, useBreakpoint, usePauseButton, useToggleButton } from './mui';
+import { Flex, useBreakpoint, usePauseButton, useToggleButton, Country } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
 import { SmartToy } from '@mui/icons-material'
 import md from './md'
-import { Country } from './MonitorPage'
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)

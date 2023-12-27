@@ -6,12 +6,15 @@ import { SxProps } from '@mui/system'
 import { createElement as h, FC, forwardRef, Fragment, ReactNode, useCallback, useState } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
-import { formatPerc, WIKI_URL } from '../../src/cross'
-import { dontBotherWithKeys, useStateMounted } from '@hfs/shared'
+import { formatPerc, prefix, WIKI_URL } from '../../src/cross'
+import { dontBotherWithKeys, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { LoadingButton, LoadingButtonProps } from '@mui/lab'
 import { Link as RouterLink } from 'react-router-dom'
+import _ from 'lodash'
+import { ALL as COUNTRIES } from './countries'
+import { apiCall } from '@hfs/shared/api'
 
 export function spinner() {
     return h(CircularProgress)
@@ -220,4 +223,22 @@ export function useToggleButton(iconBtn: (state:boolean) => Omit<IconBtnProps, '
         onClick: toggle,
     })
     return [state, el] as const
+}
+
+export function Country({ code, ip, def, long, short }: { code: string, ip?: string, def?: ReactNode, long?: boolean, short?: boolean }) {
+    const { data } = useBatch(code === undefined && ip && ip2countryBatch, ip, { delay: 100 }) // query if necessary
+    code ||= data || ''
+    const country = code && _.find(COUNTRIES, { code })
+    return !country ? h(Fragment, {}, def) : h(Tooltip, {
+        title: long ? undefined : country.name,
+        children: h('span', {},
+            h('img', { className: 'flag icon-w-text', src: `flags/${code.toLowerCase()}.png`, alt: country.name }),
+            long ? country.name + prefix(' (', short && code, ')') : code
+        )
+    })
+}
+
+async function ip2countryBatch(ips: string[]) {
+    const res = await apiCall('ip_country', { ips })
+    return res.codes as string[]
 }
