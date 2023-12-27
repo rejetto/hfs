@@ -25,7 +25,12 @@
     ],
     "selfCheckServices": [
         {
-            "url": "https://api.val.town/v6/run/rejetto.checkHfs?args=[%22$URL%22]",
+            "url": "https://rejetto-check_hfs.web.val.run?url=$URL",
+            "regexpFailure": "false",
+            "regexpSuccess": "true"
+        },
+        {
+            "url": "https://byhmniehcu2jzoeododjam6i5a0yszsf.lambda-url.eu-central-1.on.aws/?url=$URL",
             "regexpFailure": "false",
             "regexpSuccess": "true"
         },

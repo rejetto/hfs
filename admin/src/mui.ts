@@ -1,19 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 // all content here is shared between client and server
 
-import { Refresh, SvgIconComponent } from '@mui/icons-material'
+import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import { createElement as h, FC, forwardRef, Fragment, ReactNode } from 'react'
-import {
-    Box, BoxProps, Breakpoint,
-    ButtonProps,
-    CircularProgress,
-    IconButton,
-    IconButtonProps,
-    Link, LinkProps,
-    Tooltip,
-    TooltipProps, useMediaQuery
-} from '@mui/material'
+import { createElement as h, FC, forwardRef, Fragment, ReactNode, useCallback, useState } from 'react'
+import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
+    Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, WIKI_URL } from '../../src/cross'
 import { dontBotherWithKeys, useStateMounted } from '@hfs/shared'
 import { Promisable } from '@hfs/mui-grid-form'
@@ -59,13 +51,15 @@ export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgr
     )
 }
 
-export function Flex({ gap='.8em', vert=false, center=false, children=null, props={}, ...rest }) {
+type FlexProps = SxProps & { vert?: boolean, center?: boolean, children?: ReactNode, props?: BoxProps }
+export function Flex({ vert=false, center=false, children=null, props={}, ...rest }: FlexProps) {
     return h(Box, {
         sx: {
             display: 'flex',
-            gap,
+            gap: '.8em',
             flexDirection: vert ? 'column' : undefined,
-            ...center && { alignItems: 'center', justifyContent: 'center' },
+            alignItems: vert ? undefined : 'center',
+            ...center && { justifyContent: 'center' },
             ...rest,
         },
         ...props
@@ -203,4 +197,27 @@ export const Center = forwardRef((props: BoxProps, ref) =>
 
 export function LinkBtn({ ...rest }: LinkProps) {
     return h(Link, { ...rest, sx: { cursor: 'pointer', ...rest.sx  } })
+}
+
+export function usePauseButton() {
+    const [go, btn] = useToggleButton(v => ({
+        title: v ? "Pause" : "Resume",
+        icon: v ? PauseCircle : PlayCircle,
+        sx: { rotate: v ? '180deg' : '0deg' },
+    }), true)
+    return { pause: !go, pauseButton: btn }
+}
+
+export function useToggleButton(iconBtn: (state:boolean) => Omit<IconBtnProps, 'onClick'>, def=false) {
+    const [state, setState] = useState(def)
+    const toggle = useCallback(() => setState(x => !x), [])
+    const props = iconBtn(state)
+    const el = h(IconBtn, {
+        size: 'small',
+        color: state ? 'primary' : 'default',
+        ...props,
+        sx: { transition: 'all .5s', ...props.sx },
+        onClick: toggle,
+    })
+    return [state, el] as const
 }

@@ -6,7 +6,7 @@ import { pendingPromise, typedEntries, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
-import { getCurrentUsername } from './perm'
+import { getCurrentUsername } from './auth'
 
 const apis: ApiHandlers = {
 
@@ -72,7 +72,7 @@ const apis: ApiHandlers = {
                 v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
                 got: socket.bytesRead,
                 sent: socket.bytesWritten,
-                ..._.pick(conn, ['op', 'opTotal', 'opOffset', 'opProgress']),
+                ..._.pick(conn, ['op', 'opTotal', 'opOffset', 'opProgress', 'country']),
                 started,
                 secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
                 ...fromCtx(conn.ctx),
@@ -80,13 +80,16 @@ const apis: ApiHandlers = {
         }
 
         function fromCtx(ctx?: Koa.Context) {
-            return ctx && {
+            if (!ctx) return
+            const path = ctx.state.browsing && decodeURIComponent(ctx.state.browsing)
+                || ctx.state.uploadPath && decodeURIComponent(ctx.state.uploadPath)
+                || (ctx.fileSource || ctx.state.archive) && decodeURIComponent(ctx.path)  // downloads
+            return {
                 user: getCurrentUsername(ctx),
                 agent: getBrowser(ctx.get('user-agent')),
                 archive: ctx.state.archive,
                 upload: ctx.state.uploadProgress,
-                path: ctx.state.uploadPath && decodeURIComponent(ctx.state.uploadPath)
-                    || (ctx.fileSource || ctx.state.archive) && decodeURIComponent(ctx.path)  // only uploads and downloads
+                ...path && { path },
             }
         }
     },

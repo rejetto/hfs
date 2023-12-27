@@ -31,7 +31,7 @@ export interface FieldDescriptor<T=any> extends FieldApi<T> {
     label?: ReactNode
     error?: ReactNode
     toField?: (v: T) => any
-    fromField?: (v: any) => T
+    fromField?: (v: any, { originalValue }: { originalValue: T }) => T
     before?: ReactNode
     after?: ReactNode
     getError?: GetError
@@ -108,6 +108,7 @@ export function Form<Values extends Dict>({
     const submitAfterValidation = useRef(false)
     const validateUpTo = useRef('')
     useEffect(() => void(phaseChange()), [phase]) //eslint-disable-line
+    const keyMet: Dict<number> = {}
 
     const apis: Dict<FieldApi<unknown>> = {} // consider { [K in keyof Values]?: FieldApi<Values[K]> }
     return h('form', {
@@ -150,7 +151,7 @@ export function Form<Values extends Dict>({
                             },
                             onChange(v: unknown) {
                                 try {
-                                    v = fromField(v)
+                                    v = fromField(v, { originalValue })
                                     setFieldExceptions(x => ({ ...x, [k]: false }))
                                     if ((apis[k]?.isEqual || _.isEqual)(v, originalValue)) return
                                     set(v, k)
@@ -179,7 +180,8 @@ export function Form<Values extends Dict>({
                             fromField, toField, // don't propagate
                             ...rest } = field
                         Object.assign(rest, { name: k })
-                        return h(Grid, { key: k || idx, item: true, xs, sm, md, lg, xl },
+                        const n = (keyMet[k] = (keyMet[k] || 0) + 1)
+                        return h(Grid, { key: k ? k + n : idx, item: true, xs, sm, md, lg, xl },
                             before,
                             isValidElement(comp) ? comp : h(comp, rest),
                             after

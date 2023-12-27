@@ -2,13 +2,13 @@
 
 import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
 import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
-import { Alert, Box } from '@mui/material'
+import { Alert } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
-import { IconBtn, isEqualLax, modifiedSx } from './misc'
-import { Account, account2icon } from './AccountsPage'
+import { HTTP_NOT_ACCEPTABLE, IconBtn, isEqualLax, modifiedSx, wantArray } from './misc'
+import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
-import { Delete } from '@mui/icons-material'
+import { AutoDelete, Delete } from '@mui/icons-material'
 import { isMobile } from './misc'
 
 interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
@@ -37,11 +37,16 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 icon: Delete,
                 title: "Delete",
                 confirm: "Delete?",
-                onClick: () => apiCall('del_account', { username: account.username }).then(() => reload())
+                onClick: () => apiCall('del_account', { username: account.username }).then(reload)
             }),
-            addToBar,
-            h(Box, { flex:1 }),
-            account2icon(values, { fontSize: 'large', sx: { p: 1 }})
+            h(IconBtn, {
+                icon: AutoDelete,
+                title: "Invalidate past sessions",
+                doneMessage: true,
+                disabled: account.invalidated,
+                onClick: () => apiCall('invalidate_sessions', { username: account.username }).then(reload)
+            }),
+            ...wantArray(addToBar),
         ],
         fields: [
             { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, xl: group ? 12 : 4,
@@ -105,7 +110,7 @@ export async function apiNewPassword(username: string, password: string) {
     const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
     const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
     return apiCall('change_srp_others', { username, salt: String(res.s), verifier: String(res.v) }).catch(e => {
-        if (e.code !== 406) // 406 = server was configured to support clear text authentication
+        if (e.code !== HTTP_NOT_ACCEPTABLE) // server doesn't support clear text authentication
             throw e
         return apiCall('change_password_others', { username, newPassword: password }) // unencrypted version
     })

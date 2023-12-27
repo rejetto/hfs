@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { createElement as h, memo } from 'react'
 
-const SYS_ICONS: Record<string, [string] | [string, string]> = {
+const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // false means we don't have the icon, only unicode
     login: ['👤','user'],
     user: ['👤','user'],
     filter: ['✂'],
@@ -38,6 +38,7 @@ const SYS_ICONS: Record<string, [string] | [string, string]> = {
     delete: ['🗑️', 'trash'],
     comment: ['💬'],
     link: ['↗'],
+    info: ['ⓘ', false],
 }
 
 document.fonts.ready.then(async ()=> {

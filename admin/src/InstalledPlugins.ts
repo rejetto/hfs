@@ -5,18 +5,19 @@ import { createElement as h, Fragment, ReactNode } from 'react'
 import { Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
 import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { Btn, IconBtn, prefix, with_ } from './misc'
+import { Btn, HTTP_FAILED_DEPENDENCY, IconBtn, prefix, with_, xlate } from './misc'
 import { alertDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
+import { PLUGIN_ERRORS } from './PluginsPage'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     const size = 'small'
     return h(DataTable, {
-        error,
+        error: xlate(error, PLUGIN_ERRORS),
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         initializing,
         disableColumnSelector: true,
@@ -51,7 +52,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 size,
                 async onClick() {
                     await apiCall('update_plugin', { id }, { timeout: false }).catch(e => {
-                        throw e.code !== 424 ? e
+                        throw e.code !== HTTP_FAILED_DEPENDENCY ? e
                             : Error("Failed dependencies: " + e.cause?.map((x: any) => prefix(`plugin "`, x.id || x.repo, `" `) + x.error).join('; '))
                     })
                     updateEntry({ id }, { updated: true })

@@ -10,7 +10,8 @@ import { frontEndApis } from './frontEndApis'
 import { logMw } from './log'
 import { pluginsMiddleware } from './plugins'
 import { throttler } from './throttler'
-import { headRequests, gzipper, serveGuiAndSharedFiles, someSecurity, prepareState, paramsDecoder } from './middlewares'
+import { headRequests, gzipper, serveGuiAndSharedFiles, someSecurity, prepareState, paramsDecoder, sessionMiddleware
+} from './middlewares'
 import './listen'
 import './commands'
 import { adminApis } from './adminApis'
@@ -18,9 +19,11 @@ import { defineConfig } from './config'
 import { ok } from 'assert'
 import _ from 'lodash'
 import { randomId } from './misc'
-import session from 'koa-session'
 import { selfCheckMiddleware } from './selfCheck'
 import { acmeMiddleware } from './acme'
+import './geo'
+import { geoFilter } from './geo'
+import events from './events'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
@@ -28,11 +31,12 @@ process.title = 'HFS ' + VERSION
 const keys = process.env.COOKIE_SIGN_KEYS?.split(',')
     || [randomId(30)] // randomness at start gives some extra security, btu also invalidates existing sessions
 export const app = new Koa({ keys })
-app.use(someSecurity)
-    .use(selfCheckMiddleware)
+app.use(sessionMiddleware)
+    .use(someSecurity)
     .use(acmeMiddleware)
-    .use(session({ key: 'hfs_$id', signed: true, rolling: true, sameSite: 'lax' }, app))
     .use(prepareState)
+    .use(geoFilter)
+    .use(selfCheckMiddleware)
     .use(gzipper)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
     .use(pluginsMiddleware)
@@ -42,6 +46,7 @@ app.use(someSecurity)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
     .use(serveGuiAndSharedFiles)
     .on('error', errorHandler)
+events.emit('app', app)
 
 function errorHandler(err:Error & { code:string, path:string }) {
     const { code } = err

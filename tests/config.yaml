@@ -1,7 +1,5 @@
 allowed_referer: x.com
 vfs:
-  mime:
-    "*": auto
   masks:
     "!tests/page/*.png":
       mime: text/plain
@@ -128,4 +126,4 @@ accounts:
     disabled: true
   admins:
     admin: true
-version: 0.49.4
+version: 0.50.4

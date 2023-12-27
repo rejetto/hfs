@@ -2,7 +2,7 @@
 
 import { Socket } from 'net'
 import events from './events'
-import Koa from 'koa'
+import { Context } from 'koa'
 import _ from 'lodash'
 
 export class Connection {
@@ -15,7 +15,8 @@ export class Connection {
     opTotal?: number
     opProgress?: number
     opOffset?: number
-    ctx?: Koa.Context
+    ctx?: Context
+    country?: string
     private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 
@@ -57,9 +58,19 @@ export function socket2connection(socket: Socket) {
         && x.socket.remoteAddress === socket.remoteAddress )
 }
 
+export function getConnection(ctx: Context) {
+    return _.find(all, { ctx })
+}
+
 export function updateConnection(conn: Connection, change: Partial<Connection>) {
     if (change.op)
         change.opProgress ??= change.opOffset || 0
     Object.assign(conn, change)
     events.emit('connectionUpdated', conn, change)
+}
+
+export function disconnect(what: Context | Socket) {
+    if ('socket' in what)
+        what = what.socket
+    return what.destroy()
 }

@@ -2,10 +2,10 @@
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { apiCall, useApiEx } from './api'
-import { Alert, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
-import VfsTree from './VfsTree'
+import VfsTree, { vfsNodeIcon } from './VfsTree'
 import { Flex, IconBtn, newDialog, onlyTruthy, prefix, useBreakpoint, VfsNodeAdminSend } from './misc'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
@@ -45,17 +45,18 @@ export default function VfsPage() {
 
     const sideContent = !selectedFiles.length ? null
         : selectedFiles.length === 1 ? h(FileForm, {
-                addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
-                    icon: Close,
-                    title: "Close",
-                    onClick: selectNone
-                }),
+                addToBar: isSideBreakpoint && [
+                    h(Box, { flex: 1 }),
+                    // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
+                    vfsNodeIcon(selectedFiles[0] as VfsNode),
+                    h(IconBtn, { icon: Close, title: "Close", onClick: selectNone })
+                ],
                 anyMask,
                 statusApi,
                 file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
             })
             : h(Fragment, {},
-                h(Flex, { alignItems: 'center' },
+                h(Flex, {},
                     h(Typography, {variant: 'h6'}, selectedFiles.length + ' selected'),
                     h(Button, { onClick: deleteFiles, startIcon: h(Delete) }, "Remove"),
                 ),
@@ -73,7 +74,8 @@ export default function VfsPage() {
     useEffect(() => {
         if (isSideBreakpoint || !sideContent) return
         const { close } = newDialog({
-            title: selectedFiles.length > 1 ? "Multiple selection" : selectedFiles[0].name,
+            title: selectedFiles.length > 1 ? "Multiple selection" :
+                h(Flex, {}, vfsNodeIcon(selectedFiles[0] as VfsNode), selectedFiles[0].name || "Home"),
             Content: () => sideContent,
             onClose: selectNone,
         })

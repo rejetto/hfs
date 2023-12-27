@@ -2,19 +2,12 @@
 
 import Koa from 'koa'
 import { createReadStream, stat } from 'fs'
-import {
-    HTTP_BAD_REQUEST,
-    HTTP_FORBIDDEN,
-    HTTP_METHOD_NOT_ALLOWED,
-    HTTP_NO_CONTENT,
-    HTTP_NOT_FOUND,
-    HTTP_NOT_MODIFIED,
-    HTTP_OK, HTTP_PARTIAL_CONTENT, HTTP_RANGE_NOT_SATISFIABLE
-} from './const'
-import { getNodeName, MIME_AUTO, VfsNode } from './vfs'
+import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND, HTTP_NOT_MODIFIED,
+    HTTP_OK, HTTP_PARTIAL_CONTENT, HTTP_RANGE_NOT_SATISFIABLE, MIME_AUTO } from './const'
+import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { matches } from './misc'
+import { Dict, makeMatcher, matches } from './misc'
 import _ from 'lodash'
 import path from 'path'
 import { promisify } from 'util'
@@ -45,13 +38,17 @@ export function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     }
 }
 
-const mimeCfg = defineConfig<Record<string,string>>('mime', { '*': MIME_AUTO })
+const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>('mime', { '*': MIME_AUTO }, obj => {
+    const matchers = Object.keys(obj).map(k => makeMatcher(k))
+    const values = Object.values(obj)
+    return (name: string) => values[matchers.findIndex(matcher => matcher(name))]
+})
 
 export async function serveFile(ctx: Koa.Context, source:string, mime?:string, content?: string | Buffer) {
     if (!source)
         return
     const fn = path.basename(source)
-    mime = mime ?? _.find(mimeCfg.get(), (v,k) => matches(fn, k))
+    mime = mime ?? mimeCfg.compiled()(fn)
     if (mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''
     if (mime)

@@ -24,10 +24,13 @@ code {
 .MuiDataGrid-columnHeaders {
   background-color: #8882;
 }
+.MuiDataGrid-cell {
+  line-height: 1.1em;
+}
 
 .wrap .MuiDataGrid-cellContent { white-space: normal }
 
-ol, ul { margin-top: .2em; padding-left: 1.5em; }
+ol, ul { margin-top: .2em; margin-bottom: .2em; padding-left: 1.5em; }
 
 .dialog-alert .MuiDialogContent-root {
   max-width: 45em;

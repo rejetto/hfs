@@ -9,11 +9,23 @@ export const WIKI_URL = REPO_URL + 'wiki/'
 export const MINUTE = 60_000
 export const HOUR = 60 * MINUTE
 export const DAY = 24 * HOUR
-export const MAX_TILES_SIZE = 10
-
+export const MAX_TILE_SIZE = 10
+export const FRONTEND_OPTIONS = {
+    file_menu_on_link: true,
+    tile_size: 0,
+    sort_by: 'name',
+    invert_order: false,
+    folders_first: true,
+    sort_numerics: false,
+    theme: '',
+}
+export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
+export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
+export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown'])
+export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
-type Truthy<T> = T extends false | '' | 0 | null | undefined ? never : T
+type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
 
@@ -70,6 +82,10 @@ export type VfsNodeAdminSend = {
 
 export const PERM_KEYS = typedKeys(defaultPerms)
 
+function constMap<T extends string>(a: T[]): { [K in T]: K } {
+    return Object.fromEntries(a.map(x => [x, x])) as { [K in T]: K };
+}
+
 export function isWhoObject(v: undefined | Who): v is WhoObject {
     return v !== null && typeof v === 'object' && !Array.isArray(v)
 }
@@ -84,6 +100,12 @@ export function formatBytes(n: number, { post='B', k=1024, digits=NaN }={}) {
         : _.round(n, isNaN(digits) ? (n >= 100 ? 0 : 1) : digits)
     return nAsString + ' ' + (MULTIPLIERS[i]||'') + post
 } // formatBytes
+
+export function formatSpeed(n: number, options: { digits?: number }={}) {
+    return formatBytes(n, { post: 'B/s', k: 1000, ...options })
+        .replace('K', 'k') // ref https://en.wikipedia.org/wiki/Data-rate_units
+
+}
 
 export function prefix(pre:string, v:string|number|undefined|null|false, post:string='') {
     return v ? pre+v+post : ''
@@ -103,6 +125,13 @@ export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Tru
 
 export function enforceFinal(sub:string, s:string, evenEmpty=false) {
     return !evenEmpty && !s || s.endsWith(sub) ? s : s+sub
+}
+
+export function splitAt(sub: string | number, all: string): [string, string] {
+    if (typeof sub === 'number')
+        return [all.slice(0, sub), all.slice(sub + 1)]
+    const i = all.indexOf(sub)
+    return i < 0 ? [all,''] : [all.slice(0, i), all.slice(i + sub.length)]
 }
 
 export function truthy<T>(value: T): value is Truthy<T> {
@@ -340,6 +369,7 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
     return res.filter(x => x.status === 'fulfilled').map((x: any) => x.value as T)
 }
 
+// run at a specific point in time, also solving the limit of setTimeout, which doesn't work with +32bit delays
 export function runAt(ts: number, cb: Callback) {
     let cancel = false
     let t: any

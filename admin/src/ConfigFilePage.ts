@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, useEffect, useState } from 'react';
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { Btn, Flex, IconBtn, isCtrlKey, KeepInScreen, modifiedSx, reloadBtn } from './misc';
+import { Btn, Flex, focusSelector, IconBtn, isCtrlKey, KeepInScreen, modifiedSx, reloadBtn } from './misc';
 import { Save, ContentCopy, EditNote } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
 import { state } from './state';
@@ -19,7 +19,7 @@ export default function ConfigFilePage() {
     useEffect(() => { setSaved(data?.text) }, [data])
     useEffect(() => { saved !== undefined && setText(saved || '') }, [saved])
     return h(Fragment, {},
-        h(Flex, { alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' },
+        h(Flex, { flexWrap: 'wrap', justifyContent: 'space-between' },
             h(Btn, { icon: ContentCopy, onClick: copy }, "Copy excluding passwords"),
             edit ? h(Fragment, {},
                 reloadBtn(reload),
@@ -29,16 +29,14 @@ export default function ConfigFilePage() {
                     sx: modifiedSx(text !== saved),
                     onClick: save,
                 }),
-                h(Alert, { severity: 'warning', sx: { flex: 1 } }, "Be careful, you can easily break things here"),
+                h(Alert, { severity: 'warning', sx: { flex: 1, minWidth: '10em' } }, "Be careful, you can easily break things here"),
             ) : h(Btn, {
                 icon: EditNote,
                 variant: 'outlined',
                 labelFrom: 'sm',
                 onClick() {
                     setEdit(true)
-                    const el = document.querySelector('main textarea')
-                    //@ts-ignore
-                    setTimeout(() => el.focus(), 500)
+                    setTimeout(() => focusSelector('main textarea'), 500)
                 }
             }, "Edit"),
             h(Box, { flex: 1, minWidth: 'fit-content' }, h(DisplayField, { label: "File path", value: data?.fullPath }))

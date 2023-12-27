@@ -4,7 +4,7 @@ import { Group, Upload } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { apiCall } from './api'
 import { apiNewPassword } from './AccountForm'
-import { IconProgress, prefix, readFile, selectFiles } from './misc'
+import { HTTP_CONFLICT, IconProgress, prefix, readFile, selectFiles } from './misc'
 import { NumberField, BoolField } from '@hfs/mui-grid-form'
 import Parser from '@gregoranders/csv';
 
@@ -90,7 +90,7 @@ export async function importAccountsCsv(cb?: () => void) {
                                     if (rec.p)
                                         return apiNewPassword(rec.u, rec.p)
                                 }, e => {
-                                    if (e.code === 409)
+                                    if (e.code === HTTP_CONFLICT)
                                         return already++
                                     bad++
                                 })

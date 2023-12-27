@@ -3,28 +3,29 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, typedKeys, makeMatcher, setHidden, onlyTruthy,
-    typedEntries, throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS
+    dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy,
+    throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
-import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './const'
+import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, MIME_AUTO } from './const'
 import events from './events'
-import { expandUsername, getCurrentUsername } from './perm'
+import { expandUsername } from './perm'
+import { getCurrentUsername } from './auth'
 
 type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 
 export interface VfsNodeStored extends VfsPerms {
     name?: string
     source?: string
+    url?: string
     children?: VfsNode[]
     default?: string | false // we could have used empty string to override inherited default, but false is clearer, even reading the yaml, and works well with pickProps(), where empty strings are removed
     mime?: string | Record<string, string>
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
     accept?: string
-    propagate?: Record<keyof VfsPerms, boolean> // legacy pre-0.47
 }
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
@@ -32,8 +33,6 @@ export interface VfsNode extends VfsNodeStored { // include fields that are only
     parent?: VfsNode // available when original is available
     isFolder?: boolean
 }
-
-export const MIME_AUTO = 'auto'
 
 export function permsFromParent(parent: VfsNode, child: VfsNode) {
     const ret: VfsPerms = {}
@@ -138,12 +137,6 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
 export let vfs: VfsNode = {}
 defineConfig<VfsNode>('vfs', {}).sub(data =>
     vfs = (function recur(node) {
-        if (node.propagate) { // legacy pre-0.47
-            for (const [k,v] of typedEntries(node.propagate))
-                if (v === false)
-                    node[k] = { this: node[k] }
-            delete node.propagate
-        }
         if (node.children)
             for (const c of node.children)
                 recur(c)
@@ -173,12 +166,13 @@ export function getNodeName(node: VfsNode) {
 export async function nodeIsDirectory(node: VfsNode) {
     if (node.isFolder !== undefined)
         return node.isFolder
-    const isFolder = Boolean(node.children?.length || !node.source || await isDirectory(node.source))
-    if (node.isTemp)
-        node.isFolder = isFolder
-    else
-        setHidden(node, { isFolder }) // don't make it to the storage
+    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (!node.source || await isDirectory(node.source)))
+    setHidden(node, { isFolder }) // don't make it to the storage (a node.isTemp doesn't need it to be hidden)
     return isFolder
+}
+
+export function nodeIsLink(node: VfsNode) {
+    return node.url
 }
 
 export function hasPermission(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context): boolean {
@@ -215,7 +209,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
             return some ? 0 : HTTP_UNAUTHORIZED
         }
         return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
-            : who === WHO_ANY_ACCOUNT ? (ctx.state.account ? 0 : HTTP_UNAUTHORIZED)
+            : who === WHO_ANY_ACCOUNT ? (getCurrentUsername(ctx) ? 0 : HTTP_UNAUTHORIZED)
                 : throw_(Error('invalid permission: ' + JSON.stringify(who)))
     }
 }

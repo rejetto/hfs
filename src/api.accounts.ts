@@ -2,26 +2,20 @@
 
 import { changePasswordHelper, changeSrpHelper } from './api.helpers'
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import {
-    Account,
-    accountCanLoginAdmin,
-    accountHasPassword,
-    accountsConfig,
-    addAccount,
-    delAccount,
-    getAccount,
-    getCurrentUsername,
-    setAccount
-} from './perm'
+import { Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addAccount, delAccount, getAccount,
+    setAccount } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
+import { getCurrentUsername, invalidSessions } from './auth'
 
+export type AccountAdminSend = NonNullable<ReturnType<typeof prepareAccount>>
 function prepareAccount(ac: Account | undefined) {
     return ac && {
         ..._.omit(ac, ['password','hashed_password','srp']),
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
+        invalidated: invalidSessions.has(ac.username),
     }
 }
 
@@ -64,6 +58,11 @@ const apis: ApiHandlers = {
 
     del_account({ username }) {
         return delAccount(username) ? {} : new ApiError(HTTP_BAD_REQUEST)
+    },
+
+    invalidate_sessions({ username }) {
+        invalidSessions.add(username)
+        return {}
     },
 
     async change_password_others({ username, newPassword }) {

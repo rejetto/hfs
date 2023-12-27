@@ -11,15 +11,15 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
     const { leading=false, maxWait=Infinity, cancelable=false, retain=0, retainFailure } = options
     let started = 0 // latest callback invocation
     let runningCallback: Promise<R> | undefined // latest callback invocation result
-    let runningDebouncer: Promise<MaybeR | R> // latest wrapper invocation
+    let latestDebouncer: Promise<MaybeR | R> // latest wrapper invocation
     let waitingSince = 0 // we are delaying invocation since
     let whoIsWaiting: undefined | A // args object identifies the pending instance, and incidentally stores args
-    let last: typeof runningCallback
-    let lastFailed = false
-    let lastSince = 0
-    const interceptingWrapper = (...args: A) => runningDebouncer = debouncer(...args)
+    let latestCallback: typeof runningCallback
+    let latestHasFailed = false
+    let latestTimestamp = 0
+    const interceptingWrapper = (...args: A) => latestDebouncer = debouncer(...args)
     return Object.assign(interceptingWrapper, {
-        clearRetain: () => last = undefined,
+        clearRetain: () => latestCallback = undefined,
         flush: () => runningCallback ?? exec(),
         isWorking: () => runningCallback,
         ...cancelable && {
@@ -34,8 +34,8 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
         if (runningCallback)
             return runningCallback as MaybeR
         const now = Date.now()
-        if (last && now - lastSince < (lastFailed ? retainFailure ?? retain : retain))
-            return await last
+        if (latestCallback && now - latestTimestamp < (latestHasFailed ? retainFailure ?? retain : retain))
+            return await latestCallback
         whoIsWaiting = args
         waitingSince ||= now
         const waitingCap = maxWait - (now - (waitingSince || started))
@@ -45,7 +45,7 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
         if (!whoIsWaiting) // canceled
             return void(waitingSince = 0) as MaybeR
         if (whoIsWaiting !== args) // another fresher call is waiting
-            return runningDebouncer
+            return latestDebouncer
         return exec()
     }
 
@@ -54,14 +54,15 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
         waitingSince = 0
         started = Date.now()
         try {
-            runningCallback = callback(...whoIsWaiting)
+            const args = whoIsWaiting
+            whoIsWaiting = undefined
+            runningCallback = callback(...args)
+            runningCallback.then(() => latestHasFailed = false, () => latestHasFailed = true)
             return await runningCallback as MaybeUndefined<R> // await necessary to go-finally at the right time and even on exceptions
         }
         finally {
-            last = runningCallback
-            last!.then(() => lastFailed = false, () => lastFailed = true)
-            lastSince = Date.now()
-            whoIsWaiting = undefined
+            latestCallback = runningCallback
+            latestTimestamp = Date.now()
             runningCallback = undefined
         }
     }

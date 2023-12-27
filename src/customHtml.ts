@@ -8,7 +8,7 @@ import { mapPlugins } from './plugins'
 const FILE = 'custom.html'
 
 export const customHtmlSections: ReadonlyArray<string> = ['beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
-    'top', 'bottom', 'afterEntryName', 'beforeLogin']
+    'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized']
 
 export const customHtmlState = proxy({
     sections: watchLoadCustomHtml().state

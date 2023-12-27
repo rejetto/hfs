@@ -10,6 +10,7 @@ const ACTIONS = 'Actions'
 
 interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
     columns: Array<GridColDef<R> & {
+        hidden?: boolean
         hideUnder?: Breakpoint | number
         mergeRender?: { other: string, override?: Partial<GridColDef<R>> } & BoxProps
     }>
@@ -18,8 +19,9 @@ interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridP
     initializing?: boolean
     noRows?: ReactNode
     error?: ReactNode
+    compact?: true
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, ...rest }: DataTableProps) {
     const { width } = useWindowSize()
     const theme = useTheme()
     const apiRef = useGridApiRef()
@@ -37,7 +39,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                     const { columns } = params.api.store.getSnapshot()
                     const showOther = columns.columnVisibilityModel[other] === false
                     return h(Box, {}, col.renderCell ? col.renderCell(params) : params.formattedValue,
-                        showOther && h(Box, props, renderCell({ ...columns.lookup[other], ...override }, params.row)))
+                        showOther && h(Box, { ...compact && { lineHeight: '1em', fontSize: 'smaller' }, ...props },
+                            renderCell({ ...columns.lookup[other], ...override }, params.row) ) )
                 }
             }
         })
@@ -61,9 +64,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     }, [columns, actions, actionsLength])
     const hideCols = useMemo(() => {
         if (!width) return
-        const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder }) =>
-            hideUnder
-            && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder])
+        const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder, hidden }) =>
+            (hidden || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
             && field))
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
@@ -88,6 +90,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             }) ),
         h(DataGrid, {
             initialState,
+            style: { height: 0, flex: 'auto' }, // limit table to available screen space
+            density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
             apiRef,
             slots: {
@@ -119,7 +123,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                         }, showCols.map(col =>
                             h(Box, { key: col.field, gridColumn: col.flex && '1/-1' },
                                 h(Box, { bgcolor: '#0003', p: 1 }, col.headerName || col.field),
-                                h(Flex, { minHeight: '2.5em', px: 1, alignItems: 'center', wordBreak: 'break-word' },
+                                h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word' },
                                     renderCell(col, rowToShow) )
                             ) ))
                     }

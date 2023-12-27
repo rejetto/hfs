@@ -1,25 +1,15 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link } from 'react-router-dom'
-import {
-    createElement as h,
-    Fragment,
-    memo,
-    MouseEvent,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, getHFS } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
-import { useAuthorized } from './login'
+import { loginDialog, useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
@@ -30,17 +20,35 @@ export const MISSING_PERM = "Missing permission"
 export function BrowseFiles() {
     useFetchList()
     const { error } = useSnapState()
-    return useAuthorized() && h(Fragment, {},
-        h(CustomCode, { name: 'beforeHeader' }),
-        h(Head),
-        h(CustomCode, { name: 'afterHeader' }),
-        error ? h(ErrorMsg, { err: error }) : h(FilesList),
-        h(CustomCode, { name: 'afterList' }),
+    const navigate = useNavigate()
+    const { props, tile_size=0 } = useSnapState()
+    if (!useAuthorized())
+        return h(CustomCode, { name: 'unauthorized',
+            ifEmpty: () => h('h1', {
+                className: 'unauthorized',
+                onClick: () => loginDialog(navigate)
+            }, t`Unauthorized`)
+        })
+    return h('div', { // element dedicated to drop-files to cover full screen
+        ...acceptDropFiles(files =>
+            props?.can_upload ? enqueue(files.map(file => ({ file })))
+                : alertDialog(t("Upload not available"), 'warning') )
+    },
+        h('div', {
+            className: 'list-wrapper ' + (tile_size ? 'tiles-mode' : 'list-mode'),
+            style: { '--tile-size': tile_size },
+        },
+            h(CustomCode, { name: 'beforeHeader' }),
+            h(Head),
+            h(CustomCode, { name: 'afterHeader' }),
+            error ? h(ErrorMsg, { err: error }) : h(FilesList),
+            h(CustomCode, { name: 'afterList' }),
+        )
     )
 }
 
 function FilesList() {
-    const { filteredList, list, loading, stoppedSearch, props } = useSnapState()
+    const { filteredList, list, loading, stoppedSearch } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
     const pageSize = 100
     const [page, setPage] = useState(0)
@@ -99,12 +107,7 @@ function FilesList() {
         : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
 
     return h(Fragment, {},
-        h('ul', {
-            ref,
-            className: 'dir',
-            ...acceptDropFiles(files => props?.can_upload ? enqueue(files.map(file => ({ file })))
-                : alertDialog(t("Upload not available"), 'warning') )
-        },
+        h('ul', { ref, className: 'dir' },
             msgInstead ? h('p', {}, msgInstead)
                 : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry, idx) =>
                     h(Entry, {
@@ -184,8 +187,9 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder } = entry
-    const { showFilter, selected } = useSnapState()
-    const containerDir = isFolder ? '' : uri.substring(0, uri.lastIndexOf('/')+1)
+    const { showFilter, selected, file_menu_on_link } = useSnapState()
+    const isLink = Boolean(entry.url)
+    const containerDir = isFolder || isLink ? '' : uri.substring(0, (uri.lastIndexOf('/') || -1) +1)
     const containerName = containerDir && entry.n.slice(0, -entry.name.length)
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
@@ -193,25 +197,26 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = getEntryIcon(entry)
-    const menuOnLink = getHFS().fileMenuOnLink
-    const onClick = !entry.web && menuOnLink && fileMenu || undefined
+    const onClick = !isLink && !entry.web && file_menu_on_link && fileMenu || undefined
     const small = useWindowSize().width < 800
-    const showingButton = !menuOnLink || isFolder && small
+    const showingButton = !file_menu_on_link || isFolder && small
     return h('li', { className, label: separator },
         h(CustomCode, { name: 'entry', props: { entry }, ifEmpty: () => h(Fragment, {},
             showFilter && h(Checkbox, {
+                disabled: isLink,
                 value: selected[uri],
                 onChange(v){
+                    debugger
                     if (v)
                         return state.selected[uri] = true
                     delete state.selected[uri]
                 },
             }),
             h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                isFolder ? h(Fragment, {},
+                isFolder && !entry.web ? h(Fragment, {}, // internal navigation, use Link component
                         h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
                         // popup button is here to be able to detect link-wrapper:hover
-                        menuOnLink && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
+                        file_menu_on_link && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
                     )
                     : containerDir ? h(Fragment, {},
                         h('a', { href: uri, onClick, tabIndex: -1 }, ico),
@@ -232,11 +237,11 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     function fileMenu(ev: MouseEvent) {
         if (ev.altKey || ev.ctrlKey || ev.metaKey) return
         ev.preventDefault()
-        openFileMenu(entry, ev, [
-            menuOnLink && 'open',
+        openFileMenu(entry, ev, onlyTruthy([
+            file_menu_on_link && 'open',
             'delete',
             'show'
-        ])
+        ]))
     }
 
 })

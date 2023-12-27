@@ -4,7 +4,7 @@ import _ from 'lodash'
 import { apiCall } from './api'
 export * from './react'
 export * from './dialogs'
-export * from './srp'
+export * from '../src/srp'
 export * from '../src/cross'
 
 (window as any)._ = _
@@ -85,5 +85,13 @@ export function makeSessionRefresher(state: any) {
         const t = _.clamp(delta - 30_000, 4_000, 600_000)
         console.debug('session refresh in', Math.round(t / 1000))
         setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
+    }
+}
+
+export function focusSelector(selector: string, root=document) {
+    const res = root.querySelector(selector)
+    if (res && res instanceof HTMLElement) {
+        res.focus()
+        return true
     }
 }

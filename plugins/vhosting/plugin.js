@@ -26,11 +26,11 @@ exports.init = api => {
     return {
         middleware(ctx) {
             let params // undefined if we are not going to work on api parameters
-            if (ctx.path.startsWith(api.const.SPECIAL_URI)) { // special uris should be excluded...
-                if (!ctx.path.startsWith(api.const.API_URI)) return // ...unless it's an api
+            if (ctx.path.startsWith(api.Const.SPECIAL_URI)) { // special uris should be excluded...
+                if (!ctx.path.startsWith(api.Const.API_URI)) return // ...unless it's an api
                 let { referer } = ctx.headers
                 referer &&= new URL(referer).pathname
-                if (referer?.startsWith(ctx.state.revProxyPath + api.const.ADMIN_URI)) return // exclude apis for admin-panel
+                if (referer?.startsWith(ctx.state.revProxyPath + api.Const.ADMIN_URI)) return // exclude apis for admin-panel
                 params = ctx.params || ctx.query // for api we'll translate params
             }
 

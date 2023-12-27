@@ -2,7 +2,9 @@
 
 import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
-import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working } from './misc'
+import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working,
+    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed
+} from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -98,7 +100,7 @@ export function showUpload() {
     }
 
     function Content(){
-        const { qs, paused, eta, skipExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
+        const { qs, paused, eta, speed, skipExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
         const { props } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
@@ -109,7 +111,7 @@ export function showUpload() {
             h(FlexV, { className: 'upload-toolbar' },
                 !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
-                        h(Flex, { justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' },
+                        h(Flex, { justifyContent: 'center', flexWrap: 'wrap' },
                             h('button', {
                                 className: 'upload-files',
                                 onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
@@ -121,6 +123,7 @@ export function showUpload() {
                             h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
                             h(Checkbox, { value: skipExisting, onChange: v => uploadState.skipExisting = v }, t`Skip existing files`),
                         ),
+                        !isMobile() && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files doing drag&drop on the files list")),
                         adding.length > 0 && h(Flex, { justifyContent: 'center', flexWrap: 'wrap' },
                             h('button', {
                                 className: 'upload-send',
@@ -144,8 +147,8 @@ export function showUpload() {
             }),
             h(UploadStatus, { margin: '.5em 0' }),
             qs.length > 0 && h('div', {},
-                h(Flex, { alignItems: 'center', justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
-                    [queueStr, etaStr].filter(Boolean).join(', '),
+                h(Flex, { justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
+                    [queueStr, etaStr, speed && formatSpeed(speed)].filter(Boolean).join(', '),
                     inQ > 0 && iconBtn('delete', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
@@ -280,7 +283,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (req?.readyState !== 4) return
         const status = overrideStatus || req.status
         closeLast?.()
-        if (status && status !== 409) // 0 = user-aborted, 409 = skipped because existing
+        if (status && status !== HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
             if (status >= 400)
                 error(status)
             else
@@ -344,7 +347,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     function error(status: number) {
         if (uploadState.errors++) return
         const ERRORS = {
-            413: t`file too large`,
+            [HTTP_PAYLOAD_TOO_LARGE]: t`file too large`,
         }
         const specifier = (ERRORS as any)[status]
         const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
@@ -423,7 +426,7 @@ async function createFolder() {
             )))
     }
     catch(e: any) {
-        await alertDialog(e.code === 409 ? t('folder_exists', "Folder with same name already exists") : e)
+        await alertDialog(e.code === HTTP_CONFLICT ? t('folder_exists', "Folder with same name already exists") : e)
     }
 }
 

@@ -40,6 +40,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - real-time monitoring of connections
 - [show some files](https://github.com/rejetto/hfs/discussions/270)
 - speed throttler
+- geographic firewall
 - admin web interface
 - multi-language front-end
 - virtual hosting (plug-in)
@@ -172,9 +173,9 @@ While this project focuses on ease of use, we care about security.
 
 Some actions you can take for improved security:
 - use https, better if using a proper certificate, even free with [Letsencrypt](https://letsencrypt.org/).
-- have a domain (ddns is ok too), start vhosting plugin, configure your domain, enable "Block requests that are not using any of the domains above"
+- have a domain (ddns is ok too), configure it in "Internet" page, and enable "Accept requests only using domain"
 - install rejetto/antidos plugin
-- start antibrute plugin (but it's started by default)
+- ensure "antibrute" plugin is running
 - disable "unprotected admin on localhost"
 
 ## Hidden features
@@ -182,6 +183,7 @@ Some actions you can take for improved security:
 - Appending `#LOGIN` to address will bring up the login dialog
 - Appending ?lang=CODE to address will force a specific language
 - right/ctrl/command click on toggle-all checkbox will invert each checkbox state
+- Appending `?login=USER:PASSWORD` will automatically log in the browser
 
 ## Contribute
 

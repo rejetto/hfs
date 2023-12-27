@@ -24,10 +24,6 @@ interface Accounts { [username:string]: Account }
 
 let accounts: Accounts = {}
 
-export function getCurrentUsername(ctx: Koa.Context): string {
-    return ctx.state.account?.username || ''
-}
-
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
 export function expandUsername(who: string): string[] {
     const ret = []

@@ -2,25 +2,12 @@
 
 import events from './events'
 import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync } from './misc'
-import {
-    DISABLING_POSTFIX, findPluginByRepo,
-    getAvailablePlugins,
-    getPluginInfo,
-    mapPlugins,
-    parsePluginSource,
-    PATH as PLUGINS_PATH, Repo,
-} from './plugins'
+import { DISABLING_POSTFIX, findPluginByRepo, getAvailablePlugins, getPluginInfo, mapPlugins,
+    parsePluginSource, PATH as PLUGINS_PATH, Repo } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
-import {
-    DEV,
-    HFS_REPO,
-    HFS_REPO_BRANCH,
-    HTTP_BAD_REQUEST,
-    HTTP_CONFLICT, HTTP_FORBIDDEN,
-    HTTP_NOT_ACCEPTABLE,
-    HTTP_SERVER_ERROR
-} from './const'
+import { DEV, HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
+    HTTP_SERVER_ERROR } from './const'
 import { rename, rm } from 'fs/promises'
 import { join } from 'path'
 import { readFileSync } from 'fs'
@@ -134,6 +121,25 @@ export async function readOnlinePlugin(repo: Repo, branch='') {
     return pl
 }
 
+export async function readOnlineCompatiblePlugin(repo: Repo, branch='') {
+    const pl = await readOnlinePlugin(repo, branch)
+    if (!pl?.apiRequired) return // mandatory field
+    if (!pl.badApi) return pl
+    // we try other branches (starting with 'api')
+    const res = await apiGithub('repos/' + repo + '/branches')
+    const branches: string[] = res.map((x: any) => x?.name)
+        .filter((x: any) => typeof x === 'string' && x.startsWith('api'))
+        .sort().reverse()
+    for (const branch of branches) {
+        const pl = await readOnlinePlugin(repo, branch)
+        if (!pl) continue
+        if (!pl.apiRequired)
+            pl.badApi = '-'
+        if (!pl.badApi)
+            return pl
+    }
+}
+
 export function getFolder2repo() {
     const ret = Object.fromEntries(getAvailablePlugins().map(x => [x.id, x.repo]))
     Object.assign(ret, Object.fromEntries(mapPlugins(x => [x.id, x.getData().repo])))
@@ -159,24 +165,8 @@ export async function searchPlugins(text='') {
     return new AsapStream(list.items.map(async (it: any) => {
         const repo = it.full_name as string
         if (projectInfo?.plugins_blacklist?.includes(repo)) return
-        let pl = await readOnlinePlugin(repo, it.default_branch)
-        if (!pl?.apiRequired) return // mandatory field
-        if (pl.badApi) { // we try other branches (starting with 'api')
-            const res = await apiGithub('repos/' + repo + '/branches')
-            const branches: string[] = res.map((x: any) => x?.name)
-                .filter((x: any) => typeof x === 'string' && x.startsWith('api'))
-                .sort().reverse()
-            for (const branch of branches) {
-                pl = await readOnlinePlugin(repo, branch)
-                if (!pl) continue
-                if (!pl.apiRequired)
-                    pl.badApi = '-'
-                if (!pl.badApi)
-                    break
-            }
-        }
-        if (!pl || pl.badApi)
-            return
+        const pl = await readOnlineCompatiblePlugin(repo, it.default_branch)
+        if (!pl) return
         Object.assign(pl, { // inject some extra useful fields
             downloading: downloading[repo],
             license: it.license?.spdx_id,

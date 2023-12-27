@@ -2,31 +2,23 @@
 
 import Koa from 'koa'
 import fs from 'fs/promises'
-import {
-    API_VERSION,
-    FRONTEND_URI,
-    HTTP_METHOD_NOT_ALLOWED,
-    HTTP_NO_CONTENT,
-    HTTP_NOT_FOUND,
-    PLUGINS_PUB_URI,
-    VERSION,
-    SPECIAL_URI
-} from './const'
+import { API_VERSION, MIME_AUTO, FRONTEND_URI, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
+    PLUGINS_PUB_URI, VERSION, SPECIAL_URI } from './const'
 import { serveFile } from './serveFile'
 import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { getOrSet, newObj, onlyTruthy } from './misc'
+import { FRONTEND_OPTIONS, getOrSet, newObj, onlyTruthy } from './misc'
 import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio/vanilla'
 import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
-import { defineConfig } from './config'
+import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
-import { MIME_AUTO } from './vfs'
 
 const logGui = defineConfig('log_gui', false)
+_.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
 
 // in case of dev env we have our static files within the 'dist' folder'
 const DEV_STATIC = process.env.DEV ? 'dist/' : ''
@@ -107,9 +99,8 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 plugins,
                 prefixUrl: ctx.state.revProxyPath,
                 customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
-                    ['top','bottom']), // excluding sections we apply in this phase
-                fileMenuOnLink: fileMenuOnLink.get(),
-                tilesSize: tilesSize.get(), 
+                    ['top','bottom']), // exclude the sections we already apply in this phase
+                ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
                 lang
             }, null, 4)
             .replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
@@ -166,6 +157,3 @@ function serveProxied(port: string | undefined, uri: string) { // used for devel
 export function serveGuiFiles(proxyPort:string | undefined, uri:string) {
     return serveProxied(proxyPort, uri) || serveStatic(uri)
 }
-
-const fileMenuOnLink = defineConfig('file_menu_on_link', true)
-const tilesSize = defineConfig('tiles_size', 0)

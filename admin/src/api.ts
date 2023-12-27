@@ -1,7 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, IconBtn, spinner, useStateMounted, wantArray, xlate } from './misc'
+import { Dict, err2msg, Falsy, IconBtn, LIST, spinner, useStateMounted, wantArray, xlate,
+    HTTP_FORBIDDEN, HTTP_UNAUTHORIZED,} from './misc'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
 import { state } from './state'
@@ -12,8 +13,8 @@ export * from '@hfs/shared/api'
 
 setDefaultApiCallOptions({
     async onResponse(res: Response, body: any) {
-        if (res.status === 401) {
-            state.loginRequired = body?.possible !== false || 403
+        if (res.status === HTTP_UNAUTHORIZED) {
+            state.loginRequired = body?.possible !== false || HTTP_FORBIDDEN
             throw new ApiError(res.status, "Unauthorized")
         }
     }
@@ -35,7 +36,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     }
 }
 
-export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map }: { map?: (rec: S) => T }={}) {
+export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause }: { pause?: boolean, invert?: boolean, map?: (rec: S) => T }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -44,13 +45,16 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map 
     const [initializing, setInitializing] = useStateMounted(true)
     const [reloader, setReloader] = useState(0)
     const idGenerator = useRef(0)
+    const [pausedList, setPausedList] = useState<typeof list | undefined>()
+    useEffect(() => setPausedList(pause ? list : undefined), [pause])
     useEffect(() => {
         if (!cmd) return
         const bufferAdd: T[] = []
         const apply = _.debounce(() => {
             const chunk = bufferAdd.splice(0, Infinity)
-            if (chunk.length)
-                setList(list => [ ...list, ...chunk ])
+            if (!chunk.length) return
+            if (invert) chunk.reverse() // setList callback can be called twice (and will, in dev)
+            setList(list => invert ? [ ...chunk, ...list ] : [ ...list, ...chunk ])
         }, 1000, { maxWait: 1000 })
         setError(undefined)
         setLoading(true)
@@ -75,34 +79,34 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map 
                         if (!Array.isArray(msg))
                             return console.debug('illegal list packet', msg)
                         const [op, par] = msg
-                        if (op === 'ready') {
+                        if (op === LIST.ready) {
                             apply.flush()
                             setInitializing(false)
                             return
                         }
-                        if (op === 'error') {
-                            if (par === 401)
-                                state.loginRequired = msg[2].possible !== false || 403
+                        if (op === LIST.error) {
+                            if (par === HTTP_UNAUTHORIZED)
+                                state.loginRequired = msg[2]?.possible !== false || HTTP_FORBIDDEN
                             else
                                 setError(err2msg(par))
                             return
                         }
-                        if (op === 'props')
+                        if (op === LIST.props)
                             return setProps(par)
-                        if (op === 'add') {
+                        if (op === LIST.add) {
                             const mappedPar = map?.(par) ?? par
                             mappedPar.id ??= idGenerator.current = Math.max(idGenerator.current, Date.now()) + .001
                             bufferAdd.push(mappedPar)
                             apply()
                             return
                         }
-                        if (op === 'remove') {
+                        if (op === LIST.remove) {
                             const match = _.matches(par)
                             if (_.isEmpty(_.remove(bufferAdd, match))) // first remove from the buffer
                                 removeOnList.push(match)
                             return
                         }
-                        if (op === 'update') {
+                        if (op === LIST.update) {
                             const change = msg[2]
                             const found = _.find(bufferAdd, par)
                             if (found)
@@ -145,7 +149,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map 
             apply.flush()
         }
     }, [reloader, cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list, props, loading, error, initializing, connecting, setList, updateList, updateEntry, reload }
+    return { list: pausedList ?? list, props, loading, error, initializing, connecting, setList, updateList, updateEntry, reload }
 
     function reload() {
         setReloader(x => x + 1)

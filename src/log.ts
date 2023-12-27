@@ -8,7 +8,7 @@ import * as util from 'util'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
-import { getCurrentUsername } from './perm'
+import { getCurrentUsername } from './auth'
 import { DAY, makeNetMatcher, tryJson } from './misc'
 import events from './events'
 

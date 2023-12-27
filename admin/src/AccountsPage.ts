@@ -4,8 +4,8 @@ import { createElement as h, useState, useEffect, Fragment } from "react"
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Close, Delete, DoNotDisturb, Group, MilitaryTech, Person, PersonAdd } from '@mui/icons-material'
-import { IconBtn, iconTooltip, newDialog, reloadBtn, useBreakpoint } from './misc'
-import { TreeItem, TreeView } from '@mui/lab'
+import { IconBtn, iconTooltip, newDialog, reloadBtn, useBreakpoint, with_ } from './misc'
+import { TreeItem, TreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import md from './md'
@@ -14,17 +14,9 @@ import { Flex } from './misc'
 import { alertDialog, confirmDialog } from './dialog'
 import { useSnapState } from './state'
 import { importAccountsCsv } from './importAccountsCsv'
+import { AccountAdminSend } from '../../src/api.accounts'
 
-export interface Account {
-    username: string
-    hasPassword?: boolean
-    admin?: boolean
-    adminActualAccess?: boolean
-    ignore_limits?: boolean
-    disabled?: boolean
-    redirect?: string
-    belongs?: string[]
-}
+export type Account = AccountAdminSend
 
 export default function AccountsPage() {
     const { username } = useSnapState()
@@ -42,7 +34,7 @@ export default function AccountsPage() {
 
     const sideContent = !(sel.length > 0) || !list ? null // this clever test is true both when some accounts are selected and when we are in "new account" modes
         : selectionMode && sel.length > 1 ? h(Fragment, {},
-                h(Flex, { alignItems: 'center' },
+                h(Flex, {},
                     h(Typography, {variant: 'h6'}, sel.length + " selected"),
                     h(Button, { onClick: deleteAccounts, startIcon: h(Delete) }, "Remove"),
                 ),
@@ -51,20 +43,22 @@ export default function AccountsPage() {
                         h(ListItem, { key: username },
                             h(ListItemText, {}, username))))
             )
-            : h(AccountForm, {
-                account: selectedAccount || { username: '', hasPassword: sel === 'new-user' },
-                groups: list.filter(x => !x.hasPassword).map( x => x.username ),
-                addToBar: isSideBreakpoint && h(IconBtn, { // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
-                    icon: Close,
-                    title: "Close",
-                    onClick: selectNone
-                }),
-                reload,
-                done(username) {
-                    setSel([username])
-                    reload()
-                }
-            })
+            : with_(selectedAccount || { username: '', hasPassword: sel === 'new-user', adminActualAccess: false, invalidated: true }, a =>
+                h(AccountForm, {
+                    account: a,
+                    groups: list.filter(x => !x.hasPassword).map( x => x.username ),
+                    addToBar: isSideBreakpoint && [
+                        h(Box, { flex:1 }),
+                        account2icon(a, { fontSize: 'large', sx: { p: 1 }}),
+                        // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
+                        h(IconBtn, {  icon: Close, title: "Close", onClick: selectNone }),
+                    ],
+                    reload,
+                    done(username) {
+                        setSel([username])
+                        reload()
+                    }
+                }))
     useEffect(() => {
         if (isSideBreakpoint || !sideContent || !sel.length) return
         const { close } = newDialog({
@@ -107,7 +101,7 @@ export default function AccountsPage() {
             ) ),
         h(Grid, { item: true, md: 5 },
             !list?.length && h(Alert, { severity: 'info' }, md`To access administration <u>remotely</u> you will need to create a user account with admin permission`),
-            h(TreeView, {
+            h(TreeView<true>, { // true because it's not detecting multiSelect correctly (ts495)
                 multiSelect: true,
                 sx: { pr: 4, pb: 2, minWidth: '15em' },
                 selected: selectionMode ? sel : [],

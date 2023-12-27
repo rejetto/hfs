@@ -9,7 +9,7 @@ import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
 import { debounceAsync, ipForUrl, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
-import { ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
+import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
@@ -24,7 +24,8 @@ let httpsSrv: undefined | http.Server & ServerExtra
 
 const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
 
-export const baseUrl = defineConfig('base_url', '')
+export const baseUrl = defineConfig('base_url', '',
+    x => /\/\/[^\/]+/.exec(x)?.[1]) // compiled is host only
 
 export function getBaseUrlOrDefault() {
     return baseUrl.get() || defaultBaseUrl.get()
@@ -72,9 +73,10 @@ export function openAdmin() {
 
 export function getCertObject() {
     if (!httpsOptions.cert) return
-    const o = new X509Certificate(httpsOptions.cert)
-    const some = _.pick(o, ['subject', 'issuer', 'validFrom', 'validTo'])
-    return objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
+    const all = new X509Certificate(httpsOptions.cert)
+    const some = _.pick(all, ['subject', 'issuer', 'validFrom', 'validTo'])
+    const ret = objSameKeys(some, v => v?.includes('=') ? Object.fromEntries(v.split('\n').map(x => x.split('='))) : v)
+    return Object.assign(ret, { altNames: all.subjectAltName?.replace(/DNS:/g, '').split(/, */) })
 }
 
 const considerHttps = debounceAsync(async () => {
@@ -91,25 +93,25 @@ const considerHttps = debounceAsync(async () => {
         )
         if (port >= 0) {
             const cert = getCertObject()
-            if (!cert) return
-            const cn = cert.subject?.CN
-            if (cn)
-                console.log("certificate loaded for", cn)
-            const now = new Date()
-            const from = new Date(cert.validFrom)
-            const to = new Date(cert.validTo)
-            updateError() // error will change at from and to dates of the certificate
-            const cancelTo = runAt(to.getTime(), updateError)
-            const cancelFrom = runAt(from.getTime(), updateError)
-            httpsSrv.on('close', () => {
-                cancelTo()
-                cancelFrom()
-            })
-            function updateError() {
-                if (!httpsSrv) return
-                httpsSrv.error = from > now ? "certificate not valid yet" : to < now ? "certificate expired" : undefined
+            if (cert) {
+                const cn = cert.subject?.CN
+                if (cn)
+                    console.log("certificate loaded for", cn)
+                const now = new Date()
+                const from = new Date(cert.validFrom)
+                const to = new Date(cert.validTo)
+                updateError() // error will change at from and to dates of the certificate
+                const cancelTo = runAt(to.getTime(), updateError)
+                const cancelFrom = runAt(from.getTime(), updateError)
+                httpsSrv.on('close', () => {
+                    cancelTo()
+                    cancelFrom()
+                })
+                function updateError() {
+                    if (!httpsSrv) return
+                    httpsSrv.error = from > now ? "certificate not valid yet" : to < now ? "certificate expired" : undefined
+                }
             }
-
             const namesForOutput: any = { cert: 'certificate', private_key: 'private key' }
             const missing = httpsNeeds.find(x => !x.get())?.key()
             if (missing)
@@ -157,7 +159,6 @@ for (const cfg of httpsNeeds) {
     })
 }
 
-const PORT_DISABLED = -1
 export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
 httpsPortCfg.sub(considerHttps)
 listenInterface.sub(considerHttps)

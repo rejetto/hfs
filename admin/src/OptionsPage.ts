@@ -1,13 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Box, Button, FormHelperText } from '@mui/material';
+import { Box, Button, Divider, FormHelperText } from '@mui/material';
 import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
-import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILES_SIZE, modifiedSx, REPO_URL, ipLocalHost,
-    wait, wikiLink, with_, try_, ipForUrl, useBreakpoint } from './misc'
+import { Dict, iconTooltip, InLink, LinkBtn, MAX_TILE_SIZE, modifiedSx, REPO_URL, ipLocalHost,
+    wait, wikiLink, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS, useBreakpoint } from './misc'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -116,21 +116,18 @@ export default function OptionsPage() {
             httpsEnabled && { k: 'private_key', comp: FileField, md: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
             },
-            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", md: 4,
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
+                helperText: "The icon associated to your website" },
+            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer },
+            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start",
                 helperText: "Browser is automatically launched with HFS"
             },
-            { k: 'localhost_admin', comp: BoolField, label: "Unprotected admin on localhost", md: 4,
+            { k: 'localhost_admin', comp: BoolField, label: "Unprotected admin on localhost",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "Access Admin-panel without entering credentials"
             },
-            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", sm: 12, md: 4,
-                options: { "by clicking on file name": true, "by dedicated button": false  }
-            },
             { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output per-ip" },
-            { k: 'title', helperText: "You can see this in the tab of your browser" },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
-                helperText: "The icon associated to your website" },
             { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
             { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log",
                 helperText: "If you want errors in a different log"
@@ -141,13 +138,12 @@ export default function OptionsPage() {
             { k: 'dont_log_net', comp: NetmaskField, label: "Don't log address", md: 3, placeholder: "no exception",
                 helperText: h(WildcardsSupported)
             },
-            { k: 'log_gui', comp: BoolField, label: "Log interface loading" },
-            { k: 'log_api', comp: BoolField, label: "Log API requests" },
+            { k: 'log_gui', sm: 3, comp: BoolField, label: "Log interface loading" },
+            { k: 'log_api', sm: 3, comp: BoolField, label: "Log API requests" },
             { k: 'proxies', comp: NumberField, min: 0, max: 9, sm: 6, label: "How many HTTP proxies between this server and users?",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
-            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer },
             { k: 'dont_overwrite_uploading', comp: BoolField, label: "Don't overwrite uploading",
                 helperText: "Files will be numbered to avoid overwriting" },
             { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",
@@ -158,8 +154,7 @@ export default function OptionsPage() {
             { k: 'session_duration', comp: NumberField, sm: 3, min: 5, unit: "seconds", required: true },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 3, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'update_to_beta', comp: BoolField, md: 3, helperText: "Include betas searching updates" },
-            { k: 'tiles_size', comp: NumberField, md: 3, min: 0, max: MAX_TILES_SIZE, label: "Default tiles size", helperText: "Zero for list mode" },
+            { k: 'update_to_beta', comp: BoolField, helperText: "Include betas searching updates" },
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
             },
@@ -190,7 +185,18 @@ export default function OptionsPage() {
             },
             { k: 'server_code', comp: TextEditorField, sm: 12, getError: v => try_(() => new Function(v) && null, e => e.message),
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
-            }
+            },
+            h(Divider, {}, "Front-end options", h(Box, { fontSize: 'small' }, "Following options affect only the front-end")),
+            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", sm: 6, md: 4,
+                options: { "by clicking on file name": true, "by dedicated button": false  }
+            },
+            { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
+            { k: 'tile_size', comp: NumberField, xs: 6, sm: 4, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: "Zero = list mode" },
+            { k: 'theme', comp: SelectField, xs: 6, sm: 4, options: THEME_OPTIONS },
+            { k: 'sort_by', comp: SelectField, xs: 6, sm: 4, options: SORT_BY_OPTIONS },
+            { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, },
+            { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, },
+            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, label: "Sort numeric names" },
         ]
     })
 

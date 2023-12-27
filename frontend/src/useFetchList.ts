@@ -7,7 +7,7 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { HTTP_MESSAGES, xlate } from './misc'
+import { HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -76,8 +76,8 @@ export default function useFetchList() {
                     for (const entry of data) {
                         if (!Array.isArray(entry)) continue // unexpected
                         const [op, par] = entry
-                        const error = op === 'error' && par
-                        if (error === 405) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
+                        const error = op === LIST.error && par
+                        if (error === HTTP_METHOD_NOT_ALLOWED) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
                             state.messageOnly = t('upload_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
                             continue
@@ -85,19 +85,19 @@ export default function useFetchList() {
                         if (error) {
                             state.stopSearch?.()
                             state.error = xlate(error, HTTP_MESSAGES)
-                            if (error === 401 && snap.username)
+                            if (error === HTTP_UNAUTHORIZED && snap.username)
                                 alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning').then()
-                            state.loginRequired = error === 401
+                            state.loginRequired = error === HTTP_UNAUTHORIZED
                             lastReq.current = null
                             continue
                         }
                         if (uri && !uri.endsWith('/'))  // now we know it was a folder for sure
                             return navigate(uri + '/')
-                        if (op === 'props') {
+                        if (op === LIST.props) {
                             state.props = par
                             continue
                         }
-                        if (op === 'add')
+                        if (op === LIST.add)
                             buffer.push(new DirEntry(par.n, par))
                     }
                     if (src?.readyState === src?.CLOSED)
@@ -118,23 +118,23 @@ export function reloadList() {
     state.listReloader = Date.now()
 }
 
-const { compare:localCompare } = new Intl.Collator(navigator.language)
+const { compare: localCompare } = new Intl.Collator(navigator.language)
 
 function sort(list: DirList) {
-    const { sortBy, foldersFirst, sortNumerics } = state
+    const { sort_by, folders_first, sort_numerics } = state
     // optimization: precalculate string comparisons
-    const bySize = sortBy === 'size'
-    const byExt = sortBy === 'extension'
-    const byTime = sortBy === 'time'
-    const invert = state.invertOrder ? -1 : 1
+    const bySize = sort_by === 'size'
+    const byExt = sort_by === 'extension'
+    const byTime = sort_by === 'time'
+    const invert = state.invert_order ? -1 : 1
     return list.sort((a,b) =>
-        foldersFirst && -compare(a.isFolder, b.isFolder)
+        folders_first && -compare(a.isFolder, b.isFolder)
         || invert * (bySize ? compare(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
                 : byTime ? compare(a.t, b.t)
                     : 0
         )
-        || sortNumerics && (invert * compare(parseFloat(a.n), parseFloat(b.n)))
+        || sort_numerics && (invert * compare(parseFloat(a.n), parseFloat(b.n)))
         || invert * localCompare(a.n, b.n) // fallback to name/path
     )
 }
@@ -146,7 +146,7 @@ function compare(a:any, b:any) {
 
 // update list on sorting criteria
 const sortAgain = _.debounce(()=> state.list = sort(state.list), 100)
-for (const k of [ 'sortBy', 'invertOrder', 'foldersFirst', 'sortNumerics'] as const)
+for (const k of [ 'sort_by', 'invert_order', 'folders_first', 'sort_numerics'] as const)
     subscribeKey(state, k, sortAgain)
 
 subscribeKey(state, 'patternFilter', updateFilteredList)

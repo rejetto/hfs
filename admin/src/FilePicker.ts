@@ -144,7 +144,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                             }
                         })
                 ),
-                h(Flex, {},
+                h(Flex, { alignItems: 'stretch' },
                     (multiple || folders || !files) && h(Button, {
                         variant: 'contained',
                         disabled: !cwd || !folders && !sel.length && files,

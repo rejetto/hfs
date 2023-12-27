@@ -11,7 +11,7 @@ import { Callback, newObj, onOff, waitFor } from './misc'
 import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
-import { downloadPlugin, getFolder2repo, readOnlinePlugin, searchPlugins } from './github'
+import { downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, searchPlugins } from './github'
 import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 
 const apis: ApiHandlers = {
@@ -35,9 +35,8 @@ const apis: ApiHandlers = {
                 await Promise.allSettled(_.map(getFolder2repo(), async (repo, folder) => {
                     try {
                         if (!repo) return
-                        //TODO shouldn't we consider other branches here?
-                        const online = await readOnlinePlugin(repo)
-                        if (!online?.apiRequired || online.badApi) return
+                        const online = await readOnlineCompatiblePlugin(repo)
+                        if (!online) return
                         const disk = getPluginInfo(folder)
                         if (!disk) return // plugin removed in the meantime?
                         if (online.version! > disk.version) { // it IS newer

@@ -15,8 +15,27 @@ import {
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
 import {
-    basename, Btn, defaultPerms, formatBytes, formatTimestamp, IconBtn, isEqualLax, isWhoObject, LinkBtn, modifiedSx,
-    newDialog, objSameKeys, onlyTruthy, prefix, useBreakpoint, VfsPerms, Who, WhoObject, wikiLink
+    _log,
+    basename,
+    Btn,
+    defaultPerms,
+    formatBytes,
+    formatTimestamp,
+    IconBtn,
+    isEqualLax,
+    isWhoObject,
+    LinkBtn,
+    modifiedSx,
+    newDialog,
+    objSameKeys,
+    onlyTruthy,
+    prefix,
+    useBreakpoint,
+    VfsPerms,
+    wantArray,
+    Who,
+    WhoObject,
+    wikiLink
 } from './misc'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
@@ -55,11 +74,13 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     }, [file])
     const { source } = file
     const isDir = file.type === 'folder'
+    const isUnknown = !file.type && source && file.size! < 0 // the type is lost
+    const isLink = values.url !== undefined
     const hasSource = source !== undefined // we need a boolean
     const realFolder = hasSource && isDir
     const lg = useBreakpoint('lg')
-    const showTimestamps = lg || hasSource
-    const showSize = lg || (hasSource && !realFolder)
+    const showTimestamps = !isLink && (lg || hasSource)
+    const showSize = !isLink && lg || (hasSource && !realFolder)
     const showAccept = file.accept! > '' || isDir && (file.can_upload ?? file.inherited?.can_upload)
     const showWebsite = isDir
     const barColors = useDialogBarColors()
@@ -71,10 +92,17 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     const accounts = data.list
 
     const needSourceWarning = !hasSource && "Works only on folders with source! "
+    const show: Record<keyof VfsPerms, boolean> = {
+        can_read: !isLink,
+        can_see: true,
+        can_archive: !isLink,
+        can_list: isDir,
+        can_upload: isDir && hasSource,
+        can_delete: isDir && hasSource,
+    }
     return h(Form, {
         values,
         set(v, k) {
-            if (k === 'link') return
             setValues(values => {
                 const nameIsVirtual = k === 'source' && values.name && values.source?.endsWith(values.name)
                 const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
@@ -110,7 +138,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
                 confirm: "Delete?",
                 onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs()),
             }),
-            addToBar
+            ...wantArray(addToBar)
         ],
         onError: alertDialog,
         save: {
@@ -125,18 +153,22 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
             }
         },
         fields: [
-            isRoot ? h(Alert,{ severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
-                : { k: 'name', required: true, xl: 6, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
-            { k: 'source', label: "Source on disk", xl: true, comp: FileField, files: !isDir, folders: isDir,
-                helperText: !values.source && "Not on disk, this is a virtual folder",
+            isDir && hasSource && h(Alert, { severity: 'info' }, `To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"`),
+            isRoot ? h(Alert, { severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
+                : { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
+            isLink ? { k: 'url', label: "URL", lg: 12, required: true }
+                : { k: 'source', label: "Load content from disk", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
+                    placeholder: "no",
+                    helperText: values.source ? "Content from this path will be listed, but you can also add more"
+                        : "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk.",
             },
-            { k: 'id', comp: LinkField, statusApi, xs: 12 },
+            !isLink && { k: 'id', comp: LinkField, statusApi, xs: 12 },
             perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_see', "If you can't see, you may still download with a direct link"),
-            perm('can_archive', "Should this be included when user downloads as ZIP", { label: "Who can zip", lg: isDir ? true : 12 }),
-            isDir && perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
-            isDir && perm('can_delete', [needSourceWarning, "Those who can delete can also rename"]),
-            isDir && perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
+            perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? true : 12 }),
+            perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
+            perm('can_delete', [needSourceWarning, "Those who can delete can also rename"]),
+            perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
             showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
@@ -157,12 +189,15 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
     })
 
     function perm(perm: keyof VfsPerms, helperText?: ReactNode, props: Partial<WhoFieldProps>={}) {
+        if (!show[perm]) return null
+        const dontShow = [perm, ...onlyTruthy(_.map(show, (v,k) => !v && k))]
+        const others = _.difference(Object.keys(defaultPerms), dontShow)
         return {
             comp: WhoField,
             k: perm, lg: 6, xl: 4,
             parent, accounts, helperText, isDir,
             showInherited: anyMask, // with masks, you may need to set a permission to override the mask
-            otherPerms: _.without(Object.keys(defaultPerms), perm).map(x => ({ value: x, label: "As " +perm2word(x) })),
+            otherPerms: others.map(x => ({ value: x, label: "As " +perm2word(x) })),
             label: "Who can " + perm2word(perm),
             inherit: file.inherited?.[perm] ?? defaultPerms[perm],
             byMasks: byMasks?.[perm],
@@ -175,7 +210,7 @@ export default function FileForm({ file, anyMask, addToBar, statusApi }: FileFor
 
 function perm2word(perm: string) {
     const word = perm.split('_')[1]
-    return word === 'read' ? 'download' : word
+    return word === 'read' ? 'download' : word === 'archive' ? 'zip' : word
 }
 
 interface WhoFieldProps extends FieldProps<Who | undefined> {
@@ -203,7 +238,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
         // don't offer inherited value twice, unless it was already selected, or it is forced
         ].map(x => !hideValues?.includes(x.value) && (x.value === thisValue || showInherited || x.value !== inherit)
             && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
-    [inherit, parent, thisValue])
+        [inherit, parent, thisValue])
 
     const timeout = 500
     const arrayMode = Array.isArray(thisValue)
@@ -219,7 +254,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, show
         }),
         h(Collapse, { in: arrayMode, timeout },
             arrayMode && h(MultiSelectField as Field<string[]>, {
-                label: accounts?.length ? "Choose accounts for " + rest.label : "You didn't create any account yet",
+                label: accounts?.length ? "Accounts for " + rest.label : "You didn't create any account yet",
                 value: thisValue,
                 onChange,
                 options: accounts?.map(a => ({ value: a.username, label: a.username })) || [],

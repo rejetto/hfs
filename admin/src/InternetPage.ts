@@ -1,15 +1,21 @@
-import { createElement as h, useEffect, useState } from 'react'
+import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
-import { CardMembership, HomeWorkTwoTone, Lock, PublicTwoTone, RouterTwoTone, Send } from '@mui/icons-material'
+import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RestartAlt, RouterTwoTone, Send, Storage,
+    SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, wantArray, with_ } from '@hfs/shared'
-import { Flex, LinkBtn, manipulateConfig, isIP, Btn } from './misc'
-import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
-import { BoolField, Form, NumberField } from '@hfs/mui-grid-form'
+import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_ } from '@hfs/shared'
+import { PORT_DISABLED, Flex, LinkBtn, isIP, Btn, modifiedSx, IconBtn, CFG } from './misc'
+import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
+import { BoolField, Form, FormProps, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import md from './md'
-import { isCertError } from './OptionsPage'
+import { suggestMakingCert } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
 import { getNatInfo } from '../../src/nat'
+import { ALL, WITH_IP } from './countries'
+import _ from 'lodash'
+import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
+
+const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
@@ -21,7 +27,7 @@ export default function InternetPage() {
     const [mapping, setMapping] = useState(false)
     const [verifyAgain, setVerifyAgain] = useState(false)
     const status = useApiEx('get_status')
-    const { data: config, reload: reloadConfig } = useApiEx('get_config', { only: ['base_url'] })
+    const config = useApiEx('get_config', { only: ['base_url'] })
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     type GetNat = Awaited<ReturnType<typeof getNatInfo>>
@@ -39,102 +45,167 @@ export default function InternetPage() {
         baseUrlBox(),
         networkBox(),
         httpsBox(),
+        geoBox(),
     )
 
+    function geoBox() {
+        const countryOptions = useMemo(() => _.sortBy(COUNTRIES, 'name').map(x => ({
+            value: x.code,
+            label: `${x.flag} ${x.name}`
+        })), [COUNTRIES])
+        return h(TitleCard, { title: "Geo IP", icon: Public },
+            h(ConfigForm<{
+                [CFG.geo_enable]: boolean
+                [CFG.geo_allow]: null | boolean
+                [CFG.geo_list]: string[]
+                [CFG.geo_allow_unknown]: boolean
+            }>, {
+                keys: [ CFG.geo_enable, CFG.geo_allow, CFG.geo_list, CFG.geo_allow_unknown ],
+                form: values => ({ fields: [
+                    { k: CFG.geo_enable, comp: BoolField, label: "Enable", helperText: "Necessary database will be downloaded every month (2MB)" },
+                    ...!values[CFG.geo_enable] ? [] : [
+                        {
+                            k: CFG.geo_allow,
+                            comp: SelectField,
+                            label: "Rule",
+                            options: { "no restriction": null, "block selected countries": false, "allow selected countries": true },
+                        },
+                        values[CFG.geo_allow] != null && {
+                            k: CFG.geo_list,
+                            comp: MultiSelectField<string>,
+                            label: `Selected countries (${values[CFG.geo_list]?.length || 0})`,
+                            placeholder: "none",
+                            options: countryOptions,
+                            clearable: true,
+                        },
+                        values[CFG.geo_allow] != null && {
+                            k: CFG.geo_allow_unknown,
+                            comp: SelectField,
+                            label: "When country cannot be determined",
+                            options: { Allow: true, Block: false },
+                        },
+                    ]
+                ] })
+            })
+        )
+    }
+
     function httpsBox() {
-        const { error, listening } = status.data?.https ||{}
         const [values, setValues] = useState<any>()
         const cert = useApiEx('get_cert')
         useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email', 'acme_renew'] }).then(setValues) } , [])
         if (!status || !values) return h(CircularProgress)
-        return element || status.element || h(Card, {}, h(CardContent, {},
-            h(Flex, { gap: '.5em', fontSize: 'x-large', mb: 1, alignItems: 'center' }, "HTTPS",
-                h(Lock, { color: listening && !error ? 'success' : 'warning' }) ),
-            h(Box, { mt: 1 },
-                isCertError(error) && h(Alert, { severity: 'warning', sx: { mb: 1 } }, error),
-                cert.element || with_(cert.data, c => h(Box, {}, h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate", h('ul', {},
-                    h('li', {}, "Domain: ", c.subject?.CN || '-'),
+        const { https } = status.data ||{}
+        const disabled = https?.port === PORT_DISABLED
+        const error = https?.error
+        return element || status.element || h(TitleCard, { title: "HTTPS", icon: Lock, color: https?.listening && !error ? 'success' : 'warning' },
+            error ? h(Alert, { severity: 'warning' }, error) :
+                (disabled && h(LinkBtn, { onClick: notEnabled }, "Not enabled")),
+            cert.element || with_(cert.data, c => c.none ? h(LinkBtn, { onClick: () => suggestMakingCert().then(cert.reload) }, "No certificate configured") : h(Box, {},
+                h(CardMembership, { fontSize: 'small', sx: { mr: 1, verticalAlign: 'middle' } }), "Current certificate",
+                h('ul', {},
+                    h('li', {}, "Domain: ", c.altNames?.join(' + ') ||'-'),
                     h('li', {}, "Issuer: ", c.issuer?.O || h('i', {}, 'self-signed')),
                     h('li', {}, "Validity: ", ['validFrom', 'validTo'].map(k => formatTimestamp(c[k])).join(' – ')),
-                ))),
-                !listening && "Not enabled. " || error && "For HTTPS to work, you need a valid certificate.",
-                h(Divider, { sx: { my: 2 } }),
-                h(Form, {
-                    gap: 1,
-                    gridProps: {rowSpacing:1},
-                    values,
-                    set(v, k) {
-                        setValues((was: any) => {
-                            const values = { ...was, [k]: v }
-                            apiCall('set_config', { values })
-                            return values
-                        })
-                    },
-                    fields: [
-                        md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
-                        { k: 'acme_domain', label: "Domain for certificate", sm: 6, required: true, helperText: "example: your.domain.com" },
-                        { k: 'acme_email', label: "E-mail for certificate", sm: 6 },
-                        { k: 'acme_renew', label: "Automatic renew one month before expiration", comp: BoolField, disabled: !values.acme_domain },
-                    ],
-                    save: {
-                        children: "Request",
-                        startIcon: h(Send),
-                        async onClick() {
-                            const domain = values.acme_domain
-                            const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
-                            if (fresh && !await confirmDialog("Your certificate is still good", { confirmText: "Make a new one anyway" }))
-                                return
-                            if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
-                            const res = await apiCall('check_domain', { domain }).catch(e =>
-                                confirmDialog(String(e), { confirmText: "Continue anyway" }) )
-                            if (res === false) return
-                            await apiCall('make_cert', { domain, email: values.acme_email }, { timeout: 20_000 })
-                                .then(async () => {
-                                    await alertDialog("Certificate created", 'success')
-                                    await manipulateConfig('https_port', async v => {
-                                        return v < 0 && await confirmDialog("HTTPS is currently off", { confirmText: "Switch on" }) ? 443 : v
-                                    })
-                                    status.reload()
-                                    cert.reload()
-                                }, alertDialog)
-                        }
-                    },
-                })
-            )
-        ))
+                )
+            )),
+            h(Divider),
+            h(Form, {
+                gap: 1,
+                gridProps: {rowSpacing:1},
+                values,
+                set(v, k) {
+                    setValues((was: any) => {
+                        const values = { ...was, [k]: v }
+                        apiCall('set_config', { values })
+                        return values
+                    })
+                },
+                fields: [
+                    md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
+                    { k: 'acme_domain', label: "Domain for certificate", sm: 6, required: true, helperText: md("Example: your.domain.com\nMultiple domains separated by commas") },
+                    { k: 'acme_email', label: "E-mail for certificate", sm: 6 },
+                    { k: 'acme_renew', label: "Automatic renew one month before expiration", comp: BoolField, disabled: !values.acme_domain },
+                ],
+                save: {
+                    children: "Request",
+                    startIcon: h(Send),
+                    async onClick() {
+                        const [domain, ...altNames] = values.acme_domain.split(',')
+                        const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
+                        if (fresh && !await confirmDialog("Your certificate is still good", { confirmText: "Make a new one anyway" }))
+                            return
+                        if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
+                        const res = await apiCall('check_domain', { domain }).catch(e =>
+                            confirmDialog(String(e), { confirmText: "Continue anyway" }) )
+                        if (res === false) return
+                        await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
+                            .then(async () => {
+                                await alertDialog("Certificate created", 'success')
+                                if (disabled)
+                                    await notEnabled()
+                                cert.reload()
+                            }, alertDialog)
+                    }
+                },
+            })
+        )
+    }
+
+    async function notEnabled() {
+        if (!await confirmDialog("HTTPS is currently disabled.\nFull configuration is available in the Options page.", { confirmText: "Enable it"})) return
+        const stop = waitDialog()
+        try {
+            await apiCall('set_config', { values: { https_port: 443 } })
+            await wait(1000)
+            status.reload()
+        }
+        finally { stop() }
     }
 
     function baseUrlBox() {
-        const url = config?.base_url
+        const url = config.data?.base_url
         const hostname = url && new URL(url).hostname
         const domain = !isIP(hostname) && hostname
-        return config && h(Card, {}, h(CardContent, {},
-            h(Box, { fontSize: 'x-large', mb: 2 }, "Address / Domain"),
-            h(Flex, { flexWrap: 'wrap', alignItems: 'center' },
+        return config.element || h(TitleCard, { icon: Public, title: "Address / Domain" },
+            h(Flex, { flexWrap: 'wrap' },
                 url || "Automatic, not configured",
-                h(Button, {
-                    size: 'small',
-                    onClick() { changeBaseUrl().then(reloadConfig) }
-                }, "Change"),
-                domain && h(Btn, {
-                    size: 'small',
-                    variant: 'outlined',
-                    onClick: () => apiCall('check_domain', { domain })
-                        .then(() => alertDialog("Domain seems ok", 'success'))
-                }, "Check"),
-            )
-        ))
+                h(Flex, {}, // keep buttons together when wrapping
+                    h(Btn, {
+                        size: 'small',
+                        variant: 'outlined',
+                        onClick: () => void(changeBaseUrl().then(config.reload))
+                    }, "Change"),
+                    domain && h(Btn, {
+                        size: 'small',
+                        variant: 'outlined',
+                        onClick: () => apiCall('check_domain', { domain })
+                            .then(() => alertDialog("Domain seems ok", 'success'))
+                    }, "Check"),
+                ),
+            ),
+            h(ConfigForm<{ force_base_url: boolean }>, {
+                keys: ['force_base_url'],
+                saveOnChange: true,
+                form: {
+                    fields: [
+                        { k: 'force_base_url', comp: BoolField, label: "Accept requests only using domain (and localhost)" }
+                    ]
+                },
+            })
+        )
     }
 
     function networkBox() {
         if (error) return element
         if (!nat) return h(CircularProgress)
-        return h(Flex, { justifyContent: 'space-around', alignItems: 'center' },
-            h(Device, { name: "Local network", icon: HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
+        const direct = nat?.publicIps.includes(nat?.localIp)
+        return h(Flex, { justifyContent: 'space-around' },
+            h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: nat?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
             }),
-            h(Sep),
-            h(Device, {
+            !direct && h(Sep),
+            !direct && h(Device, {
                 name: "Router", icon: RouterTwoTone, ip: nat?.gatewayIp,
                 color: nat?.mapped && (wrongMap ? 'warning' : 'success'),
                 below: mapping ? h(LinearProgress, { sx: { height: '1em' } })
@@ -148,7 +219,7 @@ export default function InternetPage() {
                     doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    nat?.publicIps.length && nat.internalPort && h(LinkBtn, { onClick: verify }, "Verify")
+                    nat?.publicIps.length > 0 && nat.internalPort && h(LinkBtn, { onClick: verify }, "Verify")
                 )
             }),
         )
@@ -160,7 +231,7 @@ export default function InternetPage() {
         if (!verifyAgain && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
-            const url = config.base_url
+            const url = config.data?.base_url
             const urlResult = url && await apiCall('self_check', { url }).catch(() =>
                 alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
             if (urlResult?.success) {
@@ -190,8 +261,10 @@ export default function InternetPage() {
                     catch { mapPort(HIGHER_PORT, '') }
                     toast("Port forwarded, now verify again", 'success')
                     retry()
-                 })
+                })
+            const cfg = await apiCall('get_config', { only: [CFG.geo_enable, CFG.geo_allow] })
             const { close } = alertDialog(h(Box, {}, msg + "Possible causes:", h('ul', {},
+                cfg[CFG.geo_enable] && cfg[CFG.geo_allow] != null && h('li', {}, "You may be blocking a country from where the test is performed"),
                 !nat.upnp && h('li', {}, "Your router may need to be configured. ", h(Link, { href: PORT_FORWARD_URL, target: 'help' }, "How?")),
                 h('li', {}, "There could be a firewall, try configuring or disabling it."),
                 (nat.externalPort || nat.internalPort!) <= 1024 && h('li', {},
@@ -250,7 +323,8 @@ export default function InternetPage() {
         }
         catch(e) {
             if (errMsg) {
-                const msg = errMsg + (external && Math.min(external, nat!.internalPort!) ? ". Some routers refuse to work with ports under 1024." : '')
+                const low = external && Math.min(external, nat!.internalPort!) < 1024
+                const msg = errMsg + (low ? ". Some routers refuse to work with ports under 1024." : '')
                 await alertDialog(msg, 'error')
             }
             throw e
@@ -273,4 +347,55 @@ function Device({ name, icon, color, ip, below }: any) {
         h(Box, { fontSize: 'smaller', whiteSpace: 'pre-wrap' }, wantArray(ip).join('\n') || "unknown"),
         below,
     )
+}
+
+function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: SvgIconComponent, color?: SvgIconProps['color'], children?: ReactNode }) {
+    return h(Card, {}, h(CardContent, {}, h(Flex, { vert: true },
+        h(Box, { fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, verticalAlign: 'bottom', mb: '2px' } }), title),
+        children
+    )))
+}
+
+type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
+function ConfigForm<T=any>({ keys, form, saveOnChange, ...rest }: Partial<FormRest<T>> & {
+    keys: (keyof T)[],
+    form: FormRest<T> | ((values: T) => FormRest<T>),
+    saveOnChange?: boolean
+}) {
+    const config = useApiEx('get_config', { only: keys })
+    const [values, setValues] = useState<any>(config.data)
+    useEffect(() => setValues((v: any) => config.data || v), [config.data])
+    const modified = values && !_.isEqual(values, config.data)
+    useEffect(() => {
+        if (modified && saveOnChange) save()
+    }, [modified])
+    if (!values)
+        return config.element
+    const formProps = _.isFunction(form) ? form(values) : form
+    return h(Form, {
+        values,
+        set(v, k) {
+            setValues((was: any) => ({ ...was, [k]: v }))
+        },
+        save: saveOnChange ? false : {
+            onClick: save,
+            sx: modifiedSx(modified),
+        },
+        ...Array.isArray(formProps) ? { fields: formProps } : formProps,
+        ...rest,
+        barSx: { gap: 1, ...rest.barSx },
+        addToBar: [
+            h(IconBtn, {
+                icon: RestartAlt,
+                disabled: !modified,
+                title: "Reset",
+                onClick(){ setValues(config.data) }
+            }),
+            ...rest.addToBar||[],
+        ],
+    })
+
+    function save() {
+        return apiCall('set_config', { values }).then(config.reload)
+    }
 }

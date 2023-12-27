@@ -3,16 +3,14 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, PLUGINS_PUB_URI, HTTP_FAILED_DEPENDENCY } from './const'
+import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, MIME_AUTO, PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import {
-    adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
-    PendingPromise, pendingPromise, same, tryJson, wait, waitFor, wantArray, watchDir
-} from './misc'
+import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
+    PendingPromise, pendingPromise, same, tryJson, wait, waitFor, wantArray, watchDir } from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.file_list'
-import { MIME_AUTO, VfsNode } from './vfs'
+import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
 import { mkdir, readFile } from 'fs/promises'
@@ -98,7 +96,6 @@ export function getPluginConfigFields(id: string) {
 
 async function initPlugin<T>(pl: any, more?: T) {
     return Object.assign(pl, await pl.init?.({
-        const: Const, // legacy, deprecated in 0.48
         Const,
         require,
         getConnections,
@@ -354,8 +351,8 @@ function watchPlugin(id: string, path: string) {
             starting = pendingPromise()
             // if dependencies are not ready right now, we give some time. Not super-solid but good enough for now.
             const info = await parsePlugin()
-            if (!await waitFor(async () => _.isEmpty(await getMissingDependencies(info)), { timeout: 5_000 }))
-                return console.debug("plugin missing dependencies", id)
+            if (!await waitFor(() => _.isEmpty(getMissingDependencies(info)), { timeout: 5_000 }))
+                throw Error("plugin missing dependencies: " + _.map(getMissingDependencies(info), x => x.repo).join(', '))
             if (getPluginInfo(id))
                 setError(id, '')
             const alreadyRunning = plugins[id]
@@ -427,7 +424,9 @@ function getError(id: string) {
 }
 
 function setError(id: string, error: string) {
-    getPluginInfo(id).error = error
+    const info = getPluginInfo(id)
+    if (!info) return
+    info.error = error
     events.emit('pluginUpdated', { id, error })
 }
 
@@ -479,7 +478,7 @@ function calculateBadApi(data: AvailablePlugin) {
             : undefined
 }
 
-export async function getMissingDependencies(plugin: CommonPluginInterface) {
+export function getMissingDependencies(plugin: CommonPluginInterface) {
     return onlyTruthy((plugin?.depend || []).map((dep: any) => {
         const res = findPluginByRepo(dep.repo)
         const error = !res ? 'missing'

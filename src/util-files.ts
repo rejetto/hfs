@@ -92,13 +92,13 @@ export async function* dirStream(path: string, deep=0) {
         if (!isDir && !dirent.isFile()) continue
         path = String(path)
         if (!skip?.includes(path))
-            yield [path, isDir] as [string, boolean]
+            yield [path, isDir] as const
     }
 
     async function getItemsToSkip(path: string) {
         if (!IS_WINDOWS) return
         const winPath = path.replace(/\//g, '\\')
-        const out = await runCmd('dir', ['/ah', '/b', deep ? '/s' : '', winPath])
+        const out = await runCmd('dir', ['/ah', '/b', deep ? '/s' : '/c', winPath]) // cannot pass '', so we pass /c as a noop parameter
             .catch(()=>'') // error in case of no matching file
         return out.split('\r\n').slice(0,-1).map(x =>
             !deep ? x : x.slice(winPath.length + 1).replace(/\\/g, '/'))

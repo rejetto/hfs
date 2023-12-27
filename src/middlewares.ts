@@ -2,20 +2,12 @@
 
 import compress from 'koa-compress'
 import Koa from 'koa'
-import {
-    ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
+import { ADMIN_URI, API_URI, BUILD_TIMESTAMP, DEV,
     HTTP_FORBIDDEN, HTTP_NOT_FOUND, HTTP_FOOL, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED,
 } from './const'
 import { FRONTEND_URI } from './const'
 import { statusCodeForMissingPerm, nodeIsDirectory, urlToNode, vfs, walkNode, VfsNode, getNodeName } from './vfs'
-import {
-    DAY,
-    asyncGeneratorToReadable,
-    dirTraversal,
-    filterMapGenerator,
-    isLocalHost,
-    stream2string,
-    tryJson, Dict
+import { DAY, asyncGeneratorToReadable, dirTraversal, filterMapGenerator, isLocalHost, stream2string, tryJson, splitAt
 } from './misc'
 import { zipStreamFromFolder } from './zip'
 import { serveFile, serveFileNode } from './serveFile'
@@ -24,10 +16,9 @@ import mount from 'koa-mount'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { accountCanLogin, getAccount } from './perm'
-import { socket2connection, updateConnection, normalizeIp } from './connections'
+import { socket2connection, updateConnection, normalizeIp, disconnect } from './connections'
 import basicAuth from 'basic-auth'
-import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
-import { srpStep1 } from './api.auth'
+import { invalidSessions, srpCheck } from './auth'
 import { basename, dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
@@ -36,12 +27,14 @@ import { allowAdmin, favicon } from './adminApis'
 import { constants } from 'zlib'
 import { baseUrl, getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
-import { getLangData } from './lang'
-import { getSection } from './customHtml'
 import { sendErrorPage } from './errorPages'
+import session from 'koa-session'
+import { app } from './index'
+import events from './events'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
+const forceBaseUrl = defineConfig('force_base_url', false)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
 
@@ -205,6 +198,8 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     catch {
         return ctx.status = HTTP_FOOL
     }
+    if (forceBaseUrl.get() && !isLocalHost(ctx) && ctx.host === baseUrl.compiled())
+        return disconnect(ctx)
     return next()
 }
 
@@ -215,39 +210,55 @@ export function getProxyDetected() {
     return !ignoreProxies.get() && proxyDetected
         && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
 }
+
 export const prepareState: Koa.Middleware = async (ctx, next) => {
-    if (ctx.session)
+    if (ctx.session) {
+        if (invalidSessions.delete(ctx.session.username))
+            delete ctx.session.username
         ctx.session.maxAge = sessionDuration.compiled()
+    }
     // calculate these once and for all
-    const a = ctx.state.account = await getHttpAccount(ctx) ?? getAccount(ctx.session?.username, false)
+    const a = ctx.state.account = await urlLogin() || await getHttpAccount() || getAccount(ctx.session?.username, false)
     if (a && !accountCanLogin(a))
         ctx.state.account = undefined
     const conn = ctx.state.connection = socket2connection(ctx.socket)
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
+    ctx.state.browsing = undefined
     if (conn)
         updateConnection(conn, { ctx, op: undefined })
     await next()
-}
 
-async function getHttpAccount(ctx: Koa.Context) {
-    const credentials = basicAuth(ctx.req)
-    const account = getAccount(credentials?.name||'')
-    if (account && await srpCheck(account.username, credentials!.pass))
-        return account
-}
+    async function urlLogin() {
+        const { login }  = ctx.query
+        if (!login) return
+        const [u,p] = splitAt(':', String(login))
+        const a = await srpCheck(u, p)
+        if (a) {
+            ctx.session!.username = a.username
+            ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1))
+        }
+        return a
+    }
 
-async function srpCheck(username: string, password: string) {
-    const account = getAccount(username)
-    if (!account?.srp || !password) return false
-    const { step1, salt, pubKey } = await srpStep1(account)
-    const client = new SRPClientSession(new SRPRoutines(new SRPParameters()))
-    const clientRes1 = await client.step1(username, password)
-    const clientRes2 = await clientRes1.step2(BigInt(salt), BigInt(pubKey))
-    return await step1.step2(clientRes2.A, clientRes2.M1).then(() => true, () => false)
+    async function getHttpAccount() {
+        const credentials = basicAuth(ctx.req)
+        return srpCheck(credentials?.name||'', credentials?.pass||'')
+    }
 }
 
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
     ctx.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
         && (tryJson(await stream2string(ctx.req)) || {})
     await next()
+}
+
+// once https cookie is created, http cannot do the same. The solution is to use 2 different cookies.
+// But koa-session doesn't support 2 cookies, so I made this hacky solution: keep track of the options object, to modify the key at run-time.
+let internalSessionMw: any
+let options: any
+events.on('app', () => // wait for app to be defined
+    internalSessionMw = session(options = { signed: true, rolling: true, sameSite: 'lax' } as const, app) )
+export const sessionMiddleware: Koa.Middleware = (ctx, next) => {
+    options.key = 'hfs_' + ctx.protocol
+    return internalSessionMw(ctx, next)
 }

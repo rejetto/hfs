@@ -1,42 +1,59 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { RequestOptions } from 'https'
+import https, { RequestOptions } from 'node:https'
 import http, { IncomingMessage } from 'node:http'
-import https from 'node:https'
+import { Readable } from 'node:stream'
 import _ from 'lodash'
+import { text as stream2string } from 'node:stream/consumers'
+export { stream2string }
 
 // in case the response is not 2xx, it will throw and the error object is the Response object
-export function httpString(url: string, options?: XRequestOptions): Promise<string> {
-    return httpStream(url, options).then(res =>
-        new Promise(resolve => {
-            let buf = ''
-            res.on('data', chunk => buf += chunk.toString())
-            res.on('end', () => {
-                if (!_.inRange(res.statusCode!, 200, 299))
-                    throw res
-                resolve(buf)
-            })
-        })
-    )
+export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
+    const res = await httpStream(url, options)
+    if (!_.inRange(res.statusCode!, 200, 299))
+        throw res
+    return await stream2string(res)
 }
 
-export interface XRequestOptions extends RequestOptions { body?: string | Buffer }
-export function httpStream(url: string, { body, ...options }:XRequestOptions ={}): Promise<IncomingMessage> {
+export interface XRequestOptions extends RequestOptions {
+    body?: string | Buffer | Readable
+    // basic cookie store
+    jar?: Record<string, string>
+    noRedirect?: boolean
+}
+
+export function httpStream(url: string, { body, jar, noRedirect, ...options }: XRequestOptions ={}): Promise<IncomingMessage> {
     return new Promise((resolve, reject) => {
-        if (body)
+        options.headers ??= {}
+        if (body) {
             options.method ||= 'POST'
+            if (!(body instanceof Readable))
+                options.headers['Content-Length'] ??= Buffer.byteLength(body)
+        }
+        if (jar)
+            options.headers.cookie = _.map(jar, (v,k) => `${k}=${v}; `).join('')
+                + (options.headers.cookie || '') // preserve parameter
         const proto = url.startsWith('https:') ? https : http
         const req = proto.request(url, options, res => {
             console.debug("http responded", res.statusCode, "to", url)
+            if (jar) for (const entry of res.headers['set-cookie'] || []) {
+                const [, k, v] = /(.+?)=([^;]+)/.exec(entry) || []
+                if (!k) continue
+                if (v) jar[k] = v
+                else delete jar[k]
+            }
             if (!res.statusCode || res.statusCode >= 400)
                 return reject(new Error(String(res.statusCode), { cause: res }))
-            if (res.headers.location)
+            if (res.headers.location && !noRedirect)
                 return resolve(httpStream(res.headers.location, options))
             resolve(res)
         }).on('error', e => {
             reject((req as any).res || e)
         })
-        req.end(body)
+        if (body && body instanceof Readable)
+            body.pipe(req).on('end', () => req.end())
+        else
+            req.end(body)
     })
 }
 
