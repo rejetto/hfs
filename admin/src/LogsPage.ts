@@ -191,12 +191,12 @@ export function agentIcons(agent: string) {
         Opera: UW + '4/49/Opera_2015_icon.svg',
     })
     const os = _.findKey(OSS, re => re.test(agent))
-    const osIcon = os && (icon(os, {
+    const osIcon = os && icon(os, {
         android: UW + 'd/d7/Android_robot.svg',
         linux: UW + '0/0a/Tux-shaded.svg',
         win: UW + '0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg',
-        //apple: UW + '7/74/Apple_logo_dark_grey.svg', // doesn't adapt well to every background color
-    }) || { apple: '' }[os])
+        apple: UW + '7/74/Apple_logo_dark_grey.svg', // grey works for both themes
+    })
     return h(Tooltip, { title: agent, children: h('span', { fontSize: '18px' }, browserIcon || short, ' ', osIcon) })
 
     function icon(k: string, map: Dict<string>) {
