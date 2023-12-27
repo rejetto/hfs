@@ -19,7 +19,7 @@ function prepareAccount(ac: Account | undefined) {
     }
 }
 
-const apis: ApiHandlers = {
+export default  {
 
     get_usernames() {
         return { list: Object.keys(accountsConfig.get()) }
@@ -77,6 +77,4 @@ const apis: ApiHandlers = {
             : new ApiError(HTTP_NOT_FOUND)
     }
 
-}
-
-export default apis
+} satisfies ApiHandlers

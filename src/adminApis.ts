@@ -18,22 +18,18 @@ import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import netApis from './api.net'
+import logApis from './api.log'
 import { getConnections } from './connections'
-import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, onOff, tryJson, wait, waitFor } from './misc'
-import events from './events'
+import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, waitFor } from './misc'
 import { accountCanLoginAdmin, accountsConfig } from './perm'
 import Koa from 'koa'
 import { getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
-import { createReadStream } from 'fs'
-import * as readline from 'readline'
-import { loggers } from './log'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
 import { getUpdates, localUpdateAvailable, update, updateSupported } from './update'
-import { consoleLog } from './consoleLog'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
 import { ip2country } from './geo'
@@ -49,6 +45,7 @@ export const adminApis: ApiHandlers = {
     ...monitorApis,
     ...langApis,
     ...netApis,
+    ...logApis,
     get_dynamic_dns_error,
 
     async set_config({ values }) {
@@ -136,65 +133,6 @@ export const adminApis: ApiHandlers = {
         return files
     },
 
-    get_log({ file='log' }, ctx) {
-        return new SendListReadable({
-            bufferTime: 10,
-            async doAtStart(list) {
-                if (file === 'console') {
-                    for (const chunk of _.chunk(consoleLog, 1000)) { // avoid occupying the thread too long
-                        for (const x of chunk)
-                            list.add(x)
-                        await wait(0)
-                    }
-                    list.ready()
-                    events.on('console', x => list.add(x))
-                    return
-                }
-                const logger = loggers.find(l => l.name === file)
-                if (!logger)
-                    return list.error(HTTP_NOT_FOUND, true)
-                const input = createReadStream(logger.path)
-                input.on('error', async (e: any) => {
-                    if (e.code === 'ENOENT') // ignore ENOENT, consider it an empty log
-                        return list.ready()
-                    list.error(e.code || e.message)
-                })
-                input.on('end', () =>
-                    list.ready())
-                input.on('ready', () => {
-                    readline.createInterface({ input }).on('line', line => {
-                        if (ctx.aborted)
-                            return input.close()
-                        const obj = parse(line)
-                        if (obj)
-                            list.add(obj)
-                    }).on('close', () => { // file is automatically closed, so we continue by events
-                        ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
-                            [logger.name](entry) {
-                                list.add(entry)
-                            }
-                        }))
-                    })
-                })
-            }
-        })
-
-        function parse(line: string) {
-            const m = /^(.+?) (.+?) (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (-|\d+) ?(.*)/.exec(line)
-            if (!m) return
-            const [, ip, , user, date, time, method, uri, status, length, extra] = m
-            return { // keep object format same as events emitted by the log module
-                ip,
-                user: user === '-' ? undefined : user,
-                ts: new Date(date + ' ' + time),
-                method,
-                uri,
-                status: Number(status),
-                length: length === '-' ? undefined : Number(length),
-                extra: tryJson(tryJson(extra)) || undefined,
-            }
-        }
-    },
 }
 
 for (const [k, was] of Object.entries(adminApis))

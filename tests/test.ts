@@ -195,7 +195,7 @@ const jar = {}
 function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }: XRequestOptions & { throttle?: number, baseUrl?: string }={}) {
     // passing 'path' keeps it as it is, avoiding internal resolving
     return () => httpStream((baseUrl || BASE_URL) + url, { path: url, jar, ...requestOptions }).catch(e => {
-        if (e.code === "ECONNREFUSED")
+        if (e.code === 'ECONNREFUSED')
             throw e
         return e.cause
     }).then(process)
