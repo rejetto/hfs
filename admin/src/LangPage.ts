@@ -95,7 +95,7 @@ function ForceLang({ langs }: { langs: string[] }) {
 
     return h(SelectField as Field<string>, {
         fullWidth: false,
-        disabled: loading || typeof saving === 'string',
+        disabled: Boolean(loading) || typeof saving === 'string',
         value: saving ?? lang,
         async onChange(v) {
             setSaving(v)
