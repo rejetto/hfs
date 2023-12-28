@@ -121,6 +121,14 @@
         "Operation successful": "Operatie succesvol",
         "Uploader": "Uploader",
         "Download counter": "Download teller",
-	    "upload_dd_hint": "U kunt bestanden uploaden door te veslepen&lost te laten in de bestanden lijst"
+        "upload_dd_hint": "U kunt bestanden uploaden door te veslepen & lost te laten in de bestanden lijst",
+        "Cut": "Knip",
+        "n_items": "{n,plural, one{# item} other{# items}}",
+        "good_bad": "{good} verplaatst, {bad} mislukt",
+        "after_cut": "Uw selectie is nu naar het klembord gekopieerd.\nGa naar de bestemmings map om te plakken.",
+        "Cancel clipboard": "Cancel clipboard",
+        "to_clipboard_source": "Naar map",
+        "Paste": "Plakken",
+        "clipboard_list": "Items in het klembord:"
     }
 }
