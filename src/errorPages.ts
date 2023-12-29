@@ -10,6 +10,8 @@ export function getErrorSections() {
 }
 
 export async function sendErrorPage(ctx: Koa.Context, code: number) {
+    ctx.type = 'text'
+    ctx.set('content-disposition', '') // reset ctx.attachment
     ctx.status = code
     const msg = HTTP_MESSAGES[ctx.status]
     if (!msg) return
