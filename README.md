@@ -201,6 +201,8 @@ There are several ways to contribute
 
   While the project should not become too complex, yours may be an idea for a plugin.
 
+- Write guides or make videos for other users. [We got a wiki](https://github.com/rejetto/hfs/wiki)! 
+
 - Submit your code
 
   If you'd like to make a change yourself in the code, please first open an "issue" or "discussion" about it,
