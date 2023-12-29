@@ -9,6 +9,7 @@ import { logout } from './login'
 import { MenuButton } from './menu'
 import { hIcon, HTTP_NOT_ACCEPTABLE, working } from './misc'
 import { t } from './i18n'
+import { CustomCode } from './components'
 
 export default function showUserPanel() {
     newDialog({
@@ -19,6 +20,7 @@ export default function showUserPanel() {
             const snap = useSnapState()
             return h('div', { id: 'user-panel' },
                 h('div', {}, t`Username`, ': ', snap.username),
+                h(CustomCode, { name: 'userPanelAfterInfo' }),
                 snap.canChangePassword && h(MenuButton, {
                     icon: 'password',
                     label: t`Change password`,

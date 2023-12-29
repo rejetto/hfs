@@ -305,6 +305,9 @@ This is a list of available frontend-events, with respective object parameter an
   - you receive an entry of the list, and optionally produce React Component for visualization.
   - parameter `{ entry: Entry }` (refer above for Entry object)
   - output `ReactComponent`
+- `userPanelAfterInfo`
+  - no parameter
+  - output `Html`
 
 ## Other files
 
@@ -363,10 +366,11 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
-- 8.63 (v0.51.0)
+- 8.64 (v0.51.0)
   - plugin's own hfs-lang files
   - props.can_overwrite
   - ctx.state.considerAsGui
+  - new event: userPanelAfterInfo
 - 8.5 (v0.49.0)
   - new event: entry
   - exports.onDirEntry: entry.icon
