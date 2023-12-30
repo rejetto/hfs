@@ -16,8 +16,8 @@ import { dontOverwriteUploading } from './upload'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string }
 
-export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c, onlyFolders, admin }, ctx) => {
-    const node = await urlToNode(uri || '/', ctx)
+export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search, c, onlyFolders, admin }, ctx) => {
+    const node = await urlToNode(uri, ctx)
     const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
     if (!node)
         return fail(HTTP_NOT_FOUND)
@@ -43,7 +43,7 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c,
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {
-        ctx.state.browsing = uri
+        ctx.state.browsing = uri.replace(/\/{2,}/g, '/')
         updateConnection(getConnection(ctx)!, { ctx })
         list.props(props)
         for await (const entry of produceEntries())
