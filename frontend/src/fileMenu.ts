@@ -23,7 +23,9 @@ interface FileMenuEntry {
 
 export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder, s } = entry
-    const cantDownload = entry.cantOpen || isFolder && entry.p?.includes('r') // folders needs both list and read
+    const canRead = !entry.p?.includes('r')
+    const canArchive = entry.p?.includes('A') || state.props?.can_archive && !entry.p?.includes('a')
+    const cantDownload = entry.cantOpen || isFolder && !(canRead && canArchive) // folders needs list+read+archive
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
