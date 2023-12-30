@@ -159,13 +159,19 @@ export class QuickZipStream extends Readable {
             return
         }
         const data = getData()
-        data.on('error', (err) => console.error(err))
-        data.on('end', ()=>{
+        data.on('error', (err) => {
+            if ((err as any)?.code !== 'EACCES')
+                console.error('zipping:', String(err))
+            data.destroy(err)
             this.workingFile = undefined
+            this.push('') // continue piping
+        })
+        data.on('end', ()=>{
             entry.crc = crc
             if (sourcePath)
                 crcCache[sourcePath] = { ts, crc }
             this.entries.push(entry)
+            this.workingFile = undefined
             this.push('') // continue piping
         })
         this.workingFile = data
