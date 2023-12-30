@@ -104,8 +104,11 @@ vfs:
     - name: cantSeeThisButChildren
       can_see:
         this: false
+      can_archive:
+        this: false
       children:
         - name: hi
+          source: tests
     - name: cantSeeThisButChildrenMasks
       can_see: false
       masks:

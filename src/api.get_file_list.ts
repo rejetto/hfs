@@ -34,9 +34,9 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c,
     const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, depth: search ? Infinity : 0 })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
-    const fakeChild = applyParentToChild({}, node) // we want to know if we want to delete children
+    const fakeChild = applyParentToChild({}, node) // can we delete children
     const can_delete = admin || hasPermission(fakeChild, 'can_delete', ctx)
-    const can_archive = admin || hasPermission(fakeChild, 'can_archive', ctx)
+    const can_archive = admin || hasPermission(node, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
     const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
     const props = { can_archive, can_upload, can_delete, can_overwrite, accept: node.accept, can_comment }
