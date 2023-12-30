@@ -3,7 +3,7 @@
 import { Link } from 'react-router-dom'
 import { createElement as h, Fragment, ReactElement } from 'react'
 import { getPrefixUrl, hIcon } from './misc'
-import { DirEntry, state } from './state'
+import { DirEntry, state, useSnapState } from './state'
 import { usePath, reloadList } from './useFetchList'
 import { useI18N } from './i18n'
 import { openFileMenu } from './fileMenu'
@@ -33,6 +33,8 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path: string, 
     if (typeof label === 'string' && label.length < 3)
         label = PAD + label + PAD
     const {t} = useI18N()
+    const { props } = useSnapState()
+    const p = props?.can_archive ? '' : 'a'
     return h(Link, {
         className: 'breadcrumb',
         to: path || '/',
@@ -40,7 +42,7 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path: string, 
             if (!current) return
             if (typeof label !== 'string')
                 return reload()
-            openFileMenu(new DirEntry(decodeURIComponent(path)), ev, [
+            openFileMenu(new DirEntry(decodeURIComponent(path), { p }), ev, [
                 {
                     id: 'reload',
                     label: t`Reload`,
