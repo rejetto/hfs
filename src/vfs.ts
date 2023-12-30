@@ -307,7 +307,7 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
 
 export function parentMaskApplier(parent: VfsNode) {
     const matchers = onlyTruthy(Object.entries(parent.masks || {}).map(([k, { maskOnly, ...mods }]) => {
-        k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : ''
+        k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : '' // ** globstar matches also zero subfolders, so this mask must be applied here too
         return k && { mods, maskOnly, matcher: makeMatcher(k) }
     }))
     return (item: VfsNode, virtualBasename=getNodeName(item)) => {
@@ -327,10 +327,13 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename:string) {
     const o: Masks = {}
     for (const [k,v] of Object.entries(masks)) {
         const neg = k[0] === '!' && k[1] !== '(' ? '!' : ''
-        const withoutNeg = neg ? k.slice(1) : k
-        if (withoutNeg.startsWith('**'))
+        let withoutNeg = neg ? k.slice(1) : k
+        if (withoutNeg.startsWith('**')) {
             o[k] = v
-        else if (withoutNeg.startsWith('*/'))
+            if (withoutNeg[2] === '/')
+                withoutNeg = withoutNeg.slice(3) // this mask will apply also at the current level
+        }
+        if (withoutNeg.startsWith('*/'))
             o[neg + withoutNeg.slice(2)] = v
         else if (withoutNeg.startsWith(virtualBasename + '/'))
             o[neg + withoutNeg.slice(virtualBasename.length + 1)] = v
