@@ -1,5 +1,4 @@
 port: 81
-open_browser_at_start: false
 allowed_referer: x.com
 vfs:
   masks:
