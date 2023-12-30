@@ -4,9 +4,9 @@ import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
-import { Box, Chip, ChipProps, Tooltip } from '@mui/material'
+import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed } from "./misc"
+import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_ } from "./misc"
 import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
@@ -141,26 +141,20 @@ function Connections() {
                     flex: 1.5,
                     renderCell({ value, row }) {
                         if (!value) return
-                        if (row.archive)
-                            return h(Fragment, {},
-                                h(FolderZip, { sx: { mr: 1 } }),
-                                row.archive,
-                                h(Box, { ml: 2, color: 'text.secondary' }, value)
-                            )
                         if (!row.op)
                             return h(Box, {}, value, h(Box, { fontSize: 'x-small' }, "browsing"))
-                        const i = value?.lastIndexOf('/')
                         return h(Fragment, {},
                             h(IconProgress, {
-                                icon: row.op === 'upload' ? Upload : Download,
+                                icon: row.archive ? FolderZip : row.op === 'upload' ? Upload : Download,
                                 progress: row.opProgress ?? row.opOffset,
                                 offset: row.opOffset,
                                 addTitle: row.opTotal && h('div', {}, "Total: " + formatBytes(row.opTotal)),
                                 sx: { mr: 1 }
                             }),
-                            h(Box, {}, value.slice(i + 1),
-                                i > 0 && h(Box, { ml: 2, fontSize: 'x-small', color: 'text.secondary' }, value.slice(0, i))
-                            ),
+                            row.archive ? h(Box, {}, value, h(Box, { fontSize: 'x-small', color: 'text.secondary' }, row.archive))
+                                : with_(value?.lastIndexOf('/'), i => h(Box, {}, value.slice(i + 1),
+                                    i > 0 && h(Box, { fontSize: 'x-small', color: 'text.secondary' }, value.slice(0, i))
+                                )),
                         )
                     }
                 },

@@ -14,6 +14,7 @@ import { promisify } from 'util'
 import { updateConnection } from './connections'
 import { getCurrentUsername } from './auth'
 import { sendErrorPage } from './errorPages'
+import { Readable } from 'stream'
 
 const allowedReferer = defineConfig('allowed_referer', '')
 const limitDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
@@ -80,19 +81,27 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
             return ctx.body = content
         const { size } = stats
         const range = getRange(ctx, size)
-        ctx.body = createReadStream(source, range).on('end', () =>
-            updateConnection(ctx.state.connection, { opProgress: 1 }) )
+        ctx.body = createReadStream(source, range)
         if (ctx.vfsNode)
-            updateConnection(ctx.state.connection, {
-                ctx, // this will cause 'path' to be sent as well
-                op: 'download',
-                opTotal: stats.size,
-                opOffset: range && (range.start / size),
-            })
+            monitorAsDownload(ctx, size, range?.start)
     }
     catch (e: any) {
         return ctx.status = HTTP_NOT_FOUND
     }
+}
+
+export function monitorAsDownload(ctx: Koa.Context, size?: number, offset?: number) {
+    if (!(ctx.body instanceof Readable))
+        throw 'incompatible body'
+    const { connection } = ctx.state
+    ctx.body.on('end', () =>
+        updateConnection(connection, { opProgress: 1 }) )
+    updateConnection(connection, {
+        ctx, // this will cause 'path' to be sent as well
+        op: 'download',
+        opTotal: size,
+        opOffset: size && offset && (offset / size),
+    })
 }
 
 export function getRange(ctx: Koa.Context, totalSize: number) {

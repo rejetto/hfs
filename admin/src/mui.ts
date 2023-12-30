@@ -42,7 +42,7 @@ export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgr
             sx: { position: 'absolute' },
         }),
         h(Tooltip, {
-            title: h(Fragment, {}, formatPerc(progress), addTitle),
+            title: h(Fragment, {}, _.isNumber(progress) ? formatPerc(progress) : "Size unknown", addTitle),
             children: h(CircularProgress, {
                 color: 'success',
                 value: (offset || 1e-7) * 100,

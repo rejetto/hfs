@@ -8,7 +8,7 @@ import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { basename, dirname } from 'path'
-import { getRange } from './serveFile'
+import { getRange, monitorAsDownload } from './serveFile'
 import { HTTP_OK } from './const'
 
 // expects 'node' to have had permissions checked by caller
@@ -76,6 +76,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.body = zip
     ctx.req.on('close', ()=> zip.destroy())
     ctx.state.archive = 'zip'
+    monitorAsDownload(ctx, size, range?.start)
 }
 
 const zipSeconds = defineConfig('zip_calculate_size_for_seconds', 1)
