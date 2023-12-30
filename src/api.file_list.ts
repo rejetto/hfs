@@ -31,9 +31,9 @@ export const get_file_list: ApiHandler = async ({ uri, offset, limit, search, c 
     const walker = walkNode(node, ctx, search ? Infinity : 0)
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = hasPermission(node, 'can_upload', ctx)
-    const fakeChild = applyParentToChild({}, node) // we want to know if we want to delete children
+    const fakeChild = applyParentToChild({}, node) // can we delete children
     const can_delete = hasPermission(fakeChild, 'can_delete', ctx)
-    const can_archive = hasPermission(fakeChild, 'can_archive', ctx)
+    const can_archive = hasPermission(node, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
     const props = { can_archive, can_upload, can_delete, accept: node.accept, can_comment }
     if (!list)

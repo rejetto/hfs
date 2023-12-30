@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, hasPermission, nodeIsDirectory, nodeIsLink, urlToNode, VfsNode, walkNode } from './vfs'
+import { getNodeName, hasPermission, nodeIsDirectory, nodeIsLink, urlToNode, VfsNode, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
 import { filterMapGenerator, isWindowsDrive, pattern2filter, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
@@ -13,6 +13,7 @@ import { HTTP_OK } from './const'
 
 // expects 'node' to have had permissions checked by caller
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
+    if (statusCodeForMissingPerm(node, 'can_archive', ctx)) return
     ctx.status = HTTP_OK
     ctx.mime = 'zip'
     // ctx.query.list is undefined | string | string[]

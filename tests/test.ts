@@ -49,6 +49,7 @@ describe('basics', () => {
     it('forbidden list.match **', req('/cantListPageAlt/page/gpl.png', 401))
 
     it('cantListBut', reqList('/cantListBut/', 403))
+    it('cantListBut.zip', req('/cantListBut/?get=zip', 403))
     it('cantListBut.parent', reqList('/', { permInList: { 'cantListBut/': 'l' } }))
     it('cantListBut.child masked', reqList('/cantListBut/page', 200))
 
@@ -74,6 +75,8 @@ describe('basics', () => {
     it('cantSeeThis.children', reqList('/cantSeeThis', { outList:['hi/'] }))
     it('cantSeeThisButChildren', reqList('/', { outList:['cantSeeThisButChildren/'] }))
     it('cantSeeThisButChildren.children', reqList('/cantSeeThisButChildren', { inList:['hi/'] }))
+    it('cantZipFolder', req('/cantSeeThisButChildren/?get=zip', 403))
+    it('cantZipFolder.butChildren', req('/cantSeeThisButChildren/hi/?get=zip', 200))
     it('cantSeeThisButChildrenMasks', reqList('/', { outList:['cantSeeThisButChildrenMasks/'] }))
     it('cantSeeThisButChildrenMasks.children', reqList('/cantSeeThisButChildrenMasks', { inList:['hi/'] }))
 
