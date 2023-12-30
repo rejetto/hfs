@@ -208,6 +208,7 @@ function Connections() {
                 h(IconBtn, {
                     icon: Block,
                     title: "Block IP",
+                    confirm: "Block address " + row.ip,
                     disabled: row.ip === props?.you,
                     onClick: () => blockIp(row.ip),
                 }),
