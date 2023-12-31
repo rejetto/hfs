@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, forwardRef, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList } from '@mui/material'
+import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, Dialog, DialogTitle, DialogContent, Button } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
@@ -15,8 +15,9 @@ import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, Save } from '@mui/icons-material'
+import { Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save } from '@mui/icons-material'
 import { moveVfs } from './VfsTree'
+import QrCreator from 'qr-creator';
 
 interface Account { username: string }
 
@@ -279,6 +280,32 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         value &&= value.indexOf(root) === 1 ? value.slice(root.length) : undefined
     const link = prefix(data?.baseUrl || '', value)
     const RenderLink = useMemo(() => forwardRef((props: any, ref) => h(Link, { ref, ...props, href: link, style: { height: 'auto' }, target: 'frontend' }, link)), [link])
+
+
+    const [isQrDialogOpen, setQrDialogOpen] = useState(false);
+
+    const showQrDialog = () => {
+        setQrDialogOpen(true);
+    };
+
+    const closeDialog = () => {
+        setQrDialogOpen(false);
+    };
+
+    const generateQRCode = async (canvas: HTMLCanvasElement, text: string) => {
+        try {
+            QrCreator.render({
+                text: text,
+                radius: 0.0, // 0.0 to 0.5
+                ecLevel: 'H', // L, M, Q, H
+                fill: '#536DFE', // foreground color
+                background: null, // color or null for transparent
+                size: 300 // in pixels
+            }, canvas);
+        } catch (error) {
+            console.error('Error generating QR code:', error);
+        }
+    };
     return h(Box, { display: 'flex' },
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
@@ -293,10 +320,28 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                     disabled: !link,
                     onClick: () => navigator.clipboard.writeText(link)
                 }),
+                h(IconBtn, {
+                    icon: QrCode2,
+                    title: "QR Code",
+                    onClick: showQrDialog
+                }),
                 h(IconBtn, { icon: Edit, title: "Change", onClick() { changeBaseUrl().then(reload) } }),
             )
         }),
-    )
+        h(Dialog, { open: isQrDialogOpen, onClose: closeDialog },
+            h(DialogTitle, null, "QR Code"),
+            h(DialogContent, { style: { maxWidth: '350px', margin: '0 auto' } },
+                h('canvas', {
+                    id: 'qrcode-canvas',
+                    ref: (canvas: HTMLCanvasElement) => canvas && generateQRCode(canvas, link),
+                    style: { width: '100%' },
+                }),
+            ),
+            h(Box, { display: 'flex', justifyContent: 'center', marginBottom: 2 },
+                h(Button, { onClick: closeDialog }, "Close")
+            )
+        )
+    );
 }
 
 export async function changeBaseUrl() {
