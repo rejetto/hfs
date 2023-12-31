@@ -50,8 +50,8 @@ const apis: ApiHandlers = {
                     || undefined,
                 name: node === vfs ? '' : getNodeName(node),
                 type: isDir ? 'folder' : undefined,
-                children: node.children && await Promise.all(node.children.map(child =>
-                    recur(applyParentToChild(child, node)) ))
+                children: node.children && await Promise.all(node.children.map(async child =>
+                    recur(await applyParentToChild(child, node)) ))
             }
         }
     },

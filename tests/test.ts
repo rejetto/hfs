@@ -86,6 +86,10 @@ describe('basics', () => {
     it('cantSeeThisButChildrenMasks', reqList('/', { outList:['cantSeeThisButChildrenMasks/'] }))
     it('cantSeeThisButChildrenMasks.children', reqList('/cantSeeThisButChildrenMasks', { inList:['hi/'] }))
 
+    it('masks.only', reqList('/cantSeeThisButChildren/hi', { inList:['page/'] }))
+    it('masks.only.fromDisk', reqList('/cantSeeThisButChildren/hi/page', 403))
+    it('masks.only.fromDisk.file', req('/cantSeeThisButChildren/hi/page/gpl.png', 403))
+
     it('protectFromAbove', req('/protectFromAbove/child/alfa.txt', 403))
     it('protectFromAbove.list', reqList('/protectFromAbove/child/', { inList:['alfa.txt'] }))
 

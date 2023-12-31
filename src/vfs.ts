@@ -2,14 +2,12 @@
 
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
-import {
-    dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy,
-    throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting
-} from './misc'
+import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy,
+    throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
-import { HTTP_FOOL, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, MIME_AUTO } from './const'
+import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, MIME_AUTO } from './const'
 import events from './events'
 import { expandUsername } from './perm'
 import { getCurrentUsername } from './auth'
@@ -70,17 +68,17 @@ export function isSameFilenameAs(name: string) {
         lc === (typeof other === 'string' ? other : getNodeName(other)).toLowerCase()
 }
 
-export function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
+export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
     const ret: VfsNode = {
-        isFolder: child?.children?.length ? true : undefined, // allow child to overwrite this property
+        original: child, // leave it possible for child to override this
         ...child,
-        original: child,
+        isFolder: child?.isFolder ?? (!child?.children ? undefined : child?.children.length > 0), // isFolder is hidden in original node, so we must read it to copy it
         isTemp: true,
         parent,
     }
     name ||= child ? getNodeName(child) : ''
     inheritMasks(ret, parent, name)
-    parentMaskApplier(parent)(ret, name)
+    await parentMaskApplier(parent)(ret, name)
     inheritFromParent(parent, ret)
     return ret
 }
@@ -94,7 +92,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     if (!name)
         return parent
     const rest = nextSlash < 0 ? '' : url.slice(nextSlash+1, url.endsWith('/') ? -1 : undefined)
-    const ret = getNodeByName(name, parent)
+    const ret = await getNodeByName(name, parent)
     if (!ret)
         return
     if (ret?.original)
@@ -118,25 +116,28 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     return ret
 }
 
-export function getNodeByName(name: string, parent: VfsNode) {
+export async function getNodeByName(name: string, parent: VfsNode) {
     if (dirTraversal(name) || /[\\/]/.test(name)) return
-    // does the tree node have a child that goes by this name?
-    const child = parent.children?.find(isSameFilenameAs(name))
-    if (!child && !parent.source) return // on tree or on disk, or it doesn't exist
-    const ret = applyParentToChild(child, parent, name)
-    if (child)
+    // does the tree node have a child that goes by this name, otherwise attempt disk
+    const child = parent.children?.find(isSameFilenameAs(name)) || childFromDisk()
+    return child && applyParentToChild(child, parent, name)
+
+    function childFromDisk() {
+        if (!parent.source) return
+        const ret: VfsNode = {}
+        let onDisk = name
+        if (parent.rename) { // reverse the mapping
+            for (const [from, to] of Object.entries(parent.rename))
+                if (name === to) {
+                    onDisk = from
+                    break // found, search no more
+                }
+            ret.rename = renameUnderPath(parent.rename, name)
+        }
+        ret.source = enforceFinal('/', parent.source) + onDisk
+        ret.original = undefined // overwrite in applyParentToChild, so we know this is not part of the vfs
         return ret
-    let onDisk = name
-    if (parent.rename) { // reverse the mapping
-        for (const [from, to] of Object.entries(parent.rename))
-            if (name === to) {
-                onDisk = from
-                break // found, search no more
-            }
-        ret.rename = renameUnderPath(parent.rename, name)
     }
-    ret.source = enforceFinal('/', parent.source!) + onDisk
-    return ret
 }
 
 export let vfs: VfsNode = {}
@@ -308,14 +309,18 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
 export function parentMaskApplier(parent: VfsNode) {
     const matchers = onlyTruthy(Object.entries(parent.masks || {}).map(([k, { maskOnly, ...mods }]) => {
         k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : '' // ** globstar matches also zero subfolders, so this mask must be applied here too
-        return k && { mods, maskOnly, matcher: makeMatcher(k) }
+        // k is stored into the object for debugging purposes
+        return k && { k, mods, matcher: makeMatcher(k), mustBeFolder: maskOnly && (maskOnly === 'folders') }
     }))
-    return (item: VfsNode, virtualBasename=getNodeName(item)) => {
-        for (const { matcher, mods, maskOnly } of matchers) {
-            if (maskOnly === 'folders' && !item.isFolder || maskOnly === 'files' && item.isFolder) continue
+    return async (item: VfsNode, virtualBasename=getNodeName(item)) => {
+        let isFolder: boolean | undefined = undefined
+        for (const { matcher, mods, mustBeFolder } of matchers) {
+            if (mustBeFolder !== undefined) {
+                isFolder ??= await nodeIsDirectory(item)
+                if (mustBeFolder !== isFolder) continue
+            }
             if (!matcher(virtualBasename)) continue
-            if (item.masks)
-                item.masks = _.merge(_.cloneDeep(mods.masks), item.masks) // item.masks must take precedence
+            item.masks &&= _.merge(_.cloneDeep(mods.masks), item.masks) // item.masks must take precedence
             _.defaults(item, mods)
         }
     }

@@ -95,7 +95,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     ret.once('close', async () => {
         if (!ctx.req.aborted) {
             let dest = fullPath
-            if (dontOverwriteUploading.get() && fs.existsSync(dest) && !overwriteAnyway()) {
+            if (dontOverwriteUploading.get() && fs.existsSync(dest) && !await overwriteAnyway()) {
                 const ext = extname(dest)
                 const base = dest.slice(0, -ext.length)
                 let i = 1
@@ -120,9 +120,9 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     })
     return ret
 
-    function overwriteAnyway() {
+    async function overwriteAnyway() {
         if (ctx.query.overwrite === undefined) return
-        const n = getNodeByName(path, base)
+        const n = await getNodeByName(path, base)
         return n && hasPermission(n, 'can_delete', ctx)
     }
 
