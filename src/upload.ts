@@ -95,7 +95,6 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     ret.once('close', async () => {
         if (!ctx.req.aborted) {
             let dest = fullPath
-            await setUploadMeta(tempName, ctx)
             if (dontOverwriteUploading.get() && fs.existsSync(dest)) {
                 const ext = extname(dest)
                 const base = dest.slice(0, -ext.length)
@@ -104,6 +103,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 while (fs.existsSync(dest))
             }
             return fs.rename(tempName, dest, err => {
+                setUploadMeta(err ? tempName : dest, ctx)
                 if (err)
                     console.error("couldn't rename temp to", dest, String(err))
                 else if (ctx.query.comment)

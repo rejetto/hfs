@@ -108,6 +108,13 @@ vfs:
       children:
         - name: hi
           source: tests
+      masks:
+        "**/*":
+          maskOnly: files
+          can_list: false
+          can_read: false
+        "*/page":
+          can_list: false
     - name: cantSeeThisButChildrenMasks
       can_see: false
       masks:
