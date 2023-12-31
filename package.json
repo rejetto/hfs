@@ -82,6 +82,7 @@
     "minimist": "^1.2.6",
     "nat-upnp-ts": "^2.0.1",
     "open": "^8.4.0",
+    "qr-creator": "^1.0.0",
     "tssrp6a": "^3.0.0",
     "unzip-stream": "^0.3.1",
     "valtio": "^1.10.3",
