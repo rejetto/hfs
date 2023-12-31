@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
+import { createElement as h, forwardRef, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
 } from '@hfs/mui-grid-form'
@@ -278,12 +278,14 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     if (root)
         value &&= value.indexOf(root) === 1 ? value.slice(root.length) : undefined
     const link = prefix(data?.baseUrl || '', value)
+    const RenderLink = useMemo(() => forwardRef((props: any, ref) => h(Link, { ref, ...props, href: link, style: { height: 'auto' }, target: 'frontend' }, link)), [link])
     return h(Box, { display: 'flex' },
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
             value: link || `outside of configured base address (${baseHost})`,
             error,
+            InputProps: { inputComponent: RenderLink },
             end: h(Box, {},
                 h(IconBtn, {
                     icon: ContentCopy,
