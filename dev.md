@@ -2,13 +2,13 @@ This file is mostly aimed to developers.
 
 # Building instructions
 
-0. Install [Node.js](https://nodejs.org/) 16+
+0. Install [Node.js](https://nodejs.org/) 18+
 1. Install Typescript: launch `npm -g i typescript`
 3. Launch `npm run build-all` in the root
 
-You'll see some warnings about vulnerabilities. Fear not, for those are in the dev tools we are using.
-If you want to be assured, run `npm audit --production` that will exclude dev stuff, and you should see something
-more reassuring, like "found 0 vulnerabilities", hopefully.
+At this stage you have a javascript output. For binary files you'll also have to `npm run dist-bin`.
+
+You could instead run *dist* to run both *build-all* & *dist-bin*.  
 
 # Dev environment
 
@@ -43,6 +43,7 @@ Additionally, you have the following folders:
 - tests: automated tests with related resources
 
 # Known problems
+- 
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
 
 # Guidelines
