@@ -18,7 +18,7 @@ interface FlexProps extends CSSProperties {
     className?: string,
     props?: HTMLAttributes<HTMLDivElement>
 }
-export const Flex = forwardRef(({ gap='.8em', vert=false, children=null, className='', props={}, ...rest }: FlexProps, ref) =>
+export const Flex = forwardRef(({ gap='.8em', center=false, vert=false, children=null, className='', props={}, ...rest }: FlexProps, ref) =>
     h('div', {
         ref,
         className,
@@ -27,6 +27,7 @@ export const Flex = forwardRef(({ gap='.8em', vert=false, children=null, classNa
             gap,
             flexDirection: vert ? 'column' : undefined,
             alignItems: vert ? undefined : 'center',
+            justifyContent: center ? 'center' : undefined,
             ...rest,
         },
         ...props

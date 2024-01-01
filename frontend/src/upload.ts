@@ -111,7 +111,7 @@ export function showUpload() {
             h(FlexV, { className: 'upload-toolbar' },
                 !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
-                        h(Flex, { justifyContent: 'center', flexWrap: 'wrap' },
+                        h(Flex, { center: true, flexWrap: 'wrap' },
                             h('button', {
                                 className: 'upload-files',
                                 onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
@@ -124,7 +124,7 @@ export function showUpload() {
                             h(Checkbox, { value: skipExisting, onChange: v => uploadState.skipExisting = v }, t`Skip existing files`),
                         ),
                         !isMobile() && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files doing drag&drop on the files list")),
-                        adding.length > 0 && h(Flex, { justifyContent: 'center', flexWrap: 'wrap' },
+                        adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
                             h('button', {
                                 className: 'upload-send',
                                 onClick() {
@@ -147,7 +147,7 @@ export function showUpload() {
             }),
             h(UploadStatus, { margin: '.5em 0' }),
             qs.length > 0 && h('div', {},
-                h(Flex, { justifyContent: 'center', borderTop: '1px dashed', padding: '.5em' },
+                h(Flex, { center: true, borderTop: '1px dashed', padding: '.5em' },
                     [queueStr, etaStr, speed && formatSpeed(speed)].filter(Boolean).join(', '),
                     inQ > 0 && iconBtn('delete', ()=>  {
                         uploadState.qs = []
