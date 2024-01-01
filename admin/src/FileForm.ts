@@ -303,10 +303,10 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     function showQr() {
         newDialog({
             title: "QR Code",
+            dialogProps: { sx: { bgcolor: 'background.default', border: '1px solid' } },
             Content() {
                 const theme = useTheme()
                 return h('canvas', {
-                    id: 'qrcode-canvas',
                     ref: (canvas: HTMLCanvasElement) => canvas && generateQRCode(canvas, link, theme.palette.text.primary),
                     style: { width: '100%' },
                 })
