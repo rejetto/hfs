@@ -32,7 +32,7 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
         const root = host2root(ctx.host)
         if (root === '' || root === '/') return
         if (root === undefined) {
-            if (!rootsMandatory.get() || isLocalHost(ctx)) return
+            if (ctx.state.skipFilters || !rootsMandatory.get() || isLocalHost(ctx)) return
             disconnect(ctx)
             return true // true will avoid calling next
         }

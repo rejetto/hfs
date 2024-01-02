@@ -191,7 +191,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     try {
         if (dirTraversal(decodeURI(ctx.path)))
             return ctx.status = HTTP_FOOL
-        if (applyBlock(ctx.socket, ctx.ip))
+        if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
             return
 
         if (!ctx.ips.length && ctx.get('X-Forwarded-For') // empty ctx.ips implies we didn't configure for proxies
@@ -204,7 +204,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     catch {
         return ctx.status = HTTP_FOOL
     }
-    if (forceBaseUrl.get() && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
+    if (!ctx.state.skipFilters && forceBaseUrl.get() && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
         return disconnect(ctx)
     return next()
 }

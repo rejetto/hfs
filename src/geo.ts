@@ -17,7 +17,7 @@ setInterval(checkFiles, DAY) // keep updated at run-time
 export const ip2country = _.memoize((ip: string) => ip2location.getCountryShortAsync(ip).then(v => v === '-' ? '' : v, () => ''))
 
 export const geoFilter: Middleware = async (ctx, next) => {
-    if (enabled.get() && allow.get() !== null && !isLocalHost(ctx)) {
+    if (!ctx.state.skipFilters && enabled.get() && allow.get() !== null && !isLocalHost(ctx)) {
         const { connection }  = ctx.state
         const country = connection.country ??= await ip2country(ctx.ip)
         if (country)
@@ -26,7 +26,7 @@ export const geoFilter: Middleware = async (ctx, next) => {
             if (country ? list.get().includes(country) !== allow.get() : !allowUnknown.get())
                 return disconnect(ctx)
     }
-    return next()
+    await next()
 }
 
 function isOpen() {

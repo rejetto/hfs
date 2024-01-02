@@ -33,11 +33,11 @@ const keys = process.env.COOKIE_SIGN_KEYS?.split(',')
     || [randomId(30)] // randomness at start gives some extra security, btu also invalidates existing sessions
 export const app = new Koa({ keys })
 app.use(sessionMiddleware)
+    .use(selfCheckMiddleware)
     .use(someSecurity)
     .use(acmeMiddleware)
     .use(prepareState)
     .use(geoFilter)
-    .use(selfCheckMiddleware)
     .use(gzipper)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
     .use(pluginsMiddleware)

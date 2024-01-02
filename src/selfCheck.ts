@@ -6,11 +6,22 @@ import _ from 'lodash'
 import { haveTimeout } from './cross'
 import { httpString } from './util-http'
 
+let selfChecking = false
+
 const CHECK_URL = SPECIAL_URI + 'self-check'
-export const selfCheckMiddleware: Middleware = async (ctx, next) => {  // koa format
-    if (ctx.url.startsWith(CHECK_URL))
+export const selfCheckMiddleware: Middleware = async (ctx, next) => {
+    if (selfChecking && ctx.url.startsWith(CHECK_URL)) {
         ctx.body = 'HFS'
+        ctx.state.skipFilters = true
+    }
     await next()
+}
+
+
+declare module "koa" {
+    interface DefaultState {
+        skipFilters?: boolean
+    }
 }
 
 export async function selfCheck(url: string) {
@@ -27,26 +38,32 @@ export async function selfCheck(url: string) {
     console.log(`checking server ${url}`)
     const parsed = new URL(url)
     const family = !isIP(parsed.hostname) ? undefined : isIPv6(parsed.hostname) ? 6 : 4
-    for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.selfCheckServices), 2)) {
-        try {
-            return await Promise.any(services.map(async (svc) => {
-                if (!svc.url || svc.type) throw 'unsupported ' + svc.type // only default type supported for now
-                let { url: serviceUrl, body, regexpSuccess, regexpFailure, ...rest } = svc
-                const service = new URL(serviceUrl).hostname
-                console.log('trying external service', service)
-                body = applySymbols(body)
-                serviceUrl = applySymbols(serviceUrl)!
-                const res = await haveTimeout(6_000, httpString(serviceUrl, { family, ...rest, body }))
-                const success = new RegExp(regexpSuccess).test(res)
-                const failure = new RegExp(regexpFailure).test(res)
-                if (success === failure) throw 'inconsistent: ' + service + ': ' + res // this result cannot be trusted
-                console.debug(service, 'responded', success)
-                return { success, service, url }
-            }))
+    try {
+        selfChecking = true
+        for (const services of _.chunk(_.shuffle<PortScannerService>(prjInfo.selfCheckServices), 2)) {
+            try {
+                return await Promise.any(services.map(async (svc) => {
+                    if (!svc.url || svc.type) throw 'unsupported ' + svc.type // only default type supported for now
+                    let { url: serviceUrl, body, regexpSuccess, regexpFailure, ...rest } = svc
+                    const service = new URL(serviceUrl).hostname
+                    console.log('trying external service', service)
+                    body = applySymbols(body)
+                    serviceUrl = applySymbols(serviceUrl)!
+                    const res = await haveTimeout(6_000, httpString(serviceUrl, { family, ...rest, body }))
+                    const success = new RegExp(regexpSuccess).test(res)
+                    const failure = new RegExp(regexpFailure).test(res)
+                    if (success === failure) throw 'inconsistent: ' + service + ': ' + res // this result cannot be trusted
+                    console.debug(service, 'responded', success)
+                    return { success, service, url }
+                }))
+            }
+            catch (e: any) {
+                console.debug(e?.errors?.map(String) || e?.cause || String(e))
+            }
         }
-        catch (e: any) {
-            console.debug(e?.errors?.map(String) || e?.cause || String(e))
-        }
+    }
+    finally {
+        selfChecking = false
     }
 
     function applySymbols(s?: string) {
