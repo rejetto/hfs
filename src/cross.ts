@@ -19,6 +19,7 @@ export const FRONTEND_OPTIONS = {
     folders_first: true,
     sort_numerics: false,
     theme: '',
+    auto_play_seconds: 5,
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }

@@ -1,6 +1,6 @@
-import { DirEntry, ext2type, state } from './state'
+import { DirEntry, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
+import { domOn, hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Flex, FlexV, iconBtn, Spinner } from './components'
@@ -8,6 +8,7 @@ import { openFileMenu } from './fileMenu'
 import { t, useI18N } from './i18n'
 import { alertDialog } from './dialog'
 import _ from 'lodash'
+import { Btn } from './menu'
 
 enum ZoomMode {
     fullWidth,
@@ -58,25 +59,53 @@ export function fileShow(entry: DirEntry) {
             const containerRef = useRef<HTMLDivElement>()
             const mainRef = useRef<HTMLDivElement>()
             useEffect(() => { scrollY(-1E9) }, [cur])
+
+            const { auto_play_seconds } = useSnapState()
+            const [autoPlaying, setAutoPlaying] = useState(false)
+            const showElement = containerRef.current?.querySelector('*')
+            useEffect(() => {
+                if (!autoPlaying || !showElement) return
+                if (showElement instanceof HTMLMediaElement) {
+                    showElement.play().catch(curFailed)
+                    return domOn('ended', () => go(+1), { target: showElement as any })
+                }
+                // we are supposedly showing an image
+                const h = setTimeout(() => go(+1), state.auto_play_seconds * 1000)
+                return () => clearTimeout(h)
+            }, [showElement, autoPlaying, cur])
+
             const {t} = useI18N()
             return h(FlexV, {
-                    gap: 0,
-                    alignItems: 'stretch',
-                    className: ZoomMode[mode],
-                    props: {
-                        role: 'dialog',
-                        onMouseMove() {
-                            setShowNav(true)
-                            clearTimeout(timerRef.current)
-                            timerRef.current = +setTimeout(() => setShowNav(false), 1_000)
-                        }
+                gap: 0,
+                alignItems: 'stretch',
+                className: ZoomMode[mode],
+                props: {
+                    role: 'dialog',
+                    onMouseMove() {
+                        setShowNav(true)
+                        clearTimeout(timerRef.current)
+                        timerRef.current = +setTimeout(() => setShowNav(false), 1_000)
                     }
-                },
+                }
+            },
                 h('div', { className: 'bar' },
                     h('div', { className: 'filename' }, cur.n),
                     h(EntryDetails, { entry: cur, midnight: useMidnight() }),
                     h(Flex, {},
                         useWindowSize().width > 1280 && iconBtn('?', showHelp),
+                        h('div', {}, // fuse buttons
+                            h(Btn, {
+                                className: 'small',
+                                label: t`Auto-play`,
+                                toggled: autoPlaying,
+                                onClick: () => setAutoPlaying(x => !x),
+                            }),
+                            autoPlaying && h(Btn, {
+                                className: 'small',
+                                label: String(auto_play_seconds),
+                                onClick: configAutoPlay,
+                            }),
+                        ),
                         iconBtn('menu', ev => openFileMenu(cur, ev, [
                             'open','delete',
                             { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
@@ -99,18 +128,20 @@ export function fileShow(entry: DirEntry) {
                                 lastGood.current = cur
                                 setLoading(false)
                             },
-                            onError: () => {
-                                if (cur !== lastGood.current)
-                                    return go()
-                                setLoading(false)
-                                setFailed(cur.n)
-                            }
+                            onError: curFailed
                         })
                     ),
                     hIcon('❮', { className: navClass, style: { left: 0 }, onClick: () => go(-1) }),
                     hIcon('❯', { className: navClass, style: { right: 0 }, onClick: () => go(+1) }),
                 ),
             )
+
+            function curFailed() {
+                if (cur !== lastGood.current)
+                    return go()
+                setLoading(false)
+                setFailed(cur.n)
+            }
 
             function go(dir?: number) {
                 if (dir)
@@ -121,6 +152,7 @@ export function fileShow(entry: DirEntry) {
                 while (1) {
                     e = e.getSibling(moving.current)
                     if (!e) { // reached last
+                        setAutoPlaying(false)
                         setLoading(cur !== lastGood.current)
                         setCur(lastGood.current) // revert to last known supported file
                         return restartAnimation(document.body, '.2s blink')
@@ -145,6 +177,26 @@ export function fileShow(entry: DirEntry) {
 
             function scrollY(dy: number) {
                 containerRef.current?.scrollBy(0, dy * .5 * containerRef.current?.clientHeight)
+            }
+
+            function configAutoPlay() {
+                newDialog({
+                    title: t`Auto-play`,
+                    Content() {
+                        const { auto_play_seconds } = useSnapState()
+                        return h(FlexV, {},
+                            t('autoplay_seconds', "Seconds to wait on images"),
+                            h('input', {
+                                type: 'number',
+                                min: 1,
+                                max: 10000,
+                                value: auto_play_seconds,
+                                style: { width: '4em' },
+                                onChange: ev => state.auto_play_seconds = Number(ev.target.value)
+                            })
+                        )
+                    }
+                })
             }
         }
     })

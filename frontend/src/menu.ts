@@ -147,7 +147,7 @@ export function MenuPanel() {
 }
 
 interface MenuButtonProps extends ComponentPropsWithoutRef<"button"> {
-    icon: string,
+    icon?: string,
     label: string,
     tooltip?: string,
     toggled?: boolean,
@@ -167,10 +167,9 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
                 setWorking(true)
             Promise.resolve(onClick()).finally(() => setWorking(false))
         },
-        className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
-        ...toggled !== undefined && { 'aria-pressed': toggled },
         ...rest,
-    }, hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
+        className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
+    }, icon && hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }
 
 export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: MenuButtonProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {

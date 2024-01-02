@@ -191,12 +191,13 @@ export default function OptionsPage() {
                 options: { "by clicking on file name": true, "by dedicated button": false  }
             },
             { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
-            { k: 'tile_size', comp: NumberField, xs: 6, sm: 4, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: "Zero = list mode" },
-            { k: 'theme', comp: SelectField, xs: 6, sm: 4, options: THEME_OPTIONS },
-            { k: 'sort_by', comp: SelectField, xs: 6, sm: 4, options: SORT_BY_OPTIONS },
-            { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, },
-            { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, },
-            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, label: "Sort numeric names" },
+            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, label: "Auto-play seconds delay" },
+            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: "Zero = list mode" },
+            { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
+            { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
+            { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, md: 3, },
+            { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, md: 3, },
+            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, md: 3, label: "Sort numeric names" },
         ]
     })
 

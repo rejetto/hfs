@@ -148,6 +148,9 @@
         "Cancel clipboard": "Cancel clipboard",
         "to_clipboard_source": "To folder",
         "Paste": "Paste",
-        "clipboard_list": "Items in clipboard:"
+        "clipboard_list": "Items in clipboard:",
+
+        "Auto-play": "Auto-play",
+        "autoplay_seconds": "Seconds to wait on images"
     }
 }
