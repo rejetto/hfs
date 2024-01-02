@@ -643,7 +643,7 @@ button label {
     --nav-size: min(25vh, 25vw);
     .nav {
         position: absolute;
-        margin: -.4em; // closer to the edge
+        width: .5em; // closer to the edge
         font-size: var(--nav-size); // big
         cursor: pointer;
         opacity: .3;
