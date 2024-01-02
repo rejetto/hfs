@@ -626,6 +626,7 @@ button label {
         max-width: calc(100% - var(--nav-size)*2); // avoid overlapping of controls and nav buttons
         max-height: 100%;
     }
+    audio.showing { min-width: 60%; }
     audio.showing, // even on mobile, we need the whole thing to control it decently, and nav-s don't seem to be a problem
     img.showing { max-width: 100% } // we are ok with overlapping for simple images
     .main {
