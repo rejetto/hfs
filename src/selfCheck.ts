@@ -7,8 +7,11 @@ import { haveTimeout } from './cross'
 import { httpString } from './util-http'
 
 const CHECK_URL = SPECIAL_URI + 'self-check'
-export const selfCheckMiddleware: Middleware = (ctx, next) => // koa format
-    ctx.url.startsWith(CHECK_URL) ? ctx.body = 'HFS' : next()
+export const selfCheckMiddleware: Middleware = async (ctx, next) => {  // koa format
+    if (ctx.url.startsWith(CHECK_URL))
+        ctx.body = 'HFS'
+    await next()
+}
 
 export async function selfCheck(url: string) {
     interface PortScannerService {
