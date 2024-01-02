@@ -83,7 +83,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
         save: {
             sx: modifiedSx( !isEqualLax(values, account)),
             async onClick() {
-                const { password='', password2, adminActualAccess, hasPassword, ...withoutPassword } = values
+                const { password='', password2, adminActualAccess, hasPassword, invalidated, ...withoutPassword } = values
                 if (add) {
                     const got = await apiCall('add_account', withoutPassword)
                     if (password)
@@ -101,7 +101,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     changes: withoutPassword,
                 })
                 if (password)
-                    await apiNewPassword(username, password)
+                    await apiNewPassword(values.username, password)
                 if (account.username === username)
                     state.username = values.username
                 setTimeout(() => toast("Account modified", 'success'), 1) // workaround: showing a dialog at this point is causing a crash if we are in a dialog
