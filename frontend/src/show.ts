@@ -100,7 +100,9 @@ export function fileShow(entry: DirEntry) {
                                 setLoading(false)
                             },
                             onError: () => {
-                                go()
+                                if (cur !== lastGood.current)
+                                    return go()
+                                setLoading(false)
                                 setFailed(cur.n)
                             }
                         })
