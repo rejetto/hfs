@@ -85,7 +85,7 @@ export function fileShow(entry: DirEntry) {
                         iconBtn('close', close),
                     )
                 ),
-                h(FlexV, { center: true, className: 'main', ref: mainRef },
+                h(FlexV, { center: true, alignItems: 'center', className: 'main', ref: mainRef },
                     loading && h(Spinner, { style: { position: 'absolute', fontSize: '20vh', opacity: .5 } }),
                     failed === cur.n ? h(FlexV, { alignItems: 'center', textAlign: 'center' },
                         hIcon('error', { style: { fontSize: '20vh' } }),

@@ -664,7 +664,7 @@ button label {
         gap: .5em 1.5em;
 
         .entry-details { font-size: smaller; }
-        .entry-ts { display: inherit; }
+        .entry-ts { display: inherit; font-size: smaller; }
         .entry-size::after { display: none }
     }
 }
