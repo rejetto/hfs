@@ -15,6 +15,7 @@ export const state = proxy<{
     selectedFiles: VfsNode[]
     loginRequired: boolean | number
     username: string
+    monitorOnlyFiles: boolean
     onlinePluginsColumns: Dict<boolean>
 }>(Object.assign({
     title: '',
@@ -24,6 +25,7 @@ export const state = proxy<{
     vfs: undefined,
     loginRequired: false,
     username: '',
+    monitorOnlyFiles: true,
     onlinePluginsColumns: {
         version: false,
         pushed_at: false,
@@ -31,7 +33,7 @@ export const state = proxy<{
     }
 }, JSON.parse(localStorage[STORAGE_KEY]||null)))
 
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles']
 const storeSettings = _.debounce(() =>
     localStorage[STORAGE_KEY] = JSON.stringify(_.pick(state, SETTINGS_TO_STORE)), 500, { maxWait: 1000 })
 for (const k of SETTINGS_TO_STORE)

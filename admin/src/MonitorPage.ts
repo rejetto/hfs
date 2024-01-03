@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from "lodash"
-import { createElement as h, useMemo, Fragment, useState } from "react"
+import { createElement as h, useMemo, Fragment } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Box, Chip, ChipProps } from '@mui/material'
@@ -12,6 +12,7 @@ import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { toast } from "./dialog"
 import { agentIcons } from './LogsPage'
+import { state, useSnapState } from './state'
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -85,17 +86,17 @@ function MoreInfo() {
 function Connections() {
     const { list, error, props } = useApiList('get_connections')
     const config = useApiEx('get_config', { only: [CFG.geo_enable] })
-    const [filtered, setFiltered] = useState(true)
+    const { monitorOnlyFiles } = useSnapState()
     const { pause, pauseButton } = usePauseButton()
     const rows = useMemo(() =>
-            list?.filter((x: any) => !filtered || x.op).map((x: any, id: number) => ({ id, ...x })),
-        [!pause && list, filtered]) //eslint-disable-line
+            list?.filter((x: any) => !monitorOnlyFiles || x.op).map((x: any, id: number) => ({ id, ...x })),
+        [!pause && list, monitorOnlyFiles]) //eslint-disable-line
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center' },
             h(SelectField as Field<boolean>, {
                 fullWidth: false,
-                value: filtered,
-                onChange: setFiltered as any,
+                value: monitorOnlyFiles,
+                onChange: v => state.monitorOnlyFiles = v,
                 options: { "Show only files": true, "Show all connections": false }
             }),
 
@@ -105,7 +106,7 @@ function Connections() {
         h(DataTable, {
             error,
             rows,
-            noRows: filtered && "No downloads at the moment",
+            noRows: monitorOnlyFiles && "No downloads at the moment",
             columns: [
                 {
                     field: 'ip',
