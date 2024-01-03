@@ -5,7 +5,7 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
-import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
+import { CardMembership, Check, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, MAX_TILE_SIZE, REPO_URL, isIpLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
     CFG } from './misc'
 import { iconTooltip, InLink, LinkBtn, modifiedSx, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
@@ -179,6 +179,14 @@ export default function OptionsPage() {
                 fields: [
                     { k: 'ip', label: "Blocked IP", sm: 6, required: true, helperText: h(WildcardsSupported) },
                     { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, helperText: "Leave empty for no expiration" },
+                    {
+                        k: 'disabled',
+                        $type: 'boolean',
+                        label: "Enabled",
+                        toField: (x: any) => !x,
+                        fromField: (x: any) => x ? undefined : true,
+                        sm: 6,
+                    },
                     { k: 'comment' },
                 ],
             },

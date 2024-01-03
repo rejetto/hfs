@@ -5,14 +5,14 @@ import { disconnect, getConnections, normalizeIp } from './connections'
 import { makeNetMatcher, MINUTE, onlyTruthy } from './misc'
 import { Socket } from 'net'
 
-interface BlockingRule { ip: string, comment?: string, expire?: Date }
+interface BlockingRule { ip: string, comment?: string, expire?: Date, disabled?: boolean }
 
 const block = defineConfig('block', [] as BlockingRule[], rules => {
     const now = new Date()
     const ret = !Array.isArray(rules) ? []
         : onlyTruthy(rules.map(rule => {
             rule.expire &&= new Date(rule.expire)
-            return !(rule.expire! > now) && makeNetMatcher(rule.ip)
+            return !rule.disabled && (rule.expire || now) <= now && makeNetMatcher(rule.ip)
         }))
     // reapply new block to existing connections
     for (const { socket, ip } of getConnections())

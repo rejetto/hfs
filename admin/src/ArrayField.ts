@@ -2,10 +2,10 @@
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
 import { Dict, isOrderedEqual, setHidden, swap } from './misc'
-import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo } from '@mui/icons-material'
+import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
 import { formDialog } from './dialog'
 import { DataGrid, GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
-import { FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
+import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import { DateTimeField } from './DateTimeField'
 import _ from 'lodash'
@@ -43,6 +43,9 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                             field: f.k,
                             headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
                             disableColumnMenu: true,
+                            valueGetter({ value }: any) {
+                                return (f.toField || _.identity)(value)
+                            },
                             ...def,
                             ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
                             ...f.$column,
@@ -126,6 +129,10 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
 }
 
 const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColDef> }> = {
+    boolean: {
+        field: { comp: BoolField },
+        column: { renderCell: ({ value }) => value && h(Check) },
+    },
     dateTime: {
         field: { comp: DateTimeField },
         column: {
