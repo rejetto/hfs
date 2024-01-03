@@ -19,6 +19,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
     install(true)
     const save = debounceAsync(async (data: string, { reparse=false }={}) => {
         await fs.writeFile(path, data, 'utf8')
+        last = data
         if (reparse)
             await parser(data)
     })
