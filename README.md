@@ -197,6 +197,10 @@ There are several ways to contribute
   If you find important security problems, please [contact us privately](mailto:a@rejetto.com) so that we can publish a fix before
   the problem is disclosed, for the safety of other users.  
 
+- Use beta versions, and give feedback. 
+
+  While betas have more problems, you'll get more features and give a huge help to the project. 
+
 - [Translate to your language](https://github.com/rejetto/hfs/wiki/Translation).
 
 - [Suggest ideas](https://github.com/rejetto/hfs/discussions)
