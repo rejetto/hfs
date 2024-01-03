@@ -72,7 +72,7 @@ export async function applyParentToChild(child: VfsNode | undefined, parent: Vfs
     const ret: VfsNode = {
         original: child, // leave it possible for child to override this
         ...child,
-        isFolder: child?.isFolder ?? (!child?.children ? undefined : child?.children.length > 0), // isFolder is hidden in original node, so we must read it to copy it
+        isFolder: child?.isFolder ?? (child?.children?.length! > 0 || undefined), // isFolder is hidden in original node, so we must read it to copy it
         isTemp: true,
         parent,
     }
