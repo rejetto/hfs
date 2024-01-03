@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useState } from 'react'
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
 import { AppBar, Box, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { Dialogs } from './dialog'
@@ -13,6 +13,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
+import { useEventListener } from 'usehooks-ts'
+import { xlate } from './misc'
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
@@ -42,6 +44,15 @@ function Routed() {
     const [open, setOpen] = useState(false)
     const large = useBreakpoint('lg')
     const xs = current?.noPaddingOnMobile ? 0 : 1
+    const navigate = useNavigate()
+    useEventListener('keydown', ({ key, ctrlKey }) => {
+        if (!ctrlKey) return
+        const idx = Number(xlate(key, { 0: 10 })) // key 0 is after 9 and works as 10
+        if (!idx) return
+        const path = mainMenu[idx - 1]?.path
+        if (path === undefined) return
+        navigate(path || '/')
+    })
     return h(Fragment, {},
         !large && h(StickyBar, { title, openMenu: () => setOpen(true) }),
         !large && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
