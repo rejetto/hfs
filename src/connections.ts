@@ -11,7 +11,7 @@ export class Connection {
     got = 0
     outSpeed?: number
     inSpeed?: number
-    op?: 'download' | 'upload'
+    op?: 'download' | 'upload' | 'browsing' | 'cache'
     opTotal?: number
     opProgress?: number
     opOffset?: number
@@ -63,8 +63,8 @@ export function getConnection(ctx: Context) {
 }
 
 export function updateConnection(conn: Connection, change: Partial<Connection>) {
-    if (change.op)
-        change.opProgress ??= change.opOffset || 0
+    if (change.opOffset !== undefined)
+        change.opProgress = change.opOffset || 0
     Object.assign(conn, change)
     events.emit('connectionUpdated', conn, change)
 }

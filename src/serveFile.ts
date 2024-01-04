@@ -75,8 +75,10 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         ctx.fileSource = source
         ctx.fileStats = stats
         ctx.status = HTTP_OK
-        if (ctx.fresh)
+        if (ctx.fresh) {
+            updateConnection(ctx.state.connection, { ctx, op: 'cache' })
             return ctx.status = HTTP_NOT_MODIFIED
+        }
         if (content !== undefined)
             return ctx.body = content
         const { size } = stats

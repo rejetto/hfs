@@ -81,15 +81,15 @@ const apis: ApiHandlers = {
 
         function fromCtx(ctx?: Koa.Context) {
             if (!ctx) return
-            const path = ctx.state.browsing && decodeURIComponent(ctx.state.browsing)
-                || ctx.state.uploadPath && decodeURIComponent(ctx.state.uploadPath)
-                || (ctx.fileSource || ctx.state.archive) && decodeURIComponent(ctx.path)  // downloads
+            const s = ctx.state // short alias
             return {
                 user: getCurrentUsername(ctx),
                 agent: shortenAgent(ctx.get('user-agent')),
-                archive: ctx.state.archive,
-                upload: ctx.state.uploadProgress,
-                ...path && { path },
+                archive: s.archive,
+                upload: s.uploadProgress,
+                ...s.browsing ? { op: 'browsing', path: decodeURIComponent(s.browsing) }
+                    : s.uploadPath ? { op: 'upload',path: decodeURIComponent(s.uploadPath) }
+                    : (ctx.fileSource || s.archive) && { path: decodeURIComponent(ctx.path) }
             }
         }
     },

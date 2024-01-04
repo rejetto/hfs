@@ -36,13 +36,16 @@ export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgr
     return h(Fragment, {},
         h(icon, { sx: { position:'absolute', ml: '4px' } }),
         h(CircularProgress, {
-            value: progress * 100,
+            value: progress * 100 || 0,
             variant: 'determinate',
             size: 32,
             sx: { position: 'absolute' },
         }),
         h(Tooltip, {
-            title: h(Fragment, {}, _.isNumber(progress) ? formatPerc(progress) : "Size unknown", addTitle),
+            title: h(Fragment, {},
+                _.isNumber(progress) ? formatPerc(progress) : "Size unknown",
+                addTitle && h('div', {}, addTitle)
+            ),
             children: h(CircularProgress, {
                 color: 'success',
                 value: (offset || 1e-7) * 100,
