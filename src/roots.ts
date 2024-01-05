@@ -18,13 +18,13 @@ const rootsMandatory = defineConfig(CFG.roots_mandatory, false)
 
 export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
     (() => {
-        let params: undefined | typeof ctx.params | typeof ctx.query // undefined if we are not going to work on api parameters
+        let params: undefined | typeof ctx.state.params | typeof ctx.query // undefined if we are not going to work on api parameters
         if (ctx.path.startsWith(SPECIAL_URI)) { // special uris should be excluded...
             if (!ctx.path.startsWith(API_URI)) return // ...unless it's an api
             let { referer } = ctx.headers
             referer &&= new URL(referer).pathname
             if (referer?.startsWith(ctx.state.revProxyPath + ADMIN_URI)) return // exclude apis for admin-panel
-            params = ctx.params || ctx.query // for api we'll translate params
+            params = ctx.state.params || ctx.query // for api we'll translate params
         }
         if (_.isEmpty(roots.get())) return
         const host2root = roots.compiled()

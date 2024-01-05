@@ -33,7 +33,8 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
             return ctx.status = HTTP_FORBIDDEN
     }
 
-    ctx.vfsNode = node // useful to tell service files from files shared by the user
+    ctx.vfsNode = // legacy pre-0.51 (download-quota)
+    ctx.state.vfsNode = node // useful to tell service files from files shared by the user
     if ('dl' in ctx.query) // please, download
         ctx.attachment(name)
     await serveFile(ctx, source||'', mimeString)
@@ -72,8 +73,10 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
     try {
         const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
         ctx.set('Last-Modified', stats.mtime.toUTCString())
-        ctx.fileSource = source
-        ctx.fileStats = stats
+        ctx.fileSource = // legacy pre-0.51
+        ctx.state.fileSource = source
+        ctx.fileStats = // legacy pre-0.51
+        ctx.state.fileStats = stats
         ctx.status = HTTP_OK
         if (ctx.fresh) {
             updateConnection(ctx.state.connection, { ctx, op: 'cache' })
@@ -141,6 +144,7 @@ export function getRange(ctx: Koa.Context, totalSize: number) {
 
 declare module "koa" {
     interface DefaultState {
+        vfsNode?: VfsNode
         includesLastByte?: boolean
     }
 }

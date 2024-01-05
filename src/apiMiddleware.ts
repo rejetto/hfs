@@ -24,8 +24,8 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
         if (!logApi.get())
             ctx.state.dontLog = true
-        const isPost = ctx.params
-        const params = isPost ? ctx.params || {} : ctx.query
+        const isPost = ctx.state.params
+        const params = isPost ? ctx.state.params || {} : ctx.query
         const apiName = ctx.path
         console.debug('API', ctx.method, apiName, { ...params })
         const safe = isPost && ctx.get('x-hfs-anti-csrf') // POST is safe because browser will enforce SameSite cookie

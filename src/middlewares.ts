@@ -253,10 +253,8 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
 }
 
 declare module "koa" {
-    interface BaseContext {
-        params: Record<string, any>
-    }
     interface DefaultState {
+        params: Record<string, any>
         account?: Account // user logged in
         revProxyPath: string
         connection: Connection
@@ -267,7 +265,7 @@ declare module "koa" {
     }
 }
 export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
-    ctx.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
+    ctx.state.params = ctx.method === 'POST' && ctx.originalUrl.startsWith(API_URI)
         && (tryJson(await stream2string(ctx.req)) || {})
     await next()
 }

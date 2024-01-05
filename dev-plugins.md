@@ -366,11 +366,12 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## API version history
 
-- 8.64 (v0.51.0)
+- 8.65 (v0.51.0)
   - plugin's own hfs-lang files
   - props.can_overwrite
   - ctx.state.considerAsGui
   - new event: userPanelAfterInfo
+  - breaking: moved custom properties from ctx to ctx.state
 - 8.5 (v0.49.0)
   - new event: entry
   - exports.onDirEntry: entry.icon
