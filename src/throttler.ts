@@ -27,7 +27,9 @@ const maxKbpsPerIp = defineConfig('max_kbps_per_ip', Infinity)
 
 export const throttler: Koa.Middleware = async (ctx, next) => {
     await next()
-    const { body } = ctx
+    let { body } = ctx
+    if (typeof body === 'string' || body && body instanceof Buffer)
+        ctx.body = body = Readable.from(body)
     if (!body || !(body instanceof Readable))
         return
     // we wrap the stream also for unlimited connections to get speed and other features
@@ -74,8 +76,8 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     })
 
     const downloadTotal: number = ctx.response.length
-    ctx.state.originalStream = ctx.body
-    ctx.body = ctx.body.pipe(ts)
+    ctx.state.originalStream = body
+    ctx.body = body.pipe(ts)
 
     if (downloadTotal)  // preserve this info
         ctx.response.length = downloadTotal

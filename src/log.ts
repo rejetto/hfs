@@ -70,11 +70,12 @@ const debounce = _.debounce(cb => cb(), 1000)
 
 export const logMw: Koa.Middleware = async (ctx, next) => {
     const now = new Date()
+    // do it now so it's available for returning plugins
+    ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     await next()
     console.debug(ctx.status, ctx.method, ctx.originalUrl)
     const conn = getConnection(ctx) // collect reference before close
     // don't await, as we don't want to hold the middlewares chain
-    ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     ctx.state.completed.then(() => {
         if (ctx.state.dontLog || ctx.state.considerAsGui && !logGui.get()) return
         if (dontLogNet.compiled()(ctx.ip)) return
