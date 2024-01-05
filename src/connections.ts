@@ -3,7 +3,6 @@
 import { Socket } from 'net'
 import events from './events'
 import { Context } from 'koa'
-import _ from 'lodash'
 
 export class Connection {
     readonly started = new Date()
@@ -11,10 +10,6 @@ export class Connection {
     got = 0
     outSpeed?: number
     inSpeed?: number
-    op?: 'download' | 'upload' | 'browsing' | 'cache'
-    opTotal?: number
-    opProgress?: number
-    opOffset?: number
     ctx?: Context
     country?: string
     private _cachedIp?: string
@@ -59,12 +54,21 @@ export function socket2connection(socket: Socket) {
 }
 
 export function getConnection(ctx: Context) {
-    return _.find(all, { ctx })
+    return ctx.state.connection
 }
 
-export function updateConnection(conn: Connection, change: Partial<Connection>) {
-    if (change.opOffset !== undefined)
-        change.opProgress = change.opOffset || 0
+export function updateConnectionForCtx(ctx: Context ) {
+    const conn = getConnection(ctx)
+    if (conn)
+        updateConnection(conn, { ctx })
+}
+
+export function updateConnection(conn: Connection, change: Partial<Connection>, changeState?: true | Partial<Context['state']>) {
+    const { ctx } = conn
+    if (changeState && ctx) {
+        Object.assign(ctx.state, changeState)
+        Object.assign(change, { ctx })
+    }
     Object.assign(conn, change)
     events.emit('connectionUpdated', conn, change)
 }

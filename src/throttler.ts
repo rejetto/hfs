@@ -5,7 +5,7 @@ import Koa from 'koa'
 import { ThrottledStream, ThrottleGroup } from './ThrottledStream'
 import { defineConfig } from './config'
 import { getOrSet, isLocalHost } from './misc'
-import { Connection, updateConnection } from './connections'
+import { Connection, getConnection, updateConnection } from './connections'
 import _ from 'lodash'
 import events from './events'
 
@@ -39,7 +39,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
             group.updateLimit(v))
         return { group, count:0, destroy: unsub }
     })
-    const conn = ctx.state.connection
+    const conn = getConnection(ctx)
     if (!conn) throw 'assert throttler connection'
 
     const ts = conn[SymThrStr] = new ThrottledStream(ipGroup.group, conn[SymThrStr])
@@ -50,11 +50,9 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     const update = _.debounce(() => {
         const ts = conn[SymThrStr] as ThrottledStream
         const outSpeed = roundSpeed(ts.getSpeed())
-        updateConnection(conn, {
-            outSpeed,
-            sent: conn.socket.bytesWritten,
-            opProgress: conn.opTotal && ((conn.opOffset || 0) + (ts.getBytesSent() - offset) / conn.opTotal),
-        })
+        const { state } = ctx
+        updateConnection(conn, { outSpeed, sent: conn.socket.bytesWritten },
+            { opProgress: state.opTotal && ((state.opOffset || 0) + (ts.getBytesSent() - offset) / state.opTotal) })
         /* in case this stream stands still for a while (before the end), we'll have neither 'sent' or 'close' events,
         * so who will take care to updateConnection? This artificial next-call will ensure just that */
         clearTimeout(conn[SymTimeout])

@@ -11,7 +11,7 @@ import { CFG, Dict, makeMatcher, matches } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'
-import { updateConnection } from './connections'
+import { getConnection, updateConnection } from './connections'
 import { getCurrentUsername } from './auth'
 import { sendErrorPage } from './errorPages'
 import { Readable } from 'stream'
@@ -78,14 +78,12 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         ctx.fileStats = // legacy pre-0.51
         ctx.state.fileStats = stats
         ctx.status = HTTP_OK
-        if (ctx.fresh) {
-            updateConnection(ctx.state.connection, { ctx, op: 'cache' })
+        if (ctx.fresh)
             return ctx.status = HTTP_NOT_MODIFIED
-        }
         if (content !== undefined)
             return ctx.body = content
         const { size } = stats
-        const range = getRange(ctx, size)
+        const range = applyRange(ctx, size)
         ctx.body = createReadStream(source, range)
         if (ctx.vfsNode)
             monitorAsDownload(ctx, size, range?.start)
@@ -98,18 +96,18 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
 export function monitorAsDownload(ctx: Koa.Context, size?: number, offset?: number) {
     if (!(ctx.body instanceof Readable))
         throw 'incompatible body'
-    const { connection } = ctx.state
+    const conn = getConnection(ctx)
     ctx.body.on('end', () =>
-        updateConnection(connection, { opProgress: 1 }) )
-    updateConnection(connection, {
-        ctx, // this will cause 'path' to be sent as well
+        updateConnection(conn, {}, { opProgress: 1 }) )
+    updateConnection(conn, {}, {
         op: 'download',
+        opProgress: 0,
         opTotal: size,
         opOffset: size && offset && (offset / size),
     })
 }
 
-export function getRange(ctx: Koa.Context, totalSize: number) {
+export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length) {
     ctx.set('Accept-Ranges', 'bytes')
     const { range } = ctx.request.header
     if (!range) {

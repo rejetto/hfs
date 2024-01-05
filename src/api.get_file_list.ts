@@ -10,7 +10,7 @@ import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { descriptIon, DESCRIPT_ION, getCommentFor, areCommentsEnabled } from './comments'
 import { basename } from 'path'
-import { getConnection, updateConnection } from './connections'
+import { updateConnectionForCtx } from './connections'
 import { ctxAdminAccess } from './adminApis'
 import { dontOverwriteUploading } from './upload'
 
@@ -41,7 +41,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
     const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
     const props = { can_archive, can_upload, can_delete, can_overwrite, accept: node.accept, can_comment }
     ctx.state.browsing = uri.replace(/\/{2,}/g, '/')
-    updateConnection(getConnection(ctx)!, { ctx })
+    updateConnectionForCtx(ctx)
     if (!list)
         return { ...props, list: await asyncGeneratorToArray(produceEntries()) }
     setTimeout(async () => {

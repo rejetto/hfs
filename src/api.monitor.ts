@@ -2,13 +2,15 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { pendingPromise, shortenAgent, typedEntries, wait } from './misc'
+import { HTTP_NOT_MODIFIED, pendingPromise, shortenAgent, typedEntries, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
 import { getCurrentUsername } from './auth'
 
-const apis: ApiHandlers = {
+const sent = Symbol('sent')
+
+export default {
 
     async disconnect({ ip, port, wait }) {
         const match = _.matches({ ip, port })
@@ -25,7 +27,6 @@ const apis: ApiHandlers = {
     },
 
     get_connections({}, ctx) {
-        const sent = Symbol('sent')
         const list = new SendListReadable({
             addAtStart: getConnections().map(c =>
                 !ignore(c) && (c[sent] = serializeConnection(c))).filter(Boolean),
@@ -52,8 +53,6 @@ const apis: ApiHandlers = {
                     Object.assign(change, fromCtx(change.ctx))
                     change.ctx = undefined
                 }
-                if (change.opProgress)
-                    change.opProgress = _.round(change.opProgress, 3)
                 // avoid sending non-changes
                 const last = conn[sent]
                 for (const [k, v] of typedEntries(change))
@@ -72,7 +71,7 @@ const apis: ApiHandlers = {
                 v: (socket.remoteFamily?.endsWith('6') ? 6 : 4),
                 got: socket.bytesRead,
                 sent: socket.bytesWritten,
-                ..._.pick(conn, ['op', 'opTotal', 'opOffset', 'opProgress', 'country']),
+                country: conn.country,
                 started,
                 secure: (secure || undefined) as boolean|undefined, // undefined will save some space once json-ed
                 ...fromCtx(conn.ctx),
@@ -86,10 +85,15 @@ const apis: ApiHandlers = {
                 user: getCurrentUsername(ctx),
                 agent: shortenAgent(ctx.get('user-agent')),
                 archive: s.archive,
-                upload: s.uploadProgress,
                 ...s.browsing ? { op: 'browsing', path: decodeURIComponent(s.browsing) }
                     : s.uploadPath ? { op: 'upload',path: decodeURIComponent(s.uploadPath) }
-                    : { path: decodeURIComponent(ctx.path) }
+                        : {
+                            op: s.op === 'download' && ctx.status === HTTP_NOT_MODIFIED ? 'cache' : s.op,
+                            path: decodeURIComponent(ctx.path)
+                        },
+                opProgress: _.round(s.opProgress, 3),
+                opTotal: s.opTotal,
+                opOffset: s.opOffset,
             }
         }
     },
@@ -106,9 +110,7 @@ const apis: ApiHandlers = {
             await wait(1000)
         }
     },
-}
-
-export default apis
+} satisfies ApiHandlers
 
 function ignore(conn: Connection) {
     return false //conn.socket && isLocalHost(conn)
