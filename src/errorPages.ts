@@ -9,6 +9,7 @@ export function getErrorSections() {
     return declaredErrorPages
 }
 
+// to be used with errors whose recipient is possibly human
 export async function sendErrorPage(ctx: Koa.Context, code: number) {
     ctx.type = 'text'
     ctx.set('content-disposition', '') // reset ctx.attachment

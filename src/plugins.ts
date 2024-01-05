@@ -132,7 +132,8 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), MIME_AUTO)
             return
         }
-        await next()
+        if (!ctx.body)
+            await next()
     }
     for (const [id,f] of Object.entries(after))
         try { await f() }

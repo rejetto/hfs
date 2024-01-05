@@ -141,3 +141,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         }
     }
 }
+declare module "koa" {
+    interface DefaultState {
+        browsing?: string // for admin/monitoring
+    }
+}
