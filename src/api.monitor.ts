@@ -89,7 +89,7 @@ const apis: ApiHandlers = {
                 upload: s.uploadProgress,
                 ...s.browsing ? { op: 'browsing', path: decodeURIComponent(s.browsing) }
                     : s.uploadPath ? { op: 'upload',path: decodeURIComponent(s.uploadPath) }
-                    : (ctx.fileSource || s.archive) && { path: decodeURIComponent(ctx.path) }
+                    : { path: decodeURIComponent(ctx.path) }
             }
         }
     },
