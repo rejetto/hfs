@@ -356,8 +356,12 @@ export function xlate(input: any, table: Record<string, any>) {
     return table[input] ?? input
 }
 
-export function ipLocalHost(ip: string) {
+export function isIpLocalHost(ip: string) {
     return ip === '::1' || ip.endsWith('127.0.0.1')
+}
+
+export function isIpLan(ip: string) {
+    return /^(?:|:10\..*|172\.(1[6-9]|2\d|3[01])\..*|192\.168\..*)$/.test(ip)
 }
 
 export function ipForUrl(ip: string) {

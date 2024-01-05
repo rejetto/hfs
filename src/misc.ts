@@ -14,7 +14,7 @@ import { Readable } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST } from './const'
-import { ipLocalHost, makeMatcher } from './cross'
+import { isIpLocalHost, makeMatcher } from './cross'
 import { isIPv6 } from 'net'
 
 type ProcessExitHandler = (signal:string) => any
@@ -58,7 +58,7 @@ export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: 
 
 export function isLocalHost(c: Connection | Koa.Context | string) {
     const ip = typeof c === 'string' ? c : c.socket.remoteAddress // don't use Context.ip as it is subject to proxied ips, and that's no use for localhost detection
-    return ip && ipLocalHost(ip)
+    return ip && isIpLocalHost(ip)
 }
 
 export function makeNetMatcher(mask: string, emptyMaskReturns=false) {

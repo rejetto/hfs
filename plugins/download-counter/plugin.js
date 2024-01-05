@@ -1,7 +1,7 @@
 // other plugins can use ctx.state.download_counter_ignore to mark downloads that shouldn't be counted
 
 exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
-exports.version = 5.1 // count files in archive
+exports.version = 5.11 // change in API
 exports.apiRequired = 8.3
 
 exports.config = {
@@ -46,10 +46,10 @@ exports.init = async api => {
         unload: () => save.flush(), // we may have pending savings
         middleware: ctx => () => { // callback = execute after other middlewares are done
             if (ctx.status >= 300 || ctx.state.download_counter_ignore || ctx.state.considerAsGui || ctx.state.includesLastByte === false) return
-            if (!(ctx.vfsNode || api.getConfig('archives') && ctx.state.archive)) return
+            if (!(ctx.state.vfsNode || api.getConfig('archives') && ctx.state.archive)) return
             ctx.state.completed.then(() => {
                 const key = uri2key(ctx.path)
-                const entries = ctx.vfsNode ? [key]
+                const entries = ctx.state.vfsNode ? [key]
                     : ctx.state.originalStream?.getArchiveEntries?.().filter(x => x.at(-1) !== '/').map(x => key + uri2key(x))
                 if (!entries) return
                 for (const k of entries)

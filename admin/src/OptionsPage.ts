@@ -6,7 +6,7 @@ import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
-import { Dict, MAX_TILE_SIZE, REPO_URL, ipLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
+import { Dict, MAX_TILE_SIZE, REPO_URL, isIpLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
     CFG } from './misc'
 import { iconTooltip, InLink, LinkBtn, modifiedSx, wikiLink, useBreakpoint } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
@@ -244,7 +244,7 @@ export default function OptionsPage() {
         if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
         await apiCall('set_config', { values: changes })
-        if (newPort !== undefined || changes.listen_interface && !(loc.hostname === 'localhost' && ipLocalHost(changes.listen_interface))) {
+        if (newPort !== undefined || changes.listen_interface && !(loc.hostname === 'localhost' && isIpLocalHost(changes.listen_interface))) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
             const host = ipForUrl(changes.listen_interface || loc.hostname)
             // we have to jump protocol also in case of random port, because we want people to know their port while using GUI

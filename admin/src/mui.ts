@@ -6,7 +6,7 @@ import { SxProps } from '@mui/system'
 import { createElement as h, FC, forwardRef, Fragment, ReactNode, useCallback, useState } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
-import { formatPerc, prefix, WIKI_URL } from '../../src/cross'
+import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
 import { dontBotherWithKeys, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
@@ -229,7 +229,8 @@ export function useToggleButton(iconBtn: (state:boolean) => Omit<IconBtnProps, '
 }
 
 export function Country({ code, ip, def, long, short }: { code: string, ip?: string, def?: ReactNode, long?: boolean, short?: boolean }) {
-    const { data } = useBatch(code === undefined && ip && ip2countryBatch, ip, { delay: 100 }) // query if necessary
+    const good = ip && !isIpLocalHost(ip) && !isIpLan(ip)
+    const { data } = useBatch(code === undefined && good && ip2countryBatch, ip, { delay: 100 }) // query if necessary
     code ||= data || ''
     const country = code && _.find(COUNTRIES, { code })
     return !country ? h(Fragment, {}, def) : h(Tooltip, {

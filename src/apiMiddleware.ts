@@ -91,6 +91,7 @@ export class SendListReadable<T> extends Readable {
         if (!bufferTime)
             bufferTime = 200
         this.processBuffer = _.debounce(() => {
+            if (!this.buffer.length) return
             this.push(this.buffer)
             this.buffer = []
         }, bufferTime, { maxWait: bufferTime })
