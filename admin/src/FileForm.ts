@@ -131,8 +131,8 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
             isLink ? { k: 'url', label: "URL", lg: 12, required: true }
                 : { k: 'source', label: "Load content from disk", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
                     placeholder: "no",
-                    helperText: values.source ? "Content from this path will be listed, but you can also add more"
-                        : "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk.",
+                    helperText: !values.source ? "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk."
+                        : isDir ? "Content from this path on disk will be listed, but you can also add more" : undefined,
             },
             !isLink && { k: 'id', comp: LinkField, statusApi, xs: 12 },
             perm('can_read', "Who can see but not download will be asked to login"),
