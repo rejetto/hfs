@@ -3,7 +3,8 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, MIME_AUTO, PLUGINS_PUB_URI } from './const'
+import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, IS_WINDOWS, MIME_AUTO,
+    PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
@@ -132,7 +133,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), MIME_AUTO)
             return
         }
-        if (!ctx.body)
+        if (ctx.body === undefined && ctx.status === HTTP_NOT_FOUND) // no response was provided by plugins, so we'll do
             await next()
     }
     for (const [id,f] of Object.entries(after))
