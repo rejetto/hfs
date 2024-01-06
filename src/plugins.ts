@@ -111,9 +111,16 @@ async function initPlugin<T>(pl: any, more?: T) {
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     const after: Dict<CallMeAfter> = {}
     // run middleware plugins
+    let lastStatus = ctx.status
+    let lastBody = ctx.body
     await Promise.all(mapPlugins(async (pl, id) => {
         try {
             const res = await pl.middleware?.(ctx)
+            if (lastStatus !== ctx.status || lastBody !== ctx.body) {
+                console.debug("plugin changed response", id)
+                lastStatus = ctx.status
+                lastBody = ctx.body
+            }
             if (res === true)
                 console.debug("plugin blocked request", ctx.pluginBlockedRequest = id)
             if (typeof res === 'function')
