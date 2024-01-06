@@ -10,7 +10,6 @@ import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_ } from
 import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
-import { toast } from "./dialog"
 import { agentIcons } from './LogsPage'
 import { state, useSnapState } from './state'
 
@@ -197,8 +196,8 @@ function Connections() {
                 h(IconBtn, {
                     icon: LinkOff,
                     title: "Disconnect",
-                    onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port']))
-                        .then(() => toast("Disconnection requested")),
+                    doneMessage: true,
+                    onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])).then(x => x.result > 0)
                 }),
                 h(IconBtn, {
                     icon: Block,

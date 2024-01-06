@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { pendingPromise, shortenAgent, wait } from './misc'
+import { shortenAgent, wait } from './misc'
 import { ApiHandlers } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
@@ -11,18 +11,12 @@ import { SendListReadable } from './SendList'
 
 export default {
 
-    async disconnect({ ip, port, wait }) {
+    async disconnect({ ip, port }) {
         const match = _.matches({ ip, port })
-        const c = getConnections().find(c => match(getConnAddress(c)))
-        if (c) {
-            const waiter = pendingPromise<void>()
-            c.socket.end(waiter.resolve)
-            c.ctx?.res.end()
-            c.ctx?.req.socket.end('')
-            if (wait)
-                await waiter
-        }
-        return { result: Boolean(c) }
+        const found = getConnections().filter(c => match(getConnAddress(c)))
+        for (const c of found)
+            c.socket.destroy()
+        return { result: found.length }
     },
 
     get_connections({}, ctx) {

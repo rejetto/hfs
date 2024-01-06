@@ -7,7 +7,7 @@ import _ from 'lodash'
 import {  httpString } from './util-http'
 import { Resolver } from 'dns/promises'
 import { isIP } from 'net'
-import { baseUrl, getIps, getServerStatus } from './listen'
+import { getIps, getServerStatus } from './listen'
 import { exec } from 'child_process'
 import { IS_MAC, IS_WINDOWS } from './const'
 
