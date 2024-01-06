@@ -7,7 +7,7 @@ import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, IS_WINDOWS, MIME_AUTO, P
 import * as Const from './const'
 import Koa from 'koa'
 import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
-    PendingPromise, pendingPromise, same, tryJson, wait, waitFor, wantArray, watchDir } from './misc'
+    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir } from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
@@ -234,7 +234,7 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> 
     }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
 
-type PluginMiddleware = (ctx:Koa.Context) => void | Stop | CallMeAfter
+type PluginMiddleware = (ctx:Koa.Context) => Promisable<void | Stop | CallMeAfter>
 type Stop = true
 type CallMeAfter = ()=>any
 
