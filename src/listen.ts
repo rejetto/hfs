@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, ipForUrl, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
+import { debounceAsync, ipForUrl, makeNetMatcher, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
 import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -262,16 +262,17 @@ export async function getServerStatus(includeSrv=true) {
 
 const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
+const isLinkLocal = makeNetMatcher('169.254.0.0/16|FE80::/16')
+
 export async function getIps(external=true) {
     const ips = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
-        nets && !ignore.test(name)
-        && v4first(onlyTruthy(nets.map(net => !net.internal && net.address)))[0] // for each interface we consider only 1 address
-    )).flat()
+        nets && !ignore.test(name) && nets.map(net => !net.internal && net.address)
+    ).flat())
     const e = external && defaultBaseUrl.externalIp
     if (e && !ips.includes(e))
         ips.unshift(e)
-    const ret = v4first(ips)
-        .filter((x,i,a) => a.length > 1 || !x.startsWith('169.254')) // 169.254 = dhcp failure on the interface, but keep it if it's our only one
+    const noLinkLocal = ips.filter(x => !isLinkLocal(x))
+    const ret = v4first(noLinkLocal.length ? noLinkLocal : ips)
     defaultBaseUrl.localIp = ret[0] || ''
     return ret
 
