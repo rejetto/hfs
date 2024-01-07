@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, LIST, onOff, removeStarting } from './misc'
+import { asyncGeneratorToReadable, LIST, onOff, removeStarting, wantArray } from './misc'
 import events from './events'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND } from './const'
 import _ from 'lodash'
@@ -86,11 +86,35 @@ export class SendListReadable<T> extends Readable {
     protected lastError: string | number | undefined
     protected buffer: any[] = []
     protected processBuffer: _.DebouncedFunc<any>
-    constructor({ addAtStart, doAtStart, bufferTime, onEnd }:{ bufferTime?: number, addAtStart?: T[], doAtStart?: SendListFunc<T>, onEnd?: SendListFunc<T> }={}) {
+    protected sent: undefined | T[]
+    constructor({ addAtStart, doAtStart, bufferTime, onEnd, diff }:
+        { bufferTime?: number, addAtStart?: T[], doAtStart?: SendListFunc<T>, onEnd?: SendListFunc<T>, diff?: boolean }={}) {
         super({ objectMode: true, read(){} })
         if (!bufferTime)
             bufferTime = 200
+        if (diff)
+            this.sent = []
         this.processBuffer = _.debounce(() => {
+            const {sent} = this
+            if (sent)
+                this.buffer = this.buffer.filter(([cmd, a, b]) => {
+                    if (cmd === LIST.add)
+                        return sent.push(...wantArray(a))
+                    if (cmd === LIST.remove)
+                        return _.remove(sent, a)
+                    if (cmd !== LIST.update)
+                        return true
+                    const found = _.find(sent, a) as any
+                    if (!found) return
+                    for (const k in b)
+                        if (b[k] === found[k])
+                            delete b[k]
+                        else {
+                            found[k] = b[k]
+                            b[k] ??= null // go and delete it, remotely
+                        }
+                    return !_.isEmpty(b)
+                })
             if (!this.buffer.length) return
             this.push(this.buffer)
             this.buffer = []

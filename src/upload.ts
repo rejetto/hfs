@@ -12,7 +12,7 @@ import { Callback, dirTraversal, escapeHTML, loadFileAttr, storeFileAttr, try_ }
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getFreeDiskSync } from './util-os'
-import { socket2connection, updateConnection, updateConnectionForCtx } from './connections'
+import { updateConnection, updateConnectionForCtx } from './connections'
 import { roundSpeed } from './throttler'
 import { getCurrentUsername } from './auth'
 import { setCommentFor } from './comments'
@@ -131,9 +131,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         let lastGotTime = 0
         const opTotal = reqSize + resume
         Object.assign(ctx.state, { op: 'upload', opTotal, opOffset: resume / opTotal, opProgress: 0 })
-        const conn = socket2connection(ctx.socket)
+        const conn = updateConnectionForCtx(ctx)
         if (!conn) return
-        updateConnectionForCtx(ctx)
         const h = setInterval(() => {
             const now = Date.now()
             const got = ret.bytesWritten

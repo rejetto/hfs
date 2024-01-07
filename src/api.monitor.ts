@@ -2,13 +2,11 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { HTTP_NOT_MODIFIED, pendingPromise, shortenAgent, typedEntries, wait } from './misc'
+import { pendingPromise, shortenAgent, wait } from './misc'
 import { ApiHandlers, SendListReadable } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
 import { getCurrentUsername } from './auth'
-
-const sent = Symbol('sent')
 
 export default {
 
@@ -28,38 +26,27 @@ export default {
 
     get_connections({}, ctx) {
         const list = new SendListReadable({
+            diff: true,
             addAtStart: getConnections().map(c =>
-                !ignore(c) && (c[sent] = serializeConnection(c))).filter(Boolean),
-            onEnd() {
-                for (const c of getConnections())
-                    delete c[sent]
-            }
+                !ignore(c) && serializeConnection(c)).filter(Boolean),
         })
         type Change = Partial<Omit<Connection,'ip'>>
         list.props({ you: ctx.ip })
         return list.events(ctx, {
             connection(conn: Connection) {
                 if (ignore(conn)) return
-                list.add(conn[sent] = serializeConnection(conn))
+                list.add(serializeConnection(conn))
             },
             connectionClosed(conn: Connection) {
                 if (ignore(conn)) return
                 list.remove(getConnAddress(conn))
-                delete conn[sent]
             },
             connectionUpdated(conn: Connection, change: Change) {
-                if (ignore(conn) || ignore(change as any) || !conn[sent]) return
+                if (conn.socket.closed || ignore(conn) || ignore(change as any) || _.isEmpty(change)) return
                 if (change.ctx) {
                     Object.assign(change, fromCtx(change.ctx))
                     change.ctx = undefined
                 }
-                // avoid sending non-changes
-                const last = conn[sent]
-                for (const [k, v] of typedEntries(change))
-                    if (v === last[k])
-                        delete change[k]
-                if (_.isEmpty(change)) return
-                Object.assign(last, change)
                 list.update(getConnAddress(conn), change)
             },
         })
@@ -88,10 +75,10 @@ export default {
                 ...s.browsing ? { op: 'browsing', path: decodeURIComponent(s.browsing) }
                     : s.uploadPath ? { op: 'upload',path: decodeURIComponent(s.uploadPath) }
                         : {
-                            op: s.op === 'download' && ctx.status === HTTP_NOT_MODIFIED ? 'cache' : s.op,
-                            path: decodeURIComponent(ctx.path)
+                            op: !s.considerAsGui && s.op || undefined,
+                            path: decodeURIComponent(ctx.originalUrl)
                         },
-                opProgress: _.round(s.opProgress, 3),
+                opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
                 opTotal: s.opTotal,
                 opOffset: s.opOffset,
             }

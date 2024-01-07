@@ -149,7 +149,7 @@ function Connections() {
                                 icon: row.archive ? FolderZip : row.op === 'upload' ? Upload : Download,
                                 progress: row.opProgress ?? row.opOffset,
                                 offset: row.opOffset,
-                                addTitle: row.op === 'cache' ? "Cache hit" : (row.opTotal && ("Total: " + formatBytes(row.opTotal))),
+                                addTitle: row.opTotal && ("Total: " + formatBytes(row.opTotal)),
                                 sx: { mr: 1 }
                             }),
                             row.archive ? h(Box, {}, value, h(Box, { fontSize: 'x-small', color: 'text.secondary' }, row.archive))

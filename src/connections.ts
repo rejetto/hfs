@@ -61,6 +61,7 @@ export function updateConnectionForCtx(ctx: Context ) {
     const conn = getConnection(ctx)
     if (conn)
         updateConnection(conn, { ctx })
+    return conn
 }
 
 export function updateConnection(conn: Connection, change: Partial<Connection>, changeState?: true | Partial<Context['state']>) {
