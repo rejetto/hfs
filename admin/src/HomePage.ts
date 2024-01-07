@@ -70,7 +70,7 @@ export default function HomePage() {
         ),
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
         !account?.adminActualAccess && entry('', md("On <u>localhost</u> you don't need to login"),
-            SOLUTION_SEP, "to access from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
+            SOLUTION_SEP, "to access Admin-panel from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
         proxyWarning(cfg, status) && entry('warning', proxyWarning(cfg, status),
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure and you can ", h(Button, {
@@ -90,7 +90,7 @@ export default function HomePage() {
                 h('li',{}, md(`configure FRP to connect to HFS <u>not</u> with 127.0.0.1 (safe, but you won't see users' IPs)`)),
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
             )),
-        entry('', h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "Get support")),
+        entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
         pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
         status.updatePossible === 'local' ? h(Btn, {
                 icon: UpdateIcon,
