@@ -85,7 +85,8 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         else
             bl.addAddress(address)
     }
-    return (ip: string) => neg !== bl.check(ip)
+    return (ip: string) =>
+        neg !== bl.check(parseAddress(ip))
 }
 
 function parseAddress(s: string) {
