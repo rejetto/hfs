@@ -43,7 +43,6 @@ Additionally, you have the following folders:
 - tests: automated tests with related resources
 
 # Known problems
-- 
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
 
 # Guidelines

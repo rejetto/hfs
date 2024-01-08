@@ -81,7 +81,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
 
     if (downloadTotal)  // preserve this info
         ctx.response.length = downloadTotal
-    ts.once('end', () => // in case of compressed response, we offer calculation of real size
+    ts.once('close', () => // in case of compressed response, we offer calculation of real size
         ctx.state.length = ts.getBytesSent() - offset)
 }
 
