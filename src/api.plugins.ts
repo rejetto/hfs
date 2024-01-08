@@ -7,7 +7,7 @@ import {
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { Callback, newObj, onOff, waitFor } from './misc'
+import { Callback, HTTP_CONFLICT, newObj, onOff, waitFor } from './misc'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
@@ -136,14 +136,17 @@ const apis: ApiHandlers = {
             || new ApiError(HTTP_SERVER_ERROR)
     },
 
-    async update_plugin({ id }) {
+    async update_plugin({ id, branch }) {
         const found = getPluginInfo(id)
         if (!found)
             return new ApiError(HTTP_NOT_FOUND)
-        await checkDependencies(found)
+        const online = await readOnlineCompatiblePlugin(found.repo) // branch returned by readOnlineCompatiblePlugin is possibly fresher, so we use that
+        if (!online)
+            return new ApiError(HTTP_CONFLICT)
+        await checkDependencies(online)
         const enabled = isPluginEnabled(id)
         await stopPlugin(id)
-        await downloadPlugin(found.repo, { overwrite: true })
+        await downloadPlugin(found.repo, { branch: online.branch, overwrite: true })
         if (enabled)
             startPlugin(id).then() // don't wait, in case it fails to start
         return {}

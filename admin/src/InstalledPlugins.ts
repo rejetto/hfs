@@ -52,7 +52,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 disabled: row.updated,
                 size,
                 async onClick() {
-                    await apiCall('update_plugin', { id }, { timeout: false }).catch(e => {
+                    await apiCall('update_plugin', { id, branch: row.branch }, { timeout: false }).catch(e => {
                         throw e.code !== HTTP_FAILED_DEPENDENCY ? e
                             : Error("Failed dependencies: " + e.cause?.map((x: any) => prefix(`plugin "`, x.id || x.repo, `" `) + x.error).join('; '))
                     })
