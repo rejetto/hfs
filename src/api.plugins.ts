@@ -129,9 +129,11 @@ const apis: ApiHandlers = {
         })
     },
 
-    async download_plugin({ id, branch }) {
+    async download_plugin({ id, branch, stop }) {
         await checkDependencies(await readOnlinePlugin(id, branch))
         const folder = await downloadPlugin(id, { branch })
+        if (stop) // be sure this is not automatically started
+            await stopPlugin(folder)
         return (await waitFor(() => getPluginInfo(folder), { timeout: 5000 }))
             || new ApiError(HTTP_SERVER_ERROR)
     },
