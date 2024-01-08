@@ -95,3 +95,8 @@ export function focusSelector(selector: string, root=document) {
         return true
     }
 }
+
+export function disableConsoleDebug() {
+    const was = console.debug
+    console.debug = (...args) => (window as any).DEV && was(...args)
+}

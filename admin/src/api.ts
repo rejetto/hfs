@@ -80,6 +80,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                     wantArray(data).forEach(msg => {
                         if (!Array.isArray(msg))
                             return console.debug('illegal list packet', msg)
+                        console.debug('LIST', ...msg)
                         const [op, par] = msg
                         if (op === LIST.ready) {
                             apply.flush()
