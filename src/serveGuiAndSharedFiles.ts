@@ -15,7 +15,7 @@ import { allowAdmin, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, filterMapGenerator } from './misc'
+import { asyncGeneratorToReadable, filterMapGenerator, pathEncode } from './misc'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -115,7 +115,7 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
         const isFolder = await nodeIsDirectory(el)
         return !folders && isFolder ? undefined
-            : prepend + getNodeName(el) + (isFolder ? '/' : '') + '\n'
+            : prepend + pathEncode(getNodeName(el)) + (isFolder ? '/' : '') + '\n'
     }))
 }
 

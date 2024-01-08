@@ -1,9 +1,10 @@
 import { t, useI18N } from './i18n'
-import { dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working } from './misc'
+import { dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
+    pathEncode } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
-import { DirEntry, pathEncode, state } from './state'
+import { DirEntry, state } from './state'
 import { deleteFiles } from './menu'
 import { Link } from 'react-router-dom'
 import { fileShow, getShowType } from './show'

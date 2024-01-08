@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { FRONTEND_OPTIONS, getHFS, hIcon, objSameKeys, typedKeys } from './misc'
+import { FRONTEND_OPTIONS, getHFS, hIcon, objSameKeys, pathEncode, typedKeys } from './misc'
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
     stopSearch?: ()=>void,
@@ -136,11 +136,6 @@ export class DirEntry {
     }
 }
 export type DirList = DirEntry[]
-
-export function pathEncode(s: string) {
-    return encodeURI(s).replace(/#/g, encodeURIComponent)
-}
-//unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
 
 const exts = {
     image: ['jpeg','jpg','gif','png','webp','svg'],

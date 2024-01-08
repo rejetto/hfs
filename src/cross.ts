@@ -379,6 +379,12 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
     return res.filter(x => x.status === 'fulfilled').map((x: any) => x.value as T)
 }
 
+export function pathEncode(s: string) {
+    return encodeURI(s).replace(/#/g, encodeURIComponent)
+}
+//unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
+
+
 // run at a specific point in time, also solving the limit of setTimeout, which doesn't work with +32bit delays
 export function runAt(ts: number, cb: Callback) {
     let cancel = false
