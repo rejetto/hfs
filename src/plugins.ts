@@ -332,6 +332,8 @@ function watchPlugin(id: string, path: string) {
 
     async function onUninstalled() {
         await stop()
+        const was = getPluginInfo(id)
+        if (!was) return
         delete availablePlugins[id]
         events.emit('pluginUninstalled', id)
     }
