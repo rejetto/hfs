@@ -2,7 +2,7 @@
 
 import { applyParentToChild, getNodeName, hasPermission, masksCouldGivePermission, nodeIsDirectory,
     statusCodeForMissingPerm, urlToNode, VfsNode, walkNode } from './vfs'
-import { ApiError, ApiHandler, SendListReadable } from './apiMiddleware'
+import { ApiError, ApiHandler } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, pattern2filter, WHO_NO_ONE } from './misc'
@@ -13,6 +13,7 @@ import { basename } from 'path'
 import { updateConnectionForCtx } from './connections'
 import { ctxAdminAccess } from './adminApis'
 import { dontOverwriteUploading } from './upload'
+import { SendListReadable } from './SendList'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string }
 

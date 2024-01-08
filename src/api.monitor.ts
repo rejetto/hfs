@@ -3,10 +3,11 @@
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
 import { pendingPromise, shortenAgent, wait } from './misc'
-import { ApiHandlers, SendListReadable } from './apiMiddleware'
+import { ApiHandlers } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
 import { getCurrentUsername } from './auth'
+import { SendListReadable } from './SendList'
 
 export default {
 

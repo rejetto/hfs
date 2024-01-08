@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
+import { ApiError, ApiHandlers } from './apiMiddleware'
 import { configFile, defineConfig, getWholeConfig, setConfig } from './config'
 import { getBaseUrlOrDefault, getIps, getServerStatus, getUrls } from './listen'
 import {
@@ -38,6 +38,7 @@ import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
 import { ip2country } from './geo'
 import { roots } from './roots'
+import { SendListReadable } from './SendList'
 
 export const adminApis: ApiHandlers = {
 

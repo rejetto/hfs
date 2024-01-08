@@ -8,11 +8,12 @@ import {
 import _ from 'lodash'
 import assert from 'assert'
 import { Callback, newObj, onOff, waitFor } from './misc'
-import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
+import { ApiError, ApiHandlers } from './apiMiddleware'
 import events from './events'
 import { rm } from 'fs/promises'
 import { downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, searchPlugins } from './github'
 import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
+import { SendListReadable } from './SendList'
 
 const apis: ApiHandlers = {
 

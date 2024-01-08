@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
+import { ApiError, ApiHandlers } from './apiMiddleware'
 import _ from 'lodash'
 import glob from 'fast-glob'
 import { readFile, rm, writeFile } from 'fs/promises'
@@ -8,6 +8,7 @@ import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cons
 import { tryJson } from './misc'
 import { code2file, file2code } from './lang'
 import EMBEDDED_TRANSLATIONS from './langs/embedded'
+import { SendListReadable } from './SendList'
 
 const apis: ApiHandlers = {
 

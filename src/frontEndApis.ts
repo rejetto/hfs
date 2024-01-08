@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { ApiError, ApiHandlers, SendListReadable } from './apiMiddleware'
+import { ApiError, ApiHandlers } from './apiMiddleware'
 import { get_file_list } from './api.get_file_list'
 import * as api_auth from './api.auth'
 import events from './events'
@@ -16,6 +16,7 @@ import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
 import { apiAssertTypes } from './misc'
 import { getCommentFor, setCommentFor } from './comments'
+import { SendListReadable } from './SendList'
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
