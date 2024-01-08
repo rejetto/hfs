@@ -106,7 +106,7 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 field: 'country',
                 valueGetter: ({ row }) => row.extra?.country,
                 hidden: !showCountry,
-                hideUnder: 'lg',
+                hideUnder: 'xl',
                 renderCell: ({ value }) => h(Country, { code: value, def: '-' }),
             },
             {
@@ -114,21 +114,21 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 headerName: "Username",
                 flex: .3,
                 maxWidth: 200,
-                hideUnder: 'lg',
+                hideUnder: 'xl',
             },
             tsColumn,
             {
                 field: 'method',
                 headerName: "Method",
                 width: 80,
-                hideUnder: 'lg',
+                hideUnder: 'xl',
             },
             {
                 field: 'status',
                 headerName: "Code",
                 type: 'number',
                 width: 70,
-                hideUnder: 'lg',
+                hideUnder: 'xl',
             },
             {
                 field: 'length',
