@@ -12,6 +12,11 @@ import { useDebounce } from 'usehooks-ts'
 import md from './md'
 import { TextEditor } from './TextEditor';
 
+const names: any = {
+    top: "Top of HTML Body",
+    bottom: "Bottom of HTML Body",
+}
+
 export default function CustomHtmlPage() {
     const { data, reload } = useApiEx<{ sections: Dict<string> }>('get_custom_html')
     const [section, setSection] = useState('')
@@ -25,7 +30,7 @@ export default function CustomHtmlPage() {
             setSection(_.findKey(all, Boolean) || keys?.[0] || '') // prefer any key with content
         return keys.map(x => ({
             value: x,
-            label: (prefix('HTTP ', HTTP_MESSAGES[x as any]) || _.startCase(x)) + (all[x]?.trim() ? ' *' : '')
+            label: (names[x] || prefix('HTTP ', HTTP_MESSAGES[x as any]) || _.startCase(x)) + (all[x]?.trim() ? ' *' : '')
         }))
     }, [useDebounce(all, 500)])
     const anyChange = useMemo(() => !_.isEqualWith(saved, all, (a,b) => !a && !b || undefined),
