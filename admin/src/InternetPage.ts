@@ -80,6 +80,7 @@ export default function InternetPage() {
                             options: countryOptions,
                             renderOption: (v: any) => h(Country, { code: v.value, long: true }),
                             clearable: true,
+                            getError: (v: any) => values[CFG.geo_allow] && !v?.length && "Cannot be empty",
                         },
                         values[CFG.geo_allow] != null && {
                             k: CFG.geo_allow_unknown,
