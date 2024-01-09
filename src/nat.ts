@@ -51,7 +51,7 @@ const getPublicIps = debounceAsync(async () => {
                 svc = { type: 'http', url: svc }
             console.debug("trying ip service", svc.url || svc.name)
             if (svc.type === 'http')
-                return httpString(svc.url)
+                return httpString(svc.url, { timeout: 5_000 })
             if (svc.type !== 'dns') throw "unsupported"
             const resolver = new Resolver({ timeout: 2_000 })
             resolver.setServers(svc.ips)

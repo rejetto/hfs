@@ -32,7 +32,7 @@ export default function InternetPage() {
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     type GetNat = Awaited<ReturnType<typeof getNatInfo>>
-    const nat = useApiEx<GetNat>('get_nat')
+    const nat = useApiEx<GetNat>('get_nat', {}, { timeout: 20 })
     const { data } = nat
     const port = data?.internalPort
     const wrongMap = data?.mapped && data.mapped.private.port !== port && data.mapped.private.port
