@@ -143,6 +143,8 @@
         "clipboard_list": "Elementi negli appunti",
 
         "Auto-play": "Auto-play",
-        "autoplay_seconds": "Secondi di attesa mostrando immagini"
+        "autoplay_seconds": "Secondi di attesa mostrando immagini",
+        "Select file": "Seleziona file",
+        "Select all": "Seleziona tutto"
     }
 }

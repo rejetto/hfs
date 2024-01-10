@@ -151,6 +151,8 @@
         "clipboard_list": "Items in clipboard:",
 
         "Auto-play": "Auto-play",
-        "autoplay_seconds": "Seconds to wait on images"
+        "autoplay_seconds": "Seconds to wait on images",
+        "Select file": "Select file",
+        "Select all": "Select all"
     }
 }

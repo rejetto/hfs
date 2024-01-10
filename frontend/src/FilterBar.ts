@@ -23,7 +23,7 @@ export function FilterBar() {
             value: all,
             tabIndex,
             'aria-hidden': !showFilter,
-            'aria-label': "Select all",
+            'aria-label': t`Select all`,
             onContextMenu(ev) {
                 ev.preventDefault()
                 select(undefined)
