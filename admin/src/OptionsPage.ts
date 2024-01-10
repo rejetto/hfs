@@ -188,7 +188,7 @@ export default function OptionsPage() {
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
 
-            h(Divider, {}, "Log", h(Box, { fontSize: 'small' })),
+            h(Section, { title: "Log" }),
             { k: 'log', label: logLabels.log, md: 3, helperText: "Requests are logged here" },
             { k: 'error_log', label: logLabels.error_log, md: 3, placeholder: "errors go to main log",
                 helperText: "If you want errors in a different log"
@@ -203,7 +203,7 @@ export default function OptionsPage() {
             { k: 'log_api', sm: 4, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
             { k: 'log_ua', sm: 4, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information" },
 
-            h(Divider, {}, "Front-end", h(Box, { fontSize: 'small' }, "Following options affect only the front-end")),
+            h(Section, { title: "Front-end", subtitle: "Following options affect only the front-end" }),
             { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 4,
                 options: { "by clicking on file name": true, "by dedicated button": false  }
             },
@@ -257,6 +257,10 @@ export default function OptionsPage() {
         recalculateChanges()
         toast("Changes applied", 'success')
     }
+}
+
+function Section({ title, subtitle }: { title: string, subtitle?: string }) {
+    return h(Divider, {}, h('h3', { style: { margin: 0 } }, title), h(Box, { fontSize: 'small' }, subtitle))
 }
 
 function recalculateChanges() {

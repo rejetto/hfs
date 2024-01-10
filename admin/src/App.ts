@@ -99,7 +99,7 @@ function StickyBar({ title, openMenu }: { title?: string, openMenu: ()=>void }) 
                 'aria-label': "menu",
                 onClick: openMenu
             }, h(Menu)),
-            title,
+            h(Box, { component: 'h2', m: 0 }, title),
         )
     )
 }
