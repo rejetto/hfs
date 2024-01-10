@@ -44,6 +44,10 @@ img.flag {
 
 ol, ul { margin-top: .2em; margin-bottom: .2em; padding-left: 1.5em; }
 
+h2.MuiDialogTitle-root { /* less padding */
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
 .dialog-alert .MuiDialogContent-root {
   max-width: 45em;
   padding: .5em 1em;
