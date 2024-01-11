@@ -101,8 +101,10 @@ function Dialog(d:DialogOptions) {
                         className: 'dialog-icon dialog-closer',
                         onClick() { closeDialog() }
                     }, d.closableContent),
-                d.icon && h('div', { className: 'dialog-icon dialog-type' + (typeof d.icon === 'string' ? ' dialog-icon-text' : '') },
-                    componentOrNode(d.icon)),
+                d.icon && h('div', {
+                    className: 'dialog-icon dialog-type' + (typeof d.icon === 'string' ? ' dialog-icon-text' : ''),
+                    'aria-hidden': true,
+                }, componentOrNode(d.icon)),
                 h('div', { className: 'dialog-title' }, componentOrNode(d.title)),
                 h('div', { className: 'dialog-content' }, h(d.Content || 'div'))
             )

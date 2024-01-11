@@ -54,6 +54,7 @@ function Routed() {
         navigate(path || '/')
     })
     return h(Fragment, {},
+        h('h1', { hidden: true }, "Admin-panel"),
         !large && h(StickyBar, { title, openMenu: () => setOpen(true) }),
         !large && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
             h(MainMenu, {

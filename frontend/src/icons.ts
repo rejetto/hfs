@@ -50,7 +50,7 @@ document.fonts.ready.then(async ()=> {
 })
 
 interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
-export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
+export const Icon = memo(({ name, alt='', className='', ...props }: IconProps) => {
     if (!name) return null
     const [emoji, clazz=name] = SYS_ICONS[name] || []
     const { iconsReady } = useSnapState()

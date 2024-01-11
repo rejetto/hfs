@@ -16,8 +16,8 @@ export function Breadcrumbs() {
     const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev += x + '/', decodeURIComponent(x)]) : []
     const {t} = useI18N()
     return h(Fragment, {},
-        h(Breadcrumb, { label: hIcon('parent', { title: t`parent folder` }), path: parent }),
-        h(Breadcrumb, { label: hIcon('home', { title: t`home` }), path: base, current: !currentPath }),
+        h(Breadcrumb, { label: hIcon('parent'), title: t`parent folder`, path: parent }),
+        h(Breadcrumb, { label: hIcon('home'), title: t`home`, path: base, current: !currentPath }),
         breadcrumbs.map(([path,label], i) =>
             h(Breadcrumb, {
                 key: path,
@@ -28,7 +28,7 @@ export function Breadcrumbs() {
     )
 }
 
-function Breadcrumb({ path, label, current }:{ current?: boolean, path: string, label?: string | ReactElement }) {
+function Breadcrumb({ path, label, current, title }:{ current?: boolean, path: string, label?: string | ReactElement, title?: string }) {
     const PAD = '\u00A0\u00A0' // make small elements easier to tap. Don't use min-width 'cause it requires display-inline that breaks word-wrapping
     if (typeof label === 'string' && label.length < 3)
         label = PAD + label + PAD
@@ -38,6 +38,7 @@ function Breadcrumb({ path, label, current }:{ current?: boolean, path: string, 
     return h(Link, {
         className: 'breadcrumb',
         to: path || '/',
+        title,
         async onClick(ev) {
             if (!current) return
             if (typeof label !== 'string')

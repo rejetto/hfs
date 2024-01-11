@@ -82,6 +82,7 @@ export function alertDialog(msg: ReactElement | string | Error, type:AlertType='
         title: t(_.capitalize(type)),
         icon: '!',
         onClose: ret.resolve,
+        dialogProps: { role: 'alertdialog' },
         Content
     }))
 

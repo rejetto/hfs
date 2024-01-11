@@ -205,6 +205,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         h(CustomCode, { name: 'entry', props: { entry }, ifEmpty: () => h(Fragment, {},
             showFilter && h(Checkbox, {
                 disabled: isLink,
+                'aria-label': entry.name,
                 value: selected[uri],
                 onChange(v){
                     if (v)

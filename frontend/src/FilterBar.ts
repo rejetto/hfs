@@ -22,6 +22,7 @@ export function FilterBar() {
         h(Checkbox, {
             value: all,
             tabIndex,
+            'aria-label': "Select all",
             onContextMenu(ev) {
                 ev.preventDefault()
                 select(undefined)

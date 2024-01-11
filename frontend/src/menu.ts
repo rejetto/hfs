@@ -40,7 +40,7 @@ export function MenuPanel() {
     const list = useMemo(() => Object.keys(selected).map(s => s.slice(ofs, s.endsWith('/') ? -1 : Infinity)).join('*'), [selected])
 
     // avoid useless dom changes while we are still waiting for necessary data
-    const [changingButton, setChangingButton] = useState('')
+    const [changingButton, setChangingButton] = useState<'' | 'upload' | 'delete'>('')
     useEffect(() => {
         if (can_upload !== undefined)
             setChangingButton(showFilter && can_delete ? 'delete' : (can_upload || qs.length > 0) ? 'upload' : '')
@@ -68,8 +68,9 @@ export function MenuPanel() {
                 id: 'upload-button',
                 icon: 'upload',
                 label: t`Upload`,
-                tabIndex: changingButton === 'upload' ? undefined : -1,
-                className: changingButton === 'upload' ? 'show-sliding ' + (uploading ? 'ani-working' : '') : 'before-sliding',
+                disabled: !changingButton,
+                tabIndex: changingButton ? undefined : -1,
+                className: changingButton ? 'show-sliding ' + (uploading ? 'ani-working' : '') : 'before-sliding',
                 onClick: showUpload,
             }),
             h(MenuButton, showFilter && can_delete ? {
