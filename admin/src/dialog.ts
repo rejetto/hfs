@@ -54,7 +54,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
         },
             d.icon && componentOrNode(d.icon),
             h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
-            h(IconBtn, { icon: Close, title: "close", onClick: () => closeDialog() }),
+            h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,

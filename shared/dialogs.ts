@@ -10,7 +10,7 @@ export interface DialogOptions {
     onClose?: (v?:any)=> any,
     className?: string,
     icon?: string | ReactNode | FunctionComponent,
-    closableContent?: string | ReactNode,
+    closableProps?: any,
     reserveClosing?: true
     noFrame?: boolean
     title?: ReactNode | FunctionComponent
@@ -25,7 +25,7 @@ export interface DialogOptions {
 const dialogs = proxy<DialogOptions[]>([])
 
 export const dialogsDefaults: Partial<DialogOptions> = {
-    closableContent: 'x',
+    closableProps: { children: 'x', 'aria-label': "Close", },
     padding: true,
 }
 
@@ -99,8 +99,9 @@ function Dialog(d:DialogOptions) {
                 d.closable || d.closable===undefined
                     && h('button', {
                         className: 'dialog-icon dialog-closer',
-                        onClick() { closeDialog() }
-                    }, d.closableContent),
+                        onClick() { closeDialog() },
+                        ...d.closableProps,
+                    }),
                 d.icon && h('div', {
                     className: 'dialog-icon dialog-type' + (typeof d.icon === 'string' ? ' dialog-icon-text' : ''),
                     'aria-hidden': true,
