@@ -17,7 +17,7 @@ export default function LogsPage() {
     const files = typedKeys(logLabels)
     const { pause, pauseButton } = usePauseButton()
     const [showApi, showApiButton] = useToggleButton(v => ({
-        title: v ? "hide APIs" : "show APIs",
+        title: "Show/hide APIs",
         icon: SmartToy,
         sx: { rotate: v ? '0deg' : '180deg' },
         disabled: tab >= 2,

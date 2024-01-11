@@ -1,6 +1,6 @@
 import { createElement as h, Fragment } from 'react'
 import { DirList, state, useSnapState } from './state'
-import { MenuButton } from './menu'
+import { Btn } from './menu'
 import { t, useI18N } from './i18n'
 import { alertDialog } from './dialog'
 import { useNavigate } from 'react-router-dom'
@@ -18,9 +18,9 @@ export function ClipBar() {
         return null
     const there = dirname(clip[0].uri) + '/'
     return h('div', { id: 'clipBar' },
-        h(MenuButton, { label: t`Cancel clipboard`, icon: 'close', onClick: cancel }),
-        h(MenuButton, { label: t('to_clipboard_source', "To folder"), icon: 'parent', onClick: goBack, disabled: here === there }),
-        h(MenuButton, { label: t`Paste`, icon: 'paste', onClick: paste, disabled: here === there || !props?.can_upload }),
+        h(Btn, { label: t`Cancel clipboard`, icon: 'close', onClick: cancel }),
+        h(Btn, { label: t('to_clipboard_source', "To folder"), icon: 'parent', onClick: goBack, disabled: here === there }),
+        h(Btn, { label: t`Paste`, icon: 'paste', onClick: paste, disabled: here === there || !props?.can_upload }),
         h('div', { onClick: show, style: { flex: 1 } },
             clip.length === 1 ? clip[0].name : t('n_items', { n: clip.length }, "{n,plural, one{# item} other{# items}}") ),
     )

@@ -6,7 +6,7 @@ import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
-import { MenuButton } from './menu'
+import { Btn } from './menu'
 import { hIcon, HTTP_NOT_ACCEPTABLE, working } from './misc'
 import { t } from './i18n'
 import { CustomCode } from './components'
@@ -21,7 +21,7 @@ export default function showUserPanel() {
             return h('div', { id: 'user-panel' },
                 h('div', {}, t`Username`, ': ', snap.username),
                 h(CustomCode, { name: 'userPanelAfterInfo' }),
-                snap.canChangePassword && h(MenuButton, {
+                snap.canChangePassword && h(Btn, {
                     icon: 'password',
                     label: t`Change password`,
                     id: 'change-password',
@@ -48,7 +48,7 @@ export default function showUserPanel() {
                         }
                     }
                 }),
-                h(MenuButton, {
+                h(Btn, {
                     icon: 'logout',
                     label: t`Logout`,
                     id: 'logout',

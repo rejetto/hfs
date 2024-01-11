@@ -1,13 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { DirList, state, useSnapState } from './state'
+import { state, useSnapState } from './state'
 import { ComponentPropsWithoutRef, createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
 import { defaultPerms, err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted, VfsPerms, working } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
-import { useNavigate } from 'react-router-dom'
 import _ from 'lodash'
 import { closeDialog } from '@hfs/shared/dialogs'
 import { showUpload, uploadState } from './upload'
@@ -48,7 +47,7 @@ export function MenuPanel() {
     return h('div', { id: 'menu-panel' },
         h('div', { id: 'menu-bar' },
             h(LoginButton),
-            h(MenuButton, {
+            h(Btn, {
                 id: 'select-button',
                 icon: 'check',
                 label: t`Select`,
@@ -58,7 +57,7 @@ export function MenuPanel() {
                     state.showFilter = !showFilter
                 }
             }),
-            h(MenuButton, changingButton === 'delete' ? {
+            h(Btn, changingButton === 'delete' ? {
                 id: 'delete-button',
                 icon: 'delete',
                 label: t`Delete`,
@@ -73,7 +72,7 @@ export function MenuPanel() {
                 className: changingButton ? 'show-sliding ' + (uploading ? 'ani-working' : '') : 'before-sliding',
                 onClick: showUpload,
             }),
-            h(MenuButton, showFilter && can_delete ? {
+            h(Btn, showFilter && can_delete ? {
                 id: 'cut-button',
                 icon: 'cut',
                 label: t`Cut`,
@@ -81,7 +80,7 @@ export function MenuPanel() {
                     cut(onlyTruthy(Object.keys(selected).map(uri => _.find(state.list, { uri }))))
                 }
             } : getSearchProps()),
-            h(MenuButton, {
+            h(Btn, {
                 id: 'options-button',
                 icon: 'settings',
                 label: t`Options`,
@@ -157,7 +156,7 @@ interface MenuButtonProps extends ComponentPropsWithoutRef<"button"> {
     onClickAnimation?: boolean
 }
 
-export function MenuButton({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: MenuButtonProps) {
+export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: MenuButtonProps) {
     const [working, setWorking] = useState(false)
     return h('button', {
         title: tooltip || label,
@@ -168,6 +167,7 @@ export function MenuButton({ icon, label, tooltip, toggled, onClick, onClickAnim
             Promise.resolve(onClick()).finally(() => setWorking(false))
         },
         className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
+        ...toggled !== undefined && { 'aria-pressed': toggled },
         ...rest,
     }, hIcon(icon), h('label', {}, label) )
 }
@@ -182,13 +182,13 @@ export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: Men
             ev.preventDefault()
             await confirmDialog(confirm, { href, title: t`Confirm`, ...confirmOptions })
         }
-    }, h(MenuButton, rest))
+    }, h(Btn, rest))
 }
 
 function LoginButton() {
     const snap = useSnapState()
     const {t} = useI18N()
-    return MenuButton(snap.username ? {
+    return Btn(snap.username ? {
         id: 'user-button',
         toggled: true,
         icon: 'user',

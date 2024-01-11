@@ -207,7 +207,7 @@ export function LinkBtn({ ...rest }: LinkProps) {
 
 export function usePauseButton() {
     const [go, btn] = useToggleButton(v => ({
-        title: v ? "Pause" : "Resume",
+        title: "Pause",
         icon: v ? PauseCircle : PlayCircle,
         sx: { rotate: v ? '180deg' : '0deg' },
     }), true)
@@ -221,6 +221,7 @@ export function useToggleButton(iconBtn: (state:boolean) => Omit<IconBtnProps, '
     const el = h(IconBtn, {
         size: 'small',
         color: state ? 'primary' : 'default',
+        'aria-pressed': state,
         ...props,
         sx: { transition: 'all .5s', ...props.sx },
         onClick: toggle,
