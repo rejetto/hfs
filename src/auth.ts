@@ -4,6 +4,8 @@ import { SRPParameters, SRPRoutines, SRPServerSession } from 'tssrp6a'
 import { Context } from 'koa'
 import { prepareState } from './middlewares'
 import { srpClientPart } from './srp'
+import { getOrSet } from './cross'
+import { createHash } from 'node:crypto'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
@@ -18,12 +20,18 @@ export async function srpStep1(account: Account) {
     return { step1, salt, pubKey: String(step1.B) } // cast to string cause bigint can't be jsonized
 }
 
+const cache: any = {}
 export async function srpCheck(username: string, password: string) {
     const account = getAccount(username)
     if (!account?.srp || !password) return
-    const { step1, salt, pubKey } = await srpStep1(account)
-    const client = await srpClientPart(username, password, salt, pubKey)
-    return await step1.step2(client.A, client.M1).then(() => account, () => {})
+    const k = createHash('sha256').update(username + password + account.srp).digest("hex")
+    const good = await getOrSet(cache, k, async () => {
+        const { step1, salt, pubKey } = await srpStep1(account)
+        const client = await srpClientPart(username, password, salt, pubKey)
+        setTimeout(() => delete cache[k], 60_000)
+        return step1.step2(client.A, client.M1).then(() => 1, () => 0)
+    })
+    return good ? account : undefined
 }
 
 export function getCurrentUsername(ctx: Context): string {
