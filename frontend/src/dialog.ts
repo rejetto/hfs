@@ -9,8 +9,8 @@ import { t } from './i18n'
 import { err2msg, isCtrlKey, pendingPromise } from './misc'
 export * from '@hfs/shared/dialogs'
 
-interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string, trim?: boolean }
-export async function promptDialog(msg: string, { def, type, trim=true, ...rest }:PromptOptions={}) : Promise<string | null> {
+interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string, trim?: boolean, helperText?: ReactNode }
+export async function promptDialog(msg: string, { def, type, helperText, trim=true, ...rest }:PromptOptions={}) : Promise<string | null> {
     const textarea = type === 'textarea' && type
     return new Promise(resolve => newDialog({
         className: 'dialog-prompt',
@@ -58,6 +58,7 @@ export async function promptDialog(msg: string, { def, type, trim=true, ...rest 
                         return go()
                 }
             }),
+            helperText && h('div', { style: { fontSize: 'smaller', marginTop: '.2em' } }, helperText),
             h('div', { style: { textAlign: 'right', marginTop: '.8em' } },
                 h('button', {  onClick: go }, t`Continue`)),
         )
