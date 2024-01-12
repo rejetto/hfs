@@ -149,6 +149,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
     const to = from + 10
     return h('div', { id: 'paging' },
         h('button', {
+            title: t('go_first', "Go to first item"),
             className: !current ? 'toggled' : undefined,
             onClick() { pageChange(0) },
         }, hIcon('to_start')),
@@ -162,6 +163,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
                     }, shrink && !(i%10) ? (i/10) + 'K' : i * pageSize) )
         ),
         h('button', {
+            title: t('go_last', "Go to last item"),
             className: atBottom ? 'toggled' : undefined,
             onClick(){ pageChange(nPages-1, true) }
         }, hIcon('to_end')),

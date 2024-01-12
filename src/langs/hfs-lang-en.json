@@ -153,6 +153,8 @@
         "Auto-play": "Auto-play",
         "autoplay_seconds": "Seconds to wait on images",
         "Select file": "Select file",
-        "Select all": "Select all"
+        "Select all": "Select all",
+        "go_first": "Go to first item",
+        "go_last": "Go to last item"
     }
 }

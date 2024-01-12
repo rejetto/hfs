@@ -145,6 +145,8 @@
         "Auto-play": "Auto-play",
         "autoplay_seconds": "Secondi di attesa mostrando immagini",
         "Select file": "Seleziona file",
-        "Select all": "Seleziona tutto"
+        "Select all": "Seleziona tutto",
+        "go_first": "Vai all'inizio",
+        "go_last": "Vai alla fine"
     }
 }
