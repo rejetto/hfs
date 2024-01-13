@@ -169,7 +169,7 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
         className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
         ...toggled !== undefined && { 'aria-pressed': toggled },
         ...rest,
-    }, hIcon(icon), h('label', {}, label) )
+    }, hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }
 
 export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: MenuButtonProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
@@ -190,7 +190,7 @@ function LoginButton() {
     const {t} = useI18N()
     return Btn(snap.username ? {
         id: 'user-button',
-        toggled: true,
+        className: 'toggled', // without aria-pressed
         icon: 'user',
         label: snap.username,
         onClick: showUserPanel

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { findDefined, getHFS } from './misc'
-import { createElement as h, Fragment } from 'react'
+import { createElement as h } from 'react'
 import { proxy, useSnapshot } from 'valtio'
 
 const translations = getHFS().lang || {} // all dictionaries
@@ -19,7 +19,7 @@ export function useI18N() {
 
 export function I18Nprovider({ embedded='en', ...props }) {
     state.embedded = embedded
-    return h(Fragment, props)
+    return h('div', { lang: state.langs[0] || embedded, ...props })
 }
 
 // If one of the keys is an "id", that should be the first. If one of the keys should work as a fallback, that should be the last. Use 'fallback' parameter if you don't want the fallback to work as a key.

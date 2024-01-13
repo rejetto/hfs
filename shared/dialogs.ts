@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef } from 'react'
+import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef,
+    HTMLAttributes} from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
 import { isPrimitive, objSameKeys } from '.'
 
@@ -55,13 +56,14 @@ function isDescendant(child: Node | null, parent: Node) {
     return false
 }
 
-export function Dialogs() {
+export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     const snap = useSnapshot(dialogs)
     useEffect(() => {
         document.body.style.overflow = snap.length ? 'hidden' : ''
     }, [snap.length])
     return h(Fragment, {},
-        snap.length > 0 && snap.map(d =>
+        h('div', { 'aria-hidden': snap.length > 0, ...props }),
+        snap.map(d =>
             h(Dialog, { key: d.$id, ...(d as DialogOptions) })))
 }
 

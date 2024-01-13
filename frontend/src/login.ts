@@ -70,9 +70,10 @@ export async function loginDialog() {
                 },
                     h(CustomCode, { name: 'beforeLogin' }),
                     h('div', { className: 'field' },
-                        h('label', { htmlFor: 'username' }, t`Username`),
+                        h('label', { htmlFor: 'login_username' }, t`Username`),
                         h('input', {
                             ref: usrRef,
+                            id: 'login_username',
                             name: 'username',
                             autoComplete: 'username',
                             required: true,
@@ -80,9 +81,10 @@ export async function loginDialog() {
                         }),
                     ),
                     h('div', { className: 'field' },
-                        h('label', { htmlFor: 'password' }, t`Password`),
+                        h('label', { htmlFor: 'login_password' }, t`Password`),
                         h('input', {
                             ref: pwdRef,
+                            id: 'login_password',
                             name: 'password',
                             type: 'password',
                             autoComplete: 'current-password',

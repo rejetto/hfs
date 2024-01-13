@@ -97,6 +97,17 @@ export function KeepInScreen({ margin, ...props }: any) {
     return h('div', { ref, style: { maxHeight, overflow: 'auto' }, ...props })
 }
 
+export function AriaOnly({ children }: { children?: ReactNode }) {
+    return children ? h('div', { className: 'ariaOnly' }, children) : null
+}
+
+export function noAriaTitle(title: string) {
+    return {
+        onMouseEnter(ev: any) {
+            ev.target.title = title
+        }
+    }
+}
 const isMac = navigator.platform.match('Mac')
 export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key

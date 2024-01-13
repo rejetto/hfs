@@ -50,7 +50,7 @@ document.fonts.ready.then(async ()=> {
 })
 
 interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
-export const Icon = memo(({ name, alt='', className='', ...props }: IconProps) => {
+export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
     if (!name) return null
     const [emoji, clazz=name] = SYS_ICONS[name] || []
     const { iconsReady } = useSnapState()
@@ -61,7 +61,7 @@ export const Icon = memo(({ name, alt='', className='', ...props }: IconProps) =
     const isFontIcon = iconsReady && clazz
     className += nameIsFile ? ' file-icon' : isFontIcon ? ` fa-${clazz}` : ' emoji-icon'
     return h('span',{
-        'aria-label': alt,
+        ...alt ? { 'aria-label': alt } : { 'aria-hidden': true },
         role: 'img',
         ...props,
         ...nameIsFile ? { style: { backgroundImage: `url(${JSON.stringify(name)})`, ...props?.style } } : undefined,

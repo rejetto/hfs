@@ -43,7 +43,7 @@ interface MenuEntry {
 }
 
 export const mainMenu: MenuEntry[] = [
-    { path: '', icon: Home, label: "Home", title: "Admin panel", comp: HomePage },
+    { path: '', icon: Home, label: "Home", comp: HomePage },
     { path: 'fs', icon: AccountTree, label: "Shared files", comp: VfsPage },
     { path: 'accounts', icon: ManageAccounts, comp: AccountsPage },
     { path: 'options', icon: Settings, comp: OptionsPage },

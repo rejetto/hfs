@@ -87,7 +87,8 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
             h(IconBtn, {
                 icon: ContentCut,
                 disabled: isRoot || movingFile === file.id,
-                title: "You can also use drag & drop to move items",
+                title: "Cut (you can also use drag & drop to move items)",
+                'aria-label': "Cut",
                 onClick() {
                     state.movingFile = file.id
                     alertDialog(h(Box, {}, "Now that this is marked for moving, click on the destination folder, and then the paste button ", h(ContentPaste)), 'info')

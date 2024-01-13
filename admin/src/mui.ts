@@ -104,9 +104,10 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
         title = disabled
     if (link)
         onClick = () => window.open(link)
+    disabled = Boolean(loading || progress || disabled)
     let ret: ReturnType<FC> = h(IconButton, {
             ref,
-            disabled: Boolean(loading || progress || disabled),
+            disabled,
             ...rest,
             sx: { height: 'fit-content', ...sx },
             async onClick(...args) {
@@ -125,8 +126,10 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
         }),
         h(icon)
     )
+    if (disabled)
+        ret = h('span', { role: 'button', 'aria-label': title + ', disabled' }, ret)
     if (title)
-        ret = h(Tooltip, { title, ...tooltipProps, children: h('span',{},ret) })
+        ret = h(Tooltip, { title, ...tooltipProps, children: ret })
     return ret
 })
 
@@ -180,8 +183,10 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
             }
         }
     })
+    if (disabled)
+        ret = h('span', { role: 'button', 'aria-label': title + ', disabled' }, ret)
     if (title)
-        ret = h(Tooltip, { title, ...tooltipProps, children: h('span',{},ret) })
+        ret = h(Tooltip, { title, ...tooltipProps, children: ret })
     return ret
 }
 

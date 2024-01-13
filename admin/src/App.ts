@@ -14,24 +14,26 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
-import { xlate } from './misc'
+import { AriaOnly, xlate } from './misc'
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
             h(LocalizationProvider, { dateAdapter: AdapterDayjs },
                 h(LoginRequired, {},
-                    h(HashRouter, {}, h(Routed)) ) ) ) )
+                    h(HashRouter, {},
+                        h(Dialogs, {
+                            style: {
+                                display: 'flex', flexDirection: 'column',
+                                minHeight: '100%', flex: 1,
+                                maxWidth: '100%',
+                            }
+                        }, h(Routed) ))) )))
 }
 
 function ApplyTheme(props:any) {
     return h(Box, {
-        sx: {
-            bgcolor: 'background.default', color: 'text.primary',
-            display: 'flex', flexDirection: 'column',
-            minHeight: '100%', flex: 1,
-            maxWidth: '100%',
-        },
+        sx: { bgcolor: 'background.default', color: 'text.primary', flex: 1, },
         ...props
     })
 }
@@ -54,7 +56,7 @@ function Routed() {
         navigate(path || '/')
     })
     return h(Fragment, {},
-        h('h1', { hidden: true }, "Admin-panel"),
+        h(AriaOnly, {}, h('h1', {}, "Admin-panel")),
         !large && h(StickyBar, { title, openMenu: () => setOpen(true) }),
         !large && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
             h(MainMenu, {
@@ -84,7 +86,6 @@ function Routed() {
                     h(Route, { path: 'edit', element: h(ConfigFilePage) })
                 )
             ),
-            h(Dialogs)
         )
     )
 }

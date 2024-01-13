@@ -1,9 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link, useNavigate } from 'react-router-dom'
-import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
+    useId} from 'react'
 import { useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -187,11 +188,11 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
-    const { uri, isFolder } = entry
+    const { uri, isFolder, name } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
     const containerDir = isFolder || isLink ? '' : uri.substring(0, (uri.lastIndexOf('/') || -1) +1)
-    const containerName = containerDir && entry.n.slice(0, -entry.name.length)
+    const containerName = containerDir && entry.n.slice(0, -name.length)
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
@@ -201,11 +202,13 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const onClick = !isLink && !entry.web && file_menu_on_link && fileMenu || undefined
     const small = useWindowSize().width < 800
     const showingButton = !file_menu_on_link || isFolder && small
+    const ariaId = useId()
+    const ariaProps = { id: ariaId, 'aria-label': prefix(name + ' (', isFolder ? "Folder" : entry.web ? "Web page" : isLink ? "Link" : '', ')') }
     return h('li', { className, label: separator },
         h(CustomCode, { name: 'entry', props: { entry }, ifEmpty: () => h(Fragment, {},
             showFilter && h(Checkbox, {
                 disabled: isLink,
-                'aria-label': entry.name,
+                'aria-labelledby': ariaId,
                 value: selected[uri],
                 onChange(v){
                     if (v)
@@ -215,15 +218,15 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
             }),
             h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
                 isFolder && !entry.web ? h(Fragment, {}, // internal navigation, use Link component
-                        h(Link, { to: uri }, ico, entry.n.slice(0,-1)),
+                        h(Link, { to: uri, ...ariaProps }, ico, entry.n.slice(0,-1)), // don't use name, as we want to include whole path in case of search
                         // popup button is here to be able to detect link-wrapper:hover
                         file_menu_on_link && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
                     )
-                    : containerDir ? h(Fragment, {},
+                    : containerName ? h(Fragment, {},
                         h('a', { href: uri, onClick, tabIndex: -1 }, ico),
                         h(Link, { to: containerDir, className:'container-folder', tabIndex: -1 }, containerName),
-                        h('a', { href: uri, onClick }, entry.name)
-                    ) : h('a', { href: uri, onClick }, ico, entry.name),
+                        h('a', { href: uri, onClick, ...ariaProps }, name)
+                    ) : h('a', { href: uri, onClick, ...ariaProps }, ico, name),
             ),
             h(CustomCode, { name: 'afterEntryName', props: { entry } }),
             entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
@@ -267,6 +270,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
         h(EntrySize, { s }),
         time && h('span', {
             className: 'entry-ts',
+            'aria-hidden': true,
             onClick() { // mobile has no hover
                 if (shortTs)
                     alertDialog(t`Full timestamp:` + "\n" + time.toLocaleString()).then()
@@ -278,9 +282,6 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
     )
 })
 
-const EntrySize = memo(({ s }: { s: DirEntry['s']  }) => {
-    if (s === undefined) return null
-    const a = formatBytes(s).split(' ')
-    return h('span', { className: 'entry-size', title: s.toLocaleString() }, a[0],
-        h('span', { className: 'entry-size-unit' }, a[1]))
-})
+const EntrySize = memo(({ s }: { s: DirEntry['s']  }) =>
+    s === undefined ? null
+        : h('span', { className: 'entry-size', ...noAriaTitle(s.toLocaleString()) }, formatBytes(s)))

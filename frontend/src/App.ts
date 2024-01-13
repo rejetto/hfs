@@ -22,11 +22,12 @@ function App() {
     return h(I18Nprovider, {},
         h(BrowserRouter, {},
             h(NavigationExtractor, {},
-                h(Routes, {},
-                    h(Route, { path:'*', element: h(BrowseFiles) })
+                h(Dialogs, {},
+                    h(Routes, {},
+                        h(Route, { path:'*', element: h(BrowseFiles) })
+                    ),
                 ),
             ),
-            h(Dialogs),
         )
     )
 }
