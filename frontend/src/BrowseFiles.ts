@@ -23,10 +23,13 @@ export function BrowseFiles() {
     useFetchList()
     const { error } = useSnapState()
     const { props, tile_size=0 } = useSnapState()
-    const propsDropFiles = useMemo(() => acceptDropFiles(files =>
-        props?.can_upload ? enqueue(files.map(file => ({ file })))
-            : alertDialog(t("Upload not available"), 'warning') ),
-        [props])
+    const propsDropFiles = useMemo(() => ({
+        id: 'files-dropper',
+        ...acceptDropFiles(files =>
+            props?.can_upload ? enqueue(files.map(file => ({ file })))
+                : alertDialog(t("Upload not available"), 'warning')
+        ),
+    }), [props])
     if (!useAuthorized())
         return h(CustomCode, { name: 'unauthorized',
             ifEmpty: () => h('h1', {
