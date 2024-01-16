@@ -31,18 +31,19 @@ export default function VfsPage() {
         const ret = status?.urls.https || status?.urls.http
         return b && !ret.includes(b) ? [b, ...ret] : ret
     }, [status])
+    const [hideForm, setHideForm] = useState(false)
 
-    function selectNone() {
-        state.selectedFiles = []
+    function closeForm() {
+        setHideForm(true)
     }
 
-    const sideContent = !selectedFiles.length ? null
+    const sideContent = !selectedFiles.length || hideForm ? null
         : selectedFiles.length === 1 ? h(FileForm, {
                 addToBar: isSideBreakpoint && [
                     h(Box, { flex: 1 }),
                     // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
                     vfsNodeIcon(selectedFiles[0] as VfsNode),
-                    h(IconBtn, { icon: Close, title: "Close", onClick: selectNone })
+                    h(IconBtn, { icon: Close, title: "Close", onClick: closeForm })
                 ],
                 statusApi,
                 file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
@@ -69,7 +70,7 @@ export default function VfsPage() {
             title: selectedFiles.length > 1 ? "Multiple selection" :
                 h(Flex, {}, vfsNodeIcon(selectedFiles[0] as VfsNode), selectedFiles[0].name || "Home"),
             Content: () => sideContent,
-            onClose: selectNone,
+            onClose: closeForm,
         })
         setCloseDialog(() => close)
         return close
@@ -124,7 +125,7 @@ export default function VfsPage() {
         h(Grid, { item: true, [sideBreakpoint]: 7, lg: 6, xl: 5 },
             h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
             h(VfsMenuBar, { statusApi }),
-            vfs && h(VfsTree, { id2node, statusApi }) ),
+            vfs && h(VfsTree, { id2node, statusApi, onSelect: () => setHideForm(false) }) ),
         isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth:'100%' },
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent) ))

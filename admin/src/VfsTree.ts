@@ -8,7 +8,7 @@ import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriv
 } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
-import { onlyTruthy, Who, with_ } from './misc'
+import { Callback, onlyTruthy, Who, with_ } from './misc'
 import { iconTooltip } from './mui'
 import { apiCall, ApiObject } from './api'
 import { alertDialog, confirmDialog } from './dialog'
@@ -17,7 +17,7 @@ import _ from 'lodash'
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
 
-export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
+export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject, onSelect: Callback }) {
     const { vfs, selectedFiles } = useSnapState()
     const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
@@ -42,6 +42,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
             if (typeof ids === 'string') return // shut up ts
             setSelected(ids)
             state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
+            onSelect()
         }
     }, recur(vfs as Readonly<VfsNode>))
 
