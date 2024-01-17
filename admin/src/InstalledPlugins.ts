@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiList } from './api'
-import { createElement as h, Fragment, ReactNode, useMemo } from 'react'
+import { createElement as h, Fragment, ReactNode, useEffect } from 'react'
 import { Box, Link, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
 import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
@@ -15,12 +15,16 @@ import { PLUGIN_ERRORS } from './PluginsPage'
 import { Btn, IconBtn } from './mui'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
-    const { list, updateEntry, error, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
-    const sorted = useMemo(() => _.sortBy(list, x => (x.started ? '0' : '1') + x.id), [list])
+    const { list, updateEntry, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
+    useEffect(() => {
+        if (!initializing)
+            updateList(list =>
+                _.sortBy(list, x => (x.started ? '0' : '1') + x.id))
+    }, [initializing]);
     const size = 'small'
     return h(DataTable, {
         error: xlate(error, PLUGIN_ERRORS),
-        rows: sorted,
+        rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         initializing,
         disableColumnSelector: true,
         disableColumnMenu: true,

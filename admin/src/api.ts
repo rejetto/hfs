@@ -159,9 +159,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
     }
 
     function updateList(cb: (toModify: Draft<typeof list>) => void) {
-        setList(produce(list, x => {
-            cb(x)
-        }))
+        setList(produce(list, cb))
     }
 
     function updateEntry(search: T, change: T) {
