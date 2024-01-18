@@ -159,7 +159,8 @@ interface MenuButtonProps extends ComponentPropsWithoutRef<"button"> {
 export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: MenuButtonProps) {
     const [working, setWorking] = useState(false)
     return h('button', {
-        title: tooltip || label,
+        title: label + prefix(' - ', tooltip),
+        'aria-label': label,
         onClick() {
             if (!onClick) return
             if (onClickAnimation !== false)

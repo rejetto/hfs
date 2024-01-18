@@ -12,6 +12,7 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
 import { isMobile } from './misc'
 import { state, useSnapState } from './state'
+import VfsPathField from './VfsPathField'
 
 interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
 export default function AccountForm({ account, done, groups, addToBar, reload }: FormProps) {
@@ -77,7 +78,8 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     + (!group ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
-            { k: 'redirect', helperText: "If you want this account to be redirected to a specific folder/address at login time" },
+            { k: 'redirect', comp: VfsPathField,
+                helperText: "If you want this account to be redirected to a specific folder/address at login time" },
         ],
         onError: alertDialog,
         save: {

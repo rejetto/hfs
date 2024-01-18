@@ -17,7 +17,7 @@
         }, [data])
         const iconOnly = display === 'tooltip'
         return text && HFS.h('span', { className: 'uploader', title: HFS.t`Uploader` + (iconOnly ? ' ' + text : '') },
-            HFS.hIcon('upload'), ' ', !iconOnly && text, ' – ')
+            HFS.hIcon('upload'), ' ', !iconOnly && text, h('span', { 'aria-hidden': true }, ' – '))
     }
 
     function getDetails(batched) {

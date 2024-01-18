@@ -68,7 +68,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         ] : [
             h(IconBtn, row.started ? {
                 icon: StopCircle,
-                title: h(Box, {}, `Stop ${id}`, h('div', { 'aria-hidden': true }, `Started ` + new Date(row.started as string).toLocaleString())),
+                title: h(Box, { 'aria-hidden': true }, `Stop ${id}`, h('br'), `Started ` + new Date(row.started as string).toLocaleString()),
+                'aria-label': `Stop ${id}`,
                 size,
                 color: 'success',
                 async onClick() {
