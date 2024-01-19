@@ -249,7 +249,12 @@ export function Country({ code, ip, def, long, short }: { code: string, ip?: str
     return !country ? h(Fragment, {}, def) : h(Tooltip, {
         title: long ? undefined : country.name,
         children: h('span', {},
-            h('img', { className: 'flag icon-w-text', src: `flags/${code.toLowerCase()}.png`, alt: country.name }),
+            h('img', {
+                className: 'flag icon-w-text',
+                src: `flags/${code.toLowerCase()}.png`,
+                alt: country.name,
+                ...long && { 'aria-hidden': true },
+            }),
             long ? country.name + prefix(' (', short && code, ')') : code
         )
     })

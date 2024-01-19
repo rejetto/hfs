@@ -127,6 +127,7 @@ export default function InternetPage() {
                             k: CFG.geo_list,
                             comp: MultiSelectField<string>,
                             label: `Selected countries (${values[CFG.geo_list]?.length || 0})`,
+                            valueSeparator: false,
                             placeholder: "none",
                             options: countryOptions,
                             renderOption: (v: any) => h(Country, { code: v.value, long: true }),
