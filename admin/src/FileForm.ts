@@ -15,9 +15,11 @@ import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save } from '@mui/icons-material'
+import { Add, Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save } from '@mui/icons-material'
 import { moveVfs } from './VfsTree'
 import QrCreator from 'qr-creator';
+import MenuButton from './MenuButton'
+import addFiles, { addLink, addVirtual } from './addFiles'
 
 interface Account { username: string }
 
@@ -84,6 +86,15 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
         barSx: { gap: 2, width: '100%', ...barColors },
         stickyBar: true,
         addToBar: [
+            h(MenuButton, {
+                variant: 'outlined',
+                startIcon: h(Add),
+                items: [
+                    { children: "from disk", onClick: addFiles },
+                    { children: "virtual folder", onClick: addVirtual },
+                    { children: "web-link", onClick: addLink  },
+                ]
+            }, "Add"),
             h(IconBtn, {
                 icon: ContentCut,
                 disabled: isRoot || movingFile === file.id,
@@ -105,11 +116,12 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
                     return moveVfs(movingFile, file.id)
                 },
             }),
-            !isRoot && h(IconBtn, {
+            h(IconBtn, {
                 icon: Delete,
                 title: "Delete",
                 confirm: "Delete?",
-                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs()),
+                disabled: isRoot,
+                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs([])),
             }),
             ...wantArray(addToBar)
         ],

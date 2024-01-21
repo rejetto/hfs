@@ -7,12 +7,12 @@ import { state, useSnapState } from './state'
 import VfsMenuBar from './VfsMenuBar'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
 import { newDialog, onlyTruthy, prefix, VfsNodeAdminSend } from './misc'
-import { Flex, IconBtn, useBreakpoint } from './mui'
+import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
 import { AlertProps } from '@mui/material/Alert/Alert'
 import FileForm from './FileForm'
-import { Close, Delete } from '@mui/icons-material'
+import { Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 
 let selectOnReload: string[] | undefined
@@ -31,49 +31,47 @@ export default function VfsPage() {
         const ret = status?.urls.https || status?.urls.http
         return b && !ret.includes(b) ? [b, ...ret] : ret
     }, [status])
-    const [hideForm, setHideForm] = useState(false)
+    const single = selectedFiles.length < 2 && (selectedFiles[0] as VfsNode || vfs)
+    useEffect(() => {
+        if (isSideBreakpoint && !selectedFiles.length && state.vfs)
+            state.selectedFiles = [state.vfs]
+    }, [isSideBreakpoint, selectedFiles, state.vfs])
 
-    function closeForm() {
-        setHideForm(true)
-    }
-
-    const sideContent = !selectedFiles.length || hideForm ? null
-        : selectedFiles.length === 1 ? h(FileForm, {
-                addToBar: isSideBreakpoint && [
-                    h(Box, { flex: 1 }),
-                    // not really useful, but users misled in thinking it's a dialog will find satisfaction in dismissing the form
-                    vfsNodeIcon(selectedFiles[0] as VfsNode),
-                    h(IconBtn, { icon: Close, title: "Close", onClick: closeForm })
-                ],
-                statusApi,
-                file: selectedFiles[0] as VfsNode  // it's actually Snapshot<VfsNode> but it's easier this way
-            })
-            : h(Fragment, {},
-                h(Flex, {},
-                    h(Typography, {variant: 'h6'}, selectedFiles.length + ' selected'),
-                    h(Button, { onClick: deleteFiles, startIcon: h(Delete) }, "Remove"),
-                ),
-                h(List, { dense: true, disablePadding: true },
-                    selectedFiles.map(f => h(ListItem, { key: f.id },
-                        h(ListItemText, { primary: f.name, secondary: f.source }) ))
-                )
+    const sideContent = !vfs ? null : single ? h(FileForm, {
+            addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
+            statusApi,
+            file: single  // it's actually Snapshot<VfsNode> but it's easier this way
+        })
+        : h(Fragment, {},
+            h(Flex, {},
+                h(Typography, {variant: 'h6'}, selectedFiles.length + ' selected'),
+                h(Button, { onClick: deleteFiles, startIcon: h(Delete) }, "Remove"),
+            ),
+            h(List, { dense: true, disablePadding: true },
+                selectedFiles.map(f => h(ListItem, { key: f.id },
+                    h(ListItemText, { primary: f.name, secondary: f.source }) ))
             )
+        )
 
     // this will take care of closing the dialog, for user's convenience, after "cut" button is pressed
     const [closeDialog, setCloseDialog] = useState(() => _.noop)
     useEffect(() => {
-        if (movingFile === selectedFiles[0]?.id) closeDialog()
+        if (movingFile === selectedFiles[0]?.id)
+            closeDialog()
     }, [movingFile, closeDialog])
+
     useEffect(() => {
-        if (isSideBreakpoint || !sideContent) return
+        if (isSideBreakpoint || !sideContent || !selectedFiles.length) return
         const { close } = newDialog({
             title: selectedFiles.length > 1 ? "Multiple selection" :
                 h(Flex, {}, vfsNodeIcon(selectedFiles[0] as VfsNode), selectedFiles[0].name || "Home"),
             Content: () => sideContent,
-            onClose: closeForm,
+            onClose() {
+                state.selectedFiles = []
+            },
         })
         setCloseDialog(() => close)
-        return close
+        return close // auto-close dialog if we are switching to side-panel
     }, [isSideBreakpoint, selectedFiles])
 
     useEffect(() => {
@@ -87,10 +85,16 @@ export default function VfsPage() {
         recur(root) // this must be done before state change that would cause Tree to render and expecting id2node
         state.vfs = root
         // refresh objects of selectedFiles
-        const ids = selectOnReload || state.selectedFiles.map(x => x.id)
-        selectOnReload = undefined
-        state.selectedFiles = onlyTruthy(ids.map(id =>
-            id2node.get(id)))
+        state.selectedFiles = consumeSelectOnReload()
+            || onlyTruthy(state.selectedFiles.map(x => id2node.get(x.id))) // refresh with new objects
+
+        function consumeSelectOnReload() {
+            if (selectOnReload)
+                closeDialog() // noop when side-paneling
+            const ret = selectOnReload && onlyTruthy(selectOnReload.map(id => id2node.get(id)))
+            selectOnReload = undefined
+            return ret
+        }
 
         // calculate id and parent fields, and builds the map id2node
         function recur(node: VfsNode, pre='/', parent: VfsNode|undefined=undefined) {
@@ -118,17 +122,20 @@ export default function VfsPage() {
             reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href)))
         ]
     }
-    return h(Grid, { container:true, rowSpacing: 1, columnSpacing: 2 },
-        h(Grid, { item: true, mb: 2, xs: 12 },
+    return h(Fragment, {},
+        h(Box, { mb: 2 },
             h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
-            alert && h(Alert, alert) ),
-        h(Grid, { item: true, [sideBreakpoint]: 7, lg: 6, xl: 5 },
-            h(Typography, { variant: 'h6', mb:1, }, "Virtual File System"),
-            h(VfsMenuBar, { statusApi }),
-            vfs && h(VfsTree, { id2node, statusApi, onSelect: () => setHideForm(false) }) ),
-        isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth:'100%' },
-            h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
-                h(CardContent, {}, sideContent) ))
+            alert && h(Alert, alert),
+        ),
+        h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, position: 'sticky', top: 0 },
+            h(Grid, { item: true, xs: 12, [sideBreakpoint]: 6, lg: 6, xl: 5 },
+                h(Typography, { variant: 'h6', mb: 1, }, "Virtual File System"),
+                h(VfsMenuBar, { statusApi }),
+                vfs && h(VfsTree, { id2node, statusApi }) ),
+            isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%' },
+                h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
+                    h(CardContent, {}, sideContent)) )
+        )
     )
 }
 

@@ -4,8 +4,7 @@ import { state, useSnapState } from './state'
 import { createElement as h, ReactElement, useRef, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
-    RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff
-} from '@mui/icons-material'
+    RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
 import { Callback, onlyTruthy, Who, with_ } from './misc'
@@ -17,9 +16,8 @@ import _ from 'lodash'
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
 
-export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject, onSelect: Callback }) {
+export default function VfsTkree({ id2node, statusApi, onSelect }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject, onSelect?: Callback<VfsNode[]> }) {
     const { vfs, selectedFiles } = useSnapState()
-    const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
     const dragging = useRef<string>()
     const ref = useRef<HTMLUListElement>()
@@ -30,7 +28,7 @@ export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<
         // @ts-ignore the type declared on the lib doesn't seem to be compatible with useRef()
         ref,
         expanded,
-        selected,
+        selected: selectedFiles.map(x => x.id),
         multiSelect: true,
         id: treeId,
         sx: {
@@ -40,9 +38,8 @@ export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<
         },
         onNodeSelect(ev, ids) {
             if (typeof ids === 'string') return // shut up ts
-            setSelected(ids)
             state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
-            onSelect()
+            onSelect?.(state.selectedFiles)
         }
     }, recur(vfs as Readonly<VfsNode>))
 

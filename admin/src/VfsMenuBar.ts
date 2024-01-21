@@ -2,10 +2,8 @@
 
 import { createElement as h } from 'react'
 import { Alert, Box } from '@mui/material'
-import { Add, Microsoft } from '@mui/icons-material'
+import { Microsoft } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
-import addFiles, { addLink, addVirtual } from './addFiles'
-import MenuButton from './MenuButton'
 import { CFG, newDialog } from './misc'
 import { Btn, Flex, reloadBtn } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
@@ -26,15 +24,6 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
         backgroundColor: 'background.paper',
         width: 'fit-content',
     },
-        h(MenuButton, {
-            variant: 'contained',
-            startIcon: h(Add),
-            items: [
-                { children: "from disk", onClick: addFiles },
-                { children: "virtual folder", onClick: addVirtual },
-                { children: "web-link", onClick: addLink  },
-            ]
-        }, "Add"),
         h(Btn, { variant: 'outlined', onClick: roots }, "Roots"),
         reloadBtn(() => reloadVfs()),
         isWindows && h(Btn, {
