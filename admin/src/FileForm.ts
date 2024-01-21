@@ -237,7 +237,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
                 onClick(event) {
                     onChange(objectMode ? thisValue : { this: thisValue, children: thisValue == null ? !inherit : undefined  } , { was: value, event })
                 }
-            }, objectMode ? "Different permission for " : "Same permission for ", contentText)
+            }, objectMode ? "Set same permission for " : "Set different permission for ", contentText)
         ),
         !isChildren && h(Collapse, { in: objectMode, timeout },
             h(WhoField, {
