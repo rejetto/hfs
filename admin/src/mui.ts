@@ -212,7 +212,16 @@ export const Center = forwardRef((props: BoxProps, ref) =>
     h(Box, { ref, display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props }))
 
 export function LinkBtn({ ...rest }: LinkProps) {
-    return h(Link, { ...rest, sx: { cursor: 'pointer', ...rest.sx  } })
+    return h(Link, {
+        ...rest,
+        href: '',
+        sx: { cursor: 'pointer', ...rest.sx },
+        role: 'button',
+        onClick(ev) {
+            ev.preventDefault()
+            rest.onClick?.(ev)
+        }
+    })
 }
 
 export function usePauseButton() {
