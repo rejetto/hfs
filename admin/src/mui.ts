@@ -26,6 +26,12 @@ export function useBreakpoint(breakpoint: Breakpoint) {
     return useMediaQuery((theme: any) => theme.breakpoints.up(breakpoint), { noSsr:true }) // without noSsr, first execution always returns false
 }
 
+// for debug purposes
+export function useLogBreakpoint() {
+    const breakpoints = ['xl', 'lg', 'md', 'sm', 'xs'] as const
+    console.log('BREAKPOINT', breakpoints[_.findIndex(breakpoints.map(x => useBreakpoint(x)), x => x)])
+}
+
 interface IconProgressProps {
     icon: SvgIconComponent,
     progress: number,
@@ -150,7 +156,8 @@ interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'>
     tooltipProps?: TooltipProps
     onClick?: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
-export function Btn({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelFrom, children, ...rest }: BtnProps) {
+
+export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelFrom, children, ...rest }: BtnProps, ref: any) => {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string') {
         title = disabled
@@ -160,6 +167,7 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(labelFrom || 'xs')
     let ret: ReturnType<FC> = h(LoadingButton, {
+        ref,
         variant: 'contained',
         startIcon: icon && h(icon),
         loading: Boolean(loading || progress),
@@ -193,7 +201,7 @@ export function Btn({ icon, title, onClick, disabled, progress, link, tooltipPro
     if (title)
         ret = h(Tooltip, { title, ...tooltipProps, children: ret })
     return ret
-}
+})
 
 function execDoneMessage(msg: boolean | string | undefined) {
     if (msg)

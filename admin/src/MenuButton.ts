@@ -15,9 +15,9 @@ export default function MenuButton({ items, ...rest }: Props) {
         h(Button, {
             id,
             'aria-controls': open ? menuId : undefined,
-            'aria-haspopup': 'true',
+            'aria-haspopup': true,
             'aria-expanded': open ? true : undefined,
-            onClick: (event: MouseEvent<HTMLButtonElement>) => {
+            onClick(event: MouseEvent<HTMLButtonElement>) {
                 setAnchorEl(event.currentTarget)
             },
             ...rest,
