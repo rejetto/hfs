@@ -55,6 +55,8 @@ NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of
 1. go to https://github.com/rejetto/hfs/releases
 2. click on `Assets`
 3. **download** the right version for your system, unzip and launch `hfs` file. 
+   - Mac: if you get *"cannot be opened because it is from an unidentified developer"*,
+     you can hold `control` key while clicking, then click `open`.
    - If you cannot find your system in the list, see next section [Other systems](#other-systems).
 4. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
    - if a browser cannot be opened on the computer where you are installing HFS, 
