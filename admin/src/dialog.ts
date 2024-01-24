@@ -98,7 +98,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
             return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
                 isValidElement(msg) ? msg
                     : h(Box, { fontSize: 'large', lineHeight: '1.8em' }, String(msg)),
-                h(Btn, { sx: { mt: 1 }, size: 'small', onClick: dialog.close }, "Close")
+                h(Btn, { sx: { mt: 1 }, size: 'small', onClick: () => dialog.close() }, "Close")
             )
         }
     })

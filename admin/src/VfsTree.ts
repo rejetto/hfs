@@ -134,8 +134,9 @@ export default function VfsTkree({ id2node, statusApi, onSelect }:{ id2node: Map
 }
 
 export function moveVfs(from: string, to: string) {
-    apiCall('move_vfs', { from, parent: to }).then(() => {
+    return apiCall('move_vfs', { from, parent: to }).then(() => {
         reloadVfs([ to + from.slice(1 + from.lastIndexOf('/', from.length-2)) ])
+        return true
     }, alertDialog)
 }
 
