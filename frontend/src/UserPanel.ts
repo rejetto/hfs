@@ -6,10 +6,9 @@ import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
-import { Btn } from './menu'
+import { Btn, CustomCode } from './components'
 import { hIcon, HTTP_NOT_ACCEPTABLE, working } from './misc'
 import { t } from './i18n'
-import { CustomCode } from './components'
 
 export default function showUserPanel() {
     newDialog({

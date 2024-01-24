@@ -3,12 +3,11 @@ import { createElement as h, Fragment, useEffect, useRef, useState } from 'react
 import { domOn, hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
-import { Flex, FlexV, iconBtn, Spinner } from './components'
+import { Btn, Flex, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { t, useI18N } from './i18n'
 import { alertDialog } from './dialog'
 import _ from 'lodash'
-import { Btn } from './menu'
 
 enum ZoomMode {
     fullWidth,

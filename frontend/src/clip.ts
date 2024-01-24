@@ -1,6 +1,6 @@
 import { createElement as h, Fragment } from 'react'
 import { DirList, state, useSnapState } from './state'
-import { Btn } from './menu'
+import { Btn } from './components'
 import { t, useI18N } from './i18n'
 import { alertDialog } from './dialog'
 import { useNavigate } from 'react-router-dom'

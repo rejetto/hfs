@@ -1,10 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getHFS, hfsEvent, hIcon } from './misc'
-import {
-    ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
-    HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes, useMemo
-} from 'react'
+import { getHFS, hfsEvent, hIcon, prefix } from './misc'
+import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
+    HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
+    useMemo, useState, ComponentPropsWithoutRef } from 'react'
 
 export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
@@ -98,4 +97,30 @@ export function iconBtn(icon: string, onClick: MouseEventHandler, { small=true, 
         },
         icon.length > 1 ? hIcon(icon) : icon
     )
+}
+
+export interface BtnProps extends ComponentPropsWithoutRef<"button"> {
+    icon?: string,
+    label: string,
+    tooltip?: string,
+    toggled?: boolean,
+    className?: string,
+    onClick?: () => unknown
+    onClickAnimation?: boolean
+}
+
+export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: BtnProps) {
+    const [working, setWorking] = useState(false)
+    return h('button', {
+        title: label + prefix(' - ', tooltip),
+        'aria-label': label,
+        onClick() {
+            if (!onClick) return
+            if (onClickAnimation !== false)
+                setWorking(true)
+            Promise.resolve(onClick()).finally(() => setWorking(false))
+        },
+        ...rest,
+        className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
+    }, icon && hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }
