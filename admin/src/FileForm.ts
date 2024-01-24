@@ -169,7 +169,7 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
             comp: WhoField,
             k: perm, lg: 6, xl: 4,
             parent, accounts, helperText, isDir,
-            otherPerms: others.map(x => ({ value: x, label: "As " +perm2word(x) })),
+            otherPerms: others.map(x => ({ value: x, label: who2desc(x) })),
             label: "Who can " + perm2word(perm),
             inherit: file.inherited?.[perm] ?? defaultPerms[perm],
             byMasks: byMasks?.[perm],
@@ -194,8 +194,8 @@ interface WhoFieldProps extends FieldProps<Who | undefined> {
 }
 function WhoField({ value, onChange, parent, inherit, accounts, helperText, otherPerms, byMasks,
         hideValues, isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
-    const defaultLabel = (byMasks !== undefined ? "As per mask: " : parent !== undefined ? "As parent: " : "Default: " )
-        + who2desc(byMasks ?? inherit)
+    const defaultLabel = who2desc(byMasks ?? inherit)
+        + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "inherited" : "default", ')')
     const objectMode =  isWhoObject(value)
     const thisValue = objectMode ? value.this : value
 
@@ -208,7 +208,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
             ...otherPerms,
             { value: [], label: "Select accounts" },
         ].map(x => !hideValues?.includes(x.value)
-            && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
+            && { label: who2desc(x.value), ...x })), // default label
         [inherit, parent, thisValue])
 
     const timeout = 500
@@ -260,11 +260,11 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
 }
 
 function who2desc(who: any) {
-    return who === false ? "no one"
-        : who === true ? "anyone"
-            : who === '*' ? "any account (login required)"
+    return who === false ? "No one"
+        : who === true ? "Anyone"
+            : who === '*' ? "Any account (login required)"
                 : Array.isArray(who) ? who.join(', ')
-                    : typeof who === 'string' ? "as " + perm2word(who)
+                    : typeof who === 'string' ? `As "can ${perm2word(who)}"`
                         : "*UNKNOWN*" + JSON.stringify(who)
 }
 
