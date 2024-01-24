@@ -154,9 +154,9 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
             perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
-            showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
-            showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
-            showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
+            showSize && { k: 'size', comp: DisplayField, sm: 6, lg: 4, toField: formatBytes },
+            showTimestamps && { k: 'ctime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
+            showTimestamps && { k: 'mtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
             showWebsite && { k: 'default', comp: BoolField, xl: true,
@@ -179,7 +179,7 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
         const others = _.difference(Object.keys(defaultPerms), dontShow)
         return {
             comp: WhoField,
-            k: perm, lg: 6, xl: 4,
+            k: perm, sm: 6, xl: 4,
             parent, accounts, helperText, isDir,
             otherPerms: others.map(x => ({ value: x, label: who2desc(x) })),
             label: "Who can " + perm2word(perm),
