@@ -62,9 +62,21 @@ export default function VfsPage() {
 
     useEffect(() => {
         if (isSideBreakpoint || !sideContent || !selectedFiles.length) return
+        const ancestors = ['']
+        {
+            let r = single && single.parent
+            while (r && !r.isRoot) {
+                ancestors.push(r.name)
+                r = r.parent
+            }
+        }
         const { close } = newDialog({
             title: selectedFiles.length > 1 ? "Multiple selection" :
-                h(Flex, {}, vfsNodeIcon(selectedFiles[0] as VfsNode), selectedFiles[0].name || "Home"),
+                h(Flex, {},
+                    vfsNodeIcon(selectedFiles[0] as VfsNode),
+                    selectedFiles[0].name || "Home",
+                    h(Box, { color: 'text.secondary' }, ancestors.join(' / '))
+                ),
             Content: () => sideContent,
             onClose() {
                 state.selectedFiles = []
