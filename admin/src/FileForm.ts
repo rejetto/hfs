@@ -292,7 +292,15 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     if (root)
         value &&= value.indexOf(root) === 1 ? value.slice(root.length) : undefined
     const link = prefix(data?.baseUrl || '', value)
-    const RenderLink = useMemo(() => forwardRef((props: any, ref) => h(Link, { ref, ...props, href: link, style: { height: 'auto' }, target: 'frontend' }, link)), [link])
+    const RenderLink = useMemo(() => forwardRef((props: any, ref) =>
+        h(Link, {
+            ref,
+            ...props,
+            href: link,
+            style: { height: 'auto', overflow: 'hidden', textOverflow: 'ellipsis' },
+            target: 'frontend',
+        }, link)
+    ), [link])
     return h(Box, { display: 'flex' },
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
