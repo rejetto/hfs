@@ -135,6 +135,10 @@ export function removeStarting(sub: string, s: string) {
     return s.startsWith(sub) ? s.slice(sub.length) : s
 }
 
+export function strinsert(s: string, at: number, insert: string, remove=0) {
+    return s.slice(0, at) +  insert + s.slice(at + remove)
+}
+
 export function splitAt(sub: string | number, all: string): [string, string] {
     if (typeof sub === 'number')
         return [all.slice(0, sub), all.slice(sub + 1)]

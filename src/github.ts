@@ -2,7 +2,7 @@
 
 import events from './events'
 import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync } from './misc'
-import { DISABLING_POSTFIX, findPluginByRepo, getAvailablePlugins, getPluginInfo, mapPlugins,
+import { DISABLING_SUFFIX, findPluginByRepo, getAvailablePlugins, getPluginInfo, mapPlugins,
     parsePluginSource, PATH as PLUGINS_PATH, Repo } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
@@ -79,12 +79,12 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
                 if (!folder || path.endsWith('/')) return false
                 let dest = path.slice(folder.length)
                 if (dest === MAIN) // avoid being possibly loaded before the download is complete
-                    dest += DISABLING_POSTFIX
+                    dest += DISABLING_SUFFIX
                 dest = join(installPath, dest)
                 return rm(dest, { force: true }).then(() => dest, () => false)
             })
             const main = join(installPath, MAIN)
-            await rename(main + DISABLING_POSTFIX, main) // we are good now, restore name
+            await rename(main + DISABLING_SUFFIX, main) // we are good now, restore name
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
             return folder
         }

@@ -9,7 +9,8 @@ import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './auth'
-import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG } from './misc'
+import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert } from './misc'
+import { extname } from 'path'
 import events from './events'
 import { getConnection } from './connections'
 import { app } from './index'
@@ -92,9 +93,10 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
                 || rotate === 'd' && (passed >= DAY || now.getDate() !== last.getDate()) // checking passed will solve the case when the day of the month is the same but a month has passed
                 || rotate === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
                 stream.end()
-                const postfix = last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
+                const suffix = '-' + last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
+                const newPath = strinsert(path, path.length - extname(path).length, suffix)
                 try { // other logging requests shouldn't happen while we are renaming. Since this is very infrequent we can tolerate solving this by making it sync.
-                    renameSync(path, path + '-' + postfix)
+                    renameSync(path, newPath)
                 }
                 catch(e: any) {  // ok, rename failed, but this doesn't mean we ain't gonna log
                     console.error(String(e || e.message))
