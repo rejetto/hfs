@@ -6,10 +6,8 @@ import * as api_auth from './api.auth'
 import events from './events'
 import Koa from 'koa'
 import { dirTraversal, isValidFileName } from './util-files'
-import {
-    HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN,
-    HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
-} from './const'
+import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN,
+    HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED } from './const'
 import { hasPermission, statusCodeForMissingPerm, urlToNode } from './vfs'
 import { mkdir, rename, rm } from 'fs/promises'
 import { basename, dirname, join } from 'path'

@@ -118,7 +118,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         const a = await srpCheck(u, p)
         if (a) {
             ctx.session!.username = a.username
-            ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1))
+            ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
         }
         return a
     }

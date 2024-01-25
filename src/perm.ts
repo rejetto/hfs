@@ -1,17 +1,15 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { hashPassword } from './crypt'
-import { objRenameKey, setHidden, wantArray } from './misc'
-import Koa from 'koa'
+import { HTTP_BAD_REQUEST, objRenameKey, setHidden, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
+import { ApiError } from './apiMiddleware'
 
 export interface Account {
     username: string, // we keep username property (hidden) so we don't need to pass it separately
     password?: string
-    hashed_password?: string
     srp?: string
     belongs?: string[]
     ignore_limits?: boolean
@@ -48,8 +46,6 @@ export function saveSrpInfo(account:Account, salt:string | bigint, verifier: str
     account.srp = String(salt) + '|' + String(verifier)
 }
 
-export const allowClearTextLogin = defineConfig('allow_clear_text_login', false)
-
 const createAdminConfig = defineConfig('create-admin', '')
 createAdminConfig.sub(v => {
     if (!v) return
@@ -73,15 +69,9 @@ export async function updateAccount(account: Account, changer?:Changer) {
     const { username } = account
     if (account.password) {
         console.debug('hashing password for', username)
-        if (allowClearTextLogin.get())
-            account.hashed_password = await hashPassword(account.password)
         const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, account.password)
         saveSrpInfo(account, res.s, res.v)
         delete account.password
-    }
-    else if (!account.srp && account.hashed_password) {
-        console.log('please reset password for account', username)
-        process.exit(1)
     }
     if (account.belongs) {
         account.belongs = wantArray(account.belongs)
@@ -190,7 +180,7 @@ export function getFromAccount<T=any>(account: Account | string, getter:(a:Accou
 }
 
 export function accountHasPassword(account: Account) {
-    return Boolean(account.password || account.hashed_password || account.srp)
+    return Boolean(account.password || account.srp)
 }
 
 export function accountCanLogin(account: Account) {
@@ -203,4 +193,13 @@ function allDisabled(account: Account): boolean {
 
 export function accountCanLoginAdmin(account: Account) {
     return accountCanLogin(account) && Boolean(getFromAccount(account, a => a.admin))
+}
+
+
+export async function changeSrpHelper(account: Account, salt: string, verifier: string) {
+    if (!salt || !verifier)
+        return new ApiError(HTTP_BAD_REQUEST, 'missing parameters')
+    await updateAccount(account, account =>
+        saveSrpInfo(account, salt, verifier) )
+    return {}
 }

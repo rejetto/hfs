@@ -35,11 +35,7 @@ export default function showUserPanel() {
                         const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
                         const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
                         try {
-                            await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }, { modal: working }).catch(e => {
-                                if (e.code !== HTTP_NOT_ACCEPTABLE) // server doesn't support clear text authentication
-                                    throw e
-                                return apiCall('change_password', { newPassword: pwd }, { modal: working }) // unencrypted version
-                            })
+                            await apiCall('change_my_srp', { salt: String(res.s), verifier: String(res.v) }, { modal: working })
                             return alertDialog(t('password_changed', "Password changed"))
                         }
                         catch(e) {

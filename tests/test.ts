@@ -101,7 +101,6 @@ describe('basics', () => {
     it('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
     it('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt*renamed', { empty: true, length:118 }, { method:'HEAD' }))
     it('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 120 }, { method:'HEAD' }))
-    it('login', reqApi('login', { username, password }, 406)) // by default, we don't support clear-text login
 
     it('referer', req('/f1/page/gpl.png', 403, {
         headers: { Referer: 'https://some-website.com/try-to-trick/x.com/' }
@@ -118,7 +117,6 @@ describe('basics', () => {
 describe('accounts', () => {
     const username = 'test-Add'
     it('accounts.add', reqApi('add_account', { username }, res => res?.username === username.toLowerCase()))
-    it('account.password', reqApi('change_password_others', { username, newPassword: password }, 200))
     it('accounts.remove', reqApi('del_account', { username }, 200))
 })
 
