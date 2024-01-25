@@ -9,7 +9,7 @@ import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount } from './perm'
 import { Connection, disconnect, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
 import basicAuth from 'basic-auth'
-import { invalidSessions, srpCheck } from './auth'
+import { invalidSessions, setLoggedIn, srpCheck } from './auth'
 import { constants } from 'zlib'
 import { baseUrl, getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
@@ -97,7 +97,7 @@ export function getProxyDetected() {
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
-    if (ctx.session) {
+    if (ctx.session?.username) {
         if (invalidSessions.delete(ctx.session.username))
             delete ctx.session.username
         ctx.session.maxAge = sessionDuration.compiled()
@@ -111,21 +111,26 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     updateConnectionForCtx(ctx)
     await next()
 
-    async function urlLogin() {
+    function urlLogin() {
         const { login }  = ctx.query
         if (!login) return
         const [u,p] = splitAt(':', String(login))
-        const a = await srpCheck(u, p)
-        if (a) {
-            ctx.session!.username = a.username
-            ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
-        }
-        return a
+        ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
+        return doLogin(u, p)
     }
 
-    async function getHttpAccount() {
+    function getHttpAccount() {
         const credentials = basicAuth(ctx.req)
-        return srpCheck(credentials?.name||'', credentials?.pass||'')
+        return doLogin(credentials?.name||'', credentials?.pass||'')
+    }
+
+    async function doLogin(u: string, p: string) {
+        const a = await srpCheck(u, p)
+        if (a) {
+            setLoggedIn(ctx, a.username)
+            ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
+        }
+        return a
     }
 }
 

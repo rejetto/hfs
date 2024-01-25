@@ -6,7 +6,7 @@ import { SRPServerSessionStep1 } from 'tssrp6a'
 import { ADMIN_URI, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { ctxAdminAccess } from './adminApis'
 import { sessionDuration } from './middlewares'
-import { getCurrentUsername, loggedIn, srpStep1 } from './auth'
+import { getCurrentUsername, setLoggedIn, srpStep1 } from './auth'
 import { defineConfig } from './config'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
@@ -52,7 +52,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         return new ApiError(HTTP_NOT_FOUND)
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
-        await loggedIn(ctx, username)
+        await setLoggedIn(ctx, username)
         delete ctx.session.loggingIn
         return {
             proof: String(M2),
@@ -73,7 +73,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
 export const logout: ApiHandler = async ({}, ctx) => {
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
-    await loggedIn(ctx, false)
+    await setLoggedIn(ctx, false)
     // 401 is a convenient code for OK: the browser clears a possible http authentication (hopefully), and Admin automatically triggers login dialog
     return new ApiError(HTTP_UNAUTHORIZED)
 }
