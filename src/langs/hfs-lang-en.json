@@ -150,6 +150,10 @@
         "Paste": "Paste",
         "clipboard_list": "Items in clipboard:",
 
+        "Close": "Close",
+        "Folder": "Folder",
+        "Web page": "Web page",
+        "Link": "Link",
         "Auto-play": "Auto-play",
         "autoplay_seconds": "Seconds to wait on images",
         "Select file": "Select file",

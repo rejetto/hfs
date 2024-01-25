@@ -142,6 +142,10 @@
         "Paste": "Incolla",
         "clipboard_list": "Elementi negli appunti",
 
+        "Close": "Chiudi",
+        "Folder": "Cartella",
+        "Web page": "Pagina web",
+        "Link": "Link",
         "Auto-play": "Auto-play",
         "autoplay_seconds": "Secondi di attesa mostrando immagini",
         "Select file": "Seleziona file",

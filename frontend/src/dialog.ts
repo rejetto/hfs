@@ -2,12 +2,14 @@
 
 import { createElement as h, ReactElement, ReactNode, useEffect, useRef, useState, KeyboardEvent } from 'react'
 import './dialog.css'
-import { newDialog, closeDialog, DialogOptions } from '@hfs/shared/dialogs'
+import { newDialog, closeDialog, DialogOptions, dialogsDefaults } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'
 import { t } from './i18n'
 import { err2msg, isCtrlKey, pendingPromise } from './misc'
 export * from '@hfs/shared/dialogs'
+
+_.merge(dialogsDefaults, { closableProps: { 'aria-label': t`Close` } })
 
 interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string, trim?: boolean, helperText?: ReactNode }
 export async function promptDialog(msg: string, { def, type, helperText, trim=true, ...rest }:PromptOptions={}) : Promise<string | null> {
