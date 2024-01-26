@@ -1,9 +1,9 @@
-import { Account, getAccount, normalizeUsername } from './perm'
+import { Account, getAccount, normalizeUsername, updateAccount } from './perm'
 import { HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
 import { SRPParameters, SRPRoutines, SRPServerSession } from 'tssrp6a'
 import { Context } from 'koa'
 import { srpClientPart } from './srp'
-import { getOrSet } from './cross'
+import { DAY, getOrSet } from './cross'
 import { createHash } from 'node:crypto'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
@@ -48,7 +48,11 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     }
     invalidSessions.delete(username)
     s.username = normalizeUsername(username)
-    ctx.state.account = getAccount(username)
+    const a = ctx.state.account = getAccount(username)
+    if (a && !a.expire && a.days_to_live)
+        updateAccount(a, x => {
+            x.expire = new Date(Date.now() + a.days_to_live! * DAY)
+        })
 }
 
 export const invalidSessions = new Set<string>() // since session are currently stored in cookies, we need to memorize this until we meet again

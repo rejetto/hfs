@@ -3,7 +3,7 @@
 import { createElement as h, useState, useEffect, Fragment } from "react"
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Close, Delete, DoNotDisturb, Group, MilitaryTech, Person, PersonAdd } from '@mui/icons-material'
+import { Close, Delete, DoNotDisturb, Group, MilitaryTech, Person, PersonAdd, Schedule } from '@mui/icons-material'
 import { newDialog, with_ } from './misc'
 import { Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint } from './mui'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
@@ -123,6 +123,8 @@ export default function AccountsPage() {
                             }
                         },
                             account2icon(ac),
+                            ac.disabled && h(DoNotDisturb),
+                            (ac.expire || ac.days_to_live) && h(Schedule),
                             ac.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin"),
                             ac.username,
                             Boolean(ac.belongs?.length) && h(Box, { sx: { color: 'text.secondary', fontSize: 'small' } },
@@ -161,8 +163,5 @@ export default function AccountsPage() {
 }
 
 export function account2icon(ac: Account, props={}) {
-    return h(Fragment, {},
-        h(ac.hasPassword ? Person : Group, props),
-        ac.disabled && h(DoNotDisturb),
-    )
+    return h(ac.hasPassword ? Person : Group, props)
 }

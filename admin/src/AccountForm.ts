@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
-import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
+import { BoolField, Form, MultiSelectField, NumberField } from '@hfs/mui-grid-form'
 import { Alert } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
@@ -29,6 +29,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     const add = !account.username
     const group = !values.hasPassword
     const ref = useRef<HTMLFormElement>()
+    const expired = Boolean(values.expire)
     return h(Form, {
         formRef:  ref,
         values,
@@ -79,7 +80,10 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     + (!group ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
-            { k: 'expire', label: "Expiration", comp: DateTimeField, toField: x => x && new Date(x) },
+            { k: 'expire', label: "Expiration", xs: true, comp: DateTimeField, toField: x => x && new Date(x),
+                helperText: "When expired, login won't be allowed" },
+            { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, disabled: expired, step: 'any', min: 1/1000, // 10 minutes
+                helperText: "Used to set expiration on first login" + (expired ? " (already expired)" : '') },
             { k: 'redirect', comp: VfsPathField,
                 helperText: "If you want this account to be redirected to a specific folder/address at login time" },
         ],
