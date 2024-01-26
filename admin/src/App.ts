@@ -15,11 +15,12 @@ import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, xlate } from './misc'
+import { getLocale } from './locale'
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
-            h(LocalizationProvider, { dateAdapter: AdapterDayjs },
+            h(LocalizationProvider, { dateAdapter: AdapterDayjs, adapterLocale: getLocale() },
                 h(LoginRequired, {},
                     h(HashRouter, {},
                         h(Dialogs, {
