@@ -12,6 +12,9 @@ export function DateTimeField({ onChange, error, helperText, ...rest }: FieldPro
             sx: { width: '100%', color: 'error.main', ...rest.sx },
             onChange(v: any) {
                 onChange(v && new Date(v), { was: rest.value, event: undefined })
+            },
+            slotProps: { // under 400, not all buttons fit, so we sacrifice 'cancel' as you can  still tap outside the dialog
+                actionBar: { actions: ['clear', ...window.innerWidth < 400 ? [] : ['cancel'] as const, 'today', 'accept'] }
             }
         }),
         helperText && h(FormHelperText, { error }, helperText),

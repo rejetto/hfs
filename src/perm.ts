@@ -17,6 +17,7 @@ export interface Account {
     admin?: boolean
     redirect?: string
     disabled?: boolean
+    expire?: Date
 }
 interface Accounts { [username:string]: Account }
 
@@ -100,6 +101,7 @@ accountsConfig.sub(obj => {
             setHidden(rec, { username: norm })
         }
         updateAccount(rec).then() // work password fields
+        rec.expire &&= new Date(rec.expire) // parse
     })
 })
 
@@ -131,7 +133,7 @@ export function renameAccount(from: string, to: string) {
 }
 
 // we consider all the following fields, when falsy, as equivalent to be missing. If this changes in the future, please adjust addAccount and setAccount
-const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin','disabled','disable_password_change']
+const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin','disabled','disable_password_change','expire']
 
 export function addAccount(username: string, props: Partial<Account>) {
     username = normalizeUsername(username)
@@ -150,6 +152,7 @@ export function setAccount(acc: Account, changes: Partial<Account>) {
         if (!v)
             rest[k as keyof Account] = undefined
     Object.assign(acc, rest)
+    acc.expire &&= new Date(acc.expire)
     if (changes.username)
         renameAccount(acc.username, changes.username)
     saveAccountsAsap()
@@ -188,7 +191,9 @@ export function accountCanLogin(account: Account) {
 }
 
 function allDisabled(account: Account): boolean {
-    return Boolean(account.disabled || account.belongs?.map(u => getAccount(u, false)).every(a => a && allDisabled(a)))
+    return Boolean(account.disabled
+        || account.expire as any < Date.now()
+        || account.belongs?.map(u => getAccount(u, false)).every(a => a && allDisabled(a)))
 }
 
 export function accountCanLoginAdmin(account: Account) {

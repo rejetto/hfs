@@ -5,7 +5,7 @@ import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
 import { Alert } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
-import { HTTP_NOT_ACCEPTABLE, isEqualLax, wantArray } from './misc'
+import { isEqualLax, wantArray } from './misc'
 import { IconBtn, modifiedSx } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
@@ -13,6 +13,7 @@ import { AutoDelete, Delete } from '@mui/icons-material'
 import { isMobile } from './misc'
 import { state, useSnapState } from './state'
 import VfsPathField from './VfsPathField'
+import { DateTimeField } from './DateTimeField'
 
 interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
 export default function AccountForm({ account, done, groups, addToBar, reload }: FormProps) {
@@ -78,6 +79,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     + (!group ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
+            { k: 'expire', label: "Expiration", comp: DateTimeField, toField: x => x && new Date(x) },
             { k: 'redirect', comp: VfsPathField,
                 helperText: "If you want this account to be redirected to a specific folder/address at login time" },
         ],
