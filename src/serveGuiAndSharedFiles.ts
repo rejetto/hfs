@@ -77,7 +77,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             res()
         }))
     }
-    if (node.default && path.endsWith('/')) // final/ needed on browser to make resource urls correctly with html pages
+    const { get } = ctx.query
+    if (node.default && path.endsWith('/') && !get) // final/ needed on browser to make resource urls correctly with html pages
         node = await urlToNode(node.default, ctx, node) ?? node
     if (!await nodeIsDirectory(node))
         return !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED)
@@ -97,8 +98,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return serveFrontendFiles(ctx, next)
     }
     ctx.set({ server: `HFS ${VERSION} ${BUILD_TIMESTAMP}` })
-    return ctx.query.get === 'zip' ? zipStreamFromFolder(node, ctx)
-        : ctx.query.get === 'list' ? sendFolderList(node, ctx)
+    return get === 'zip' ? zipStreamFromFolder(node, ctx)
+        : get === 'list' ? sendFolderList(node, ctx)
             : serveFrontendFiles(ctx, next)
 }
 

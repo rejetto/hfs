@@ -205,37 +205,43 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const ariaId = useId()
     const ariaProps = { id: ariaId, 'aria-label': prefix(name + ' (', isFolder ? "Folder" : entry.web ? "Web page" : isLink ? "Link" : '', ')') }
     return h('li', { className, label: separator },
-        h(CustomCode, { name: 'entry', props: { entry }, ifEmpty: () => h(Fragment, {},
-            showFilter && h(Checkbox, {
-                disabled: isLink,
-                'aria-labelledby': ariaId,
-                value: selected[uri],
-                onChange(v){
-                    if (v)
-                        return state.selected[uri] = true
-                    delete state.selected[uri]
-                },
-            }),
-            h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                isFolder && !entry.web ? h(Fragment, {}, // internal navigation, use Link component
-                        h(Link, { to: uri, ...ariaProps }, ico, entry.n.slice(0,-1)), // don't use name, as we want to include whole path in case of search
+        h(CustomCode, {
+            name: 'entry',
+            props: { entry },
+            ifEmpty: () => h(Fragment, {},
+                showFilter && h(Checkbox, {
+                    disabled: isLink,
+                    'aria-labelledby': ariaId,
+                    value: selected[uri],
+                    onChange(v) {
+                        if (v)
+                            return state.selected[uri] = true
+                        delete state.selected[uri]
+                    },
+                }),
+                h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
+                    ...isFolder || entry.web ? [ // internal navigation, use Link component
+                        h(Link, { to: uri, ...ariaProps }, ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
                         // popup button is here to be able to detect link-wrapper:hover
-                        file_menu_on_link && !showingButton && h('button', { className: 'popup-menu-button', onClick: fileMenu }, hIcon('menu'), t`Menu`)
-                    )
-                    : containerName ? h(Fragment, {},
+                        file_menu_on_link && !showingButton && h('button', {
+                            className: 'popup-menu-button',
+                            onClick: fileMenu
+                        }, hIcon('menu'), t`Menu`)
+                    ] : containerName ? [
                         h('a', { href: uri, onClick, tabIndex: -1 }, ico),
-                        h(Link, { to: containerDir, className:'container-folder', tabIndex: -1 }, containerName),
+                        h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
                         h('a', { href: uri, onClick, ...ariaProps }, name)
-                    ) : h('a', { href: uri, onClick, ...ariaProps }, ico, name),
-            ),
-            h(CustomCode, { name: 'afterEntryName', props: { entry } }),
-            entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
-            h('div', { className: 'entry-panel' },
-                h(EntryDetails, { entry, midnight }),
-                showingButton && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
-            ),
-            h('div'),
-        ) }),
+                    ] : [h('a', { href: uri, onClick, ...ariaProps }, ico, name)],
+                ),
+                h(CustomCode, { name: 'afterEntryName', props: { entry } }),
+                entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
+                h('div', { className: 'entry-panel' },
+                    h(EntryDetails, { entry, midnight }),
+                    showingButton && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
+                ),
+                h('div'),
+            )
+        }),
     )
 
     function fileMenu(ev: MouseEvent) {

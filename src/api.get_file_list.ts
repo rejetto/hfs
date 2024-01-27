@@ -102,34 +102,30 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
     }
 
     async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
-        let { source, url } = node
+        const { source, url } = node
         const name = getNodeName(node)
         if (url)
             return name ? { n: name, url } : null
-        if (!source) // virtual folder
-            return name ? { n: name + '/' } : null
-        if (node.isFolder && await hasDefaultFile(node))
-            return { n: name + '/', web: true }
+        const isFolder = await nodeIsDirectory(node)
         try {
-            const st = await stat(source)
-            const folder = st.isDirectory()
-            const { ctime, mtime } = st
+            const st = source ? await stat(source) : undefined
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'
                 : ''
             // no download here, but maybe inside?
-            const pr = node.can_read === WHO_NO_ONE && !(folder && filesInsideCould()) ? 'r'
+            const pr = node.can_read === WHO_NO_ONE && !(isFolder && filesInsideCould()) ? 'r'
                 : !hasPermission(node, 'can_read', ctx) ? 'R'
                 : ''
             const pd = !can_delete && hasPermission(node, 'can_delete', ctx) ? 'd' : ''
-            const pa = node.isFolder && Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
+            const pa = isFolder && Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
             return {
-                n: name + (folder ? '/' : ''),
-                c: ctime,
-                m: Math.abs(+mtime-+ctime) < 1000 ? undefined : mtime,
-                s: folder ? undefined : st.size,
+                n: name + (isFolder ? '/' : ''),
+                c: st?.ctime,
+                m: !st || Math.abs(+st.mtime - +st.ctime) < 1000 ? undefined : st.mtime,
+                s: isFolder ? undefined : st?.size,
                 p: (pr + pl + pd + pa) || undefined,
                 comment: await getCommentFor(source),
+                web: await hasDefaultFile(node) ? true : undefined,
             }
         }
         catch {
