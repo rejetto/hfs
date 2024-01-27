@@ -12,7 +12,7 @@ export * from '@hfs/shared/dialogs'
 _.merge(dialogsDefaults, { closableProps: { 'aria-label': t`Close` } })
 
 interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string, trim?: boolean, helperText?: ReactNode }
-export async function promptDialog(msg: string, { def, type, helperText, trim=true, ...rest }:PromptOptions={}) : Promise<string | null> {
+export async function promptDialog(msg: string, { def, type, helperText, trim=true, ...rest }:PromptOptions={}) : Promise<string | undefined> {
     const textarea = type === 'textarea' && type
     return new Promise(resolve => newDialog({
         className: 'dialog-prompt',

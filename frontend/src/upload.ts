@@ -3,8 +3,7 @@
 import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
 import { Checkbox, Flex, FlexV, iconBtn } from './components'
 import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working,
-    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed
-} from './misc'
+    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -15,7 +14,7 @@ import { Link } from 'react-router-dom'
 import { t } from './i18n'
 import { subscribeKey } from 'valtio/utils'
 
-interface ToUpload { file: File, comment?: string }
+interface ToUpload { file: File, comment?: string, name?: string }
 export const uploadState = proxy<{
     done: number
     doneByte: number
@@ -137,12 +136,20 @@ export function showUpload() {
                     ),
             ),
             h(FilesList, {
-                entries: adding,
+                entries: uploadState.adding,
                 actions: {
-                    delete: rec => _.remove(uploadState.adding, { file: rec.file }),
-                    comment: !props?.can_comment ? null
-                        : (rec => inputComment(basename(rec.file.name), rec.comment)
-                            .then(s => _.find(uploadState.adding, { file: rec.file })!.comment = s || undefined)),
+                    delete: rec => _.remove(uploadState.adding, rec),
+                    async comment(rec){
+                        if (!props?.can_comment) return
+                        const s = await inputComment(basename(rec.file.name), rec.comment)
+                        if (s === undefined) return
+                        rec.comment = s || undefined
+                    },
+                    async edit(rec) {
+                        const s = await promptDialog(t('upload_name', "Upload with new name"), { def: rec.file.name })
+                        if (!s) return
+                        rec.name = s
+                    },
                 },
             }),
             h(UploadStatus, { margin: '.5em 0' }),
@@ -165,7 +172,7 @@ export function showUpload() {
                     h('div', { key: q.to },
                         h(Link, { to: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FilesList, {
-                            entries: Array.from(q.entries),
+                            entries: uploadState.qs[idx].entries,
                             actions: {
                                 delete: f => {
                                     if (f === uploadState.uploading)
@@ -194,18 +201,20 @@ function path(f: File) {
     return (f.webkitRelativePath || f.name).replaceAll('//','/')
 }
 
-function FilesList({ entries, actions }: { entries: Readonly<ToUpload[]>, actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
+function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
     const { uploading, progress }  = useSnapshot(uploadState)
-    return !entries.length ? null : h('table', { className: 'upload-list', width: '100%' },
+    const snapEntries = useSnapshot(entries)
+    return !snapEntries.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
-            entries.map((e, i) => {
+            snapEntries.map((e, i) => {
                 const working = e === uploading
                 return h(Fragment, { key: i },
                     h('tr', {},
-                        h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) => cb && iconBtn(icon, () => cb(e))) ),
+                        h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) =>
+                            cb && iconBtn(icon, () => cb(entries[i]))) ),
                         h('td', {}, formatBytes(e.file.size)),
                         h('td', { className: working ? 'ani-working' : undefined },
-                            path(e.file),
+                            e.name || path(entries[i].file),
                             working && h('span', { className: 'upload-progress' }, formatPerc(progress))
                         ),
                     ),
@@ -299,7 +308,10 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         bytesSent += e.loaded - lastProgress
         lastProgress = e.loaded
     }
-    req.open('PUT', to + encodeURIComponent(path(toUpload.file)) + '?' + new URLSearchParams({
+    let uploadPath = path(toUpload.file)
+    if (toUpload.name)
+        uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
+    req.open('PUT', to + encodeURIComponent(uploadPath) + '?' + new URLSearchParams({
         notificationChannel,
         ...resume && { resume: String(resume) },
         ...toUpload.comment && { comment: toUpload.comment },
@@ -314,7 +326,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             const {uploading} = uploadState
             if (!uploading) return
             if (name === 'upload.resumable') {
-                const size = data?.[path(uploading.file)]
+                const size = data?.[path(uploading.file)] //TODO use toUpload?
                 if (!size || size > toUpload.file.size) return
                 const {expires} = data
                 const timeout = typeof expires !== 'number' ? 0

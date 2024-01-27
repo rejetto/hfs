@@ -4,6 +4,8 @@ import { getHFS, hfsEvent, hIcon, prefix } from './misc'
 import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
     useMemo, useState, ComponentPropsWithoutRef } from 'react'
+import _ from 'lodash'
+import { t } from './i18n'
 
 export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
@@ -86,17 +88,16 @@ export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any
     return children.length || !ifEmpty ? h(Fragment, {}, children) : h(ifEmpty)
 }
 
-interface IconBtnOptions extends ButtonHTMLAttributes<any> { small?: boolean, style?: any }
-export function iconBtn(icon: string, onClick: MouseEventHandler, { small=true, style={}, ...props }: IconBtnOptions={}) {
+interface IconBtnOptions extends ButtonHTMLAttributes<any> { small?: boolean, style?: any, title?: string }
+export function iconBtn(icon: string, onClick: MouseEventHandler, { title, small=true, style={}, ...props }: IconBtnOptions={}) {
     return h('button', {
-            onClick,
-            ...props,
-            ...small && {
-                style: { padding: '.1em', width: 35, height: 30, ...style }
-            }
-        },
-        icon.length > 1 ? hIcon(icon) : icon
-    )
+        title: title ?? t(_.capitalize(icon)),
+        onClick,
+        ...props,
+        ...small && {
+            style: { padding: '.1em', width: 35, height: 30, ...style }
+        }
+    }, icon.length > 1 ? hIcon(icon) : icon )
 }
 
 export interface BtnProps extends ComponentPropsWithoutRef<"button"> {
