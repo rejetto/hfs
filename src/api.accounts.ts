@@ -2,7 +2,7 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addAccount, delAccount, getAccount,
-    setAccount, changeSrpHelper } from './perm'
+    changeSrpHelper, updateAccount } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidSessions } from './auth'
@@ -37,20 +37,23 @@ export default  {
         return { list: _.filter(accountsConfig.get(), accountCanLoginAdmin).map(ac => ac.username) }
     },
 
-    set_account({ username, changes }, ctx) {
+    async set_account({ username, changes }, ctx) {
         const acc = getAccount(username)
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
-        setAccount(acc, changes)
+        await updateAccount(acc, changes)
         if (changes.username && ctx.session?.username === username)
             ctx.session!.username = changes.username
         return _.pick(acc, 'username')
     },
 
-    add_account({ overwrite, username, ...rest }) {
+    async add_account({ overwrite, username, ...rest }) {
         const existing = getAccount(username)
-        if (existing)
-            return overwrite ? setAccount(existing, rest) : new ApiError(HTTP_CONFLICT)
+        if (existing) {
+            if (overwrite) return new ApiError(HTTP_CONFLICT)
+            await updateAccount(existing, rest)
+            return _.pick(existing, 'username')
+        }
         const acc = addAccount(username, rest)
         return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
     },
