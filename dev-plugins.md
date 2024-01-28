@@ -206,6 +206,7 @@ The HFS objects contains many properties:
 - `h` shortcut for React.createElement
 - `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
 - `_` [lodash library](https://lodash.com/docs/)
+- `navigate: (uri: string): void` use this if you have to change the page address without causing reload
 - `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts. 
 - `Icon: ReactComponent` Properties:
   - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
@@ -364,14 +365,29 @@ h('button', { onClick: () => console.log('hi') }, 'Say hi')
 
 Where `h` is just `import { createElement as h } from 'react'`.
 
+## Internationalization (i18n)
+
+To make your plugin multi-language you can use `HFS.t` function in javascript, like this: `HFS.t("Hello!")`.
+Now, to add translations, you'll add files like `hfs-lang-XX.json` to your plugin (same folder as plugin.js),
+where XX is the language code. The system is basically the same used to translate the rest of HFS,
+and you can [read details here](https://github.com/rejetto/hfs/wiki/Translation).
+
+In the previous example "Hello!" is used both as key for translation and as for default text.
+If you want to separate these 2 things, just pass 2 parameters, key and default text. Eg: `HFS.t('greeting', "Hello!")`.
+
+If you need to pass variables in the text, introduce a third parameter in the middle.
+Eg: `HFS.t('filter_count', {n:filteredVariable}, "{n} filtered")`
+
 ## API version history
 
 - 8.65 (v0.51.0)
   - plugin's own hfs-lang files
-  - props.can_overwrite
+  - HFS.state.props.can_overwrite
   - ctx.state.considerAsGui
   - new event: userPanelAfterInfo
   - breaking: moved custom properties from ctx to ctx.state
+  - HFS.navigate
+  - internationalization
 - 8.5 (v0.49.0)
   - new event: entry
   - exports.onDirEntry: entry.icon
