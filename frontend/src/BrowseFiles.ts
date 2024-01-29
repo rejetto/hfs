@@ -215,18 +215,17 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
             props: { entry },
             ifEmpty: () => h(Fragment, {},
                 showFilter && h(Checkbox, {
-                    'aria-label': t`Select file`,
-                disabled: isLink,
-                'aria-labelledby': ariaId,
-                value: selected[uri],
-                onChange(v){
-                    if (v)
-                        return state.selected[uri] = true
-                    delete state.selected[uri]
-                },
-            }),
-            h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                ...isFolder || entry.web ? [ // internal navigation, use Link component
+                    disabled: isLink,
+                    'aria-labelledby': ariaId,
+                    value: selected[uri],
+                    onChange(v) {
+                        if (v)
+                            return state.selected[uri] = true
+                        delete state.selected[uri]
+                    },
+                }),
+                h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
+                    ...isFolder || entry.web ? [ // internal navigation, use Link component
                         h(Link, { to: uri, ...ariaProps }, ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
                         // popup button is here to be able to detect link-wrapper:hover
                         file_menu_on_link && !showingButton && h('button', {
