@@ -13,7 +13,10 @@
     --button-bg: #6080aa;
     --button-text: #eaeaea;
     --focus-color: #468;
-    --separator: " – " / ""; // skip screen-reader
+    --separator: " – "; // fallback
+    @supports (content: "" / "") {
+        --separator: " – " / ""; // skip for screen-reader
+    }
     .highlightedText { color: #0006; text-shadow: 0 0 3px #0006; }
     .theme-dark {
         --bg: #000;
