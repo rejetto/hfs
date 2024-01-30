@@ -55,37 +55,40 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
     const cwdDelimiter = enforceFinal(pathDelimiter, cwd)
     const isRoot = cwd.length < 2
     return h(Fragment, {},
-        h(Box, { display: 'flex', gap: 1 },
-            h(Button, {
-                title: "root",
-                disabled: isRoot,
-                onClick() {
-                    setCwd(root)
-                }
-            }, h(VerticalAlignTop)),
-            h(Button, {
-                disabled: isRoot,
-                title: "parent folder",
-                onClick() {
-                    const cwdND = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
-                    const parent = isWindowsDrive(cwdND) ? root : cwdND.slice(0, cwdND.lastIndexOf(pathDelimiter) || 1)
-                    setCwd(parent)
-                }
-            }, h(ArrowUpward)),
-            h(StringField, {
-                label: "Current path",
-                value: cwd,
-                InputLabelProps: { shrink: true },
-                async onChange(v) {
-                    if (!v)
-                        return setCwd(root)
-                    const res = await apiCall('resolve_path', { path: v })
-                    if (res.isFolder === false)
-                        return files ? onSelect([v]) : setCwd(v.slice(0, -basename(v)))
-                    setCwd(res.path)
-                },
-            }),
-        ),
+        h(StringField, {
+            label: "Current folder",
+            value: cwd,
+            InputLabelProps: { shrink: true },
+            helperText: "UNC paths are supported",
+            async onChange(v) {
+                if (!v)
+                    return setCwd(root)
+                const res = await apiCall('resolve_path', { path: v })
+                if (res.isFolder === false)
+                    return files ? onSelect([v]) : setCwd(v.slice(0, -basename(v)))
+                setCwd(res.path)
+            },
+            end: [
+                h(IconBtn, {
+                    title: "root",
+                    disabled: isRoot,
+                    icon: VerticalAlignTop,
+                    onClick() {
+                        setCwd(root)
+                    }
+                }),
+                h(IconBtn, {
+                    title: "parent folder",
+                    disabled: isRoot,
+                    icon: ArrowUpward,
+                    onClick() {
+                        const cwdND = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
+                        const parent = isWindowsDrive(cwdND) ? root : cwdND.slice(0, cwdND.lastIndexOf(pathDelimiter) || 1)
+                        setCwd(parent)
+                    }
+                }),
+            ]
+        }),
         error ? h(Alert, { severity: 'error' }, err2msg(error))
             : h(Fragment, {},
                 h(Box, {

@@ -75,6 +75,7 @@ export default function HomePage() {
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure and you can ", h(Button, {
                     size: 'small',
+                    sx: { lineHeight: 'unset' }, // fit in the line, avoiding bad layout
                     async onClick() {
                         if (await confirmDialog("Go on only if you know what you are doing")
                         && await apiCall('set_config', { values: { ignore_proxies: true } }))

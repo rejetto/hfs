@@ -16,41 +16,39 @@ export default function FileField({ value, onChange, files=true, folders=false, 
         value,
         onChange,
         onTyping: (v: string) => !v.includes('\n') && v,
-        InputProps: {
-            multiline: true,
-            endAdornment: h(InputAdornment, { position: 'end' },
-                h(IconBtn, {
-                    icon: Eject,
-                    title: "Browse files...",
-                    edge: 'end',
-                    onClick() {
-                        const { close } = newDialog({
-                            title: title ?? (files ? "Pick a file" : "Pick a folder"),
-                            dialogProps: {
-                                fullScreen: !large,
-                                sx: { minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' }
-                            },
-                            Content() {
-                                return h(FilePicker, {
-                                    multiple: false,
-                                    folders,
-                                    files,
-                                    fileMask,
-                                    from: value || defaultPath,
-                                    async onSelect(sel) {
-                                        let one = sel?.[0]
-                                        if (!one) return
-                                        const cwd = (await apiCall('get_cwd'))?.path
-                                        if (one.startsWith(cwd))
-                                            one = one.slice(cwd.length+1) || '.'
-                                        onChange(one, { was: value, event: 'picker' })
-                                        close()
-                                    }
-                                })
-                            },
+        InputProps: { multiline: true },
+        end: h(IconBtn, {
+            icon: Eject,
+            title: "Browse files...",
+            edge: 'end',
+            sx: { mb: .5 },
+            onClick() {
+                const { close } = newDialog({
+                    title: title ?? (files ? "Pick a file" : "Pick a folder"),
+                    dialogProps: {
+                        fullScreen: !large,
+                        sx: { minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' }
+                    },
+                    Content() {
+                        return h(FilePicker, {
+                            multiple: false,
+                            folders,
+                            files,
+                            fileMask,
+                            from: value || defaultPath,
+                            async onSelect(sel) {
+                                let one = sel?.[0]
+                                if (!one) return
+                                const cwd = (await apiCall('get_cwd'))?.path
+                                if (one.startsWith(cwd))
+                                    one = one.slice(cwd.length+1) || '.'
+                                onChange(one, { was: value, event: 'picker' })
+                                close()
+                            }
                         })
                     },
-                }))
-        }
+                })
+            },
+        })
     })
 }
