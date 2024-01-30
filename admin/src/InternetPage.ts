@@ -16,6 +16,7 @@ import { ALL, WITH_IP } from './countries'
 import _ from 'lodash'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import { ConfigForm } from './ConfigForm'
+import { DynamicDnsResult } from '../../src/ddns'
 
 const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
@@ -51,15 +52,20 @@ export default function InternetPage() {
         ddnsBox(),
     )
 
+    function stripTags(html: string) {
+        return html.replace(/.+<body>(.+)<\/body>.+/is, (all,x) => x || all) // extract body, if any
+            .replace(/<[^>]+>/g, ' ')
+    }
+
     function ddnsBox() {
-        const { data } = useApiEvents('get_dynamic_dns_error')
+        const { data } = useApiEvents<DynamicDnsResult>('get_dynamic_dns_error')
         const ref = useRef<any>()
         useEffect(() => ref.current && restartAnimation(ref.current, '1s blink'), [data]);
         return h(TitleCard, { icon: Dns, title: "Dynamic DNS updater" },
             data && h(Flex, {},
                 data.error ? h(ErrorIcon, { color: 'error', ref }) : h(Check, { color: 'success', ref }),
                 formatTimestamp(data.ts), ' – ',
-                prefix("Error: ", data.error) || "Updated successfully",
+                prefix("Error: ", stripTags(data.error)) || "Updated successfully",
             ),
             "This tool can keep your domain updated with your latest IP address. Not every service is compatible, and most of them have their own software for the job, which is superior, but we offer this lightweight solution in case you are more keen to it.",
             h(ConfigForm<{

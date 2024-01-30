@@ -134,9 +134,9 @@ export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     return source
 }
 
-export function useApiEvents(cmd: string, params: Dict={}) {
-    const [data, setData] = useStateMounted<any>(undefined)
-    const [error, setError] = useStateMounted<any>(undefined)
+export function useApiEvents<T=any>(cmd: string, params: Dict={}) {
+    const [data, setData] = useStateMounted<T | undefined>(undefined)
+    const [error, setError] = useStateMounted<undefined | string>(undefined)
     const [loading, setLoading] = useStateMounted(false)
     useEffect(() => {
         const src = apiEvents(cmd, params, (type, data) => {

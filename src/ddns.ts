@@ -13,7 +13,8 @@ import { getPublicIps } from './nat'
 const dynamicDnsUrl = defineConfig(CFG.dynamic_dns_url, '')
 
 let stop: Callback | undefined
-let last: undefined | { ts: Date, error: string, url: string }
+export interface DynamicDnsResult { ts: string, error: string, url: string }
+let last: undefined | DynamicDnsResult
 dynamicDnsUrl.sub(v => {
     stop?.()
     if (!v) return
@@ -33,7 +34,7 @@ dynamicDnsUrl.sub(v => {
                 const str = String(res.body).trim()
                 return (re ? str.match(re) : res.ok) ? '' : (str || res.statusMessage)
             }, (err: any) => err.code || err.message || String(err) )
-        last = { ts: new Date(), error, url }
+        last = { ts: new Date().toJSON(), error, url }
         events.emit('dynamicDnsError', last)
         console.log('dynamic dns update', error || 'ok')
     })
