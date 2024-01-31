@@ -428,6 +428,7 @@ button .label {
     }
     #paging-middle>button {
         flex: 1;
+        min-width: unset;
         padding-top: 0; padding-bottom: 0; /* reduce vertically in case a horizontal scrolling bar is needed */
     }
     button {
@@ -520,7 +521,9 @@ button .label {
 
 .tiles-mode {
     max-width: none;
-    margin: 0 1em;
+    @media (min-width: 42em) {
+        margin: 0 1em;
+    }
     --tile-size: 5;
     --name-lines: 3;
     --name-height: calc(4.7em + var(--tile-size) * .4em + 1.2em * var(--name-lines));
