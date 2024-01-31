@@ -26,9 +26,9 @@ export function fileShow(entry: DirEntry) {
             const [mode, setMode] = useState(ZoomMode.contain)
             useEventListener('keydown', ({ key }) => {
                 if (key === 'ArrowLeft')
-                    return go(-1)
+                    return goPrev()
                 if (key === 'ArrowRight')
-                    return go(+1)
+                    return goNext()
                 if (key === 'ArrowDown')
                     return scrollY(1)
                 if (key === 'ArrowUp')
@@ -66,12 +66,15 @@ export function fileShow(entry: DirEntry) {
                 if (!autoPlaying || !showElement) return
                 if (showElement instanceof HTMLMediaElement) {
                     showElement.play().catch(curFailed)
-                    return domOn('ended', () => go(+1), { target: showElement as any })
+                    return domOn('ended', goNext, { target: showElement as any })
                 }
                 // we are supposedly showing an image
                 const h = setTimeout(() => go(+1), state.auto_play_seconds * 1000)
                 return () => clearTimeout(h)
             }, [showElement, autoPlaying, cur])
+            const {mediaSession} = navigator
+            mediaSession.setActionHandler('nexttrack', goNext)
+            mediaSession.setActionHandler('previoustrack', goPrev)
 
             const {t} = useI18N()
             return h(FlexV, {
@@ -123,17 +126,21 @@ export function fileShow(entry: DirEntry) {
                         h(getShowType(cur) || Fragment, {
                             src: cur.uri,
                             className: 'showing',
-                            onLoad: () => {
+                            onLoad() {
                                 lastGood.current = cur
                                 setLoading(false)
                             },
                             onError: curFailed
                         })
                     ),
-                    hIcon('❮', { className: navClass, style: { left: 0 }, onClick: () => go(-1) }),
-                    hIcon('❯', { className: navClass, style: { right: 0 }, onClick: () => go(+1) }),
+                    hIcon('❮', { className: navClass, style: { left: 0 }, onClick: goPrev }),
+                    hIcon('❯', { className: navClass, style: { right: 0 }, onClick: goNext }),
                 ),
             )
+
+            function goPrev() { go(-1) }
+
+            function goNext() { go(+1) }
 
             function curFailed() {
                 if (cur !== lastGood.current)
@@ -151,7 +158,7 @@ export function fileShow(entry: DirEntry) {
                 while (1) {
                     e = e.getSibling(moving.current)
                     if (!e) { // reached last
-                        setAutoPlaying(false)
+                        if (dir! > 0) setAutoPlaying(false)
                         setLoading(cur !== lastGood.current)
                         setCur(lastGood.current) // revert to last known supported file
                         return restartAnimation(document.body, '.2s blink')
