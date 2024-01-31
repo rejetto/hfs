@@ -130,7 +130,16 @@ export function fileShow(entry: DirEntry) {
                                 lastGood.current = cur
                                 setLoading(false)
                             },
-                            onError: curFailed
+                            onError: curFailed,
+                            onPlay() {
+                                const folder = cur.n.slice(0, -cur.name)
+                                navigator.mediaSession.metadata = new MediaMetadata({
+                                    title: cur.name,
+                                    artwork: state.list.filter(x => folder === x.n.slice(0, -x.name) // same folder
+                                        && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
+                                        .map(x => ({ src: x.n }))
+                                })
+                            }
                         })
                     ),
                     hIcon('❮', { className: navClass, style: { left: 0 }, onClick: goPrev }),
