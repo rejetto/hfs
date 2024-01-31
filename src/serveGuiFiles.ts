@@ -123,6 +123,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
         `)
     if (isFrontend)
         ret = ret
+            .replace('<head>', '<head>' + getSection('htmlHead'))
             .replace('<body>', '<body>' + getSection('top'))
             .replace('</body>', getSection('bottom') + '</body>')
     return ret
