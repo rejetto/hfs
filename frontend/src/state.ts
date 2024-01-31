@@ -10,6 +10,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     stoppedSearch?: boolean,
     iconsReady: boolean,
     username: string,
+    accountExp?: string,
     list: DirList,
     filteredList?: DirList,
     clip: DirList

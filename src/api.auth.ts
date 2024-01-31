@@ -12,11 +12,6 @@ import { defineConfig } from './config'
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 const keepSessionAlive = defineConfig('keep_session_alive', true)
 
-function makeExp() {
-    return !keepSessionAlive.get() ? undefined
-        : { exp: new Date(Date.now() + sessionDuration.compiled()) }
-}
-
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     if (!username)
         return new ApiError(HTTP_BAD_REQUEST)
@@ -83,7 +78,8 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
         username: getCurrentUsername(ctx),
         adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
         canChangePassword: canChangePassword(ctx.state.account),
-        ...makeExp(),
+        exp: keepSessionAlive.get() ? new Date(Date.now() + sessionDuration.compiled()) : undefined,
+        accountExp: ctx.state.account?.expire,
     }
 }
 

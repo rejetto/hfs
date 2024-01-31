@@ -79,7 +79,7 @@ export function makeSessionRefresher(state: any) {
     return function sessionRefresher(response: any) {
         if (!response) return
         const { exp } = response
-        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword']))
+        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword', 'accountExp']))
         if (!response.username || !exp) return
         const delta = new Date(exp).getTime() - Date.now()
         const t = _.clamp(delta - 30_000, 4_000, 600_000)
