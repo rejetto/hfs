@@ -669,16 +669,16 @@ button .label {
         &.nav-hidden { opacity: 0 }
     }
     .bar {
-        padding: .5em 1em;
+        padding: .5em min(2vw, 1em);
         background: var(--bg);
         opacity: .8;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         justify-content: flex-end;
-        gap: .5em 1.5em;
+        gap: .5em;
 
-        .entry-details { font-size: smaller; }
+        .entry-details { font-size: smaller; margin-left: 1em; }
         .entry-ts { display: inherit; font-size: smaller; }
         .entry-size::after { display: none }
     }

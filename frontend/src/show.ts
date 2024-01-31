@@ -93,28 +93,26 @@ export function fileShow(entry: DirEntry) {
                 h('div', { className: 'bar' },
                     h('div', { className: 'filename' }, cur.n),
                     h(EntryDetails, { entry: cur, midnight: useMidnight() }),
-                    h(Flex, {},
-                        useWindowSize().width > 1280 && iconBtn('?', showHelp),
-                        h('div', {}, // fuse buttons
-                            h(Btn, {
-                                className: 'small',
-                                label: t`Auto-play`,
-                                toggled: autoPlaying,
-                                onClick: () => setAutoPlaying(x => !x),
-                            }),
-                            autoPlaying && h(Btn, {
-                                className: 'small',
-                                label: String(auto_play_seconds),
-                                onClick: configAutoPlay,
-                            }),
-                        ),
-                        iconBtn('menu', ev => openFileMenu(cur, ev, [
-                            'open','delete',
-                            { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
-                            { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
-                        ])),
-                        iconBtn('close', close),
-                    )
+                    useWindowSize().width > 1280 && iconBtn('?', showHelp),
+                    h('div', {}, // fuse buttons
+                        h(Btn, {
+                            className: 'small',
+                            label: t`Auto-play`,
+                            toggled: autoPlaying,
+                            onClick: () => setAutoPlaying(x => !x),
+                        }),
+                        autoPlaying && h(Btn, {
+                            className: 'small',
+                            label: String(auto_play_seconds),
+                            onClick: configAutoPlay,
+                        }),
+                    ),
+                    iconBtn('menu', ev => openFileMenu(cur, ev, [
+                        'open','delete',
+                        { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
+                        { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
+                    ])),
+                    iconBtn('close', close),
                 ),
                 h(FlexV, { center: true, alignItems: 'center', className: 'main', ref: mainRef },
                     loading && h(Spinner, { style: { position: 'absolute', fontSize: '20vh', opacity: .5 } }),
