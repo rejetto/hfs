@@ -1,7 +1,7 @@
 {
     "author": "Pultsari",
-    "version": 1.0,
-    "hfs_version": "0.47.0",
+    "version": 1.1,
+    "hfs_version": "0.51.1",
     "translate": {
         "Select": "Valitse",
         "n_files": "{n,plural,one{# tiedosto} other{# tiedostoa}}",
@@ -107,7 +107,7 @@
         "Name": "Nimi",
         "file_open": "Avaa",
         "Download": "Lataa",
-        "Missing permission": "Oikeudet puuuttuvat",
+        "Missing permission": "Oikeudet puuttuvat",
         "Reload": "Päivitä",
         "Get list": "Näytä listana",
         "Skip existing files": "Ohita jo olemassa olevat tiedostot",
@@ -134,6 +134,20 @@
         "showHelp_space_body": "valitse",
         "showHelp_D_body": "lataa",
         "showHelp_Z_body": "vaihda zoomauksen tilaa",
-        "showHelp_F_body": "koko näyttö"
+        "showHelp_F_body": "koko näyttö",
+        "Destination": "Kohde",
+        "in_queue": "{n} jonossa",
+        "enter_comment": "Kirjoita kommentti tälle tiedostolle / hakemistolle",
+        "Comment": "Kommentti",
+        "upload_dd_hint": "Voit lähettää tiedostoja raahaamalla niitä tiedostolistauksessa",
+        "Upload not available": "Lähettäminen ei ole mahdollista",
+        "Cut": "Leikkaa",
+        "n_items": "{n,plural, one{# tiedosto / hakemisto leikepöydällä} other{# tiedostoa / hakemistoa leikepöydällä}}",
+        "good_bad": "{good} siirretty, {bad} epäonnistui",
+        "after_cut": "Valintasi on nyt leikepöydällä.\nMene kohdekansioon liittääksesi.",
+        "Cancel clipboard": "Sulje leikepöytä",
+        "to_clipboard_source": "Takaisin lähdekansioon",
+        "Paste": "Liitä",
+        "clipboard_list": "Kohteet leikepöydällä:"
     }
 }
