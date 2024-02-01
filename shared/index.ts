@@ -2,10 +2,13 @@
 
 import _ from 'lodash'
 import { apiCall } from './api'
+import { DAY, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
 export * from './react'
 export * from './dialogs'
 export * from '../src/srp'
 export * from '../src/cross'
+
+// code in this file is shared among frontends, but not backend
 
 (window as any)._ = _
 
@@ -99,4 +102,29 @@ export function focusSelector(selector: string, root=document) {
 export function disableConsoleDebug() {
     const was = console.debug
     console.debug = (...args) => (window as any).DEV && was(...args)
+}
+
+type DurationUnit = 'day' | 'hour' | 'minute' | 'second'
+export function createDurationFormatter({ locale=undefined, unitDisplay='narrow', largest='day', smallest='second', maxTokens, skipZeroes }:
+            { skipZeroes?: boolean, largest?: DurationUnit, smallest?: DurationUnit, locale?: string, unitDisplay?: 'long' | 'short' | 'narrow', maxTokens?: 1 | 2 | 3 }={}) {
+    const multipliers: Record<DurationUnit, number> = { day: DAY, hour: HOUR, minute: MINUTE, second: 1000 }
+    const fmt = objSameKeys(multipliers, (v,k) => Intl.NumberFormat(locale, { style: 'unit', unit: k, unitDisplay }).format)
+    const fmtList = new Intl.ListFormat(locale, { style: 'narrow', type: 'unit' })
+    return (ms: number) => {
+        const a = []
+        let on = false
+        for (const [unit, mul] of typedEntries(multipliers)) {
+            if (unit === smallest)
+                break
+            if (unit === largest)
+                on = true
+            if (!on) continue
+            const v = Math.floor(ms / mul)
+            if (!v && skipZeroes) continue
+            a.push( fmt[unit]?.(v) ?? String(v) )
+            if (a.length === maxTokens) break
+            ms %= mul
+        }
+        return fmtList.format(a)
+    }
 }

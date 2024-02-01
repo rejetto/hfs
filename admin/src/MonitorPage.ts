@@ -4,9 +4,9 @@ import _ from "lodash"
 import { createElement as h, useMemo, Fragment } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
-import { Box, Chip, ChipProps } from '@mui/material'
+import { Box, Chip, ChipProps, Tooltip } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_ } from "./misc"
+import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter } from "./misc"
 import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
@@ -30,10 +30,15 @@ function MoreInfo() {
     const xl = useBreakpoint('xl')
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
+    const formatDuration = createDurationFormatter({ maxTokens: 2, skipZeroes: true })
     return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
-        xl && pair('started'),
+        md && pair('started', {
+            label: "Uptime",
+            render: x => formatDuration(Date.now() - +new Date(x)),
+            title: x => x
+        }),
         xl && pair('http', { label: "HTTP", render: port }),
-        md && pair('https', { label: "HTTPS", render: port }),
+        xl && pair('https', { label: "HTTPS", render: port }),
         sm && pair('connections'),
         pair('sent', { render: formatBytes, minWidth: '4em' }),
         sm && pair('got', { render: formatBytes, minWidth: '4em' }),
@@ -47,15 +52,17 @@ function MoreInfo() {
         label?: string
         render?: Render
         minWidth?: StandardCSSProperties['minWidth']
+        title?: (v: any) => string
     }
 
-    function pair(k: string, { label, minWidth, render }: PairOptions={}) {
+    function pair(k: string, { label, minWidth, render, title }: PairOptions={}) {
         let v = _.get(status, k)
         if (v === undefined)
             return null
         if (typeof v === 'string' && isoDateRe.test(v))
             v = new Date(v).toLocaleString()
         let color: Color = undefined
+        const renderedTitle = title?.(v)
         if (render) {
             v = render(v)
             if (Array.isArray(v))
@@ -63,7 +70,7 @@ function MoreInfo() {
         }
         if (!label)
             label = _.capitalize(k.replaceAll('_', ' '))
-        return h(Chip, {
+        return h(Tooltip, { title: renderedTitle, children: h(Chip, {
             variant: 'filled',
             color,
             label: h(Fragment, {},
@@ -71,7 +78,7 @@ function MoreInfo() {
                 ': ',
                 h('span', { style:{ display: 'inline-block', minWidth } }, v),
             ),
-        })
+        }) })
     }
 
     function port(v: any): ReturnType<Render> {
