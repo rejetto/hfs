@@ -35,7 +35,9 @@
         }
         .dialog-backdrop { background: #333b; }
         .error-msg { color: #b88; background-color: #623; }
-        button.toggled { color: #eee; }
+        button.toggled, a.toggled { color: #eee;
+            text-shadow: 0 0 3px #fff;
+        }
     }
 }
 body {
@@ -127,6 +129,10 @@ button {
 button.toggled {
     color: #fff;
     text-shadow: 0 0 3px #fff;
+}
+a.toggled {
+    color: #223;
+    text-shadow: 0 0 5px #223;
 }
 button, .breadcrumb { /* consistent focus color */
     &:focus-visible {
@@ -382,7 +388,7 @@ ul.dir {
     }
 }
 
-button .label {
+button .icon + .label {
     cursor: inherit;
     margin-left: .4em;
 }

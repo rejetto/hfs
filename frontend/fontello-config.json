@@ -251,6 +251,12 @@
       "css": "copy",
       "code": 61637,
       "src": "fontawesome"
+    },
+    {
+      "uid": "37c5ab63f10d7ad0b84d0978dcd0c7a8",
+      "css": "shuffle",
+      "code": 59418,
+      "src": "fontawesome"
     }
   ]
 }

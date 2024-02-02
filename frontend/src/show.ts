@@ -1,9 +1,9 @@
-import { DirEntry, ext2type, state, useSnapState } from './state'
+import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { domOn, hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
-import { Btn, Flex, FlexV, iconBtn, Spinner } from './components'
+import { Btn, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { t, useI18N } from './i18n'
 import { alertDialog } from './dialog'
@@ -24,6 +24,11 @@ export function fileShow(entry: DirEntry) {
             const moving = useRef(0)
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
+            const [shuffle, setShuffle] = useState<undefined|DirList>()
+            useEffect(() => {
+                if (shuffle)
+                    goTo(shuffle[0])
+            }, [shuffle])
             useEventListener('keydown', ({ key }) => {
                 if (key === 'ArrowLeft')
                     return goPrev()
@@ -39,6 +44,8 @@ export function fileShow(entry: DirEntry) {
                     return switchZoomMode()
                 if (key === 'f')
                     return toggleFullScreen()
+                if (key === 's')
+                    return toggleShuffle()
                 if (key === ' ') {
                     const sel = state.selected
                     if (sel[cur.uri])
@@ -113,6 +120,7 @@ export function fileShow(entry: DirEntry) {
                         'open','delete',
                         { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
                         { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
+                        { id: 'shuffle', icon: 'shuffle', label: t`Shuffle`, toggled: Boolean(shuffle), onClick: toggleShuffle },
                     ])),
                     iconBtn('close', close),
                 ),
@@ -133,11 +141,11 @@ export function fileShow(entry: DirEntry) {
                             onError: curFailed,
                             onPlay() {
                                 const folder = cur.n.slice(0, -cur.name)
+                                const covers = state.list.filter(x => folder === x.n.slice(0, -x.name) // same folder
+                                    && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
                                 navigator.mediaSession.metadata = new MediaMetadata({
                                     title: cur.name,
-                                    artwork: state.list.filter(x => folder === x.n.slice(0, -x.name) // same folder
-                                        && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
-                                        .map(x => ({ src: x.n }))
+                                    artwork: covers.map(x => ({ src: x.n }))
                                 })
                             }
                         })
@@ -162,19 +170,22 @@ export function fileShow(entry: DirEntry) {
                 if (dir)
                     moving.current = dir
                 let e = cur
-                setFailed(false)
-                setLoading(true)
                 while (1) {
-                    e = e.getSibling(moving.current)
+                    e = e.getSibling(moving.current, shuffle)
                     if (!e) { // reached last
                         if (dir! > 0) setAutoPlaying(false)
-                        setLoading(cur !== lastGood.current)
-                        setCur(lastGood.current) // revert to last known supported file
+                        goTo(lastGood.current) // revert to last known supported file
                         return restartAnimation(document.body, '.2s blink')
                     }
                     if (!e.isFolder && getShowType(e)) break // give it a chance
                 }
-                setCur(e)
+                goTo(e)
+            }
+
+            function goTo(to: typeof cur) {
+                setFailed(false)
+                setLoading(to !== lastGood.current)
+                setCur(to)
             }
 
             function toggleFullScreen() {
@@ -188,6 +199,10 @@ export function fileShow(entry: DirEntry) {
 
             function switchZoomMode() {
                 setMode(x => x ? x - 1 : ZoomMode.contain)
+            }
+
+            function toggleShuffle() {
+                setShuffle(x => x ? undefined : _.shuffle(state.list))
             }
 
             function scrollY(dy: number) {

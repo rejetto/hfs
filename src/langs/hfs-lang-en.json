@@ -158,6 +158,7 @@
         "autoplay_seconds": "Seconds to wait on images",
         "Select all": "Select all",
         "go_first": "Go to first item",
-        "go_last": "Go to last item"
+        "go_last": "Go to last item",
+        "Shuffle": "Shuffle"
     }
 }

@@ -150,6 +150,7 @@
         "autoplay_seconds": "Secondi di attesa mostrando immagini",
         "Select all": "Seleziona tutto",
         "go_first": "Vai all'inizio",
-        "go_last": "Vai alla fine"
+        "go_last": "Vai alla fine",
+        "Shuffle": "Riproduzione casuale"
     }
 }
