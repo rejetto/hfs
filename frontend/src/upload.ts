@@ -213,9 +213,10 @@ function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon
                         h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) =>
                             cb && iconBtn(icon, () => cb(entries[i]))) ),
                         h('td', {}, formatBytes(e.file.size)),
-                        h('td', { className: working ? 'ani-working' : undefined },
-                            e.name || path(entries[i].file),
-                            working && h('span', { className: 'upload-progress' }, formatPerc(progress))
+                        h('td', {},
+                            h('span', { className: working ? 'ani-working' : undefined }, e.name || path(entries[i].file)),
+                            working && h('span', { className: 'upload-progress' }, formatPerc(progress)),
+                            working && h('progress', { className: 'upload-progress-bar', value: progress, max: 1 }),
                         ),
                     ),
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )

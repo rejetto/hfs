@@ -452,6 +452,10 @@ button .label {
     display: inline-block;
     margin-left: 0.5em;
 }
+.upload-progress-bar {
+    display: block;
+    width: 100%;
+}
 .upload-list {
     margin-top: .5em;
     td:nth-child(1) { width: 0; }
