@@ -128,3 +128,8 @@ export function createDurationFormatter({ locale=undefined, unitDisplay='narrow'
         return fmtList.format(a)
     }
 }
+
+Element.prototype.replaceChildren ||= function(this:Element, addNodes) { // polyfill
+    while (this.lastChild) this.removeChild(this.lastChild);
+    if (addNodes !== undefined) this.append(addNodes);
+}

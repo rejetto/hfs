@@ -48,7 +48,7 @@ export async function promptDialog(msg: string, { def, type, helperText, trim=tr
                 name: 'input',
                 style: {
                     width: def ? (def.length / 2) + 'em' : 'auto',
-                    minWidth: '100%', maxWidth: '100%',
+                    minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box',
                     ...textarea && { width: '30em', maxHeight: '70vh' },
                 },
                 autoFocus: true,

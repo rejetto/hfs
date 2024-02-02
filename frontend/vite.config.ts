@@ -5,7 +5,7 @@ export default defineConfig({
     build: {
         outDir: '../dist/frontend',
         emptyOutDir: true,
-        target: "es2015",
+        target: "chrome69",
     },
     server: {
         port: 3005,

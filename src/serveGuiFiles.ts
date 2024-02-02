@@ -84,7 +84,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     })))
     const lang = await getLangData(ctx)
     let ret = body
-        .replace(/((?:src|href) *= *['"])\/?(?![a-z]+:\/\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
+        .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
         .replace('<body>', () => `<body>
             ${!isFrontend ? '' : `
                 <title>${title.get()}</title>
