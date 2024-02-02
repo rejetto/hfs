@@ -3,9 +3,8 @@
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
-import { getHFS, getPrefixUrl, hIcon, makeSessionRefresher, srpClientSequence, working,
+import { getHFS, hIcon, makeSessionRefresher, srpClientSequence, working,
     HTTP_CONFLICT, HTTP_UNAUTHORIZED,} from './misc'
-import { useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
 import { reloadList } from './useFetchList'
