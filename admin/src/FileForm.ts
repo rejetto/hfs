@@ -6,8 +6,8 @@ import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useThem
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
-import { basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog,
-    objSameKeys, onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches } from './misc'
+import { basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
+    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate } from './misc'
 import { Btn, IconBtn, LinkBtn, modifiedSx, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
@@ -121,7 +121,12 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
                 title: "Delete",
                 confirm: "Delete?",
                 disabled: isRoot,
-                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs([])),
+                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(({ errors: [err] }) => {
+                    if (err)
+                        alertDialog(xlate(err, HTTP_MESSAGES), 'error')
+                    else
+                        reloadVfs([])
+                }),
             }),
             ...wantArray(addToBar)
         ],
