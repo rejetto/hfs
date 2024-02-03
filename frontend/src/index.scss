@@ -648,10 +648,21 @@ button .icon + .label {
             flex-direction: column-reverse !important; // bar at the bottom, easier on the thumb
         }
     }
-    .showing-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;}
+    .showing-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
     .showing {
         max-width: calc(100% - min(4vw, var(--nav-size)) * 2); // avoid overlapping of controls and nav buttons
         max-height: 100%;
+    }
+    .cover {
+        position: absolute;
+        width: 100%; height: 100%;
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: center;
+        z-index: -1; // otherwise firefox
+        opacity: .3;
+        transition: opacity 1s;
+        &.none { opacity: 0; }
     }
     audio.showing { min-width: 60%; }
     audio.showing, // even on mobile, we need the whole thing to control it decently, and nav-s don't seem to be a problem

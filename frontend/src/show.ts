@@ -26,6 +26,7 @@ export function fileShow(entry: DirEntry) {
             const [mode, setMode] = useState(ZoomMode.contain)
             const [shuffle, setShuffle] = useState<undefined|DirList>()
             const [repeat, setRepeat] = useState(false)
+            const [cover, setCover] = useState('')
             useEffect(() => {
                 if (shuffle)
                     goTo(shuffle[0])
@@ -73,7 +74,7 @@ export function fileShow(entry: DirEntry) {
 
             const { auto_play_seconds } = useSnapState()
             const [autoPlaying, setAutoPlaying] = useState(false)
-            const showElement = containerRef.current?.querySelector('*')
+            const showElement = containerRef.current?.querySelector('.showing')
             useEffect(() => {
                 if (!autoPlaying || !showElement) return
                 if (showElement instanceof HTMLMediaElement) {
@@ -139,6 +140,7 @@ export function fileShow(entry: DirEntry) {
                         h('div', {}, cur.name),
                         t`Loading failed`
                     ) : h('div', { className: 'showing-container', ref: containerRef },
+                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: `url(${cover})` } }),
                         h(getShowType(cur) || Fragment, {
                             src: cur.uri,
                             className: 'showing',
@@ -151,6 +153,7 @@ export function fileShow(entry: DirEntry) {
                                 const folder = cur.n.slice(0, -cur.name)
                                 const covers = state.list.filter(x => folder === x.n.slice(0, -x.name) // same folder
                                     && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
+                                setCover(_.maxBy(covers, 's')?.n || '')
                                 navigator.mediaSession.metadata = new MediaMetadata({
                                     title: cur.name,
                                     album: decodeURIComponent(basename(dirname(cur.uri))),
