@@ -644,10 +644,13 @@ button .icon + .label {
     &>div {
         height: 100%;
         width: 100%;
+        @media (max-width: 30em) { // portrait mobile
+            flex-direction: column-reverse !important; // bar at the bottom, easier on the thumb
+        }
     }
     .showing-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;}
     .showing {
-        max-width: calc(100% - var(--nav-size)*2); // avoid overlapping of controls and nav buttons
+        max-width: calc(100% - min(4vw, var(--nav-size)) * 2); // avoid overlapping of controls and nav buttons
         max-height: 100%;
     }
     audio.showing { min-width: 60%; }
@@ -682,11 +685,13 @@ button .icon + .label {
         padding: .5em min(2vw, 1em);
         background: var(--bg);
         opacity: .8;
-        display: flex;
         flex-wrap: wrap;
-        align-items: center;
-        justify-content: flex-end;
-        gap: .5em;
+        &,&>.controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: .5em;
+        }
 
         .entry-details { font-size: smaller; margin-left: 1em; }
         .entry-ts { display: inherit; font-size: smaller; }
