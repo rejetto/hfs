@@ -106,7 +106,7 @@ export function fileShow(entry: DirEntry) {
                 h('div', { className: 'bar' },
                     h('div', { className: 'filename' }, cur.n),
                     h(EntryDetails, { entry: cur, midnight: useMidnight() }),
-                    useWindowSize().width > 1280 && iconBtn('?', showHelp),
+                    useWindowSize().width > 800 && iconBtn('?', showHelp),
                     h('div', {}, // fuse buttons
                         h(Btn, {
                             className: 'small',
@@ -277,13 +277,16 @@ function showHelp() {
         Content: () => h(Fragment, {},
             t('showHelpMain', {}, "You can use the keyboard for some actions:"),
             _.map({
-                "←/→": "go to previous/next file",
-                "↑/↓": "scroll tall images",
-                "space": "select",
-                "D": "download",
-                "Z": "zoom modes",
-                "F": "full screen",
-            }, (v,k) => h('div', { key: k }, h('kbd', {}, t('showHelp_' + k, {}, k)), ' ', t('showHelp_' + k + '_body', {}, v)) )
+                "←/→": t('showHelp_←/→_body', "Go to previous/next file"),
+                "↑/↓": t('showHelp_↑/↓_body', "Scroll tall images"),
+                "space": t`Select`,
+                "D": t`Download`,
+                "Z": t`Switch zoom mode`,
+                "F": t`Full screen`,
+                "S": t`Shuffle`,
+                "R": t`Repeat`,
+                "A": t`Auto-play`,
+            }, (v,k) => h('div', { key: k }, h('kbd', {}, t('showHelp_' + k, k)), ' ', v) )
         )
     })
 }
