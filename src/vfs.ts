@@ -95,11 +95,9 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     const ret = await getNodeByName(name, parent)
     if (!ret)
         return
-    if (ret?.original)
-        return urlToNode(rest, ctx, ret, getRest)
-    if (parent.default)
+    if (parent.default) // web folders have this default setting to ensure a standard behavior
         inheritFromParent({ mime: { '*': MIME_AUTO } }, ret)
-    if (rest)
+    if (rest || ret?.original)
         return urlToNode(rest, ctx, ret, getRest)
     if (ret.source)
         try {
