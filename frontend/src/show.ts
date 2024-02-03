@@ -49,6 +49,8 @@ export function fileShow(entry: DirEntry) {
                     return toggleShuffle()
                 if (key === 'r')
                     return toggleRepeat()
+                if (key === 'a')
+                    return toggleAutoPlay()
                 if (key === ' ') {
                     const sel = state.selected
                     if (sel[cur.uri])
@@ -110,7 +112,7 @@ export function fileShow(entry: DirEntry) {
                             className: 'small',
                             label: t`Auto-play`,
                             toggled: autoPlaying,
-                            onClick: () => setAutoPlaying(x => !x),
+                            onClick: toggleAutoPlay,
                         }),
                         autoPlaying && h(Btn, {
                             className: 'small',
@@ -216,6 +218,10 @@ export function fileShow(entry: DirEntry) {
 
             function toggleRepeat() {
                 setRepeat(x => !x)
+            }
+
+            function toggleAutoPlay() {
+                setAutoPlaying(x => !x)
             }
 
             function scrollY(dy: number) {
