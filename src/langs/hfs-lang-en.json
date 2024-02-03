@@ -156,6 +156,7 @@
         "go_first": "Go to first item",
         "go_last": "Go to last item",
         "Shuffle": "Shuffle",
-        "Repeat": "Repeat"
+        "Repeat": "Repeat",
+        "showHelpListShortcut": "From the file list, click holding {key} to Show quickly"
     }
 }

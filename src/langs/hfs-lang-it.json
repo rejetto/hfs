@@ -148,6 +148,7 @@
         "go_first": "Vai all'inizio",
         "go_last": "Vai alla fine",
         "Shuffle": "Riproduzione casuale",
-        "Repeat": "Ripeti a fine lista"
+        "Repeat": "Ripeti a fine lista",
+        "showHelpListShortcut": "Dalla lista dei file, clicca tenendo {key} per accedere velocemente al File Show"
     }
 }

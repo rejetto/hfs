@@ -108,7 +108,7 @@ export function noAriaTitle(title: string) {
         }
     }
 }
-const isMac = navigator.platform.match('Mac')
+export const isMac = navigator.platform.match('Mac')
 export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }

@@ -1,6 +1,6 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { basename, dirname, domOn, hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
+import { basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
@@ -15,7 +15,7 @@ enum ZoomMode {
     contain, // leave this as last
 }
 
-export function fileShow(entry: DirEntry) {
+export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
     const { close } = newDialog({
         noFrame: true,
         className: 'file-show',
@@ -73,7 +73,7 @@ export function fileShow(entry: DirEntry) {
             useEffect(() => { scrollY(-1E9) }, [cur])
 
             const { auto_play_seconds } = useSnapState()
-            const [autoPlaying, setAutoPlaying] = useState(false)
+            const [autoPlaying, setAutoPlaying] = useState(startPlaying)
             const showElement = containerRef.current?.querySelector('.showing')
             useEffect(() => {
                 if (!autoPlaying || !showElement) return
@@ -291,7 +291,10 @@ function showHelp() {
                 "S": t`Shuffle`,
                 "R": t`Repeat`,
                 "A": t`Auto-play`,
-            }, (v,k) => h('div', { key: k }, h('kbd', {}, t('showHelp_' + k, k)), ' ', v) )
+            }, (v,k) => h('div', { key: k }, h('kbd', {}, t('showHelp_' + k, k)), ' ', v) ),
+            h('div', { style: { marginTop: '1em' } },
+                t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' }, "From the file list, click holding {key} to show")
+            )
         )
     })
 }

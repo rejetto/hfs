@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
 import { useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -16,6 +16,7 @@ import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
+import { fileShow } from './show'
 
 export const MISSING_PERM = "Missing permission"
 
@@ -250,8 +251,12 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     )
 
     function fileMenu(ev: MouseEvent) {
-        if (ev.altKey || ev.ctrlKey || ev.metaKey) return
+        // meta on link is standard on mac to open in new tab, while we use it on Windows where it is the only key that's not used on links
+        if (ev.altKey || ev.ctrlKey || isMac && ev.metaKey) return
         ev.preventDefault()
+        const special = isMac ? ev.shiftKey : ev.metaKey
+        if (special)
+            return fileShow(entry, { startPlaying: true })
         openFileMenu(entry, ev, onlyTruthy([
             file_menu_on_link && 'open',
             'delete',
