@@ -77,6 +77,7 @@ export function fileShow(entry: DirEntry) {
             mediaSession.setActionHandler('previoustrack', goPrev)
 
             const {t} = useI18N()
+            const autoPlaySecondsLabel = t('autoplay_seconds', "Seconds to wait on images")
             return h(FlexV, {
                 gap: 0,
                 alignItems: 'stretch',
@@ -104,6 +105,7 @@ export function fileShow(entry: DirEntry) {
                         autoPlaying && h(Btn, {
                             className: 'small',
                             label: String(auto_play_seconds),
+                            title: autoPlaySecondsLabel,
                             onClick: configAutoPlay,
                         }),
                     ),
@@ -198,7 +200,7 @@ export function fileShow(entry: DirEntry) {
                     Content() {
                         const { auto_play_seconds } = useSnapState()
                         return h(FlexV, {},
-                            t('autoplay_seconds', "Seconds to wait on images"),
+                            autoPlaySecondsLabel,
                             h('input', {
                                 type: 'number',
                                 min: 1,
