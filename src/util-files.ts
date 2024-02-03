@@ -153,7 +153,7 @@ export function createFileWithPath(path: string, options?: Parameters<typeof cre
 }
 
 export function isValidFileName(name: string) {
-    return !/^\.\.?$|[/:*?"<>|\\]/.test(name)
+    return !/^\.\.?$|[/:*?"<>|\\]/.test(name) && !dirTraversal(name)
 }
 
 const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
