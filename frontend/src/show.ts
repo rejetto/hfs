@@ -1,6 +1,6 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { domOn, hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
+import { basename, dirname, domOn, hfsEvent, hIcon, newDialog, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
@@ -145,6 +145,7 @@ export function fileShow(entry: DirEntry) {
                                     && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
                                 navigator.mediaSession.metadata = new MediaMetadata({
                                     title: cur.name,
+                                    album: decodeURIComponent(basename(dirname(cur.uri))),
                                     artwork: covers.map(x => ({ src: x.n }))
                                 })
                             }
