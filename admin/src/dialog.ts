@@ -26,7 +26,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
             if (!el) return
             el.focus()
             if (mobile) return
-            focusSelector('[autofocus]') || focusSelector('input,textarea')
+            focusSelector('[autofocus]', el) || focusSelector('input,textarea', el)
         })
         return () => clearTimeout(h)
     }, [ref.current])

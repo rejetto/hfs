@@ -91,7 +91,7 @@ export function makeSessionRefresher(state: any) {
     }
 }
 
-export function focusSelector(selector: string, root=document) {
+export function focusSelector(selector: string, root: HTMLElement | Document=document) {
     const res = root.querySelector(selector)
     if (res && res instanceof HTMLElement) {
         res.focus()
