@@ -115,6 +115,7 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
     return h('button', {
         title: label + prefix(' - ', tooltip),
         'aria-label': label,
+        'aria-pressed': toggled,
         onClick() {
             if (!onClick) return
             if (onClickAnimation !== false)
