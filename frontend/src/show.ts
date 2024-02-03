@@ -25,6 +25,7 @@ export function fileShow(entry: DirEntry) {
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
             const [shuffle, setShuffle] = useState<undefined|DirList>()
+            const [repeat, setRepeat] = useState(false)
             useEffect(() => {
                 if (shuffle)
                     goTo(shuffle[0])
@@ -46,6 +47,8 @@ export function fileShow(entry: DirEntry) {
                     return toggleFullScreen()
                 if (key === 's')
                     return toggleShuffle()
+                if (key === 'r')
+                    return toggleRepeat()
                 if (key === ' ') {
                     const sel = state.selected
                     if (sel[cur.uri])
@@ -121,6 +124,7 @@ export function fileShow(entry: DirEntry) {
                         { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
                         { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
                         { id: 'shuffle', icon: 'shuffle', label: t`Shuffle`, toggled: Boolean(shuffle), onClick: toggleShuffle },
+                        { id: 'repeat', icon: 'repeat', label: t`Repeat`, toggled: repeat, onClick: toggleRepeat },
                     ])),
                     iconBtn('close', close),
                 ),
@@ -174,7 +178,11 @@ export function fileShow(entry: DirEntry) {
                 while (1) {
                     e = e.getSibling(moving.current, shuffle)
                     if (!e) { // reached last
-                        if (dir! > 0) setAutoPlaying(false)
+                        if (dir! > 0) {
+                            if (repeat)
+                                return goTo(shuffle?.[0] || state.list[0])
+                            setAutoPlaying(false)
+                        }
                         goTo(lastGood.current) // revert to last known supported file
                         return restartAnimation(document.body, '.2s blink')
                     }
@@ -204,6 +212,10 @@ export function fileShow(entry: DirEntry) {
 
             function toggleShuffle() {
                 setShuffle(x => x ? undefined : _.shuffle(state.list))
+            }
+
+            function toggleRepeat() {
+                setRepeat(x => !x)
             }
 
             function scrollY(dy: number) {

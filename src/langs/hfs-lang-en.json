@@ -159,6 +159,7 @@
         "Select all": "Select all",
         "go_first": "Go to first item",
         "go_last": "Go to last item",
-        "Shuffle": "Shuffle"
+        "Shuffle": "Shuffle",
+        "Repeat": "Repeat"
     }
 }

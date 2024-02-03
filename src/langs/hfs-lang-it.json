@@ -151,6 +151,7 @@
         "Select all": "Seleziona tutto",
         "go_first": "Vai all'inizio",
         "go_last": "Vai alla fine",
-        "Shuffle": "Riproduzione casuale"
+        "Shuffle": "Riproduzione casuale",
+        "Repeat": "Ripeti a fine lista"
     }
 }
