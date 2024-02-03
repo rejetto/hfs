@@ -2,7 +2,7 @@
 
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
-import { dirStream, dirTraversal, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy,
+import { dirStream, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy, isValidFileName,
     throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -115,7 +115,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
 }
 
 export async function getNodeByName(name: string, parent: VfsNode) {
-    if (dirTraversal(name) || /[\\/]/.test(name)) return
+    if (!isValidFileName(name)) return
     // does the tree node have a child that goes by this name, otherwise attempt disk
     const child = parent.children?.find(isSameFilenameAs(name)) || childFromDisk()
     return child && applyParentToChild(child, parent, name)

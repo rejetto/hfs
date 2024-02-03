@@ -6,7 +6,8 @@ import _ from 'lodash'
 import { mkdir, stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, enforceFinal, isDirectory, isWindowsDrive, makeMatcher, PERM_KEYS, VfsNodeAdminSend } from './misc'
+import { dirStream, enforceFinal, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
+    VfsNodeAdminSend } from './misc'
 import { IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE } from './const'
 import { getDrives } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
@@ -87,6 +88,8 @@ const apis: ApiHandlers = {
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
         props = pickProps(props, ALLOWED_KEYS) // sanitize
         if (props.name && props.name !== getNodeName(n)) {
+            if (!isValidFileName(props.name))
+                return new ApiError(HTTP_BAD_REQUEST, 'bad name')
             const parent = await urlToNodeOriginal(dirname(uri))
             if (parent?.children?.find(x => getNodeName(x) === props.name))
                 return new ApiError(HTTP_CONFLICT, 'name already present')
@@ -102,6 +105,8 @@ const apis: ApiHandlers = {
     async add_vfs({ parent, source, name, ...rest }) {
         if (!source && !name)
             return new ApiError(HTTP_BAD_REQUEST, 'name or source required')
+        if (!isValidFileName(name))
+            return new ApiError(HTTP_BAD_REQUEST, 'bad name')
         const parentNode = parent ? await urlToNodeOriginal(parent) : vfs
         if (!parentNode)
             return new ApiError(HTTP_NOT_FOUND, 'parent not found')
@@ -132,7 +137,7 @@ const apis: ApiHandlers = {
 
     async del_vfs({ uris }) {
         if (!uris || !Array.isArray(uris))
-            return new ApiError(HTTP_BAD_REQUEST, 'invalid uris')
+            return new ApiError(HTTP_BAD_REQUEST, 'bad uris')
         return {
             errors: await Promise.all(uris.map(async uri => {
                 if (typeof uri !== 'string')

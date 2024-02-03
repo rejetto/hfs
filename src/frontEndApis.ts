@@ -49,7 +49,7 @@ export const frontEndApis: ApiHandlers = {
 
     async create_folder({ uri, name }, ctx) {
         apiAssertTypes({ string: { uri, name } })
-        if (!isValidFileName(name) || dirTraversal(name))
+        if (!isValidFileName(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
         const parentNode = await urlToNode(uri, ctx)
         if (!parentNode)
