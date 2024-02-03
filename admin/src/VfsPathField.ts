@@ -1,13 +1,18 @@
 import { dirname } from './misc'
 import { useApiList } from './api'
 import { createElement as h, useMemo } from 'react'
-import { Autocomplete, TextField } from '@mui/material'
+import { Autocomplete, AutocompleteProps, TextField } from '@mui/material'
+import { FieldProps } from '@hfs/mui-grid-form'
 
-export default function VfsPathField({ value='', onChange, helperText, setApi, autocompleteProps, ...props }: any) {
+interface VfsPathFieldProps extends FieldProps<string> {
+    autocompleteProps: Partial<AutocompleteProps<string, false, true, undefined>>
+}
+
+export default function VfsPathField({ value='', onChange, helperText, setApi, autocompleteProps, onlyFolders=true, ...props }: VfsPathFieldProps) {
     const uri = dirname(value)
-    const { list, loading } = useApiList('get_file_list', { uri, admin: true, onlyFolders: true })
+    const { list, loading } = useApiList('get_file_list', { uri, admin: true, onlyFolders })
     const options = useMemo(() => [uri + '/'].concat(list.map(x => value + x.n)), [list, uri])
-    return h(Autocomplete, {
+    return h(Autocomplete<string, false, true, undefined>, {
         value,
         options,
         isOptionEqualToValue: (o,v) => o === v || o === v + '/',

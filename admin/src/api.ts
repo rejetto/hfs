@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
-import { Dict, err2msg, Falsy, LIST, useStateMounted, wantArray, xlate,
-    HTTP_FORBIDDEN, HTTP_UNAUTHORIZED,} from './misc'
+import { Dict, err2msg, Falsy, LIST, useStateMounted, wantArray, xlate, objSameKeys,
+    HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './misc'
 import { IconBtn, spinner } from './mui'
 import { Alert } from '@mui/material'
 import _ from 'lodash'
@@ -63,7 +63,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
         setConnecting(true)
         setInitializing(true)
         setList([])
-        const src = apiEvents(cmd, params, (type, data) => {
+        const src = apiEvents(cmd, objSameKeys(params, x => x === false ? undefined : x), (type, data) => {
             switch (type) {
                 case 'connected':
                     setConnecting(false)
