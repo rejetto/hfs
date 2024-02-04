@@ -188,7 +188,7 @@ Some actions you can take for improved security:
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
 - Appending `?overwrite` on uploads, will try override the dont_overwrite_uploading configuration, provided you also have delete permission
 - Right-click on "check for updates" will let you input a URL of a version to install
-- Admin: ctrl+digit will switch page
+- Admin: alt+digit will switch page (ctrl on Mac)
 - Appending ?overwrite to the URL of an upload request will overwrite existing file if you have delete permission
 - shift+click on a file will show & play
 

@@ -14,7 +14,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
-import { AriaOnly, xlate } from './misc'
+import { AriaOnly, isMac, xlate } from './misc'
 import { getLocale } from './locale'
 
 function App() {
@@ -48,8 +48,8 @@ function Routed() {
     const large = useBreakpoint('lg')
     const xs = current?.noPaddingOnMobile ? 0 : 1
     const navigate = useNavigate()
-    useEventListener('keydown', ({ key, ctrlKey }) => {
-        if (!ctrlKey) return
+    useEventListener('keydown', ({ key, ctrlKey, altKey }) => {
+        if (!(isMac ? ctrlKey : altKey)) return // alt doesn't work on Mac, but it is the only suitable key on Windows
         const idx = Number(xlate(key, { 0: 10 })) // key 0 is after 9 and works as 10
         if (!idx) return
         const path = mainMenu[idx - 1]?.path
