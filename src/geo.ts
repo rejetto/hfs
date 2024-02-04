@@ -1,5 +1,5 @@
 import { defineConfig } from './config'
-import { CFG, DAY, httpStream, isLocalHost, unzip } from './misc'
+import { CFG, DAY, httpStream, isIpLan, isLocalHost, unzip } from './misc'
 import { stat, rename, unlink } from 'node:fs/promises'
 import { IP2Location } from 'ip2location-nodejs'
 import _ from 'lodash'
@@ -17,7 +17,7 @@ setInterval(checkFiles, DAY) // keep updated at run-time
 export const ip2country = _.memoize((ip: string) => ip2location.getCountryShortAsync(ip).then(v => v === '-' ? '' : v, () => ''))
 
 export const geoFilter: Middleware = async (ctx, next) => {
-    if (enabled.get() && !isLocalHost(ctx)) {
+    if (enabled.get() && !isLocalHost(ctx) && !isIpLan(ctx.ip)) {
         const { connection }  = ctx.state
         const country = connection.country ??= await ip2country(ctx.ip)
         if (country)

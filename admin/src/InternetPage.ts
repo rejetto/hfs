@@ -144,6 +144,7 @@ export default function InternetPage() {
                             k: CFG.geo_allow_unknown,
                             comp: SelectField,
                             label: "When country cannot be determined",
+                            helperText: "Local IPs are ignored",
                             options: { Allow: true, Block: false },
                         },
                     ]
