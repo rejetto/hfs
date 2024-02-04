@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useState } from 'react'
+import { createElement as h, Fragment, useCallback, useState } from 'react'
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
 import { AppBar, Box, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
@@ -61,10 +61,11 @@ function Routed() {
         !large && h(StickyBar, { title, openMenu: () => setOpen(true) }),
         !large && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
             h(MainMenu, {
-                onSelect: () => setOpen(false)
+                onSelect: () => setOpen(false),
+                itemTitle,
             })),
         h(Box, { display: 'flex', flex: 1, }, // horizontal layout for menu-content
-            large && h(MainMenu),
+            large && h(MainMenu, { itemTitle, onSelect(){} }),
             h(Box, {
                 component: 'main',
                 sx: {
@@ -89,6 +90,10 @@ function Routed() {
             ),
         )
     )
+}
+
+function itemTitle(idx: number) {
+    return idx < 10 ? `${isMac ? 'CTRL' : 'ALT'} + ${(idx+1) % 10}` : ''
 }
 
 function StickyBar({ title, openMenu }: { title?: string, openMenu: ()=>void }) {

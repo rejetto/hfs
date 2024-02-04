@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, FC } from 'react';
-import { List, ListItemButton, ListItemIcon, ListItemText, Box } from '@mui/material'
+import { List, ListItemButton, ListItemIcon, ListItemText, Box, Tooltip } from '@mui/material'
 import {
     AccountTree,
     Extension,
@@ -56,7 +56,7 @@ export const mainMenu: MenuEntry[] = [
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
 
-export default function Menu({ onSelect }: { onSelect: ()=>void }) {
+export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, itemTitle: (idx: number) => string }) {
     const { VERSION } = getHFS()
     const logo = 'hfs-logo.svg'
     const short = useWindowSize().height < 700
@@ -75,9 +75,8 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                 h(Box, { fontSize: 'small' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
-            mainMenu.map(it =>
+            mainMenu.map((it, idx) => h(Tooltip, { key: it.path, title: itemTitle(idx), placement: 'right', children:
                 h(ListItemButton, {
-                    key: it.path,
                     to: it.path,
                     component: NavLink,
                     onClick: onSelect,
@@ -87,7 +86,7 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                 },
                     it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
                     h(ListItemText, { sx: { whiteSpace: 'nowrap' }, primary: getMenuLabel(it) })
-                ) ),
+                ) }) ),
             !short && h(Box, { sx: { flex: 1, opacity: .7, background: `url(${logo}) no-repeat bottom`, backgroundSize: 'contain', margin: 2 } }),
         )
     )
