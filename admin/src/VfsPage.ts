@@ -32,10 +32,6 @@ export default function VfsPage() {
         return b && !ret.includes(b) ? [b, ...ret] : ret
     }, [status])
     const single = selectedFiles.length < 2 && (selectedFiles[0] as VfsNode || vfs)
-    useEffect(() => {
-        if (isSideBreakpoint && !selectedFiles.length && state.vfs)
-            state.selectedFiles = [state.vfs]
-    }, [isSideBreakpoint, selectedFiles, state.vfs])
 
     const sideContent = !vfs ? null : single ? h(FileForm, {
             addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),

@@ -7,7 +7,7 @@ import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriv
     RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
-import { Callback, onlyTruthy, Who, with_ } from './misc'
+import { onlyTruthy, Who, with_ } from './misc'
 import { iconTooltip } from './mui'
 import { apiCall, ApiObject } from './api'
 import { alertDialog, confirmDialog } from './dialog'
@@ -16,7 +16,7 @@ import _ from 'lodash'
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
 
-export default function VfsTkree({ id2node, statusApi, onSelect }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject, onSelect?: Callback<VfsNode[]> }) {
+export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
     const { vfs, selectedFiles } = useSnapState()
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
     const dragging = useRef<string>()
@@ -28,7 +28,7 @@ export default function VfsTkree({ id2node, statusApi, onSelect }:{ id2node: Map
         // @ts-ignore the type declared on the lib doesn't seem to be compatible with useRef()
         ref,
         expanded,
-        selected: selectedFiles.map(x => x.id),
+        selected: selectedFiles.length ? selectedFiles.map(x => x.id) : ['/'],
         multiSelect: true,
         id: treeId,
         sx: {
@@ -38,8 +38,7 @@ export default function VfsTkree({ id2node, statusApi, onSelect }:{ id2node: Map
         },
         onNodeSelect(ev, ids) {
             if (typeof ids === 'string') return // shut up ts
-            state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
-            onSelect?.(state.selectedFiles)
+            state.selectedFiles = onlyTruthy(ids.filter(x => (selectedFiles.length || x !== '/') && x).map(id => id2node.get(id)))
         }
     }, recur(vfs as Readonly<VfsNode>))
 
