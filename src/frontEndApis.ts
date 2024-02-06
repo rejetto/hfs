@@ -11,7 +11,7 @@ import {
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import { hasPermission, statusCodeForMissingPerm, urlToNode } from './vfs'
-import { mkdir, rename, rm } from 'fs/promises'
+import { mkdir, rename, rm, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
 import { apiAssertTypes } from './misc'
@@ -127,9 +127,14 @@ export const frontEndApis: ApiHandlers = {
                 if (typeof src !== 'string') return HTTP_BAD_REQUEST
                 const srcNode = await urlToNode(src, ctx)
                 if (!srcNode) return HTTP_NOT_FOUND
+                const s = srcNode.source!
+                const d = join(destNode!.source!, basename(srcNode.source!))
                 return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
-                    || rename(srcNode.source!, join(destNode!.source!, basename(srcNode.source!)))
-                        .catch(e => e.code || String(e))
+                    || rename(s, d).catch(async e => {
+                        if (e.code !== 'EXDEV') throw e // exdev = different drive
+                        await copyFile(s, d)
+                        await unlink(s)
+                    }).catch(e => e.code || String(e))
             }))
         }
     },
