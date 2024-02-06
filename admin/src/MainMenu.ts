@@ -1,19 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, FC } from 'react';
-import { List, ListItemButton, ListItemIcon, ListItemText, Box, Tooltip } from '@mui/material'
+import { List, ListItemButton, ListItemIcon, ListItemText, Box } from '@mui/material'
 import {
-    AccountTree,
-    Extension,
-    History,
-    Home,
-    Logout,
-    ManageAccounts,
-    Monitor,
-    Public,
-    Settings,
-    Translate,
-    Code,
+    AccountTree, Extension, History, Home, Logout, ManageAccounts, Monitor, Public, Settings, Translate, Code,
     SvgIconComponent
 } from '@mui/icons-material'
 import _ from 'lodash'
@@ -32,6 +22,7 @@ import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
 import { replaceStringToReact } from './md'
 import { useWindowSize } from 'usehooks-ts'
+import { hTooltip } from './mui'
 
 interface MenuEntry {
     path: string
@@ -75,7 +66,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                 h(Box, { fontSize: 'small' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
-            mainMenu.map((it, idx) => h(Tooltip, { key: it.path, title: itemTitle(idx), placement: 'right', children:
+            mainMenu.map((it, idx) => hTooltip( itemTitle(idx), getMenuLabel(it) + ' ' + itemTitle(idx),
                 h(ListItemButton, {
                     to: it.path,
                     component: NavLink,
@@ -84,9 +75,11 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                     style: ({ isActive }) => isActive ? { textDecoration: 'underline' } : {},
                     children: undefined, // shut up ts
                 },
-                    it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
+                    it.icon && h(ListItemIcon, { sx: { color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
                     h(ListItemText, { sx: { whiteSpace: 'nowrap' }, primary: getMenuLabel(it) })
-                ) }) ),
+                ),
+                { key: it.path, placement: 'right' }
+            )),
             !short && h(Box, { sx: { flex: 1, opacity: .7, background: `url(${logo}) no-repeat bottom`, backgroundSize: 'contain', margin: 2 } }),
         )
     )

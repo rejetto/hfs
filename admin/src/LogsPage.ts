@@ -1,13 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo, useState } from 'react';
-import { Box, Tab, Tabs, Tooltip } from '@mui/material'
+import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, typedKeys, NBSP
 } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
-import { NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country } from './mui';
+import { NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
+    hTooltip } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
 import { Settings, SmartToy } from '@mui/icons-material'
@@ -244,7 +245,7 @@ export function agentIcons(agent: string) {
         win: UW + '0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg',
         apple: UW + '7/74/Apple_logo_dark_grey.svg', // grey works for both themes
     })
-    return h(Tooltip, { title: agent, children: h('span', { fontSize: '18px' }, browserIcon || short, ' ', osIcon) })
+    return hTooltip(agent, undefined, h('span', { fontSize: '18px' }, browserIcon || short, ' ', osIcon) )
 
     function icon(k: string, map: Dict<string>) {
         const src = map[k]

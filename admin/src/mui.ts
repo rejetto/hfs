@@ -3,7 +3,7 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import { createElement as h, FC, forwardRef, Fragment, ReactNode, useCallback, useState } from 'react'
+import { createElement as h, FC, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useState } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
@@ -48,19 +48,20 @@ export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgr
             size: 32,
             sx: { position: 'absolute' },
         }),
-        h(Tooltip, {
-            title: h(Fragment, {},
+        hTooltip(
+            h(Fragment, {},
                 _.isNumber(progress) ? formatPerc(progress) : "Size unknown",
                 addTitle && h('div', {}, addTitle)
             ),
-            children: h(CircularProgress, {
+            '',
+            h(CircularProgress, {
                 color: 'success',
                 value: (offset || 1e-7) * 100,
                 variant: 'determinate',
                 size: 32,
                 sx: { display: 'flex', ...sx }, // workaround: without this the element has 0 width when the space is crammy (monitor/file)
             }),
-        })
+        )
     )
 }
 
@@ -140,7 +141,7 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
     if (disabled)
         ret = h('span', { role: 'button', 'aria-label': title + ', disabled' }, ret)
     if (title)
-        ret = h(Tooltip, { title, ...tooltipProps, children: ret })
+        ret = hTooltip(title, undefined, ret, tooltipProps)
     return ret
 })
 
@@ -199,7 +200,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     if (disabled)
         ret = h('span', { role: 'button', 'aria-label': title + ', disabled' }, ret)
     if (title)
-        ret = h(Tooltip, { title, ...tooltipProps, children: ret })
+        ret = hTooltip(title, undefined, ret, tooltipProps)
     return ret
 })
 
@@ -209,7 +210,7 @@ function execDoneMessage(msg: boolean | string | undefined) {
 }
 
 export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxProps, props?: SvgIconProps) {
-    return h(Tooltip, { title: tooltip, children: h(icon, { sx, ...props }) })
+    return hTooltip(tooltip, undefined, h(icon, { sx, ...props }) )
 }
 
 export function InLink(props:any) {
@@ -263,9 +264,8 @@ export function Country({ code, ip, def, long, short }: { code: string, ip?: str
     const { data } = useBatch(code === undefined && good && ip2countryBatch, ip, { delay: 100 }) // query if necessary
     code ||= data || ''
     const country = code && _.find(COUNTRIES, { code })
-    return !country ? h(Fragment, {}, def) : h(Tooltip, {
-        title: long ? undefined : country.name,
-        children: h('span', {},
+    return !country ? h(Fragment, {}, def)
+        : hTooltip(long ? undefined : country.name, undefined, h('span', {},
             h('img', {
                 className: 'flag icon-w-text',
                 src: `flags/${code.toLowerCase()}.png`,
@@ -273,11 +273,18 @@ export function Country({ code, ip, def, long, short }: { code: string, ip?: str
                 ...long && { 'aria-hidden': true },
             }),
             long ? country.name + prefix(' (', short && code, ')') : code
-        )
-    })
+        ) )
 }
 
 async function ip2countryBatch(ips: string[]) {
     const res = await apiCall('ip_country', { ips })
     return res.codes as string[]
+}
+
+// force you to think of aria when adding a tooltip
+export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
+    return h(Tooltip, { title, children,
+        ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel },
+        ...props
+    })
 }

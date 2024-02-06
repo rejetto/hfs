@@ -4,10 +4,10 @@ import _ from "lodash"
 import { createElement as h, useMemo, Fragment } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
-import { Box, Chip, ChipProps, Tooltip } from '@mui/material'
+import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
 import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter } from "./misc"
-import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country } from './mui'
+import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { agentIcons } from './LogsPage'
@@ -70,7 +70,7 @@ function MoreInfo() {
         }
         if (!label)
             label = _.capitalize(k.replaceAll('_', ' '))
-        return h(Tooltip, { title: renderedTitle, children: h(Chip, {
+        return hTooltip(renderedTitle, undefined, h(Chip, {
             variant: 'filled',
             color,
             label: h(Fragment, {},
@@ -78,7 +78,7 @@ function MoreInfo() {
                 ': ',
                 h('span', { style:{ display: 'inline-block', minWidth } }, v),
             ),
-        }) })
+        }) )
     }
 
     function port(v: any): ReturnType<Render> {
