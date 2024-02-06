@@ -433,6 +433,13 @@ export function replace(s: string, symbols: Dict<string | Callback<string>>, del
     return s
 }
 
+export function inCommon<T extends string | unknown[]>(a: T, b: T) {
+    let i = 0
+    const n = a.length
+    while (i < n && a[i] === b[i]) i++
+    return i
+}
+
 export function shortenAgent(agent: string) {
     return _.findKey(BROWSERS, re => re.test(agent))
         || /^[^/(]+ ?/.exec(agent)?.[0]

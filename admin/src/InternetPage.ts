@@ -262,7 +262,7 @@ export default function InternetPage() {
     function networkBox() {
         if (nat.error) return nat.element
         if (!data) return h(CircularProgress)
-        const direct = data?.publicIps.includes(data?.localIp)
+        const direct = data?.publicIps.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),

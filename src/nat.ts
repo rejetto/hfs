@@ -1,10 +1,10 @@
 import { proxy } from 'valtio'
 import { Client } from 'nat-upnp-ts'
 import { debounceAsync } from './debounceAsync'
-import { haveTimeout, HOUR, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
+import { haveTimeout, HOUR, inCommon, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
-import {  httpString } from './util-http'
+import { httpString } from './util-http'
 import { Resolver } from 'dns/promises'
 import { isIP } from 'net'
 import { getIps, getServerStatus } from './listen'
@@ -67,7 +67,8 @@ export const getNatInfo = debounceAsync(async () => {
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
     console.debug('mappings found', mappings?.map(x => x.description))
     const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => undefined)
-    const localIp = res?.address || (await getIps())[0]
+    const localIps = await getIps(false)
+    const localIp = res?.address || gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp!)) : localIps[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
     const externalPort = mapped?.public.port
