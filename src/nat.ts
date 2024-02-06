@@ -62,7 +62,7 @@ export const getPublicIps = debounceAsync(async () => {
 
 export const getNatInfo = debounceAsync(async () => {
     const gettingIps = getPublicIps() // don't wait, do it in parallel
-    const res = await upnpClient.getGateway().catch(() => null)
+    const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
     console.debug('mappings found', mappings?.map(x => x.description))
