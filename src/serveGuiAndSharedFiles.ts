@@ -84,7 +84,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED)
             : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node)
                 : ctx.status !== HTTP_UNAUTHORIZED ? null
-                    : !path.endsWith('/') ? ctx.set('WWW-Authenticate', 'Basic') // this is necessary to support standard urls with credentials. Final / means we are dealing with default file...
+                    : !path.endsWith('/') ? (ctx.set('WWW-Authenticate', 'Basic'), sendErrorPage(ctx)) // this is necessary to support standard urls with credentials. Final / means we are dealing with default file...
                         : (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next) // ...for which we still provide fancy login
     if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
