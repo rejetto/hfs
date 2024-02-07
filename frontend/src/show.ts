@@ -1,6 +1,6 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, restartAnimation } from './misc'
+import { basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
@@ -32,26 +32,16 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                     goTo(shuffle[0])
             }, [shuffle])
             useEventListener('keydown', ({ key }) => {
-                if (key === 'ArrowLeft')
-                    return goPrev()
-                if (key === 'ArrowRight')
-                    return goNext()
-                if (key === 'ArrowDown')
-                    return scrollY(1)
-                if (key === 'ArrowUp')
-                    return scrollY(-1)
-                if (key === 'd')
-                    return location.href = cur.uri + '?dl'
-                if (key === 'z')
-                    return switchZoomMode()
-                if (key === 'f')
-                    return toggleFullScreen()
-                if (key === 's')
-                    return toggleShuffle()
-                if (key === 'r')
-                    return toggleRepeat()
-                if (key === 'a')
-                    return toggleAutoPlay()
+                if (key === 'ArrowLeft') return goPrev()
+                if (key === 'ArrowRight') return goNext()
+                if (key === 'ArrowDown') return scrollY(1)
+                if (key === 'ArrowUp') return scrollY(-1)
+                if (key === 'd') return location.href = cur.uri + '?dl'
+                if (key === 'z') return switchZoomMode()
+                if (key === 'f') return toggleFullScreen()
+                if (key === 's') return toggleShuffle()
+                if (key === 'r') return toggleRepeat()
+                if (key === 'a') return toggleAutoPlay()
                 if (key === ' ') {
                     const sel = state.selected
                     if (sel[cur.uri])
@@ -140,7 +130,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                         h('div', {}, cur.name),
                         t`Loading failed`
                     ) : h('div', { className: 'showing-container', ref: containerRef },
-                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: `url(${cover})` } }),
+                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: `url(${pathEncode(cover)})`, } }),
                         h(getShowType(cur) || Fragment, {
                             src: cur.uri,
                             className: 'showing',
@@ -150,8 +140,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                             },
                             onError: curFailed,
                             onPlay() {
-                                const folder = cur.n.slice(0, -cur.name)
-                                const covers = state.list.filter(x => folder === x.n.slice(0, -x.name) // same folder
+                                const folder = dirname(cur.n)
+                                const covers = state.list.filter(x => folder === dirname(x.n) // same folder
                                     && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
                                 setCover(_.maxBy(covers, 's')?.n || '')
                                 navigator.mediaSession.metadata = new MediaMetadata({
@@ -296,5 +286,15 @@ function showHelp() {
                 t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' }, "From the file list, click holding {key} to show")
             )
         )
+    })
+}
+
+function loadJs(url: string) {
+    return new Promise((resolve, reject) => {
+        const el = document.createElement('script')
+        el.setAttribute('src', url)
+        document.head.appendChild(el)
+        el.addEventListener('load', resolve)
+        el.addEventListener('error', reject)
     })
 }
