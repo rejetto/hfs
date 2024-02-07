@@ -125,7 +125,7 @@ export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length) {
         return ctx.throw(HTTP_BAD_REQUEST, 'bad range')
     const max = totalSize - 1
     const start = bytes[0] ? Number(bytes[0]) : Math.max(0, totalSize-Number(bytes[1])) // a negative start is relative to the end
-    const end = bytes[0] ? Number(bytes[1] || max) : max
+    const end = (bytes[0] && bytes[1]) ? Math.min(max, Number(bytes[1])) : max
     // we don't support last-bytes without knowing max
     if (isNaN(end) && isNaN(max) || end > max || start > max) {
         ctx.status = HTTP_RANGE_NOT_SATISFIABLE

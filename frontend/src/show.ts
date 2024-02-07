@@ -1,6 +1,7 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation } from './misc'
+import { basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, getOrSet,
+    loadJs} from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
@@ -139,16 +140,18 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                                 setLoading(false)
                             },
                             onError: curFailed,
-                            onPlay() {
+                            async onPlay() {
                                 const folder = dirname(cur.n)
                                 const covers = state.list.filter(x => folder === dirname(x.n) // same folder
                                     && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
                                 setCover(_.maxBy(covers, 's')?.n || '')
-                                navigator.mediaSession.metadata = new MediaMetadata({
+                                const meta = navigator.mediaSession.metadata = new MediaMetadata({
                                     title: cur.name,
                                     album: decodeURIComponent(basename(dirname(cur.uri))),
                                     artwork: covers.map(x => ({ src: x.n }))
                                 })
+                                if (cur.ext === 'mp3')
+                                    Object.assign(meta, await getId3Tags(location + cur.n).catch(() => {}))
                             }
                         })
                     ),
@@ -289,12 +292,14 @@ function showHelp() {
     })
 }
 
-function loadJs(url: string) {
-    return new Promise((resolve, reject) => {
-        const el = document.createElement('script')
-        el.setAttribute('src', url)
-        document.head.appendChild(el)
-        el.addEventListener('load', resolve)
-        el.addEventListener('error', reject)
+function getId3Tags(url: string) {
+    return new Promise(async (resolve, reject) => {
+        const tagLib = (window as any).jsmediatags
+            || await loadJs('https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js')
+                .then(() => (window as any).jsmediatags)
+        tagLib.read(url, {
+            onSuccess: (res: any) => resolve(res.tags),
+            onError: reject
+        })
     })
 }
