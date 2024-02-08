@@ -648,7 +648,26 @@ button .icon + .label {
             flex-direction: column-reverse !important; // bar at the bottom, easier on the thumb
         }
     }
-    .showing-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
+
+    .showing-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+    .meta-tags {
+        position: relative;
+        width: 100%;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        &>div { position: absolute;
+            margin: 1em;
+        }
+    }
     .showing {
         max-width: calc(100% - min(4vw, var(--nav-size)) * 2); // avoid overlapping of controls and nav buttons
         max-height: 100%;

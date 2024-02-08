@@ -63,6 +63,9 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             const mainRef = useRef<HTMLDivElement>()
             useEffect(() => { scrollY(-1E9) }, [cur])
 
+            const [tags, setTags] = useState<any>()
+            useEffect(() => setTags(undefined), [cur]) // reset
+
             const { auto_play_seconds } = useSnapState()
             const [autoPlaying, setAutoPlaying] = useState(startPlaying)
             const showElement = containerRef.current?.querySelector('.showing')
@@ -151,9 +154,12 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                                     artwork: covers.map(x => ({ src: x.n }))
                                 })
                                 if (cur.ext === 'mp3')
-                                    Object.assign(meta, await getId3Tags(location + cur.n).catch(() => {}))
+                                    setTags(Object.assign(meta, await getId3Tags(location + cur.n).catch(() => {})))
                             }
-                        })
+                        }),
+                        tags && h('div', { className: 'meta-tags' },
+                            h('div', {}, // extra div for allowing position:relative+absolute
+                                ...['title','artist','album','year'].map(k => h('div', { key: k, className: `meta-${k}` }, tags[k])) ) ),
                     ),
                     hIcon('❮', { className: navClass, style: { left: 0 }, onClick: goPrev }),
                     hIcon('❯', { className: navClass, style: { right: 0 }, onClick: goNext }),
