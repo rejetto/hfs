@@ -11,7 +11,7 @@ import { NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleBu
     hTooltip } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
-import { Settings, SmartToy } from '@mui/icons-material'
+import { Download, Settings, SmartToy } from '@mui/icons-material'
 import md from './md'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
@@ -28,6 +28,7 @@ export default function LogsPage() {
         disabled: tab >= 2,
     }), true)
     const shorterLabels = !useBreakpoint('sm') && { error_log: "Errors" }
+    const file = files[tab]
     return h(Fragment, {},
         h(Flex, { gap: 0  },
             h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
@@ -41,7 +42,7 @@ export default function LogsPage() {
             pauseButton,
             h(IconBtn, { icon: Settings, title: "Options", onClick: showLogOptions })
         ),
-        h(LogFile, { key: tab, pause, showApi, file: files[tab] }), // without key, some state is accidentally preserved across files
+        h(LogFile, { key: tab, pause, showApi, file }), // without key, some state is accidentally preserved across files
     )
 
     function showLogOptions() {
@@ -60,6 +61,10 @@ export default function LogsPage() {
                 }>, {
                     keys: [ CFG.log, CFG.error_log, CFG.log_rotation, CFG.dont_log_net, CFG.log_gui, CFG.log_api, CFG.log_ua ],
                     barSx: { gap: 2, width: '100%', ...useDialogBarColors() },
+                    addToBar: [
+                        h(Box, { flex: 1}),
+                        h(Btn, { icon: Download, variant: 'outlined', link: API_URL + `get_log_file?file=${file}` }, "Download file"),
+                    ],
                     form: {
                         stickyBar: true,
                         fields: [

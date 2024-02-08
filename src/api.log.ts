@@ -1,15 +1,27 @@
 import { ApiHandlers } from './apiMiddleware'
 import _ from 'lodash'
 import { consoleLog } from './consoleLog'
-import { HTTP_NOT_FOUND, tryJson, wait } from './cross'
+import { HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, tryJson, wait } from './cross'
 import events from './events'
 import { loggers } from './log'
 import { createReadStream } from 'fs'
 import readline from 'readline'
 import { onOff } from './misc'
 import { SendListReadable } from './SendList'
+import { serveFile } from './serveFile'
 
 export default {
+    async get_log_file({ file = 'log' }, ctx) {
+        const log = _.find(loggers, { name: file })
+        if (!log)
+            throw HTTP_NOT_FOUND
+        if (!log.path)
+            throw HTTP_NOT_ACCEPTABLE
+        ctx.attachment(log.path)
+        await serveFile(ctx, log.path)
+        return null
+    },
+
     get_log({ file = 'log' }, ctx) {
         return new SendListReadable({
             bufferTime: 10,
