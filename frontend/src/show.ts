@@ -54,6 +54,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 }
             })
             const [showNav, setShowNav] = useState(false)
+            const keepNav = getShowType(cur) === Audio
+            useEffect(() => setShowNav(keepNav), [keepNav])
             const timerRef = useRef(0)
             const navClass = 'nav' + (showNav ? '' : ' nav-hidden')
 
@@ -92,6 +94,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 props: {
                     role: 'dialog',
                     onMouseMove() {
+                        if (keepNav) return
                         setShowNav(true)
                         clearTimeout(timerRef.current)
                         timerRef.current = +setTimeout(() => setShowNav(false), 1_000)
