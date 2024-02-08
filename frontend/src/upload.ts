@@ -211,7 +211,7 @@ function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon
                 return h(Fragment, { key: i },
                     h('tr', {},
                         h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) =>
-                            cb && iconBtn(icon, () => cb(entries[i]))) ),
+                            cb && iconBtn(icon, () => cb(entries[i]), { className: `action-${icon}` })) ),
                         h('td', {}, formatBytes(e.file.size)),
                         h('td', {},
                             h('span', { className: working ? 'ani-working' : undefined }, e.name || path(entries[i].file)),
