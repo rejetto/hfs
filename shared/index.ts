@@ -104,16 +104,6 @@ export function disableConsoleDebug() {
     console.debug = (...args) => (window as any).DEV && was(...args)
 }
 
-export function loadJs(url: string) {
-    return new Promise((resolve, reject) => {
-        const el = document.createElement('script')
-        el.setAttribute('src', url)
-        document.head.appendChild(el)
-        el.addEventListener('load', resolve)
-        el.addEventListener('error', reject)
-    })
-}
-
 type DurationUnit = 'day' | 'hour' | 'minute' | 'second'
 export function createDurationFormatter({ locale=undefined, unitDisplay='narrow', largest='day', smallest='second', maxTokens, skipZeroes }:
             { skipZeroes?: boolean, largest?: DurationUnit, smallest?: DurationUnit, locale?: string, unitDisplay?: 'long' | 'short' | 'narrow', maxTokens?: 1 | 2 | 3 }={}) {

@@ -1,7 +1,6 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, getOrSet,
-    loadJs} from './misc'
+import { basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
@@ -9,6 +8,7 @@ import { openFileMenu } from './fileMenu'
 import { t, useI18N } from './i18n'
 import { alertDialog } from './dialog'
 import _ from 'lodash'
+import { getId3Tags } from './id3'
 
 enum ZoomMode {
     fullWidth,
@@ -289,17 +289,5 @@ function showHelp() {
                 t('showHelpListShortcut', { key: isMac ? 'SHIFT' : 'WIN' }, "From the file list, click holding {key} to show")
             )
         )
-    })
-}
-
-function getId3Tags(url: string) {
-    return new Promise(async (resolve, reject) => {
-        const tagLib = (window as any).jsmediatags
-            || await loadJs('https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js')
-                .then(() => (window as any).jsmediatags)
-        tagLib.read(url, {
-            onSuccess: (res: any) => resolve(res.tags),
-            onError: reject
-        })
     })
 }
