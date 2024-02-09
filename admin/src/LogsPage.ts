@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useMemo, useState } from 'react';
+import { createElement as h, Fragment, ReactNode, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApiList } from './api'
 import { DataTable } from './DataTable'
@@ -20,13 +20,6 @@ import { useDialogBarColors } from './dialog'
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
     const files = typedKeys(logLabels)
-    const { pause, pauseButton } = usePauseButton()
-    const [showApi, showApiButton] = useToggleButton(v => ({
-        title: "Show/hide APIs",
-        icon: SmartToy,
-        sx: { rotate: v ? '0deg' : '180deg' },
-        disabled: tab >= 2,
-    }), true)
     const shorterLabels = !useBreakpoint('sm') && { error_log: "Errors" }
     const file = files[tab]
     return h(Fragment, {},
@@ -38,11 +31,10 @@ export default function LogsPage() {
                     sx: { minWidth: 0, px: { xs: 1.5, sm: 2 } } // save space
                 }))),
             h(Box, { flex: 1 }),
-            showApiButton,
-            pauseButton,
+            h(IconBtn, { icon: Download, title: "Download as file", link: API_URL + `get_log_file?file=${file}` }),
             h(IconBtn, { icon: Settings, title: "Options", onClick: showLogOptions })
         ),
-        h(LogFile, { key: tab, pause, showApi, file }), // without key, some state is accidentally preserved across files
+        h(LogFile, { file, key: tab }), // without key, some state is accidentally preserved across files
     )
 
     function showLogOptions() {
@@ -61,10 +53,6 @@ export default function LogsPage() {
                 }>, {
                     keys: [ CFG.log, CFG.error_log, CFG.log_rotation, CFG.dont_log_net, CFG.log_gui, CFG.log_api, CFG.log_ua ],
                     barSx: { gap: 2, width: '100%', ...useDialogBarColors() },
-                    addToBar: [
-                        h(Box, { flex: 1}),
-                        h(Btn, { icon: Download, variant: 'outlined', link: API_URL + `get_log_file?file=${file}` }, "Download file"),
-                    ],
                     form: {
                         stickyBar: true,
                         fields: [
@@ -89,9 +77,16 @@ export default function LogsPage() {
     }
 }
 
-function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, showApi: boolean }) {
+function LogFile({ file, addToFooter }: { file: string, addToFooter?: ReactNode }) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
+    const { pause, pauseButton } = usePauseButton()
+    const [showApi, showApiButton] = useToggleButton(v => ({
+        title: "Show/hide APIs",
+        icon: SmartToy,
+        sx: { rotate: v ? '0deg' : '180deg' },
+        disabled: file === 'console',
+    }), true)
     const { list, error, connecting } = useApiList('get_log', { file }, {
         invert: true,
         pause,
@@ -127,6 +122,11 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 showLastButton: true,
             }
         },
+        addToFooter: h(Box, {}, // 4 icons don't fit the tabs row on mobile
+            pauseButton,
+            showApiButton,
+            addToFooter,
+        ),
         columns: file === 'console' ? [
             tsColumn,
             {

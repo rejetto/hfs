@@ -3,7 +3,17 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import { createElement as h, FC, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useState } from 'react'
+import {
+    createElement as h,
+    FC,
+    forwardRef,
+    Fragment,
+    ReactElement,
+    ReactNode,
+    useCallback,
+    useEffect,
+    useState
+} from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
@@ -30,6 +40,14 @@ export function useBreakpoint(breakpoint: Breakpoint) {
 export function useLogBreakpoint() {
     const breakpoints = ['xl', 'lg', 'md', 'sm', 'xs'] as const
     console.log('BREAKPOINT', breakpoints[_.findIndex(breakpoints.map(x => useBreakpoint(x)), x => x)])
+}
+
+// for debug purposes
+export function useLogMount(name: string) {
+    useEffect(() => {
+        console.log('MOUNT', name)
+        return () => console.log('UNMOUNT', name)
+    }, [])
 }
 
 interface IconProgressProps {
@@ -107,7 +125,7 @@ interface IconBtnProps extends Omit<IconButtonProps, 'disabled'|'title'|'onClick
     confirm?: string
     doneMessage?: boolean | string // displayed only if the result of onClick !== false
     tooltipProps?: Partial<TooltipProps>
-    onClick: (...args: Parameters<NonNullable<IconButtonProps['onClick']>>) => Promisable<any>
+    onClick?: (...args: Parameters<NonNullable<IconButtonProps['onClick']>>) => Promisable<any>
 }
 
 export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, sx, ...rest }: IconBtnProps, ref: any) => {
@@ -233,11 +251,12 @@ export function LinkBtn({ ...rest }: LinkProps) {
     })
 }
 
-export function usePauseButton() {
+export function usePauseButton(props?: Partial<IconBtnProps>) {
     const [go, btn] = useToggleButton(v => ({
         title: "Pause",
         icon: v ? PauseCircle : PlayCircle,
         sx: { rotate: v ? '180deg' : '0deg' },
+        ...props,
     }), true)
     return { pause: !go, pauseButton: btn }
 }

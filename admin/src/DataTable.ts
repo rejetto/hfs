@@ -1,5 +1,5 @@
-import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, GridValidRowModel, useGridApiRef
-} from '@mui/x-data-grid'
+import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
+    GridValidRowModel, useGridApiRef } from '@mui/x-data-grid'
 import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
 import { useWindowSize } from 'usehooks-ts'
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
@@ -21,8 +21,9 @@ interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridP
     noRows?: ReactNode
     error?: ReactNode
     compact?: true
+    addToFooter?: ReactNode
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, addToFooter, ...rest }: DataTableProps) {
     const { width } = useWindowSize()
     const theme = useTheme()
     const apiRef = useGridApiRef()
@@ -116,6 +117,10 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             apiRef,
             slots: {
                 ...(noRows || initializing) && { noRowsOverlay: () => initializing ? null : h(Center, {}, noRows) },
+                footer: CustomFooter,
+            },
+            slotProps: {
+                footer: { add: addToFooter } as any
             },
             onCellClick({ field, row }) {
                 if (field === ACTIONS) return
@@ -169,4 +174,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             : col.valueFormatter ? col.valueFormatter({ value, ...row })
                 : value
     }
+}
+
+function CustomFooter({ add, ...props }: { add: ReactNode }) {
+    return h(GridFooterContainer, props, h(Box, { ml: 1 }, add), h(GridFooter, { sx: { border: 'none' } }))
 }
