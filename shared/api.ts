@@ -16,6 +16,9 @@ interface ApiCallOptions {
     timeout?: number | false
     modal?: undefined | ((cmd: string, params?: Dict) => (() => unknown))
     onResponse?: (res: Response, body: any) => any
+    method?: string
+    skipParse?: boolean
+    skipLog?: boolean
 }
 
 const defaultApiCallOptions: ApiCallOptions = {}
@@ -34,7 +37,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         console.debug('API TIMEOUT', cmd, params??'')
     }, ms)
     return Object.assign(fetch(getPrefixUrl() + API_URL + cmd, {
-        method: 'POST',
+        method: options.method || 'POST',
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         signal: controller.signal,
         body: params && JSON.stringify(params),
@@ -42,10 +45,11 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         stop?.()
         let body: any = await res.text()
         let data: any
-        try { data = JSON.parse(body) }
+        try { data = options.skipParse ? undefined : JSON.parse(body) }
         catch {}
         const result = data ?? body
-        console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', result)
+        if (!options?.skipLog)
+            console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', result)
         await options.onResponse?.(res, result)
         if (!res.ok)
             throw new ApiError(res.status, data === undefined ? body : `Failed API ${cmd}: ${res.statusText}`, data)

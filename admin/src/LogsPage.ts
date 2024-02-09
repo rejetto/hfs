@@ -2,20 +2,22 @@
 
 import { createElement as h, Fragment, ReactNode, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
-import { API_URL, useApiList } from './api'
+import { API_URL, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, typedKeys, NBSP
-} from '@hfs/shared'
+import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson,
+    typedKeys, NBSP, _dbg } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
-import { NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
-    hTooltip } from './mui';
+import {
+    NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
+    hTooltip, Btn
+} from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
-import { Download, Settings, SmartToy } from '@mui/icons-material'
+import { ClearAll, Download, Settings, SmartToy } from '@mui/icons-material'
 import md from './md'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
-import { useDialogBarColors } from './dialog'
+import { toast, useDialogBarColors } from './dialog'
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
@@ -87,7 +89,32 @@ function LogFile({ file, addToFooter }: { file: string, addToFooter?: ReactNode 
         sx: { rotate: v ? '0deg' : '180deg' },
         disabled: file === 'console',
     }), true)
-    const { list, error, connecting } = useApiList('get_log', { file }, {
+    const [totalSize, setTotalSize] = useState(NaN)
+    const [limited, setLimited] = useState(true)
+    const [skipped, setSkipped] = useState(0)
+    const MAX = 2**20
+    useApi('get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
+        skipParse: true, skipLog: true,
+        onResponse(res, body) {
+            const lines = body.split('\n')
+            if (limited) {
+                const size = Number(splitAt('/', res.headers.get('Content-Range') ||'')?.[1])
+                if (isNaN(size)) throw _dbg("shouldn't happen")
+                setTotalSize(size)
+                if (body.length >= size)
+                    setLimited(false)
+                else
+                    setSkipped(size! - body.length + lines.shift().length + 1)
+            }
+            else if (skipped) {
+                toast(`Entire log loaded, ${formatBytes(skipped)}`)
+                setSkipped(0)
+            }
+            const treated = lines.map(parseLogLine).filter(Boolean).reverse()
+            setList(x => [...x, ...treated])
+        }
+    })
+    const { list, setList, error, connecting } = useApiList('get_log', { file }, {
         invert: true,
         pause,
         map(x) {
@@ -125,6 +152,15 @@ function LogFile({ file, addToFooter }: { file: string, addToFooter?: ReactNode 
         addToFooter: h(Box, {}, // 4 icons don't fit the tabs row on mobile
             pauseButton,
             showApiButton,
+            !connecting && skipped > 0 && h(Btn, {
+                icon: ClearAll,
+                variant: 'outlined',
+                sx: { ml: 1 },
+                labelFrom: 'md',
+                title: `Only ${formatBytes(MAX)} was loaded, for speed. Total size is ${formatBytes(totalSize)}`,
+                loading: !limited,
+                onClick: () => setLimited(false)
+            }, "Load whole log"),
             addToFooter,
         ),
         columns: file === 'console' ? [
@@ -263,4 +299,21 @@ const OSS = {
     win: /Windows NT/,
     android: /Android/,
     linux: /Linux/,
+}
+
+function parseLogLine(line: string, id: number) {
+    const m = /^(.+?) (.+?) (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (-|\d+) ?(.*)/.exec(line)
+    if (!m) return
+    const [, ip, , user, date, time, method, uri, status, length, extra] = m
+    return { // keep object format same as events emitted by the log module
+        id,
+        ip,
+        user: user === '-' ? undefined : user,
+        ts: new Date(date + ' ' + time),
+        method,
+        uri,
+        status: Number(status),
+        length: length === '-' ? undefined : Number(length),
+        extra: tryJson(tryJson(extra)) || undefined,
+    }
 }
