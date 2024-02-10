@@ -411,7 +411,7 @@ export function acceptDropFiles(cb: false | undefined | ((files:File[]) => void)
     return {
         onDragOver(ev: DragEvent) {
             ev.preventDefault()
-            ev.dataTransfer!.dropEffect = cb ? 'copy' : 'none'
+            ev.dataTransfer!.dropEffect = cb && ev.dataTransfer.types.includes('Files') ? 'copy' : 'none'
         },
         onDrop(ev: DragEvent) {
             ev.preventDefault()
