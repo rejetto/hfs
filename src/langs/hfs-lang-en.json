@@ -157,6 +157,7 @@
         "go_last": "Go to last item",
         "Shuffle": "Shuffle",
         "Repeat": "Repeat",
-        "showHelpListShortcut": "From the file list, click holding {key} to Show quickly"
+        "showHelpListShortcut": "From the file list, click holding {key} to Show quickly",
+        "Invalid value": "Invalid value"
     }
 }

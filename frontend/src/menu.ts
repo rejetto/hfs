@@ -3,7 +3,7 @@
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
-import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, VfsPerms, working } from './misc'
+import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, throw_, useStateMounted, VfsPerms, working } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -141,7 +141,8 @@ export function MenuPanel() {
             label: t`Search`,
             onClickAnimation: false,
             async onClick() {
-                state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders"), { title: t`Search` }) || ''
+                state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders"),
+                    { title: t`Search`, onSubmit: x => x.includes('/') ? throw_(t`Invalid value`) : x  }) || ''
             }
         }
     }
