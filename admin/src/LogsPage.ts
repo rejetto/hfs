@@ -9,7 +9,7 @@ import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAg
 import { logLabels } from './OptionsPage'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
-    hTooltip, Btn
+    hTooltip, Btn, wikiLink
 } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
@@ -64,7 +64,7 @@ export default function LogsPage() {
                                 helperText: "If you want errors in a different log"
                             },
                             { k: CFG.log_rotation, comp: SelectField, sm: 6, options: [{ value:'', label:"disabled" }, 'daily', 'weekly', 'monthly' ],
-                                helperText: "To keep log-files smaller"
+                                helperText: wikiLink('Logs#rotation', "To keep log-files smaller"),
                             },
                             { k: CFG.dont_log_net, comp: NetmaskField, label: "Don't log address", sm: 6, placeholder: "no exception",
                                 helperText: h(WildcardsSupported)
