@@ -32,6 +32,7 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         lastChange.current = normalized
     }, [normalized])
     const valueFocusing = useRef<string | undefined>()
+    const autoFillDetected = useRef(false)
     const render = (params: any) => h(TextField, {
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
@@ -46,12 +47,13 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
                 val = res
             }
             setState(val)
-            if (typing || valueFocusing.current === undefined)
+            if (typing || autoFillDetected.current || valueFocusing.current === undefined)
                 go(ev, val)
         },
         onKeyDown(ev) {
             props.onKeyDown?.(ev)
-            if (ev.key === 'Enter' || ev.code === undefined) // undefined on autofill (chrome116)
+            autoFillDetected.current = ev.code === undefined
+            if (ev.key === 'Enter')
                 go(ev)
         },
         onFocus(ev) {
