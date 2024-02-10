@@ -31,7 +31,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         return fail(HTTP_METHOD_NOT_ALLOWED)
     offset = Number(offset)
     limit = Number(limit)
-    const filter = pattern2filter(search)
+    const filter = pattern2filter(String(search || ''))
     const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, depth: search ? Infinity : 0 })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)

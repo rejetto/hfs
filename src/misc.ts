@@ -38,9 +38,9 @@ export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...arg
 }
 
 export function pattern2filter(pattern: string){
-    const re = new RegExp(_.escapeRegExp(pattern), 'i')
+    const matcher = makeMatcher(pattern.includes('*') ? pattern : `*${pattern}*`) // if you specify *, we'll respect its position
     return (s?:string) =>
-        !s || !pattern || re.test(basename(s))
+        !s || !pattern || matcher(basename(s))
 }
 
 // install multiple handlers and returns a handy 'uninstall' function which requires no parameter. Pass a map {event:handler}
