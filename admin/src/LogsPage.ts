@@ -36,7 +36,8 @@ export default function LogsPage() {
             h(IconBtn, { icon: Download, title: "Download as file", link: API_URL + `get_log_file?file=${file}` }),
             h(IconBtn, { icon: Settings, title: "Options", onClick: showLogOptions })
         ),
-        h(LogFile, { file, key: tab }), // without key, some state is accidentally preserved across files
+        files.map(f =>
+            h(LogFile, { hidden: file !== f, file: f, key: f }) ),
     )
 
     function showLogOptions() {
@@ -79,7 +80,7 @@ export default function LogsPage() {
     }
 }
 
-function LogFile({ file, addToFooter }: { file: string, addToFooter?: ReactNode }) {
+function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string, addToFooter?: ReactNode }) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
     const { pause, pauseButton } = usePauseButton()
@@ -138,10 +139,11 @@ function LogFile({ file, addToFooter }: { file: string, addToFooter?: ReactNode 
         valueGetter: ({ value }) => new Date(value as string),
         renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
     }
-    return h(DataTable, {
+    const rows = useMemo(() => showApi || list?.[0]?.uri === undefined ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]) //TODO TypeError: l.uri is undefined
+    return hidden ? null : h(DataTable, {
         error,
         loading: connecting,
-        rows: useMemo(() => showApi || list?.[0]?.uri === undefined ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]), //TODO TypeError: l.uri is undefined
+        rows,
         compact: true,
         componentsProps: {
             pagination: {

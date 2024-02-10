@@ -91,7 +91,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
         return fields
-    }, [manipulatedColumns])
+    }, [manipulatedColumns, width])
     const [vis, setVis] = useState({})
 
     const displayingDetails = useRef<any>({})
