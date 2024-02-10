@@ -30,7 +30,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                 sx: { '.MuiDataGrid-virtualScroller': { minHeight: '3em' } },
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
-                componentsProps: {
+                slotProps: {
                     pagination: {
                         showFirstButton: true,
                         showLastButton: true,

@@ -5,7 +5,7 @@ import { useWindowSize } from 'usehooks-ts'
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { newDialog, onlyTruthy } from '@hfs/shared'
 import _ from 'lodash'
-import { Center, Flex } from './mui'
+import { Center, Flex, useBreakpoint } from './mui'
 
 const ACTIONS = 'Actions'
 
@@ -99,6 +99,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         const { current: { id, setCurRow } } = displayingDetails
         setCurRow?.(_.find(rest.rows, { id }))
     })
+    const sm = useBreakpoint('sm')
 
     if (!hideCols) // only first time we render, initialState is considered, so wait
         return null
@@ -120,7 +121,11 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 footer: CustomFooter,
             },
             slotProps: {
-                footer: { add: addToFooter } as any
+                footer: { add: addToFooter } as any,
+                pagination: !sm && addToFooter ? undefined : {
+                    showFirstButton: true,
+                    showLastButton: true,
+                },
             },
             onCellClick({ field, row }) {
                 if (field === ACTIONS) return
@@ -177,5 +182,5 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
 }
 
 function CustomFooter({ add, ...props }: { add: ReactNode }) {
-    return h(GridFooterContainer, props, h(Box, { ml: 1 }, add), h(GridFooter, { sx: { border: 'none' } }))
+    return h(GridFooterContainer, props, h(Box, { ml: { sm: 1 } }, add), h(GridFooter, { sx: { border: 'none' } }))
 }

@@ -200,7 +200,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             ...rest.sx,
             ...!showLabel && {
                 minWidth: 'auto',
-                px: 2,
+                px: 1,
                 py: '7px',
                 '& span': { mx:0 },
             }

@@ -145,19 +145,13 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
         loading: connecting,
         rows,
         compact: true,
-        componentsProps: {
-            pagination: {
-                showFirstButton: true,
-                showLastButton: true,
-            }
-        },
         addToFooter: h(Box, {}, // 4 icons don't fit the tabs row on mobile
             pauseButton,
             showApiButton,
             !connecting && skipped > 0 && h(Btn, {
                 icon: ClearAll,
                 variant: 'outlined',
-                sx: { ml: 1 },
+                sx: { ml: { sm: 1 } },
                 labelFrom: 'md',
                 title: `Only ${formatBytes(MAX)} was loaded, for speed. Total size is ${formatBytes(totalSize)}`,
                 loading: !limited,
