@@ -20,8 +20,6 @@ export default function MonitorPage() {
     )
 }
 
-const isoDateRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
-
 function MoreInfo() {
     const { data: status, element } = useApiEx('get_status')
     const { data: connections } = useApiEvents('get_connection_stats')
@@ -59,8 +57,6 @@ function MoreInfo() {
         let v = _.get(status, k)
         if (v === undefined)
             return null
-        if (typeof v === 'string' && isoDateRe.test(v))
-            v = new Date(v).toLocaleString()
         let color: Color = undefined
         const renderedTitle = title?.(v)
         if (render) {
