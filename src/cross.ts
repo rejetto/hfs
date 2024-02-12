@@ -440,6 +440,15 @@ export function inCommon<T extends string | unknown[]>(a: T, b: T) {
     return i
 }
 
+export function mapFilter<T=unknown, R=T>(arr: T[], map: (x:T, idx: number) => R, filter=(x: R) => x === undefined, invert=false) {
+    return arr[invert ? 'reduceRight' : 'reduce']((ret, x, idx) => {
+        const y = map(x, idx)
+        if (filter(y))
+            ret.push(y) // push is much faster than unshift, therefore invert using reduceRight https://measurethat.net/Benchmarks/Show/29/0/array-push-vs-unshift
+        return ret
+    }, [] as R[])
+}
+
 export function shortenAgent(agent: string) {
     return _.findKey(BROWSERS, re => re.test(agent))
         || /^[^/(]+ ?/.exec(agent)?.[0]

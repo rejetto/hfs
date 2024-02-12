@@ -5,7 +5,7 @@ import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson,
-    typedKeys, NBSP, _dbg } from '@hfs/shared'
+    typedKeys, NBSP, _dbg, mapFilter } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
@@ -94,6 +94,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const [limited, setLimited] = useState(true)
     const [skipped, setSkipped] = useState(0)
     const MAX = 2**20
+    const invert = true
     useApi('get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
@@ -111,26 +112,11 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                 toast(`Entire log loaded, ${formatBytes(skipped)}`)
                 setSkipped(0)
             }
-            const treated = lines.map(parseLogLine).filter(Boolean).reverse()
+            const treated = mapFilter(lines, (x: any, i) => enhanceLogLine(parseLogLine(x, i)), Boolean, invert)
             setList(x => [...x, ...treated])
         }
     })
-    const { list, setList, error, connecting } = useApiList('get_log', { file }, {
-        invert: true,
-        pause,
-        map(x) {
-            const { extra } = x
-            if (extra?.country && !showCountry)
-                setShowCountry(true)
-            if (extra?.ua && !showAgent)
-                setShowAgent(true)
-            x.notes = extra?.dl ? "fully downloaded"
-                : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra.size, { sep: NBSP })
-                : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
-                : x.notes
-            return x
-        }
-    })
+    const { list, setList, error, connecting } = useApiList('get_log', { file }, { invert, pause, map: enhanceLogLine })
     const tsColumn: GridColDef = {
         field: 'ts',
         headerName: "Timestamp",
@@ -262,6 +248,20 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
             },
         ]
     })
+
+    function enhanceLogLine(x: any) {
+        if (!x) return
+        const { extra } = x
+        if (extra?.country && !showCountry)
+            setShowCountry(true)
+        if (extra?.ua && !showAgent)
+            setShowAgent(true)
+        x.notes = extra?.dl ? "fully downloaded"
+            : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra.size, { sep: NBSP })
+                : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
+                    : x.notes
+        return x
+    }
 }
 
 export function agentIcons(agent: string) {

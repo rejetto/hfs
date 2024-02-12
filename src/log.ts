@@ -130,7 +130,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             ctx.req.httpVersion,
             ctx.status,
             length?.toString() ?? '-',
-            _.isEmpty(extra) ? '' : JSON.stringify(JSON.stringify(extra)),
+            _.isEmpty(extra) ? '' : JSON.stringify(JSON.stringify(extra)), // jsonize twice, as we need a field enclosed by double-quotes
         ))
     })
 }
