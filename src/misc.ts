@@ -38,7 +38,8 @@ export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...arg
 }
 
 export function pattern2filter(pattern: string){
-    const matcher = makeMatcher(pattern.includes('*') ? pattern : `*${pattern}*`) // if you specify *, we'll respect its position
+    const matcher = makeMatcher(pattern.includes('*') ? pattern  // if you specify *, we'll respect its position
+        : pattern.split('|').map(x => `*${x}*`).join('|'))
     return (s?:string) =>
         !s || !pattern || matcher(basename(s))
 }
