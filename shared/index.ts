@@ -114,7 +114,7 @@ export function createDurationFormatter({ locale=undefined, unitDisplay='narrow'
         const a = []
         let on = false
         for (const [unit, mul] of typedEntries(multipliers)) {
-            if (unit === smallest)
+            if (unit === smallest && a.length)
                 break
             if (unit === largest)
                 on = true
