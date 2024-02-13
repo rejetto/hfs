@@ -7,7 +7,7 @@ import { FRONTEND_OPTIONS, getHFS, hIcon, objSameKeys, pathEncode, typedKeys } f
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
     stopSearch?: ()=>void,
-    stoppedSearch?: boolean,
+    searchManuallyInterrupted?: boolean,
     iconsReady: boolean,
     username: string,
     accountExp?: string,

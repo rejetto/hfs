@@ -18,7 +18,7 @@ import { cut } from './clip'
 import { Btn, BtnProps } from './components'
 
 export function MenuPanel() {
-    const { showFilter, remoteSearch, stopSearch, stoppedSearch, selected, props } = useSnapState()
+    const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
     const { can_upload, can_delete, can_archive } = props ? { ...defaultPerms, ...props } : {} as VfsPerms
     const { uploading, qs }  = useSnapshot(uploadState)
     useEffect(() => {
@@ -115,7 +115,7 @@ export function MenuPanel() {
             }),
         ),
         remoteSearch && h('div', { id: 'searched' },
-            (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', stoppedSearch && t`interrupted`, ')')),
+            (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', searchManuallyInterrupted && t`interrupted`, ')')),
     )
 
     function getSearchProps() {
@@ -126,7 +126,7 @@ export function MenuPanel() {
             className: 'ani-working',
             onClick() {
                 stopSearch()
-                state.stoppedSearch = true
+                state.searchManuallyInterrupted = true
             }
         } : state.remoteSearch && !stopSearch ? {
             id: 'search-clear-button',

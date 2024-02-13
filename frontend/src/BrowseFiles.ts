@@ -54,7 +54,7 @@ export function BrowseFiles() {
 }
 
 function FilesList() {
-    const { filteredList, list, loading, stoppedSearch } = useSnapState()
+    const { filteredList, list, loading, searchManuallyInterrupted } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
     const pageSize = 100
     const [page, setPage] = useState(0)
@@ -109,7 +109,7 @@ function FilesList() {
 
     const {t} = useI18N()
 
-    const msgInstead = !list.length ? (!loading && (stoppedSearch ? t('stopped_before', "Stopped before finding anything") : t('empty_list', "Nothing here")))
+    const msgInstead = !list.length ? (!loading && (searchManuallyInterrupted ? t('stopped_before', "Stopped before finding anything") : t('empty_list', "Nothing here")))
         : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
 
     return h(Fragment, {},

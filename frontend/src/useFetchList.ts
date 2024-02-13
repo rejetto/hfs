@@ -61,7 +61,6 @@ export default function useFetchList() {
                 state.list = sort([...state.list, ...chunk])
         }
         const timer = setInterval(flush, 1000)
-        state.stopSearch?.() // be sure we don't overlap 2
         const src = apiEvents('get_file_list', params, (type, data) => {
             if (!isMounted()) return
             switch (type) {
