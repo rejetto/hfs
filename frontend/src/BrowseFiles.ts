@@ -227,7 +227,8 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 }),
                 h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
                     ...isFolder || entry.web ? [ // internal navigation, use Link component
-                        h(Link, { to: uri, ...ariaProps }, ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
+                        h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                            ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
                         // popup button is here to be able to detect link-wrapper:hover
                         file_menu_on_link && !showingButton && h('button', {
                             className: 'popup-menu-button',
