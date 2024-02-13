@@ -6,7 +6,16 @@ import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
 import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter } from "./misc"
+import {
+    formatBytes,
+    ipForUrl,
+    manipulateConfig,
+    CFG,
+    formatSpeed,
+    with_,
+    createDurationFormatter,
+    formatTimestamp
+} from "./misc"
 import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
@@ -33,7 +42,7 @@ function MoreInfo() {
         md && pair('started', {
             label: "Uptime",
             render: x => formatDuration(Date.now() - +new Date(x)),
-            title: x => x
+            title: x => "Started: " + formatTimestamp(x),
         }),
         xl && pair('http', { label: "HTTP", render: port }),
         xl && pair('https', { label: "HTTPS", render: port }),
