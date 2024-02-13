@@ -305,8 +305,9 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
 }
 
 export function parentMaskApplier(parent: VfsNode) {
-    const matchers = onlyTruthy(Object.entries(parent.masks || {}).map(([k, { maskOnly, ...mods }]) => {
+    const matchers = onlyTruthy(_.map(parent.masks, (v, k) => {
         k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : '' // ** globstar matches also zero subfolders, so this mask must be applied here too
+        const { maskOnly, ...mods } = v || {}
         // k is stored into the object for debugging purposes
         return k && { k, mods, matcher: makeMatcher(k), mustBeFolder: maskOnly && (maskOnly === 'folders') }
     }))
