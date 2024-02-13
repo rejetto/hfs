@@ -1,9 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from "lodash"
-import { createElement as h, useMemo, Fragment } from "react"
+import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
+import { LinkOff, Lock, Block, FolderZip, Upload, Download, ChevronRight } from '@mui/icons-material'
 import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
 import {
@@ -16,7 +16,7 @@ import {
     createDurationFormatter,
     formatTimestamp
 } from "./misc"
-import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip } from './mui'
+import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip, Btn } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { agentIcons } from './LogsPage'
@@ -34,23 +34,25 @@ function MoreInfo() {
     const { data: connections } = useApiEvents('get_connection_stats')
     if (status && connections)
         Object.assign(status, connections)
+    const [allInfo, setAllInfo] = useState(false)
     const xl = useBreakpoint('xl')
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
     const formatDuration = createDurationFormatter({ maxTokens: 2, skipZeroes: true })
     return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
-        md && pair('started', {
+        (allInfo || md) && pair('started', {
             label: "Uptime",
             render: x => formatDuration(Date.now() - +new Date(x)),
             title: x => "Started: " + formatTimestamp(x),
         }),
-        xl && pair('http', { label: "HTTP", render: port }),
-        xl && pair('https', { label: "HTTPS", render: port }),
-        sm && pair('connections'),
+        (allInfo || xl) && pair('http', { label: "HTTP", render: port }),
+        (allInfo || xl) && pair('https', { label: "HTTPS", render: port }),
+        (allInfo || sm) && pair('connections'),
         pair('sent', { render: formatBytes, minWidth: '4em' }),
-        sm && pair('got', { render: formatBytes, minWidth: '4em' }),
+        (allInfo || sm) && pair('got', { render: formatBytes, minWidth: '4em' }),
         pair('outSpeed', { label: "Output speed", render: formatSpeedK }),
-        md && pair('inSpeed', { label: "Input speed", render: formatSpeedK }),
+        (allInfo || md) && pair('inSpeed', { label: "Input speed", render: formatSpeedK }),
+        !xl && !allInfo && h(IconBtn, { size: 'small', icon: ChevronRight, title: "Show more", onClick: () => setAllInfo(true) }),
     )
 
     type Color = ChipProps['color']
