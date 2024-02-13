@@ -7,13 +7,19 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, xlate } from './misc'
+import { HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, waitFor, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 export function usePath() {
     return useLocation().pathname
 }
+
+// allow links with ?search
+waitFor(() => urlParams).then(x => {
+    if (x)
+        state.remoteSearch = x.search
+})
 
 export default function useFetchList() {
     const snap = useSnapState()
@@ -31,8 +37,8 @@ export default function useFetchList() {
             state.showFilter = false
             state.stopSearch?.()
         }
-        state.stoppedSearch = false
-        if (previous !== uri && search) {
+        state.searchManuallyInterrupted = false
+        if (previous && previous !== uri && search) {
             state.remoteSearch = ''
             return
         }
@@ -55,6 +61,7 @@ export default function useFetchList() {
                 state.list = sort([...state.list, ...chunk])
         }
         const timer = setInterval(flush, 1000)
+        state.stopSearch?.() // be sure we don't overlap 2
         const src = apiEvents('get_file_list', params, (type, data) => {
             if (!isMounted()) return
             switch (type) {
