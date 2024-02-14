@@ -173,7 +173,7 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
             isDir && { k: 'masks', multiline: true,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 sx: { '& textarea': { fontFamily: 'monospace' } },
-                helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Permissions', "(examples)")]
+                helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Masks-field', "(examples)")]
             }
         ]
     })
