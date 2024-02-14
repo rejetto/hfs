@@ -5,6 +5,7 @@ import { Spinner } from './components'
 import { newDialog } from './dialog'
 import { Icon } from './icons'
 import { Dict, getHFS, HTTP_MESSAGES, useBatch } from '@hfs/shared'
+import * as misc from '../../src/cross'
 import { apiCall, useApi } from '@hfs/shared/api'
 import { state } from './state'
 import { t } from './i18n'
@@ -55,7 +56,7 @@ export function hfsEvent(name: string, params?:Dict) {
     return output
 }
 
-const tools = { h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, useBatch, fileShow,
+const tools = { misc, h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, useBatch, fileShow,
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
         return subscribeKey(up ? uploadState : state as any, up || k, cb, true)

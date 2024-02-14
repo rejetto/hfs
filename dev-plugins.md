@@ -388,6 +388,8 @@ Eg: `HFS.t('filter_count', {n:filteredVariable}, "{n} filtered")`
 
 ## API version history
 
+- 8.7 (v0.52.0)
+  - exposed "misc" functions
 - 8.65 (v0.51.0)
   - plugin's own hfs-lang files
   - HFS.state.props.can_overwrite
