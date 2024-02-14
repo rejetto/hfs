@@ -309,6 +309,8 @@ This is a list of available frontend-events, with respective object parameter an
 - `userPanelAfterInfo`
   - no parameter
   - output `Html`
+- `uriChanged`
+  - parameter `{ uri: string, previous: string }`
 
 ## Other files
 
@@ -390,6 +392,7 @@ Eg: `HFS.t('filter_count', {n:filteredVariable}, "{n} filtered")`
 
 - 8.7 (v0.52.0)
   - exposed "misc" functions
+  - new event: uriChanged
 - 8.65 (v0.51.0)
   - plugin's own hfs-lang files
   - HFS.state.props.can_overwrite

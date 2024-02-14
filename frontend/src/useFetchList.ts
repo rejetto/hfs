@@ -7,7 +7,7 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, waitFor, xlate } from './misc'
+import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, waitFor, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -36,6 +36,7 @@ export default function useFetchList() {
         if (previous !== uri) {
             state.showFilter = false
             state.stopSearch?.()
+            hfsEvent('uriChanged', { uri, previous })
         }
         state.searchManuallyInterrupted = false
         if (previous && previous !== uri && search) {
