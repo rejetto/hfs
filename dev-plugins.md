@@ -321,6 +321,14 @@ These files have a special meaning:
 - `custom.html` file, that works exactly like the main `custom.html`. Even when same section is specified
   by 2 (or more) files, both contents are appended.  
 
+## Dependencies
+
+You run vanilla javascript here, in the backend and/or in the browser, so the tools you have for dependencies
+are the ones provided by node.js and/or the browser.
+If you use a library for the browser, you'll have to keep it in the "public" folder, as the browser must be able to load it.
+If you want to use a module for node.js, just include "node_modules" folder (not in "public" folder).
+You can decide if you want to use some building system/transpiler, but you'll have to set it up yourself.
+
 ## Publish your plug-in
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
