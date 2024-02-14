@@ -3,17 +3,8 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import {
-    createElement as h,
-    FC,
-    forwardRef,
-    Fragment,
-    ReactElement,
-    ReactNode,
-    useCallback,
-    useEffect,
-    useState
-} from 'react'
+import { createElement as h, FC, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect,
+    useState } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
@@ -156,10 +147,11 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
         }),
         h(icon)
     )
+    const aria = rest['aria-label'] ?? (_.isString(title) ? title : undefined)
     if (disabled)
-        ret = h('span', { role: 'button', 'aria-label': title + ', disabled' }, ret)
+        ret = h('span', { role: 'button', 'aria-label': aria && (aria + ', disabled') }, ret)
     if (title)
-        ret = hTooltip(title, undefined, ret, tooltipProps)
+        ret = hTooltip(title, aria, ret, tooltipProps)
     return ret
 })
 
