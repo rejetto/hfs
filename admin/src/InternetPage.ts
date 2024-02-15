@@ -1,5 +1,5 @@
 import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography } from '@mui/material'
 import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
     Error as ErrorIcon, SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
@@ -237,6 +237,7 @@ export default function InternetPage() {
                     h(Btn, {
                         size: 'small',
                         variant: 'outlined',
+                        'aria-label': "Change address",
                         onClick: () => void(changeBaseUrl().then(config.reload))
                     }, "Change"),
                     domain && h(Btn, {
@@ -412,7 +413,7 @@ function Device({ name, icon, color, ip, below }: any) {
 
 function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: SvgIconComponent, color?: SvgIconProps['color'], children?: ReactNode }) {
     return h(Card, {}, h(CardContent, {}, h(Flex, { vert: true },
-        h(Box, { fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
+        h(Typography, { variant: 'h3', fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
         children
     )))
 }
