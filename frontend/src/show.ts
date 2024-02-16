@@ -72,8 +72,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
 
             const { auto_play_seconds } = useSnapState()
             const [autoPlaying, setAutoPlaying] = useState(startPlaying)
-            const showElement = containerRef.current?.querySelector('.showing')
             useEffect(() => {
+                const showElement = containerRef.current?.querySelector('.showing') // like this, we don't require component to forward ref (easier for plugins)
                 if (!autoPlaying || !showElement) return
                 if (showElement instanceof HTMLMediaElement) {
                     showElement.play().catch(curFailed)
@@ -82,7 +82,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 // we are supposedly showing an image
                 const h = setTimeout(goNext, state.auto_play_seconds * 1000)
                 return () => clearTimeout(h)
-            }, [showElement, autoPlaying, cur])
+            }, [autoPlaying, cur])
             const {mediaSession} = navigator
             mediaSession.setActionHandler('nexttrack', goNext)
             mediaSession.setActionHandler('previoustrack', goPrev)
