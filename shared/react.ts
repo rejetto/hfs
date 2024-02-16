@@ -8,11 +8,13 @@ import { Falsy } from '.'
 export function useStateMounted<T>(init: T) {
     const isMounted = useIsMounted()
     const [v, set] = useState(init)
+    const ref = useRef(init)
+    ref.current = v
     const setIfMounted = useCallback((newValue:T | ((previous:T)=>T)) => {
         if (isMounted())
             set(newValue)
     }, [isMounted, set])
-    return [v, setIfMounted, isMounted] as const
+    return [v, setIfMounted, { isMounted, get: () => ref.current }] as const
 }
 
 export function reactFilter(elements: any[]) {

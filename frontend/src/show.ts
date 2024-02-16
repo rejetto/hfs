@@ -1,6 +1,8 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation } from './misc'
+import {
+    basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
+} from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
@@ -26,7 +28,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
             const [shuffle, setShuffle] = useState<undefined|DirList>()
-            const [repeat, setRepeat] = useState(false)
+            const [repeat, setRepeat, { get: getRepeat }] = useStateMounted(false)
             const [cover, setCover] = useState('')
             useEffect(() => {
                 if (shuffle)
@@ -78,7 +80,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                     return domOn('ended', goNext, { target: showElement as any })
                 }
                 // we are supposedly showing an image
-                const h = setTimeout(() => go(+1), state.auto_play_seconds * 1000)
+                const h = setTimeout(goNext, state.auto_play_seconds * 1000)
                 return () => clearTimeout(h)
             }, [showElement, autoPlaying, cur])
             const {mediaSession} = navigator
@@ -180,24 +182,31 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 setFailed(cur.n)
             }
 
-            function go(dir?: number) {
+            function go(dir?: number, from=cur) {
                 if (dir)
                     moving.current = dir
-                let e = cur
+                let e = from
                 while (1) {
                     e = e.getSibling(moving.current, shuffle)
-                    if (!e) { // reached last
-                        if (dir! > 0) {
-                            if (repeat)
-                                return goTo(shuffle?.[0] || state.list[0])
-                            setAutoPlaying(false)
+                    if (anyGood()) break
+                    if (e) continue // try next
+                    // reached last/first
+                    if (dir! > 0) {
+                        if (getRepeat()) {
+                            e = shuffle?.[0] || state.list[0]
+                            if (anyGood()) break
+                            continue
                         }
-                        goTo(lastGood.current) // revert to last known supported file
-                        return restartAnimation(document.body, '.2s blink')
+                        setAutoPlaying(false)
                     }
-                    if (!e.isFolder && getShowType(e)) break // give it a chance
+                    goTo(lastGood.current) // revert to last known supported file
+                    return restartAnimation(document.body, '.2s blink')
                 }
                 goTo(e)
+
+                function anyGood() {
+                    return e && !e.isFolder && getShowType(e)
+                }
             }
 
             function goTo(to: typeof cur) {
