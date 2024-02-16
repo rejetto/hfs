@@ -24,7 +24,7 @@ export const geoFilter: Middleware = async (ctx, next) => {
             updateConnection(connection, { country })
         if (!ctx.state.skipFilters && allow.get() !== null)
             if (country ? list.get().includes(country) !== allow.get() : !allowUnknown.get())
-                return disconnect(ctx)
+                return disconnect(ctx, 'geo-filter')
     }
     await next()
 }

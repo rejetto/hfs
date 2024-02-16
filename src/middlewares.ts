@@ -77,7 +77,7 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
         return ctx.status = HTTP_FOOL
     }
     if (!ctx.state.skipFilters && forceBaseUrl.get() && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
-        return disconnect(ctx)
+        return disconnect(ctx, 'force-domain')
     if (!ctx.secure && forceHttps.get() && getHttpsWorkingPort() && !isLocalHost(ctx)) {
         const { URL } = ctx
         URL.protocol = 'https'

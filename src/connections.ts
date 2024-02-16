@@ -74,8 +74,10 @@ export function updateConnection(conn: Connection, change: Partial<Connection>, 
     events.emit('connectionUpdated', conn, change)
 }
 
-export function disconnect(what: Context | Socket) {
+export function disconnect(what: Context | Socket, debugLog='') {
     if ('socket' in what)
         what = what.socket
+    if (debugLog)
+        console.debug("disconnection:", debugLog, what.remoteAddress)
     return what.destroy()
 }

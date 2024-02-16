@@ -22,7 +22,7 @@ const block = defineConfig('block', [] as BlockingRule[], rules => {
 
 export function applyBlock(socket: Socket, ip=normalizeIp(socket.remoteAddress||'')) {
     if (ip && block.compiled().find(rule => rule(ip)))
-        return disconnect(socket)
+        return disconnect(socket, 'block-ip')
 }
 
 setInterval(() => { // twice a minute, check if any block has expired
