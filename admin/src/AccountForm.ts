@@ -84,7 +84,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 helperText: "When expired, login won't be allowed" },
             { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, disabled: expired, step: 'any', min: 1/1000, // 10 minutes
                 helperText: "Used to set expiration on first login" + (expired ? " (already expired)" : '') },
-            { k: 'redirect', comp: VfsPathField, onlyFolders: false,
+            { k: 'redirect', comp: VfsPathField, onlyFolders: false, placeholder: "no",
                 helperText: "If you want this account to be redirected to a specific folder/address (or even file) at login time" },
         ],
         onError: alertDialog,

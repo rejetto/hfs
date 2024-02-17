@@ -41,7 +41,10 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                             }  }),
                         h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
                     )
-                    const parent = await promptDialog(msg, { field: { comp: VfsPathField, label: "Add to this folder" }, form: { saveOnEnter: false } })
+                    const parent = await promptDialog(msg, {
+                        field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home" },
+                        form: { saveOnEnter: false }
+                    })
                     return !parent ? false : apiCall('windows_integration', { parent }).then(reload)
                 }
             } : {

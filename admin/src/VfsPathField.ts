@@ -1,4 +1,4 @@
-import { dirname } from './misc'
+import { dirname, enforceFinal } from './misc'
 import { useApiList } from './api'
 import { createElement as h, useMemo } from 'react'
 import { Autocomplete, AutocompleteProps, TextField } from '@mui/material'
@@ -20,14 +20,13 @@ export default function VfsPathField({ value='', onChange, helperText, setApi, a
         disableClearable: true,
         renderInput: params => h(TextField, {
             helperText,
-            placeholder: "home",
             onChange(event) {
                 const v = event.target.value
                 if (v.endsWith('/') || !v)
                     onChange(v, { was: value, event })
             },
             onBlur(event) {
-                const v = event.target.value + '/'
+                const v = enforceFinal('/', event.target.value)
                 if (options.includes(v))
                     onChange(v, { was: value, event })
             },
