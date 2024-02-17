@@ -253,7 +253,10 @@ export default function InternetPage() {
                 saveOnChange: true,
                 form: {
                     fields: [
-                        { k: 'force_base_url', comp: BoolField, label: "Accept requests only using domain (and localhost)" }
+                        { k: 'force_base_url', comp: BoolField, disabled: !url,
+                            label: "Accept requests only using domain (and localhost)",
+                            helperText: !url && "You must specify an address, for this option"
+                        }
                     ]
                 },
             })
