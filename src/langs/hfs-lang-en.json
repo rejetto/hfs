@@ -158,6 +158,7 @@
         "Shuffle": "Shuffle",
         "Repeat": "Repeat",
         "showHelpListShortcut": "From the file list, click holding {key} to Show quickly",
-        "Invalid value": "Invalid value"
+        "Invalid value": "Invalid value",
+        "upload_skipped": "{n} skipped"
     }
 }

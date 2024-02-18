@@ -19,6 +19,7 @@ export const uploadState = proxy<{
     done: number
     doneByte: number
     errors: number
+    skipped: number
     adding: ToUpload[]
     qs: { to: string, entries: ToUpload[] }[]
     paused: boolean
@@ -36,6 +37,7 @@ export const uploadState = proxy<{
     paused: false,
     qs: [],
     adding: [],
+    skipped: 0,
     errors: 0,
     doneByte: 0,
     done: 0,
@@ -74,6 +76,7 @@ function resetCounters() {
         errors: 0,
         done: 0,
         doneByte: 0,
+        skipped: 0,
     })
 }
 
@@ -293,11 +296,12 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (req?.readyState !== 4) return
         const status = overrideStatus || req.status
         closeLast?.()
-        if (status && status !== HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
-            if (status >= 400)
-                error(status)
-            else
-                done()
+        if (!status || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
+            uploadState.skipped++
+        else if (status >= 400)
+            error(status)
+        else
+            done()
         if (!resuming)
             next()
     }
@@ -395,10 +399,11 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 }
 
 function UploadStatus(props: CSSProperties) {
-    const { done, doneByte, errors } = useSnapshot(uploadState)
+    const { done, doneByte, errors, skipped } = useSnapshot(uploadState)
     const s = [
         done && t('upload_finished', { n: done, size: formatBytes(doneByte) }, "{n} finished ({size})"),
-        errors && t('upload_errors', { n: errors }, "{n} failed")
+        skipped && t('upload_skipped', { n: skipped }, "{n} skipped"),
+        errors && t('upload_errors', { n: errors }, "{n} failed"),
     ].filter(Boolean).join(' – ')
     return !s ? null : h('div', { style: props }, s)
 }
