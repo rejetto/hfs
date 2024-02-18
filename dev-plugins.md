@@ -390,7 +390,7 @@ Eg: `HFS.t('filter_count', {n:filteredVariable}, "{n} filtered")`
 
 ## API version history
 
-- 8.7 (v0.52.0)
+- 8.71 (v0.52.0)
   - exposed "misc" functions
   - new event: uriChanged
 - 8.65 (v0.51.0)

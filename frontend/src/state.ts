@@ -30,6 +30,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
         can_delete?: boolean
         can_archive?: boolean
         can_comment?: boolean
+        can_overwrite?: boolean
     }
     canChangePassword: boolean
 }>({

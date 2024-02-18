@@ -159,6 +159,9 @@
         "Repeat": "Repeat",
         "showHelpListShortcut": "From the file list, click holding {key} to Show quickly",
         "Invalid value": "Invalid value",
-        "upload_skipped": "{n} skipped"
+        "upload_skipped": "{n} skipped",
+        "Overwrite policy": "Overwrite policy",
+        "Rename to avoid overwriting": "Rename to avoid overwriting",
+        "Overwrite existing files": "Overwrite existing files"
     }
 }

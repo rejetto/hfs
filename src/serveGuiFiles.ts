@@ -16,6 +16,7 @@ import { customHtmlState, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
+import { dontOverwriteUploading } from './upload'
 
 export const logGui = defineConfig(CFG.log_gui, false)
 _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
@@ -98,6 +99,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 session: session instanceof ApiError ? null : session,
                 plugins,
                 prefixUrl: ctx.state.revProxyPath,
+                dontOverwriteUploading: dontOverwriteUploading.get(),
                 customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
                     ['top','bottom']), // exclude the sections we already apply in this phase
                 ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),

@@ -151,6 +151,9 @@
         "Repeat": "Ripeti a fine lista",
         "showHelpListShortcut": "Dalla lista dei file, clicca tenendo {key} per accedere velocemente al File Show",
         "Invalid value": "Valore non valido",
-        "upload_skipped": "{n,plural, one{# saltato} other{# saltati}}"
+        "upload_skipped": "{n,plural, one{# saltato} other{# saltati}}",
+        "Overwrite policy": "Per i file esistenti",
+        "Rename to avoid overwriting": "Rinomina per non sovrascrivere",
+        "Overwrite existing files": "Sovrascrivi i file esistenti"
     }
 }

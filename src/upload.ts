@@ -57,7 +57,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         catch(e: any) { // warn, but let it through
             console.warn("can't check disk size:", e.message || String(e))
         }
-    if (ctx.query.skipExisting && fs.existsSync(fullPath))
+    if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT)
     if (fs.mkdirSync(dir, { recursive: true }))
         setUploadMeta(dir, ctx)
@@ -121,7 +121,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     return ret
 
     async function overwriteAnyway() {
-        if (ctx.query.overwrite === undefined) return
+        if (ctx.query.overwrite === undefined // legacy pre-0.52
+        || ctx.query.existing === 'overwrite') return
         const n = await getNodeByName(path, base)
         return n && hasPermission(n, 'can_delete', ctx)
     }

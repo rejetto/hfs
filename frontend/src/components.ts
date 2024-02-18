@@ -52,12 +52,12 @@ export function Checkbox({ onChange, value, children, ...props }: CheckboxProps)
     return !children ? ret : h('label', {}, ret, children)
 }
 
-interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
-    value: string, // just string for the time being
-    onChange?: (v: string) => void,
-    options: { label: string, value: string }[]
+interface SelectProps<T> extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
+    value: T, // just string for the time being
+    onChange?: (v: T) => void,
+    options: { label: string, value: T }[]
 }
-export function Select({ onChange, value, options, ...props }: SelectProps) {
+export function Select<T extends string>({ onChange, value, options, ...props }: SelectProps<T>) {
     return h('select', {
         onChange: ev =>
             onChange?.((ev.target as any).value),

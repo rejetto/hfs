@@ -1,9 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
-import { Checkbox, Flex, FlexV, iconBtn } from './components'
+import { Flex, FlexV, iconBtn, Select } from './components'
 import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working,
-    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname } from './misc'
+    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_ } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog } from './dialog'
@@ -13,6 +13,8 @@ import { state, useSnapState } from './state'
 import { Link } from 'react-router-dom'
 import { t } from './i18n'
 import { subscribeKey } from 'valtio/utils'
+
+const renameEnabled = getHFS().dontOverwriteUploading
 
 interface ToUpload { file: File, comment?: string, name?: string }
 export const uploadState = proxy<{
@@ -28,7 +30,7 @@ export const uploadState = proxy<{
     partial: number // relative to uploading file. This is how much we have done of the current queue.
     speed: number
     eta: number
-    skipExisting: boolean
+    policyForExisting: 'skip' | 'overwrite' | 'rename'
 }>({
     eta: 0,
     speed: 0,
@@ -41,7 +43,7 @@ export const uploadState = proxy<{
     errors: 0,
     doneByte: 0,
     done: 0,
-    skipExisting: false,
+    policyForExisting: renameEnabled ? 'rename' : 'skip'
 })
 
 // keep track of speed
@@ -102,7 +104,7 @@ export function showUpload() {
     }
 
     function Content(){
-        const { qs, paused, eta, speed, skipExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
+        const { qs, paused, eta, speed, policyForExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
         const { props } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
@@ -113,7 +115,7 @@ export function showUpload() {
             h(FlexV, { className: 'upload-toolbar' },
                 !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
-                        h(Flex, { center: true, flexWrap: 'wrap' },
+                        h(Flex, { center: true, flexWrap: 'wrap', alignItems: 'stretch' },
                             h('button', {
                                 className: 'upload-files',
                                 onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
@@ -123,7 +125,17 @@ export function showUpload() {
                                 onClick: () => pickFiles({ folder: true })
                             }, t`Pick folder`),
                             h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
-                            h(Checkbox, { value: skipExisting, onChange: v => uploadState.skipExisting = v }, t`Skip existing files`),
+                            h(Select<typeof policyForExisting>, {
+                                style: { width: 'unset' },
+                                'aria-label': t`Overwrite policy`,
+                                value: policyForExisting || '',
+                                onChange: v => uploadState.policyForExisting = v,
+                                options: onlyTruthy([
+                                    { value: 'skip', label: t`Skip existing files` },
+                                    renameEnabled && { value: 'rename', label: t`Rename to avoid overwriting` },
+                                    props?.can_overwrite && { value: 'overwrite', label: t`Overwrite existing files` },
+                                ])
+                            }),
                         ),
                         !isMobile() && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files doing drag&drop on the files list")),
                         adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
@@ -320,7 +332,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         notificationChannel,
         ...resume && { resume: String(resume) },
         ...toUpload.comment && { comment: toUpload.comment },
-        ...uploadState.skipExisting && { skipExisting: '1' },
+        ...with_(uploadState.policyForExisting, x => x !== 'rename' && { existing: x }), // rename is the default
     }), true)
     req.send(toUpload.file.slice(resume))
 
