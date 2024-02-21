@@ -104,8 +104,8 @@ export function reloadBtn(onClick: any, props?: any) {
     return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
 }
 
-export function modifiedProps(modified: boolean) {
-    return modified ? { sx: { outline: '2px solid' } } : undefined
+export function modifiedProps(modified: boolean | undefined) {
+    return modified === false ? { disabled: true } : undefined
 }
 
 function useRefPass<T=unknown>(forwarded: ForwardedRef<any>) {
@@ -141,13 +141,13 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
         title = disabled
     if (link)
         onClick = () => window.open(link)
-    disabled = Boolean(loading || progress || disabled)
+    disabled = loading || Boolean(progress) || disabled === undefined ? undefined : Boolean(disabled)
     const ref = useRefPass<HTMLButtonElement>(forwarded)
     let ret: ReturnType<FC> = h(IconButton, {
             ref,
-            disabled,
-            ...rest,
-            sx: { height: 'fit-content', ...modifiedProps(modified || false)?.sx, ...sx },
+            ..._.merge(modifiedProps(modified),
+                { disabled, sx: { height: 'fit-content', ...sx } },
+                rest),
             async onClick(...args) {
                 if (confirm && !await confirmDialog(confirm)) return
                 const ret = onClick?.apply(this,args)
