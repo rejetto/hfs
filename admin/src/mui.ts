@@ -3,12 +3,12 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import { createElement as h, FC, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect,
-    useState } from 'react'
+import { createElement as h, FC, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
+    ForwardedRef, useState } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
-import { dontBotherWithKeys, useBatch, useStateMounted } from '@hfs/shared'
+import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { LoadingButton, LoadingButtonProps } from '@mui/lab'
@@ -108,6 +108,20 @@ export function modifiedProps(modified: boolean) {
     return modified ? { sx: { outline: '2px solid' } } : undefined
 }
 
+function useRefPass<T=unknown>(forwarded: ForwardedRef<any>) {
+    const ref = useRef<T | null>(null)
+    return Object.assign(ref, {
+        pass(el: T){
+            ref.current = el
+            if (_.isFunction(forwarded))
+                forwarded(el)
+            else if (forwarded)
+                forwarded.current = el
+        },
+
+    })
+}
+
 interface IconBtnProps extends Omit<IconButtonProps, 'disabled'|'title'|'onClick'> {
     title?: ReactNode
     icon: SvgIconComponent
@@ -121,13 +135,14 @@ interface IconBtnProps extends Omit<IconButtonProps, 'disabled'|'title'|'onClick
     onClick?: (...args: Parameters<NonNullable<IconButtonProps['onClick']>>) => Promisable<any>
 }
 
-export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, sx, modified, ...rest }: IconBtnProps, ref: any) => {
+export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, sx, modified, ...rest }: IconBtnProps, forwarded: ForwardedRef<HTMLButtonElement>) => {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
     if (link)
         onClick = () => window.open(link)
     disabled = Boolean(loading || progress || disabled)
+    const ref = useRefPass<HTMLButtonElement>(forwarded)
     let ret: ReturnType<FC> = h(IconButton, {
             ref,
             disabled,
@@ -138,7 +153,8 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
                 const ret = onClick?.apply(this,args)
                 if (ret && ret instanceof Promise) {
                     setLoading(true)
-                    ret.then(x => x !== false && execDoneMessage(doneMessage), alertDialog).finally(()=> setLoading(false))
+                    ret.then(x => x !== false && execDoneMessage(doneMessage, ref.current), alertDialog)
+                        .finally(()=> setLoading(false))
                 }
             }
         },
@@ -216,7 +232,9 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     return ret
 })
 
-function execDoneMessage(msg: boolean | string | undefined) {
+function execDoneMessage(msg: boolean | string | undefined, el?: HTMLElement | null) {
+    if (el)
+        restartAnimation(el, 'success .5s')
     if (msg)
         toast(msg === true ? "Operation completed" : msg, 'success')
 }

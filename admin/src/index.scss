@@ -1,6 +1,9 @@
 @use '../../shared/main';
 
-:root { height: 100dvh; }
+:root {
+  height: 100dvh;
+  --success: #5c5;
+}
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -67,4 +70,8 @@ h2.MuiDialogTitle-root { /* less padding */
 @keyframes blink {
   0% {opacity: 1}
   50% {opacity: 0.2}
+}
+@keyframes success {
+  50% { transform: scale(1.5); color: var(--success); }
+  100% { transform: inherit; color: inherit; }
 }
