@@ -5,7 +5,7 @@ import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
 import { Dict, HTTP_MESSAGES, isCtrlKey, prefix  } from './misc';
-import { IconBtn, modifiedSx, reloadBtn, wikiLink } from './mui';
+import { IconBtn, reloadBtn, wikiLink } from './mui';
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
@@ -46,7 +46,7 @@ export default function CustomHtmlPage() {
             h(IconBtn, {
                 icon: Save,
                 title: "Save\n(ctrl+enter)",
-                sx: modifiedSx(anyChange),
+                modified: anyChange,
                 onClick: save,
             }),
         ),

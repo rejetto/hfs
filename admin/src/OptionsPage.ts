@@ -5,10 +5,10 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
-import { CardMembership, Check, EditNote, Refresh, Warning } from '@mui/icons-material'
+import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, MAX_TILE_SIZE, REPO_URL, isIpLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
     CFG } from './misc'
-import { iconTooltip, InLink, LinkBtn, modifiedSx, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
+import { iconTooltip, InLink, LinkBtn, modifiedProps, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -80,7 +80,7 @@ export default function OptionsPage() {
         onError: alertDialog,
         save: {
             onClick: save,
-            sx: modifiedSx( Object.keys(changes).length>0),
+            ...modifiedProps( Object.keys(changes).length>0),
         },
         barSx: { gap: 2 },
         addToBar: [

@@ -8,7 +8,7 @@ import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, Sel
 import { apiCall, UseApi, useApiEx } from './api'
 import { basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate } from './misc'
-import { Btn, IconBtn, LinkBtn, modifiedSx, useBreakpoint, wikiLink } from './mui'
+import { Btn, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
 import md from './md'
 import _ from 'lodash'
@@ -132,7 +132,7 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
         ],
         onError: alertDialog,
         save: {
-            sx: modifiedSx(!isEqualLax(values, rest)),
+            ...modifiedProps(!isEqualLax(values, rest)),
             async onClick() {
                 const props = _.omit(values, ['ctime','mtime','size','id'])
                 ;(props as any).masks ||= null // undefined cannot be serialized

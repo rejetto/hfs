@@ -6,7 +6,7 @@ import { Alert } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import { isEqualLax, wantArray } from './misc'
-import { IconBtn, modifiedSx } from './mui'
+import { IconBtn, modifiedProps } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
@@ -89,7 +89,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
         ],
         onError: alertDialog,
         save: {
-            sx: modifiedSx( !isEqualLax(values, account)),
+            ...modifiedProps( !isEqualLax(values, account)),
             async onClick() {
                 const { password='', password2, adminActualAccess, hasPassword, invalidated, ...withoutPassword } = values
                 if (add) {

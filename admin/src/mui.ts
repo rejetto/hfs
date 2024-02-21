@@ -104,9 +104,10 @@ export function reloadBtn(onClick: any, props?: any) {
     return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
 }
 
-export function modifiedSx(is: boolean) {
-    return is ? { outline: '2px solid' } : undefined
+export function modifiedProps(modified: boolean) {
+    return modified ? { sx: { outline: '2px solid' } } : undefined
 }
+
 interface IconBtnProps extends Omit<IconButtonProps, 'disabled'|'title'|'onClick'> {
     title?: ReactNode
     icon: SvgIconComponent
@@ -116,10 +117,11 @@ interface IconBtnProps extends Omit<IconButtonProps, 'disabled'|'title'|'onClick
     confirm?: string
     doneMessage?: boolean | string // displayed only if the result of onClick !== false
     tooltipProps?: Partial<TooltipProps>
+    modified?: boolean
     onClick?: (...args: Parameters<NonNullable<IconButtonProps['onClick']>>) => Promisable<any>
 }
 
-export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, sx, ...rest }: IconBtnProps, ref: any) => {
+export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, sx, modified, ...rest }: IconBtnProps, ref: any) => {
     const [loading, setLoading] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
@@ -130,7 +132,7 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
             ref,
             disabled,
             ...rest,
-            sx: { height: 'fit-content', ...sx },
+            sx: { height: 'fit-content', ...modifiedProps(modified || false)?.sx, ...sx },
             async onClick(...args) {
                 if (confirm && !await confirmDialog(confirm)) return
                 const ret = onClick?.apply(this,args)
