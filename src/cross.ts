@@ -111,8 +111,8 @@ export function formatSpeed(n: number, options: { digits?: number }={}) {
 
 }
 
-export function prefix(pre:string, v:string|number|undefined|null|false, post:string='') {
-    return v ? pre+v+post : ''
+export function prefix(pre: Falsy | string, v: string | number | undefined | null | false, post: Falsy | string='') {
+    return v ? (pre||'') + v + (post || '') : ''
 }
 
 export function wait<T=undefined>(ms: number, val?: T): Promise<T | undefined> {

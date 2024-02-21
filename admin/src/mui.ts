@@ -150,8 +150,8 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
         h(icon)
     )
     const aria = rest['aria-label'] ?? (_.isString(title) ? title : undefined)
-    if (disabled)
-        ret = h('span', { role: 'button', 'aria-label': aria && (aria + ', disabled') }, ret)
+    // having this span-wrapper conditioned by if(disabled) is causing a strange (harmless?) warning by mui-popper, so we don't
+    ret = h('span', { role: 'button', 'aria-label': prefix('', aria, disabled && ', disabled') }, ret)
     if (title)
         ret = hTooltip(title, aria, ret, tooltipProps)
     return ret
