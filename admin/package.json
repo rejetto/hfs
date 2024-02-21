@@ -14,7 +14,7 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.5",
     "@mui/lab": "^5.0.0-alpha.161",
-    "@mui/material": "^5.15.5",
+    "@mui/material": "^5.15.10",
     "@mui/x-data-grid": "^6.19.1",
     "@mui/x-date-pickers": "^6.19.0",
     "@mui/x-tree-view": "^6.17.0",
