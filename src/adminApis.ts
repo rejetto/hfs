@@ -127,7 +127,7 @@ export const adminApis: ApiHandlers = {
     async save_pem({ cert, private_key, name='self' }) {
         if (!cert || !private_key)
             return new ApiError(HTTP_BAD_REQUEST)
-        const files = { cert: name + '.cert', private_key: name + '.key' }
+        const files = { cert: name + '.cer', private_key: name + '.key' }
         await writeFile(files.private_key, private_key)
         await writeFile(files.cert, cert)
         return files

@@ -84,7 +84,7 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
 export const makeCert = debounceAsync(async (domain: string, email?: string, altNames?: string[]) => {
     if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
     const res = await generateSSLCert(domain, email, altNames)
-    const CERT_FILE = 'acme.cert'
+    const CERT_FILE = 'acme.cer'
     const KEY_FILE = 'acme.key'
     await fs.writeFile(CERT_FILE, res.cert)
     await fs.writeFile(KEY_FILE, res.key)
