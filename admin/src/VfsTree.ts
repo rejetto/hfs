@@ -51,9 +51,13 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
         if (!id)
             debugger
         const folder = node.type === 'folder'
+        const ref = useRef<HTMLLIElement | null>()
+        if (isRoot && ref.current)
+            ref.current.firstElementChild?.classList.toggle('Mui-selected', !(selectedFiles.length && !_.find(selectedFiles, { id: '/' })))
         return h(TreeItem, {
             ref(el: any) { // workaround to permit drag&drop with mui5's tree
                 el?.addEventListener('focusin', (e: any) => e.stopImmediatePropagation())
+                ref.current = el
             },
             label: h(Box, {
                 draggable: !isRoot,
