@@ -84,8 +84,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
     const { pause, pauseButton } = usePauseButton()
-    const [showApi, showApiButton] = useToggleButton(v => ({
-        title: "Show/hide APIs",
+    const [showApi, showApiButton] = useToggleButton("Show APIs", "Hide APIs", v => ({
         icon: SmartToy,
         sx: { rotate: v ? '0deg' : '180deg' },
         disabled: file === 'console',

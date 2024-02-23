@@ -3,8 +3,10 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import { createElement as h, FC, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
-    ForwardedRef, useState } from 'react'
+import {
+    createElement as h, FC, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
+    ForwardedRef, useState, useMemo
+} from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
@@ -264,27 +266,28 @@ export function LinkBtn({ ...rest }: LinkProps) {
 }
 
 export function usePauseButton(props?: Partial<IconBtnProps>) {
-    const [go, btn] = useToggleButton(v => ({
-        title: "Pause",
+    const [going, btn] = useToggleButton("Pause", "Play", v => ({
         icon: v ? PauseCircle : PlayCircle,
         sx: { rotate: v ? '180deg' : '0deg' },
         ...props,
     }), true)
-    return { pause: !go, pauseButton: btn }
+    return { pause: !going, pauseButton: btn }
 }
 
-export function useToggleButton(iconBtn: (state:boolean) => Omit<IconBtnProps, 'onClick'>, def=false) {
+export function useToggleButton(onTitle: string, offTitle: undefined | string, iconBtn: (state:boolean) => Omit<IconBtnProps, 'onClick'>, def=false) {
     const [state, setState] = useState(def)
     const toggle = useCallback(() => setState(x => !x), [])
     const props = iconBtn(state)
-    const el = h(IconBtn, {
+    const el = useMemo(() => h(IconBtn, {
         size: 'small',
         color: state ? 'primary' : 'default',
+        title: state || offTitle === undefined ? onTitle : offTitle,
+        'aria-label': onTitle, // aria should be steady, and rely on aria-pressed
         'aria-pressed': state,
         ...props,
         sx: { transition: 'all .5s', ...props.sx },
         onClick: toggle,
-    })
+    }), [state]) // memoize or tooltip flickers on mouse-over
     return [state, el] as const
 }
 
