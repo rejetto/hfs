@@ -3,13 +3,13 @@
 import Koa from 'koa'
 import { once, Writable } from 'stream'
 import { defineConfig } from './config'
-import { createWriteStream, renameSync } from 'fs'
+import { createWriteStream, renameSync, statSync } from 'fs'
 import * as util from 'util'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './auth'
-import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert } from './misc'
+import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat } from './misc'
 import { extname } from 'path'
 import events from './events'
 import { getConnection } from './connections'
@@ -158,12 +158,20 @@ function doubleDigit(n: number) {
 }
 
 // dump console.error to file
-const debugLogFile = createWriteStream('debug.log', { flags: 'a' })
-debugLogFile.on('open', () => {
+let debugLogFile = createWriteStream('debug.log', { flags: 'a' })
+debugLogFile.once('open', () => {
     const was = console.error
     console.error = function(...args: any[]) {
         was.apply(this, args)
         args = args.map(x => typeof x === 'string' ? x : (tryJson(x) ?? String(x)))
         debugLogFile.write(new Date().toLocaleString() + ': ' + args.join(' ') + '\n')
     }
+    // limit log size
+    const LIMIT = 1_000_000
+    const { path } = debugLogFile
+    repeat(DAY, () => { // do it sync, to avoid overlapping
+        if (statSync(path).size < LIMIT) return // no need
+        renameSync(path, 'old-' + path)
+        debugLogFile = createWriteStream(path, { flags: 'w' }) // new file
+    })
 }).on('error', () => console.log("cannot create debug.log"))
