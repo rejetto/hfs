@@ -28,7 +28,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
         // @ts-ignore the type declared on the lib doesn't seem to be compatible with useRef()
         ref,
         expanded,
-        selected: selectedFiles.length ? selectedFiles.map(x => x.id) : ['/'],
+        selected: selectedFiles.map(x => x.id),
         multiSelect: true,
         id: treeId,
         sx: {
@@ -38,7 +38,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
         },
         onNodeSelect(ev, ids) {
             if (typeof ids === 'string') return // shut up ts
-            state.selectedFiles = onlyTruthy(ids.filter(x => (selectedFiles.length || x !== '/') && x).map(id => id2node.get(id)))
+            state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
         }
     }, recur(vfs as Readonly<VfsNode>))
 
@@ -48,14 +48,12 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
 
     function recur(node: Readonly<VfsNode>): ReactElement {
         let { id, name, isRoot } = node
-        if (!id)
-            debugger
         const folder = node.type === 'folder'
         const ref = useRef<HTMLLIElement | null>()
         if (isRoot && ref.current)
             ref.current.firstElementChild?.classList.toggle('Mui-selected', !(selectedFiles.length && !_.find(selectedFiles, { id: '/' })))
         return h(TreeItem, {
-            ref(el: any) { // workaround to permit drag&drop with mui5's tree
+            ref(el) { // workaround to permit drag&drop with mui5's tree
                 el?.addEventListener('focusin', (e: any) => e.stopImmediatePropagation())
                 ref.current = el
             },
