@@ -57,6 +57,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
 
     function roots() {
         const { close } = newDialog({
+            title: "Roots for different domains",
             dialogProps: { maxWidth: 'sm' },
             Content: () => h(ConfigForm<{ roots: any, roots_mandatory: boolean }>, {
                 onSave() {
@@ -68,7 +69,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                     fields: [
                         {
                             k: 'roots',
-                            label: "Roots for different domains",
+                            label: false,
                             helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
                             comp: ArrayField,
                             fields: [
