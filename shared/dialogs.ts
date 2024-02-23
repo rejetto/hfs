@@ -72,7 +72,7 @@ function Dialog(d:DialogOptions) {
     useEffect(()=>{
         ref.current?.focus()
     }, [])
-    d = { ...dialogsDefaults, ...d }
+    d = { closable: true, ...dialogsDefaults, ...d }
     if (d.Container)
         return h(d.Container, d)
     return h('div', {
@@ -80,8 +80,8 @@ function Dialog(d:DialogOptions) {
             className: 'dialog-backdrop '+(d.className||''),
             tabIndex: 0,
             onKeyDown,
-            onClick: (ev: any) =>
-                ev.target === ev.currentTarget // this test will tell us if really the backdrop was clicked
+            onClick: (ev: any) => d.closable
+                && ev.target === ev.currentTarget // this test will tell us if really the backdrop was clicked
                     && closeDialog()
         },
         d.noFrame ? h(d.Content || 'div')
@@ -98,12 +98,11 @@ function Dialog(d:DialogOptions) {
                 },
                 ...d.dialogProps,
             },
-                d.closable || d.closable===undefined
-                    && h('button', {
-                        className: 'dialog-icon dialog-closer',
-                        onClick() { closeDialog() },
-                        ...d.closableProps,
-                    }),
+                d.closable && h('button', {
+                    className: 'dialog-icon dialog-closer',
+                    onClick() { closeDialog() },
+                    ...d.closableProps,
+                }),
                 d.icon && h('div', {
                     className: 'dialog-icon dialog-type' + (typeof d.icon === 'string' ? ' dialog-icon-text' : ''),
                     'aria-hidden': true,
