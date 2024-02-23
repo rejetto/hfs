@@ -112,14 +112,12 @@ function Connections() {
                 onChange: v => state.monitorOnlyFiles = v,
                 options: { "Show only files": true, "Show all connections": false }
             }),
-
-            h(Box, { flex: 1 }),
-            pauseButton,
         ),
         h(DataTable, {
             error,
             rows,
             noRows: monitorOnlyFiles && "No downloads at the moment",
+            addToFooter: pauseButton,
             columns: [
                 {
                     field: 'ip',
