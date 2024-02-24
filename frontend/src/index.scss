@@ -506,7 +506,6 @@ button .icon + .label {
     display: flex;
     flex-direction: column;
     gap: .7em 1em;
-    justify-content: space-between;
     a {
         display: flex;
         align-items: flex-start;
