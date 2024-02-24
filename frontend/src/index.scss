@@ -294,7 +294,7 @@ ul.dir {
                     display: inline-block;
                     text-align: center;
                 }
-                img.icon { // same alignment as font icons
+                img.icon, video.icon { // same alignment as font icons
                     vertical-align: bottom;
                     position: relative;
                     top: 1px;
@@ -566,7 +566,7 @@ button .icon + .label {
                     &:last-of-type { padding: 0; }
                     span { display: block; }
                     .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
-                    img.icon {
+                    img.icon, video.icon {
                         width: auto;
                         height: 1em;
                         padding: 0.1em 0;
