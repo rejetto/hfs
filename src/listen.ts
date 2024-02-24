@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, ipForUrl, makeNetMatcher, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
+import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
 import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -35,12 +35,13 @@ export function getHttpsWorkingPort() {
     return httpsSrv?.listening && (httpsSrv.address() as any)?.port
 }
 
-const commonOptions = { requestTimeout: 0 }
+const commonServerOptions: http.ServerOptions = { requestTimeout: 0 }
+const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'headersTimeout' is not recognized by type lib, and 'timeout' is not effective when passed in parameters
 
 const considerHttp = debounceAsync(async () => {
     await waitFor(() => app)
     stopServer(httpSrv).then()
-    httpSrv = Object.assign(http.createServer(commonOptions as any, app.callback()), { name: 'http' })
+    httpSrv = Object.assign(http.createServer(commonServerOptions, app.callback()), { name: 'http' }, commonServerAssign)
     const port = await startServer(httpSrv, { port: portCfg.get(), host: listenInterface.get() })
     if (!port) return
     httpSrv.on('connection', newConnection)
@@ -87,8 +88,9 @@ const considerHttps = debounceAsync(async () => {
     try {
         await waitFor(() => app)
         httpsSrv = Object.assign(
-            https.createServer(port === PORT_DISABLED ? {} : { ...commonOptions, key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
-            { name: 'https' }
+            https.createServer(port === PORT_DISABLED ? {} : { ...commonServerOptions, key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
+            { name: 'https' },
+            commonServerAssign
         )
         if (port >= 0) {
             const cert = getCertObject()
