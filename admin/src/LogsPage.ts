@@ -144,8 +144,7 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
                 width: 60,
                 hidden: !showAgent,
                 valueGetter: ({ row }) => row.extra?.ua,
-                renderCell: ({ value }) =>
-                    value && agentIcons(value),
+                renderCell: ({ value }) => agentIcons(value),
             },
             {
                 field: 'notes',
@@ -178,7 +177,8 @@ function LogFile({ file, pause, showApi }: { file: string, pause?: boolean, show
     })
 }
 
-export function agentIcons(agent: string) {
+export function agentIcons(agent: string | undefined) {
+    if (!agent) return
     const UW = 'https://upload.wikimedia.org/wikipedia/commons/'
     const short = shortenAgent(agent)
     const browserIcon = icon(short, {
