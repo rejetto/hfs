@@ -107,7 +107,7 @@ export function reloadBtn(onClick: any, props?: any) {
 }
 
 export function modifiedProps(modified: boolean | undefined) {
-    return modified === false ? { disabled: true } : undefined
+    return modified ? { sx: { outline: '2px solid' } } : undefined
 }
 
 function useRefPass<T=unknown>(forwarded: ForwardedRef<any>) {
