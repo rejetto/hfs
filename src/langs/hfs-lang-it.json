@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
     "version": 1.9,
-    "hfs_version": "0.51.0",
+    "hfs_version": "0.52.0",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",

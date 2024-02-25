@@ -1,7 +1,7 @@
 {
     "author": "YOUR NAME HERE",
     "version": 1.0,
-    "hfs_version": "0.51.0",
+    "hfs_version": "0.52.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
