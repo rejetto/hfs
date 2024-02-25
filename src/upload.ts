@@ -122,7 +122,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
 
     async function overwriteAnyway() {
         if (ctx.query.overwrite === undefined // legacy pre-0.52
-        || ctx.query.existing === 'overwrite') return
+        && ctx.query.existing !== 'overwrite') return
         const n = await getNodeByName(path, base)
         return n && hasPermission(n, 'can_delete', ctx)
     }
