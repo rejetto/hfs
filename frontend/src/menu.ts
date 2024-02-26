@@ -28,12 +28,12 @@ export function MenuPanel() {
 
     const {t} = useI18N()
 
-    const [started1secAgo, setStarted1secAgo] = useStateMounted(false)
+    const [justStarted, setJustStarted] = useStateMounted(false)
     useEffect(() => {
         if (!stopSearch) return
-        setStarted1secAgo(false)
-        setTimeout(() => setStarted1secAgo(true), 1000)
-    }, [stopSearch, setStarted1secAgo])
+        setJustStarted(false)
+        setTimeout(() => setJustStarted(true), 1000)
+    }, [stopSearch, setJustStarted])
 
     // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
     const ofs = location.pathname.length
@@ -119,7 +119,7 @@ export function MenuPanel() {
     )
 
     function getSearchProps() {
-        return stopSearch && started1secAgo ? {
+        return stopSearch && justStarted ? { // don't change the state of the search button immediately to avoid it flicking at every folder change
             id: 'search-stop-button',
             icon: 'stop',
             label: t`Stop list`,
@@ -143,6 +143,7 @@ export function MenuPanel() {
             async onClick() {
                 state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders"),
                     { title: t`Search`, onSubmit: x => x.includes('/') ? throw_(t`Invalid value`) : x  }) || ''
+                state.stopSearch?.()
             }
         }
     }
