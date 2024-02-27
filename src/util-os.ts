@@ -1,5 +1,5 @@
 import { resolve } from 'path'
-import { exec, execFile, execSync } from 'child_process'
+import { exec, execSync } from 'child_process'
 import { try_ } from './misc'
 import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
@@ -27,12 +27,12 @@ export function getFreeDiskSync(path: string) {
 }
 
 export async function getDrives() {
-    const { stdout } = await promisify(exec)('wmic logicaldisk get name')
+    const stdout = await runCmd('wmic logicaldisk get name')
     return stdout.split('\n').slice(1).map(x => x.trim()).filter(Boolean)
 }
 
 // execute win32 shell commands
 export async function runCmd(cmd: string, args: string[] = []) {
-    const { stdout, stderr } = await promisify(execFile)('cmd', ['/c', cmd, ...args])
+    const { stdout, stderr } = await promisify(exec)(`@chcp 65001 >nul & cmd /c ${cmd} ${args.join(' ')}`, { encoding: 'utf-8' })
     return stderr || stdout
 }
