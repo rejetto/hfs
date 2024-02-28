@@ -1,6 +1,8 @@
 import { resolve } from 'path'
 import { exec, execSync } from 'child_process'
-import { try_ } from './misc'
+import { splitAt, try_ } from './misc'
+import _ from 'lodash'
+import { pid } from 'node:process'
 import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
 
@@ -36,3 +38,12 @@ export async function runCmd(cmd: string, args: string[] = []) {
     const { stdout, stderr } = await promisify(exec)(`@chcp 65001 >nul & cmd /c ${cmd} ${args.join(' ')}`, { encoding: 'utf-8' })
     return stderr || stdout
 }
+
+function getWindowsServices() {
+    const fields = ['PathName', 'DisplayName', 'ProcessId'] as const
+    const chunks = execSync(`wmic service get ${fields.join(',')} /value`).toString().replace(/\r/g, '').split(/\n\n+/)
+    return chunks.map(chunk =>
+        Object.fromEntries(chunk.split('\n').map(line => splitAt('=', line))) as { [k in typeof fields[number]]: string })
+}
+
+export const currentServiceName = IS_WINDOWS && _.find(getWindowsServices(), { ProcessId: String(pid) })?.DisplayName

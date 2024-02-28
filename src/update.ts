@@ -11,6 +11,7 @@ import { access, chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
+import { currentServiceName } from './util-os'
 
 const updateToBeta = defineConfig('update_to_beta', false)
 
@@ -65,7 +66,7 @@ export function localUpdateAvailable() {
 }
 
 export function updateSupported() {
-    return IS_BINARY
+    return IS_BINARY && !currentServiceName
 }
 
 export async function update(tagOrUrl: string='') {
@@ -116,7 +117,7 @@ export async function update(tagOrUrl: string='') {
             console.log("launching new version in background", newBinFile)
             launch(newBin, ['--updating', binFile], { sync: true }) // sync necessary to work on mac by double-click
         })
-        console.log('quitting')
+        console.log("quitting")
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
     }
     catch (e: any) {
