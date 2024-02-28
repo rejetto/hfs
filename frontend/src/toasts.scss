@@ -1,0 +1,45 @@
+.toasts {
+  position: absolute; right: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: .5em;
+  gap: .5em;
+  z-index: 1001; // more than dialog backdrop
+}
+.toast {
+  background: var(--faint-contrast);
+  color: var(--text-high-contrast);
+  transition: all .5s ease-in;
+  position: relative;
+  left: -.5em;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: .3em .6em;
+  border-radius: .5em;
+  box-shadow: 0 0 .3em .3em #8883;
+  box-sizing: border-box;
+  .toast-icon { margin-right: .3em; animation: zoomRotating 1.5s; }
+  &.toast-success { background-color: var(--success) }
+  &.toast-warning { background-color: var(--warning) }
+  &.toast-error { background-color: var(--error) }
+
+  &.before {
+    left: 100%;
+    transform: scale(.1);
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  &.after {
+    height: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    transition-duration: .2s;
+    transform: scale(0);
+  }
+}
+
+@keyframes zoomRotating {
+  0% { transform: scale(0); }
+  100% { transform: scale(1) rotate(360deg); }
+}

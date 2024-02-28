@@ -2,7 +2,7 @@ import { createElement as h, Fragment } from 'react'
 import { DirList, state, useSnapState } from './state'
 import { Btn } from './components'
 import { t, useI18N } from './i18n'
-import { alertDialog } from './dialog'
+import { alertDialog, toast } from './dialog'
 import { useNavigate } from 'react-router-dom'
 import { dirname, HTTP_MESSAGES, xlate } from '../../src/cross'
 import { apiCall } from '@hfs/shared/api'
@@ -63,5 +63,5 @@ export function ClipBar() {
 export function cut(files: DirList) {
     state.clip = files
     if (files.length)
-        return alertDialog(t('after_cut', "Your selection is now in the clipboard.\nGo to destination folder to paste."), 'info')
+        return toast(t('after_cut', "Your selection is now in the clipboard.\nGo to destination folder to paste."), 'info')
 }

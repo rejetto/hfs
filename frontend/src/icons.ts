@@ -43,7 +43,7 @@ const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // fals
     paste: ['📋'],
     shuffle: ['🔀'],
     repeat: ['🔁', 'reload'],
-    success: ['👍', false],
+    success: ['👍', 'check'],
     warning: ['⚠️', false],
 }
 

@@ -15,6 +15,9 @@
     --button-text: #eaeaea;
     --focus-color: #468;
     --separator: " – "; // fallback
+    --success: #8c8;
+    --warning: #cc8;
+    --error: #c88;
     @supports (content: "" / "") {
         --separator: " – " / ""; // skip for screen-reader
     }
@@ -28,6 +31,10 @@
         --good-contrast: #aaa;
         --button-bg: #345;
         --button-text: #999;
+        --success: #383;
+        --warning: #883;
+        --error: #a33;
+
         color-scheme: dark;
         .highlightedText { color: #fff; text-shadow: 0 0 3px #fff; }
         a { color:#8ac; }
