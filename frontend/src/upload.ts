@@ -6,7 +6,7 @@ import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDia
     HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_ } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
-import { alertDialog, confirmDialog, promptDialog } from './dialog'
+import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall, getNotification } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
@@ -399,14 +399,10 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (qs.length) return
         setTimeout(reloadList, 500) // workaround: reloading too quickly can meet the new file still with its temp name
         reloadOnClose = false
+        const msg = h('div', {}, t(['upload_concluded', "Upload terminated"], "Upload concluded:"), h(UploadStatus) )
         if (!uploadDialogIsOpen)
-            alertDialog(
-                h('div', {},
-                    t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
-                    h(UploadStatus)
-                ),
-                'info'
-            ).finally(resetCounters)
+            (uploadState.errors || uploadState.skipped ? alertDialog(msg, 'info') : toast(msg, 'success').closed)
+                .finally(resetCounters)
     }
 }
 
