@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
-import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
+import { alertDialog, confirmDialog, ConfirmOptions, promptDialog, toast } from './dialog'
 import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, throw_, useStateMounted, VfsPerms, working } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
@@ -195,9 +195,11 @@ export async function deleteFiles(uris: string[]) {
     stop()
     reloadList()
     const e = errors.length
+    const msg = t('delete_completed', {n: n-e}, "Deletion: {n} completed")
+    if (n === 1 && !e)
+        return toast(msg, 'success')
     alertDialog(h(Fragment, {},
-        t('delete_completed', {n: n-e}, "Deletion: {n} completed"),
-        e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
+        msg, e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
         h('div', { style: { textAlign: 'left', marginTop: '1em', } },
             ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + e.uri }))
         )

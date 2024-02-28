@@ -10,6 +10,7 @@ import { I18Nprovider } from './i18n'
 import { proxy, useSnapshot } from "valtio"
 import { Spinner } from "./components"
 import { getHFS, getPrefixUrl } from '@hfs/shared'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
     useTheme()
@@ -22,6 +23,14 @@ function App() {
     return h(I18Nprovider, {},
         h(BrowserRouter, {},
             h(NavigationExtractor, {},
+                h(Toaster, {
+                    toastOptions: {
+                        style: {
+                            background: 'var(--faint-contrast)',
+                            color: 'var(--text-high-contrast)',
+                        },
+                    }
+                }),
                 h(Dialogs, {},
                     h(Routes, {},
                         h(Route, { path:'*', element: h(BrowseFiles) })

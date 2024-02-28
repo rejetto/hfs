@@ -1,13 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactElement, ReactNode, useEffect, useRef, useState, KeyboardEvent,
-    InputHTMLAttributes } from 'react'
+    InputHTMLAttributes, isValidElement } from 'react'
 import './dialog.css'
 import { newDialog, closeDialog, DialogOptions, dialogsDefaults } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'
 import { t } from './i18n'
-import { err2msg, isCtrlKey, pendingPromise, Promisable } from './misc'
+import { err2msg, hIcon, isCtrlKey, pendingPromise, Promisable } from './misc'
+import hotToast from 'react-hot-toast'
 export * from '@hfs/shared/dialogs'
 
 _.merge(dialogsDefaults, { closableProps: { 'aria-label': t`Close` } })
@@ -166,4 +167,9 @@ export function confirmDialog(msg: ReactElement | string, options: ConfirmOption
             )
         )
     }
+}
+
+export function toast(msg: string | ReactElement, type: AlertType | 'success' | ReactElement='info') {
+    console.debug("toast", msg)
+    hotToast(msg, { position: 'top-right', icon: isValidElement(type) ? type : hIcon(type) })
 }

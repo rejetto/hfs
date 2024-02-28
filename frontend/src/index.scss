@@ -5,11 +5,12 @@
 
     --bg: #fff;
     --text: #555;
+    --text-high-contrast: #111;
     --ghost-contrast: #8882;
     --ghost-contrast-alt: #eee;
-    --faint-contrast: #8884;
-    --mild-contrast: #8886;
-    --good-contrast: #000a;
+    --faint-contrast: #ddd;
+    --mild-contrast: #aaa;
+    --good-contrast: #444;
     --button-bg: #6080aa;
     --button-text: #eaeaea;
     --focus-color: #468;
@@ -21,8 +22,10 @@
     .theme-dark {
         --bg: #000;
         --text: #999;
+        --text-high-contrast: #eee;
         --ghost-contrast-alt: #181818;
-        --good-contrast: #fffa;
+        --faint-contrast: #2d2d2d;
+        --good-contrast: #aaa;
         --button-bg: #345;
         --button-text: #999;
         color-scheme: dark;
