@@ -147,6 +147,7 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
     const ref = useRefPass<HTMLButtonElement>(forwarded)
     let ret: ReturnType<FC> = h(IconButton, {
             ref,
+            'aria-hidden': disabled,
             ..._.merge(modifiedProps(modified),
                 { disabled, sx: { height: 'fit-content', ...sx } },
                 rest),
@@ -168,10 +169,11 @@ export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, l
         h(icon)
     )
     const aria = rest['aria-label'] ?? (_.isString(title) ? title : undefined)
-    // having this span-wrapper conditioned by if(disabled) is causing a strange (harmless?) warning by mui-popper, so we don't
-    ret = h('span', { role: 'button', 'aria-label': prefix('', aria, disabled && ', disabled') }, ret)
-    if (title)
+    if (title) {
+        if (disabled)
+            ret = h('span', { role: 'button', 'aria-label': aria, 'aria-disabled': disabled }, ret)
         ret = hTooltip(title, aria, ret, tooltipProps)
+    }
     return ret
 })
 
@@ -206,6 +208,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         loadingIndicator: typeof progress !== 'number' ? undefined
             : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
         disabled,
+        'aria-hidden': disabled,
         ...rest,
         children: showLabel && children,
         sx: {
@@ -227,10 +230,12 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             }
         }
     })
-    if (disabled)
-        ret = h('span', { role: 'button', 'aria-label': title + ', disabled' }, ret)
-    if (title)
-        ret = hTooltip(title, undefined, ret, tooltipProps)
+    const aria = rest['aria-label'] ?? (_.isString(title) ? title : undefined)
+    if (title) {
+        // having this span-wrapper conditioned by if(disabled) is causing a strange (harmless?) warning by mui-popper as soon as you click, so we don't
+        ret = h('span', { role: 'button', 'aria-label': aria, 'aria-disabled': disabled }, ret)
+        ret = hTooltip(title, aria, ret, tooltipProps)
+    }
     return ret
 })
 
