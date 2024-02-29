@@ -68,7 +68,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                     return files ? onSelect([v]) : setCwd(v.slice(0, -basename(v)))
                 setCwd(res.path)
             },
-            end: [
+            end: h(Fragment, {},
                 h(IconBtn, {
                     title: "root",
                     disabled: isRoot,
@@ -87,7 +87,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         setCwd(parent)
                     }
                 }),
-            ]
+            )
         }),
         error ? h(Alert, { severity: 'error' }, err2msg(error))
             : h(Fragment, {},
