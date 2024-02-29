@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef,
-    HTMLAttributes} from 'react'
+    HTMLAttributes, useState } from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
 import { isPrimitive, objSameKeys } from '.'
 
@@ -67,10 +67,16 @@ export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
             h(Dialog, { key: d.$id, ...(d as DialogOptions) })))
 }
 
-function Dialog(d:DialogOptions) {
+function Dialog(d: DialogOptions) {
     const ref = useRef<HTMLElement>()
+    const [shiftY, setShiftY] = useState(0)
     useEffect(()=>{
-        ref.current?.focus()
+        if (!ref.current) return
+        ref.current.focus()
+        if (d.position) {
+            const rect = ref.current.querySelector('.dialog')!.getBoundingClientRect()
+            setShiftY(Math.min(0, rect.top, window.innerHeight - rect.bottom))
+        }
     }, [])
     d = { closable: true, ...dialogsDefaults, ...d }
     if (d.Container)
@@ -119,7 +125,7 @@ function Dialog(d:DialogOptions) {
             margin: '1em',
             position: 'absolute',
             ...pos[0] < w / 2 ? { left: pos[0] } : { right: w - pos[0] },
-            ...pos[1] < h / 2 ? { top: pos[1] } : { bottom: h - pos[1] },
+            ...pos[1] < h / 2 ? { top: shiftY + pos[1] } : { bottom: shiftY + h - pos[1] },
         }
     }
 }
