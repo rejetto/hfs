@@ -1,17 +1,19 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h } from 'react'
-import { Alert, Box } from '@mui/material'
-import { Microsoft } from '@mui/icons-material'
+import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
+import { Microsoft, Storage } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
-import { CFG, newDialog } from './misc'
-import { Btn, Flex, reloadBtn } from './mui'
+import { CFG, newDialog, prefix } from './misc'
+import { Btn, Flex, IconBtn, reloadBtn } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import { ConfigForm } from './ConfigForm'
 import { ArrayField } from './ArrayField'
 import { BoolField } from '@hfs/mui-grid-form'
 import VfsPathField from './VfsPathField'
-import { promptDialog } from './dialog'
+import { alertDialog, promptDialog } from './dialog'
+import { formatDiskSpace } from './FilePicker'
+import { getDiskSpaces } from '../../src/util-os'
 
 export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
     const isWindows = statusApi.data?.platform === 'win32'
@@ -26,6 +28,20 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
     },
         h(Btn, { variant: 'outlined', onClick: roots }, "Roots"),
         reloadBtn(() => reloadVfs()),
+        h(IconBtn, {
+            icon: Storage,
+            title: "Disk spaces",
+            onClick: () => apiCall<Awaited<ReturnType<typeof getDiskSpaces>>>('get_disk_spaces').then(res =>
+                alertDialog(h(List, { dense: true }, res.map(x => h(ListItem, { key: x.name },
+                    h(ListItemIcon, {}, h(Storage)),
+                    h(ListItemText, {
+                        primary: x.name + prefix(' (', x.description, ')'),
+                        secondary: formatDiskSpace(x)
+                    }),
+                ))), { title: "Disk spaces" })
+                    .then(() => false), // no success-animation for IconBtn
+                alertDialog)
+        }),
         isWindows && h(Btn, {
             icon: Microsoft,
             variant: 'outlined',

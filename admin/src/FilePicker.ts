@@ -172,9 +172,13 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                         icon: Storage,
                         progress: 1,
                         offset: (props.total - props.free) / props.total,
-                        title: `${formatBytes(props.free)} available (${formatPerc(props.free / props.total)}) of ${formatBytes(props.total)}`,
+                        title: formatDiskSpace(props),
                     }),
                 ),
             )
     )
+}
+
+export function formatDiskSpace({ free, total }: { free: number, total: number }) {
+    return `${formatBytes(free)} available (${formatPerc(free / total)}) of ${formatBytes(total)}`
 }
