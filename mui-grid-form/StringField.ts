@@ -37,6 +37,7 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         fullWidth: true,
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
         ...props,
+        ...params,
         sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1.5 } }, props.sx),
         value: state,
         onChange(ev) {
@@ -53,7 +54,7 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         onKeyDown(ev) {
             props.onKeyDown?.(ev)
             autoFillDetected.current = ev.code === undefined
-            if (ev.key === 'Enter')
+            if (ev.key === 'Enter' && (ev.target as HTMLElement).ariaExpanded !== 'true') // don't act if suggestion list is expanded
                 go(ev)
         },
         onFocus(ev) {
@@ -65,17 +66,25 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
                 go(ev)
         },
         InputProps: {
-            startAdornment: start && h(InputAdornment, { position: 'start' }, start),
-            endAdornment: end && h(InputAdornment, { position: 'end' }, end),
             ...props.InputProps,
+            ...params?.InputProps,
+            startAdornment: start && h(InputAdornment, { position: 'start' }, start, props?.InputProps?.startAdornment, params?.InputProps?.startAdornment),
+            endAdornment: end && h(InputAdornment, { position: 'end' }, end, props?.InputProps?.endAdornment, params?.InputProps?.endAdornment),
         },
-        ...params,
     })
     return !suggestions ? render(null)
-        : h(Autocomplete, { freeSolo: true, options: suggestions, renderInput: render })
+        : h(Autocomplete, {
+            value,
+            freeSolo: true,
+            options: suggestions,
+            renderInput: render,
+            onChange(ev, v) {
+                go(ev, v as string)
+            }
+        })
 
     function go(event: any, newVal: string=state) {
-        newVal = newVal.trim()
+        newVal = newVal?.trim()
         if (newVal === lastChange.current) return // don't compare to 'value' as that represents only accepted changes, while we are interested also in changes through discarded values
         lastChange.current = newVal
         onChange(newVal, {
