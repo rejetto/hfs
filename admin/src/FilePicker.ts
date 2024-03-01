@@ -89,7 +89,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                 }),
             )
         }),
-        error ? h(Alert, { severity: 'error' }, err2msg(error))
+        error ? h(Alert, { severity: 'error', sx: { flex: 1 } }, err2msg(error))
             : h(Fragment, {},
                 h(Box, {
                     ref(x?: HTMLElement){
