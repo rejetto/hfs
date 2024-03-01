@@ -48,10 +48,10 @@ interface IconProgressProps {
     progress: number,
     offset?: number,
     sx?: SxProps,
-    addTitle?: ReactNode
+    title?: ReactNode
 }
-export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgressProps) {
-    return h(Fragment, {},
+export function IconProgress({ icon, progress, offset, title, sx }: IconProgressProps) {
+    return h(Flex, { vert: true, center: true },
         h(icon, { sx: { position:'absolute', ml: '4px' } }),
         h(CircularProgress, {
             value: progress * 100 || 0,
@@ -59,12 +59,7 @@ export function IconProgress({ icon, progress, offset, addTitle, sx }: IconProgr
             size: 32,
             sx: { position: 'absolute' },
         }),
-        hTooltip(
-            h(Fragment, {},
-                _.isNumber(progress) ? formatPerc(progress) : "Size unknown",
-                addTitle && h('div', {}, addTitle)
-            ),
-            '',
+        hTooltip(title ?? (_.isNumber(progress) ? formatPerc(progress) : "Size unknown"), '',
             h(CircularProgress, {
                 color: 'success',
                 value: (offset || 1e-7) * 100,

@@ -9,7 +9,7 @@ import { dirname, extname, join, resolve } from 'path'
 import { dirStream, enforceFinal, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
     VfsNodeAdminSend } from './misc'
 import { IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE } from './const'
-import { getDrives } from './util-os'
+import { getDiskSpaceSync, getDrives } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { promisify } from 'util'
 import { execFile } from 'child_process'
@@ -191,6 +191,8 @@ const apis: ApiHandlers = {
                     }
                     return
                 }
+                try { list.props(getDiskSpaceSync(path)) }
+                catch {} // continue anyway
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')

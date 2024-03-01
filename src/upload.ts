@@ -11,7 +11,7 @@ import fs from 'fs'
 import { Callback, dirTraversal, escapeHTML, loadFileAttr, storeFileAttr, try_ } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
-import { getFreeDiskSync } from './util-os'
+import { getDiskSpaceSync } from './util-os'
 import { updateConnection, updateConnectionForCtx } from './connections'
 import { roundSpeed } from './throttler'
 import { getCurrentUsername } from './auth'
@@ -48,7 +48,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     const reqSize = Number(ctx.headers["content-length"])
     if (reqSize)
         try {
-            const free = getFreeDiskSync(dir)
+            const { free } = getDiskSpaceSync(dir)
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
             if (reqSize > free - (min || 0))

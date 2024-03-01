@@ -4,9 +4,9 @@ import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } fr
 import { apiCall, useApiList } from './api'
 import _ from 'lodash'
 import { Alert, Box, Button, Checkbox, ListItemIcon, ListItemText, MenuItem, TextField, Typography } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename } from './misc'
-import { spinner, Center, IconBtn, Flex } from './mui'
-import { ArrowUpward, CreateNewFolder, VerticalAlignTop } from '@mui/icons-material'
+import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc } from './misc'
+import { spinner, Center, IconBtn, Flex, IconProgress } from './mui'
+import { ArrowUpward, CreateNewFolder, Storage, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
 import { FixedSizeList } from 'react-window'
@@ -34,7 +34,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
             }
         }).finally(() => setReady(true))
     }, [from])
-    const { list, error, connecting, reload } = useApiList<DirEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
+    const { list, props, error, connecting, reload } = useApiList<DirEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
     useEffect(() => {
         setSel([])
         setFilter('')
@@ -167,6 +167,12 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                             await apiCall('mkdir', { path: `${cwd}/${s}` })
                             reload()
                         }
+                    }),
+                    props?.total > 0 && h(IconProgress, {
+                        icon: Storage,
+                        progress: 1,
+                        offset: (props.total - props.free) / props.total,
+                        title: `${formatBytes(props.free)} available (${formatPerc(props.free / props.total)}) of ${formatBytes(props.total)}`,
                     }),
                 ),
             )

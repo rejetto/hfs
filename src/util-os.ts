@@ -6,14 +6,16 @@ import { pid } from 'node:process'
 import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
 
-export function getFreeDiskSync(path: string) {
+export function getDiskSpaceSync(path: string) {
     if (IS_WINDOWS) {
         const drive = resolve(path).slice(0, 2).toUpperCase()
-        const out = execSync('wmic logicaldisk get FreeSpace,name /format:list').toString().replace(/\r/g, '')
+        const out = execSync('wmic logicaldisk get size,FreeSpace,name /format:list').toString().replace(/\r/g, '')
         const one = out.split(/\n\n+/).find(x => x.includes('Name=' + drive))
         if (!one)
             throw Error('miss')
-        return Number(/FreeSpace=(\d+)/.exec(one)?.[1])
+        const free = Number(/FreeSpace=(\d+)/.exec(one)?.[1])
+        const total = Number(/Size=(\d+)/.exec(one)?.[1])
+        return { free, total }
     }
     const out = try_(() => execSync(`df -k "${path}"`).toString(),
         err => {
@@ -23,9 +25,9 @@ export function getFreeDiskSync(path: string) {
         })
     if (!out?.startsWith('Filesystem'))
         throw Error('unsupported')
-    const one = out.split('\n')[1]
-    const free = Number(one.split(/\s+/)[3])
-    return free * 1024
+    const one = out.split('\n')[1] as string
+    const [used, free] = one.split(/\s+/).slice(2, 4).map(x => Number(x) * 1024) as [number, number]
+    return { free, total: used + free }
 }
 
 export async function getDrives() {

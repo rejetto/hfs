@@ -6,17 +6,10 @@ import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff, Lock, Block, FolderZip, Upload, Download, ChevronRight } from '@mui/icons-material'
 import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
-import {
-    formatBytes,
-    ipForUrl,
-    manipulateConfig,
-    CFG,
-    formatSpeed,
-    with_,
-    createDurationFormatter,
-    formatTimestamp
-} from "./misc"
-import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip, Btn } from './mui'
+import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp,
+    formatPerc } from "./misc"
+import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip } from './mui'
+import md from './md'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { agentIcons } from './LogsPage'
@@ -160,7 +153,7 @@ function Connections() {
                                 icon: row.archive ? FolderZip : row.op === 'upload' ? Upload : Download,
                                 progress: row.opProgress ?? row.opOffset,
                                 offset: row.opOffset,
-                                addTitle: row.opTotal && ("Total: " + formatBytes(row.opTotal)),
+                                title: md(formatPerc(row.opProgress) + (row.opTotal ? "\nTotal: " + formatBytes(row.opTotal) : '')),
                                 sx: { mr: 1 }
                             }),
                             row.archive ? h(Box, {}, value, h(Box, { fontSize: 'x-small', color: 'text.secondary' }, row.archive))
