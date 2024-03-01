@@ -45,13 +45,13 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
     try {
         const checkUrl = `http://${domain}`
         let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
-        if (check && !check.success && nat.upnp && !nat.mapped80) {
+        if (check?.success === false && nat.upnp && !nat.mapped80) {
             console.debug("setting temporary port forward")
             tempMap = await upnpClient.createMapping({ private: 80, public: { host: '', port: 80 }, description: 'hfs temporary', ttl: 0 }).catch(() => {})
             check = await selfCheck(checkUrl) // repeat test
         }
         //if (!check) throw new ApiError(HTTP_FAILED_DEPENDENCY, "couldn't test port 80")
-        if (!check?.success)
+        if (check?.success === false)
             throw new ApiError(HTTP_FAILED_DEPENDENCY, "port 80 is not working on the specified domain")
         const acmeClient = new acme.Client({
             accountKey: await acme.crypto.createPrivateKey(),
