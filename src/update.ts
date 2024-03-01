@@ -65,12 +65,12 @@ export function localUpdateAvailable() {
     return access(LOCAL_UPDATE).then(() => true, () => false)
 }
 
-export function updateSupported() {
-    return IS_BINARY && !currentServiceName
+export async function updateSupported() {
+    return IS_BINARY && !await currentServiceName
 }
 
 export async function update(tagOrUrl: string='') {
-    if (!updateSupported()) throw "only binary versions supports automatic update for now"
+    if (!await updateSupported()) throw "only binary versions supports automatic update for now"
     let updateSource: Readable | false = tagOrUrl.includes('://') ? await httpStream(tagOrUrl)
         : await localUpdateAvailable() && createReadStream(LOCAL_UPDATE)
     if (!updateSource) {

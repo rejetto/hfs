@@ -116,7 +116,7 @@ export const adminApis: ApiHandlers = {
             ips: await getIps(false),
             baseUrl: getBaseUrlOrDefault(),
             roots: roots.get(),
-            updatePossible: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
+            updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)

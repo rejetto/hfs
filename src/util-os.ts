@@ -64,12 +64,13 @@ export async function runCmd(cmd: string, args: string[] = []) {
     return (stderr || stdout).replace(/\r/g, '')
 }
 
-function getWindowsServices() {
+async function getWindowsServices() {
     const fields = ['PathName', 'DisplayName', 'ProcessId'] as const
-    return parseKeyValueObjects<typeof fields[number]>(execSync(`wmic service get ${fields.join()} /value`).toString().replace(/\r/g, ''))
+    return parseKeyValueObjects<typeof fields[number]>(await runCmd(`wmic service get ${fields.join()} /value`))
 }
 
-export const currentServiceName = IS_WINDOWS && _.find(getWindowsServices(), { ProcessId: String(pid) })?.DisplayName
+export const currentServiceName = IS_WINDOWS && new Promise(async resolve =>
+    resolve(_.find(await getWindowsServices(), { ProcessId: String(pid) })?.DisplayName))
 
 function parseKeyValueObjects<T extends string>(all: string, keySep='=', lineSep='\n', objectSep=/\n\n+/) {
     return all.split(objectSep).map(obj =>
