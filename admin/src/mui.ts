@@ -3,17 +3,15 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import {
-    createElement as h, FC, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
-    ForwardedRef, useState, useMemo
-} from 'react'
+import { createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
+    ForwardedRef, useState, useMemo } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
-import { LoadingButton, LoadingButtonProps } from '@mui/lab'
+import { LoadingButton } from '@mui/lab'
 import { Link as RouterLink } from 'react-router-dom'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import _ from 'lodash'
@@ -119,116 +117,70 @@ function useRefPass<T=unknown>(forwarded: ForwardedRef<any>) {
     })
 }
 
-interface IconBtnProps extends Omit<IconButtonProps, 'disabled'|'title'|'onClick'> {
-    title?: ReactNode
-    icon: SvgIconComponent
-    disabled?: boolean | string
-    progress?: boolean | number
-    link?: string
-    confirm?: string
-    doneMessage?: boolean | string // displayed only if the result of onClick !== false
-    tooltipProps?: Partial<TooltipProps>
-    modified?: boolean
-    onClick?: (...args: Parameters<NonNullable<IconButtonProps['onClick']>>) => Promisable<any>
-}
+interface IconBtnProps extends Omit<BtnProps, 'icon' | 'children'> { icon: SvgIconComponent }
+export const IconBtn = forwardRef((props: IconBtnProps, ref: ForwardedRef<HTMLButtonElement>) =>
+    h(Btn, { ref, ...props }))
 
-export const IconBtn = forwardRef(({ title, icon, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, sx, modified, ...rest }: IconBtnProps, forwarded: ForwardedRef<HTMLButtonElement>) => {
-    const [loading, setLoading] = useStateMounted(false)
-    if (typeof disabled === 'string')
-        title = disabled
-    if (link)
-        onClick = () => window.open(link)
-    disabled = loading || Boolean(progress) || disabled === undefined ? undefined : Boolean(disabled)
-    const ref = useRefPass<HTMLButtonElement>(forwarded)
-    let ret: ReturnType<FC> = h(IconButton, {
-            ref,
-            'aria-hidden': disabled,
-            ..._.merge(modifiedProps(modified),
-                { disabled, sx: { height: 'fit-content', ...sx } },
-                rest),
-            async onClick(...args) {
-                if (confirm && !await confirmDialog(confirm)) return
-                const ret = onClick?.apply(this,args)
-                if (ret && ret instanceof Promise) {
-                    setLoading(true)
-                    ret.then(x => x !== false && execDoneMessage(doneMessage, ref.current), alertDialog)
-                        .finally(()=> setLoading(false))
-                }
-            }
-        },
-        (progress || loading) && progress !== false  // false is also useful to inhibit behavior with loading
-        && h(CircularProgress, {
-            ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
-            style: { position:'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }
-        }),
-        h(icon)
-    )
-    const aria = rest['aria-label'] ?? (_.isString(title) ? title : undefined)
-    if (title) {
-        if (disabled)
-            ret = h('span', { role: 'button', 'aria-label': aria, 'aria-disabled': disabled }, ret)
-        ret = hTooltip(title, aria, ret, tooltipProps)
-    }
-    return ret
-})
-
-interface BtnProps extends Omit<LoadingButtonProps,'disabled'|'title'|'onClick'> {
+interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
     icon?: SvgIconComponent
     title?: ReactNode
     disabled?: boolean | string
     progress?: boolean | number
     link?: string
     confirm?: boolean | ReactNode
-    labelFrom?: Breakpoint
+    labelFrom?: Breakpoint | false
     doneMessage?: boolean | string // displayed only if the result of onClick !== false
-    tooltipProps?: TooltipProps
+    tooltipProps?: Partial<TooltipProps>
+    modified?: boolean
+    loading?: boolean
     onClick?: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
 
-export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelFrom, children, ...rest }: BtnProps, ref: any) => {
-    const [loading, setLoading] = useStateMounted(false)
-    if (typeof disabled === 'string') {
+export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelFrom, children, modified, loading, ...rest }: BtnProps, forwarded: ForwardedRef<HTMLButtonElement>) => {
+    const [loadingState, setLoadingState] = useStateMounted(false)
+    if (typeof disabled === 'string')
         title = disabled
-        disabled = true
-    }
+    disabled = loadingState || Boolean(progress) || disabled === undefined ? undefined : Boolean(disabled)
     if (link)
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(labelFrom || 'xs')
-    let ret: ReturnType<FC> = h(LoadingButton, {
+    const ref = useRefPass<HTMLButtonElement>(forwarded)
+    const common = _.merge(modifiedProps(modified), {
         ref,
-        variant: 'contained',
-        startIcon: icon && h(icon),
-        loading: Boolean(loading || progress),
-        loadingPosition: icon && 'start',
-        loadingIndicator: typeof progress !== 'number' ? undefined
-            : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
         disabled,
         'aria-hidden': disabled,
-        ...rest,
-        children: showLabel && children,
-        sx: {
-            ...rest.sx,
-            ...!showLabel && {
-                minWidth: 'auto',
-                px: 1,
-                py: '7px',
-                '& span': { mx:0 },
+        async onClick(...args: any[]) {
+            if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
+            const ret = onClick?.apply(this, args as any)
+            if (ret && ret instanceof Promise) {
+                setLoadingState(true)
+                ret.then(x => x !== false && execDoneMessage(doneMessage), alertDialog)
+                    .finally(()=> setLoadingState(false))
             }
         },
-        async onClick(...args) {
-            if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
-            const ret = onClick?.apply(this,args)
-            if (ret && ret instanceof Promise) {
-                setLoading(true)
-                ret.then(x => x !== false && execDoneMessage(doneMessage), alertDialog)
-                    .finally(()=> setLoading(false))
-            }
-        }
-    })
+    } as const, rest)
+    let ret: ReactElement = children || !icon ? h(LoadingButton, _.merge({
+            variant: 'contained',
+            startIcon: icon && h(icon),
+            loading: Boolean(loading || loadingState || progress),
+            loadingPosition: icon && 'start',
+            loadingIndicator: typeof progress !== 'number' ? undefined
+                : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
+            children: showLabel && children,
+        } as const, common, !showLabel && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }))
+        : h(IconButton, _.merge(common, {  sx: { height: 'fit-content' } }),
+            (progress || loadingState) && progress !== false  // false is also useful to inhibit behavior with loading
+            && h(CircularProgress, {
+                ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
+                style: { position:'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }
+            }),
+            h(icon)
+        )
+
     const aria = rest['aria-label'] ?? (_.isString(title) ? title : undefined)
     if (title) {
-        // having this span-wrapper conditioned by if(disabled) is causing a strange (harmless?) warning by mui-popper as soon as you click, so we don't
-        ret = h('span', { role: 'button', 'aria-label': aria, 'aria-disabled': disabled }, ret)
+        if (disabled) // having this span-wrapper conditioned by if(disabled) is causing a (harmless?) warning by mui-popper if the element becomes disabled after you click (file cut button does), but otherwise we have a bigger problem with a11y, with this being seen as a button
+            ret = h('span', { role: 'button', 'aria-label': aria, 'aria-disabled': disabled }, ret)
         ret = hTooltip(title, aria, ret, tooltipProps)
     }
     return ret
@@ -280,7 +232,7 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
     const props = iconBtn(state)
     const el = useMemo(() => h(IconBtn, {
         size: 'small',
-        color: state ? 'primary' : 'default',
+        color: state ? 'primary' : undefined,
         title: state || offTitle === undefined ? onTitle : offTitle,
         'aria-label': onTitle, // aria should be steady, and rely on aria-pressed
         'aria-pressed': state,
