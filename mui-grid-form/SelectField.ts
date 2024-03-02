@@ -80,7 +80,8 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
             }),
             ...rest,
         },
-            h(Button, {
+            !normalizedOptions.length && h(ListItemText, { sx: { fontStyle: 'italic', ml: 1 }, onClickCapture(ev) { ev.stopPropagation() } }, "No options available"),
+            normalizedOptions.length > 1 && h(Button, {
                 ref: x => x && Object.assign(x, { role: undefined }), // cancel the role=option on this
                 onClickCapture(event) {
                     event.stopPropagation()
