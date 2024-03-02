@@ -2,10 +2,10 @@
 
 import { createElement as h, useState, useEffect, Fragment } from "react"
 import { apiCall, useApiEx } from './api'
-import { Alert, Box, Button, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
+import { Alert, Box, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Close, Delete, DoNotDisturb, Group, MilitaryTech, Person, PersonAdd, Schedule } from '@mui/icons-material'
 import { newDialog, with_ } from './misc'
-import { Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint } from './mui'
+import { Btn, Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint } from './mui'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
@@ -36,7 +36,7 @@ export default function AccountsPage() {
         : selectionMode && sel.length > 1 ? h(Fragment, {},
                 h(Flex, {},
                     h(Typography, {variant: 'h6'}, sel.length + " selected"),
-                    h(Button, { onClick: deleteAccounts, startIcon: h(Delete) }, "Remove"),
+                    h(Btn, { onClick: deleteAccounts, icon: Delete }, "Remove"),
                 ),
                 h(List, {},
                     sel.map(username =>
@@ -147,18 +147,13 @@ export default function AccountsPage() {
             if (!await confirmDialog(`Will delete the rest but not current account (${username})`)) return
         if (!sel.length) return
         if (!await confirmDialog(`Delete ${sel.length} item(s)?`)) return
-        try {
-            const errors = []
-            for (const username of sel)
-                if (!await apiCall('del_account', { username }).then(() => 1, () => 0))
-                    errors.push(username)
-            reload()
-            if (errors.length)
-                return alertDialog("Following elements couldn't be deleted: " + errors.join(', '), 'error')
-        }
-        catch(e) {
-            await alertDialog(e as Error)
-        }
+        const errors = []
+        for (const username of sel)
+            if (!await apiCall('del_account', { username }).then(() => 1, () => 0))
+                errors.push(username)
+        reload()
+        if (errors.length)
+            return alertDialog("Following elements couldn't be deleted: " + errors.join(', '), 'error')
     }
 }
 

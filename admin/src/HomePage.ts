@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode, useState } from 'react'
-import { Box, Button, Card, CardContent, LinearProgress, Link } from '@mui/material'
+import { Box, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
 import { dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL,
     wait, with_ } from './misc'
@@ -71,19 +71,17 @@ export default function HomePage() {
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
         !account?.adminActualAccess && entry('', md("On <u>localhost</u> you don't need to login"),
             SOLUTION_SEP, "to access Admin-panel from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
-        proxyWarning(cfg, status) && entry('warning', proxyWarning(cfg, status),
+        with_(proxyWarning(cfg, status), x => x && entry('warning', x,
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
-                SOLUTION_SEP, "unless you are sure and you can ", h(Button, {
+                SOLUTION_SEP, "unless you are sure and you can ", h(Btn, {
+                    variant: 'outlined',
                     size: 'small',
                     sx: { lineHeight: 'unset' }, // fit in the line, avoiding bad layout
-                    async onClick() {
-                        if (await confirmDialog("Go on only if you know what you are doing")
-                        && await apiCall('set_config', { values: { ignore_proxies: true } }))
-                            cfg.reload()
-                    }
+                    confirm: "Go on only if you know what you are doing",
+                    onClick: () => apiCall('set_config', { values: { ignore_proxies: true } }).then(cfg.reload)
                 }, "ignore this warning"),
                 SOLUTION_SEP, wikiLink('Proxy-warning', "Explanation")
-        ),
+        )),
         (cfg.data?.proxies > 0 || status?.proxyDetected) && entry('', wikiLink('Reverse-proxy', "Read our guide on proxies")),
         status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
             h('ol',{},
@@ -184,5 +182,5 @@ function cfgLink(text=`Options page`) {
 
 export function proxyWarning(cfg: any, status: any) {
     return cfg.data && !cfg.data.proxies && status?.proxyDetected
-        && "A proxy was detected but none is configured"
+        ? "A proxy was detected but none is configured" : ''
 }

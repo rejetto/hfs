@@ -3,10 +3,10 @@
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
 import { apiCall, useApiEx, useApiList } from './api'
 import { DataTable } from './DataTable';
-import { Alert, Box, Button } from '@mui/material'
+import { Alert, Box } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
 import { readFile, selectFiles } from './misc'
-import { IconBtn, useBreakpoint } from './mui'
+import { Btn, IconBtn, useBreakpoint } from './mui'
 import _ from 'lodash'
 import { alertDialog, toast } from './dialog'
 import { Field, SelectField } from '@hfs/mui-grid-form';
@@ -19,7 +19,7 @@ export default function LangPage() {
         large && h(Alert, { severity: 'info' }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
         h(Box, { mt: 1, maxWidth: '40em', flex: 1, display: 'flex', flexDirection: 'column' },
             h(Box, { mb: 1, display: 'flex' },
-                h(Button, { variant: 'contained', startIcon: h(Upload), onClick: add }, "Add"),
+                h(Btn, { icon: Upload, onClick: add }, "Add"),
                 h(Box, { flex: 1 }),
                 h(ForceLang, { langs }),
             ),
