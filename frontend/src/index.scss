@@ -353,6 +353,7 @@ ul.dir {
     display: inline;
     white-space: pre-wrap;
     word-break: break-word;
+    margin-bottom: .5em; // affecting only the layout of the current-folder-comment
     &::before, &::after {
         font-size: 1.5em;
         font-family: serif;

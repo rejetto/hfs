@@ -46,6 +46,7 @@ export function BrowseFiles() {
             h(CustomCode, { name: 'beforeHeader' }),
             h(Head),
             h(CustomCode, { name: 'afterHeader' }),
+            props?.comment && h('div', { className: 'entry-comment' }, props.comment),
             error ? h(ErrorMsg, { err: error }) : h(FilesList),
             h(CustomCode, { name: 'afterList' }),
             h(ClipBar),
