@@ -15,7 +15,7 @@
     "watch-server-proxied": "cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
     "start-frontend": "npm run start --workspace=frontend",
     "start-admin": "npm run start --workspace=admin",
-    "build-all": "npm audit --omit=dev --audit-level=moderate && rm -rf dist && npm i && npm run build-server & npm run build-frontend & npm run build-admin & wait && echo COMPLETED",
+    "build-all": "npm audit --omit=dev --audit-level=moderate && rm -rf dist && npm i && npm run build-server && npm run build-frontend && npm run build-admin && echo COMPLETED",
     "build-server": "rm -rf dist/src dist/plugins && tsc --target es2018 && touch package.json && cp -v -r package.json central.json README* LICENSE* plugins dist && find dist \\( -name .DS_Store -o -name storage \\) -delete && node afterbuild.js",
     "build-frontend": "npm run build --workspace=frontend",
     "build-admin": "npm run build --workspace=admin",
