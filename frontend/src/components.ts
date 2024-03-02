@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getHFS, hfsEvent, hIcon, prefix } from './misc'
+import { getHFS, hfsEvent, hIcon, isPrimitive, onlyTruthy, prefix } from './misc'
 import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
     useMemo, useState, ComponentPropsWithoutRef } from 'react'
@@ -75,11 +75,10 @@ export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
 
 export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any, ifEmpty?: FC }) {
     const children = useMemo(() => {
-        const ret = hfsEvent(name, props)
-            .filter(x => x === 0 || x)
+        const ret = onlyTruthy(hfsEvent(name, props)
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
-                : typeof x === 'string' ? h(Html, { key, code: x })
-                    : h('span', { key }, x))
+                : x === 0 || x && isPrimitive(x) ? h(Html, { key, code: String(x) })
+                    : null))
         const html = getHFS().customHtml?.[name]
         if (html?.trim?.())
             ret.push(h(Html, { key: 'x', code: html }))
