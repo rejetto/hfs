@@ -86,7 +86,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const lang = await getLangData(ctx)
     let ret = body
         .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
-        .replace('<body>', () => `<body>
+        .replace('<head>', () => `<head>
             ${!isFrontend ? '' : `
                 <title>${title.get()}</title>
                 <link rel="shortcut icon" href="${favicon.get() ? '/favicon.ico' : '#'}" />
@@ -108,6 +108,8 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
             .replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
             document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
             </script>
+        `)
+        .replace('<body>', () => `<body>
             <style>
             :root {
                 ${_.map(plugins, (configs, pluginName) => 
