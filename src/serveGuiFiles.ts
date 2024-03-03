@@ -9,7 +9,7 @@ import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from 
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { CFG, FRONTEND_OPTIONS, getOrSet, newObj, onlyTruthy } from './misc'
+import { CFG, debounceAsync, FRONTEND_OPTIONS, getOrSet, newObj, onlyTruthy, repeat } from './misc'
 import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio/vanilla'
 import { customHtmlState, getSection } from './customHtml'
@@ -64,6 +64,11 @@ function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer
         : String(data).replace(/((?:import[ (]| from )['"])\//g, `$1${ctx.state.revProxyPath}${uri}`)
 }
 
+const getFaviconTimestamp = debounceAsync(async () => {
+    const f = favicon.get()
+    return !f ? 0 : fs.stat(f).then(x => x?.mtimeMs || 0, () => 0)
+}, 0, { retain: 5_000 })
+
 async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const session = await refresh_session({}, ctx)
     ctx.set('etag', '')
@@ -83,13 +88,14 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
         configs = getPluginInfo(name).onFrontendConfig?.(configs) || configs
         return !_.isEmpty(configs) && [name, configs]
     })))
+    const timestamp = await getFaviconTimestamp()
     const lang = await getLangData(ctx)
     let ret = body
         .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
         .replace('<head>', () => `<head>
             ${!isFrontend ? '' : `
                 <title>${title.get()}</title>
-                <link rel="shortcut icon" href="${favicon.get() ? '/favicon.ico' : '#'}" />
+                <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
             `}
             <script>
             HFS = ${JSON.stringify({

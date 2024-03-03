@@ -10,7 +10,7 @@ import {
     HFS_STARTED,
     IS_WINDOWS,
     VERSION,
-    HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_FORBIDDEN
+    HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_FORBIDDEN
 } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'

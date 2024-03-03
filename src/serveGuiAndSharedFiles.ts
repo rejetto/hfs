@@ -52,7 +52,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         }
         return
     }
-    if (ctx.originalUrl === '/favicon.ico' && favicon.get()) // originalUrl to not be subject to changes (vhosting plugin)
+    if (/^\/favicon.ico(\??.*)/.test(ctx.originalUrl) && favicon.get()) // originalUrl to not be subject to changes (vhosting plugin)
         return serveFile(ctx, favicon.get())
     let node = await urlToNode(path, ctx)
     if (!node)
