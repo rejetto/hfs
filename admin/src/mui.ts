@@ -7,7 +7,7 @@ import { createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useC
     ForwardedRef, useState, useMemo } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
-import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL } from '../../src/cross'
+import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_ } from './misc'
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
@@ -177,7 +177,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             h(icon)
         )
 
-    const aria = rest['aria-label'] ?? (_.isString(title) ? title : undefined)
+    const aria = rest['aria-label'] ?? with_(_.isString(title) && title, x => x ? `${children || ''} (${x})` : undefined)
     if (title) {
         if (disabled) // having this span-wrapper conditioned by if(disabled) is causing a (harmless?) warning by mui-popper if the element becomes disabled after you click (file cut button does), but otherwise we have a bigger problem with a11y, with this being seen as a button
             ret = h('span', { role: 'button', 'aria-label': aria, 'aria-disabled': disabled }, ret)

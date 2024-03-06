@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, IconButton, Modal
+import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, Modal
 } from '@mui/material'
 import { createElement as h, Dispatch, Fragment, isValidElement, ReactElement, ReactNode, SetStateAction,
     useEffect, useRef, useState
@@ -16,7 +16,7 @@ import md from './md'
 import _ from 'lodash'
 export * from '@hfs/shared/dialogs'
 
-dialogsDefaults.Container = function Container(d:DialogOptions) {
+dialogsDefaults.Container = function Container(d: DialogOptions) {
     const ref = useRef<HTMLElement>()
     const { width, height } = useWindowSize()
     const mobile = width > 0 && Math.min(width, height) < 500
@@ -54,7 +54,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
         },
             d.icon && componentOrNode(d.icon),
             h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
-            h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
+            d.closable && h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,
