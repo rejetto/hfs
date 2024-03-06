@@ -1,7 +1,7 @@
 {
-    "author": "Pultsari",
-    "version": 1.1,
-    "hfs_version": "0.51.1",
+    "author": "Pultsari & Win_7",
+    "version": 1.2,
+    "hfs_version": "0.52.0",
     "translate": {
         "Select": "Valitse",
         "n_files": "{n,plural,one{# tiedosto} other{# tiedostoa}}",
@@ -148,6 +148,25 @@
         "Cancel clipboard": "Sulje leikepöytä",
         "to_clipboard_source": "Takaisin lähdekansioon",
         "Paste": "Liitä",
-        "clipboard_list": "Kohteet leikepöydällä:"
+        "clipboard_list": "Kohteet leikepöydällä:",
+
+        "Close": "Sulje",
+        "Folder": "Kansio",
+        "Web page": "Verkko sivu",
+        "Link": "Linkki",
+        "Auto-play": "Auto-toisto",
+        "autoplay_seconds": "Sekunteja odottaa kuvissa",
+        "Select all": "Valitse kaikki",
+        "go_first": "Mene ensimmäiseen kohteeseen",
+        "go_last": "Mene viimeiseen kohteeseen",
+        "Shuffle": "Sekoita",
+        "Repeat": "Toisto",
+        "showHelpListShortcut": "Tiedosto listalta, klikkaa kun painat {key} Näyttääksesi nopeasti",
+        "Invalid value": "Virheellinen arvo",
+        "upload_skipped": "{n} ohitettu",
+        "Overwrite policy": "Ylikirjoitus käytäntö",
+        "Rename to avoid overwriting": "Uudelleen nimeä jotta ei ylikirjoiteta",
+        "Overwrite existing files": "Ylikirjoita olemassa olevat tiedostot",
+        "Menu": "Valikko"
     }
 }
