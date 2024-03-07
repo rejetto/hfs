@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef,
     HTMLAttributes, useState } from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
-import { isPrimitive, objSameKeys } from '.'
+import { domOn, isPrimitive, objSameKeys } from '.'
 
 export interface DialogOptions {
     Content: FunctionComponent<any>,
@@ -19,6 +19,7 @@ export interface DialogOptions {
     position?: [number, number]
     dialogProps?: Record<string, any>
     $id?: number
+    ts?: number
 
     Container?: FunctionComponent<DialogOptions>
 }
@@ -56,7 +57,20 @@ function isDescendant(child: Node | null, parent: Node) {
     return false
 }
 
+let ignorePopState = false
+function back() {
+    ignorePopState = true
+    window.history.back()
+}
+
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
+    useEffect(() => domOn('popstate', ev => {
+        if (ignorePopState)
+            return ignorePopState = false
+        if (ev.state.ts > dialogs[dialogs.length - 1]?.ts!) // forward
+            return back() // cancel
+        closeDialog(undefined, true)
+    }), [])
     const snap = useSnapshot(dialogs)
     useEffect(() => {
         document.body.style.overflow = snap.length ? 'hidden' : ''
@@ -142,9 +156,13 @@ function onKeyDown(ev:any) {
 
 export function newDialog(options: DialogOptions) {
     const $id = Math.random()
+    const ts = performance.now()
     options.$id = $id // object identity is not working because of the proxy. This is a possible workaround
+    options.ts = ts
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
     dialogs.push(options)
+    if (options.closable !== false)
+        window.history.pushState({ $id, ts }, '')
     return { close }
 
     function close(v?:any) {
@@ -154,12 +172,17 @@ export function newDialog(options: DialogOptions) {
     }
 }
 
-export function closeDialog(v?:any) {
+export function closeDialog(v?:any, skipHistory=false) {
     let i = dialogs.length
+    if (dialogs[i - 1]?.closable === false) return
     while (i--) {
         const d = dialogs[i]
         if (d.reserveClosing)
             continue
+        if (!skipHistory) {
+            if (window.history.state.$id !== d.$id) return
+            back()
+        }
         closeDialogAt(i, v)
         return d
     }
