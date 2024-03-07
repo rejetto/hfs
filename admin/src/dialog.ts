@@ -9,7 +9,7 @@ import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/i
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
     focusSelector } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
-import { IconBtn, Flex, Center, Btn } from './mui'
+import { IconBtn, Flex, Center } from './mui'
 import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
 import md from './md'
@@ -99,8 +99,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
         Content() {
             return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
                 isValidElement(msg) ? msg
-                    : h(Box, { fontSize: 'large', lineHeight: '1.8em' }, String(msg)),
-                h(Btn, { sx: { mt: 1 }, size: 'small', onClick: () => dialog.close() }, "Close")
+                    : h(Box, { fontSize: 'large', lineHeight: '1.8em', pb: 1 }, String(msg)),
             )
         }
     })
