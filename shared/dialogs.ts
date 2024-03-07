@@ -64,11 +64,12 @@ function back() {
 }
 
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
-    useEffect(() => domOn('popstate', ev => {
+    useEffect(() => domOn('popstate', () => {
         if (ignorePopState)
             return ignorePopState = false
-        if (ev.state.ts > dialogs[dialogs.length - 1]?.ts!) // forward
-            return back() // cancel
+        const { $dialog } = window.history.state
+        if ($dialog && !dialogs.find(x => x.$id === $dialog)) // it happens if the user, after closing a dialog, goes forward in the history
+            return back()
         closeDialog(undefined, true)
     }), [])
     const snap = useSnapshot(dialogs)
@@ -162,7 +163,7 @@ export function newDialog(options: DialogOptions) {
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
     dialogs.push(options)
     if (options.closable !== false)
-        window.history.pushState({ $id, ts }, '')
+        window.history.pushState({ $dialog: $id, ts }, '')
     return { close }
 
     function close(v?:any) {
@@ -180,7 +181,7 @@ export function closeDialog(v?:any, skipHistory=false) {
         if (d.reserveClosing)
             continue
         if (!skipHistory) {
-            if (window.history.state.$id !== d.$id) return
+            if (window.history.state.$dialog !== d.$id) return
             back()
         }
         closeDialogAt(i, v)

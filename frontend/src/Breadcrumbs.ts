@@ -41,6 +41,7 @@ function Breadcrumb({ path, label, current, title }:{ current?: boolean, path: s
         title,
         async onClick(ev) {
             if (!current) return
+            ev.preventDefault()
             if (typeof label !== 'string')
                 return reload()
             openFileMenu(new DirEntry(decodeURIComponent(path), { p }), ev, [
