@@ -31,6 +31,7 @@ img.flag {
 .icon-w-text {
   margin-right: .5em;
 }
+form { max-width: 100%; } // make fields with unbreakable text (LinkField) to not overflow the available space
 
 .MuiSvgIcon-root {
   vertical-align: bottom;
