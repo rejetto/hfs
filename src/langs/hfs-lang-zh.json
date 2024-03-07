@@ -35,7 +35,7 @@
         "filter_none": "无过滤",
 
         "Admin-panel": "管理面板",
-        "Login": "登陆",
+        "Login": "登录",
         "Username": "用户名",
         "Password": "密码",
         "login_untrusted": "登录中止：服务器标识不可信!",
