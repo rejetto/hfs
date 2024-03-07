@@ -61,6 +61,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
             sx: {
                 p: d.padding ? 1 : 0, pt: '16px !important', overflow: 'initial',
                 display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                alignItems: 'center',
                 ...sx,
             }
         }, h(d.Content) )
@@ -93,6 +94,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
         icon: opt.icon ?? h(type2ico[type], { color: type }),
         onClose: promise.resolve,
         title: _.upperFirst(type),
+        dialogProps: { fullScreen: false },
         ...rest,
         Content() {
             return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
