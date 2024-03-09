@@ -1,6 +1,6 @@
 {
-    "author": "yx3016 & MircoH0 & CMJNB",
-    "version": 1.4,
+    "author": "yx3016 & MircoH0 & CMJNB & Cheuksing",
+    "version": 1.5,
     "hfs_version": "0.50.0",
     "translate": {
         "Select": "选择",
@@ -35,7 +35,7 @@
         "filter_none": "无过滤",
 
         "Admin-panel": "管理面板",
-        "Login": "登陆",
+        "Login": "登录",
         "Username": "用户名",
         "Password": "密码",
         "login_untrusted": "登录中止：服务器标识不可信!",
@@ -113,7 +113,7 @@
         "Skip existing files": "跳过已存在的文件",
         "Size": "大小",
         "Timestamp": "时间戳",
-        "Show": "显示",
+        "Show": "显示/播放",
         "Loading failed": "加载失败",
         "Rename": "重命名",
         "Tiles mode:": "图标平铺模式:",
@@ -140,6 +140,14 @@
         "enter_comment": "对此文件的评论",
         "Comment": "评论",
         "upload_dd_hint": "您可以将文件拖放到文件列表中进行上传",
-        "Upload not available": "上传不可用"
+        "Upload not available": "上传不可用",
+        "Cut": "剪切",
+        "n_items": "{n,plural, one{# item} other{# items}}",
+        "good_bad": "{good}个已移动, {bad}个失败",
+        "after_cut": "您的选择已成功添加到剪贴板，\n请前往目标文件夹粘贴。",
+        "Cancel clipboard": "取消剪贴板",
+        "to_clipboard_source": "至文件夹",
+        "Paste": "粘贴",
+        "clipboard_list": "剪贴板文件:"
     }
 }
