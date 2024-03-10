@@ -176,7 +176,7 @@ function LoginButton() {
         icon: 'login',
         label: t`Login`,
         onClickAnimation: false,
-        onClick: () => loginDialog(),
+        onClick: () => loginDialog(true),
     })
 }
 

@@ -33,10 +33,7 @@ export function BrowseFiles() {
     }), [props])
     if (!useAuthorized())
         return h(CustomCode, { name: 'unauthorized',
-            ifEmpty: () => h('h1', {
-                className: 'unauthorized',
-                onClick: () => loginDialog()
-            }, t`Unauthorized`)
+            ifEmpty: () => h('h1', { className: 'unauthorized' }, t`Unauthorized`)
         })
     return h('div', propsDropFiles, // element dedicated to drop-files to cover full screen
         h('div', {

@@ -41,12 +41,13 @@ export function logout(){
 
 export let closeLoginDialog: undefined | (() => void)
 let lastPromise: Promise<any>
-export async function loginDialog() {
+export async function loginDialog(closable=false) {
     return lastPromise = new Promise(resolve => {
         if (closeLoginDialog)
             return lastPromise
         let going = false
         const { close } = newDialog({
+            closable,
             className: 'login-dialog dialog-login',
             icon: () => hIcon('login'),
             onClose(v) {
