@@ -48,7 +48,7 @@ export async function loginDialog(closable=false) {
         let going = false
         const { close } = newDialog({
             closable,
-            className: 'login-dialog dialog-login',
+            className: 'login-dialog',
             icon: () => hIcon('login'),
             onClose(v) {
                 resolve(v)
