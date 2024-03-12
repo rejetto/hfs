@@ -292,7 +292,9 @@ ul.dir {
             }
             @media (hover: hover) {
                 &:not(:hover) .popup-menu-button { display: none; }
-                &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally. Using this on @media(hover:none) will result in some taps to be missed. It happened on a long folder with no spaces in the name to wrap.
+                &:hover { padding: 1em; margin: -1em; // add margin to avoid leaving the hover unintentionally. Using this on @media(hover:none) will result in some taps to be missed. It happened on a long folder with no spaces in the name to wrap.
+                    .popup-menu-button { z-index: 1} // without this, attempting to hover from the name to the menu-button will easily lose the :hover if a comment is present
+                }
             }
             a {
                 &:last-of-type {
