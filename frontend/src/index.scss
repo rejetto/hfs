@@ -297,7 +297,7 @@ ul.dir {
             a {
                 &:last-of-type {
                     word-break: break-word;
-                    padding-right: 0.3em;
+                    padding-right: .5em;
                 }
                 .icon {
                     margin-right: .5em;
@@ -362,7 +362,6 @@ ul.dir {
     }
     &::before {
         content: "“";
-        margin-left: 0.5em;
         margin-right: 0.1em;
         top: 0.2em;
     }
