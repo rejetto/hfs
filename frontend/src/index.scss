@@ -601,7 +601,7 @@ button .icon + .label {
                 padding: 0; margin: 0;
             }
             &:nth-of-type(odd) {
-                background-color: var(--bg); // to avoid checkerboard effect
+                background-color: inherit; // to avoid checkerboard effect
             }
             .entry-panel {
                 justify-content: center;
