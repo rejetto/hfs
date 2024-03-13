@@ -206,6 +206,8 @@ The HFS objects contains many properties:
 - `h` shortcut for React.createElement
 - `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
 - `_` [lodash library](https://lodash.com/docs/)
+- `dialogLib` this exposes all functions available in [dialog.ts](https://github.com/rejetto/hfs/blob/main/frontend/src/dialog.ts), for example alertDialog and newDialog. These are not documented yet, and subject to change without notification, but you can study the sources if you are interested in using them.
+- `misc` many functions and constants available in [cross.ts](https://github.com/rejetto/hfs/blob/main/src/cross.ts). These are not documented, probably never will, and are subject to change without notifications, but you can study the sources if you are interested in using them.
 - `navigate: (uri: string): void` use this if you have to change the page address without causing reload
 - `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts. 
 - `Icon: ReactComponent` Properties:
