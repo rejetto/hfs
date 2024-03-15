@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 2.4,
-    "hfs_version": "0.51.0",
+    "version": 2.5,
+    "hfs_version": "0.52.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{# файл} few{# файла} many{# файлов}}",
@@ -85,7 +85,7 @@
         "home": "Домашняя папка",
 
         "Continue": "Продолжить",
-        "Confirm": "Да",
+        "Confirm": "Подтвердить",
         "Don't": "Нет",
         "Warning": "Внимание",
         "Error": "Ошибка",
@@ -149,6 +149,24 @@
         "to_clipboard_source": "В папку",
         "Paste": "Вставить",
         "clipboard_list": "Элементы в буфере обмена:",
+        "Close": "Закрыть",
+        "Folder": "Папка",
+        "Web page": "Веб адрес",
+        "Link": "Ссылка",
+        "Auto-play": "Автовоспроизведение",
+        "autoplay_seconds": "Сколько секунд ждать между изображениями",
+        "Select all": "Выбрать всё",
+        "go_first": "К первому элементу",
+        "go_last": "К последнему элементу",
+        "Shuffle": "Перемешать",
+        "Repeat": "Повтор",
+        "showHelpListShortcut": "Из списка файлов нажмите {key} чтобы быстро открыть Просмотр файла",
+        "Invalid value": "Недействительное значение",
+        "upload_skipped": "{n,plural, one{# пропущен} other{# пропущено}}",
+        "Overwrite policy": "Правило перезаписи",
+        "Rename to avoid overwriting": "Переименовать для избежания перезаписи",
+        "Overwrite existing files": "Перезаписать существующие файлы",
+        "Menu": "Меню",
 
 
         "_PLUGINS SECTION": "",
