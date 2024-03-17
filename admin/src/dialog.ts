@@ -123,9 +123,9 @@ export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText
             h(Flex, {},
                 h('a', {
                     href,
-                    onClick: () => closeDialog(true),
+                    onClick: () => dialog.close(true),
                 }, h(Button, { variant: 'contained' }, confirmText)),
-                h(Button, { onClick: () => closeDialog(false) }, dontText),
+                h(Button, { onClick: () => dialog.close(false) }, dontText),
             ),
         )
     }
@@ -143,37 +143,38 @@ export async function formDialog<T>(
         form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>),
     },
 ) : Promise<T> {
-    return new Promise(resolve => newDialog({
-        className: 'dialog-confirm',
-        onClose: resolve,
-        ...options,
-        Content
-    }) )
-
-    function Content() {
-        const [curValues, setCurValues] = useState<Partial<T>>(values||{})
-        const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
-        return h(Fragment, {},
-            before,
-            h(Form, {
-                ...props,
-                values: curValues,
-                set(v, k) {
-                    setCurValues(curValues => {
-                        const newV = { ...curValues, [k]: v }
-                        onChange?.(newV, { setValues: setCurValues })
-                        return newV
+    return new Promise(resolve => {
+        const dialog = newDialog({
+            className: 'dialog-confirm',
+            onClose: resolve,
+            ...options,
+            Content() {
+                const [curValues, setCurValues] = useState<Partial<T>>(values||{})
+                const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
+                return h(Fragment, {},
+                    before,
+                    h(Form, {
+                        ...props,
+                        values: curValues,
+                        set(v, k) {
+                            setCurValues(curValues => {
+                                const newV = { ...curValues, [k]: v }
+                                onChange?.(newV, { setValues: setCurValues })
+                                return newV
+                            })
+                        },
+                        save: {
+                            ...props.save,
+                            onClick() {
+                                dialog.close(curValues)
+                            }
+                        }
                     })
-                },
-                save: {
-                    ...props.save,
-                    onClick() {
-                        closeDialog(curValues)
-                    }
-                }
-            })
-        )
-    }
+                )
+            }
+        })
+    })
+
 }
 
 export async function promptDialog(msg: ReactNode, { value, field, save, addToBar=[], ...props }:any={}) : Promise<string | undefined> {
@@ -220,8 +221,7 @@ export function toast(msg: string | ReactElement, type: AlertType | ReactElement
             }
         }
     })
-    const { close } = dialog
-    setTimeout(close, ms)
+    setTimeout(dialog.close, ms)
     return dialog
 
     function Content(){
