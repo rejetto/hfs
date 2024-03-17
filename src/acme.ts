@@ -15,8 +15,7 @@ let acmeMiddlewareEnabled = false
 const acmeTokens: Dict<string> = {}
 const acmeListener: RequestListener = (req, res) => { // node format
     const BASE = '/.well-known/acme-challenge/'
-    if (!req.url?.startsWith(BASE))
-        return res.end('HFS') // to satisfy self-check with the temporary server
+    if (!req.url?.startsWith(BASE)) return
     const token = req.url.slice(BASE.length)
     console.debug("got http challenge", token)
     res.statusCode = HTTP_OK
@@ -68,6 +67,7 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
             async challengeCreateFn(_, c, ka) { acmeTokens[c.token] = ka },
             async challengeRemoveFn(_, c) { delete acmeTokens[c.token] },
         })
+        console.log("acme certificate generated")
         return { key, cert }
     }
     finally {
