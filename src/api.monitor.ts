@@ -82,12 +82,14 @@ export default {
 
     async *get_connection_stats() {
         while (1) {
+            const filtered = getConnections().filter(x => !ignore(x))
             yield {
                 outSpeed: totalOutSpeed,
                 inSpeed: totalInSpeed,
                 got: totalGot,
                 sent: totalSent,
-                connections: _.sumBy(getConnections(), x => ignore(x) ? 0 : 1),
+                connections: filtered.length,
+                ips: _.uniqBy(filtered, x => x.ip).length,
             }
             await wait(1000)
         }

@@ -40,7 +40,7 @@ function MoreInfo() {
         }),
         (allInfo || xl) && pair('http', { label: "HTTP", render: port }),
         (allInfo || xl) && pair('https', { label: "HTTPS", render: port }),
-        (allInfo || sm) && pair('connections'),
+        (allInfo || sm) && pair('connections', { title: () => `${status.ips} IP(s)` }),
         pair('sent', { render: formatBytes, minWidth: '4em' }),
         (allInfo || sm) && pair('got', { render: formatBytes, minWidth: '4em' }),
         pair('outSpeed', { label: "Output speed", render: formatSpeedK }),
