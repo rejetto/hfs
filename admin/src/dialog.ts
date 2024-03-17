@@ -14,6 +14,7 @@ import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
 import md from './md'
 import _ from 'lodash'
+import { err2msg } from './misc'
 export * from '@hfs/shared/dialogs'
 
 dialogsDefaults.Container = function Container(d: DialogOptions) {
@@ -84,7 +85,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
     const opt = typeof options === 'string' ? { type: options } : (options ?? {})
     let { type='info', ...rest } = opt
     if (msg instanceof Error) {
-        msg = msg.message || String(msg)
+        msg = msg.message || String(err2msg((msg as any).code))
         type = 'error'
     }
 

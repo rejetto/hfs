@@ -52,7 +52,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         }
         catch(e) {
             if (typeof e === 'number')
-                e = new ApiError(HTTP_NOT_FOUND)
+                e = new ApiError(e)
             res = e
         }
         if (isAsyncGenerator(res))

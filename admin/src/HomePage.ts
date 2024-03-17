@@ -143,7 +143,9 @@ function renderChangelog(s: string) {
 async function update(tag?: string) {
     if (!await confirmDialog("Installation may take less than a minute, depending on the speed of your server")) return
     toast('Downloading')
-    await apiCall('update', { tag })
+    const err = await apiCall('update', { tag }).then(() => 0, e => e)
+    if (err)
+        return alertDialog(err)
     toast("Restarting")
     const restarting = Date.now()
     let warning: undefined | ReturnType<typeof alertDialog>
