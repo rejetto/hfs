@@ -330,13 +330,16 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
     return ret
 }
 
-export function repeat(everyMs: number, cb: Callback): Callback {
+export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
     let stop = false
     setTimeout(async () => {
-        while (!stop && await Promise.allSettled([cb()]))
+        while (!stop && await Promise.allSettled([cb(stopIt)]))
             await wait(everyMs)
     })
-    return () => stop = true
+    return stopIt
+    function stopIt() {
+        stop = true
+    }
 }
 
 export function formatTimestamp(x: string | Date) {
