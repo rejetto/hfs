@@ -54,7 +54,7 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
     console.debug('acme challenge server ready')
     let tempMap: any
     try {
-        const checkUrl = `http://${domain}`
+        const checkUrl = `http://${domain.split(',')[0]}`
         let check = await selfCheck(checkUrl) // some check services may not consider the domain, but we already verified that
         if (check?.success === false && nat.upnp && !nat.mapped80) {
             console.debug("setting temporary port forward")
