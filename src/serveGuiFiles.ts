@@ -90,53 +90,57 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     })))
     const timestamp = await getFaviconTimestamp()
     const lang = await getLangData(ctx)
-    let ret = body
+    return body
         .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
-        .replace('<head>', () => `<head>
-            ${!isFrontend ? '' : `
-                <title>${title.get()}</title>
-                <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
-            `}
-            <script>
-            HFS = ${JSON.stringify({
-                VERSION,
-                API_VERSION,
-                SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
-                session: session instanceof ApiError ? null : session,
-                plugins,
-                prefixUrl: ctx.state.revProxyPath,
-                dontOverwriteUploading: dontOverwriteUploading.get(),
-                customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
-                    ['top','bottom']), // exclude the sections we already apply in this phase
-                ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
-                lang
-            }, null, 4)
-            .replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
-            document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
-            </script>
-        `)
-        .replace('<body>', () => `<body>
-            <style>
-            :root {
-                ${_.map(plugins, (configs, pluginName) => 
-                    _.map(configs, (v,k) => `--${pluginName}-${k}: ${serializeCss(v)};`).join('\n')).join('')}
-            }
-            </style>
-            ${!isFrontend ? '' : mapPlugins((plug,id) =>
-                plug.frontend_css?.map(f => 
-                    `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
-                .flat().filter(Boolean).join('\n')}
-            ${!isFrontend ? '' : mapPlugins((plug,id) =>
-                plug.frontend_js?.map(f => 
-                    `<script defer plugin=${JSON.stringify(id)} src='${f.includes('//') ? f : pub + id + '/' + f}'></script>`))
-                .flat().filter(Boolean).join('\n')}
-        `)
-    if (isFrontend)
-        ret = ret
-            .replace('<head>', '<head>' + getSection('htmlHead'))
-            .replace('<body>', '<body>' + getSection('top'))
-            .replace('</body>', getSection('bottom') + '</body>')
-    return ret
+        .replace(/<(\/)?(head|body)>/g, (all, isClose, name) => { // must make these changes in one .replace call, otherwise we may encounter head/body tags due to customHtml. This simple trick makes html parsing unnecessary.
+            const isHead = name === 'head'
+            const isBody = !isHead
+            const isOpen = !isClose
+            if (isHead && isOpen)
+                return all + `
+                    ${!isFrontend ? '' : `
+                        <title>${title.get()}</title>
+                        <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
+                    ` + getSection('htmlHead')}
+                    <script>
+                    HFS = ${JSON.stringify({
+                        VERSION,
+                        API_VERSION,
+                        SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
+                        session: session instanceof ApiError ? null : session,
+                        plugins,
+                        prefixUrl: ctx.state.revProxyPath,
+                        dontOverwriteUploading: dontOverwriteUploading.get(),
+                        customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
+                            ['top', 'bottom']), // exclude the sections we already apply in this phase
+                        ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
+                        lang
+                    }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
+                    document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
+                    </script>
+                `
+            if (isBody && isOpen)
+                return  all + `
+                    ${!isFrontend ? '' : getSection('top')}
+                    <style>
+                    :root {
+                        ${_.map(plugins, (configs, pluginName) =>
+                            _.map(configs, (v,k) => `--${pluginName}-${k}: ${serializeCss(v)};`).join('\n')).join('')}
+                    }
+                    </style>
+                    ${!isFrontend ? '' : mapPlugins((plug,id) =>
+                            plug.frontend_css?.map(f =>
+                                `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
+                            .flat().filter(Boolean).join('\n')}
+                    ${!isFrontend ? '' : mapPlugins((plug,id) =>
+                            plug.frontend_js?.map(f =>
+                                `<script defer plugin=${JSON.stringify(id)} src='${f.includes('//') ? f : pub + id + '/' + f}'></script>`))
+                            .flat().filter(Boolean).join('\n')}
+                `
+            if (isBody && isClose)
+                return getSection('bottom') + all
+            return all // unchanged
+        })
 }
 
 function serializeCss(v: any) {
