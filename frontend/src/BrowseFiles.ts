@@ -233,7 +233,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                             onClick: fileMenu
                         }, hIcon('menu'), t`Menu`)
                     ] : containerName ? [
-                        h('a', { href: uri, onClick, tabIndex: -1 }, ico),
+                        h('a', { href: uri, onClick, tabIndex: -1, 'aria-hidden': true }, ico),
                         h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
                         h('a', { href: uri, onClick, ...ariaProps }, name)
                     ] : [h('a', { href: uri, onClick, ...ariaProps }, ico, name)],
