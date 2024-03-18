@@ -42,22 +42,18 @@ function Breadcrumb({ path, label, current, title }:{ current?: boolean, path: s
         async onClick(ev) {
             if (!current) return
             ev.preventDefault()
-            if (typeof label !== 'string')
-                return reload()
             openFileMenu(new DirEntry(decodeURIComponent(path), { p }), ev, [
                 {
                     id: 'reload',
                     label: t`Reload`,
                     icon: 'reload',
-                    onClick: reload
+                    onClick() {
+                        state.remoteSearch = ''
+                        state.stopSearch?.()
+                        reloadList()
+                    }
                 }
             ])
-
-            function reload() {
-                state.remoteSearch = ''
-                state.stopSearch?.()
-                reloadList()
-            }
         }
     }, label)
 }
