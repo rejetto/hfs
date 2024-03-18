@@ -3,7 +3,7 @@
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { LinkOff, Lock, Block, FolderZip, Upload, Download, ChevronRight } from '@mui/icons-material'
+import { LinkOff, Lock, Block, FolderZip, Upload, Download, ChevronRight, ChevronLeft } from '@mui/icons-material'
 import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
 import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp,
@@ -45,7 +45,7 @@ function MoreInfo() {
         (allInfo || sm) && pair('got', { render: formatBytes, minWidth: '4em' }),
         pair('outSpeed', { label: "Output speed", render: formatSpeedK }),
         (allInfo || md) && pair('inSpeed', { label: "Input speed", render: formatSpeedK }),
-        !xl && !allInfo && h(IconBtn, { size: 'small', icon: ChevronRight, title: "Show more", onClick: () => setAllInfo(true) }),
+        !xl && h(IconBtn, { size: 'small', icon: allInfo ? ChevronLeft : ChevronRight, title: "Show more", onClick: () => setAllInfo(x => !x) }),
     )
 
     type Color = ChipProps['color']
