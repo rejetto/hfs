@@ -3,14 +3,14 @@
 import { Link } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
-import { useWindowSize } from 'usehooks-ts'
+import { useMediaQuery, useWindowSize } from 'usehooks-ts'
 import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac } from './misc'
 import { Checkbox, CustomCode, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
-import { loginDialog, useAuthorized } from './login'
+import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
@@ -204,8 +204,8 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = getEntryIcon(entry)
     const onClick = !isLink && !entry.web && file_menu_on_link && fileMenu || undefined
-    const small = useWindowSize().width < 800
-    const showingButton = !file_menu_on_link || isFolder && small
+    const hasHover = useMediaQuery('(hover: hover)')
+    const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
     const ariaProps = { id: ariaId, 'aria-label': prefix(name + ' (', isFolder ? "Folder" : entry.web ? "Web page" : isLink ? "Link" : '', ')') }
     return h('li', { className, label: separator },
