@@ -5,7 +5,7 @@ import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect,
     useId} from 'react'
 import { useMediaQuery, useWindowSize } from 'usehooks-ts'
 import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac } from './misc'
-import { Checkbox, CustomCode, Spinner } from './components'
+import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
@@ -242,7 +242,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
                 entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
                 h('div', { className: 'entry-panel' },
                     h(EntryDetails, { entry, midnight }),
-                    showingButton && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
+                    showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
                 ),
                 h('div'),
             )

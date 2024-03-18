@@ -1,4 +1,4 @@
-@use '../../shared/main';
+@import '../../shared/main';
 
 :root {
     height: 100dvh; // workarounded chrome109-mobile's problem with sticky-bottom bar moving when scrolling
@@ -159,10 +159,9 @@ input, select, ul a {
 }
 
 .icon-button {
-    font-size: 0.7em;
-    padding: 0.2em 0.4em;
-    margin-left: 0.4em;
-    vertical-align: bottom;
+    padding: .1em;
+    font-size: 104%; height: 1.8em; // same height as text buttons (30px)
+    width: 2em;
 }
 
 .error-msg {
@@ -291,7 +290,7 @@ ul.dir {
                 .popup-menu-button { display: none }
             }
             @media (hover: hover) {
-                &:not(:hover) .popup-menu-button { display: none; }
+                &:not(:hover):not(:focus,:focus-within) .popup-menu-button { opacity: .001; } // use opacity, as jaws is not setting :focus
                 &:hover { padding: 1em; margin: -1em; // add margin to avoid leaving the hover unintentionally. Using this on @media(hover:none) will result in some taps to be missed. It happened on a long folder with no spaces in the name to wrap.
                     .popup-menu-button { z-index: 1} // without this, attempting to hover from the name to the menu-button will easily lose the :hover if a comment is present
                 }
@@ -321,9 +320,10 @@ ul.dir {
             padding-top: 0.3em;
             display: flex;
             align-items: center;
-            .file-menu-button {
-                @extend .icon-button;
+            .icon-button {
                 margin: -3px 0 -3px 0.4em;
+                font-size: 0.7em;
+                width: 2.4em;
             }
             .entry-details {
                 font-size: 90%;

@@ -87,15 +87,13 @@ export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any
     return children.length || !ifEmpty ? h(Fragment, {}, children) : h(ifEmpty)
 }
 
-interface IconBtnOptions extends ButtonHTMLAttributes<any> { small?: boolean, style?: any, title?: string }
-export function iconBtn(icon: string, onClick: MouseEventHandler, { title, small=true, style={}, ...props }: IconBtnOptions={}) {
+interface IconBtnOptions extends ButtonHTMLAttributes<any> { style?: any, title?: string }
+export function iconBtn(icon: string, onClick: MouseEventHandler, { title, ...props }: IconBtnOptions={}) {
     return h('button', {
         title: title ?? t(_.capitalize(icon)),
         onClick,
         ...props,
-        ...small && {
-            style: { padding: '.1em', width: 35, height: 30, ...style }
-        }
+        className: 'icon-button',
     }, icon.length > 1 ? hIcon(icon) : icon )
 }
 
