@@ -168,7 +168,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
                 : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
             children: showLabel && children,
         } as const, common, !showLabel && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }))
-        : h(IconButton, _.merge(common, {  sx: { height: 'fit-content' } }),
+        : h(IconButton, _.merge(common, { sx: { height: 'fit-content' }, TouchRippleProps: { 'aria-hidden': true } }),
             (progress || loadingState) && progress !== false  // false is also useful to inhibit behavior with loading
             && h(CircularProgress, {
                 ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
