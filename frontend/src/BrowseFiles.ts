@@ -207,7 +207,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
     const hasHover = useMediaQuery('(hover: hover)')
     const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
-    const ariaProps = { id: ariaId, 'aria-label': prefix(name + ' (', isFolder ? "Folder" : entry.web ? "Web page" : isLink ? "Link" : '', ')') }
+    const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
     return h('li', { className, label: separator },
         h(CustomCode, {
             name: 'entry',
