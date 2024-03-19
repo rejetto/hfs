@@ -74,7 +74,9 @@ const apis: ApiHandlers = {
     },
 
     async make_cert({domain, email, altNames}) {
-        await makeCert(domain, email, altNames)
+        await makeCert(domain, email, altNames).catch(e => {
+            throw new ApiError(HTTP_SERVER_ERROR, e.message || String(e))
+        })
         return {}
     },
 

@@ -1,4 +1,15 @@
-import { DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, MINUTE, repeat } from './cross'
+import {
+    DAY,
+    Dict,
+    haveTimeout,
+    HOUR,
+    HTTP_BAD_REQUEST,
+    HTTP_FAILED_DEPENDENCY,
+    HTTP_OK,
+    HTTP_SERVER_ERROR,
+    MINUTE,
+    repeat
+} from './cross'
 import { createServer, RequestListener } from 'http'
 import { Middleware } from 'koa'
 import { getNatInfo, upnpClient } from './nat'
@@ -95,7 +106,10 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
 
 export const makeCert = debounceAsync(async (domain: string, email?: string, altNames?: string[]) => {
     if (!domain) return new ApiError(HTTP_BAD_REQUEST, 'bad params')
-    const res = await generateSSLCert(domain, email, altNames)
+    const res = await generateSSLCert(domain, email, altNames).catch(e => {
+        throw !e.message?.includes('not match this challenge') ? e // another acme server?
+            : Error("a different server is responding on port 80 of your domain(s)")
+    })
     const CERT_FILE = 'acme.cer'
     const KEY_FILE = 'acme.key'
     await fs.writeFile(CERT_FILE, res.cert)
