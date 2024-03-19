@@ -62,7 +62,7 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
                 resolve() // go on anyway
             }) )
     acmeMiddlewareEnabled = true
-    console.debug('acme challenge server ready')
+    console.debug("acme challenge server ready")
     let tempMap: any
     try {
         const checkUrl = `http://${domain.split(',')[0]}`
@@ -125,7 +125,7 @@ events.once('https ready', () => repeat(HOUR, renewCert))
 
 // checks if the cert is near expiration date, and if so renews it
 const renewCert = debounceAsync(async () => {
-    const domain = acmeDomain.get()
+    const [domain, ...altNames] = acmeDomain.get().split(',')
     if (!acmeRenew.get() || !domain) return
     const cert = getCertObject()
     if (!cert) return
@@ -134,7 +134,7 @@ const renewCert = debounceAsync(async () => {
     // not expiring in a month
     if (now > new Date(cert.validFrom) && now < validTo && validTo.getTime() - now.getTime() >= 30 * DAY)
         return console.log("certificate still good")
-    await makeCert(domain, acmeEmail.get())
+    await makeCert(domain, acmeEmail.get(), altNames)
         .catch(e => console.log("error renewing certificate: ", String(e.message || e)))
 }, 0, { retain: DAY, retainFailure: HOUR })
 
