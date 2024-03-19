@@ -11,7 +11,7 @@ import { access, chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
-import { currentServiceName } from './util-os'
+import { RUNNING_AS_SERVICE } from './util-os'
 
 const updateToBeta = defineConfig('update_to_beta', false)
 
@@ -66,7 +66,7 @@ export function localUpdateAvailable() {
 }
 
 export async function updateSupported() {
-    return IS_BINARY && !await currentServiceName
+    return IS_BINARY && !await RUNNING_AS_SERVICE
 }
 
 export async function update(tagOrUrl: string='') {
