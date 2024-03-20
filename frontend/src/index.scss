@@ -720,7 +720,7 @@ button .icon + .label {
         user-select: none;
         transition: opacity .3s;
         &:hover { opacity: .7; }
-        &.nav-hidden { opacity: 0 }
+        &.nav-hidden:not(:hover) { opacity: 0 }
     }
     .bar {
         padding: .5em min(2vw, 1em);
