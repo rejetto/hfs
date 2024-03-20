@@ -3,12 +3,11 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Linea
 import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
     Error as ErrorIcon, SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG,
+import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
     useRequestRender, replace, restartAnimation, prefix } from './misc'
 import { Flex, LinkBtn, Btn, Country } from './mui'
 import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
-import md from './md'
 import { suggestMakingCert } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
 import { getNatInfo } from '../../src/nat'

@@ -4,7 +4,7 @@ import { createElement as h, Fragment, ReactNode, useMemo, useState } from 'reac
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson,
+import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
     typedKeys, NBSP, _dbg, mapFilter } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import {
@@ -14,7 +14,6 @@ import {
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
 import { ClearAll, Download, Settings, SmartToy } from '@mui/icons-material'
-import md from './md'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'

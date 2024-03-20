@@ -7,7 +7,7 @@ import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, MAX_TILE_SIZE, REPO_URL, isIpLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
-    CFG } from './misc'
+    CFG, md } from './misc'
 import { iconTooltip, InLink, LinkBtn, modifiedProps, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
@@ -16,7 +16,6 @@ import { alertDialog, confirmDialog, newDialog, toast, waitDialog } from './dial
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
-import md from './md'
 import { TextEditorField } from './TextEditor'
 
 let loaded: Dict | undefined

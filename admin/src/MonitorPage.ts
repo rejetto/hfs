@@ -7,9 +7,8 @@ import { LinkOff, Lock, Block, FolderZip, Upload, Download, ChevronRight, Chevro
 import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
 import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp,
-    formatPerc } from "./misc"
+    formatPerc, md } from "./misc"
 import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip } from './mui'
-import md from './md'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { agentIcons } from './LogsPage'

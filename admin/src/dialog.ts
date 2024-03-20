@@ -7,12 +7,11 @@ import { createElement as h, Dispatch, Fragment, isValidElement, ReactElement, R
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
-    focusSelector } from '@hfs/shared'
+    focusSelector, md } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center } from './mui'
 import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
-import md from './md'
 import _ from 'lodash'
 import { err2msg } from './misc'
 export * from '@hfs/shared/dialogs'

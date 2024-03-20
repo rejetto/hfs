@@ -5,6 +5,7 @@ import { apiCall } from './api'
 import { DAY, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
 export * from './react'
 export * from './dialogs'
+export * from './md'
 export * from '../src/srp'
 export * from '../src/cross'
 

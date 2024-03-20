@@ -3,11 +3,10 @@
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
-import { dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL,
-    wait, with_ } from './misc'
+import { dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL, md,
+    replaceStringToReact, wait, with_ } from './misc'
 import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
 import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInNew, Warning } from '@mui/icons-material'
-import md, { replaceStringToReact } from './md'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { isCertError, isKeyError, suggestMakingCert } from './OptionsPage'
@@ -132,12 +131,10 @@ export default function HomePage() {
 }
 
 function renderChangelog(s: string) {
-    return md(s, { onText })
-
-    function onText(s: string) {
-        return replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues
+    return md(s, {
+        onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues
             h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew) ))
-    }
+    })
 }
 
 async function update(tag?: string) {

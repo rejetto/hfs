@@ -17,10 +17,9 @@ import LogoutPage from './LogoutPage';
 import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
-import { getHFS } from '@hfs/shared'
+import { getHFS, replaceStringToReact } from '@hfs/shared'
 import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
-import { replaceStringToReact } from './md'
 import { useWindowSize } from 'usehooks-ts'
 import { hTooltip } from './mui'
 
