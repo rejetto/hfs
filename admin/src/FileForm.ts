@@ -290,7 +290,7 @@ interface LinkFieldProps extends FieldProps<string> {
 function LinkField({ value, statusApi }: LinkFieldProps) {
     const { data, reload, error } = statusApi
     const urls: string[] = data?.urls.https || data?.urls.http
-    const baseHost = data?.baseUrl && new URL(data.baseUrl).hostname
+    const baseHost = data?.baseUrl && new URL(data.baseUrl).host
     const root = useMemo(() => baseHost && _.find(data.roots, (root, host) => matches(baseHost, host)),
         [data])
     if (root)
@@ -311,7 +311,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
             label: "Link",
             value: link || `outside of configured base address (${baseHost})`,
             error,
-            InputProps: { inputComponent: RenderLink },
+            InputProps: link ? { inputComponent: RenderLink } : undefined,
             end: h(Box, {},
                 h(IconBtn, {
                     icon: ContentCopy,
@@ -319,7 +319,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                     disabled: !link,
                     onClick: () => navigator.clipboard.writeText(link)
                 }),
-                h(IconBtn, { icon: QrCode2, title: "QR Code", onClick: showQr }),
+                h(IconBtn, { icon: QrCode2, title: "QR Code", onClick: showQr, disabled: !link }),
                 h(IconBtn, { icon: Edit, title: "Change", onClick() { changeBaseUrl().then(reload) } }),
             )
         }),
