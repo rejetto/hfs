@@ -73,7 +73,7 @@ export function isMobile() {
 }
 
 export function getHFS() {
-    return (window as any).HFS
+    return (window as any).HFS ||= {}
 }
 
 export function getPrefixUrl() {
