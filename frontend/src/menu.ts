@@ -15,7 +15,7 @@ import { apiCall } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { t, useI18N } from './i18n'
 import { cut } from './clip'
-import { Btn, BtnProps } from './components'
+import { Btn, BtnProps, CustomCode } from './components'
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
@@ -87,7 +87,7 @@ export function MenuPanel() {
                 label: t`Options`,
                 onClick: showOptions
             }),
-            h(MenuLink, {
+            h(CustomCode, { name: 'menuZip' }, h(MenuLink, {
                 id: 'zip-button',
                 icon: 'archive',
                 label: t`Zip`,
@@ -112,7 +112,7 @@ export function MenuPanel() {
                         }, t`Select some files`),
                     }
                 }
-            }),
+            })),
         ),
         remoteSearch && h('div', { id: 'searched' },
             (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', searchManuallyInterrupted && t`interrupted`, ')')),

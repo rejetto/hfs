@@ -239,7 +239,12 @@ Some frontend-events can return Html, which can be expressed in several ways
 - as string, containing markup
 - as DOM Nodes, as for document.createElement()
 - as ReactElement
+- as array of ReactNode
 - null, undefined, false and empty-string will just be discarded 
+
+These events will receive a `def` property, with the default content that will be displayed if no callback return
+a valid output. You can decide to embed such default content inside your content.
+You can produce output for such events also by adding sections (with same name as the event) to file `custom.html`. 
 
 This is a list of available frontend-events, with respective object parameter and output.
 
@@ -311,6 +316,9 @@ This is a list of available frontend-events, with respective object parameter an
   - you receive an entry of the list, and optionally produce React Component for visualization.
   - parameter `{ entry: Entry }` (refer above for Entry object)
   - output `ReactComponent`
+- `menuZip`
+  - parameter `{ def: ReactNode }` 
+  - output `Html`
 - `userPanelAfterInfo`
   - no parameter
   - output `Html`
@@ -397,6 +405,8 @@ Eg: `HFS.t('myPlugin_filter_count', {n:filteredVariable}, "{n} filtered")`
 
 ## API version history
 
+- 8.8 (v0.53.0)
+  - new event: menuZip
 - 8.72 (v0.52.0)
   - HFS.toast
   - HFS.misc functions
