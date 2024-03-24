@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { getHFS, hfsEvent, hIcon, isPrimitive, onlyTruthy, prefix } from './misc'
-import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
+import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
     useMemo, useState, ComponentPropsWithoutRef } from 'react'
 import _ from 'lodash'
@@ -73,18 +73,20 @@ export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
     } })
 }
 
-export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any, ifEmpty?: FC }) {
-    const children = useMemo(() => {
+export function CustomCode({ name, children, ...props }: { name: string, children?: ReactNode } & any) {
+    const result = useMemo(() => {
+        props.def = children // not using 'default' because user can have unexpected error destructuring object
         const ret = onlyTruthy(hfsEvent(name, props)
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
                 : x === 0 || x && isPrimitive(x) ? h(Html, { key, code: String(x) })
-                    : null))
+                    : _.isArray(x) ? h(Fragment, { key }, ...x)
+                        : null))
         const html = getHFS().customHtml?.[name]
         if (html?.trim?.())
             ret.push(h(Html, { key: 'x', code: html }))
         return ret
-    }, [name, ...props ? Object.values(props) : []])
-    return children.length || !ifEmpty ? h(Fragment, {}, children) : h(ifEmpty)
+    }, [name, children, ...props ? Object.values(props) : []])
+    return result.length || !children ? h(Fragment, {}, result) : children
 }
 
 interface IconBtnOptions extends ButtonHTMLAttributes<any> { style?: any, title?: string }
