@@ -431,7 +431,7 @@ function customApiCall(method: string, ...params: any[]) {
 }
 
 function getError(id: string) {
-    return getPluginInfo(id).error
+    return getPluginInfo(id)?.error as undefined | string
 }
 
 function setError(id: string, error: string) {
