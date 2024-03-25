@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getHFS, hfsEvent, hIcon, isPrimitive, onlyTruthy, prefix } from './misc'
+import { getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix } from './misc'
 import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
     useMemo, useState, ComponentPropsWithoutRef } from 'react'
@@ -64,13 +64,6 @@ export function Select<T extends string>({ onChange, value, options, ...props }:
         value,
         ...props,
     }, options.map(({ value, label }) => h('option', { key: value, value }, label)))
-}
-
-export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
-    return !code ? null : h('span', { ...rest, ref(x) {
-        if (x)
-            x.replaceChildren(document.createRange().createContextualFragment(code))
-    } })
 }
 
 export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any, ifEmpty?: FC }) {
