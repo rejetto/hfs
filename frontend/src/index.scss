@@ -122,7 +122,7 @@ button {
     background-color: var(--button-bg);
     color: var(--button-text);
     padding: .5em;
-    &:not(.before-sliding) { min-width: 2em; }
+    &:not(.before-sliding) { min-width: min-content; }
     &.small { padding: 0 0.4em; height: 30px; }
     .icon { position: relative; top: .05em; }
     border: transparent;
