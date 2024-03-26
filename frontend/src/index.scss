@@ -461,6 +461,7 @@ button .icon + .label {
     @extend .hide-back;
     position: sticky;
     top: -4px;
+    z-index: 3; // necessary to not be covered by icon-buttons
 }
 .upload-progress::before { content: var(--separator); }
 .entry-size::after { content: var(--separator) }
