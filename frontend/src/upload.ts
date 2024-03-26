@@ -1,9 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
+import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties, useState, useEffect } from 'react'
 import { Flex, FlexV, iconBtn, Select } from './components'
-import { basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
-    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_ } from './misc'
+import {
+    basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
+    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_, cpuSpeedIndex
+} from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
@@ -220,9 +222,13 @@ function path(f: File) {
 function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
     const { uploading, progress }  = useSnapshot(uploadState)
     const snapEntries = useSnapshot(entries)
+    const [all, setAll] = useState(false)
+    useEffect(() => setAll(false), [entries.length])
+    const MAX = all ? Infinity : _.round(_.clamp(100 * cpuSpeedIndex, 10, 100))
+    const rest = Math.max(0, snapEntries.length - MAX)
     return !snapEntries.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
-            snapEntries.map((e, i) => {
+            snapEntries.slice(0, MAX).map((e, i) => {
                 const working = e === uploading
                 return h(Fragment, { key: i },
                     h('tr', {},
@@ -237,7 +243,8 @@ function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon
                     ),
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
                 )
-            })
+            }),
+            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h('a', { href: '#', onClick: () => setAll(true) }, t('more_items', { rest }, "{rest} more items"))))
         )
     )
 }

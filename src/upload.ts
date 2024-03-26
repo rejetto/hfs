@@ -37,6 +37,7 @@ function setUploadMeta(path: string, ctx: Koa.Context) {
 }
 
 // stay sync because we use this function with formidable()
+const cache: any = {}
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     if (dirTraversal(path))
         return fail(HTTP_FOOL)
@@ -48,7 +49,11 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     const reqSize = Number(ctx.headers["content-length"])
     if (reqSize)
         try {
-            const { free } = getDiskSpaceSync(dir)
+            if (!Object.hasOwn(cache, dir)) {
+                cache[dir] = getDiskSpaceSync(dir)
+                setTimeout(() => delete cache[dir], 3_000) // invalidate shortly
+            }
+            const { free } = cache[dir]
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
             if (reqSize > free - (min || 0))

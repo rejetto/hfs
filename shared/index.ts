@@ -8,16 +8,25 @@ export * from './dialogs'
 export * from './md'
 export * from '../src/srp'
 export * from '../src/cross'
-
 // code in this file is shared among frontends, but not backend
 
-(window as any)._ = _
+;(window as any)._ = _
+
+// roughly 0.7 on m1 max
+export const cpuSpeedIndex = (() => {
+    let ms = performance.now()
+    _.range(1E5).map(x => ++x)
+    ms = performance.now() - ms
+    return 1 / ms
+})()
+
 
 const HFS = getHFS()
 Object.assign(HFS, {
     getPluginKey: () => getScriptAttr('plugin'),
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
+    cpuSpeedIndex,
 })
 
 function getScriptAttr(k: string) {
