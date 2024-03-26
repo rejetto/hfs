@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, KeyboardEvent, ReactElement, ReactNode,
     useCallback, useEffect, useRef, useState } from 'react'
-import { useIsMounted, useWindowSize } from 'usehooks-ts'
+import { useIsMounted, useWindowSize, useMediaQuery } from 'usehooks-ts'
 import { Falsy } from '.'
 
 export function useStateMounted<T>(init: T) {
@@ -97,6 +97,10 @@ export function KeepInScreen({ margin, ...props }: any) {
         setMaxHeight(limit - rect?.top - margin)
     }, [size])
     return h('div', { ref, style: { maxHeight, overflow: 'auto' }, ...props })
+}
+
+export function useIsMobile() {
+    return useMediaQuery('(pointer:coarse)')
 }
 
 export function AriaOnly({ children }: { children?: ReactNode }) {

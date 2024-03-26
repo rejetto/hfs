@@ -2,7 +2,7 @@
 
 import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
 import { Flex, FlexV, iconBtn, Select } from './components'
-import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working,
+import { basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
     HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_ } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
@@ -110,6 +110,7 @@ export function showUpload() {
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
         const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
+        const isMobile = useIsMobile()
 
         return h(FlexV, { gap: '.5em', props: acceptDropFiles(more => uploadState.adding.push(...more.map(f => ({ file: ref(f) })))) },
             h(FlexV, { className: 'upload-toolbar' },
@@ -120,7 +121,7 @@ export function showUpload() {
                                 className: 'upload-files',
                                 onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
                             }, t`Pick files`),
-                            !isMobile() && h('button', {
+                            !isMobile && h('button', {
                                 className: 'upload-folder',
                                 onClick: () => pickFiles({ folder: true })
                             }, t`Pick folder`),
@@ -137,7 +138,7 @@ export function showUpload() {
                                 ])
                             }),
                         ),
-                        !isMobile() && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files doing drag&drop on the files list")),
+                        !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files doing drag&drop on the files list")),
                         adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
                             h('button', {
                                 className: 'upload-send',

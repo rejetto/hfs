@@ -5,12 +5,11 @@ import { BoolField, Form, MultiSelectField, NumberField } from '@hfs/mui-grid-fo
 import { Alert } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
-import { isEqualLax, wantArray } from './misc'
+import { isEqualLax, useIsMobile, wantArray } from './misc'
 import { IconBtn, modifiedProps } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
-import { isMobile } from './misc'
 import { state, useSnapState } from './state'
 import VfsPathField from './VfsPathField'
 import { DateTimeField } from './DateTimeField'
@@ -20,10 +19,11 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     const { username } = useSnapState()
     const [values, setValues] = useState<Account & { password?: string, password2?: string }>(account)
     const [belongsOptions, setBelongOptions] = useState<string[]>([])
+    const isMobile = useIsMobile()
     useEffect(() => {
         setValues(account)
         setBelongOptions(groups.filter(x => x !== account.username ))
-        if (!isMobile())
+        if (!isMobile)
             ref.current?.querySelector('input')?.focus()
     }, [JSON.stringify(account)]) //eslint-disable-line
     const add = !account.username
