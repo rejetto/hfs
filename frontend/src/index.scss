@@ -460,8 +460,9 @@ button .icon + .label {
 .upload-toolbar {
     @extend .hide-back;
     position: sticky;
-    top: -4px;
+    top: -4px; padding-top: 1px; // workaround: without this, the scrolling list behind is visible above (vertically, not z-index)
     z-index: 3; // necessary to not be covered by icon-buttons
+    box-shadow: 0 0 .3em .3em var(--bg);
 }
 .upload-progress::before { content: var(--separator); }
 .entry-size::after { content: var(--separator) }
