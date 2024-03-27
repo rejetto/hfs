@@ -57,7 +57,7 @@ export default function CustomHtmlPage() {
             },
             onKeyDown(ev) {
                 if (['s','Enter'].includes(isCtrlKey(ev) as any)) {
-                    save().then()
+                    void save()
                     ev.preventDefault()
                 }
             },

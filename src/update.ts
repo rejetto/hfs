@@ -141,7 +141,7 @@ if (argv.updating) { // we were launched with a temporary name, restore original
         onProcessExit(() =>
             launch(dest, ['--updated']) ) // launch+sync here would cause old process to stay open, locking ports
     else
-        open(dest).then()
+        void open(dest)
 
     process.exit()
 }

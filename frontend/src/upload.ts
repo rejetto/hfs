@@ -145,7 +145,7 @@ export function showUpload() {
                             h('button', {
                                 className: 'upload-send',
                                 onClick() {
-                                    enqueue(uploadState.adding).then()
+                                    void enqueue(uploadState.adding)
                                     clear()
                                 }
                             }, t('send_files', { n: adding.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
@@ -270,7 +270,7 @@ subscribe(uploadState, () => {
         return
     }
     if (cur?.entries.length && !uploadState.uploading && !uploadState.paused)
-        startUpload(cur.entries[0], cur.to).then()
+        void startUpload(cur.entries[0], cur.to)
 })
 
 export async function enqueue(entries: ToUpload[]) {

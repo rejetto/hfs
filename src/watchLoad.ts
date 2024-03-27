@@ -29,11 +29,11 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
         try {
             watcher = watch(path, () => {
                 if (!save.isWorking())
-                    debounced().then()
+                    void debounced()
             })
             debounced().catch(x=>x)
             if (immediateFirst)
-                debounced.flush().then()
+                void debounced.flush()
         }
         catch(e) {
             retry = setTimeout(install, 3_000) // manual watching until watch is successful

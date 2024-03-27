@@ -40,7 +40,7 @@ export default function InternetPage() {
     const verifyAgain = useRequestRender()
     useEffect(() => {
         if (verifyAgain.state) // skip first
-            verify(true).then()
+            void verify(true)
     }, [verifyAgain.state])
     return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
         h(Alert, { severity: 'info' }, "This page makes sure your site is working correctly on the Internet"),
@@ -248,7 +248,7 @@ export default function InternetPage() {
                         size: 'small',
                         variant: 'outlined',
                         'aria-label': "Change address",
-                        onClick: () => void(changeBaseUrl().then(config.reload))
+                        onClick: () => void changeBaseUrl().then(config.reload)
                     }, "Change"),
                     domain && h(Btn, {
                         size: 'small',

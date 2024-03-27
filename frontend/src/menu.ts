@@ -182,10 +182,8 @@ function LoginButton() {
 
 export async function deleteFiles(uris: string[]) {
     const n = uris.length
-    if (!n) {
-        alertDialog(t('delete_select', "Select something to delete")).then()
-        return
-    }
+    if (!n)
+        return void alertDialog(t('delete_select', "Select something to delete"))
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
         return false
     const stop = working()
@@ -198,10 +196,10 @@ export async function deleteFiles(uris: string[]) {
     const msg = t('delete_completed', {n: n-e}, "Deletion: {n} completed")
     if (n === 1 && !e)
         return toast(msg, 'success')
-    alertDialog(h(Fragment, {},
+    void alertDialog(h(Fragment, {},
         msg, e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
         h('div', { style: { textAlign: 'left', marginTop: '1em', } },
             ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + e.uri }))
         )
-    )).then()
+    ))
 }
