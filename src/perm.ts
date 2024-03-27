@@ -110,7 +110,7 @@ accountsConfig.sub(obj => {
                 saveAccountsAsap()
             setHidden(rec, { username: norm })
         }
-        updateAccount(rec, {}).then() // work fields
+        void updateAccount(rec, {}) // work fields
     })
 })
 

@@ -137,7 +137,7 @@ export function useAuthorized() {
         if (!loginRequired)
             return closeLoginDialog?.()
         if (!closeLoginDialog)
-            loginDialog().then()
+            void loginDialog()
     }, [loginRequired])
     return loginRequired ? null : true
 }

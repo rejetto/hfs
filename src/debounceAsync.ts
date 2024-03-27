@@ -42,8 +42,10 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
         const waitFor = Math.min(waitingCap, leading ? wait - (now - started) : wait)
         if (waitFor > 0)
             await new Promise(resolve => setTimeout(resolve, waitFor))
-        if (!whoIsWaiting) // canceled
-            return void(waitingSince = 0) as MaybeR
+        if (!whoIsWaiting) { // canceled
+            waitingSince = 0
+            return undefined as MaybeR
+        }
         if (whoIsWaiting !== args) // another fresher call is waiting
             return latestDebouncer
         return exec()

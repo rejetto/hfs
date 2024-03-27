@@ -43,7 +43,7 @@ export default function OptionsPage() {
     const statusApi  = useApiEx(data && 'get_status')
     const status = statusApi.data
     const reloadStatus = exposedReloadStatus = statusApi.reload
-    useEffect(() => void(reloadStatus()), [data]) //eslint-disable-line
+    useEffect(() => void reloadStatus(), [data]) //eslint-disable-line
     useEffect(() => () => exposedReloadStatus = undefined, []) // clear on unmount
     const sm = useBreakpoint('sm')
 
@@ -104,7 +104,7 @@ export default function OptionsPage() {
             { k: 'https_port', comp: PortField, md: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
-                        suggestMakingCert().then()
+                        void suggestMakingCert()
                     return v
                 }
             },

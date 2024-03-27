@@ -40,7 +40,7 @@ const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'heade
 
 const considerHttp = debounceAsync(async () => {
     await waitFor(() => app)
-    stopServer(httpSrv).then()
+    void stopServer(httpSrv)
     httpSrv = Object.assign(http.createServer(commonServerOptions, app.callback()), { name: 'http' }, commonServerAssign)
     const port = await startServer(httpSrv, { port: portCfg.get(), host: listenInterface.get() })
     if (!port) return
@@ -81,7 +81,7 @@ export function getCertObject() {
 }
 
 const considerHttps = debounceAsync(async () => {
-    stopServer(httpsSrv).then()
+    void stopServer(httpsSrv)
     defaultBaseUrl.proto = 'http'
     defaultBaseUrl.port = getCurrentPort(httpSrv) ?? 0
     let port = httpsPortCfg.get()

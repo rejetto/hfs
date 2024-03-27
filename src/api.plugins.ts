@@ -150,7 +150,7 @@ const apis: ApiHandlers = {
         await stopPlugin(id)
         await downloadPlugin(found.repo, { branch: online.branch, overwrite: true })
         if (enabled)
-            startPlugin(id).then() // don't wait, in case it fails to start
+            void startPlugin(id) // don't wait, in case it fails to start
         return {}
     },
 

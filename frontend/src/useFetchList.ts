@@ -90,7 +90,7 @@ export default function useFetchList() {
                             state.stopSearch?.()
                             state.error = xlate(error, HTTP_MESSAGES)
                             if (error === HTTP_UNAUTHORIZED && snap.username)
-                                alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning').then()
+                                void alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
                             state.loginRequired = error === HTTP_UNAUTHORIZED
                             lastReq.current = null
                             continue

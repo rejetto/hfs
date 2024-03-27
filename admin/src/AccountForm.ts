@@ -97,7 +97,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     if (password)
                         try { await apiNewPassword(values.username, password) }
                         catch(e) {
-                            apiCall('del_account', { username: values.username }).then() // best effort, don't wait
+                            void apiCall('del_account', { username: values.username }) // best effort, don't wait
                             throw e
                         }
                     done(got?.username)

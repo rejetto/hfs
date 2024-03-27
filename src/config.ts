@@ -182,7 +182,7 @@ const saveDebounced = debounceAsync(async () => {
     await configFile.save(stringify({ ...state, version: VERSION }))
         .catch(err => console.error('Failed at saving config file, please ensure it is writable.', String(err)))
 })
-export const saveConfigAsap = () => void(saveDebounced())
+export const saveConfigAsap = () => void saveDebounced()
 
 function stringify(obj: any) {
     return yaml.stringify(obj, { lineWidth:1000 })

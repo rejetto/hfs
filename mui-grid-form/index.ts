@@ -107,7 +107,7 @@ export function Form<Values extends Dict>({
     const [phase, setPhase] = useState(Phase.Idle)
     const submitAfterValidation = useRef(false)
     const validateUpTo = useRef('')
-    useEffect(() => void(phaseChange()), [phase]) //eslint-disable-line
+    useEffect(() => void phaseChange(), [phase]) //eslint-disable-line
     const keyMet: Dict<number> = {}
 
     const apis: Dict<FieldApi<unknown>> = {} // consider { [K in keyof Values]?: FieldApi<Values[K]> }

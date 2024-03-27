@@ -77,7 +77,7 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(HTTP_UNAUTHORIZED)
         try {
             await rm(node.source, { recursive: true })
-            setCommentFor(node.source, '').then()
+            void setCommentFor(node.source, '')
             return {}
         }
         catch (e: any) {
@@ -104,8 +104,8 @@ export const frontEndApis: ApiHandlers = {
                 await rename(node.source, destSource)
                 getCommentFor(node.source).then(c => {
                     if (!c) return
-                    setCommentFor(node.source!, '').then()
-                    setCommentFor(destSource, c).then()
+                    void setCommentFor(node.source!, '')
+                    void setCommentFor(destSource, c)
                 })
             }
             return {}

@@ -288,7 +288,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
             'aria-hidden': true,
             onClick() { // mobile has no hover
                 if (shortTs)
-                    alertDialog(t`Full timestamp:` + "\n" + time.toLocaleString()).then()
+                    void alertDialog(t`Full timestamp:` + "\n" + time.toLocaleString())
             }
         }, time.toLocaleString(navigator.language, {
             ...!shortTs || !today ? { year: shortTs ? dd : 'numeric', month: dd, day: dd } : null,

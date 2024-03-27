@@ -44,7 +44,7 @@ repeat(MINUTE, async stop => {
     await upnpClient.getGateway() // without this, the next call will break upnp support
     const res = await upnpClient.getMappings()
     const leftover = res.find(x => x.description === TEMP_MAP.description) // in case the process is interrupted
-    if (!leftover) return void(stop()) // we are good
+    if (!leftover) return void stop() // we are good
     if (acmeMiddlewareEnabled) return // it doesn't count, as we are in the middle of something. Retry later
     stop()
     return upnpClient.removeMapping(TEMP_MAP)
