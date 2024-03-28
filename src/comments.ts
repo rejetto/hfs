@@ -2,7 +2,7 @@ import { defineConfig } from './config'
 import { dirname, join } from 'path'
 import { basename } from './cross'
 import { parseFile, parseFileCache } from './util-files'
-import { writeFile } from 'fs/promises'
+import { createWriteStream } from 'fs'
 import { singleWorkerFromBatchWorker } from './misc'
 import _ from 'lodash'
 import iconv from 'iconv-lite'
@@ -28,11 +28,16 @@ export const setCommentFor = singleWorkerFromBatchWorker(async (jobs: [path: str
                 comments.set(file, comment)
         }
         // encode comments in descript.ion format
-        let txt = ''
-        comments.forEach((c, f) =>
-            txt += (f.includes(' ') ? `"${f}"` : f) + ' ' + (c.includes('\n') ? c.replaceAll('\n', '\\n') + MULTILINE_SUFFIX : c) + '\n')
-        const buffer = iconv.encode(txt, descriptIonEncoding.get())
-        await writeFile(join(folder, DESCRIPT_ION), buffer)
+        const ws = createWriteStream(join(folder, DESCRIPT_ION))
+        comments.forEach((comment, filename) => {
+            const multiline = comment.includes('\n')
+            const line = (filename.includes(' ') ? `"${filename}"` : filename)
+                + ' ' + (multiline ? comment.replaceAll('\n', '\\n') : comment)
+            ws.write( iconv.encode(line, descriptIonEncoding.get()) )
+            if (multiline)
+                ws.write(MULTILINE_SUFFIX, 'binary')
+            ws.write('\n')
+        })
     }))
 })
 
@@ -40,19 +45,25 @@ export function areCommentsEnabled() {
     return descriptIon.get()
 }
 
-const MULTILINE_SUFFIX = '\x04\xc2'
+const MULTILINE_SUFFIX = Buffer.from([4, 0xC2])
 function readDescription(path: string) {
-    return parseFile(join(path, DESCRIPT_ION), raw =>
-        // decoding could also be done with native TextDecoder.decode, but we need iconv for the encoding anyway
-        new Map(iconv.decode(raw, descriptIonEncoding.get()).split('\n').map(line => {
+    // decoding could also be done with native TextDecoder.decode, but we need iconv for the encoding anyway
+    return parseFile(join(path, DESCRIPT_ION), raw => {
+        // for simplicity we "remove" the sequence MULTILINE_SUFFIX before iconv.decode messes it up
+        for (let i=0; i<raw.length; i++)
+            if (raw[i] === MULTILINE_SUFFIX[0] && raw[i+1] === MULTILINE_SUFFIX[1] && [undefined,13,10].includes(raw[i+2]))
+                raw[i] = raw[i+1] = 10
+        const decoded = iconv.decode(raw, descriptIonEncoding.get())
+        const ret = new Map(decoded.split('\n').map(line => {
             const quoted = line[0] === '"' ? 1 : 0
             const i = quoted ? line.indexOf('"', 2) + 1 : line.indexOf(' ')
             const fn = line.slice(quoted, i - quoted)
-            let comment = line.slice(i + 1)
-            if (comment.endsWith(MULTILINE_SUFFIX))
-                comment = comment.slice(0, -2).replaceAll('\\n', '\n')
+            const comment = line.slice(i + 1).replaceAll('\\n', '\n')
             return [fn, comment]
-        })))
+        }))
+        ret.delete('')
+        return ret
+    })
 }
 
 descriptIonEncoding.sub(() => { // invalidate cache at encoding change
