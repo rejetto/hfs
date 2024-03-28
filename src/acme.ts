@@ -1,16 +1,5 @@
-import {
-    DAY,
-    Dict,
-    haveTimeout,
-    HOUR,
-    HTTP_BAD_REQUEST,
-    HTTP_FAILED_DEPENDENCY,
-    HTTP_OK,
-    HTTP_SERVER_ERROR,
-    MINUTE,
-    repeat
-} from './cross'
-import { createServer, RequestListener } from 'http'
+import { DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, MINUTE, repeat } from './misc'
+import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
 import { getNatInfo, upnpClient } from './nat'
 import { cert, getCertObject, getServerStatus, privateKey } from './listen'
@@ -22,19 +11,19 @@ import { defineConfig } from './config'
 import events from './events'
 import { selfCheck } from './selfCheck'
 
-let acmeMiddlewareEnabled = false
+let acmeOngoing = false
 const acmeTokens: Dict<string> = {}
-const acmeListener: RequestListener = (req, res) => { // node format
+const acmeListener = (req: IncomingMessage, res: ServerResponse) => { // node listener
     const BASE = '/.well-known/acme-challenge/'
     if (!req.url?.startsWith(BASE)) return
     const token = req.url.slice(BASE.length)
     console.debug("got http challenge", token)
     res.statusCode = HTTP_OK
     res.end(acmeTokens[token])
-    return true
+    return true // true = responded
 }
 export const acmeMiddleware: Middleware = (ctx, next) => { // koa format
-    if (!acmeMiddlewareEnabled || !Boolean(acmeListener(ctx.req, ctx.res)))
+    if (!acmeOngoing || !acmeListener(ctx.req, ctx.res))
         return next()
 }
 
@@ -45,7 +34,7 @@ repeat(MINUTE, async stop => {
     const res = await upnpClient.getMappings()
     const leftover = res.find(x => x.description === TEMP_MAP.description) // in case the process is interrupted
     if (!leftover) return void stop() // we are good
-    if (acmeMiddlewareEnabled) return // it doesn't count, as we are in the middle of something. Retry later
+    if (acmeOngoing) return // it doesn't count, as we are in the middle of something. Retry later
     stop()
     return upnpClient.removeMapping(TEMP_MAP)
 })
@@ -54,14 +43,15 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
     // will answer challenge through our koa app (if on port 80) or must we spawn a dedicated server?
     const nat = await getNatInfo()
     const { http } = await getServerStatus()
-    const tempSrv = nat.externalPort === 80 || http.listening && http.port === 80 ? undefined : createServer(acmeListener)
+    const tempSrv = nat.externalPort === 80 || http.listening && http.port === 80 ? undefined
+        : createServer((req, res) => acmeListener(req, res) || res.end('HFS')) // also satisfy self-check
     if (tempSrv)
         await new Promise<void>(resolve =>
             tempSrv.listen(80, resolve).on('error', (e: any) => {
                 console.debug("cannot listen on 80", e.code || e)
                 resolve() // go on anyway
             }) )
-    acmeMiddlewareEnabled = true
+    acmeOngoing = true
     console.debug("acme challenge server ready")
     let tempMap: any
     try {
@@ -98,7 +88,7 @@ async function generateSSLCert(domain: string, email?: string, altNames?: string
             console.debug("removing temporary port forward")
             upnpClient.removeMapping(TEMP_MAP).catch(() => {}) // clean after ourselves
         }
-        acmeMiddlewareEnabled = false
+        acmeOngoing = false
         if (tempSrv) await new Promise(res => tempSrv.close(res))
         console.debug('acme terminated')
     }
