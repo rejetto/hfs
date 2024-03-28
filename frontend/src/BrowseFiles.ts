@@ -191,7 +191,7 @@ export function useMidnight() {
 const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
-const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
+const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
@@ -263,7 +263,7 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         ]))
     }
 
-})
+}
 
 export function getEntryIcon(entry: DirEntry) {
     return h(CustomCode, {
