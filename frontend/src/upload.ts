@@ -463,5 +463,5 @@ async function createFolder() {
 }
 
 export function inputComment(filename: string, def?: string) {
-    return promptDialog(t('enter_comment', "Comment for " + filename), { def, type: 'textarea' })
+    return promptDialog(t('enter_comment', { name: filename }, "Comment for {name}"), { def, type: 'textarea' })
 }

@@ -137,7 +137,7 @@
         "showHelp_F_body": "pantalla completa",
         "Destination": "Destino",
         "in_queue": "{n} en cola",
-        "enter_comment": "Descripción para el archivo",
+        "enter_comment": "Descripción para {name}",
         "Comment": "Descripción",
         "upload_dd_hint": "Puede cargar archivos arrastrando y soltando en la lista de archivos",
         "Upload not available": "Carga no disponible",

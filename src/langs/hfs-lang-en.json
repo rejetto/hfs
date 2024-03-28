@@ -133,7 +133,7 @@
         "showHelp_↑/↓_body": "Scroll tall images",
         "Destination": "Destination",
         "in_queue": "{n} in queue",
-        "enter_comment": "Comment for this file",
+        "enter_comment": "Comment for {name}",
         "Comment": "Comment",
         "upload_dd_hint": "You can upload files doing drag&drop on the files list",
         "Upload not available": "Upload not available",
