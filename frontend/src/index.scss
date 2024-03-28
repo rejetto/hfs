@@ -634,6 +634,15 @@ button .icon + .label {
                     padding-bottom: 0.3em;
                 }
             }
+            .entry-comment {
+                max-height: 1.2em;
+                overflow: hidden;
+                margin: 0;
+                &:hover {
+                    max-height: none;
+                    overflow: auto;
+                }
+            }
         }
     }
     .entry-size::after {
