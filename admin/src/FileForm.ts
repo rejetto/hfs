@@ -20,17 +20,18 @@ import QrCreator from 'qr-creator';
 import MenuButton from './MenuButton'
 import addFiles, { addLink, addVirtual } from './addFiles'
 
-interface Account { username: string }
+export interface Account { username: string }
 
 interface FileFormProps {
     file: VfsNode
     addToBar?: ReactNode
     statusApi: UseApi
+    accounts: Account[]
 }
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
-export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
+export default function FileForm({ file, addToBar, statusApi, accounts }: FileFormProps) {
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -58,11 +59,6 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
     const showWebsite = isDir
     const barColors = useDialogBarColors()
     const { movingFile } = useSnapState()
-
-    const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
-    if (element || !data)
-        return element
-    const accounts = data.list
 
     const needSourceWarning = !hasSource && "Works only on folders with source! "
     const show: Record<keyof VfsPerms, boolean> = {

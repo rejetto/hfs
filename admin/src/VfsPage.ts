@@ -11,7 +11,7 @@ import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
 import { AlertProps } from '@mui/material/Alert/Alert'
-import FileForm from './FileForm'
+import FileForm, { Account } from './FileForm'
 import { Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 
@@ -32,10 +32,12 @@ export default function VfsPage() {
         return b && !ret.includes(b) ? [b, ...ret] : ret
     }, [status])
     const single = selectedFiles.length < 2 && (selectedFiles[0] as VfsNode || vfs)
+    const accountsApi = useApiEx<{ list: Account[] }>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
 
-    const sideContent = !vfs ? null : single ? h(FileForm, {
+    const sideContent = accountsApi.element || !vfs ? null : single ? h(FileForm, {
             addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
             statusApi,
+            accounts: accountsApi?.data?.list ?? [],
             file: single  // it's actually Snapshot<VfsNode> but it's easier this way
         })
         : h(Fragment, {},
