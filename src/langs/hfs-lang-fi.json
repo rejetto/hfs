@@ -137,7 +137,7 @@
         "showHelp_F_body": "koko näyttö",
         "Destination": "Kohde",
         "in_queue": "{n} jonossa",
-        "enter_comment": "Kirjoita kommentti tälle tiedostolle / hakemistolle",
+        "enter_comment": "Kirjoita kommentti kohteelle {name}",
         "Comment": "Kommentti",
         "upload_dd_hint": "Voit lähettää tiedostoja raahaamalla niitä tiedostolistauksessa",
         "Upload not available": "Lähettäminen ei ole mahdollista",
