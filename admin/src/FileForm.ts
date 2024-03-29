@@ -181,13 +181,16 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
         if (!show[perm]) return null
         const dontShow = [perm, ...onlyTruthy(_.map(show, (v,k) => !v && k))]
         const others = _.difference(Object.keys(defaultPerms), dontShow)
+        let inherit = file.inherited?.[perm] ?? defaultPerms[perm]
+        if (typeof inherit === 'string' && _.get(show, inherit) === false) // if it's false, then inherit is a perm
+            inherit = _.get(values, inherit) ?? _.get(defaultPerms, inherit)! // ...and defaultPerms have it all
         return {
             comp: WhoField,
             k: perm, sm: 6, xl: 4,
             parent, accounts, helperText, isDir,
             otherPerms: others.map(x => ({ value: x, label: who2desc(x) })),
             label: "Who can " + perm2word(perm),
-            inherit: file.inherited?.[perm] ?? defaultPerms[perm],
+            inherit,
             byMasks: byMasks?.[perm],
             fromField: (v?: Who) => v ?? null,
             ...props
@@ -197,8 +200,7 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
 }
 
 function perm2word(perm: string) {
-    const word = perm.split('_')[1]
-    return word === 'read' ? 'download' : word === 'archive' ? 'zip' : word
+    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip' })
 }
 
 interface WhoFieldProps extends FieldProps<Who | undefined> {
