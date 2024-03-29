@@ -448,10 +448,10 @@ async function createFolder() {
     try {
         await apiCall('create_folder', { uri, name }, { modal: working })
         reloadList()
-        return alertDialog(h(() =>
+        await alertDialog(h(() =>
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
-                h(Link, { to: uri + name + '/', onClick() {
+                h(Link, { to: uri + name + '/', onClickCapture() { // "capture" because dialogs must be closed (popping from history) before we push a new state in the history
                     closeDialog()
                     closeDialog()
                 } }, t('enter_folder', "Enter the folder")),
