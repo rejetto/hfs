@@ -66,10 +66,10 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
                 go(ev)
         },
         InputProps: {
+            startAdornment: start && h(InputAdornment, { position: 'start' }, start),
+            endAdornment: end && h(InputAdornment, { position: 'end' }, end),
             ...props.InputProps,
             ...params?.InputProps,
-            startAdornment: start && h(InputAdornment, { position: 'start' }, start, props?.InputProps?.startAdornment, params?.InputProps?.startAdornment),
-            endAdornment: end && h(InputAdornment, { position: 'end' }, end, props?.InputProps?.endAdornment, params?.InputProps?.endAdornment),
         },
     })
     return !suggestions ? render(null)
