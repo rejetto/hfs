@@ -72,7 +72,9 @@ export const adminApis: ApiHandlers = {
         }
     },
     set_config_text: ({ text }) => configFile.save(text, { reparse: true }),
-    update: ({ tag }) => update(tag).catch(e => e.cause?.statusCode ? new ApiError(e.cause?.statusCode) : e),
+    update: ({ tag }) => update(tag).catch(e => {
+        throw e.cause?.statusCode ? new ApiError(e.cause?.statusCode) : e
+    }),
     async check_update() {
         return { options: await getUpdates() }
     },

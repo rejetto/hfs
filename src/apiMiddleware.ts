@@ -51,6 +51,8 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             }
         }
         catch(e) {
+            if (typeof e === 'string') // message meant to be transmitted
+                return send(HTTP_BAD_REQUEST, e)
             if (typeof e === 'number')
                 e = new ApiError(e)
             res = e

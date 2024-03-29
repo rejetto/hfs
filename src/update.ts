@@ -121,8 +121,8 @@ export async function update(tagOrUrl: string='') {
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
     }
     catch (e: any) {
-        console.error(e?.message || String(e))
         pluginsWatcher.unpause()
+        throw e?.message || String(e)
     }
 }
 
