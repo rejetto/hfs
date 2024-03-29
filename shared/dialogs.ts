@@ -37,7 +37,7 @@ export const focusableSelector = ['input:not([type="hidden"])', 'button', 'selec
     x + ':not([disabled]):not([tabindex="-1"])').join(',')
 window.addEventListener('keydown', ev => {
     if (ev.key !== 'Tab') return
-    const dialogs = document.querySelectorAll('[role=dialog]')
+    const dialogs = document.querySelectorAll('[role$=dialog]')
     const dialog = dialogs[dialogs.length-1]
     if (!dialog) return
     const focusable = dialog.querySelectorAll(focusableSelector)
