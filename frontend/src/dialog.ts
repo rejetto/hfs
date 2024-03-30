@@ -65,8 +65,10 @@ export async function promptDialog(msg: string, { def, type, helperText, trim=tr
                     const { key } = ev
                     if (key === 'Escape')
                         return closeDialog(null)
-                    if ((textarea ? isCtrlKey(ev) : key) === 'Enter')
+                    if ((textarea ? isCtrlKey(ev) : key) === 'Enter') {
+                        ev.preventDefault()
                         return go()
+                    }
                 }
             }),
             helperText && h('div', { style: { fontSize: 'smaller', marginTop: '.2em' } }, helperText),
