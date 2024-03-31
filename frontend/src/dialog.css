@@ -43,6 +43,7 @@
 }
 .dialog-title {
     font-size: 120%;
+    font-weight: normal;
     margin: .3em 0;
     padding: 0 0.5em; /* avoid reaching margins */
     min-height: 1.2em;

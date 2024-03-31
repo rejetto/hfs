@@ -37,17 +37,22 @@ export const focusableSelector = ['input:not([type="hidden"])', 'button', 'selec
     x + ':not([disabled]):not([tabindex="-1"])').join(',')
 window.addEventListener('keydown', ev => {
     if (ev.key !== 'Tab') return
+    if (tabCycle(ev.target, ev.shiftKey))
+        ev.preventDefault()
+})
+
+function tabCycle(target: EventTarget | null, invert=false) {
     const dialogs = document.querySelectorAll('[role$=dialog]')
     const dialog = dialogs[dialogs.length-1]
     if (!dialog) return
     const focusable = dialog.querySelectorAll(focusableSelector)
     const n = focusable.length
     if (!n) return
-    const [a, b] = ev.shiftKey ? [n-1, 0] : [0, n-1]
-    if (ev.target !== focusable[b] && isDescendant(document.activeElement, dialog)) return // default behavior
+    const [a, b] = invert ? [n-1, 0] : [0, n-1]
+    if (target !== focusable[b] && isDescendant(document.activeElement, dialog)) return // default behavior
     ;(focusable[a] as HTMLElement).focus()
-    ev.preventDefault()
-})
+    return true
+}
 
 function isDescendant(child: Node | null, parent: Node) {
     while (child) {
@@ -87,12 +92,12 @@ function Dialog(d: DialogOptions) {
     const ref = useRef<HTMLElement>()
     const [shiftY, setShiftY] = useState(0)
     useEffect(()=>{
-        if (!ref.current) return
-        ref.current.focus()
-        if (d.position) {
-            const rect = ref.current.querySelector('.dialog')!.getBoundingClientRect()
-            setShiftY(Math.min(0, rect.top, window.innerHeight - rect.bottom))
-        }
+        const el = ref.current?.querySelector('.dialog') as HTMLElement | undefined
+        if (!el) return
+        tabCycle(el) // focus first thing inside dialog. This makes JAWS behave
+        if (!d.position) return
+        const rect = el.getBoundingClientRect()
+        setShiftY(Math.min(0, rect.top, window.innerHeight - rect.bottom))
     }, [])
     d = { closable: true, ...dialogsDefaults, ...d }
     if (d.Container)
@@ -100,7 +105,6 @@ function Dialog(d: DialogOptions) {
     return h('div', {
             ref,
             className: 'dialog-backdrop '+(d.className||''),
-            tabIndex: 0,
             onKeyDown,
             onClick: (ev: any) => d.closable
                 && ev.target === ev.currentTarget // this test will tell us if really the backdrop was clicked
@@ -129,7 +133,7 @@ function Dialog(d: DialogOptions) {
                     className: 'dialog-icon dialog-type' + (typeof d.icon === 'string' ? ' dialog-icon-text' : ''),
                     'aria-hidden': true,
                 }, componentOrNode(d.icon)),
-                h('div', { className: 'dialog-title' }, componentOrNode(d.title)),
+                h('h1', { className: 'dialog-title' }, componentOrNode(d.title)),
                 h('div', { className: 'dialog-content' }, h(d.Content || 'div'))
             )
     )
