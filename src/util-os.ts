@@ -36,7 +36,7 @@ export async function getDiskSpaces(): Promise<{ name: string, free: number, tot
             description: x.Description
         }))
     }
-    const { stdout } = await promisify(exec)(`df -k`).catch(err => {
+    const { stdout } = await promisify(exec)(`df -k -l`).catch(err => {
         throw err.status === 1 ? Error('miss')
             : err.status === 127 ? Error('unsupported')
                 : err
@@ -46,7 +46,7 @@ export async function getDiskSpaces(): Promise<{ name: string, free: number, tot
         throw Error('unsupported')
     return onlyTruthy(out.map(one => {
         const bits = one.split(/\s+/)
-        const name = bits.shift() || ''
+        const name = bits.pop() || bits.shift() || ''
         const [, used=0, free=0] = bits.map(x => Number(x) * 1024)
         const total = used + free
         return total && { free, total, name }
