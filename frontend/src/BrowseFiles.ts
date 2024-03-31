@@ -64,7 +64,7 @@ function FilesList() {
     const total = theList.length
     const nPages = Math.ceil(total / pageSize)
 
-    useEffect(() => setPage(0), [theList])
+    useEffect(() => setPage(0), [theList[0]])
     useEffect(() => {
         document.scrollingElement?.scrollTo(0, 0)
         setExtraPages(0)
