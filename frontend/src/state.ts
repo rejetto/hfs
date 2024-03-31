@@ -34,7 +34,9 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
         comment?: string
     }
     canChangePassword: boolean
+    uri: string
 }>({
+    uri: '',
     canChangePassword: false,
     props: {},
     ...objSameKeys(FRONTEND_OPTIONS, (v,k) => getHFS()[k] ?? v),

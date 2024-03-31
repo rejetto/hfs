@@ -312,6 +312,7 @@ This is a list of available frontend-events, with respective object parameter an
   - no parameter
   - output `Html`
 - `uriChanged`
+  - DEPRECATED: use `watchState('uri', callback)` instead.  
   - parameter `{ uri: string, previous: string }`
 
 ## Other files
