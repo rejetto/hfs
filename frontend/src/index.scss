@@ -524,6 +524,7 @@ button .icon + .label {
         display: flex;
         align-items: flex-start;
         label {
+            cursor: pointer;
             margin-top: .1em;
             small { display: block }
         }
