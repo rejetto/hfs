@@ -97,8 +97,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                         },
                         {
                             k: 'roots_mandatory',
-                            label: "Block requests that are not using any of the domains above",
-                            helperText: "localhost connections are not included",
+                            label: "Accept requests only using domains above (and localhost)",
                             comp: BoolField,
                         }
                     ]
