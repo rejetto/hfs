@@ -137,7 +137,7 @@ export default function VfsPage() {
             h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
             alert && h(Alert, alert),
         ),
-        h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, position: 'sticky', top: 0 },
+        h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0 },
             h(Grid, { item: true, xs: 12, [sideBreakpoint]: 6, lg: 6, xl: 5 },
                 h(Typography, { variant: 'h6', mb: 1, }, "Virtual File System"),
                 h(VfsMenuBar, { statusApi }),

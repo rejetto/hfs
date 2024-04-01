@@ -20,8 +20,6 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
     const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
     return h(Flex, {
         mb: 2,
-        position: 'sticky',
-        top: 0,
         zIndex: 2,
         backgroundColor: 'background.paper',
         width: 'fit-content',
