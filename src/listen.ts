@@ -97,7 +97,7 @@ const considerHttps = debounceAsync(async () => {
             if (cert) {
                 const cn = cert.subject?.CN
                 if (cn)
-                    console.log("certificate loaded for", cn)
+                    console.log("certificate loaded for", cert.altNames?.join(' + ') || cn)
                 const now = new Date()
                 const from = new Date(cert.validFrom)
                 const to = new Date(cert.validTo)
