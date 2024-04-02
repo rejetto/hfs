@@ -19,7 +19,7 @@ export function ClipBar() {
     const there = dirname(clip[0].uri) + '/'
     return h('div', { id: 'clipBar' },
         h(Btn, { label: t`Cancel clipboard`, icon: 'close', onClick: cancel }),
-        h(Btn, { label: t('to_clipboard_source', "To folder"), icon: 'parent', onClick: goBack, disabled: here === there }),
+        h(Btn, { label: t('to_clipboard_source', "Back to source folder"), icon: 'parent', onClick: goBack, disabled: here === there }),
         h(Btn, { label: t`Paste`, icon: 'paste', onClick: paste, disabled: here === there || !props?.can_upload }),
         h('div', { onClick: show, style: { flex: 1 } },
             clip.length === 1 ? clip[0].name : t('n_items', { n: clip.length }, "{n,plural, one{# item} other{# items}}") ),

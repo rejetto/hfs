@@ -146,7 +146,7 @@
         "good_bad": "{good} siirretty, {bad} epäonnistui",
         "after_cut": "Valintasi on nyt leikepöydällä.\nMene kohdekansioon liittääksesi.",
         "Cancel clipboard": "Sulje leikepöytä",
-        "to_clipboard_source": "Takaisin lähdekansioon",
+        "to_clipboard_source": "Palaa lähdekansioon",
         "Paste": "Liitä",
         "clipboard_list": "Kohteet leikepöydällä:",
 

@@ -146,7 +146,7 @@
         "good_bad": "{good} movido, {bad} fallado",
         "after_cut": "Su selección está ahora en el portapapeles.\nVaya a la carpeta de destino para pegar.",
         "Cancel clipboard": "Cancelar portapapeles",
-        "to_clipboard_source": "A la carpeta",
+        "to_clipboard_source": "Volver a la carpeta de origen",
         "Paste": "Pegar",
         "clipboard_list": "Elementos en el portapapeles:",
 

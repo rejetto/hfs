@@ -142,7 +142,7 @@
         "good_bad": "{good} moved, {bad} failed",
         "after_cut": "Your selection is now in the clipboard.\nGo to destination folder to paste.",
         "Cancel clipboard": "Cancel clipboard",
-        "to_clipboard_source": "To folder",
+        "to_clipboard_source": "Back to source folder",
         "Paste": "Paste",
         "clipboard_list": "Items in clipboard:",
 

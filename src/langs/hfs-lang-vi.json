@@ -146,7 +146,7 @@
         "good_bad": "{good} đã di chuyển, {bad} thất bại",
         "after_cut": "Cái đã chọn đã lưu trong clipboard.\nTới folder khác để dán.",
         "Cancel clipboard": "Bỏ clipboard",
-        "to_clipboard_source": "Tới folder",
+        "to_clipboard_source": "Quay lại thư mục nguồn",
         "Paste": "Dán",
         "clipboard_list": "Clipboard:",
         
