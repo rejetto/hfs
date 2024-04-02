@@ -32,9 +32,7 @@ export function BrowseFiles() {
         ),
     }), [props])
     if (!useAuthorized())
-        return h(CustomCode, { name: 'unauthorized',
-            ifEmpty: () => h('h1', { className: 'unauthorized' }, t`Unauthorized`)
-        })
+        return h(CustomCode, { name: 'unauthorized' }, h('h1', { className: 'unauthorized' }, t`Unauthorized`) )
     return h('div', propsDropFiles, // element dedicated to drop-files to cover full screen
         h('div', {
             className: 'list-wrapper ' + (tile_size ? 'tiles-mode' : 'list-mode'),
@@ -209,44 +207,40 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const ariaId = useId()
     const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
     return h('li', { className, label: separator },
-        h(CustomCode, {
-            name: 'entry',
-            props: { entry },
-            ifEmpty: () => h(Fragment, {},
-                showFilter && h(Checkbox, {
-                    disabled: isLink,
-                    'aria-labelledby': ariaId,
-                    value: selected[uri],
-                    onChange(v) {
-                        if (v)
-                            return state.selected[uri] = true
-                        delete state.selected[uri]
-                    },
-                }),
-                h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                    ...isFolder || entry.web ? [ // internal navigation, use Link component
-                        h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
-                            ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
-                        // popup button is here to be able to detect link-wrapper:hover
-                        file_menu_on_link && !showingButton && h('button', {
-                            className: 'popup-menu-button',
-                            onClick: fileMenu
-                        }, hIcon('menu'), t`Menu`)
-                    ] : containerName ? [
-                        h('a', { href: uri, onClick, tabIndex: -1, 'aria-hidden': true }, ico),
-                        h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
-                        h('a', { href: uri, onClick, ...ariaProps }, name)
-                    ] : [h('a', { href: uri, onClick, ...ariaProps }, ico, name)],
-                ),
-                h(CustomCode, { name: 'afterEntryName', props: { entry } }),
-                entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
-                h('div', { className: 'entry-panel' },
-                    h(EntryDetails, { entry, midnight }),
-                    showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
-                ),
-                h('div'),
-            )
-        }),
+        h(CustomCode, { name: 'entry', entry },
+            showFilter && h(Checkbox, {
+                disabled: isLink,
+                'aria-labelledby': ariaId,
+                value: selected[uri],
+                onChange(v) {
+                    if (v)
+                        return state.selected[uri] = true
+                    delete state.selected[uri]
+                },
+            }),
+            h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
+                ...isFolder || entry.web ? [ // internal navigation, use Link component
+                    h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                        ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
+                    // popup button is here to be able to detect link-wrapper:hover
+                    file_menu_on_link && !showingButton && h('button', {
+                        className: 'popup-menu-button',
+                        onClick: fileMenu
+                    }, hIcon('menu'), t`Menu`)
+                ] : containerName ? [
+                    h('a', { href: uri, onClick, tabIndex: -1, 'aria-hidden': true }, ico),
+                    h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
+                    h('a', { href: uri, onClick, ...ariaProps }, name)
+                ] : [h('a', { href: uri, onClick, ...ariaProps }, ico, name)],
+            ),
+            h(CustomCode, { name: 'afterEntryName', entry }),
+            entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
+            h('div', { className: 'entry-panel' },
+                h(EntryDetails, { entry, midnight }),
+                showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
+            ),
+            h('div'),
+        ),
     )
 
     function fileMenu(ev: MouseEvent) {
@@ -266,11 +260,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
 }
 
 export function getEntryIcon(entry: DirEntry) {
-    return h(CustomCode, {
-        name: 'entryIcon',
-        props: { entry },
-        ifEmpty: () => entry.getDefaultIcon()
-    })
+    return h(CustomCode, { name: 'entryIcon', entry }, entry.getDefaultIcon())
 }
 
 export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
@@ -280,7 +270,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
     const {t} = useI18N()
     const dd = '2-digit'
     return h('div', { className: 'entry-details' },
-        h(CustomCode, { name: 'additionalEntryDetails', props: { entry } }),
+        h(CustomCode, { name: 'additionalEntryDetails', entry }),
         entry.p?.match(entry.isFolder ? /l/i : /r/i) && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),
         time && h('span', {
