@@ -69,7 +69,7 @@
     ]
   },
   "dependencies": {
-    "@koa/router": "^10.1.1",
+    "@koa/router": "^12.0.1",
     "@node-rs/crc32": "^1.6.0",
     "acme-client": "^5.2.0",
     "basic-auth": "^2.0.1",
