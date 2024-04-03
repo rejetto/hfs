@@ -74,12 +74,12 @@ export async function updateAccount(account: Account, change: Partial<Account> |
     else
         Object.assign(account, objSameKeys(change, x => x || undefined))
 
-    const { username } = account
-    if (account.password) {
+    const { username, password } = account
+    if (password) {
         console.debug('hashing password for', username)
-        const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, account.password)
-        saveSrpInfo(account, res.s, res.v)
         delete account.password
+        const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
+        saveSrpInfo(account, res.s, res.v)
     }
     if (account.belongs) {
         account.belongs = wantArray(account.belongs)
