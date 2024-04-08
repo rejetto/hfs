@@ -1,11 +1,11 @@
-import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, GridValidRowModel, useGridApiRef
-} from '@mui/x-data-grid'
+import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
+    GridValidRowModel, useGridApiRef } from '@mui/x-data-grid'
 import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
 import { useWindowSize } from 'usehooks-ts'
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { newDialog, onlyTruthy } from '@hfs/shared'
 import _ from 'lodash'
-import { Center, Flex } from './mui'
+import { Center, Flex, useBreakpoint } from './mui'
 
 const ACTIONS = 'Actions'
 
@@ -21,9 +21,10 @@ interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridP
     noRows?: ReactNode
     error?: ReactNode
     compact?: true
+    addToFooter?: ReactNode
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, ...rest }: DataTableProps) {
-    const { width } = useWindowSize()
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, addToFooter, ...rest }: DataTableProps) {
+    useWindowSize(); const width = window.outerWidth // workaround: width returned by useWindowSize is not good
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
@@ -90,7 +91,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
         return fields
-    }, [manipulatedColumns])
+    }, [manipulatedColumns, width])
     const [vis, setVis] = useState({})
 
     const displayingDetails = useRef<any>({})
@@ -98,6 +99,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         const { current: { id, setCurRow } } = displayingDetails
         setCurRow?.(_.find(rest.rows, { id }))
     })
+    const sm = useBreakpoint('sm')
 
     if (!hideCols) // only first time we render, initialState is considered, so wait
         return null
@@ -109,6 +111,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 sx: { position: 'absolute', width: 'calc(100% - 2px)', borderRadius: 1, m: '1px 1px' }
             }) ),
         h(DataGrid, {
+            key: width,
             initialState,
             style: { height: 0, flex: 'auto' }, // limit table to available screen space
             density: compact ? 'compact' : 'standard',
@@ -116,6 +119,14 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             apiRef,
             slots: {
                 ...(noRows || initializing) && { noRowsOverlay: () => initializing ? null : h(Center, {}, noRows) },
+                footer: CustomFooter,
+            },
+            slotProps: {
+                footer: { add: addToFooter } as any,
+                pagination: !sm && addToFooter ? undefined : {
+                    showFirstButton: true,
+                    showLastButton: true,
+                },
             },
             onCellClick({ field, row }) {
                 if (field === ACTIONS) return
@@ -169,4 +180,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             : col.valueFormatter ? col.valueFormatter({ value, ...row })
                 : value
     }
+}
+
+function CustomFooter({ add, ...props }: { add: ReactNode }) {
+    return h(GridFooterContainer, props, h(Box, { ml: { sm: 1 } }, add), h(GridFooter, { sx: { border: 'none' } }))
 }

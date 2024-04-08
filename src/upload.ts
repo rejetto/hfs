@@ -11,7 +11,7 @@ import fs from 'fs'
 import { Callback, dirTraversal, escapeHTML, loadFileAttr, storeFileAttr, try_ } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
-import { getFreeDiskSync } from './util-os'
+import { getDiskSpaceSync } from './util-os'
 import { updateConnection, updateConnectionForCtx } from './connections'
 import { roundSpeed } from './throttler'
 import { getCurrentUsername } from './auth'
@@ -19,7 +19,7 @@ import { setCommentFor } from './comments'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
-export const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', false)
+export const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', true)
 
 const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
 
@@ -37,6 +37,7 @@ function setUploadMeta(path: string, ctx: Koa.Context) {
 }
 
 // stay sync because we use this function with formidable()
+const cache: any = {}
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     if (dirTraversal(path))
         return fail(HTTP_FOOL)
@@ -48,7 +49,11 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     const reqSize = Number(ctx.headers["content-length"])
     if (reqSize)
         try {
-            const free = getFreeDiskSync(dir)
+            if (!Object.hasOwn(cache, dir)) {
+                cache[dir] = getDiskSpaceSync(dir)
+                setTimeout(() => delete cache[dir], 3_000) // invalidate shortly
+            }
+            const { free } = cache[dir]
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
             if (reqSize > free - (min || 0))
@@ -57,7 +62,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         catch(e: any) { // warn, but let it through
             console.warn("can't check disk size:", e.message || String(e))
         }
-    if (ctx.query.skipExisting && fs.existsSync(fullPath))
+    if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT)
     if (fs.mkdirSync(dir, { recursive: true }))
         setUploadMeta(dir, ctx)
@@ -121,7 +126,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     return ret
 
     async function overwriteAnyway() {
-        if (ctx.query.overwrite === undefined) return
+        if (ctx.query.overwrite === undefined // legacy pre-0.52
+        && ctx.query.existing !== 'overwrite') return
         const n = await getNodeByName(path, base)
         return n && hasPermission(n, 'can_delete', ctx)
     }

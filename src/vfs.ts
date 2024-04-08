@@ -7,7 +7,7 @@ import { dirStream, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden,
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
-import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, MIME_AUTO } from './const'
+import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS, MIME_AUTO } from './const'
 import events from './events'
 import { expandUsername } from './perm'
 import { getCurrentUsername } from './auth'
@@ -63,9 +63,13 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
 }
 
 export function isSameFilenameAs(name: string) {
-    const lc = name.toLowerCase()
+    const normalized = normalizeFilename(name)
     return (other: string | VfsNode) =>
-        lc === (typeof other === 'string' ? other : getNodeName(other)).toLowerCase()
+        normalized === normalizeFilename(typeof other === 'string' ? other : getNodeName(other))
+}
+
+function normalizeFilename(x: string) {
+    return IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x
 }
 
 export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
@@ -95,11 +99,9 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     const ret = await getNodeByName(name, parent)
     if (!ret)
         return
-    if (ret?.original)
-        return urlToNode(rest, ctx, ret, getRest)
-    if (parent.default)
+    if (parent.default) // web folders have this default setting to ensure a standard behavior
         inheritFromParent({ mime: { '*': MIME_AUTO } }, ret)
-    if (rest)
+    if (rest || ret?.original)
         return urlToNode(rest, ctx, ret, getRest)
     if (ret.source)
         try {
@@ -239,7 +241,7 @@ export async function* walkNode(parent: VfsNode, {
             if (onlyFolders && !await nodeIsDirectory(child)) continue
             const nodeName = getNodeName(child)
             const name = prefixPath + nodeName
-            took?.add(name)
+            took?.add(normalizeFilename(name))
             const item = { ...child, name }
             if (!canSee(item)) continue
             if (item.source) // real items must be accessible
@@ -267,7 +269,7 @@ export async function* walkNode(parent: VfsNode, {
             if (ctx?.req.aborted)
                 return
             const name = prefixPath + (parent.rename?.[path] || path)
-            if (took?.has(name)) continue
+            if (took?.has(normalizeFilename(name))) continue
             if (depth) {
                 const dir = dirname(name)
                 if (dir !== lastDir)
@@ -307,8 +309,9 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
 }
 
 export function parentMaskApplier(parent: VfsNode) {
-    const matchers = onlyTruthy(Object.entries(parent.masks || {}).map(([k, { maskOnly, ...mods }]) => {
+    const matchers = onlyTruthy(_.map(parent.masks, (v, k) => {
         k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : '' // ** globstar matches also zero subfolders, so this mask must be applied here too
+        const { maskOnly, ...mods } = v || {}
         // k is stored into the object for debugging purposes
         return k && { k, mods, matcher: makeMatcher(k), mustBeFolder: maskOnly && (maskOnly === 'folders') }
     }))

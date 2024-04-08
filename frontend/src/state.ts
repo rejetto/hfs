@@ -7,9 +7,10 @@ import { FRONTEND_OPTIONS, getHFS, hIcon, objSameKeys, pathEncode, typedKeys } f
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
     stopSearch?: ()=>void,
-    stoppedSearch?: boolean,
+    searchManuallyInterrupted?: boolean,
     iconsReady: boolean,
     username: string,
+    accountExp?: string,
     list: DirList,
     filteredList?: DirList,
     clip: DirList
@@ -29,9 +30,13 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
         can_delete?: boolean
         can_archive?: boolean
         can_comment?: boolean
+        can_overwrite?: boolean
+        comment?: string
     }
     canChangePassword: boolean
+    uri: string
 }>({
+    uri: '',
     canChangePassword: false,
     props: {},
     ...objSameKeys(FRONTEND_OPTIONS, (v,k) => getHFS()[k] ?? v),
@@ -139,7 +144,7 @@ export type DirList = DirEntry[]
 
 const exts = {
     image: ['jpeg','jpg','gif','png','webp','svg'],
-    audio: ['mp3','wav','m4a','ogg'],
+    audio: ['mp3','wav','m4a','ogg','flac'],
     video: ['mp4','mpeg','mpg','webm','mov','m4v'],
     archive: ['zip', 'rar', 'gz', 'tgz'],
 }

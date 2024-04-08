@@ -1,19 +1,23 @@
-@use '../../shared/main';
+@import '../../shared/main';
 
 :root {
     height: 100dvh; // workarounded chrome109-mobile's problem with sticky-bottom bar moving when scrolling
 
     --bg: #fff;
     --text: #555;
+    --text-high-contrast: #111;
     --ghost-contrast: #8882;
     --ghost-contrast-alt: #eee;
-    --faint-contrast: #8884;
-    --mild-contrast: #8886;
-    --good-contrast: #000a;
+    --faint-contrast: #ddd;
+    --mild-contrast: #aaa;
+    --good-contrast: #444;
     --button-bg: #6080aa;
     --button-text: #eaeaea;
     --focus-color: #468;
     --separator: " – "; // fallback
+    --success: #8c8;
+    --warning: #cc8;
+    --error: #c88;
     @supports (content: "" / "") {
         --separator: " – " / ""; // skip for screen-reader
     }
@@ -21,10 +25,16 @@
     .theme-dark {
         --bg: #000;
         --text: #999;
+        --text-high-contrast: #eee;
         --ghost-contrast-alt: #181818;
-        --good-contrast: #fffa;
+        --faint-contrast: #2d2d2d;
+        --good-contrast: #aaa;
         --button-bg: #345;
         --button-text: #999;
+        --success: #383;
+        --warning: #883;
+        --error: #a33;
+
         color-scheme: dark;
         .highlightedText { color: #fff; text-shadow: 0 0 3px #fff; }
         a { color:#8ac; }
@@ -35,7 +45,9 @@
         }
         .dialog-backdrop { background: #333b; }
         .error-msg { color: #b88; background-color: #623; }
-        button.toggled { color: #eee; }
+        button.toggled, a.toggled { color: #eee;
+            text-shadow: 0 0 3px #fff;
+        }
     }
 }
 body {
@@ -110,6 +122,9 @@ button {
     background-color: var(--button-bg);
     color: var(--button-text);
     padding: .5em;
+    &:not(.before-sliding) { min-width: min-content; }
+    &.small { padding: 0 0.4em; height: 30px; }
+    .icon { position: relative; top: .05em; }
     border: transparent;
     text-decoration: none;
     border-radius: 0.3em;
@@ -124,6 +139,10 @@ button {
 button.toggled {
     color: #fff;
     text-shadow: 0 0 3px #fff;
+}
+a.toggled {
+    color: #223;
+    text-shadow: 0 0 5px #223;
 }
 button, .breadcrumb { /* consistent focus color */
     &:focus-visible {
@@ -140,10 +159,9 @@ input, select, ul a {
 }
 
 .icon-button {
-    font-size: 0.7em;
-    padding: 0.2em 0.4em;
-    margin-left: 0.4em;
-    vertical-align: bottom;
+    padding: .1em;
+    font-size: 104%; height: 1.8em; // same height as text buttons (30px)
+    width: 2em;
 }
 
 .error-msg {
@@ -272,20 +290,22 @@ ul.dir {
                 .popup-menu-button { display: none }
             }
             @media (hover: hover) {
-                &:not(:hover) .popup-menu-button { display: none; }
-                &:hover { padding: 1em; margin: -1em; } // add margin to avoid leaving the hover unintentionally. Using this on @media(hover:none) will result in some taps to be missed. It happened on a long folder with no spaces in the name to wrap.
+                &:not(:hover):not(:focus,:focus-within) .popup-menu-button { opacity: .001; } // use opacity, as jaws is not setting :focus
+                &:hover { padding: 1em; margin: -1em; // add margin to avoid leaving the hover unintentionally. Using this on @media(hover:none) will result in some taps to be missed. It happened on a long folder with no spaces in the name to wrap.
+                    .popup-menu-button { z-index: 1} // without this, attempting to hover from the name to the menu-button will easily lose the :hover if a comment is present
+                }
             }
             a {
                 &:last-of-type {
                     word-break: break-word;
-                    padding-right: 0.3em;
+                    padding-right: .5em;
                 }
                 .icon {
                     margin-right: .5em;
                     display: inline-block;
                     text-align: center;
                 }
-                img.icon { // same alignment as font icons
+                img.icon, video.icon { // same alignment as font icons
                     vertical-align: bottom;
                     position: relative;
                     top: 1px;
@@ -300,9 +320,10 @@ ul.dir {
             padding-top: 0.3em;
             display: flex;
             align-items: center;
-            .file-menu-button {
-                @extend .icon-button;
+            .icon-button {
                 margin: -3px 0 -3px 0.4em;
+                font-size: 0.7em;
+                width: 2.4em;
             }
             .entry-details {
                 font-size: 90%;
@@ -334,6 +355,7 @@ ul.dir {
     display: inline;
     white-space: pre-wrap;
     word-break: break-word;
+    margin-bottom: .5em; // affecting only the layout of the current-folder-comment
     &::before, &::after {
         font-size: 1.5em;
         font-family: serif;
@@ -342,7 +364,6 @@ ul.dir {
     }
     &::before {
         content: "“";
-        margin-left: 0.5em;
         margin-right: 0.1em;
         top: 0.2em;
     }
@@ -379,7 +400,7 @@ ul.dir {
     }
 }
 
-button .label {
+button .icon + .label {
     cursor: inherit;
     margin-left: .4em;
 }
@@ -425,6 +446,7 @@ button .label {
     }
     #paging-middle>button {
         flex: 1;
+        min-width: unset;
         padding-top: 0; padding-bottom: 0; /* reduce vertically in case a horizontal scrolling bar is needed */
     }
     button {
@@ -438,7 +460,9 @@ button .label {
 .upload-toolbar {
     @extend .hide-back;
     position: sticky;
-    top: -4px;
+    top: -4px; padding-top: 1px; // workaround: without this, the scrolling list behind is visible above (vertically, not z-index)
+    z-index: 3; // necessary to not be covered by icon-buttons
+    box-shadow: 0 0 .3em .3em var(--bg);
 }
 .upload-progress::before { content: var(--separator); }
 .entry-size::after { content: var(--separator) }
@@ -448,6 +472,10 @@ button .label {
     display: inline-block;
     margin-left: 0.5em;
 }
+.upload-progress-bar {
+    display: block;
+    width: 100%;
+}
 .upload-list {
     margin-top: .5em;
     td:nth-child(1) { width: 0; }
@@ -456,7 +484,7 @@ button .label {
 }
 .nowrap { white-space: nowrap }
 
-.dialog-login {
+.login-dialog {
     form {
         display: flex;
         flex-direction: column;
@@ -492,11 +520,11 @@ button .label {
     display: flex;
     flex-direction: column;
     gap: .7em 1em;
-    justify-content: space-between;
     a {
         display: flex;
         align-items: flex-start;
         label {
+            cursor: pointer;
             margin-top: .1em;
             small { display: block }
         }
@@ -517,7 +545,9 @@ button .label {
 
 .tiles-mode {
     max-width: none;
-    margin: 0 1em;
+    @media (min-width: 42em) {
+        margin: 0 1em;
+    }
     --tile-size: 5;
     --name-lines: 3;
     --name-height: calc(4.7em + var(--tile-size) * .4em + 1.2em * var(--name-lines));
@@ -551,7 +581,7 @@ button .label {
                     &:last-of-type { padding: 0; }
                     span { display: block; }
                     .icon.icon { font-size: calc(1.2rem + .6rem * var(--tile-size)); }
-                    img.icon {
+                    img.icon, video.icon {
                         width: auto;
                         height: 1em;
                         padding: 0.1em 0;
@@ -574,7 +604,7 @@ button .label {
                 padding: 0; margin: 0;
             }
             &:nth-of-type(odd) {
-                background-color: var(--bg); // to avoid checkerboard effect
+                background-color: inherit; // to avoid checkerboard effect
             }
             .entry-panel {
                 justify-content: center;
@@ -605,6 +635,15 @@ button .label {
                     padding-bottom: 0.3em;
                 }
             }
+            .entry-comment {
+                max-height: 1.2em;
+                overflow: hidden;
+                margin: 0;
+                &:hover {
+                    max-height: none;
+                    overflow: auto;
+                }
+            }
         }
     }
     .entry-size::after {
@@ -628,11 +667,44 @@ button .label {
     &>div {
         height: 100%;
         width: 100%;
+        @media (max-width: 30em) { // portrait mobile
+            flex-direction: column-reverse !important; // bar at the bottom, easier on the thumb
+        }
     }
-    .showing-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;}
+
+    .showing-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+    .meta-tags {
+        position: relative;
+        width: 100%;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        &>div { position: absolute;
+            margin: 1em;
+        }
+    }
     .showing {
-        max-width: calc(100% - var(--nav-size)*2); // avoid overlapping of controls and nav buttons
+        max-width: calc(100% - min(4vw, var(--nav-size)) * 2); // avoid overlapping of controls and nav buttons
         max-height: 100%;
+    }
+    .cover {
+        position: absolute;
+        width: 100%; height: 100%;
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: center;
+        z-index: -1; // otherwise firefox
+        opacity: .3;
+        transition: opacity 1s;
+        &.none { opacity: 0; }
     }
     audio.showing { min-width: 60%; }
     audio.showing, // even on mobile, we need the whole thing to control it decently, and nav-s don't seem to be a problem
@@ -660,19 +732,21 @@ button .label {
         user-select: none;
         transition: opacity .3s;
         &:hover { opacity: .7; }
-        &.nav-hidden { opacity: 0 }
+        &.nav-hidden:not(:hover) { opacity: 0 }
     }
     .bar {
-        padding: .5em 1em;
+        padding: .5em min(2vw, 1em);
         background: var(--bg);
         opacity: .8;
-        display: flex;
         flex-wrap: wrap;
-        align-items: center;
-        justify-content: flex-end;
-        gap: .5em 1.5em;
+        &,&>.controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: .5em;
+        }
 
-        .entry-details { font-size: smaller; }
+        .entry-details { font-size: smaller; margin-left: 1em; }
         .entry-ts { display: inherit; font-size: smaller; }
         .entry-size::after { display: none }
     }

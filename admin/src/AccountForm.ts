@@ -1,33 +1,35 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
-import { BoolField, Form, MultiSelectField } from '@hfs/mui-grid-form'
+import { BoolField, Form, MultiSelectField, NumberField } from '@hfs/mui-grid-form'
 import { Alert } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
-import { HTTP_NOT_ACCEPTABLE, isEqualLax, wantArray } from './misc'
-import { IconBtn, modifiedSx } from './mui'
+import { isEqualLax, useIsMobile, wantArray } from './misc'
+import { IconBtn, modifiedProps } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
-import { isMobile } from './misc'
 import { state, useSnapState } from './state'
 import VfsPathField from './VfsPathField'
+import { DateTimeField } from './DateTimeField'
 
 interface FormProps { account: Account, groups: string[], done: (username: string)=>void, reload: ()=>void, addToBar: ReactNode }
 export default function AccountForm({ account, done, groups, addToBar, reload }: FormProps) {
     const { username } = useSnapState()
     const [values, setValues] = useState<Account & { password?: string, password2?: string }>(account)
     const [belongsOptions, setBelongOptions] = useState<string[]>([])
+    const isMobile = useIsMobile()
     useEffect(() => {
         setValues(account)
         setBelongOptions(groups.filter(x => x !== account.username ))
-        if (!isMobile())
+        if (!isMobile)
             ref.current?.querySelector('input')?.focus()
     }, [JSON.stringify(account)]) //eslint-disable-line
     const add = !account.username
     const group = !values.hasPassword
     const ref = useRef<HTMLFormElement>()
+    const expired = Boolean(values.expire)
     return h(Form, {
         formRef:  ref,
         values,
@@ -78,12 +80,16 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     + (!group ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
-            { k: 'redirect', comp: VfsPathField,
-                helperText: "If you want this account to be redirected to a specific folder/address at login time" },
+            { k: 'expire', label: "Expiration", xs: true, comp: DateTimeField, toField: x => x && new Date(x),
+                helperText: "When expired, login won't be allowed" },
+            { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, disabled: expired, step: 'any', min: 1/1000, // 10 minutes
+                helperText: "Used to set expiration on first login" + (expired ? " (already expired)" : '') },
+            { k: 'redirect', comp: VfsPathField, onlyFolders: false, placeholder: "no",
+                helperText: "If you want this account to be redirected to a specific folder/address (or even file) at login time" },
         ],
         onError: alertDialog,
         save: {
-            sx: modifiedSx( !isEqualLax(values, account)),
+            ...modifiedProps( !isEqualLax(values, account)),
             async onClick() {
                 const { password='', password2, adminActualAccess, hasPassword, invalidated, ...withoutPassword } = values
                 if (add) {
@@ -91,7 +97,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     if (password)
                         try { await apiNewPassword(values.username, password) }
                         catch(e) {
-                            apiCall('del_account', { username: values.username }).then() // best effort, don't wait
+                            void apiCall('del_account', { username: values.username }) // best effort, don't wait
                             throw e
                         }
                     done(got?.username)
@@ -116,9 +122,5 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
 export async function apiNewPassword(username: string, password: string) {
     const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
     const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
-    return apiCall('change_srp_others', { username, salt: String(res.s), verifier: String(res.v) }).catch(e => {
-        if (e.code !== HTTP_NOT_ACCEPTABLE) // server doesn't support clear text authentication
-            throw e
-        return apiCall('change_password_others', { username, newPassword: password }) // unencrypted version
-    })
+    return apiCall('change_srp', { username, salt: String(res.s), verifier: String(res.v) })
 }

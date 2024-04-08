@@ -1,16 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from "lodash"
-import { createElement as h, useMemo, Fragment } from "react"
+import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { LinkOff, Lock, Block, FolderZip, Upload, Download } from '@mui/icons-material'
+import { LinkOff, Lock, Block, FolderZip, Upload, Download, ChevronRight, ChevronLeft } from '@mui/icons-material'
 import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_ } from "./misc"
-import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country } from './mui'
+import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp,
+    formatPerc, md } from "./misc"
+import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
-import { toast } from "./dialog"
 import { agentIcons } from './LogsPage'
 import { state, useSnapState } from './state'
 
@@ -21,25 +21,30 @@ export default function MonitorPage() {
     )
 }
 
-const isoDateRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
-
 function MoreInfo() {
     const { data: status, element } = useApiEx('get_status')
     const { data: connections } = useApiEvents('get_connection_stats')
     if (status && connections)
         Object.assign(status, connections)
+    const [allInfo, setAllInfo] = useState(false)
     const xl = useBreakpoint('xl')
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
+    const formatDuration = createDurationFormatter({ maxTokens: 2, skipZeroes: true })
     return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
-        xl && pair('started'),
-        xl && pair('http', { label: "HTTP", render: port }),
-        md && pair('https', { label: "HTTPS", render: port }),
-        sm && pair('connections'),
+        (allInfo || md) && pair('started', {
+            label: "Uptime",
+            render: x => formatDuration(Date.now() - +new Date(x)),
+            title: x => "Started: " + formatTimestamp(x),
+        }),
+        (allInfo || xl) && pair('http', { label: "HTTP", render: port }),
+        (allInfo || xl) && pair('https', { label: "HTTPS", render: port }),
+        (allInfo || sm) && pair('connections', { title: () => `${status.ips} IP(s)` }),
         pair('sent', { render: formatBytes, minWidth: '4em' }),
-        sm && pair('got', { render: formatBytes, minWidth: '4em' }),
+        (allInfo || sm) && pair('got', { render: formatBytes, minWidth: '4em' }),
         pair('outSpeed', { label: "Output speed", render: formatSpeedK }),
-        md && pair('inSpeed', { label: "Input speed", render: formatSpeedK }),
+        (allInfo || md) && pair('inSpeed', { label: "Input speed", render: formatSpeedK }),
+        !xl && h(IconBtn, { size: 'small', icon: allInfo ? ChevronLeft : ChevronRight, title: "Show more", onClick: () => setAllInfo(x => !x) }),
     )
 
     type Color = ChipProps['color']
@@ -48,15 +53,15 @@ function MoreInfo() {
         label?: string
         render?: Render
         minWidth?: StandardCSSProperties['minWidth']
+        title?: (v: any) => string
     }
 
-    function pair(k: string, { label, minWidth, render }: PairOptions={}) {
+    function pair(k: string, { label, minWidth, render, title }: PairOptions={}) {
         let v = _.get(status, k)
         if (v === undefined)
             return null
-        if (typeof v === 'string' && isoDateRe.test(v))
-            v = new Date(v).toLocaleString()
         let color: Color = undefined
+        const renderedTitle = title?.(v)
         if (render) {
             v = render(v)
             if (Array.isArray(v))
@@ -64,7 +69,7 @@ function MoreInfo() {
         }
         if (!label)
             label = _.capitalize(k.replaceAll('_', ' '))
-        return h(Chip, {
+        return hTooltip(renderedTitle, undefined, h(Chip, {
             variant: 'filled',
             color,
             label: h(Fragment, {},
@@ -72,7 +77,7 @@ function MoreInfo() {
                 ': ',
                 h('span', { style:{ display: 'inline-block', minWidth } }, v),
             ),
-        })
+        }) )
     }
 
     function port(v: any): ReturnType<Render> {
@@ -99,14 +104,12 @@ function Connections() {
                 onChange: v => state.monitorOnlyFiles = v,
                 options: { "Show only files": true, "Show all connections": false }
             }),
-
-            h(Box, { flex: 1 }),
-            pauseButton,
         ),
         h(DataTable, {
             error,
             rows,
             noRows: monitorOnlyFiles && "No downloads at the moment",
+            addToFooter: pauseButton,
             columns: [
                 {
                     field: 'ip',
@@ -149,7 +152,7 @@ function Connections() {
                                 icon: row.archive ? FolderZip : row.op === 'upload' ? Upload : Download,
                                 progress: row.opProgress ?? row.opOffset,
                                 offset: row.opOffset,
-                                addTitle: row.opTotal && ("Total: " + formatBytes(row.opTotal)),
+                                title: md(formatPerc(row.opProgress) + (row.opTotal ? "\nTotal: " + formatBytes(row.opTotal) : '')),
                                 sx: { mr: 1 }
                             }),
                             row.archive ? h(Box, {}, value, h(Box, { fontSize: 'x-small', color: 'text.secondary' }, row.archive))
@@ -197,8 +200,8 @@ function Connections() {
                 h(IconBtn, {
                     icon: LinkOff,
                     title: "Disconnect",
-                    onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port']))
-                        .then(() => toast("Disconnection requested")),
+                    doneMessage: true,
+                    onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])).then(x => x.result > 0)
                 }),
                 h(IconBtn, {
                     icon: Block,

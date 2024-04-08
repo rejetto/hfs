@@ -4,12 +4,11 @@ import { createElement as h, Fragment, useEffect, useMemo, useState } from 'reac
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { Dict, HTTP_MESSAGES, isCtrlKey, prefix  } from './misc';
-import { IconBtn, modifiedSx, reloadBtn, wikiLink } from './mui';
+import { Dict, HTTP_MESSAGES, isCtrlKey, prefix, md } from './misc';
+import { IconBtn, reloadBtn, wikiLink } from './mui';
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
-import md from './md'
 import { TextEditor } from './TextEditor';
 
 const names: any = {
@@ -46,7 +45,7 @@ export default function CustomHtmlPage() {
             h(IconBtn, {
                 icon: Save,
                 title: "Save\n(ctrl+enter)",
-                sx: modifiedSx(anyChange),
+                modified: anyChange,
                 onClick: save,
             }),
         ),
@@ -58,7 +57,7 @@ export default function CustomHtmlPage() {
             },
             onKeyDown(ev) {
                 if (['s','Enter'].includes(isCtrlKey(ev) as any)) {
-                    save().then()
+                    void save()
                     ev.preventDefault()
                 }
             },

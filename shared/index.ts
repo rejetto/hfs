@@ -2,18 +2,31 @@
 
 import _ from 'lodash'
 import { apiCall } from './api'
+import { DAY, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
 export * from './react'
 export * from './dialogs'
+export * from './md'
 export * from '../src/srp'
 export * from '../src/cross'
+// code in this file is shared among frontends, but not backend
 
-(window as any)._ = _
+;(window as any)._ = _
+
+// roughly 0.7 on m1 max
+export const cpuSpeedIndex = (() => {
+    let ms = performance.now()
+    _.range(1E5).map(x => ++x)
+    ms = performance.now() - ms
+    return 1 / ms
+})()
+
 
 const HFS = getHFS()
 Object.assign(HFS, {
     getPluginKey: () => getScriptAttr('plugin'),
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
+    cpuSpeedIndex,
 })
 
 function getScriptAttr(k: string) {
@@ -28,7 +41,8 @@ export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: Win
     return () => target.removeEventListener(eventName, cb)
 }
 
-export function restartAnimation(e: HTMLElement, animation: string) {
+export function restartAnimation(e: HTMLElement | null, animation: string) {
+    if (!e) return
     e.style.animation = ''
     void e.offsetWidth
     e.style.animation = animation
@@ -68,7 +82,7 @@ export function isMobile() {
 }
 
 export function getHFS() {
-    return (window as any).HFS
+    return (window as any).HFS ||= {}
 }
 
 export function getPrefixUrl() {
@@ -79,7 +93,7 @@ export function makeSessionRefresher(state: any) {
     return function sessionRefresher(response: any) {
         if (!response) return
         const { exp } = response
-        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword']))
+        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword', 'accountExp']))
         if (!response.username || !exp) return
         const delta = new Date(exp).getTime() - Date.now()
         const t = _.clamp(delta - 30_000, 4_000, 600_000)
@@ -88,7 +102,7 @@ export function makeSessionRefresher(state: any) {
     }
 }
 
-export function focusSelector(selector: string, root=document) {
+export function focusSelector(selector: string, root: HTMLElement | Document=document) {
     const res = root.querySelector(selector)
     if (res && res instanceof HTMLElement) {
         res.focus()
@@ -99,4 +113,34 @@ export function focusSelector(selector: string, root=document) {
 export function disableConsoleDebug() {
     const was = console.debug
     console.debug = (...args) => (window as any).DEV && was(...args)
+}
+
+type DurationUnit = 'day' | 'hour' | 'minute' | 'second'
+export function createDurationFormatter({ locale=undefined, unitDisplay='narrow', largest='day', smallest='second', maxTokens, skipZeroes }:
+            { skipZeroes?: boolean, largest?: DurationUnit, smallest?: DurationUnit, locale?: string, unitDisplay?: 'long' | 'short' | 'narrow', maxTokens?: 1 | 2 | 3 }={}) {
+    const multipliers: Record<DurationUnit, number> = { day: DAY, hour: HOUR, minute: MINUTE, second: 1000 }
+    const fmt = objSameKeys(multipliers, (v,k) => Intl.NumberFormat(locale, { style: 'unit', unit: k, unitDisplay }).format)
+    const fmtList = new Intl.ListFormat(locale, { style: 'narrow', type: 'unit' })
+    return (ms: number) => {
+        const a = []
+        let on = false
+        for (const [unit, mul] of typedEntries(multipliers)) {
+            if (unit === smallest && a.length)
+                break
+            if (unit === largest)
+                on = true
+            if (!on) continue
+            const v = Math.floor(ms / mul)
+            if (!v && skipZeroes) continue
+            a.push( fmt[unit]?.(v) ?? String(v) )
+            if (a.length === maxTokens) break
+            ms %= mul
+        }
+        return fmtList.format(a)
+    }
+}
+
+Element.prototype.replaceChildren ||= function(this:Element, addNodes) { // polyfill
+    while (this.lastChild) this.removeChild(this.lastChild);
+    if (addNodes !== undefined) this.append(addNodes);
 }

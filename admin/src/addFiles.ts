@@ -13,7 +13,7 @@ let lastFolder: undefined | string
 export default function addFiles() {
     const { close } = newDialog({
         title: "Add files or folders",
-        dialogProps: { sx:{ minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
+        dialogProps: { sx:{ alignItems: 'stretch', minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' } },
         Content() {
             const parent = getFolderFromSelected()
             return h(Fragment, {},
@@ -52,8 +52,8 @@ export async function addVirtual() {
         if (!name) return
         const { id: parent } = getFolderFromSelected()
         const res = await apiCall('add_vfs', { parent, name })
-        reloadVfs([ parent + encodeURI(res.name) + '/' ])
         await alertDialog(`Folder "${res.name}" created`, 'success')
+        reloadVfs([ parent + encodeURI(res.name) + '/' ])
     }
     catch(e) {
         await alertDialog(e as Error)

@@ -1,13 +1,14 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties } from 'react'
-import { Checkbox, Flex, FlexV, iconBtn } from './components'
-import { basename, closeDialog, formatBytes, formatPerc, hIcon, isMobile, newDialog, prefix, selectFiles, working,
-    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed
+import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties, useState, useEffect } from 'react'
+import { Flex, FlexV, iconBtn, Select } from './components'
+import {
+    basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
+    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_, cpuSpeedIndex
 } from './misc'
 import _ from 'lodash'
 import { proxy, ref, subscribe, useSnapshot } from 'valtio'
-import { alertDialog, confirmDialog, promptDialog } from './dialog'
+import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall, getNotification } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
@@ -15,11 +16,14 @@ import { Link } from 'react-router-dom'
 import { t } from './i18n'
 import { subscribeKey } from 'valtio/utils'
 
-interface ToUpload { file: File, comment?: string }
+const renameEnabled = getHFS().dontOverwriteUploading
+
+interface ToUpload { file: File, comment?: string, name?: string }
 export const uploadState = proxy<{
     done: number
     doneByte: number
     errors: number
+    skipped: number
     adding: ToUpload[]
     qs: { to: string, entries: ToUpload[] }[]
     paused: boolean
@@ -28,7 +32,7 @@ export const uploadState = proxy<{
     partial: number // relative to uploading file. This is how much we have done of the current queue.
     speed: number
     eta: number
-    skipExisting: boolean
+    policyForExisting: 'skip' | 'overwrite' | 'rename'
 }>({
     eta: 0,
     speed: 0,
@@ -37,10 +41,11 @@ export const uploadState = proxy<{
     paused: false,
     qs: [],
     adding: [],
+    skipped: 0,
     errors: 0,
     doneByte: 0,
     done: 0,
-    skipExisting: false,
+    policyForExisting: renameEnabled ? 'rename' : 'skip'
 })
 
 // keep track of speed
@@ -75,6 +80,7 @@ function resetCounters() {
         errors: 0,
         done: 0,
         doneByte: 0,
+        skipped: 0,
     })
 }
 
@@ -100,35 +106,46 @@ export function showUpload() {
     }
 
     function Content(){
-        const { qs, paused, eta, speed, skipExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
+        const { qs, paused, eta, speed, policyForExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
         const { props } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
         const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
+        const isMobile = useIsMobile()
 
         return h(FlexV, { gap: '.5em', props: acceptDropFiles(more => uploadState.adding.push(...more.map(f => ({ file: ref(f) })))) },
             h(FlexV, { className: 'upload-toolbar' },
                 !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
-                        h(Flex, { center: true, flexWrap: 'wrap' },
+                        h(Flex, { center: true, flexWrap: 'wrap', alignItems: 'stretch' },
                             h('button', {
                                 className: 'upload-files',
                                 onClick: () => pickFiles({ accept: normalizeAccept(props?.accept) })
                             }, t`Pick files`),
-                            !isMobile() && h('button', {
+                            !isMobile && h('button', {
                                 className: 'upload-folder',
                                 onClick: () => pickFiles({ folder: true })
                             }, t`Pick folder`),
                             h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
-                            h(Checkbox, { value: skipExisting, onChange: v => uploadState.skipExisting = v }, t`Skip existing files`),
+                            h(Select<typeof policyForExisting>, {
+                                style: { width: 'unset' },
+                                'aria-label': t`Overwrite policy`,
+                                value: policyForExisting || '',
+                                onChange: v => uploadState.policyForExisting = v,
+                                options: onlyTruthy([
+                                    { value: 'skip', label: t`Skip existing files` },
+                                    renameEnabled && { value: 'rename', label: t`Rename to avoid overwriting` },
+                                    props?.can_overwrite && { value: 'overwrite', label: t`Overwrite existing files` },
+                                ])
+                            }),
                         ),
-                        !isMobile() && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files doing drag&drop on the files list")),
+                        !isMobile && h(Flex, { gap: 4 }, hIcon('info'), t('upload_dd_hint', "You can upload files doing drag&drop on the files list")),
                         adding.length > 0 && h(Flex, { center: true, flexWrap: 'wrap' },
                             h('button', {
                                 className: 'upload-send',
                                 onClick() {
-                                    enqueue(uploadState.adding).then()
+                                    void enqueue(uploadState.adding)
                                     clear()
                                 }
                             }, t('send_files', { n: adding.length, size }, "Send {n,plural,one{# file} other{# files}}, {size}")),
@@ -137,12 +154,20 @@ export function showUpload() {
                     ),
             ),
             h(FilesList, {
-                entries: adding,
+                entries: uploadState.adding,
                 actions: {
-                    delete: rec => _.remove(uploadState.adding, { file: rec.file }),
-                    comment: !props?.can_comment ? null
-                        : (rec => inputComment(basename(rec.file.name), rec.comment)
-                            .then(s => _.find(uploadState.adding, { file: rec.file })!.comment = s || undefined)),
+                    delete: rec => _.remove(uploadState.adding, rec),
+                    async comment(rec){
+                        if (!props?.can_comment) return
+                        const s = await inputComment(basename(rec.file.name), rec.comment)
+                        if (s === undefined) return
+                        rec.comment = s || undefined
+                    },
+                    async edit(rec) {
+                        const s = await promptDialog(t('upload_name', "Upload with new name"), { def: rec.file.name })
+                        if (!s) return
+                        rec.name = s
+                    },
                 },
             }),
             h(UploadStatus, { margin: '.5em 0' }),
@@ -165,7 +190,7 @@ export function showUpload() {
                     h('div', { key: q.to },
                         h(Link, { to: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
                         h(FilesList, {
-                            entries: Array.from(q.entries),
+                            entries: uploadState.qs[idx].entries,
                             actions: {
                                 delete: f => {
                                     if (f === uploadState.uploading)
@@ -194,24 +219,32 @@ function path(f: File) {
     return (f.webkitRelativePath || f.name).replaceAll('//','/')
 }
 
-function FilesList({ entries, actions }: { entries: Readonly<ToUpload[]>, actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
+function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
     const { uploading, progress }  = useSnapshot(uploadState)
-    return !entries.length ? null : h('table', { className: 'upload-list', width: '100%' },
+    const snapEntries = useSnapshot(entries)
+    const [all, setAll] = useState(false)
+    useEffect(() => setAll(false), [entries.length])
+    const MAX = all ? Infinity : _.round(_.clamp(100 * cpuSpeedIndex, 10, 100))
+    const rest = Math.max(0, snapEntries.length - MAX)
+    return !snapEntries.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
-            entries.map((e, i) => {
+            snapEntries.slice(0, MAX).map((e, i) => {
                 const working = e === uploading
                 return h(Fragment, { key: i },
                     h('tr', {},
-                        h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) => cb && iconBtn(icon, () => cb(e))) ),
+                        h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) =>
+                            cb && iconBtn(icon, () => cb(entries[i]), { className: `action-${icon}` })) ),
                         h('td', {}, formatBytes(e.file.size)),
-                        h('td', { className: working ? 'ani-working' : undefined },
-                            path(e.file),
-                            working && h('span', { className: 'upload-progress' }, formatPerc(progress))
+                        h('td', {},
+                            h('span', { className: working ? 'ani-working' : undefined }, e.name || path(entries[i].file)),
+                            working && h('span', { className: 'upload-progress' }, formatPerc(progress)),
+                            working && h('progress', { className: 'upload-progress-bar', value: progress, max: 1 }),
                         ),
                     ),
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
                 )
-            })
+            }),
+            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h('a', { href: '#', onClick: () => setAll(true) }, t('more_items', { rest }, "{rest} more items"))))
         )
     )
 }
@@ -237,7 +270,7 @@ subscribe(uploadState, () => {
         return
     }
     if (cur?.entries.length && !uploadState.uploading && !uploadState.paused)
-        startUpload(cur.entries[0], cur.to).then()
+        void startUpload(cur.entries[0], cur.to)
 })
 
 export async function enqueue(entries: ToUpload[]) {
@@ -283,11 +316,12 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (req?.readyState !== 4) return
         const status = overrideStatus || req.status
         closeLast?.()
-        if (status && status !== HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
-            if (status >= 400)
-                error(status)
-            else
-                done()
+        if (!status || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
+            uploadState.skipped++
+        else if (status >= 400)
+            error(status)
+        else
+            done()
         if (!resuming)
             next()
     }
@@ -299,11 +333,14 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         bytesSent += e.loaded - lastProgress
         lastProgress = e.loaded
     }
-    req.open('PUT', to + encodeURIComponent(path(toUpload.file)) + '?' + new URLSearchParams({
+    let uploadPath = path(toUpload.file)
+    if (toUpload.name)
+        uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
+    req.open('PUT', to + encodeURIComponent(uploadPath) + '?' + new URLSearchParams({
         notificationChannel,
         ...resume && { resume: String(resume) },
         ...toUpload.comment && { comment: toUpload.comment },
-        ...uploadState.skipExisting && { skipExisting: '1' },
+        ...with_(uploadState.policyForExisting, x => x !== 'rename' && { existing: x }), // rename is the default
     }), true)
     req.send(toUpload.file.slice(resume))
 
@@ -314,7 +351,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             const {uploading} = uploadState
             if (!uploading) return
             if (name === 'upload.resumable') {
-                const size = data?.[path(uploading.file)]
+                const size = data?.[path(uploading.file)] //TODO use toUpload?
                 if (!size || size > toUpload.file.size) return
                 const {expires} = data
                 const timeout = typeof expires !== 'number' ? 0
@@ -370,22 +407,19 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (qs.length) return
         setTimeout(reloadList, 500) // workaround: reloading too quickly can meet the new file still with its temp name
         reloadOnClose = false
+        const msg = h('div', {}, t(['upload_concluded', "Upload terminated"], "Upload concluded:"), h(UploadStatus) )
         if (!uploadDialogIsOpen)
-            alertDialog(
-                h('div', {},
-                    t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
-                    h(UploadStatus)
-                ),
-                'info'
-            ).finally(resetCounters)
+            (uploadState.errors || uploadState.skipped ? alertDialog(msg, 'info') : toast(msg, 'success').closed)
+                .finally(resetCounters)
     }
 }
 
 function UploadStatus(props: CSSProperties) {
-    const { done, doneByte, errors } = useSnapshot(uploadState)
+    const { done, doneByte, errors, skipped } = useSnapshot(uploadState)
     const s = [
         done && t('upload_finished', { n: done, size: formatBytes(doneByte) }, "{n} finished ({size})"),
-        errors && t('upload_errors', { n: errors }, "{n} failed")
+        skipped && t('upload_skipped', { n: skipped }, "{n} skipped"),
+        errors && t('upload_errors', { n: errors }, "{n} failed"),
     ].filter(Boolean).join(' – ')
     return !s ? null : h('div', { style: props }, s)
 }
@@ -414,10 +448,10 @@ async function createFolder() {
     try {
         await apiCall('create_folder', { uri, name }, { modal: working })
         reloadList()
-        return alertDialog(h(() =>
+        await alertDialog(h(() =>
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
-                h(Link, { to: uri + name + '/', onClick() {
+                h(Link, { to: uri + name + '/', onClickCapture() { // "capture" because dialogs must be closed (popping from history) before we push a new state in the history
                     closeDialog()
                     closeDialog()
                 } }, t('enter_folder', "Enter the folder")),
@@ -429,5 +463,5 @@ async function createFolder() {
 }
 
 export function inputComment(filename: string, def?: string) {
-    return promptDialog(t('enter_comment', "Comment for " + filename), { def, type: 'textarea' })
+    return promptDialog(t('enter_comment', { name: filename }, "Comment for {name}"), { def, type: 'textarea' })
 }

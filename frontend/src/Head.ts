@@ -20,7 +20,7 @@ export function Head() {
 }
 
 function FolderStats() {
-    const { list, loading, stoppedSearch } = useSnapState()
+    const { list, loading, searchManuallyInterrupted } = useSnapState()
     const { files, folders, size } = useMemo(() => {
         let files = 0, folders = 0, size = 0
         for (const { isFolder, s } of list) {
@@ -35,7 +35,7 @@ function FolderStats() {
     const { t } = useI18N()
     return h(Fragment, {},
         h('div', { id:'folder-stats' },
-            stoppedSearch ? hIcon('interrupted', { title: t`Search was interrupted` })
+            searchManuallyInterrupted ? hIcon('interrupted', { title: t`Search was interrupted` })
                 : list.length>0 && loading && h(Spinner),
             [
                 files && t('n_files', { n: files }, '{n,plural,one{# file} other{# files}}'),

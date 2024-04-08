@@ -1,14 +1,13 @@
-import { createElement as h, ReactNode, useEffect, useMemo, useState } from 'react'
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link } from '@mui/material'
-import { CardMembership, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
-    SvgIconComponent } from '@mui/icons-material'
-import { apiCall, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG,
-    useRequestRender } from './misc'
+import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography } from '@mui/material'
+import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
+    Error as ErrorIcon, SvgIconComponent } from '@mui/icons-material'
+import { apiCall, useApiEvents, useApiEx } from './api'
+import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
+    useRequestRender, replace, restartAnimation, prefix } from './misc'
 import { Flex, LinkBtn, Btn, Country } from './mui'
-import { alertDialog, confirmDialog, promptDialog, toast, waitDialog } from './dialog'
+import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
-import md from './md'
 import { suggestMakingCert } from './OptionsPage'
 import { changeBaseUrl } from './FileForm'
 import { getNatInfo } from '../../src/nat'
@@ -16,6 +15,7 @@ import { ALL, WITH_IP } from './countries'
 import _ from 'lodash'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import { ConfigForm } from './ConfigForm'
+import { DynamicDnsResult } from '../../src/ddns'
 
 const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
@@ -40,7 +40,7 @@ export default function InternetPage() {
     const verifyAgain = useRequestRender()
     useEffect(() => {
         if (verifyAgain.state) // skip first
-            verify(true).then()
+            void verify(true)
     }, [verifyAgain.state])
     return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
         h(Alert, { severity: 'info' }, "This page makes sure your site is working correctly on the Internet"),
@@ -48,7 +48,63 @@ export default function InternetPage() {
         networkBox(),
         httpsBox(),
         geoBox(),
+        ddnsBox(),
     )
+
+    function stripTags(html: string) {
+        return html.replace(/.+<body>(.+)<\/body>.+/is, (all,x) => x || all) // extract body, if any
+            .replace(/<[^>]+>/g, ' ')
+    }
+
+    function ddnsBox() {
+        const { data } = useApiEvents<DynamicDnsResult>('get_dynamic_dns_error')
+        const ref = useRef<any>()
+        useEffect(() => ref.current && restartAnimation(ref.current, '1s blink'), [data]);
+        return h(TitleCard, { icon: Dns, title: "Dynamic DNS updater" },
+            data && h(Flex, {},
+                data.error ? h(ErrorIcon, { color: 'error', ref }) : h(Check, { color: 'success', ref }),
+                formatTimestamp(data.ts), ' – ',
+                prefix("Error: ", stripTags(data.error)) || "Updated successfully",
+            ),
+            "This tool can keep your domain updated with your latest IP address. Not every service is compatible, and most of them have their own software for the job, which is superior, but we offer this lightweight solution in case you are more keen to it.",
+            h(ConfigForm<{
+                [CFG.dynamic_dns_url]: string,
+            }>, {
+                keys: [CFG.dynamic_dns_url],
+                form: (v, { setValues }) => ({
+                    fields: [
+                        h(Flex, {},
+                            _.map({
+                                NoIP: {
+                                    url: 'https://$username:$password@dynupdate.no-ip.com/nic/update?hostname=$domain',
+                                    fields: ['username', 'password', 'domain'],
+                                },
+                                DuckDNS: {
+                                    url: 'https://www.duckdns.org/update/$domain/$token>OK',
+                                    fields: [{ k: 'domain', helperText: "do NOT include the .duckdns.org part" }, 'token'],
+                                }
+                            }, ({ url, fields }, label) =>
+                                h(Btn, {
+                                    key: url,
+                                    onClick: () => formDialog({
+                                        title: label + " wizard",
+                                        form: {
+                                            maxWidth: '20em',
+                                            before: h(Box, { mb: 1 }, "Following information is stored non-encrypted"),
+                                            fields: fields.map(k => _.isString(k) ? { k } : k)
+                                        }
+                                    }).then(symbols => symbols && setValues({ [CFG.dynamic_dns_url]: replace(url, symbols as any, '$') }))
+                                }, label + " wizard")
+                            )
+                        ),
+                        { k: CFG.dynamic_dns_url, label: "Updater URL",
+                            helperText: "Refer to your DNS service provider to know what URL can automatically keep your domain updated. Supported symbols are $IP4, $IP6, $IPX. Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used."
+                        },
+                    ]
+                })
+            })
+        )
+    }
 
     function geoBox() {
         const countryOptions = useMemo(() => _.sortBy(COUNTRIES, 'name').map(x => ({
@@ -76,6 +132,7 @@ export default function InternetPage() {
                             k: CFG.geo_list,
                             comp: MultiSelectField<string>,
                             label: `Selected countries (${values[CFG.geo_list]?.length || 0})`,
+                            valueSeparator: false,
                             placeholder: "none",
                             options: countryOptions,
                             renderOption: (v: any) => h(Country, { code: v.value, long: true }),
@@ -86,6 +143,7 @@ export default function InternetPage() {
                             k: CFG.geo_allow_unknown,
                             comp: SelectField,
                             label: "When country cannot be determined",
+                            helperText: "Local IPs are ignored",
                             options: { Allow: true, Block: false },
                         },
                     ]
@@ -127,9 +185,20 @@ export default function InternetPage() {
                 },
                 fields: [
                     md("Generate certificate using [Let's Encrypt](https://letsencrypt.org)"),
-                    { k: 'acme_domain', label: "Domain for certificate", sm: 6, required: true, helperText: md("Example: your.domain.com\nMultiple domains separated by commas") },
-                    { k: 'acme_email', label: "E-mail for certificate", sm: 6 },
-                    { k: 'acme_renew', label: "Automatic renew one month before expiration", comp: BoolField, disabled: !values.acme_domain },
+                    {
+                        k: 'acme_domain',
+                        label: "Domain for certificate",
+                        sm: values.acme_domain?.length > 30 ? 12 : 6,
+                        required: true,
+                        helperText: md("Example: your.domain.com\nMultiple domains separated by commas")
+                    },
+                    { k: 'acme_email', label: "E-mail for certificate", sm: true },
+                    {
+                        k: 'acme_renew',
+                        label: "Automatic renew one month before expiration",
+                        comp: BoolField,
+                        disabled: !values.acme_domain
+                    },
                 ],
                 save: {
                     children: "Request",
@@ -178,7 +247,8 @@ export default function InternetPage() {
                     h(Btn, {
                         size: 'small',
                         variant: 'outlined',
-                        onClick: () => void(changeBaseUrl().then(config.reload))
+                        'aria-label': "Change address",
+                        onClick: () => void changeBaseUrl().then(config.reload)
                     }, "Change"),
                     domain && h(Btn, {
                         size: 'small',
@@ -193,7 +263,10 @@ export default function InternetPage() {
                 saveOnChange: true,
                 form: {
                     fields: [
-                        { k: 'force_base_url', comp: BoolField, label: "Accept requests only using domain (and localhost)" }
+                        { k: 'force_base_url', comp: BoolField, disabled: !url,
+                            label: "Accept requests only using domain (and localhost)",
+                            helperText: !url && "You must specify an address, for this option"
+                        }
                     ]
                 },
             })
@@ -203,12 +276,12 @@ export default function InternetPage() {
     function networkBox() {
         if (nat.error) return nat.element
         if (!data) return h(CircularProgress)
-        const direct = data?.publicIps.includes(data?.localIp)
+        const direct = data?.publicIps.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
             }),
-            !direct && h(Sep),
+            !direct && h(DataLine),
             !direct && h(Device, {
                 name: "Router", icon: RouterTwoTone, ip: data?.gatewayIp,
                 color: data?.mapped && (wrongMap ? 'warning' : 'success'),
@@ -216,7 +289,7 @@ export default function InternetPage() {
                     : h(LinkBtn, { fontSize: 'smaller', display: 'block', onClick: configure },
                         "port ", wrongMap ? 'is wrong' : data?.externalPort || "unknown"),
             }),
-            h(Sep),
+            h(DataLine),
             h(Device, { name: "Internet", icon: PublicTwoTone, ip: data?.publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
                 below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller' },
@@ -337,7 +410,7 @@ export default function InternetPage() {
     }
 }
 
-function Sep() {
+function DataLine() {
     return h(Box, { flex: 1, className: 'animated-dashed-line' })
 }
 
@@ -353,7 +426,7 @@ function Device({ name, icon, color, ip, below }: any) {
 
 function TitleCard({ title, icon, color, children }: { title: ReactNode, icon?: SvgIconComponent, color?: SvgIconProps['color'], children?: ReactNode }) {
     return h(Card, {}, h(CardContent, {}, h(Flex, { vert: true },
-        h(Box, { fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
+        h(Typography, { variant: 'h3', fontSize: 'x-large' }, icon && h(icon, { color, sx: { mr: 1, mb: '2px' } }), title),
         children
     )))
 }

@@ -3,19 +3,20 @@
 import { Link } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
-import { useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix } from './misc'
-import { Checkbox, CustomCode, Spinner } from './components'
+import { useMediaQuery, useWindowSize } from 'usehooks-ts'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac } from './misc'
+import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
-import { loginDialog, useAuthorized } from './login'
+import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
+import { fileShow } from './show'
 
 export const MISSING_PERM = "Missing permission"
 
@@ -23,17 +24,15 @@ export function BrowseFiles() {
     useFetchList()
     const { error } = useSnapState()
     const { props, tile_size=0 } = useSnapState()
-    const propsDropFiles = useMemo(() => acceptDropFiles(files =>
-        props?.can_upload ? enqueue(files.map(file => ({ file })))
-            : alertDialog(t("Upload not available"), 'warning') ),
-        [props])
+    const propsDropFiles = useMemo(() => ({
+        id: 'files-dropper',
+        ...acceptDropFiles(files =>
+            props?.can_upload ? enqueue(files.map(file => ({ file })))
+                : alertDialog(t("Upload not available"), 'warning')
+        ),
+    }), [props])
     if (!useAuthorized())
-        return h(CustomCode, { name: 'unauthorized',
-            ifEmpty: () => h('h1', {
-                className: 'unauthorized',
-                onClick: () => loginDialog()
-            }, t`Unauthorized`)
-        })
+        return h(CustomCode, { name: 'unauthorized' }, h('h1', { className: 'unauthorized' }, t`Unauthorized`) )
     return h('div', propsDropFiles, // element dedicated to drop-files to cover full screen
         h('div', {
             className: 'list-wrapper ' + (tile_size ? 'tiles-mode' : 'list-mode'),
@@ -42,6 +41,7 @@ export function BrowseFiles() {
             h(CustomCode, { name: 'beforeHeader' }),
             h(Head),
             h(CustomCode, { name: 'afterHeader' }),
+            props?.comment && h('div', { className: 'entry-comment' }, props.comment),
             error ? h(ErrorMsg, { err: error }) : h(FilesList),
             h(CustomCode, { name: 'afterList' }),
             h(ClipBar),
@@ -50,7 +50,7 @@ export function BrowseFiles() {
 }
 
 function FilesList() {
-    const { filteredList, list, loading, stoppedSearch } = useSnapState()
+    const { filteredList, list, loading, searchManuallyInterrupted } = useSnapState()
     const midnight = useMidnight() // as an optimization we calculate this only once per list and pass it down
     const pageSize = 100
     const [page, setPage] = useState(0)
@@ -62,7 +62,7 @@ function FilesList() {
     const total = theList.length
     const nPages = Math.ceil(total / pageSize)
 
-    useEffect(() => setPage(0), [theList])
+    useEffect(() => setPage(0), [theList[0]])
     useEffect(() => {
         document.scrollingElement?.scrollTo(0, 0)
         setExtraPages(0)
@@ -105,7 +105,7 @@ function FilesList() {
 
     const {t} = useI18N()
 
-    const msgInstead = !list.length ? (!loading && (stoppedSearch ? t('stopped_before', "Stopped before finding anything") : t('empty_list', "Nothing here")))
+    const msgInstead = !list.length ? (!loading && (searchManuallyInterrupted ? t('stopped_before', "Stopped before finding anything") : t('empty_list', "Nothing here")))
         : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
 
     return h(Fragment, {},
@@ -149,6 +149,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
     const to = from + 10
     return h('div', { id: 'paging' },
         h('button', {
+            title: t('go_first', "Go to first item"),
             className: !current ? 'toggled' : undefined,
             onClick() { pageChange(0) },
         }, hIcon('to_start')),
@@ -162,6 +163,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
                     }, shrink && !(i%10) ? (i/10) + 'K' : i * pageSize) )
         ),
         h('button', {
+            title: t('go_last', "Go to last item"),
             className: atBottom ? 'toggled' : undefined,
             onClick(){ pageChange(nPages-1, true) }
         }, hIcon('to_end')),
@@ -187,7 +189,7 @@ export function useMidnight() {
 const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
-const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
+const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
@@ -200,54 +202,54 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = getEntryIcon(entry)
     const onClick = !isLink && !entry.web && file_menu_on_link && fileMenu || undefined
-    const small = useWindowSize().width < 800
-    const showingButton = !file_menu_on_link || isFolder && small
+    const hasHover = useMediaQuery('(hover: hover)')
+    const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
-    const ariaProps = { id: ariaId, 'aria-label': prefix(name + ' (', isFolder ? "Folder" : entry.web ? "Web page" : isLink ? "Link" : '', ')') }
+    const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
     return h('li', { className, label: separator },
-        h(CustomCode, {
-            name: 'entry',
-            props: { entry },
-            ifEmpty: () => h(Fragment, {},
-                showFilter && h(Checkbox, {
-                    disabled: isLink,
-                    'aria-labelledby': ariaId,
-                    value: selected[uri],
-                    onChange(v) {
-                        if (v)
-                            return state.selected[uri] = true
-                        delete state.selected[uri]
-                    },
-                }),
-                h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                    ...isFolder || entry.web ? [ // internal navigation, use Link component
-                        h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
-                            ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
-                        // popup button is here to be able to detect link-wrapper:hover
-                        file_menu_on_link && !showingButton && h('button', {
-                            className: 'popup-menu-button',
-                            onClick: fileMenu
-                        }, hIcon('menu'), t`Menu`)
-                    ] : containerName ? [
-                        h('a', { href: uri, onClick, tabIndex: -1 }, ico),
-                        h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
-                        h('a', { href: uri, onClick, ...ariaProps }, name)
-                    ] : [h('a', { href: uri, onClick, ...ariaProps }, ico, name)],
-                ),
-                h(CustomCode, { name: 'afterEntryName', props: { entry } }),
-                entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
-                h('div', { className: 'entry-panel' },
-                    h(EntryDetails, { entry, midnight }),
-                    showingButton && h('button', { className: 'file-menu-button', onClick: fileMenu }, hIcon('menu')),
-                ),
-                h('div'),
-            )
-        }),
+        h(CustomCode, { name: 'entry', entry },
+            showFilter && h(Checkbox, {
+                disabled: isLink,
+                'aria-labelledby': ariaId,
+                value: selected[uri],
+                onChange(v) {
+                    if (v)
+                        return state.selected[uri] = true
+                    delete state.selected[uri]
+                },
+            }),
+            h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
+                ...isFolder || entry.web ? [ // internal navigation, use Link component
+                    h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                        ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
+                    // popup button is here to be able to detect link-wrapper:hover
+                    file_menu_on_link && !showingButton && h('button', {
+                        className: 'popup-menu-button',
+                        onClick: fileMenu
+                    }, hIcon('menu'), t`Menu`)
+                ] : containerName ? [
+                    h('a', { href: uri, onClick, tabIndex: -1, 'aria-hidden': true }, ico),
+                    h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
+                    h('a', { href: uri, onClick, ...ariaProps }, name)
+                ] : [h('a', { href: uri, onClick, ...ariaProps }, ico, name)],
+            ),
+            h(CustomCode, { name: 'afterEntryName', entry }),
+            entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
+            h('div', { className: 'entry-panel' },
+                h(EntryDetails, { entry, midnight }),
+                showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
+            ),
+            h('div'),
+        ),
     )
 
     function fileMenu(ev: MouseEvent) {
-        if (ev.altKey || ev.ctrlKey || ev.metaKey) return
+        // meta on link is standard on mac to open in new tab, while we use it on Windows where it is the only key that's not used on links
+        if (ev.altKey || ev.ctrlKey || isMac && ev.metaKey) return
         ev.preventDefault()
+        const special = isMac ? ev.shiftKey : ev.metaKey
+        if (special)
+            return fileShow(entry, { startPlaying: true })
         openFileMenu(entry, ev, onlyTruthy([
             file_menu_on_link && 'open',
             'delete',
@@ -255,14 +257,10 @@ const Entry = memo(({ entry, midnight, separator }: EntryProps) => {
         ]))
     }
 
-})
+}
 
 export function getEntryIcon(entry: DirEntry) {
-    return h(CustomCode, {
-        name: 'entryIcon',
-        props: { entry },
-        ifEmpty: () => entry.getDefaultIcon()
-    })
+    return h(CustomCode, { name: 'entryIcon', entry }, entry.getDefaultIcon())
 }
 
 export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
@@ -272,7 +270,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
     const {t} = useI18N()
     const dd = '2-digit'
     return h('div', { className: 'entry-details' },
-        h(CustomCode, { name: 'additionalEntryDetails', props: { entry } }),
+        h(CustomCode, { name: 'additionalEntryDetails', entry }),
         entry.p?.match(entry.isFolder ? /l/i : /r/i) && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),
         time && h('span', {
@@ -280,7 +278,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
             'aria-hidden': true,
             onClick() { // mobile has no hover
                 if (shortTs)
-                    alertDialog(t`Full timestamp:` + "\n" + time.toLocaleString()).then()
+                    void alertDialog(t`Full timestamp:` + "\n" + time.toLocaleString())
             }
         }, time.toLocaleString(navigator.language, {
             ...!shortTs || !today ? { year: shortTs ? dd : 'numeric', month: dd, day: dd } : null,

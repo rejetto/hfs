@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, removeStarting } from './misc'
+import { asyncGeneratorToReadable, CFG, Promisable, removeStarting } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND } from './const'
 import { defineConfig } from './config'
 
@@ -12,11 +12,11 @@ export class ApiError extends Error {
         super(typeof message === 'string' ? message : message && message instanceof Error ? message.message : JSON.stringify(message))
     }
 }
-type ApiHandlerResult = Record<string,any> | ApiError | Readable | AsyncGenerator<any>
-export type ApiHandler = (params:any, ctx:Koa.Context) => ApiHandlerResult | Promise<ApiHandlerResult>
+type ApiHandlerResult = Record<string,any> | ApiError | Readable | AsyncGenerator<any> | null
+export type ApiHandler = (params:any, ctx:Koa.Context) => Promisable<ApiHandlerResult>
 export type ApiHandlers = Record<string, ApiHandler>
 
-const logApi = defineConfig('log_api', true)
+const logApi = defineConfig(CFG.log_api, true)
 
 export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
     return async (ctx) => {
@@ -44,12 +44,17 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
                         else if (typeof (v as any)?.[0] === 'string')
                             (v as string[]).forEach((x,i) => fixUri(v,i))
             res = await apiFun(params, ctx)
+            if (res === null) return
 
             function fixUri(obj: any, k: string | number) {
                 obj[k] = removeStarting(ctx.state.revProxyPath, obj[k])
             }
         }
         catch(e) {
+            if (typeof e === 'string') // message meant to be transmitted
+                return send(HTTP_BAD_REQUEST, e)
+            if (typeof e === 'number')
+                e = new ApiError(e)
             res = e
         }
         if (isAsyncGenerator(res))

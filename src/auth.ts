@@ -1,9 +1,10 @@
-import { Account, getAccount, normalizeUsername } from './perm'
+import { Account, getAccount, normalizeUsername, updateAccount } from './perm'
 import { HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
 import { SRPParameters, SRPRoutines, SRPServerSession } from 'tssrp6a'
 import { Context } from 'koa'
-import { prepareState } from './middlewares'
 import { srpClientPart } from './srp'
+import { DAY, getOrSet } from './cross'
+import { createHash } from 'node:crypto'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
@@ -18,12 +19,18 @@ export async function srpStep1(account: Account) {
     return { step1, salt, pubKey: String(step1.B) } // cast to string cause bigint can't be jsonized
 }
 
+const cache: any = {}
 export async function srpCheck(username: string, password: string) {
     const account = getAccount(username)
     if (!account?.srp || !password) return
-    const { step1, salt, pubKey } = await srpStep1(account)
-    const client = await srpClientPart(username, password, salt, pubKey)
-    return await step1.step2(client.A, client.M1).then(() => account, () => {})
+    const k = createHash('sha256').update(username + password + account.srp).digest("hex")
+    const good = await getOrSet(cache, k, async () => {
+        const { step1, salt, pubKey } = await srpStep1(account)
+        const client = await srpClientPart(username, password, salt, pubKey)
+        setTimeout(() => delete cache[k], 60_000)
+        return step1.step2(client.A, client.M1).then(() => 1, () => 0)
+    })
+    return good ? account : undefined
 }
 
 export function getCurrentUsername(ctx: Context): string {
@@ -31,7 +38,7 @@ export function getCurrentUsername(ctx: Context): string {
 }
 
 // centralized log-in state
-export async function loggedIn(ctx: Context, username: string | false) {
+export async function setLoggedIn(ctx: Context, username: string | false) {
     const s = ctx.session
     if (!s)
         return ctx.throw(HTTP_SERVER_ERROR,'session')
@@ -41,7 +48,9 @@ export async function loggedIn(ctx: Context, username: string | false) {
     }
     invalidSessions.delete(username)
     s.username = normalizeUsername(username)
-    await prepareState(ctx, async ()=>{}) // updating the state is necessary to send complete session data so that frontend shows admin button
+    const a = ctx.state.account = getAccount(username)
+    if (a && !a.expire && a.days_to_live)
+        updateAccount(a, { expire: new Date(Date.now() + a.days_to_live! * DAY) })
 }
 
 export const invalidSessions = new Set<string>() // since session are currently stored in cookies, we need to memorize this until we meet again

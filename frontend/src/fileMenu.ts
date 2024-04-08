@@ -19,6 +19,7 @@ interface FileMenuEntry {
     subLabel?: ReactNode
     href?: string
     icon?: string
+    toggled?: boolean
     onClick?: (ev:MouseEvent<Element>) => any
 }
 
@@ -92,7 +93,8 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                             : e?.label && h('a', {
                                 key: i,
                                 href: '#',
-                                ..._.omit(e, ['label', 'icon', 'onClick']),
+                                ..._.omit(e, ['label', 'icon', 'toggled']),
+                                className: e.toggled ? 'toggled' : undefined,
                                 async onClick(event: MouseEvent) {
                                     if (!e.href)
                                         event.preventDefault()

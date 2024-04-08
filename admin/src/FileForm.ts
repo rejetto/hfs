@@ -6,30 +6,32 @@ import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useThem
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi, useApiEx } from './api'
-import { basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog,
-    objSameKeys, onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches } from './misc'
-import { Btn, IconBtn, LinkBtn, modifiedSx, useBreakpoint, wikiLink } from './mui'
+import { basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
+    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md } from './misc'
+import { Btn, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
-import md from './md'
 import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save } from '@mui/icons-material'
+import { Add, Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save } from '@mui/icons-material'
 import { moveVfs } from './VfsTree'
 import QrCreator from 'qr-creator';
+import MenuButton from './MenuButton'
+import addFiles, { addLink, addVirtual } from './addFiles'
 
-interface Account { username: string }
+export interface Account { username: string }
 
 interface FileFormProps {
     file: VfsNode
     addToBar?: ReactNode
     statusApi: UseApi
+    accounts: Account[]
 }
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
-export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
+export default function FileForm({ file, addToBar, statusApi, accounts }: FileFormProps) {
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -58,11 +60,6 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
     const barColors = useDialogBarColors()
     const { movingFile } = useSnapState()
 
-    const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
-    if (element || !data)
-        return element
-    const accounts = data.list
-
     const needSourceWarning = !hasSource && "Works only on folders with source! "
     const show: Record<keyof VfsPerms, boolean> = {
         can_read: !isLink,
@@ -84,6 +81,15 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
         barSx: { gap: 2, width: '100%', ...barColors },
         stickyBar: true,
         addToBar: [
+            h(MenuButton, {
+                variant: 'outlined',
+                startIcon: h(Add),
+                items: [
+                    { children: "from disk", onClick: addFiles },
+                    { children: "virtual folder", onClick: addVirtual },
+                    { children: "web-link", onClick: addLink  },
+                ]
+            }, "Add"),
             h(IconBtn, {
                 icon: ContentCut,
                 disabled: isRoot || movingFile === file.id,
@@ -105,17 +111,23 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
                     return moveVfs(movingFile, file.id)
                 },
             }),
-            !isRoot && h(IconBtn, {
+            h(IconBtn, {
                 icon: Delete,
                 title: "Delete",
                 confirm: "Delete?",
-                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(() => reloadVfs()),
+                disabled: isRoot,
+                onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(({ errors: [err] }) => {
+                    if (err)
+                        alertDialog(xlate(err, HTTP_MESSAGES), 'error')
+                    else
+                        reloadVfs([])
+                }),
             }),
             ...wantArray(addToBar)
         ],
         onError: alertDialog,
         save: {
-            sx: modifiedSx(!isEqualLax(values, rest)),
+            ...modifiedProps(!isEqualLax(values, rest)),
             async onClick() {
                 const props = _.omit(values, ['ctime','mtime','size','id'])
                 ;(props as any).masks ||= null // undefined cannot be serialized
@@ -142,9 +154,9 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
             perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
-            showSize && { k: 'size', comp: DisplayField, lg: 4, toField: formatBytes },
-            showTimestamps && { k: 'ctime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
-            showTimestamps && { k: 'mtime', comp: DisplayField, md: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
+            showSize && { k: 'size', comp: DisplayField, sm: 6, lg: 4, toField: formatBytes },
+            showTimestamps && { k: 'ctime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
+            showTimestamps && { k: 'mtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
             showWebsite && { k: 'default', comp: BoolField, xl: true,
@@ -156,7 +168,7 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
             isDir && { k: 'masks', multiline: true,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 sx: { '& textarea': { fontFamily: 'monospace' } },
-                helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Permissions', "(examples)")]
+                helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Masks-field', "(examples)")]
             }
         ]
     })
@@ -165,13 +177,16 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
         if (!show[perm]) return null
         const dontShow = [perm, ...onlyTruthy(_.map(show, (v,k) => !v && k))]
         const others = _.difference(Object.keys(defaultPerms), dontShow)
+        let inherit = file.inherited?.[perm] ?? defaultPerms[perm]
+        if (typeof inherit === 'string' && _.get(show, inherit) === false) // if it's false, then inherit is a perm
+            inherit = _.get(values, inherit) ?? _.get(defaultPerms, inherit)! // ...and defaultPerms have it all
         return {
             comp: WhoField,
-            k: perm, lg: 6, xl: 4,
+            k: perm, sm: 6, xl: 4,
             parent, accounts, helperText, isDir,
-            otherPerms: others.map(x => ({ value: x, label: "As " +perm2word(x) })),
+            otherPerms: others.map(x => ({ value: x, label: who2desc(x) })),
             label: "Who can " + perm2word(perm),
-            inherit: file.inherited?.[perm] ?? defaultPerms[perm],
+            inherit,
             byMasks: byMasks?.[perm],
             fromField: (v?: Who) => v ?? null,
             ...props
@@ -181,8 +196,7 @@ export default function FileForm({ file, addToBar, statusApi }: FileFormProps) {
 }
 
 function perm2word(perm: string) {
-    const word = perm.split('_')[1]
-    return word === 'read' ? 'download' : word === 'archive' ? 'zip' : word
+    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip' })
 }
 
 interface WhoFieldProps extends FieldProps<Who | undefined> {
@@ -194,8 +208,8 @@ interface WhoFieldProps extends FieldProps<Who | undefined> {
 }
 function WhoField({ value, onChange, parent, inherit, accounts, helperText, otherPerms, byMasks,
         hideValues, isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
-    const defaultLabel = (byMasks !== undefined ? "As per mask: " : parent !== undefined ? "As parent: " : "Default: " )
-        + who2desc(byMasks ?? inherit)
+    const defaultLabel = who2desc(byMasks ?? inherit)
+        + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "inherited" : "default", ')')
     const objectMode =  isWhoObject(value)
     const thisValue = objectMode ? value.this : value
 
@@ -208,7 +222,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
             ...otherPerms,
             { value: [], label: "Select accounts" },
         ].map(x => !hideValues?.includes(x.value)
-            && { label: _.capitalize(who2desc(x.value)), ...x })), // default label
+            && { label: who2desc(x.value), ...x })), // default label
         [inherit, parent, thisValue])
 
     const timeout = 500
@@ -237,7 +251,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
                 onClick(event) {
                     onChange(objectMode ? thisValue : { this: thisValue, children: thisValue == null ? !inherit : undefined  } , { was: value, event })
                 }
-            }, objectMode ? "Different permission for " : "Same permission for ", contentText)
+            }, objectMode ? "Set same permission for " : "Set different permission for ", contentText)
         ),
         !isChildren && h(Collapse, { in: objectMode, timeout },
             h(WhoField, {
@@ -260,11 +274,11 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
 }
 
 function who2desc(who: any) {
-    return who === false ? "no one"
-        : who === true ? "anyone"
-            : who === '*' ? "any account (login required)"
+    return who === false ? "No one"
+        : who === true ? "Anyone"
+            : who === '*' ? "Any account (login required)"
                 : Array.isArray(who) ? who.join(', ')
-                    : typeof who === 'string' ? "as " + perm2word(who)
+                    : typeof who === 'string' ? `As "can ${perm2word(who)}"`
                         : "*UNKNOWN*" + JSON.stringify(who)
 }
 
@@ -274,20 +288,28 @@ interface LinkFieldProps extends FieldProps<string> {
 function LinkField({ value, statusApi }: LinkFieldProps) {
     const { data, reload, error } = statusApi
     const urls: string[] = data?.urls.https || data?.urls.http
-    const baseHost = data?.baseUrl && new URL(data.baseUrl).hostname
+    const baseHost = data?.baseUrl && new URL(data.baseUrl).host
     const root = useMemo(() => baseHost && _.find(data.roots, (root, host) => matches(baseHost, host)),
         [data])
     if (root)
         value &&= value.indexOf(root) === 1 ? value.slice(root.length) : undefined
     const link = prefix(data?.baseUrl || '', value)
-    const RenderLink = useMemo(() => forwardRef((props: any, ref) => h(Link, { ref, ...props, href: link, style: { height: 'auto' }, target: 'frontend' }, link)), [link])
+    const RenderLink = useMemo(() => forwardRef((props: any, ref) =>
+        h(Link, {
+            ref,
+            ...props,
+            href: link,
+            style: { height: 'auto', overflow: 'hidden', textOverflow: 'ellipsis' },
+            target: 'frontend',
+        }, link)
+    ), [link])
     return h(Box, { display: 'flex' },
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
             value: link || `outside of configured base address (${baseHost})`,
             error,
-            InputProps: { inputComponent: RenderLink },
+            InputProps: link ? { inputComponent: RenderLink } : undefined,
             end: h(Box, {},
                 h(IconBtn, {
                     icon: ContentCopy,
@@ -295,7 +317,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                     disabled: !link,
                     onClick: () => navigator.clipboard.writeText(link)
                 }),
-                h(IconBtn, { icon: QrCode2, title: "QR Code", onClick: showQr }),
+                h(IconBtn, { icon: QrCode2, title: "QR Code", onClick: showQr, disabled: !link }),
                 h(IconBtn, { icon: Edit, title: "Change", onClick() { changeBaseUrl().then(reload) } }),
             )
         }),

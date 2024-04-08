@@ -1,22 +1,22 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, IconButton, Modal
+import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, Modal
 } from '@mui/material'
 import { createElement as h, Dispatch, Fragment, isValidElement, ReactElement, ReactNode, SetStateAction,
     useEffect, useRef, useState
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
-    focusSelector } from '@hfs/shared'
+    focusSelector, md } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
-import { IconBtn, Flex, Center, Btn } from './mui'
+import { IconBtn, Flex, Center } from './mui'
 import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
-import md from './md'
 import _ from 'lodash'
+import { err2msg } from './misc'
 export * from '@hfs/shared/dialogs'
 
-dialogsDefaults.Container = function Container(d:DialogOptions) {
+dialogsDefaults.Container = function Container(d: DialogOptions) {
     const ref = useRef<HTMLElement>()
     const { width, height } = useWindowSize()
     const mobile = width > 0 && Math.min(width, height) < 500
@@ -26,7 +26,7 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
             if (!el) return
             el.focus()
             if (mobile) return
-            focusSelector('[autofocus]') || focusSelector('input,textarea')
+            focusSelector('[autofocus]', el) || focusSelector('input,textarea', el)
         })
         return () => clearTimeout(h)
     }, [ref.current])
@@ -54,13 +54,14 @@ dialogsDefaults.Container = function Container(d:DialogOptions) {
         },
             d.icon && componentOrNode(d.icon),
             h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
-            h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
+            d.closable && h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
             ref,
             sx: {
                 p: d.padding ? 1 : 0, pt: '16px !important', overflow: 'initial',
                 display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                alignItems: 'center',
                 ...sx,
             }
         }, h(d.Content) )
@@ -83,7 +84,7 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
     const opt = typeof options === 'string' ? { type: options } : (options ?? {})
     let { type='info', ...rest } = opt
     if (msg instanceof Error) {
-        msg = msg.message || String(msg)
+        msg = msg.message || String(err2msg((msg as any).code))
         type = 'error'
     }
 
@@ -93,12 +94,12 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
         icon: opt.icon ?? h(type2ico[type], { color: type }),
         onClose: promise.resolve,
         title: _.upperFirst(type),
+        dialogProps: { fullScreen: false },
         ...rest,
         Content() {
             return h(Box, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 },
                 isValidElement(msg) ? msg
-                    : h(Box, { fontSize: 'large', lineHeight: '1.8em' }, String(msg)),
-                h(Btn, { sx: { mt: 1 }, size: 'small', onClick: dialog.close }, "Close")
+                    : h(Box, { fontSize: 'large', lineHeight: '1.8em', pb: 1 }, String(msg)),
             )
         }
     })
@@ -122,9 +123,9 @@ export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText
             h(Flex, {},
                 h('a', {
                     href,
-                    onClick: () => closeDialog(true),
+                    onClick: () => dialog.close(true),
                 }, h(Button, { variant: 'contained' }, confirmText)),
-                h(Button, { onClick: () => closeDialog(false) }, dontText),
+                h(Button, { onClick: () => dialog.close(false) }, dontText),
             ),
         )
     }
@@ -142,37 +143,38 @@ export async function formDialog<T>(
         form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>),
     },
 ) : Promise<T> {
-    return new Promise(resolve => newDialog({
-        className: 'dialog-confirm',
-        onClose: resolve,
-        ...options,
-        Content
-    }) )
-
-    function Content() {
-        const [curValues, setCurValues] = useState<Partial<T>>(values||{})
-        const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
-        return h(Fragment, {},
-            before,
-            h(Form, {
-                ...props,
-                values: curValues,
-                set(v, k) {
-                    setCurValues(curValues => {
-                        const newV = { ...curValues, [k]: v }
-                        onChange?.(newV, { setValues: setCurValues })
-                        return newV
+    return new Promise(resolve => {
+        const dialog = newDialog({
+            className: 'dialog-confirm',
+            onClose: resolve,
+            ...options,
+            Content() {
+                const [curValues, setCurValues] = useState<Partial<T>>(values||{})
+                const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
+                return h(Fragment, {},
+                    before,
+                    h(Form, {
+                        ...props,
+                        values: curValues,
+                        set(v, k) {
+                            setCurValues(curValues => {
+                                const newV = { ...curValues, [k]: v }
+                                onChange?.(newV, { setValues: setCurValues })
+                                return newV
+                            })
+                        },
+                        save: {
+                            ...props.save,
+                            onClick() {
+                                dialog.close(curValues)
+                            }
+                        }
                     })
-                },
-                save: {
-                    ...props.save,
-                    onClick() {
-                        closeDialog(curValues)
-                    }
-                }
-            })
-        )
-    }
+                )
+            }
+        })
+    })
+
 }
 
 export async function promptDialog(msg: ReactNode, { value, field, save, addToBar=[], ...props }:any={}) : Promise<string | undefined> {
@@ -219,8 +221,7 @@ export function toast(msg: string | ReactElement, type: AlertType | ReactElement
             }
         }
     })
-    const { close } = dialog
-    setTimeout(close, ms)
+    setTimeout(dialog.close, ms)
     return dialog
 
     function Content(){

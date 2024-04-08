@@ -186,10 +186,10 @@ Some actions you can take for improved security:
 - Appending ?lang=CODE to address will force a specific language
 - right/ctrl/command click on toggle-all checkbox will invert each checkbox state
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
-- Appending `?overwrite` on uploads, will try override the dont_overwrite_uploading configuration, provided you also have delete permission
+- Appending `?overwrite` on uploads, will override the dont_overwrite_uploading configuration, provided you also have delete permission
+- Appending `?search=PATTERN` will trigger search at start 
 - Right-click on "check for updates" will let you input a URL of a version to install
-- Admin: ctrl+digit will switch page
-- Appending ?overwrite to the URL of an upload request will overwrite existing file if you have delete permission 
+- shift+click on a file will show & play
 
 ## Contribute
 

@@ -3,13 +3,14 @@
 import Koa from 'koa'
 import { once, Writable } from 'stream'
 import { defineConfig } from './config'
-import { createWriteStream, renameSync } from 'fs'
+import { createWriteStream, renameSync, statSync } from 'fs'
 import * as util from 'util'
 import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './auth'
-import { DAY, makeNetMatcher, tryJson, Dict, Falsy } from './misc'
+import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat } from './misc'
+import { extname } from 'path'
 import events from './events'
 import { getConnection } from './connections'
 import { app } from './index'
@@ -47,8 +48,8 @@ class Logger {
 }
 
 // we'll have names same as config keys. These are used also by the get_log api.
-const accessLogger = new Logger('log')
-const accessErrorLog = new Logger('error_log')
+const accessLogger = new Logger(CFG.log)
+const accessErrorLog = new Logger(CFG.error_log)
 export const loggers = [accessLogger, accessErrorLog]
 
 defineConfig(accessLogger.name, 'logs/access.log').sub(path => {
@@ -62,9 +63,9 @@ errorLogFile.sub(path => {
     accessErrorLog.setPath(path)
 })
 
-const logRotation = defineConfig('log_rotation', 'weekly')
-const dontLogNet = defineConfig('dont_log_net', '127.0.0.1|::1', v => makeNetMatcher(v))
-const logUA = defineConfig('log_ua', false)
+const logRotation = defineConfig(CFG.log_rotation, 'weekly')
+const dontLogNet = defineConfig(CFG.dont_log_net, '127.0.0.1|::1', v => makeNetMatcher(v))
+const logUA = defineConfig(CFG.log_ua, false)
 
 const debounce = _.debounce(cb => cb(), 1000)
 
@@ -92,9 +93,10 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
                 || rotate === 'd' && (passed >= DAY || now.getDate() !== last.getDate()) // checking passed will solve the case when the day of the month is the same but a month has passed
                 || rotate === 'w' && (passed >= 7*DAY || now.getDay() < last.getDay())) {
                 stream.end()
-                const postfix = last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
+                const suffix = '-' + last.getFullYear() + '-' + doubleDigit(last.getMonth() + 1) + '-' + doubleDigit(last.getDate())
+                const newPath = strinsert(path, path.length - extname(path).length, suffix)
                 try { // other logging requests shouldn't happen while we are renaming. Since this is very infrequent we can tolerate solving this by making it sync.
-                    renameSync(path, path + '-' + postfix)
+                    renameSync(path, newPath)
                 }
                 catch(e: any) {  // ok, rename failed, but this doesn't mean we ain't gonna log
                     console.error(String(e || e.message))
@@ -128,7 +130,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             ctx.req.httpVersion,
             ctx.status,
             length?.toString() ?? '-',
-            _.isEmpty(extra) ? '' : JSON.stringify(JSON.stringify(extra)),
+            _.isEmpty(extra) ? '' : JSON.stringify(JSON.stringify(extra)), // jsonize twice, as we need a field enclosed by double-quotes
         ))
     })
 }
@@ -156,12 +158,20 @@ function doubleDigit(n: number) {
 }
 
 // dump console.error to file
-const debugLogFile = createWriteStream('debug.log', { flags: 'a' })
-debugLogFile.on('open', () => {
+let debugLogFile = createWriteStream('debug.log', { flags: 'a' })
+debugLogFile.once('open', () => {
     const was = console.error
     console.error = function(...args: any[]) {
         was.apply(this, args)
         args = args.map(x => typeof x === 'string' ? x : (tryJson(x) ?? String(x)))
         debugLogFile.write(new Date().toLocaleString() + ': ' + args.join(' ') + '\n')
     }
+    // limit log size
+    const LIMIT = 1_000_000
+    const { path } = debugLogFile
+    repeat(DAY, () => { // do it sync, to avoid overlapping
+        if (statSync(path).size < LIMIT) return // no need
+        renameSync(path, 'old-' + path)
+        debugLogFile = createWriteStream(path, { flags: 'w' }) // new file
+    })
 }).on('error', () => console.log("cannot create debug.log"))

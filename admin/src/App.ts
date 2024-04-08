@@ -14,12 +14,13 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import ConfigFilePage from './ConfigFilePage'
 import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
-import { AriaOnly, xlate } from './misc'
+import { AriaOnly, isMac, xlate } from './misc'
+import { getLocale } from './locale'
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
         h(ApplyTheme, {},
-            h(LocalizationProvider, { dateAdapter: AdapterDayjs },
+            h(LocalizationProvider, { dateAdapter: AdapterDayjs, adapterLocale: getLocale() },
                 h(LoginRequired, {},
                     h(HashRouter, {},
                         h(Dialogs, {
@@ -47,8 +48,8 @@ function Routed() {
     const large = useBreakpoint('lg')
     const xs = current?.noPaddingOnMobile ? 0 : 1
     const navigate = useNavigate()
-    useEventListener('keydown', ({ key, ctrlKey }) => {
-        if (!ctrlKey) return
+    useEventListener('keydown', ({ key, ctrlKey, altKey }) => {
+        if (!(isMac ? ctrlKey : altKey)) return // alt doesn't work on Mac, but it is the only suitable key on Windows
         const idx = Number(xlate(key, { 0: 10 })) // key 0 is after 9 and works as 10
         if (!idx) return
         const path = mainMenu[idx - 1]?.path
@@ -60,10 +61,11 @@ function Routed() {
         !large && h(StickyBar, { title, openMenu: () => setOpen(true) }),
         !large && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
             h(MainMenu, {
-                onSelect: () => setOpen(false)
+                onSelect: () => setOpen(false),
+                itemTitle,
             })),
         h(Box, { display: 'flex', flex: 1, }, // horizontal layout for menu-content
-            large && h(MainMenu),
+            large && h(MainMenu, { itemTitle, onSelect(){} }),
             h(Box, {
                 component: 'main',
                 sx: {
@@ -88,6 +90,10 @@ function Routed() {
             ),
         )
     )
+}
+
+function itemTitle(idx: number) {
+    return idx < 10 ? `${isMac ? 'CTRL' : 'ALT'} + ${(idx+1) % 10}` : ''
 }
 
 function StickyBar({ title, openMenu }: { title?: string, openMenu: ()=>void }) {

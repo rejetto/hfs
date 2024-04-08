@@ -4,11 +4,10 @@ import { state, useSnapState } from './state'
 import { createElement as h, ReactElement, useRef, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
-    RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff
-} from '@mui/icons-material'
+    RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff } from '@mui/icons-material'
 import { Box } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
-import { Callback, onlyTruthy, Who, with_ } from './misc'
+import { onlyTruthy, Who, with_ } from './misc'
 import { iconTooltip } from './mui'
 import { apiCall, ApiObject } from './api'
 import { alertDialog, confirmDialog } from './dialog'
@@ -17,9 +16,8 @@ import _ from 'lodash'
 export const FolderIcon = Folder
 export const FileIcon = InsertDriveFileOutlined
 
-export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject, onSelect: Callback }) {
+export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
     const { vfs, selectedFiles } = useSnapState()
-    const [selected, setSelected] = useState<string[]>(selectedFiles.map(x => x.id)) // try to restore selection after reload
     const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
     const dragging = useRef<string>()
     const ref = useRef<HTMLUListElement>()
@@ -30,7 +28,7 @@ export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<
         // @ts-ignore the type declared on the lib doesn't seem to be compatible with useRef()
         ref,
         expanded,
-        selected,
+        selected: selectedFiles.map(x => x.id),
         multiSelect: true,
         id: treeId,
         sx: {
@@ -40,9 +38,7 @@ export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<
         },
         onNodeSelect(ev, ids) {
             if (typeof ids === 'string') return // shut up ts
-            setSelected(ids)
             state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
-            onSelect()
         }
     }, recur(vfs as Readonly<VfsNode>))
 
@@ -52,12 +48,14 @@ export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<
 
     function recur(node: Readonly<VfsNode>): ReactElement {
         let { id, name, isRoot } = node
-        if (!id)
-            debugger
         const folder = node.type === 'folder'
+        const ref = useRef<HTMLLIElement | null>()
+        if (isRoot && ref.current)
+            ref.current.firstElementChild?.classList.toggle('Mui-selected', !(selectedFiles.length && !_.find(selectedFiles, { id: '/' })))
         return h(TreeItem, {
-            ref(el: any) { // workaround to permit drag&drop with mui5's tree
+            ref(el) { // workaround to permit drag&drop with mui5's tree
                 el?.addEventListener('focusin', (e: any) => e.stopImmediatePropagation())
+                ref.current = el
             },
             label: h(Box, {
                 draggable: !isRoot,
@@ -137,8 +135,9 @@ export default function VfsTree({ id2node, statusApi, onSelect }:{ id2node: Map<
 }
 
 export function moveVfs(from: string, to: string) {
-    apiCall('move_vfs', { from, parent: to }).then(() => {
+    return apiCall('move_vfs', { from, parent: to }).then(() => {
         reloadVfs([ to + from.slice(1 + from.lastIndexOf('/', from.length-2)) ])
+        return true
     }, alertDialog)
 }
 

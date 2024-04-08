@@ -11,6 +11,7 @@ import { access, chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
+import { RUNNING_AS_SERVICE } from './util-os'
 
 const updateToBeta = defineConfig('update_to_beta', false)
 
@@ -64,12 +65,12 @@ export function localUpdateAvailable() {
     return access(LOCAL_UPDATE).then(() => true, () => false)
 }
 
-export function updateSupported() {
-    return IS_BINARY
+export async function updateSupported() {
+    return argv.forceupdate || IS_BINARY && !await RUNNING_AS_SERVICE
 }
 
 export async function update(tagOrUrl: string='') {
-    if (!updateSupported()) throw "only binary versions supports automatic update for now"
+    if (!await updateSupported()) throw "only binary versions supports automatic update for now"
     let updateSource: Readable | false = tagOrUrl.includes('://') ? await httpStream(tagOrUrl)
         : await localUpdateAvailable() && createReadStream(LOCAL_UPDATE)
     if (!updateSource) {
@@ -116,12 +117,12 @@ export async function update(tagOrUrl: string='') {
             console.log("launching new version in background", newBinFile)
             launch(newBin, ['--updating', binFile], { sync: true }) // sync necessary to work on mac by double-click
         })
-        console.log('quitting')
+        console.log("quitting")
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
     }
     catch (e: any) {
-        console.error(e?.message || String(e))
         pluginsWatcher.unpause()
+        throw e?.message || String(e)
     }
 }
 
@@ -140,7 +141,7 @@ if (argv.updating) { // we were launched with a temporary name, restore original
         onProcessExit(() =>
             launch(dest, ['--updated']) ) // launch+sync here would cause old process to stay open, locking ports
     else
-        open(dest).then()
+        void open(dest)
 
     process.exit()
 }

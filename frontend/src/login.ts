@@ -3,9 +3,8 @@
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog } from './dialog'
-import { getHFS, getPrefixUrl, hIcon, makeSessionRefresher, srpClientSequence, working,
+import { getHFS, hIcon, makeSessionRefresher, srpClientSequence, working,
     HTTP_CONFLICT, HTTP_UNAUTHORIZED,} from './misc'
-import { useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
 import { reloadList } from './useFetchList'
@@ -42,13 +41,14 @@ export function logout(){
 
 export let closeLoginDialog: undefined | (() => void)
 let lastPromise: Promise<any>
-export async function loginDialog() {
+export async function loginDialog(closable=false) {
     return lastPromise = new Promise(resolve => {
         if (closeLoginDialog)
             return lastPromise
         let going = false
         const { close } = newDialog({
-            className: 'login-dialog dialog-login',
+            closable,
+            className: 'login-dialog',
             icon: () => hIcon('login'),
             onClose(v) {
                 resolve(v)
@@ -137,7 +137,7 @@ export function useAuthorized() {
         if (!loginRequired)
             return closeLoginDialog?.()
         if (!closeLoginDialog)
-            loginDialog().then()
+            void loginDialog()
     }, [loginRequired])
     return loginRequired ? null : true
 }

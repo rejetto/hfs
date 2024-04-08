@@ -10,6 +10,7 @@ import { I18Nprovider } from './i18n'
 import { proxy, useSnapshot } from "valtio"
 import { Spinner } from "./components"
 import { getHFS, getPrefixUrl } from '@hfs/shared'
+import { Toasts } from './toasts'
 
 function App() {
     useTheme()
@@ -22,6 +23,7 @@ function App() {
     return h(I18Nprovider, {},
         h(BrowserRouter, {},
             h(NavigationExtractor, {},
+                h(Toasts),
                 h(Dialogs, {},
                     h(Routes, {},
                         h(Route, { path:'*', element: h(BrowseFiles) })

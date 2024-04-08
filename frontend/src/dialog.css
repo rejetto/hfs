@@ -14,7 +14,8 @@
 .dialog {
     background: #fff; /*fallback*/
     background: var(--bg);
-    padding: max(0.5em, 1vw, 2vh);
+    padding: .5em; /* legacy  */
+    padding: max(.5em, 1vw, 2vh);
     padding-top: 0;
     border-radius: 1em;
     position: relative;
@@ -42,6 +43,7 @@
 }
 .dialog-title {
     font-size: 120%;
+    font-weight: normal;
     margin: .3em 0;
     padding: 0 0.5em; /* avoid reaching margins */
     min-height: 1.2em;

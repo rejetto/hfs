@@ -1,22 +1,22 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode } from 'react'
-import { Link } from '@mui/material'
+import { createElement as h, Fragment, HTMLAttributes, ReactNode } from 'react'
 
-const TAGS = {
+export const MD_TAGS = {
+    a: 'a',
     '`': 'code',
     '*': 'i',
     '**': 'b',
 }
 type OnText = (s: string) => ReactNode
-export default function md(text: string | TemplateStringsArray, { linkTarget='_blank', onText=(x=>x) as OnText }={}) {
+export function md(text: string | TemplateStringsArray, { linkTarget='_blank', onText=(x=>x) as OnText }={}) {
     if (typeof text !== 'string')
         text = text[0]
-    return replaceStringToReact(text, /(`|_|\*\*?)(.+?)\1|(\n)|\[(.+?)\]\((.+?)\)|<([^ >/]+)>(.*?)<\/\6>|<([^ >/]+) *\/>/g, m =>
-        m[4] ? h(Link, { href: m[5], target: linkTarget }, onText(m[4]))
+    return replaceStringToReact(text, /(`|_|\*\*?)(.+?)\1|(\n)|\[(.+?)\]\((.+?)\)|(<(\w+?)(?:\s+[^>]*?)?>(?:.*?<\/\7>)?)/g, m =>
+        m[4] ? h(MD_TAGS.a, { href: m[5], target: linkTarget }, onText(m[4]))
             : m[3] ? h('br')
-            : m[1] ? h((TAGS as any)[ m[1] ] || Fragment, {}, onText(m[2]))
-            : h(m[6] || m[8], {}, m[7]),
+            : m[1] ? h((MD_TAGS as any)[ m[1] ] || Fragment, {}, onText(m[2]))
+            : h(Html, { code: m[6] }),
         onText)
 }
 
@@ -31,4 +31,11 @@ export function replaceStringToReact(text: string, re: RegExp, cb: (match: RegEx
         if (!re.global) break
     }
     return h(Fragment, {}, ...res, onText(text.slice(last, Infinity)))
+}
+
+export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
+    return !code ? null : h('span', { ...rest, ref(x) {
+            if (x)
+                x.replaceChildren(document.createRange().createContextualFragment(code))
+        } })
 }

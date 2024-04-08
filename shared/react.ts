@@ -2,17 +2,19 @@
 
 import { createElement as h, Fragment, KeyboardEvent, ReactElement, ReactNode,
     useCallback, useEffect, useRef, useState } from 'react'
-import { useIsMounted, useWindowSize } from 'usehooks-ts'
+import { useIsMounted, useWindowSize, useMediaQuery } from 'usehooks-ts'
 import { Falsy } from '.'
 
 export function useStateMounted<T>(init: T) {
     const isMounted = useIsMounted()
     const [v, set] = useState(init)
+    const ref = useRef(init)
+    ref.current = v
     const setIfMounted = useCallback((newValue:T | ((previous:T)=>T)) => {
         if (isMounted())
             set(newValue)
     }, [isMounted, set])
-    return [v, setIfMounted, isMounted] as const
+    return [v, setIfMounted, { isMounted, get: () => ref.current }] as const
 }
 
 export function reactFilter(elements: any[]) {
@@ -97,6 +99,10 @@ export function KeepInScreen({ margin, ...props }: any) {
     return h('div', { ref, style: { maxHeight, overflow: 'auto' }, ...props })
 }
 
+export function useIsMobile() {
+    return useMediaQuery('(pointer:coarse)')
+}
+
 export function AriaOnly({ children }: { children?: ReactNode }) {
     return children ? h('div', { className: 'ariaOnly' }, children) : null
 }
@@ -108,7 +114,7 @@ export function noAriaTitle(title: string) {
         }
     }
 }
-const isMac = navigator.platform.match('Mac')
+export const isMac = navigator.platform.match('Mac')
 export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
 }

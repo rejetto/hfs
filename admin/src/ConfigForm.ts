@@ -1,15 +1,15 @@
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
-import { createElement as h, useEffect, useState } from 'react'
+import { createElement as h, useEffect, useState, Dispatch } from 'react'
 import _ from 'lodash'
-import { IconBtn, modifiedSx } from './mui'
+import { IconBtn, modifiedProps } from './mui'
 import { RestartAlt } from '@mui/icons-material'
 import { Callback } from '../../src/cross'
 
 type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
 export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }: Partial<FormRest<T>> & {
     keys: (keyof T)[],
-    form: FormRest<T> | ((values: T) => FormRest<T>),
+    form: FormRest<T> | ((values: T, optional: { setValues: Dispatch<T> }) => FormRest<T>),
     onSave?: Callback,
     saveOnChange?: boolean
 }) {
@@ -22,7 +22,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
     }, [modified])
     if (!values)
         return config.element
-    const formProps = _.isFunction(form) ? form(values) : form
+    const formProps = _.isFunction(form) ? form(values, { setValues }) : form
     return h(Form, {
         values,
         set(v, k) {
@@ -30,7 +30,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
         },
         save: saveOnChange ? false : {
             onClick: save,
-            sx: modifiedSx(modified),
+            ...modifiedProps(modified),
         },
         ...Array.isArray(formProps) ? { fields: formProps } : formProps,
         ...rest,

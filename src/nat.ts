@@ -1,13 +1,13 @@
 import { proxy } from 'valtio'
 import { Client } from 'nat-upnp-rejetto'
 import { debounceAsync } from './debounceAsync'
-import { haveTimeout, HOUR, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
+import { haveTimeout, HOUR, inCommon, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
 import { httpString } from './util-http'
 import { Resolver } from 'dns/promises'
 import { isIP } from 'net'
-import { baseUrl, getIps, getServerStatus } from './listen'
+import { getIps, getServerStatus } from './listen'
 import { exec } from 'child_process'
 import { IS_MAC, IS_WINDOWS } from './const'
 
@@ -22,10 +22,6 @@ export const defaultBaseUrl = proxy({
         return `${this.proto}://${ this.publicIps[0] || this.externalIp || this.localIp}${!this.port || this.port === defPort ? '' : ':' + this.port}`
     }
 })
-
-export function getBaseUrlOrDefault() {
-    return baseUrl.get() || defaultBaseUrl.get()
-}
 
 export const upnpClient = new Client({ timeout: 4_000 })
 const originalMethod = upnpClient.getGateway
@@ -42,7 +38,7 @@ repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => {
     return defaultBaseUrl.externalIp = v
 }))
 
-const getPublicIps = debounceAsync(async () => {
+export const getPublicIps = debounceAsync(async () => {
     const res = await getProjectInfo()
     const groupedByVersion = Object.values(_.groupBy(res.publicIpServices, x => x.v ?? 4))
     const ips = await promiseBestEffort(groupedByVersion.map(singleVersion =>
@@ -71,7 +67,8 @@ export const getNatInfo = debounceAsync(async () => {
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
     console.debug('mappings found', mappings?.map(x => x.description))
     const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => undefined)
-    const localIp = res?.address || (await getIps())[0]
+    const localIps = await getIps(false)
+    const localIp = res?.address || gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp!)) : localIps[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
     const externalPort = mapped?.public.port

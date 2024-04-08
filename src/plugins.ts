@@ -21,7 +21,7 @@ import { dirname, join, resolve } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
 
 export const PATH = 'plugins'
-export const DISABLING_POSTFIX = '-disabled'
+export const DISABLING_SUFFIX = '-disabled'
 export const STORAGE_FOLDER = 'storage'
 
 const plugins: Record<string, Plugin> = {}
@@ -288,7 +288,7 @@ export async function rescan() {
         patterns.push(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0])
     const met = []
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
-        if (!dirent.isDirectory() || path.endsWith(DISABLING_POSTFIX)) continue
+        if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue
         const id = path.split('/').slice(-1)[0]!
         met.push(id)
         const w = pluginWatchers.get(id)
@@ -431,7 +431,7 @@ function customApiCall(method: string, ...params: any[]) {
 }
 
 function getError(id: string) {
-    return getPluginInfo(id).error
+    return getPluginInfo(id)?.error as undefined | string
 }
 
 function setError(id: string, error: string) {

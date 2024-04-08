@@ -206,6 +206,11 @@ The HFS objects contains many properties:
 - `h` shortcut for React.createElement
 - `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
 - `_` [lodash library](https://lodash.com/docs/)
+- `toast: (message: string | ReactElement, type: ToastType='info')`
+  - show a brief message that doesn't steal focus
+  - `ToastType = 'error' | 'warning' | 'info' | 'success'`
+- `dialogLib` this exposes all functions available in [dialog.ts](https://github.com/rejetto/hfs/blob/main/frontend/src/dialog.ts), for example alertDialog and newDialog. These are not documented yet, and subject to change without notification, but you can study the sources if you are interested in using them.
+- `misc` many functions and constants available in [cross.ts](https://github.com/rejetto/hfs/blob/main/src/cross.ts). These are not documented, probably never will, and are subject to change without notifications, but you can study the sources if you are interested in using them.
 - `navigate: (uri: string): void` use this if you have to change the page address without causing reload
 - `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts. 
 - `Icon: ReactComponent` Properties:
@@ -309,6 +314,9 @@ This is a list of available frontend-events, with respective object parameter an
 - `userPanelAfterInfo`
   - no parameter
   - output `Html`
+- `uriChanged`
+  - DEPRECATED: use `watchState('uri', callback)` instead.  
+  - parameter `{ uri: string, previous: string }`
 
 ## Other files
 
@@ -320,6 +328,14 @@ These files have a special meaning:
 - `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`
 - `custom.html` file, that works exactly like the main `custom.html`. Even when same section is specified
   by 2 (or more) files, both contents are appended.  
+
+## Dependencies
+
+You run vanilla javascript here, in the backend and/or in the browser, so the tools you have for dependencies
+are the ones provided by node.js and/or the browser.
+If you use a library for the browser, you'll have to keep it in the "public" folder, as the browser must be able to load it.
+If you want to use a module for node.js, just include "node_modules" folder (not in "public" folder).
+You can decide if you want to use some building system/transpiler, but you'll have to set it up yourself.
 
 ## Publish your plug-in
 
@@ -380,6 +396,11 @@ Eg: `HFS.t('filter_count', {n:filteredVariable}, "{n} filtered")`
 
 ## API version history
 
+- 8.72 (v0.52.0)
+  - HFS.toast
+  - HFS.misc functions
+  - HFS.state.uri
+  - ~~new event: uriChanged~~
 - 8.65 (v0.51.0)
   - plugin's own hfs-lang files
   - HFS.state.props.can_overwrite

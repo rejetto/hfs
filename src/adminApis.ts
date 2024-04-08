@@ -10,7 +10,7 @@ import {
     HFS_STARTED,
     IS_WINDOWS,
     VERSION,
-    HTTP_UNAUTHORIZED, HTTP_NOT_FOUND, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_FORBIDDEN
+    HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_FORBIDDEN
 } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
@@ -18,27 +18,24 @@ import pluginsApis from './api.plugins'
 import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import netApis from './api.net'
+import logApis from './api.log'
 import { getConnections } from './connections'
-import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, onOff, tryJson, wait, waitFor } from './misc'
-import events from './events'
+import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, waitFor } from './misc'
 import { accountCanLoginAdmin, accountsConfig } from './perm'
 import Koa from 'koa'
 import { getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
-import { createReadStream } from 'fs'
-import * as readline from 'readline'
-import { loggers } from './log'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
 import { getUpdates, localUpdateAvailable, update, updateSupported } from './update'
-import { consoleLog } from './consoleLog'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
 import { ip2country } from './geo'
 import { roots } from './roots'
 import { SendListReadable } from './SendList'
+import { get_dynamic_dns_error } from './ddns'
 
 export const adminApis: ApiHandlers = {
 
@@ -48,6 +45,8 @@ export const adminApis: ApiHandlers = {
     ...monitorApis,
     ...langApis,
     ...netApis,
+    ...logApis,
+    get_dynamic_dns_error,
 
     async set_config({ values }) {
         apiAssertTypes({ object: { values } })
@@ -73,7 +72,9 @@ export const adminApis: ApiHandlers = {
         }
     },
     set_config_text: ({ text }) => configFile.save(text, { reparse: true }),
-    update: ({ tag }) => update(tag),
+    update: ({ tag }) => update(tag).catch(e => {
+        throw e.cause?.statusCode ? new ApiError(e.cause?.statusCode) : e
+    }),
     async check_update() {
         return { options: await getUpdates() }
     },
@@ -117,7 +118,7 @@ export const adminApis: ApiHandlers = {
             ips: await getIps(false),
             baseUrl: getBaseUrlOrDefault(),
             roots: roots.get(),
-            updatePossible: !updateSupported() ? false : await localUpdateAvailable() ? 'local' : true,
+            updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
@@ -128,71 +129,12 @@ export const adminApis: ApiHandlers = {
     async save_pem({ cert, private_key, name='self' }) {
         if (!cert || !private_key)
             return new ApiError(HTTP_BAD_REQUEST)
-        const files = { cert: name + '.cert', private_key: name + '.key' }
+        const files = { cert: name + '.cer', private_key: name + '.key' }
         await writeFile(files.private_key, private_key)
         await writeFile(files.cert, cert)
         return files
     },
 
-    get_log({ file='log' }, ctx) {
-        return new SendListReadable({
-            bufferTime: 10,
-            async doAtStart(list) {
-                if (file === 'console') {
-                    for (const chunk of _.chunk(consoleLog, 1000)) { // avoid occupying the thread too long
-                        for (const x of chunk)
-                            list.add(x)
-                        await wait(0)
-                    }
-                    list.ready()
-                    events.on('console', x => list.add(x))
-                    return
-                }
-                const logger = loggers.find(l => l.name === file)
-                if (!logger)
-                    return list.error(HTTP_NOT_FOUND, true)
-                const input = createReadStream(logger.path)
-                input.on('error', async (e: any) => {
-                    if (e.code === 'ENOENT') // ignore ENOENT, consider it an empty log
-                        return list.ready()
-                    list.error(e.code || e.message)
-                })
-                input.on('end', () =>
-                    list.ready())
-                input.on('ready', () => {
-                    readline.createInterface({ input }).on('line', line => {
-                        if (ctx.aborted)
-                            return input.close()
-                        const obj = parse(line)
-                        if (obj)
-                            list.add(obj)
-                    }).on('close', () => { // file is automatically closed, so we continue by events
-                        ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
-                            [logger.name](entry) {
-                                list.add(entry)
-                            }
-                        }))
-                    })
-                })
-            }
-        })
-
-        function parse(line: string) {
-            const m = /^(.+?) (.+?) (.+?) \[(.{11}):(.{14})] "(\w+) ([^"]+) HTTP\/\d.\d" (\d+) (-|\d+) ?(.*)/.exec(line)
-            if (!m) return
-            const [, ip, , user, date, time, method, uri, status, length, extra] = m
-            return { // keep object format same as events emitted by the log module
-                ip,
-                user: user === '-' ? undefined : user,
-                ts: new Date(date + ' ' + time),
-                method,
-                uri,
-                status: Number(status),
-                length: length === '-' ? undefined : Number(length),
-                extra: tryJson(tryJson(extra)) || undefined,
-            }
-        }
-    },
 }
 
 for (const [k, was] of Object.entries(adminApis))

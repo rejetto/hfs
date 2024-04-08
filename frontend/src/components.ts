@@ -1,10 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getHFS, hfsEvent, hIcon } from './misc'
-import {
-    ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, FC, forwardRef, Fragment,
-    HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes, useMemo
-} from 'react'
+import { getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix } from './misc'
+import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
+    HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
+    useMemo, useState, ComponentPropsWithoutRef } from 'react'
+import _ from 'lodash'
+import { t } from './i18n'
 
 export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
@@ -51,12 +52,12 @@ export function Checkbox({ onChange, value, children, ...props }: CheckboxProps)
     return !children ? ret : h('label', {}, ret, children)
 }
 
-interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
-    value: string, // just string for the time being
-    onChange?: (v: string) => void,
-    options: { label: string, value: string }[]
+interface SelectProps<T> extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
+    value: T, // just string for the time being
+    onChange?: (v: T) => void,
+    options: { label: string, value: T }[]
 }
-export function Select({ onChange, value, options, ...props }: SelectProps) {
+export function Select<T extends string>({ onChange, value, options, ...props }: SelectProps<T>) {
     return h('select', {
         onChange: ev =>
             onChange?.((ev.target as any).value),
@@ -65,37 +66,55 @@ export function Select({ onChange, value, options, ...props }: SelectProps) {
     }, options.map(({ value, label }) => h('option', { key: value, value }, label)))
 }
 
-export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
-    return !code ? null : h('span', { ...rest, ref(x) {
-        if (x)
-            x.replaceChildren(document.createRange().createContextualFragment(code))
-    } })
-}
-
-export function CustomCode({ name, props, ifEmpty }: { name: string, props?: any, ifEmpty?: FC }) {
-    const children = useMemo(() => {
-        const ret = hfsEvent(name, props)
-            .filter(x => x === 0 || x)
+export function CustomCode({ name, children, ...props }: { name: string, children?: ReactNode } & any) {
+    const result = useMemo(() => {
+        props.def = children // not using 'default' because user can have unexpected error destructuring object
+        const ret = onlyTruthy(hfsEvent(name, props)
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
-                : typeof x === 'string' ? h(Html, { key, code: x })
-                    : h('span', { key }, x))
+                : x === 0 || x && isPrimitive(x) ? h(Html, { key, code: String(x) })
+                    : _.isArray(x) ? h(Fragment, { key }, ...x)
+                        : null))
         const html = getHFS().customHtml?.[name]
         if (html?.trim?.())
             ret.push(h(Html, { key: 'x', code: html }))
         return ret
-    }, [name, ...props ? Object.values(props) : []])
-    return children.length || !ifEmpty ? h(Fragment, {}, children) : h(ifEmpty)
+    }, [name, children, ...props ? Object.values(props) : []])
+    return result.length || !children ? h(Fragment, {}, result) : children
 }
 
-interface IconBtnOptions extends ButtonHTMLAttributes<any> { small?: boolean, style?: any }
-export function iconBtn(icon: string, onClick: MouseEventHandler, { small=true, style={}, ...props }: IconBtnOptions={}) {
+interface IconBtnOptions extends ButtonHTMLAttributes<any> { style?: any, title?: string }
+export function iconBtn(icon: string, onClick: MouseEventHandler, { title, ...props }: IconBtnOptions={}) {
     return h('button', {
-            onClick,
-            ...props,
-            ...small && {
-                style: { padding: '.1em', width: 35, height: 30, ...style }
-            }
+        title: title ?? t(_.capitalize(icon)),
+        onClick,
+        ...props,
+        className: 'icon-button',
+    }, icon.length > 1 ? hIcon(icon) : icon )
+}
+
+export interface BtnProps extends ComponentPropsWithoutRef<"button"> {
+    icon?: string,
+    label: string,
+    tooltip?: string,
+    toggled?: boolean,
+    className?: string,
+    onClick?: () => unknown
+    onClickAnimation?: boolean
+}
+
+export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: BtnProps) {
+    const [working, setWorking] = useState(false)
+    return h('button', {
+        title: label + prefix(' - ', tooltip),
+        'aria-label': label,
+        'aria-pressed': toggled,
+        onClick() {
+            if (!onClick) return
+            if (onClickAnimation !== false)
+                setWorking(true)
+            Promise.resolve(onClick()).finally(() => setWorking(false))
         },
-        icon.length > 1 ? hIcon(icon) : icon
-    )
+        ...rest,
+        className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
+    }, icon && hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }

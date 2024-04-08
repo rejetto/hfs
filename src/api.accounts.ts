@@ -1,9 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { changePasswordHelper, changeSrpHelper } from './api.helpers'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addAccount, delAccount, getAccount,
-    setAccount } from './perm'
+    changeSrpHelper, updateAccount } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidSessions } from './auth'
@@ -19,7 +18,7 @@ function prepareAccount(ac: Account | undefined) {
     }
 }
 
-const apis: ApiHandlers = {
+export default  {
 
     get_usernames() {
         return { list: Object.keys(accountsConfig.get()) }
@@ -38,20 +37,23 @@ const apis: ApiHandlers = {
         return { list: _.filter(accountsConfig.get(), accountCanLoginAdmin).map(ac => ac.username) }
     },
 
-    set_account({ username, changes }, ctx) {
+    async set_account({ username, changes }, ctx) {
         const acc = getAccount(username)
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
-        setAccount(acc, changes)
+        await updateAccount(acc, changes)
         if (changes.username && ctx.session?.username === username)
             ctx.session!.username = changes.username
         return _.pick(acc, 'username')
     },
 
-    add_account({ overwrite, username, ...rest }) {
+    async add_account({ overwrite, username, ...rest }) {
         const existing = getAccount(username)
-        if (existing)
-            return overwrite ? setAccount(existing, rest) : new ApiError(HTTP_CONFLICT)
+        if (existing) {
+            if (overwrite) return new ApiError(HTTP_CONFLICT)
+            await updateAccount(existing, rest)
+            return _.pick(existing, 'username')
+        }
         const acc = addAccount(username, rest)
         return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
     },
@@ -65,18 +67,10 @@ const apis: ApiHandlers = {
         return {}
     },
 
-    async change_password_others({ username, newPassword }) {
-        const a = getAccount(username)
-        return a ? changePasswordHelper(a, newPassword)
-            : new ApiError(HTTP_NOT_FOUND)
-    },
-
-    async change_srp_others({ username, salt, verifier }) {
+    async change_srp({ username, salt, verifier }) {
         const a = getAccount(username)
         return a ? changeSrpHelper(a, salt, verifier)
             : new ApiError(HTTP_NOT_FOUND)
     }
 
-}
-
-export default apis
+} satisfies ApiHandlers

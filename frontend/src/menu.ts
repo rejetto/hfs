@@ -1,9 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { ComponentPropsWithoutRef, createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
-import { alertDialog, confirmDialog, ConfirmOptions, promptDialog } from './dialog'
-import { defaultPerms, err2msg, ErrorMsg, hIcon, onlyTruthy, prefix, useStateMounted, VfsPerms, working } from './misc'
+import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
+import { alertDialog, confirmDialog, ConfirmOptions, promptDialog, toast } from './dialog'
+import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, throw_, useStateMounted, VfsPerms, working } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -15,9 +15,10 @@ import { apiCall } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { t, useI18N } from './i18n'
 import { cut } from './clip'
+import { Btn, BtnProps } from './components'
 
 export function MenuPanel() {
-    const { showFilter, remoteSearch, stopSearch, stoppedSearch, selected, props } = useSnapState()
+    const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
     const { can_upload, can_delete, can_archive } = props ? { ...defaultPerms, ...props } : {} as VfsPerms
     const { uploading, qs }  = useSnapshot(uploadState)
     useEffect(() => {
@@ -27,12 +28,12 @@ export function MenuPanel() {
 
     const {t} = useI18N()
 
-    const [started1secAgo, setStarted1secAgo] = useStateMounted(false)
+    const [justStarted, setJustStarted] = useStateMounted(false)
     useEffect(() => {
         if (!stopSearch) return
-        setStarted1secAgo(false)
-        setTimeout(() => setStarted1secAgo(true), 1000)
-    }, [stopSearch, setStarted1secAgo])
+        setJustStarted(false)
+        setTimeout(() => setJustStarted(true), 1000)
+    }, [stopSearch, setJustStarted])
 
     // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
     const ofs = location.pathname.length
@@ -114,18 +115,18 @@ export function MenuPanel() {
             }),
         ),
         remoteSearch && h('div', { id: 'searched' },
-            (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', stoppedSearch && t`interrupted`, ')')),
+            (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', searchManuallyInterrupted && t`interrupted`, ')')),
     )
 
     function getSearchProps() {
-        return stopSearch && started1secAgo ? {
+        return stopSearch && justStarted ? { // don't change the state of the search button immediately to avoid it flicking at every folder change
             id: 'search-stop-button',
             icon: 'stop',
             label: t`Stop list`,
             className: 'ani-working',
             onClick() {
                 stopSearch()
-                state.stoppedSearch = true
+                state.searchManuallyInterrupted = true
             }
         } : state.remoteSearch && !stopSearch ? {
             id: 'search-clear-button',
@@ -140,40 +141,15 @@ export function MenuPanel() {
             label: t`Search`,
             onClickAnimation: false,
             async onClick() {
-                state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders"), { title: t`Search` }) || ''
+                state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders"),
+                    { title: t`Search`, onSubmit: x => x.includes('/') ? throw_(t`Invalid value`) : x  }) || ''
+                state.stopSearch?.()
             }
         }
     }
 }
 
-interface MenuButtonProps extends ComponentPropsWithoutRef<"button"> {
-    icon: string,
-    label: string,
-    tooltip?: string,
-    toggled?: boolean,
-    className?: string,
-    onClick?: () => unknown
-    onClickAnimation?: boolean
-}
-
-export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: MenuButtonProps) {
-    const [working, setWorking] = useState(false)
-    return h('button', {
-        title: label + prefix(' - ', tooltip),
-        'aria-label': label,
-        onClick() {
-            if (!onClick) return
-            if (onClickAnimation !== false)
-                setWorking(true)
-            Promise.resolve(onClick()).finally(() => setWorking(false))
-        },
-        className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
-        ...toggled !== undefined && { 'aria-pressed': toggled },
-        ...rest,
-    }, hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
-}
-
-export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: MenuButtonProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
+export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
     return h('a', {
         tabIndex: -1,
         href,
@@ -200,16 +176,14 @@ function LoginButton() {
         icon: 'login',
         label: t`Login`,
         onClickAnimation: false,
-        onClick: () => loginDialog(),
+        onClick: () => loginDialog(true),
     })
 }
 
 export async function deleteFiles(uris: string[]) {
     const n = uris.length
-    if (!n) {
-        alertDialog(t('delete_select', "Select something to delete")).then()
-        return
-    }
+    if (!n)
+        return void alertDialog(t('delete_select', "Select something to delete"))
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
         return false
     const stop = working()
@@ -219,11 +193,13 @@ export async function deleteFiles(uris: string[]) {
     stop()
     reloadList()
     const e = errors.length
-    alertDialog(h(Fragment, {},
-        t('delete_completed', {n: n-e}, "Deletion: {n} completed"),
-        e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
+    const msg = t('delete_completed', {n: n-e}, "Deletion: {n} completed")
+    if (n === 1 && !e)
+        return toast(msg, 'success')
+    void alertDialog(h(Fragment, {},
+        msg, e > 0 && t('delete_failed', {n:e}, ", {n} failed"),
         h('div', { style: { textAlign: 'left', marginTop: '1em', } },
             ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + e.uri }))
         )
-    )).then()
+    ))
 }

@@ -1,21 +1,31 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useMemo } from 'react'
+import { createElement as h, Fragment, ReactNode, useId, useMemo } from 'react'
 import { FieldProps } from '.'
-import {
-    Autocomplete, Chip, FormControl, FormControlLabel, FormLabel, IconButton, InputAdornment, MenuItem, Radio,
-    RadioGroup, StandardTextFieldProps, TextField, Tooltip
-} from '@mui/material'
+import { FormControl, FormControlLabel, FormLabel, MenuItem, Radio, InputLabel, Select,
+    ListItemText, Checkbox, FilledInput, RadioGroup, TextField, FormHelperText, Button } from '@mui/material'
 import { SxProps } from '@mui/system'
-import { Clear } from '@mui/icons-material'
 
 type SelectOptions<T> = { [label:string]: T } | SelectOption<T>[]
 type SelectOption<T> = SelectPair<T> | (T extends string | number ? T : never)
 interface SelectPair<T> { label: string, value: T }
 
 export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
-    const { value, onChange, setApi, options, sx, ...rest } = props
+    const { value, onChange, setApi, options, sx, disabled, ...rest } = props
+    const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
+    const jsonValue = JSON.stringify(value)
+    const currentOption = normalizedOptions.find(x => JSON.stringify(x.value) === jsonValue)
     return h(TextField, { // using TextField because Select is not displaying label correctly
+        select: true,
+        hiddenLabel: !props.label,
+        // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
+        value: currentOption ? jsonValue : '',
+        disabled: !normalizedOptions?.length || disabled,
+        children: normalizedOptions.map((o, i) => h(MenuItem, {
+            key: i,
+            value: JSON.stringify(o?.value),
+            children: h(Fragment, { key: i }, o?.label) // without this fragment/key, a label as h(span) will produce warnings
+        })),
         ...commonSelectProps(props),
         ...rest,
         onChange(event) {
@@ -29,84 +39,79 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
     })
 }
 
-export function MultiSelectField<T>({ renderOption, ...props }: FieldProps<T[]> & CommonSelectProps<T> & { renderOption?: (option: SelectPair<T>) => ReactNode }) {
-    const { value, onChange, setApi, options, sx, clearable, clearValue, placeholder, autocompleteProps, ...rest } = props
-    const { select, InputProps, ...common } = commonSelectProps({ clearValue: [], ...props, clearable: false })
+type MultiSelectFieldProps<T> = FieldProps<T[]> & CommonSelectProps<T> & {
+    renderOption?: (option: SelectPair<T>) => ReactNode
+    clearable?: boolean
+}
+export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectFieldProps<T>) {
+    const { value, onChange, setApi, options, placeholder, helperText, label, valueSeparator = ', ', clearable=true, ...rest } = props
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
     const valueAsOptions = useMemo(() => !Array.isArray(value) ? []
             : value.map(x => normalizedOptions.find(o => o.value === x) || { value: x, label: String(x) }),
         [value, normalizedOptions])
-    return h(Autocomplete<SelectPair<T>, true>, {
-        multiple: true,
-        options: normalizedOptions,
-        filterSelectedOptions: true,
-        onChange: (event, sel) => onChange(sel.map(x => x.value) as T[], { was: value, event }),
-        isOptionEqualToValue: (option, val) => option.value === val.value,
-        getOptionLabel: x => x.label,
-        renderOption: (props, x) => h('span', props, renderOption?.(x) ?? x.label),
-        ...common,
-        ...autocompleteProps,
-        value: valueAsOptions,
-        renderInput: params => h(TextField, {
+    const valueAsJsons = useMemo(() => value?.map(x => JSON.stringify(x)) || [], [value])
+    const labelId = useId()
+    const helperId = useId()
+    const showClear = valueAsOptions.length > 0
+    return h(FormControl, { fullWidth: true, variant: 'filled', hiddenLabel: !label },
+        h(InputLabel, {
+            id: labelId,
+            sx: { '&.Mui-focused': { color: 'inherit' } }, // override style rule giving this a dim contrast and hard to read
+        }, label),
+        h(Select<string[]>, {
+            ...commonSelectProps(props),
+            multiple: true,
+            value: valueAsJsons,
+            onChange: event => {
+                let { value: v } = event.target
+                if (!Array.isArray(v)) { debugger; return }
+                v = v.map(x => x && JSON.parse(x)) // x can be undefined because of the clear-button
+                onChange(v as any, { was: value, event })
+            },
+            input: h(FilledInput, {
+                placeholder,
+                hiddenLabel: !label,
+                'aria-describedby': helperId,
+            }),
+            renderValue: () => h('div', {
+                'aria-label': label + ': ' + valueAsOptions.map(x => x.label),
+                style: { overflow: "hidden", display: "flex", flexWrap: "wrap", gap: ".5em" },
+                children: valueAsOptions.map((x, i) => h('span', { key: i }, renderOption?.(x) ?? x.label, i < valueAsOptions.length - 1 && valueSeparator)),
+            }),
             ...rest,
-            placeholder: valueAsOptions.length ? undefined : placeholder, // TextField's own logic doesn't know about the main field not being empty
-            SelectProps: { multiple: true },
-            sx: { ...rest.sx, '& div[role=button]': { whiteSpace: 'unset' } },
-            ...params,
-        }),
-        renderTags: (tagValue, getTagProps) =>
-            tagValue.map((option, index) =>
-                h(Chip, { label: renderOption?.(option) ?? option.label, ...getTagProps({ index }) })),
-        sx: {
-            '.MuiAutocomplete-tag': { height: 24 }, // too tall, otherwise
-            '.MuiAutocomplete-inputRoot': { pt: '21px' }, // some extra margin from label
-            'input[type][type]': { p: '4px' },
-            '.MuiChip-deleteIcon[class]': { position: 'absolute', right: '-0.6em', opacity: 0, color: 'text.primary', transition: 'all .2s' },
-            '.MuiChip-root:hover .MuiChip-deleteIcon': { opacity: 1 },
-            ...sx,
-        }
-    })
+        },
+            !normalizedOptions.length && h(ListItemText, { sx: { fontStyle: 'italic', ml: 1 }, onClickCapture(ev) { ev.stopPropagation() } }, "No options available"),
+            normalizedOptions.length > 1 && h(Button, {
+                ref: x => x && Object.assign(x, { role: undefined }), // cancel the role=option on this
+                onClickCapture(event) {
+                    event.stopPropagation()
+                    onChange(showClear ? [] : normalizedOptions.map(x => x.value), { was: value, event })
+                },
+            }, showClear ? "Unselect all" : "Select all"),
+            ...normalizedOptions.map(o => h(MenuItem, { value: JSON.stringify(o?.value) }, // encode, as this supports only string|number
+                h(Checkbox, { checked: value?.includes(o.value) || false }),
+                h(ListItemText, { primary: renderOption?.(o) ?? o.label })
+            )),
+        ),
+        h(FormHelperText, { id: helperId, error: props.error }, helperText),
+    )
 }
 
-type HelperCommon<T> = Partial<Omit<StandardTextFieldProps, 'label' | 'value' | 'onChange'>> & Pick<FieldProps<T>, 'value' | 'onChange' | 'label'>
+type HelperCommon<T> = Pick<FieldProps<T>, 'value' | 'onChange' | 'label'>
 interface CommonSelectProps<T> extends HelperCommon<T> {
     sx?: SxProps
     disabled?: boolean
-    clearable?: boolean
-    clearValue?: T | []
     options: SelectOptions<T>
-    start?: ReactNode
-    end?: ReactNode
 }
 function commonSelectProps<T>(props: CommonSelectProps<T>) {
-    const { options, disabled, start, end, clearable, clearValue, value } = props
-    const normalizedOptions = normalizeOptions(options)
-    const jsonValue = JSON.stringify(value)
-    const currentOption = normalizedOptions.find(x => JSON.stringify(x.value) === jsonValue)
-    const showClear = clearable && (Array.isArray(value) ? value.length > 0 : value)
     return {
-        select: true,
         fullWidth: true,
-        sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1 } }, props.sx),
-        // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
-        value: currentOption ? jsonValue : '',
-        disabled: !normalizedOptions?.length || disabled,
-        InputProps: {
-            startAdornment: (start || showClear) && h(InputAdornment, { position: 'start' },
-                showClear && h(Tooltip, { title: "Clear", children: h(IconButton, {
-                    onClick(event) {
-                        props.onChange(clearValue as any, { was: value, event })
-                    }
-                }, h(Clear)) }),
-                start),
-            endAdornment: end && h(InputAdornment, { position: 'end' }, end),
-            ...props.InputProps,
-        },
-        children: normalizedOptions.map((o, i) => h(MenuItem, {
-            key: i,
-            value: JSON.stringify(o?.value),
-            children: h(Fragment, { key: i }, o?.label) // without this fragment/key, a label as h(span) will produce warnings
-        }))
+        sx: Object.assign({
+            '& .MuiInputBase-inputHiddenLabel': {
+                py: 1,
+                '& .MuiInputAdornment-root': { ml: -1 },
+            }
+        }, props.sx),
     }
 }
 

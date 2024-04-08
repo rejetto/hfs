@@ -1,7 +1,7 @@
 {
     "author": "H.F.P. Pit - PH5HP",
-    "version": 1.1,
-    "hfs_version": "0.50.0",
+    "version": 1.2,
+    "hfs_version": "0.52.0",
     "translate": {
         "Select": "Selecteer",
         "n_files": "{n,plural,one{# bestand} other{# bestanden}}",
@@ -127,8 +127,26 @@
         "good_bad": "{good} verplaatst, {bad} mislukt",
         "after_cut": "Uw selectie is nu naar het klembord gekopieerd.\nGa naar de bestemmings map om te plakken.",
         "Cancel clipboard": "Cancel clipboard",
-        "to_clipboard_source": "Naar map",
+        "to_clipboard_source": "Ga terug naar de bronmap",
         "Paste": "Plakken",
-        "clipboard_list": "Items in het klembord:"
-    }
+        "clipboard_list": "Items in het klembord:",
+    
+		"Close": "Sluit",
+		"Folder": "Map",
+		"Web page": "Web pagina",
+		"Link": "Link",
+		"Auto-play": "Automatisch afspelen",
+		"autoplay_seconds": "Secondes tussen het afspelen van afbeeldingen",
+		"Select all": "Selecteer alles",
+		"go_first": "Ga naar het 1e item",
+		"go_last": "Ga naar het laatste item",
+		"Shuffle": "Mix door elkaar",
+		"Repeat": "Herhaal",
+		"showHelpListShortcut": "In de bestanden lijst, klik de bestandsnaam aan met de {key} ingedrukt om het snel te tonen",
+		"Invalid value": "Foutieve waarde",
+		"upload_skipped": "{n} overgeslagen",
+		"Overwrite policy": "Overschrijf beleid",
+		"Rename to avoid overwriting": "Hernoem om overschrijven te vermijden",
+		"Overwrite existing files": "Overschrijf bestaande bestanden"
+	}
 }

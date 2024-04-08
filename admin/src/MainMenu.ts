@@ -3,17 +3,7 @@
 import { createElement as h, FC } from 'react';
 import { List, ListItemButton, ListItemIcon, ListItemText, Box } from '@mui/material'
 import {
-    AccountTree,
-    Extension,
-    History,
-    Home,
-    Logout,
-    ManageAccounts,
-    Monitor,
-    Public,
-    Settings,
-    Translate,
-    Code,
+    AccountTree, Extension, History, Home, Logout, ManageAccounts, Monitor, Public, Settings, Translate, Code,
     SvgIconComponent
 } from '@mui/icons-material'
 import _ from 'lodash'
@@ -27,11 +17,11 @@ import LogoutPage from './LogoutPage';
 import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
-import { getHFS } from '@hfs/shared'
+import { getHFS, replaceStringToReact } from '@hfs/shared'
 import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
-import { replaceStringToReact } from './md'
 import { useWindowSize } from 'usehooks-ts'
+import { hTooltip } from './mui'
 
 interface MenuEntry {
     path: string
@@ -56,7 +46,7 @@ export const mainMenu: MenuEntry[] = [
     { path: 'logout', icon: Logout, comp: LogoutPage }
 ]
 
-export default function Menu({ onSelect }: { onSelect: ()=>void }) {
+export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, itemTitle: (idx: number) => string }) {
     const { VERSION } = getHFS()
     const logo = 'hfs-logo.svg'
     const short = useWindowSize().height < 700
@@ -75,9 +65,8 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                 h(Box, { fontSize: 'small' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
-            mainMenu.map(it =>
+            mainMenu.map((it, idx) => hTooltip( itemTitle(idx), getMenuLabel(it) + ' ' + itemTitle(idx),
                 h(ListItemButton, {
-                    key: it.path,
                     to: it.path,
                     component: NavLink,
                     onClick: onSelect,
@@ -85,9 +74,11 @@ export default function Menu({ onSelect }: { onSelect: ()=>void }) {
                     style: ({ isActive }) => isActive ? { textDecoration: 'underline' } : {},
                     children: undefined, // shut up ts
                 },
-                    it.icon && h(ListItemIcon, { sx:{ color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
+                    it.icon && h(ListItemIcon, { sx: { color: 'primary.contrastText', minWidth: 48 } }, h(it.icon)),
                     h(ListItemText, { sx: { whiteSpace: 'nowrap' }, primary: getMenuLabel(it) })
-                ) ),
+                ),
+                { key: it.path, placement: 'right' }
+            )),
             !short && h(Box, { sx: { flex: 1, opacity: .7, background: `url(${logo}) no-repeat bottom`, backgroundSize: 'contain', margin: 2 } }),
         )
     )

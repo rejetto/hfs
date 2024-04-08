@@ -1,17 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { hashPassword } from './crypt'
-import { objRenameKey, setHidden, wantArray } from './misc'
-import Koa from 'koa'
+import { HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
+import { ApiError } from './apiMiddleware'
 
 export interface Account {
+    // we consider all the following fields, when falsy, as equivalent to be missing. If this changes in the future, please adjust addAccount and setAccount
     username: string, // we keep username property (hidden) so we don't need to pass it separately
     password?: string
-    hashed_password?: string
     srp?: string
     belongs?: string[]
     ignore_limits?: boolean
@@ -19,6 +18,8 @@ export interface Account {
     admin?: boolean
     redirect?: string
     disabled?: boolean
+    expire?: Date
+    days_to_live?: number
 }
 interface Accounts { [username:string]: Account }
 
@@ -48,8 +49,6 @@ export function saveSrpInfo(account:Account, salt:string | bigint, verifier: str
     account.srp = String(salt) + '|' + String(verifier)
 }
 
-export const allowClearTextLogin = defineConfig('allow_clear_text_login', false)
-
 const createAdminConfig = defineConfig('create-admin', '')
 createAdminConfig.sub(v => {
     if (!v) return
@@ -57,31 +56,30 @@ createAdminConfig.sub(v => {
     createAdminConfig.set('')
 })
 
-export function createAdmin(pass: string, username='admin') {
+export function createAdmin(password: string, username='admin') {
     const acc = addAccount(username, { admin: true })
     if (!acc) return console.log("cannot create, already exists")
-    updateAccount(acc!, acc => { acc.password = pass })
+    updateAccount(acc!, { password })
     console.log("account admin created")
 }
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
 type Changer = (account:Account)=> void | Promise<void>
-export async function updateAccount(account: Account, changer?:Changer) {
-    const was = JSON.stringify(account)
-    await changer?.(account)
-    const { username } = account
-    if (account.password) {
+export async function updateAccount(account: Account, change: Partial<Account> | Changer) {
+    const jsonWas = JSON.stringify(account)
+    const { username: usernameWas } = account
+    if (typeof change === 'function')
+        await change?.(account)
+    else
+        Object.assign(account, objSameKeys(change, x => x || undefined))
+
+    const { username, password } = account
+    if (password) {
         console.debug('hashing password for', username)
-        if (allowClearTextLogin.get())
-            account.hashed_password = await hashPassword(account.password)
-        const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, account.password)
-        saveSrpInfo(account, res.s, res.v)
         delete account.password
-    }
-    else if (!account.srp && account.hashed_password) {
-        console.log('please reset password for account', username)
-        process.exit(1)
+        const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)
+        saveSrpInfo(account, res.s, res.v)
     }
     if (account.belongs) {
         account.belongs = wantArray(account.belongs)
@@ -91,7 +89,10 @@ export async function updateAccount(account: Account, changer?:Changer) {
             return true
         })
     }
-    if (was !== JSON.stringify(account))
+    account.expire &&= new Date(account.expire)
+    if (username !== usernameWas)
+        renameAccount(usernameWas, username)
+    if (jsonWas !== JSON.stringify(account))
         saveAccountsAsap()
 }
 
@@ -109,7 +110,7 @@ accountsConfig.sub(obj => {
                 saveAccountsAsap()
             setHidden(rec, { username: norm })
         }
-        updateAccount(rec).then() // work password fields
+        void updateAccount(rec, {}) // work fields
     })
 })
 
@@ -140,30 +141,14 @@ export function renameAccount(from: string, to: string) {
     }
 }
 
-// we consider all the following fields, when falsy, as equivalent to be missing. If this changes in the future, please adjust addAccount and setAccount
-const assignableProps: (keyof Account)[] = ['redirect','ignore_limits','belongs','admin','disabled','disable_password_change']
-
 export function addAccount(username: string, props: Partial<Account>) {
     username = normalizeUsername(username)
     if (!username || getAccount(username, false))
         return
-    const filteredProps = _.pickBy(_.pick(props, assignableProps), Boolean)
-    const copy: Account = setHidden(filteredProps, { username }) // have the field in the object but hidden so that stringification won't include it
+    const copy: Account = setHidden(_.pickBy(props, Boolean), { username }) // have the field in the object but hidden so that stringification won't include it
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [username]: copy }))
     return copy
-}
-
-export function setAccount(acc: Account, changes: Partial<Account>) {
-    const rest = _.pick(changes, assignableProps)
-    for (const [k,v] of Object.entries(rest))
-        if (!v)
-            rest[k as keyof Account] = undefined
-    Object.assign(acc, rest)
-    if (changes.username)
-        renameAccount(acc.username, changes.username)
-    saveAccountsAsap()
-    return acc
 }
 
 export function delAccount(username: string) {
@@ -190,7 +175,7 @@ export function getFromAccount<T=any>(account: Account | string, getter:(a:Accou
 }
 
 export function accountHasPassword(account: Account) {
-    return Boolean(account.password || account.hashed_password || account.srp)
+    return Boolean(account.password || account.srp)
 }
 
 export function accountCanLogin(account: Account) {
@@ -198,9 +183,20 @@ export function accountCanLogin(account: Account) {
 }
 
 function allDisabled(account: Account): boolean {
-    return Boolean(account.disabled || account.belongs?.map(u => getAccount(u, false)).every(a => a && allDisabled(a)))
+    return Boolean(account.disabled
+        || account.expire as any < Date.now()
+        || account.belongs?.map(u => getAccount(u, false)).every(a => a && allDisabled(a)))
 }
 
 export function accountCanLoginAdmin(account: Account) {
     return accountCanLogin(account) && Boolean(getFromAccount(account, a => a.admin))
+}
+
+
+export async function changeSrpHelper(account: Account, salt: string, verifier: string) {
+    if (!salt || !verifier)
+        return new ApiError(HTTP_BAD_REQUEST, 'missing parameters')
+    await updateAccount(account, account =>
+        saveSrpInfo(account, salt, verifier) )
+    return {}
 }

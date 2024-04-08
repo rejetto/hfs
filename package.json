@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.51.4",
+  "version": "0.52.0",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -24,11 +24,17 @@
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
     "pub": "cd dist && npm publish",
     "dist": "npm run build-all && npm run dist-bin",
-    "dist-bin": "npm run dist-modules && cd dist && pkg . --public -C gzip && mv -f hfs-win-x64.exe hfs.exe && zip hfs-windows.zip hfs.exe -r plugins && cp -f hfs-linux-x64 hfs && zip hfs-linux.zip hfs -r plugins && cp -f hfs-macos-x64 hfs && zip hfs-mac.zip hfs -r plugins && cp -f hfs-macos-arm64 hfs && zip hfs-mac-arm.zip hfs -r plugins && rm hfs",
-    "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && npm run dist-crclib && rm package-lock.json && cd .. && node prune_modules",
-    "dist-crclib": "npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc @node-rs/crc32-darwin-arm64 @node-rs/crc32-darwin-x64 @node-rs/crc32-linux-x64-gnu",
-    "dist-win": "npm run dist-modules && cd dist && pkg . --public -C gzip -t node18-win-x64",
-    "dist-mac": "npm run dist-modules && cd dist && pkg . --public -C gzip -t node18-macos-arm64",
+    "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-mac && npm run dist-bin-mac-arm",
+    "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && cd .. && node prune_modules",
+    "dist-pre": "cd dist && rm -rf node_modules/@node-rs/crc32-*",
+    "dist-bin-win": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc && pkg . --public -C gzip -t node18-win-x64 && zip hfs-windows.zip hfs.exe -r plugins && cd ..",
+    "dist-bin-mac-arm": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-arm64 && pkg . --public -C gzip -t node18-macos-arm64 && zip hfs-mac-arm.zip hfs -r plugins && cd ..",
+    "dist-bin-mac": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-x64 && pkg . --public -C gzip -t node18-macos-x64 && zip hfs-mac.zip hfs -r plugins && cd ..",
+    "dist-bin-linux": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-linux-x64-gnu && pkg . --public -C gzip -t node18-linux-x64 && zip hfs-linux.zip hfs -r plugins && cd ..",
+    "dist-win": "npm run dist-modules && npm run dist-bin-win",
+    "dist-mac-arm": "npm run dist-modules && npm run dist-bin-mac-arm",
+    "dist-mac": "npm run dist-modules && npm run dist-bin-mac",
+    "dist-linux": "npm run dist-modules && npm run dist-bin-linux",
     "dist-node": "npm run dist-modules && cd dist && zip hfs-node.zip -r * -x *.zip *.exe hfs-* *.log logs"
   },
   "engines": {
@@ -63,7 +69,7 @@
     ]
   },
   "dependencies": {
-    "@koa/router": "^10.1.1",
+    "@koa/router": "^12.0.1",
     "@node-rs/crc32": "^1.6.0",
     "acme-client": "^5.2.0",
     "basic-auth": "^2.0.1",

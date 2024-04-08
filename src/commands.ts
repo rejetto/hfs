@@ -66,9 +66,7 @@ const commands = {
             const acc = getAccount(user)
             if (!acc)
                 throw "user doesn't exist"
-            await updateAccount(acc!, acc => {
-                acc.password = password
-            })
+            await updateAccount(acc!, { password })
         }
     },
     config: {

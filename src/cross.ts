@@ -19,10 +19,12 @@ export const FRONTEND_OPTIONS = {
     folders_first: true,
     sort_numerics: false,
     theme: '',
+    auto_play_seconds: 5,
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
-export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown',
+export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
+    'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'roots_mandatory'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
@@ -109,8 +111,8 @@ export function formatSpeed(n: number, options: { digits?: number }={}) {
 
 }
 
-export function prefix(pre:string, v:string|number|undefined|null|false, post:string='') {
-    return v ? pre+v+post : ''
+export function prefix(pre: Falsy | string, v: string | number | undefined | null | false, post: Falsy | string='') {
+    return v ? (pre||'') + v + (post || '') : ''
 }
 
 export function wait<T=undefined>(ms: number, val?: T): Promise<T | undefined> {
@@ -131,6 +133,10 @@ export function enforceFinal(sub:string, s:string, evenEmpty=false) {
 
 export function removeStarting(sub: string, s: string) {
     return s.startsWith(sub) ? s.slice(sub.length) : s
+}
+
+export function strinsert(s: string, at: number, insert: string, remove=0) {
+    return s.slice(0, at) +  insert + s.slice(at + remove)
 }
 
 export function splitAt(sub: string | number, all: string): [string, string] {
@@ -200,7 +206,7 @@ export function basename(path: string) {
 }
 
 export function dirname(path: string) {
-    return path.slice(0, path.lastIndexOf('/', path.length - 1))
+    return path.slice(0, Math.max(0, path.lastIndexOf('/', path.length - 1)))
 }
 
 export function tryJson(s?: string, except?: (s?: string) => unknown) {
@@ -324,13 +330,20 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
     return ret
 }
 
-export function repeat(every: number, cb: () => unknown): Promise<ReturnType<typeof setTimeout>>{
-    return Promise.allSettled([cb()]).then(() =>
-        setTimeout(() => repeat(every, cb), every) )
+export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
+    let stop = false
+    setTimeout(async () => {
+        while (!stop && await Promise.allSettled([cb(stopIt)]))
+            await wait(everyMs)
+    })
+    return stopIt
+    function stopIt() {
+        stop = true
+    }
 }
 
-export function formatTimestamp(x: string) {
-    return x ? new Date(x).toLocaleString() : '-'
+export function formatTimestamp(x: string | Date) {
+    return !x ? '-' : (x instanceof Date ? x : new Date(x)).toLocaleString()
 }
 
 export function isPrimitive(x: unknown): x is boolean | string | number | undefined | null {
@@ -414,6 +427,29 @@ export function makeMatcher(mask: string, emptyMaskReturns=false) {
 
 export function matches(s: string, mask: string, emptyMaskReturns=false) {
     return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
+}
+
+export function replace(s: string, symbols: Dict<string | Callback<string>>, delimiter='') {
+    const [open, close] = splitAt(' ', delimiter)
+    for (const [k, v] of typedEntries(symbols))
+        s = s.replace(open + k + close, _.isFunction(v) ? v() : v)
+    return s
+}
+
+export function inCommon<T extends string | unknown[]>(a: T, b: T) {
+    let i = 0
+    const n = a.length
+    while (i < n && a[i] === b[i]) i++
+    return i
+}
+
+export function mapFilter<T=unknown, R=T>(arr: T[], map: (x:T, idx: number) => R, filter=(x: R) => x === undefined, invert=false) {
+    return arr[invert ? 'reduceRight' : 'reduce']((ret, x, idx) => {
+        const y = map(x, idx)
+        if (filter(y))
+            ret.push(y) // push is much faster than unshift, therefore invert using reduceRight https://measurethat.net/Benchmarks/Show/29/0/array-push-vs-unshift
+        return ret
+    }, [] as R[])
 }
 
 export function shortenAgent(agent: string) {

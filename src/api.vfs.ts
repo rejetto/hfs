@@ -9,8 +9,7 @@ import { dirname, extname, join, resolve } from 'path'
 import { dirStream, enforceFinal, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
     VfsNodeAdminSend } from './misc'
 import { IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE } from './const'
-import { getDrives } from './util-os'
-import { Stats } from 'fs'
+import { getDiskSpaces, getDiskSpaceSync, getDrives } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { promisify } from 'util'
 import { execFile } from 'child_process'
@@ -31,8 +30,8 @@ const apis: ApiHandlers = {
 
         async function recur(node=vfs): Promise<VfsNodeAdminSend> {
             const { source } = node
-            const stats: false | Stats = Boolean(source) && await stat(source!).catch(() => false)
-            const isDir = !nodeIsLink(node) && (!source || stats && stats.isDirectory())
+            const stats = !source ? undefined : await stat(source!).catch(() => undefined)
+            const isDir = !nodeIsLink(node) && (!source || (stats?.isDirectory() ?? node.children?.length! > 0))
             const copyStats: Pick<VfsNodeAdminSend, 'size' | 'ctime' | 'mtime'> = stats ? _.pick(stats, ['size', 'ctime', 'mtime'])
                 : { size: source ? -1 : undefined }
             if (copyStats.mtime && Number(copyStats.mtime) === Number(copyStats.ctime))
@@ -180,6 +179,8 @@ const apis: ApiHandlers = {
         return {}
     },
 
+    get_disk_spaces: getDiskSpaces,
+
     get_ls({ path, files=true, fileMask }, ctx) {
         return new SendListReadable({
             async doAtStart(list) {
@@ -192,6 +193,8 @@ const apis: ApiHandlers = {
                     }
                     return
                 }
+                try { list.props(getDiskSpaceSync(path)) }
+                catch {} // continue anyway
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')

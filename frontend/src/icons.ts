@@ -41,6 +41,10 @@ const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // fals
     info: ['ⓘ', false],
     cut: ['✄'],
     paste: ['📋'],
+    shuffle: ['🔀'],
+    repeat: ['🔁', 'reload'],
+    success: ['👍', 'check'],
+    warning: ['⚠️', false],
 }
 
 document.fonts.ready.then(async ()=> {

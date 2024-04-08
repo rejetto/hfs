@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiList } from './api'
-import { createElement as h, Fragment, ReactNode, useEffect } from 'react'
-import { Box, Link, Tooltip } from '@mui/material'
+import { createElement as h, Fragment, useEffect } from 'react'
+import { Box, Link } from '@mui/material'
 import { DataTable } from './DataTable'
 import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
 import { HTTP_FAILED_DEPENDENCY, prefix, with_, xlate } from './misc'
@@ -12,7 +12,7 @@ import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringFie
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
-import { Btn, IconBtn } from './mui'
+import { Btn, hTooltip, IconBtn } from './mui'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
@@ -142,11 +142,8 @@ export function renderName({ row, value }: any) {
                 ))
     )
 
-    function errorIcon(msg: ReactNode, warning=false) {
-        return msg && h(Tooltip, {
-            title: msg,
-            children: h(ErrorIcon, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } })
-        })
+    function errorIcon(msg: string, warning=false) {
+        return msg && hTooltip(msg, msg, h(ErrorIcon, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } }))
     }
 }
 

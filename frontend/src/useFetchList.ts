@@ -7,13 +7,19 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, xlate } from './misc'
+import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, waitFor, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 export function usePath() {
     return useLocation().pathname
 }
+
+// allow links with ?search
+waitFor(() => urlParams).then(x => {
+    if (x)
+        state.remoteSearch = x.search
+})
 
 export default function useFetchList() {
     const snap = useSnapState()
@@ -28,11 +34,13 @@ export default function useFetchList() {
         const previous = lastUri.current
         lastUri.current = uri
         if (previous !== uri) {
+            state.uri = uri // this should be a better way than uriChanged
             state.showFilter = false
             state.stopSearch?.()
+            hfsEvent('uriChanged', { uri, previous }) // legacy pre-0.52, remove in 0.54
         }
-        state.stoppedSearch = false
-        if (previous !== uri && search) {
+        state.searchManuallyInterrupted = false
+        if (previous && previous !== uri && search) {
             state.remoteSearch = ''
             return
         }
@@ -83,7 +91,7 @@ export default function useFetchList() {
                             state.stopSearch?.()
                             state.error = xlate(error, HTTP_MESSAGES)
                             if (error === HTTP_UNAUTHORIZED && snap.username)
-                                alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning').then()
+                                void alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
                             state.loginRequired = error === HTTP_UNAUTHORIZED
                             lastReq.current = null
                             continue

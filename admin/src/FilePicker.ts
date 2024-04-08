@@ -4,9 +4,9 @@ import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } fr
 import { apiCall, useApiList } from './api'
 import _ from 'lodash'
 import { Alert, Box, Button, Checkbox, ListItemIcon, ListItemText, MenuItem, TextField, Typography } from '@mui/material'
-import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename } from './misc'
-import { spinner, Center, IconBtn, Flex } from './mui'
-import { ArrowUpward, CreateNewFolder, VerticalAlignTop } from '@mui/icons-material'
+import { enforceFinal, formatBytes, isWindowsDrive, err2msg, basename, formatPerc } from './misc'
+import { spinner, Center, IconBtn, Flex, IconProgress } from './mui'
+import { ArrowUpward, CreateNewFolder, Storage, VerticalAlignTop } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
 import { FixedSizeList } from 'react-window'
@@ -34,7 +34,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
             }
         }).finally(() => setReady(true))
     }, [from])
-    const { list, error, connecting, reload } = useApiList<DirEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
+    const { list, props, error, connecting, reload } = useApiList<DirEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
     useEffect(() => {
         setSel([])
         setFilter('')
@@ -55,38 +55,41 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
     const cwdDelimiter = enforceFinal(pathDelimiter, cwd)
     const isRoot = cwd.length < 2
     return h(Fragment, {},
-        h(Box, { display: 'flex', gap: 1 },
-            h(Button, {
-                title: "root",
-                disabled: isRoot,
-                onClick() {
-                    setCwd(root)
-                }
-            }, h(VerticalAlignTop)),
-            h(Button, {
-                disabled: isRoot,
-                title: "parent folder",
-                onClick() {
-                    const cwdND = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
-                    const parent = isWindowsDrive(cwdND) ? root : cwdND.slice(0, cwdND.lastIndexOf(pathDelimiter) || 1)
-                    setCwd(parent)
-                }
-            }, h(ArrowUpward)),
-            h(StringField, {
-                label: "Current path",
-                value: cwd,
-                InputLabelProps: { shrink: true },
-                async onChange(v) {
-                    if (!v)
-                        return setCwd(root)
-                    const res = await apiCall('resolve_path', { path: v })
-                    if (res.isFolder === false)
-                        return files ? onSelect([v]) : setCwd(v.slice(0, -basename(v)))
-                    setCwd(res.path)
-                },
-            }),
-        ),
-        error ? h(Alert, { severity: 'error' }, err2msg(error))
+        h(StringField, {
+            label: "Current folder",
+            value: cwd,
+            InputLabelProps: { shrink: true },
+            helperText: "UNC paths are supported",
+            async onChange(v) {
+                if (!v)
+                    return setCwd(root)
+                const res = await apiCall('resolve_path', { path: v })
+                if (res.isFolder === false)
+                    return files ? onSelect([v]) : setCwd(v.slice(0, -basename(v)))
+                setCwd(res.path)
+            },
+            end: h(Fragment, {},
+                h(IconBtn, {
+                    title: "root",
+                    disabled: isRoot,
+                    icon: VerticalAlignTop,
+                    onClick() {
+                        setCwd(root)
+                    }
+                }),
+                h(IconBtn, {
+                    title: "parent folder",
+                    disabled: isRoot,
+                    icon: ArrowUpward,
+                    onClick() {
+                        const cwdND = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
+                        const parent = isWindowsDrive(cwdND) ? root : cwdND.slice(0, cwdND.lastIndexOf(pathDelimiter) || 1)
+                        setCwd(parent)
+                    }
+                }),
+            )
+        }),
+        error ? h(Alert, { severity: 'error', sx: { flex: 1 } }, err2msg(error))
             : h(Fragment, {},
                 h(Box, {
                     ref(x?: HTMLElement){
@@ -165,7 +168,17 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                             reload()
                         }
                     }),
+                    props?.total > 0 && h(IconProgress, {
+                        icon: Storage,
+                        progress: 1,
+                        offset: (props.total - props.free) / props.total,
+                        title: formatDiskSpace(props),
+                    }),
                 ),
             )
     )
+}
+
+export function formatDiskSpace({ free, total }: { free: number, total: number }) {
+    return `${formatBytes(free)} available (${formatPerc(free / total)}) of ${formatBytes(total)}`
 }

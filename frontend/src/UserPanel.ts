@@ -6,10 +6,9 @@ import { alertDialog, closeDialog, newDialog, promptDialog } from './dialog'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
-import { Btn } from './menu'
-import { hIcon, HTTP_NOT_ACCEPTABLE, working } from './misc'
+import { Btn, CustomCode } from './components'
+import { formatTimestamp, hIcon, working } from './misc'
 import { t } from './i18n'
-import { CustomCode } from './components'
 
 export default function showUserPanel() {
     newDialog({
@@ -20,6 +19,7 @@ export default function showUserPanel() {
             const snap = useSnapState()
             return h('div', { id: 'user-panel' },
                 h('div', {}, t`Username`, ': ', snap.username),
+                snap.accountExp && h('div', {}, t`Account expiration`, ': ', formatTimestamp(snap.accountExp)),
                 h(CustomCode, { name: 'userPanelAfterInfo' }),
                 snap.canChangePassword && h(Btn, {
                     icon: 'password',
@@ -36,11 +36,7 @@ export default function showUserPanel() {
                         const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
                         const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
                         try {
-                            await apiCall('change_srp', { salt: String(res.s), verifier: String(res.v) }, { modal: working }).catch(e => {
-                                if (e.code !== HTTP_NOT_ACCEPTABLE) // server doesn't support clear text authentication
-                                    throw e
-                                return apiCall('change_password', { newPassword: pwd }, { modal: working }) // unencrypted version
-                            })
+                            await apiCall('change_my_srp', { salt: String(res.s), verifier: String(res.v) }, { modal: working })
                             return alertDialog(t('password_changed', "Password changed"))
                         }
                         catch(e) {

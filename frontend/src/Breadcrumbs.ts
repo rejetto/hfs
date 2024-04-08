@@ -16,8 +16,8 @@ export function Breadcrumbs() {
     const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev += x + '/', decodeURIComponent(x)]) : []
     const {t} = useI18N()
     return h(Fragment, {},
-        h(Breadcrumb, { label: hIcon('parent'), title: t`parent folder`, path: parent }),
-        h(Breadcrumb, { label: hIcon('home'), title: t`home`, path: base, current: !currentPath }),
+        h(Breadcrumb, { label: hIcon('parent', { alt: t`parent folder` }), path: parent }),
+        h(Breadcrumb, { label: hIcon('home', { alt: t`home` }), path: base, current: !currentPath }),
         breadcrumbs.map(([path,label], i) =>
             h(Breadcrumb, {
                 key: path,
@@ -41,22 +41,19 @@ function Breadcrumb({ path, label, current, title }:{ current?: boolean, path: s
         title,
         async onClick(ev) {
             if (!current) return
-            if (typeof label !== 'string')
-                return reload()
+            ev.preventDefault()
             openFileMenu(new DirEntry(decodeURIComponent(path), { p }), ev, [
                 {
                     id: 'reload',
                     label: t`Reload`,
                     icon: 'reload',
-                    onClick: reload
+                    onClick() {
+                        state.remoteSearch = ''
+                        state.stopSearch?.()
+                        reloadList()
+                    }
                 }
             ])
-
-            function reload() {
-                state.remoteSearch = ''
-                state.stopSearch?.()
-                reloadList()
-            }
         }
     }, label)
 }

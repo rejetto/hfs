@@ -1,9 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef,
-    HTMLAttributes} from 'react'
+    HTMLAttributes, useState } from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
-import { isPrimitive, objSameKeys } from '.'
+import { domOn, isPrimitive, objSameKeys } from '.'
 
 export interface DialogOptions {
     Content: FunctionComponent<any>,
@@ -19,11 +19,13 @@ export interface DialogOptions {
     position?: [number, number]
     dialogProps?: Record<string, any>
     $id?: number
+    ts?: number
 
     Container?: FunctionComponent<DialogOptions>
 }
 
 const dialogs = proxy<DialogOptions[]>([])
+const focusBak: (Element | null)[] = []
 
 export const dialogsDefaults: Partial<DialogOptions> = {
     closableProps: { children: 'x', 'aria-label': "Close", },
@@ -35,17 +37,22 @@ export const focusableSelector = ['input:not([type="hidden"])', 'button', 'selec
     x + ':not([disabled]):not([tabindex="-1"])').join(',')
 window.addEventListener('keydown', ev => {
     if (ev.key !== 'Tab') return
-    const dialogs = document.querySelectorAll('[role=dialog]')
+    if (tabCycle(ev.target, ev.shiftKey))
+        ev.preventDefault()
+})
+
+function tabCycle(target: EventTarget | null, invert=false) {
+    const dialogs = document.querySelectorAll('[role$=dialog]')
     const dialog = dialogs[dialogs.length-1]
     if (!dialog) return
     const focusable = dialog.querySelectorAll(focusableSelector)
     const n = focusable.length
     if (!n) return
-    const [a, b] = ev.shiftKey ? [n-1, 0] : [0, n-1]
-    if (ev.target !== focusable[b] && isDescendant(document.activeElement, dialog)) return // default behavior
+    const [a, b] = invert ? [n-1, 0] : [0, n-1]
+    if (target !== focusable[b] && isDescendant(document.activeElement, dialog)) return // default behavior
     ;(focusable[a] as HTMLElement).focus()
-    ev.preventDefault()
-})
+    return true
+}
 
 function isDescendant(child: Node | null, parent: Node) {
     while (child) {
@@ -56,7 +63,21 @@ function isDescendant(child: Node | null, parent: Node) {
     return false
 }
 
+let ignorePopState = false
+function back() {
+    ignorePopState = true
+    window.history.back()
+}
+
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
+    useEffect(() => domOn('popstate', () => {
+        if (ignorePopState)
+            return ignorePopState = false
+        const { $dialog } = window.history.state
+        if ($dialog && !dialogs.find(x => x.$id === $dialog)) // it happens if the user, after closing a dialog, goes forward in the history
+            return back()
+        closeDialog(undefined, true)
+    }), [])
     const snap = useSnapshot(dialogs)
     useEffect(() => {
         document.body.style.overflow = snap.length ? 'hidden' : ''
@@ -67,10 +88,16 @@ export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
             h(Dialog, { key: d.$id, ...(d as DialogOptions) })))
 }
 
-function Dialog(d:DialogOptions) {
+function Dialog(d: DialogOptions) {
     const ref = useRef<HTMLElement>()
+    const [shiftY, setShiftY] = useState(0)
     useEffect(()=>{
-        ref.current?.focus()
+        const el = ref.current?.querySelector('.dialog') as HTMLElement | undefined
+        if (!el) return
+        tabCycle(el) // focus first thing inside dialog. This makes JAWS behave
+        if (!d.position) return
+        const rect = el.getBoundingClientRect()
+        setShiftY(Math.min(0, rect.top, window.innerHeight - rect.bottom))
     }, [])
     d = { closable: true, ...dialogsDefaults, ...d }
     if (d.Container)
@@ -78,7 +105,6 @@ function Dialog(d:DialogOptions) {
     return h('div', {
             ref,
             className: 'dialog-backdrop '+(d.className||''),
-            tabIndex: 0,
             onKeyDown,
             onClick: (ev: any) => d.closable
                 && ev.target === ev.currentTarget // this test will tell us if really the backdrop was clicked
@@ -107,7 +133,7 @@ function Dialog(d:DialogOptions) {
                     className: 'dialog-icon dialog-type' + (typeof d.icon === 'string' ? ' dialog-icon-text' : ''),
                     'aria-hidden': true,
                 }, componentOrNode(d.icon)),
-                h('div', { className: 'dialog-title' }, componentOrNode(d.title)),
+                h('h1', { className: 'dialog-title' }, componentOrNode(d.title)),
                 h('div', { className: 'dialog-content' }, h(d.Content || 'div'))
             )
     )
@@ -119,7 +145,7 @@ function Dialog(d:DialogOptions) {
             margin: '1em',
             position: 'absolute',
             ...pos[0] < w / 2 ? { left: pos[0] } : { right: w - pos[0] },
-            ...pos[1] < h / 2 ? { top: pos[1] } : { bottom: h - pos[1] },
+            ...pos[1] < h / 2 ? { top: shiftY + pos[1] } : { bottom: shiftY + h - pos[1] },
         }
     }
 }
@@ -136,9 +162,14 @@ function onKeyDown(ev:any) {
 
 export function newDialog(options: DialogOptions) {
     const $id = Math.random()
+    const ts = performance.now()
     options.$id = $id // object identity is not working because of the proxy. This is a possible workaround
+    options.ts = ts
+    focusBak.push(document.activeElement) // saving this inside options object doesn't work (didn't dig enough to say why)
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
     dialogs.push(options)
+    if (options.closable !== false)
+        window.history.pushState({ $dialog: $id, ts }, '')
     return { close }
 
     function close(v?:any) {
@@ -148,12 +179,17 @@ export function newDialog(options: DialogOptions) {
     }
 }
 
-export function closeDialog(v?:any) {
+export function closeDialog(v?:any, skipHistory=false) {
     let i = dialogs.length
+    if (dialogs[i - 1]?.closable === false) return
     while (i--) {
         const d = dialogs[i]
         if (d.reserveClosing)
             continue
+        if (!skipHistory) {
+            if (window.history.state.$dialog !== d.$id) return
+            back()
+        }
         closeDialogAt(i, v)
         return d
     }
@@ -161,5 +197,6 @@ export function closeDialog(v?:any) {
 
 function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
+    ;(focusBak.pop() as any)?.focus?.() // if element is not HTMLElement, it doesn't have focus method
     return d?.onClose?.(value)
 }

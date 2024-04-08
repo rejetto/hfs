@@ -10,11 +10,10 @@ let selfChecking = false
 
 const CHECK_URL = SPECIAL_URI + 'self-check'
 export const selfCheckMiddleware: Middleware = async (ctx, next) => {
-    if (selfChecking && ctx.url.startsWith(CHECK_URL)) {
-        ctx.body = 'HFS'
-        ctx.state.skipFilters = true
-    }
-    await next()
+    if (!selfChecking || !ctx.url.startsWith(CHECK_URL))
+        return next()
+    ctx.body = 'HFS'
+    ctx.state.skipFilters = true
 }
 
 

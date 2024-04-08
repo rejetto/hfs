@@ -1,42 +1,45 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h } from 'react'
-import { Alert, Box } from '@mui/material'
-import { Add, Microsoft } from '@mui/icons-material'
+import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
+import { Microsoft, Storage } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
-import addFiles, { addLink, addVirtual } from './addFiles'
-import MenuButton from './MenuButton'
-import { CFG, newDialog } from './misc'
-import { Btn, Flex, reloadBtn } from './mui'
+import { CFG, newDialog, prefix } from './misc'
+import { Btn, Flex, IconBtn, reloadBtn } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import { ConfigForm } from './ConfigForm'
 import { ArrayField } from './ArrayField'
 import { BoolField } from '@hfs/mui-grid-form'
 import VfsPathField from './VfsPathField'
-import { promptDialog } from './dialog'
+import { alertDialog, promptDialog } from './dialog'
+import { formatDiskSpace } from './FilePicker'
+import { getDiskSpaces } from '../../src/util-os'
 
 export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
     const isWindows = statusApi.data?.platform === 'win32'
     const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
     return h(Flex, {
         mb: 2,
-        position: 'sticky',
-        top: 0,
         zIndex: 2,
         backgroundColor: 'background.paper',
         width: 'fit-content',
     },
-        h(MenuButton, {
-            variant: 'contained',
-            startIcon: h(Add),
-            items: [
-                { children: "from disk", onClick: addFiles },
-                { children: "virtual folder", onClick: addVirtual },
-                { children: "web-link", onClick: addLink  },
-            ]
-        }, "Add"),
         h(Btn, { variant: 'outlined', onClick: roots }, "Roots"),
         reloadBtn(() => reloadVfs()),
+        h(IconBtn, {
+            icon: Storage,
+            title: "Disk spaces",
+            onClick: () => apiCall<Awaited<ReturnType<typeof getDiskSpaces>>>('get_disk_spaces').then(res =>
+                alertDialog(h(List, { dense: true }, res.map(x => h(ListItem, { key: x.name },
+                    h(ListItemIcon, {}, h(Storage)),
+                    h(ListItemText, {
+                        primary: x.name + prefix(' (', x.description, ')'),
+                        secondary: formatDiskSpace(x)
+                    }),
+                ))), { title: "Disk spaces" })
+                    .then(() => false), // no success-animation for IconBtn
+                alertDialog)
+        }),
         isWindows && h(Btn, {
             icon: Microsoft,
             variant: 'outlined',
@@ -52,7 +55,10 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                             }  }),
                         h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
                     )
-                    const parent = await promptDialog(msg, { field: { comp: VfsPathField, label: "Add to this folder" }, form: { saveOnEnter: false } })
+                    const parent = await promptDialog(msg, {
+                        field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home" },
+                        form: { saveOnEnter: false }
+                    })
                     return !parent ? false : apiCall('windows_integration', { parent }).then(reload)
                 }
             } : {
@@ -65,6 +71,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
 
     function roots() {
         const { close } = newDialog({
+            title: "Roots for different domains",
             dialogProps: { maxWidth: 'sm' },
             Content: () => h(ConfigForm<{ roots: any, roots_mandatory: boolean }>, {
                 onSave() {
@@ -76,7 +83,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                     fields: [
                         {
                             k: 'roots',
-                            label: "Roots for different domains",
+                            label: false,
                             helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
                             comp: ArrayField,
                             fields: [
@@ -88,8 +95,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                         },
                         {
                             k: 'roots_mandatory',
-                            label: "Block requests that are not using any of the domains above",
-                            helperText: "localhost connections are not included",
+                            label: "Accept requests only using domains above (and localhost)",
                             comp: BoolField,
                         }
                     ]

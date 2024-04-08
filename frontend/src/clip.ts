@@ -1,8 +1,8 @@
 import { createElement as h, Fragment } from 'react'
 import { DirList, state, useSnapState } from './state'
-import { Btn } from './menu'
+import { Btn } from './components'
 import { t, useI18N } from './i18n'
-import { alertDialog } from './dialog'
+import { alertDialog, toast } from './dialog'
 import { useNavigate } from 'react-router-dom'
 import { dirname, HTTP_MESSAGES, xlate } from '../../src/cross'
 import { apiCall } from '@hfs/shared/api'
@@ -19,7 +19,7 @@ export function ClipBar() {
     const there = dirname(clip[0].uri) + '/'
     return h('div', { id: 'clipBar' },
         h(Btn, { label: t`Cancel clipboard`, icon: 'close', onClick: cancel }),
-        h(Btn, { label: t('to_clipboard_source', "To folder"), icon: 'parent', onClick: goBack, disabled: here === there }),
+        h(Btn, { label: t('to_clipboard_source', "Back to source folder"), icon: 'parent', onClick: goBack, disabled: here === there }),
         h(Btn, { label: t`Paste`, icon: 'paste', onClick: paste, disabled: here === there || !props?.can_upload }),
         h('div', { onClick: show, style: { flex: 1 } },
             clip.length === 1 ? clip[0].name : t('n_items', { n: clip.length }, "{n,plural, one{# item} other{# items}}") ),
@@ -63,5 +63,5 @@ export function ClipBar() {
 export function cut(files: DirList) {
     state.clip = files
     if (files.length)
-        return alertDialog(t('after_cut', "Your selection is now in the clipboard.\nGo to destination folder to paste."), 'info')
+        return toast(t('after_cut', "Your selection is now in the clipboard.\nGo to destination folder to paste."), 'info')
 }

@@ -21,15 +21,13 @@ export default function LogoutPage() {
                 h(Btn, {
                     icon: Logout,
                     size: 'large',
-                    variant: 'contained',
-                    onClick: ()  => apiCall('logout').catch(err => // we expect 401
+                    onClick: () => apiCall('logout').catch(err => // we expect 401
                             err.code !== HTTP_UNAUTHORIZED && alertDialog(err))
                 }, "I want to logout")
             ),
         h(Btn, {
             icon: PowerSettingsNew,
             size: 'large',
-            variant: 'contained',
             color: 'warning',
             confirm: "Stopping the server, this interface won't respond anymore",
             async onClick() {

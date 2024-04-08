@@ -4,7 +4,7 @@ import { createElement as h, Fragment, useEffect, useState } from 'react';
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
 import { focusSelector, isCtrlKey, KeepInScreen } from './misc';
-import { Btn, Flex, IconBtn, modifiedSx, reloadBtn } from './mui';
+import { Btn, Flex, IconBtn, reloadBtn } from './mui';
 import { Save, ContentCopy, EditNote } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
 import { state } from './state';
@@ -27,7 +27,7 @@ export default function ConfigFilePage() {
                 h(IconBtn, {
                     icon: Save,
                     title: "Save\n(ctrl+enter)",
-                    sx: modifiedSx(text !== saved),
+                    modified: text !== saved,
                     onClick: save,
                 }),
                 h(Alert, { severity: 'warning', sx: { flex: 1, minWidth: '10em' } }, "Be careful, you can easily break things here"),
@@ -50,7 +50,7 @@ export default function ConfigFilePage() {
                 onValueChange: setText,
                 onKeyDown(ev) {
                     if (['s','Enter'].includes(isCtrlKey(ev) as any)) {
-                        save().then()
+                        void save()
                         ev.preventDefault()
                     }
                 },

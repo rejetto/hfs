@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { pendingPromise, shortenAgent, wait } from './misc'
+import { shortenAgent, wait } from './misc'
 import { ApiHandlers } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
@@ -11,18 +11,12 @@ import { SendListReadable } from './SendList'
 
 export default {
 
-    async disconnect({ ip, port, wait }) {
+    async disconnect({ ip, port }) {
         const match = _.matches({ ip, port })
-        const c = getConnections().find(c => match(getConnAddress(c)))
-        if (c) {
-            const waiter = pendingPromise<void>()
-            c.socket.end(waiter.resolve)
-            c.ctx?.res.end()
-            c.ctx?.req.socket.end('')
-            if (wait)
-                await waiter
-        }
-        return { result: Boolean(c) }
+        const found = getConnections().filter(c => match(getConnAddress(c)))
+        for (const c of found)
+            c.socket.destroy()
+        return { result: found.length }
     },
 
     get_connections({}, ctx) {
@@ -88,12 +82,14 @@ export default {
 
     async *get_connection_stats() {
         while (1) {
+            const filtered = getConnections().filter(x => !ignore(x))
             yield {
                 outSpeed: totalOutSpeed,
                 inSpeed: totalInSpeed,
                 got: totalGot,
                 sent: totalSent,
-                connections: _.sumBy(getConnections(), x => ignore(x) ? 0 : 1),
+                connections: filtered.length,
+                ips: _.uniqBy(filtered, x => x.ip).length,
             }
             await wait(1000)
         }

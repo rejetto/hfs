@@ -1,16 +1,27 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactElement, ReactNode, useEffect, useRef, useState, KeyboardEvent } from 'react'
+import { createElement as h, ReactElement, ReactNode, useEffect, useRef, useState, KeyboardEvent,
+    InputHTMLAttributes } from 'react'
 import './dialog.css'
-import { newDialog, closeDialog, DialogOptions } from '@hfs/shared/dialogs'
+import { newDialog, closeDialog, DialogOptions, dialogsDefaults } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'
 import { t } from './i18n'
-import { err2msg, isCtrlKey, pendingPromise } from './misc'
+import { err2msg, isCtrlKey, pendingPromise, Promisable } from './misc'
 export * from '@hfs/shared/dialogs'
+export { toast } from './toasts'
 
-interface PromptOptions extends Partial<DialogOptions> { def?:string, type?:string, trim?: boolean }
-export async function promptDialog(msg: string, { def, type, trim=true, ...rest }:PromptOptions={}) : Promise<string | null> {
+_.merge(dialogsDefaults, { closableProps: { 'aria-label': t`Close` } })
+
+interface PromptOptions extends Partial<DialogOptions> {
+    def?: string,
+    type?: string,
+    trim?: boolean,
+    helperText?: ReactNode,
+    inputProps?: Partial<InputHTMLAttributes<string>>
+    onSubmit?: (v: string) => Promisable<string>
+}
+export async function promptDialog(msg: string, { def, type, helperText, trim=true, inputProps, onSubmit, ...rest }:PromptOptions={}) : Promise<string | undefined> {
     const textarea = type === 'textarea' && type
     return new Promise(resolve => newDialog({
         className: 'dialog-prompt',
@@ -46,7 +57,7 @@ export async function promptDialog(msg: string, { def, type, trim=true, ...rest 
                 name: 'input',
                 style: {
                     width: def ? (def.length / 2) + 'em' : 'auto',
-                    minWidth: '100%', maxWidth: '100%',
+                    minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box',
                     ...textarea && { width: '30em', maxHeight: '70vh' },
                 },
                 autoFocus: true,
@@ -54,24 +65,34 @@ export async function promptDialog(msg: string, { def, type, trim=true, ...rest 
                     const { key } = ev
                     if (key === 'Escape')
                         return closeDialog(null)
-                    if ((textarea ? isCtrlKey(ev) : key) === 'Enter')
+                    if ((textarea ? isCtrlKey(ev) : key) === 'Enter') {
+                        ev.preventDefault()
                         return go()
+                    }
                 }
             }),
+            helperText && h('div', { style: { fontSize: 'smaller', marginTop: '.2em' } }, helperText),
             h('div', { style: { textAlign: 'right', marginTop: '.8em' } },
                 h('button', {  onClick: go }, t`Continue`)),
         )
 
-        function go() {
+        async function go() {
             let res = ref.current?.value
             if (trim)
                 res = res?.trim()
-            closeDialog(res)
+            try {
+                if (onSubmit && res !== undefined)
+                    res = await onSubmit?.(res) ?? res
+                closeDialog(res)
+            }
+            catch(e: any) {
+                alertDialog(e, 'error')
+            }
         }
     }
 }
 
-type AlertType = 'error' | 'warning' | 'info'
+export type AlertType = 'error' | 'warning' | 'info'
 
 export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info') {
     if (msg instanceof Error)
@@ -139,6 +160,7 @@ export function confirmDialog(msg: ReactElement | string, options: ConfirmOption
             },
                 h('a', {
                     href,
+                    tabIndex: -1,
                     onClick() { dialog.close(true) },
                 }, h('button', {}, t`Confirm`, timeoutConfirm && missingText)),
                 h('button', {
