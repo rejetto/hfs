@@ -18,7 +18,7 @@ import { subscribeKey } from 'valtio/utils'
 
 const renameEnabled = getHFS().dontOverwriteUploading
 
-interface ToUpload { file: File, comment?: string, name?: string }
+interface ToUpload { file: File, comment?: string, name?: string, to?: string }
 export const uploadState = proxy<{
     done: number
     doneByte: number
@@ -114,7 +114,7 @@ export function showUpload() {
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
         const isMobile = useIsMobile()
 
-        return h(FlexV, { gap: '.5em', props: acceptDropFiles(more => uploadState.adding.push(...more.map(f => ({ file: ref(f) })))) },
+        return h(FlexV, { gap: '.5em', props: acceptDropFiles((files, to) => uploadState.adding.push(...files.map(f => ({ file: ref(f), to })))) },
             h(FlexV, { className: 'upload-toolbar' },
                 !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
@@ -273,13 +273,12 @@ subscribe(uploadState, () => {
         void startUpload(cur.entries[0], cur.to)
 })
 
-export async function enqueue(entries: ToUpload[]) {
+export async function enqueue(entries: ToUpload[], to=location.pathname) {
     if (_.remove(entries, x => !simulateBrowserAccept(x.file)).length)
         await alertDialog(t('upload_file_rejected', "Some files were not accepted"), 'warning')
 
     entries = _.uniqBy(entries, x => path(x.file))
     if (!entries.length) return
-    const to = location.pathname
     const q = _.find(uploadState.qs, { to })
     if (!q)
         return uploadState.qs.push({ to, entries: entries.map(ref) })
@@ -428,7 +427,7 @@ function abortCurrentUpload() {
     req?.abort()
 }
 
-export function acceptDropFiles(cb: false | undefined | ((files:File[]) => void)) {
+export function acceptDropFiles(cb: false | undefined | ((files:File[], to: string) => void)) {
     return {
         onDragOver(ev: DragEvent) {
             ev.preventDefault()
@@ -436,7 +435,19 @@ export function acceptDropFiles(cb: false | undefined | ((files:File[]) => void)
         },
         onDrop(ev: DragEvent) {
             ev.preventDefault()
-            cb && cb(Array.from(ev.dataTransfer!.files))
+            if (!cb) return
+            for (const it of ev.dataTransfer.items) {
+                const entry = it.webkitGetAsEntry()
+                if (entry)
+                    (function recur(entry: FileSystemEntry, to = '') {
+                        if (entry.isFile)
+                            (entry as FileSystemFileEntry).file(x => cb([x], to))
+                        else (entry as FileSystemDirectoryEntry).createReader?.().readEntries(entries => {
+                            for (const e of entries)
+                                recur(e, to + entry.name + '/')
+                        })
+                    })(entry)
+            }
         },
     }
 }

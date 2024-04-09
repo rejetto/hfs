@@ -26,8 +26,8 @@ export function BrowseFiles() {
     const { props, tile_size=0 } = useSnapState()
     const propsDropFiles = useMemo(() => ({
         id: 'files-dropper',
-        ...acceptDropFiles(files =>
-            props?.can_upload ? enqueue(files.map(file => ({ file })))
+        ...acceptDropFiles((files, to) =>
+            props?.can_upload ? enqueue(files.map(file => ({ file })), location.pathname + to)
                 : alertDialog(t("Upload not available"), 'warning')
         ),
     }), [props])
