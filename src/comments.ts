@@ -6,6 +6,7 @@ import { createWriteStream } from 'fs'
 import { singleWorkerFromBatchWorker } from './misc'
 import _ from 'lodash'
 import iconv from 'iconv-lite'
+import { unlink } from 'node:fs/promises'
 
 export const DESCRIPT_ION = 'descript.ion'
 export const descriptIon = defineConfig('descript_ion', true)
@@ -27,8 +28,11 @@ export const setCommentFor = singleWorkerFromBatchWorker(async (jobs: [path: str
             else
                 comments.set(file, comment)
         }
+        const path = join(folder, DESCRIPT_ION)
+        if (!comments.size)
+            return unlink(path)
         // encode comments in descript.ion format
-        const ws = createWriteStream(join(folder, DESCRIPT_ION))
+        const ws = createWriteStream(path)
         comments.forEach((comment, filename) => {
             const multiline = comment.includes('\n')
             const line = (filename.includes(' ') ? `"${filename}"` : filename)
