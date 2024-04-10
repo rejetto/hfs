@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
-    "version": 1.9,
-    "hfs_version": "0.52.0",
+    "version": 2.53,
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -154,6 +154,10 @@
         "upload_skipped": "{n,plural, one{# saltato} other{# saltati}}",
         "Overwrite policy": "Per i file esistenti",
         "Rename to avoid overwriting": "Rinomina per non sovrascrivere",
-        "Overwrite existing files": "Sovrascrivi i file esistenti"
+        "Overwrite existing files": "Sovrascrivi i file esistenti",
+        "Menu": "Menu",
+
+        "clipboard": "Appunti ({content})",
+        "to_clipboard_source_tooltip": "Vai alla cartella d'origine dei file negli appunti"
     }
 }

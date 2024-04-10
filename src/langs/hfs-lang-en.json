@@ -1,7 +1,7 @@
 {
     "author": "NAME OF THE AUTHOR(S) OF THIS TRANSLATION",
     "version": 1.0,
-    "hfs_version": "0.52.0",
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -163,6 +163,9 @@
         "Overwrite policy": "Overwrite policy",
         "Rename to avoid overwriting": "Rename to avoid overwriting",
         "Overwrite existing files": "Overwrite existing files",
-        "Menu": "Menu"
+        "Menu": "Menu",
+
+        "clipboard": "Clipboard ({content})",
+        "to_clipboard_source_tooltip": "Go to the folder where the clipboard contents are located"
     }
 }

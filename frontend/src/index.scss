@@ -124,7 +124,7 @@ button {
     padding: .5em;
     &:not(.before-sliding) { min-width: min-content; }
     &.small { padding: 0 0.4em; height: 30px; }
-    .icon { position: relative; top: .05em; }
+    .icon { position: relative; top: .05em; margin: -.2em 0; }
     border: transparent;
     text-decoration: none;
     border-radius: 0.3em;
@@ -541,6 +541,11 @@ button .icon + .label {
     box-shadow: 0 0 .3em .3em var(--bg);
 
     display: flex; align-items: center; gap: 0.5em;
+    margin: 0 1px;
+}
+#clipboard-content {
+    text-align: left;
+    li:first-of-type { margin-top: .5em }
 }
 
 .tiles-mode {
@@ -781,7 +786,7 @@ button .icon + .label {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }
     #menu-bar, #filter-bar, #clipBar {
-        button .label { display: none } /* icons only */
+        button .icon + .label { display: none } /* icons only */
     }
     #filter-bar {
         margin-top: 0.4em;
