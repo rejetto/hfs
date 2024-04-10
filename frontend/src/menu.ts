@@ -63,6 +63,8 @@ export function MenuPanel() {
                 icon: 'delete',
                 label: t`Delete`,
                 className: 'show-sliding',
+                disabled: !list.length,
+                tooltip: t('delete_select', "Select something to delete"),
                 onClick: () => deleteFiles(Object.keys(selected))
             } : {
                 id: 'upload-button',
@@ -182,8 +184,6 @@ function LoginButton() {
 
 export async function deleteFiles(uris: string[]) {
     const n = uris.length
-    if (!n)
-        return void alertDialog(t('delete_select', "Select something to delete"))
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
         return false
     const stop = working()
