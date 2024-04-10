@@ -92,9 +92,11 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
         if (ctx.status === HTTP_FORBIDDEN)
             return sendErrorPage(ctx, HTTP_FORBIDDEN)
-        const browserDetected = ctx.get('Upgrade-Insecure-Requests') || ctx.get('Sec-Fetch-Mode') // ugh, heuristics
-        if (!browserDetected) // we don't want to trigger basic authentication on browsers, it's meant for download managers only
-            return ctx.set('WWW-Authenticate', 'Basic') // we support basic authentication
+        // detect if we are dealing with a download-manager, as it may need basic authentication, while we don't want it on browsers
+        const { authenticate } = ctx.query
+        const downloadManagerDetected = /DAP|FDM|[Mm]anager/.test(ctx.get('user-agent'))
+        if (downloadManagerDetected || authenticate)
+            return ctx.set('WWW-Authenticate', authenticate || 'Basic') // we support basic authentication
         ctx.state.serveApp = true
         return serveFrontendFiles(ctx, next)
     }

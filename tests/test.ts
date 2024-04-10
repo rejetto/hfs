@@ -44,7 +44,7 @@ describe('basics', () => {
     it('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
     it('name encoding', req('/x%25%23x', 200))
 
-    it('missing perm', req('/for-admins/', 401))
+    it('missing perm', reqList('/for-admins/', 401))
     it('missing perm.file', req('/for-admins/alfa.txt', 401))
 
     it('forbidden list', req('/cantListPage/page/', 403))
