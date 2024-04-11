@@ -31,9 +31,9 @@
         --good-contrast: #aaa;
         --button-bg: #345;
         --button-text: #999;
-        --success: #383;
-        --warning: #883;
-        --error: #a33;
+        --success: #272;
+        --warning: #772;
+        --error: #a22;
 
         color-scheme: dark;
         .highlightedText { color: #fff; text-shadow: 0 0 3px #fff; }
@@ -400,6 +400,8 @@ ul.dir {
     }
 }
 
+ul { padding-left: 2em }
+
 button .icon + .label {
     cursor: inherit;
     margin-left: .4em;
@@ -415,6 +417,7 @@ button .icon + .label {
 .dialog-alert .dialog-content {
     text-align: center;
     p { text-align: left; display: inline-block; }
+    ul { text-align: left; } // bullet points should be aligned
 }
 
 .dialog {

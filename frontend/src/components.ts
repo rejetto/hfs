@@ -100,21 +100,25 @@ export interface BtnProps extends ComponentPropsWithoutRef<"button"> {
     className?: string,
     onClick?: () => unknown
     onClickAnimation?: boolean
+    asText?: boolean
 }
 
-export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: BtnProps) {
+export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, asText, ...rest }: BtnProps) {
     const [working, setWorking] = useState(false)
-    return h('button', {
+    return h(asText ? 'a' : 'button', {
         title: label + prefix(' - ', tooltip),
         'aria-label': label,
         'aria-pressed': toggled,
-        onClick() {
+        onClick(ev) {
+            if (asText)
+                ev.preventDefault()
             if (!onClick) return
             if (onClickAnimation !== false)
                 setWorking(true)
             Promise.resolve(onClick()).finally(() => setWorking(false))
         },
         ...rest,
+        ...asText ? { role: 'button', style: { cursor: 'pointer', ...rest.style } } : undefined,
         className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
     }, icon && hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }

@@ -1,13 +1,13 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties, useState, useEffect } from 'react'
-import { Flex, FlexV, iconBtn, Select } from './components'
+import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
     HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_, cpuSpeedIndex
 } from './misc'
 import _ from 'lodash'
-import { proxy, ref, subscribe, useSnapshot } from 'valtio'
+import { INTERNAL_Snapshot, proxy, ref, snapshot, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
 import { apiCall, getNotification } from '@hfs/shared/api'
@@ -20,10 +20,10 @@ const renameEnabled = getHFS().dontOverwriteUploading
 
 interface ToUpload { file: File, comment?: string, name?: string, to?: string }
 export const uploadState = proxy<{
-    done: number
+    done: ToUpload[]
     doneByte: number
-    errors: number
-    skipped: number
+    errors: ToUpload[]
+    skipped: ToUpload[]
     adding: ToUpload[]
     qs: { to: string, entries: ToUpload[] }[]
     paused: boolean
@@ -41,10 +41,10 @@ export const uploadState = proxy<{
     paused: false,
     qs: [],
     adding: [],
-    skipped: 0,
-    errors: 0,
+    skipped: [],
+    errors: [],
     doneByte: 0,
-    done: 0,
+    done: [],
     policyForExisting: renameEnabled ? 'rename' : 'skip'
 })
 
@@ -77,10 +77,10 @@ let everPaused = false
 
 function resetCounters() {
     Object.assign(uploadState, {
-        errors: 0,
-        done: 0,
+        errors: [],
+        done: [],
         doneByte: 0,
-        skipped: 0,
+        skipped: [],
     })
 }
 
@@ -316,7 +316,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         const status = overrideStatus || req.status
         closeLast?.()
         if (!status || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
-            uploadState.skipped++
+            uploadState.skipped.push(toUpload)
         else if (status >= 400)
             error(status)
         else
@@ -379,7 +379,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     }
 
     function error(status: number) {
-        if (uploadState.errors++) return
+        if (uploadState.errors.push(toUpload)) return
         const ERRORS = {
             [HTTP_PAYLOAD_TOO_LARGE]: t`file too large`,
         }
@@ -390,7 +390,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     }
 
     function done() {
-        uploadState.done++
+        uploadState.done.push(toUpload)
         uploadState.doneByte += toUpload!.file.size
         reloadOnClose = true
     }
@@ -406,21 +406,41 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (qs.length) return
         setTimeout(reloadList, 500) // workaround: reloading too quickly can meet the new file still with its temp name
         reloadOnClose = false
-        const msg = h('div', {}, t(['upload_concluded', "Upload terminated"], "Upload concluded:"), h(UploadStatus) )
-        if (!uploadDialogIsOpen)
-            (uploadState.errors || uploadState.skipped ? alertDialog(msg, 'info') : toast(msg, 'success').closed)
-                .finally(resetCounters)
+        if (uploadDialogIsOpen) return
+        // freeze and reset
+        const snap = snapshot(uploadState)
+        resetCounters()
+        const msg = h('div', {}, t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
+            h(UploadStatus, { snapshot: snap, display: 'flex', flexDirection: 'column' }) )
+        if (uploadState.errors.length || uploadState.skipped.length)
+            alertDialog(msg, 'info')
+        else
+            toast(msg, 'success')
     }
 }
 
-function UploadStatus(props: CSSProperties) {
-    const { done, doneByte, errors, skipped } = useSnapshot(uploadState)
-    const s = [
-        done && t('upload_finished', { n: done, size: formatBytes(doneByte) }, "{n} finished ({size})"),
-        skipped && t('upload_skipped', { n: skipped }, "{n} skipped"),
-        errors && t('upload_errors', { n: errors }, "{n} failed"),
-    ].filter(Boolean).join(' – ')
-    return !s ? null : h('div', { style: props }, s)
+function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snapshot<typeof uploadState> } & CSSProperties) {
+    const current = useSnapshot(uploadState)
+    const { done, doneByte, errors, skipped } = snapshot || current
+    const msgDone = done.length > 0 && t('upload_finished', { n: done.length, size: formatBytes(doneByte) }, "{n} finished ({size})")
+    const msgSkipped = skipped.length > 0 && t('upload_skipped', { n: skipped.length }, "{n} skipped")
+    const msgErrors = errors.length > 0 && t('upload_errors', { n: errors.length }, "{n} failed")
+    const s = [msgDone, msgSkipped, msgErrors].filter(Boolean).join(' – ')
+    if (!s) return null
+    return h('div', { style: { ...props } },
+        s, ' – ', h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }) )
+
+    function showDetails() {
+        alertDialog(h('div', {},
+            ([
+                [msgDone, done],
+                [msgSkipped, skipped],
+                [msgErrors, errors]
+            ] as const).map(([msg, list]) =>
+                msg && h('div', {}, msg, h('ul', {},
+                    list.map(x => h('li', {}, x.name || x.file.name)) )))
+        ))
+    }
 }
 
 function abortCurrentUpload() {
