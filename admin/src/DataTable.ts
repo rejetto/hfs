@@ -118,8 +118,9 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
             apiRef,
+            ...rest,
             slots: {
-                ...(noRows || initializing) && { noRowsOverlay: () => initializing ? null : h(Center, {}, noRows) },
+                noRowsOverlay: () => initializing ? null : h(Center, {}, noRows || "No entries"),
                 footer: CustomFooter,
             },
             slotProps: {
@@ -161,7 +162,6 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                     }
                 })
             },
-            ...rest,
             onColumnVisibilityModelChange: x => setVis(x),
             columnVisibilityModel: {
                 ...Object.fromEntries(hideCols.map(x => [x, false])),

@@ -60,7 +60,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                             helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
                             comp: ArrayField,
                             fields: [
-                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: domain.*|other.*" },
+                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com" },
                                 { k: 'root', label: "Home/Root", comp: VfsPathField, placeholder: "default", helperText: "Root path in VFS" },
                             ],
                             toField: x => Object.entries(x || {}).map(([host,root]) => ({ host, root })),

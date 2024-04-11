@@ -190,11 +190,11 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = ({ entry, midnight, separator }: EntryProps) => {
-    const { uri, isFolder, name } = entry
+    const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerDir = isFolder || isLink ? '' : uri.substring(0, (uri.lastIndexOf('/') || -1) +1)
-    const containerName = containerDir && entry.n.slice(0, -name.length)
+    const containerDir = isFolder ? '' : n.substring(0, (n.lastIndexOf('/') || -1) +1) // n works both for files and links
+    const containerName = containerDir && n.slice(0, -name.length)
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
