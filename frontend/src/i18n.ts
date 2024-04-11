@@ -3,12 +3,19 @@
 import { findDefined, getHFS } from './misc'
 import { createElement as h } from 'react'
 import { proxy, useSnapshot } from 'valtio'
+import { watch } from 'valtio/utils'
 
 const translations = getHFS().lang || {} // all dictionaries
-const state = proxy<{ langs: string[], embedded: string }>({
+const state = proxy({
     embedded: '',
     langs: Object.keys(translations)
 })
+const searchLangs: string[] = []
+watch(get => {
+    const snapshot = get(state)
+    searchLangs.splice(0, Infinity, ...snapshot.langs, snapshot.embedded) // replace completely
+})
+
 const warns = new Set() // avoid duplicates
 
 // the hook ensures translation is refreshed when language changes
@@ -33,11 +40,11 @@ export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: a
     }
     let found
     let selectedLang = '' // keep track of where we find the translation
-    const { langs, embedded } = state
+    const { embedded, langs } = state
     for (const key of keys) {
-        found = findDefined(langs, lang => translations[selectedLang=lang]?.translate?.[key])
+        found = findDefined(searchLangs, lang => translations[selectedLang=lang]?.translate?.[key])
         if (found) break
-        if (selectedLang && langs[0] !== embedded && !warns.has(key)) {
+        if (!warns.has(key) && langs.length && langs[0] !== embedded) {
             warns.add(key)
             console.debug("miss i18n:", key)
         }

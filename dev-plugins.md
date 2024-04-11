@@ -403,6 +403,18 @@ is not used by another plugin, or even HFS in the future.
 If you need to pass variables in the text, introduce a third parameter in the middle.
 Eg: `HFS.t('myPlugin_filter_count', {n:filteredVariable}, "{n} filtered")`
 
+### Language customization
+
+One can change a specific text by overriding existing translation. Example: you want to change the text for "Options" to "Settings".
+If you want to override for a specific language, for example english with language-code `en`:
+
+```js
+HFS._.set(HFS.lang, 'en.translate.Options', 'Settings')
+```
+
+This works because all translations are stored inside `HFS.lang`.
+Using `HFS._.set` is not necessary, but in this case is convenient, because the language-code key may not exist. 
+
 ## API version history
 
 - 8.8 (v0.53.0)
