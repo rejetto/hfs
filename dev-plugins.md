@@ -415,6 +415,8 @@ HFS._.set(HFS.lang, 'en.translate.Options', 'Settings')
 This works because all translations are stored inside `HFS.lang`.
 Using `HFS._.set` is not necessary, but in this case is convenient, because the language-code key may not exist. 
 
+If you want to override a text regardless of the language, use the special language-code `all`. 
+
 ## API version history
 
 - 8.8 (v0.53.0)

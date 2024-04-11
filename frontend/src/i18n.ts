@@ -13,7 +13,7 @@ const state = proxy({
 const searchLangs: string[] = []
 watch(get => {
     const snapshot = get(state)
-    searchLangs.splice(0, Infinity, ...snapshot.langs, snapshot.embedded) // replace completely
+    searchLangs.splice(0, Infinity, 'all', ...snapshot.langs, snapshot.embedded) // replace completely
 })
 
 const warns = new Set() // avoid duplicates
