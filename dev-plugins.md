@@ -383,16 +383,17 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## Internationalization (i18n)
 
-To make your plugin multi-language you can use `HFS.t` function in javascript, like this: `HFS.t("Hello!")`.
+To make your plugin multi-language you can use `HFS.t` function in javascript, like this: `HFS.t('myPlugin_greeting', "Hello!")`.
 Now, to add translations, you'll add files like `hfs-lang-XX.json` to your plugin (same folder as plugin.js),
 where XX is the language code. The system is basically the same used to translate the rest of HFS,
 and you can [read details here](https://github.com/rejetto/hfs/wiki/Translation).
 
-In the previous example "Hello!" is used both as key for translation and as for default text.
-If you want to separate these 2 things, just pass 2 parameters, key and default text. Eg: `HFS.t('greeting', "Hello!")`.
+In the previous example `myPlugin_greeting` is the name of the translation, while `Hello!` is the default text.
+Instead of `myPlugin` use some text that you feel unique and no one else will use, to be sure that the same name
+is not used by another plugin, or even HFS in the future.
 
 If you need to pass variables in the text, introduce a third parameter in the middle.
-Eg: `HFS.t('filter_count', {n:filteredVariable}, "{n} filtered")`
+Eg: `HFS.t('myPlugin_filter_count', {n:filteredVariable}, "{n} filtered")`
 
 ## API version history
 
