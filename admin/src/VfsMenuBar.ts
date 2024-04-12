@@ -59,7 +59,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                         field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home" },
                         form: { saveOnEnter: false }
                     })
-                    return !parent ? false : apiCall('windows_integration', { parent }).then(reload)
+                    return typeof parent === 'string' && apiCall('windows_integration', { parent }).then(reload)
                 }
             } : {
                 confirm: true,

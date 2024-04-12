@@ -177,7 +177,7 @@ export async function formDialog<T>(
 
 }
 
-export async function promptDialog(msg: ReactNode, { value, field, save, addToBar=[], ...props }:any={}) : Promise<string | undefined> {
+export async function promptDialog(msg: ReactNode, { value='', field, save, addToBar=[], ...props }:any={}) : Promise<string | undefined> {
     return formDialog<{ text: string }>({
         ...props,
         values: { text: value },
