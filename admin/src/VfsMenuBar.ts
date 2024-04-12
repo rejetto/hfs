@@ -5,7 +5,7 @@ import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/mat
 import { Microsoft, Storage } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import { CFG, newDialog, prefix } from './misc'
-import { Btn, Flex, IconBtn, reloadBtn } from './mui'
+import { Btn, Flex, IconBtn, reloadBtn, useBreakpoint } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import { ConfigForm } from './ConfigForm'
 import { ArrayField } from './ArrayField'
@@ -23,7 +23,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
         width: 'fit-content',
     },
         h(Btn, { variant: 'outlined', onClick: roots }, "Roots"),
-        reloadBtn(() => reloadVfs()),
+        useBreakpoint('sm') && reloadBtn(() => reloadVfs()),
         h(IconBtn, {
             icon: Storage,
             title: "Disk spaces",
