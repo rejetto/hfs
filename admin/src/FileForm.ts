@@ -5,7 +5,7 @@ import { createElement as h, forwardRef, ReactElement, ReactNode, useEffect, use
 import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useTheme } from '@mui/material'
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
 } from '@hfs/mui-grid-form'
-import { apiCall, UseApi, useApiEx } from './api'
+import { apiCall, UseApi } from './api'
 import { basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md } from './misc'
 import { Btn, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'

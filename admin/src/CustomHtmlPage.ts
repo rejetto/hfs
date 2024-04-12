@@ -10,6 +10,7 @@ import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
 import { TextEditor } from './TextEditor';
+import { state, useSnapState } from './state'
 
 const names: any = {
     top: "Top of HTML Body",
@@ -18,15 +19,15 @@ const names: any = {
 
 export default function CustomHtmlPage() {
     const { data, reload } = useApiEx<{ sections: Dict<string> }>('get_custom_html')
-    const [section, setSection] = useState('')
+    const { customHtmlSection: section } = useSnapState()
     const [all, setAll] = useState<Dict<string>>({})
     const [saved, setSaved] = useState({})
     useEffect(() => data && setSaved(data?.sections), [data])
     useEffect(() => setAll(saved), [saved])
     const options = useMemo(() => {
         const keys = _.sortBy(Object.keys(all), x => !isNaN(+x)) // http codes at the bottom
-        if (!keys.includes(section))
-            setSection(_.findKey(all, Boolean) || keys?.[0] || '') // prefer any key with content
+        if (keys.length && !keys.includes(section))
+            state.customHtmlSection = _.findKey(all, Boolean) || keys?.[0] || '' // prefer any key with content
         return keys.map(x => ({
             value: x,
             label: (names[x] || prefix('HTTP ', HTTP_MESSAGES[x as any]) || _.startCase(x)) + (all[x]?.trim() ? ' *' : '')
@@ -40,7 +41,12 @@ export default function CustomHtmlPage() {
             wikiLink('customization', "More help")
         ),
         h(Box, { display: 'flex', alignItems: 'center', gap: 1, mb: 1 },
-            h(SelectField as Field<string>, { label: "Section", value: section, options, onChange: setSection }),
+            h(SelectField as Field<string>, {
+                label: "Section",
+                value: section,
+                options,
+                onChange: v => state.customHtmlSection = v
+            }),
             reloadBtn(reload),
             h(IconBtn, {
                 icon: Save,

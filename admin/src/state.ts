@@ -16,6 +16,7 @@ export const state = proxy<{
     loginRequired: boolean | number
     username: string
     monitorOnlyFiles: boolean
+    customHtmlSection: string,
     onlinePluginsColumns: Dict<boolean>
 }>(Object.assign({
     title: '',
@@ -26,6 +27,7 @@ export const state = proxy<{
     loginRequired: false,
     username: '',
     monitorOnlyFiles: true,
+    customHtmlSection: '',
     onlinePluginsColumns: {
         version: false,
         pushed_at: false,
@@ -33,7 +35,7 @@ export const state = proxy<{
     }
 }, JSON.parse(localStorage[STORAGE_KEY]||null)))
 
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'customHtmlSection']
 const storeSettings = _.debounce(() =>
     localStorage[STORAGE_KEY] = JSON.stringify(_.pick(state, SETTINGS_TO_STORE)), 500, { maxWait: 1000 })
 for (const k of SETTINGS_TO_STORE)
