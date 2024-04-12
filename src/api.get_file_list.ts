@@ -15,7 +15,7 @@ import { ctxAdminAccess } from './adminApis'
 import { dontOverwriteUploading } from './upload'
 import { SendListReadable } from './SendList'
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string }
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string }
 
 export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search, c, onlyFolders, admin }, ctx) => {
     const node = await urlToNode(uri, ctx)
@@ -106,7 +106,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         const { source, url } = node
         const name = getNodeName(node)
         if (url)
-            return name ? { n: name, url } : null
+            return name ? { n: name, url, target: node.target } : null
         const isFolder = await nodeIsDirectory(node)
         try {
             const st = source ? await stat(source) : undefined

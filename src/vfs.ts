@@ -18,6 +18,7 @@ export interface VfsNodeStored extends VfsPerms {
     name?: string
     source?: string
     url?: string
+    target?: string
     children?: VfsNode[]
     default?: string | false // we could have used empty string to override inherited default, but false is clearer, even reading the yaml, and works well with pickProps(), where empty strings are removed
     mime?: string | Record<string, string>

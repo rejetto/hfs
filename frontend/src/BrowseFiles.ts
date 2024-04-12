@@ -231,7 +231,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
                     h('a', { href: uri, onClick, tabIndex: -1, 'aria-hidden': true }, ico),
                     h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
                     h('a', { href: uri, onClick, ...ariaProps }, name)
-                ] : [h('a', { href: uri, onClick, ...ariaProps }, ico, name)],
+                ] : [h('a', { href: uri, onClick, target: entry.target, ...ariaProps }, ico, name)],
             ),
             h(CustomCode, { name: 'afterEntryName', entry }),
             entry.comment && h('div', { className: 'entry-comment' }, entry.comment),

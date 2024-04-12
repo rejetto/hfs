@@ -94,6 +94,7 @@ export class DirEntry {
     public readonly icon?: string
     public readonly web?: true
     public readonly url?: string
+    public readonly target?: string
     public comment?: string
     // we memoize these value for speed
     public readonly name: string

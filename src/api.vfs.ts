@@ -21,7 +21,7 @@ async function urlToNodeOriginal(uri: string) {
     return n?.isTemp ? n.original : n
 }
 
-const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url', ...PERM_KEYS]
+const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url','target', ...PERM_KEYS]
 
 const apis: ApiHandlers = {
 

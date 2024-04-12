@@ -124,6 +124,7 @@ Valid keys in a node are:
   Value is a dictionary, where the key is the original name.
 - `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
 - `url`: when this value is present, the element is a link to the URL you specify.
+- `target`: optional, for links only, used to [open the link in a new browser](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). E.g. `_blank`
 - `accept`:  valid only on upload folders, used to restrict the type of files you can upload. E.g. `.zip,.rar`
 - `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".
 - `can_read`: specify who can download this entry. Value is a `WhoCan` descriptor, which is one of these values
