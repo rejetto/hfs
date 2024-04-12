@@ -16,8 +16,6 @@ import { formatDiskSpace } from './FilePicker'
 import { getDiskSpaces } from '../../src/util-os'
 
 export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
-    const isWindows = statusApi.data?.platform === 'win32'
-    const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
     return h(Flex, {
         mb: 2,
         zIndex: 2,
@@ -40,33 +38,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                     .then(() => false), // no success-animation for IconBtn
                 alertDialog)
         }),
-        isWindows && h(Btn, {
-            icon: Microsoft,
-            variant: 'outlined',
-            doneMessage: true,
-            ...(!integrated?.is ? {
-                children: "System integration",
-                async onClick() {
-                    const msg = h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
-                        h('img', { src: 'win-shell.png', style: {
-                                display: 'block',
-                                width: 'min(30em, 80vw)',
-                                marginTop: '1em',
-                            }  }),
-                        h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
-                    )
-                    const parent = await promptDialog(msg, {
-                        field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home" },
-                        form: { saveOnEnter: false }
-                    })
-                    return typeof parent === 'string' && apiCall('windows_integration', { parent }).then(reload)
-                }
-            } : {
-                confirm: true,
-                children: "Remove integration",
-                onClick: () => apiCall('windows_remove').then(reload),
-            })
-        }),
+        h(SystemIntegrationButton, statusApi.data)
     )
 
     function roots() {
@@ -103,4 +75,36 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
             })
         })
     }
+}
+
+function SystemIntegrationButton({ platform }: { platform: string | undefined }) {
+    const isWindows = platform === 'win32'
+    const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
+    return !isWindows ? null : h(Btn, {
+        icon: Microsoft,
+        variant: 'outlined',
+        doneMessage: true,
+        ...(!integrated?.is ? {
+            children: "System integration",
+            async onClick() {
+                const msg = h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
+                    h('img', { src: 'win-shell.png', style: {
+                            display: 'block',
+                            width: 'min(30em, 80vw)',
+                            marginTop: '1em',
+                        }  }),
+                    h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
+                )
+                const parent = await promptDialog(msg, {
+                    field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home" },
+                    form: { saveOnEnter: false }
+                })
+                return typeof parent === 'string' && apiCall('windows_integration', { parent }).then(reload)
+            }
+        } : {
+            confirm: true,
+            children: "Remove integration",
+            onClick: () => apiCall('windows_remove').then(reload),
+        })
+    })
 }
