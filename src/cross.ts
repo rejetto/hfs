@@ -33,16 +33,6 @@ type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
 
-interface Mapping {
-    public: { host: string; port: number }
-    private: { host: string; port: number }
-    protocol: string
-    enabled: boolean
-    description: string
-    ttl: number
-    local: boolean
-}
-
 export interface VfsPerms {
     can_see?: Who
     can_read?: Who
@@ -241,14 +231,12 @@ export function findDefined<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string
     }
 }
 
-export function newObj<S extends (object | undefined | null),VR=any>(
+export function newObj<S extends (object | undefined | null),VR=unknown>(
     src: S,
-    returnNewValue: (value:Truthy<S[keyof S]>, key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true, depth: number) => any,
+    returnNewValue: (value: S[keyof S], key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true, depth: number) => any,
     recur: boolean | number=false
 ) {
-    if (!src)
-        return {}
-    const pairs = Object.entries(src).map( ([k,v]) => {
+    const pairs = Object.entries(src || {}).map( ([k,v]) => {
         if (typeof k === 'symbol') return
         let _k: undefined | typeof k = k
         const curDepth = typeof recur === 'number' ? recur : 0
@@ -433,10 +421,10 @@ export function matches(s: string, mask: string, emptyMaskReturns=false) {
     return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
 }
 
-export function replace(s: string, symbols: Dict<string | Callback<string>>, delimiter='') {
+export function replace(s: string, symbols: Dict<string | Callback<string, string>>, delimiter='') {
     const [open, close] = splitAt(' ', delimiter)
-    for (const [k, v] of typedEntries(symbols))
-        s = s.replace(open + k + close, _.isFunction(v) ? v() : v)
+    for (const [k, v] of Object.entries(symbols))
+        s = s.replaceAll(open + k + close, v as any) // typescript doesn't handle overloaded functions (like replaceAll) with union types https://stackoverflow.com/a/66510061/646132
     return s
 }
 

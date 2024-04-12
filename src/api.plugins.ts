@@ -85,7 +85,7 @@ const apis: ApiHandlers = {
         return {
             enabled: enablePlugins.get().includes(id),
             config: {
-                ...newObj(getPluginConfigFields(id) ||{}, v => v?.defaultValue),
+                ...newObj(getPluginConfigFields(id), v => v?.defaultValue),
                 ...pluginsConfig.get()[id]
             }
         }

@@ -7,24 +7,13 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 
 const STORAGE_KEY = 'admin_state'
-export const state = proxy<{
-    title: string
-    config: Dict
-    vfs: VfsNode | undefined
-    movingFile: string
-    selectedFiles: VfsNode[]
-    loginRequired: boolean | number
-    username: string
-    monitorOnlyFiles: boolean
-    customHtmlSection: string,
-    onlinePluginsColumns: Dict<boolean>
-}>(Object.assign({
+const INIT = {
     title: '',
-    config: {},
-    selectedFiles: [],
+    config: {} as Dict,
+    selectedFiles: [] as VfsNode[],
     movingFile: '',
-    vfs: undefined,
-    loginRequired: false,
+    vfs: undefined as VfsNode | undefined,
+    loginRequired: false as boolean | number,
     username: '',
     monitorOnlyFiles: true,
     customHtmlSection: '',
@@ -32,8 +21,10 @@ export const state = proxy<{
         version: false,
         pushed_at: false,
         license: false,
-    }
-}, JSON.parse(localStorage[STORAGE_KEY]||null)))
+    } as Dict<boolean>
+}
+Object.assign(INIT, JSON.parse(localStorage[STORAGE_KEY]||null))
+export const state = proxy(INIT)
 
 const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'customHtmlSection']
 const storeSettings = _.debounce(() =>

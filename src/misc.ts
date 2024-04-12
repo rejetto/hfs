@@ -2,7 +2,6 @@
 
 import { EventEmitter } from 'events'
 import { basename } from 'path'
-import _ from 'lodash'
 import Koa from 'koa'
 import { Connection } from './connections'
 import assert from 'assert'
@@ -107,7 +106,7 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
     return new Readable({
         objectMode: true,
         destroy() {
-            iterator.return?.()
+            void iterator.return?.()
         },
         read() {
             iterator.next().then(it =>
