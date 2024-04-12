@@ -123,12 +123,15 @@ Valid keys in a node are:
   Use this to change the name of  entries that are read from the source, not listed in the VFS.
   Value is a dictionary, where the key is the original name.
 - `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
+- `url`: when this value is present, the element is a link to the URL you specify.
+- `accept`:  valid only on upload folders, used to restrict the type of files you can upload. E.g. `.zip,.rar`
 - `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".
 - `can_read`: specify who can download this entry. Value is a `WhoCan` descriptor, which is one of these values
     - `true`: anyone can, even people who didn't log in. This is normally the default value.
     - `false`: no one can.
     - `"*"`: any account can, i.e. anyone who logged in.
     - `[ frank, peter ]`: the list of accounts who can.
+    - `can_SOMETHING`: copy the permission from another permission. This is convenient to have same value for different permissions. E.g. `can_see` 
     - `{ this?: WhoCan, children?: WhoCan }`: this form is useful only for folders. By using it, you can have
       different permission for the folder itself and its children. For example, having only the `this` property
       will make the permission limited to the folder and not be inherited by children. Otherwise, having only
@@ -136,8 +139,10 @@ Valid keys in a node are:
         - `this` specifies permission for this folder
         - `children` specifies permission for the content.
 - `can_see`: specify who can see this element. Even if a user can download you can still make the file not appear in the list.
-  Value is a `WhoCan` descriptor, refer above.
+  Value is a `WhoCan` descriptor, refer above. Default is `can_read`.
 - `can_upload`: specify who can upload. Applies to folders with a source. Default is none.
+- `can_list`: specify who can see the content of a folder. Default is `can_read`.
+- `can_archive`: specify who can get the zip a folder or a set of files. Default is `can_read`.
 - `can_delete`: specify who can delete. Applies to folders with a source. Default is none.
 - `masks`: maps a file mask to a set of properties as the one documented in this section. E.g.
   ```
