@@ -48,12 +48,11 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
             sx: {
                 position: 'sticky', top: 0, p: 1, zIndex: 2, boxShadow: '0 0 8px #0004',
                 display: 'flex', alignItems: 'center',
-                gap: 1,
                 ...titleSx
             },
         },
             d.icon && componentOrNode(d.icon),
-            h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
+            h(Box, { flex:1, minWidth: 40, ml: 1 }, componentOrNode(d.title)),
             d.closable && h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
