@@ -16,6 +16,8 @@ import _ from 'lodash'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import { ConfigForm } from './ConfigForm'
 import { DynamicDnsResult } from '../../src/ddns'
+import { ArrayField } from './ArrayField'
+import VfsPathField from './VfsPathField'
 
 const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
@@ -44,8 +46,8 @@ export default function InternetPage() {
     }, [verifyAgain.state])
     return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
         h(Alert, { severity: 'info' }, "This page makes sure your site is working correctly on the Internet"),
-        baseUrlBox(),
         networkBox(),
+        baseUrlBox(),
         httpsBox(),
         geoBox(),
         ddnsBox(),
@@ -240,9 +242,10 @@ export default function InternetPage() {
         const url = config.data?.base_url
         const hostname = url && new URL(url).hostname
         const domain = !isIP(hostname) && hostname
-        return config.element || h(TitleCard, { icon: Public, title: "Address / Domain" },
+        return config.element || h(TitleCard, { icon: Public, title: "Address" },
             h(Flex, { flexWrap: 'wrap' },
-                url || "Automatic, not configured",
+                "Main address: ",
+                url ? h('tt', {}, url) : "automatic, not configured",
                 h(Flex, {}, // keep buttons together when wrapping
                     h(Btn, {
                         size: 'small',
@@ -258,14 +261,31 @@ export default function InternetPage() {
                     }, "Check"),
                 ),
             ),
-            h(ConfigForm<{ force_base_url: boolean }>, {
-                keys: ['force_base_url'],
+            h(ConfigForm<{ roots: any, force_address: boolean }>, {
                 saveOnChange: true,
+                onSave() {
+                    status.reload() // this config is affecting status data
+                },
+                keys: [CFG.roots, CFG.force_address],
                 form: {
                     fields: [
-                        { k: 'force_base_url', comp: BoolField, disabled: !url,
-                            label: "Accept requests only using domain (and localhost)",
-                            helperText: !url && "You must specify an address, for this option"
+                        {
+                            k: 'roots',
+                            label: false,
+                            helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
+                            comp: ArrayField,
+                            fields: [
+                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com" },
+                                { k: 'root', label: "Home/Root", comp: VfsPathField, placeholder: "default", helperText: "Root path in VFS",
+                                    $column: { renderCell({ value }: any) { return value || h('i', {}, 'default') } } },
+                            ],
+                            toField: x => Object.entries(x || {}).map(([host,root]) => ({ host, root })),
+                            fromField: x => Object.fromEntries(x.map((row: any) => [row.host, row.root || ''])),
+                        },
+                        {
+                            k: CFG.force_address,
+                            label: "Accept requests only using domains above (and localhost)",
+                            comp: BoolField,
                         }
                     ]
                 },

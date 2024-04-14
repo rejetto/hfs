@@ -4,12 +4,9 @@ import { createElement as h } from 'react'
 import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
 import { Microsoft, Storage } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
-import { CFG, newDialog, prefix } from './misc'
-import { Btn, Flex, IconBtn, reloadBtn, useBreakpoint } from './mui'
+import { prefix } from './misc'
+import { Btn, Flex, IconBtn, reloadBtn } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
-import { ConfigForm } from './ConfigForm'
-import { ArrayField } from './ArrayField'
-import { BoolField } from '@hfs/mui-grid-form'
 import VfsPathField from './VfsPathField'
 import { alertDialog, promptDialog } from './dialog'
 import { formatDiskSpace } from './FilePicker'
@@ -17,13 +14,11 @@ import { getDiskSpaces } from '../../src/util-os'
 
 export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
     return h(Flex, {
-        mb: 2,
         zIndex: 2,
         backgroundColor: 'background.paper',
         width: 'fit-content',
     },
-        h(Btn, { variant: 'outlined', onClick: roots }, "Roots"),
-        useBreakpoint('sm') && reloadBtn(() => reloadVfs()),
+        reloadBtn(() => reloadVfs()),
         h(IconBtn, {
             icon: Storage,
             title: "Disk spaces",
@@ -41,47 +36,12 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
         }),
         h(SystemIntegrationButton, statusApi.data)
     )
-
-    function roots() {
-        const { close } = newDialog({
-            title: "Roots for different domains",
-            dialogProps: { maxWidth: 'sm' },
-            Content: () => h(ConfigForm<{ roots: any, roots_mandatory: boolean }>, {
-                onSave() {
-                    statusApi.reload() // this config is affecting status data
-                    close()
-                },
-                keys: [CFG.roots, CFG.roots_mandatory],
-                form: {
-                    fields: [
-                        {
-                            k: 'roots',
-                            label: false,
-                            helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
-                            comp: ArrayField,
-                            fields: [
-                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com" },
-                                { k: 'root', label: "Home/Root", comp: VfsPathField, placeholder: "default", helperText: "Root path in VFS" },
-                            ],
-                            toField: x => Object.entries(x || {}).map(([host,root]) => ({ host, root })),
-                            fromField: x => Object.fromEntries(x.map((row: any) => [row.host, row.root || ''])),
-                        },
-                        {
-                            k: 'roots_mandatory',
-                            label: "Accept requests only using domains above (and localhost)",
-                            comp: BoolField,
-                        }
-                    ]
-                }
-            })
-        })
-    }
 }
 
 function SystemIntegrationButton({ platform }: { platform: string | undefined }) {
     const isWindows = platform === 'win32'
     const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
-    return !isWindows ? null : h(Btn, {
+    return h(Btn, {
         icon: Microsoft,
         variant: 'outlined',
         doneMessage: true,
@@ -91,7 +51,7 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
                 const msg = h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
                     h('img', { src: 'win-shell.png', style: {
                             display: 'block',
-                            width: 'min(30em, 80vw)',
+                            width: 'min(30em, 100%)',
                             marginTop: '1em',
                         }  }),
                     h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),

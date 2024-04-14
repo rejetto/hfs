@@ -144,8 +144,10 @@ export default function VfsPage() {
         ),
         h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0 },
             h(Grid, { item: true, xs: 12, [sideBreakpoint]: 6, lg: 6, xl: 5 },
-                h(Typography, { variant: 'h6', mb: 1, }, "Virtual File System"),
-                h(VfsMenuBar, { statusApi }),
+                h(Flex, { mb: 1, flexWrap: 'wrap', gap: [0, 2] },
+                    h(Typography, { variant: 'h6' }, "Virtual File System"),
+                    h(VfsMenuBar, { statusApi }),
+                ),
                 vfs && h(VfsTree, { id2node, statusApi }) ),
             isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%' },
                 h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar

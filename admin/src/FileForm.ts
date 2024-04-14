@@ -324,7 +324,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
-            value: link || `outside of configured base address (${baseHost})`,
+            value: link || `outside of configured main address (${baseHost})`,
             error,
             InputProps: link ? { inputComponent: RenderLink } : undefined,
             end: h(Box, {},
@@ -376,14 +376,14 @@ export async function changeBaseUrl() {
         const { base_url } = await apiCall('get_config', { only: ['base_url'] })
         const urls: string[] = res.urls.https || res.urls.http
         const { close } = newDialog({
-            title: "Base address",
+            title: "Main address",
             Content() {
                 const [v, setV] = useState(base_url || '')
                 const proto = new URL(v || urls[0]).protocol + '//'
                 const host = urls.includes(v) ? '' : v.slice(proto.length)
                 const check = h(Check, { sx: { ml: 2 } })
                 return h(Box, { display: 'flex', flexDirection: 'column' },
-                    h(Box, { mb: 2 }, "Choose a base address for your links"),
+                    h(Box, { mb: 2 }, "Choose a main address for your links"),
                     h(MenuList, {},
                         h(MenuItem, {
                             selected: !v,

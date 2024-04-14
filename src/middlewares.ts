@@ -7,11 +7,11 @@ import { DAY, dirTraversal, isLocalHost, splitAt, stream2string, tryJson } from 
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount } from './perm'
-import { Connection, disconnect, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
+import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
 import basicAuth from 'basic-auth'
 import { invalidSessions, setLoggedIn, srpCheck } from './auth'
 import { constants } from 'zlib'
-import { baseUrl, getHttpsWorkingPort } from './listen'
+import { getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
 import session from 'koa-session'
 import { app } from './index'
@@ -19,7 +19,6 @@ import events from './events'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
-const forceBaseUrl = defineConfig('force_base_url', false)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
 
@@ -76,8 +75,6 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     catch {
         return ctx.status = HTTP_FOOL
     }
-    if (!ctx.state.skipFilters && forceBaseUrl.get() && baseUrl.compiled() && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
-        return disconnect(ctx, 'force-domain')
     if (!ctx.secure && forceHttps.get() && getHttpsWorkingPort() && !isLocalHost(ctx)) {
         const { URL } = ctx
         URL.protocol = 'https'

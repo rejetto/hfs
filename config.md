@@ -83,10 +83,10 @@ Configuration can be done in several ways
 - `session_duration` after how many seconds should the login session expire. Default is a day.
 - `acme_domain` domain used for ACME certificate generation. Default is none. 
 - `acme_email` email used for ACME certificate generation. Default is none.
-- `force_base_url` disconnect any connection that's not using the domain used for ACME certificate generation. Default is none.
 - `acme_renew` automatically renew acme certificate close to expiration. Default is false.
 - `listen_interface` network interface to listen on, by specifying IP address. Default is any.
 - `base_url` URL to be used for links generation. Default is automatic.
+- `force_address` disconnect any request not made with one of the hosts specified in `roots` or `base_url`. Default is false.
 - `ignore_proxies` stop warning about detected proxies. Default is false. 
 - `descript_ion` enable reading and writing of comments in the old file format *DESCRIPT.ION*. Default is yes.
 - `descript_ion_encoding` text encoding to be used for file *DESCRIPT.ION*. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
@@ -99,7 +99,6 @@ Configuration can be done in several ways
     music.domain.com: /music
     image.domain.com: /image
   ``` 
-- `roots_mandatory` disconnect any request not made with one of the hosts specified in `roots`. Default is false. 
 - `max_downloads` limit the number of concurrent downloads on the whole server. Default is unlimited.
 - `max_downloads_per_ip` limit the number of concurrent downloads for the same IP address. Default is unlimited.
 - `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in, and will override other similar settings. Default is unlimited.
