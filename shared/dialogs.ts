@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, FunctionComponent, isValidElement, ReactNode, useEffect, useRef,
     HTMLAttributes, useState } from 'react'
 import { proxy, ref, useSnapshot } from 'valtio'
-import { domOn, isPrimitive, objSameKeys } from '.'
+import { domOn, isPrimitive, objSameKeys, wait } from '.'
 
 export interface DialogOptions {
     Content: FunctionComponent<any>,
@@ -26,6 +26,7 @@ export interface DialogOptions {
 
 const dialogs = proxy<DialogOptions[]>([])
 const focusBak: (Element | null)[] = []
+const { history } = window
 
 export const dialogsDefaults: Partial<DialogOptions> = {
     closableProps: { children: 'x', 'aria-label': "Close", },
@@ -66,14 +67,22 @@ function isDescendant(child: Node | null, parent: Node) {
 let ignorePopState = false
 function back() {
     ignorePopState = true
-    window.history.back()
+    history.back()
 }
+
+;(async () => {
+    while (history.state.$dialog) { // it happens if the user reloads the browser leaving open dialogs
+        history.back()
+        await wait(1) // history.state is not changed without this, on chrome123
+    }
+})()
+
 
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     useEffect(() => domOn('popstate', () => {
         if (ignorePopState)
             return ignorePopState = false
-        const { $dialog } = window.history.state
+        const { $dialog } = history.state
         if ($dialog && !dialogs.find(x => x.$id === $dialog)) // it happens if the user, after closing a dialog, goes forward in the history
             return back()
         closeDialog(undefined, true)
@@ -169,12 +178,14 @@ export function newDialog(options: DialogOptions) {
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
     dialogs.push(options)
     if (options.closable !== false)
-        window.history.pushState({ $dialog: $id, ts }, '')
+        history.pushState({ $dialog: $id, ts, idx: history.state.idx + 1 }, '')
     return { close }
 
     function close(v?:any) {
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
+        if (history.state.$dialog === $id)
+            back()
         return closeDialogAt(i, v)
     }
 }
@@ -187,7 +198,7 @@ export function closeDialog(v?:any, skipHistory=false) {
         if (d.reserveClosing)
             continue
         if (!skipHistory) {
-            if (window.history.state.$dialog !== d.$id) return
+            if (history.state.$dialog !== d.$id) return
             back()
         }
         closeDialogAt(i, v)
