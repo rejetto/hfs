@@ -6,8 +6,10 @@ import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useThem
 import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi } from './api'
-import { basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
-    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md } from './misc'
+import {
+    basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
+    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback
+} from './misc'
 import { Btn, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
 import _ from 'lodash'
@@ -20,6 +22,8 @@ import QrCreator from 'qr-creator';
 import MenuButton from './MenuButton'
 import addFiles, { addLink, addVirtual } from './addFiles'
 
+const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
+
 export interface Account { username: string }
 
 interface FileFormProps {
@@ -27,11 +31,9 @@ interface FileFormProps {
     addToBar?: ReactNode
     statusApi: UseApi
     accounts: Account[]
+    saved: Callback
 }
-
-const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
-
-export default function FileForm({ file, addToBar, statusApi, accounts }: FileFormProps) {
+export default function FileForm({ file, addToBar, statusApi, accounts, saved }: FileFormProps) {
     const { parent, children, isRoot, byMasks, ...rest } = file
     const [values, setValues] = useState(rest)
     useEffect(() => {
@@ -135,6 +137,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts }: FileFo
                 if (props.name !== file.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
                     state.selectedFiles[0].id = file.parent!.id + props.name + (isDir ? '/' : '')
                 reloadVfs()
+                saved()
             }
         },
         fields: [

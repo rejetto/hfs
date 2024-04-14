@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
@@ -34,9 +34,18 @@ export default function VfsPage() {
     const single = selectedFiles.length < 2 && (selectedFiles[0] as VfsNode || vfs)
     const accountsApi = useApiEx<{ list: Account[] }>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
 
-    const sideContent = accountsApi.element || !vfs ? null : single ? h(FileForm, {
+    // this will take care of closing the dialog, for user's convenience, after "cut" button is pressed
+    const closeDialogRef = useRef(_.noop)
+    useEffect(() => {
+        if (movingFile === selectedFiles[0]?.id)
+            closeDialogRef.current()
+    }, [movingFile])
+
+    const sideContent = accountsApi.element || !vfs ? null
+        : single ? h(FileForm, {
             addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
             statusApi,
+            saved: () => closeDialogRef.current(),
             accounts: accountsApi?.data?.list ?? [],
             file: single  // it's actually Snapshot<VfsNode> but it's easier this way
         })
@@ -50,13 +59,6 @@ export default function VfsPage() {
                     h(ListItemText, { primary: f.name, secondary: f.source }) ))
             )
         )
-
-    // this will take care of closing the dialog, for user's convenience, after "cut" button is pressed
-    const [closeDialog, setCloseDialog] = useState(() => _.noop)
-    useEffect(() => {
-        if (movingFile === selectedFiles[0]?.id)
-            closeDialog()
-    }, [movingFile, closeDialog])
 
     useEffect(() => {
         if (isSideBreakpoint || !sideContent || !selectedFiles.length) return
@@ -80,9 +82,9 @@ export default function VfsPage() {
                 state.selectedFiles = []
             },
         })
-        setCloseDialog(() => close)
+        closeDialogRef.current = close
         return close // auto-close dialog if we are switching to side-panel
-    }, [isSideBreakpoint, selectedFiles])
+    }, [isSideBreakpoint, _.last(selectedFiles)?.id])
 
     useEffect(() => {
         state.vfs = undefined
@@ -100,7 +102,7 @@ export default function VfsPage() {
 
         function consumeSelectOnReload() {
             if (selectOnReload)
-                closeDialog() // noop when side-paneling
+                closeDialogRef.current() // noop when side-paneling
             const ret = selectOnReload && onlyTruthy(selectOnReload.map(id => id2node.get(id)))
             selectOnReload = undefined
             return ret
