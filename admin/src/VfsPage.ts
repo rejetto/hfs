@@ -74,9 +74,12 @@ export default function VfsPage() {
             title: selectedFiles.length > 1 ? "Multiple selection" :
                 h(Flex, {},
                     vfsNodeIcon(selectedFiles[0] as VfsNode),
-                    selectedFiles[0].name || "Home",
-                    h(Box, { color: 'text.secondary' }, ancestors.join(' / '))
+                    h(Flex, { flexWrap: 'wrap', gap: '0 0.5em' },
+                        selectedFiles[0].name || "Home",
+                        h(Box, { component: 'span', color: 'text.secondary' }, ancestors.join(' /'))
+                    )
                 ),
+            dialogProps: { sx: { justifyContent: 'flex-end' } },
             Content: () => sideContent,
             onClose() {
                 state.selectedFiles = []

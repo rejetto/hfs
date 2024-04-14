@@ -36,9 +36,7 @@ form { max-width: 100%; } // make fields with unbreakable text (LinkField) to no
 .MuiSvgIcon-root {
   vertical-align: bottom;
 }
-.MuiTreeItem-content {
-  box-sizing: border-box; /* avoid unwanted scrolling caused by its width:100% + padding */
-}
+div.MuiTreeItem-content { padding: 0; } // remove wasting horizontal padding
 .MuiDataGrid-columnHeaders {
   background-color: #8882;
 }

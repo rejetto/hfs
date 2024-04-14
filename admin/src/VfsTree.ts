@@ -77,8 +77,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                 sx: {
                     display: 'flex',
                     gap: '.5em',
-                    lineHeight: '2em',
-                    alignItems: 'center',
+                    minHeight: '1.8em', pt: '.2em', // comfy, make single-line ones taller
                 }
             },
                 h(Box, { display: 'flex', flex: 0, },
@@ -86,7 +85,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                     // attributes
                     h(Box, { sx: {
                         flex: 0, ml: '2px', my: '2px', '&>*': { fontSize: '87%', opacity: .6, mt: '-2px' },
-                        display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto',
+                        display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto', height: '1em',
                     } },
                         node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
                         node.can_upload !== undefined && iconTooltip(Upload, "Upload permission"),
@@ -104,8 +103,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                     const ps = node.parent?.source
                     const { source } = node
                     const rel = ps && source?.startsWith(ps) ? '.' + source.slice(ps.length) : source
-                    return !rel || !source?.endsWith(name) || rel.length > 45
-                        ? h(Box, { lineHeight: '1.2em' }, name)
+                    return !rel || !source?.endsWith(name) || rel.length > 45 ? name
                         : h('span', {},
                             h('span', { style: { opacity: .4 } }, rel.slice(0,-name.length)),
                             rel.slice(-name.length),

@@ -31,6 +31,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                 alertDialog(h(List, { dense: true }, res.map(x => h(ListItem, { key: x.name },
                     h(ListItemIcon, {}, h(Storage)),
                     h(ListItemText, {
+                        sx: { wordBreak: 'break-word' },
                         primary: x.name + prefix(' (', x.description, ')'),
                         secondary: formatDiskSpace(x)
                     }),
