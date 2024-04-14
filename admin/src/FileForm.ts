@@ -151,6 +151,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
                     helperText: !values.source ? "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk."
                         : isDir ? "Content from this path on disk will be listed, but you can also add more" : undefined,
             },
+            { k: 'id', comp: LinkField, statusApi, xs: 12 },
             isLink && {
                 k: 'target',
                 comp: BoolField,
@@ -159,7 +160,6 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
                 fromField: x => x ? '_blank' : null,
                 toField: x => x > '',
             },
-            !isLink && { k: 'id', comp: LinkField, statusApi, xs: 12 },
             perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_see', "If you can't see, you may still download with a direct link"),
             perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? true : 12 }),
