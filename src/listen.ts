@@ -267,9 +267,9 @@ const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|a
 const isLinkLocal = makeNetMatcher('169.254.0.0/16|FE80::/16')
 
 export async function getIps(external=true) {
-    const ips = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
+    const ips = onlyTruthy(Object.entries(networkInterfaces()).flatMap(([name, nets]) =>
         nets && !ignore.test(name) && nets.map(net => !net.internal && net.address)
-    ).flat())
+    ))
     const e = external && defaultBaseUrl.externalIp
     if (e && !ips.includes(e))
         ips.unshift(e)

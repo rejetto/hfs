@@ -10,7 +10,7 @@ import { TreeItem, TreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import _ from 'lodash'
-import { alertDialog, confirmDialog } from './dialog'
+import { alertDialog, confirmDialog, toast } from './dialog'
 import { useSnapState } from './state'
 import { importAccountsCsv } from './importAccountsCsv'
 import { AccountAdminSend } from '../../src/api.accounts'
@@ -54,8 +54,9 @@ export default function AccountsPage() {
                     ],
                     reload,
                     done(username) {
-                        setSel([username])
+                        setSel(isSideBreakpoint ? [username] : [])
                         reload()
+                        toast("Account saved", 'success')
                     }
                 }))
     useEffect(() => {

@@ -34,7 +34,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         const ret = columns.map(col => {
             const { type } = col
             if (!type || type === 'string') // offer negated version of default string operators
-                col.filterOperators ??= getGridStringOperators().map(op => op.value.includes('Empty') ? op : [ // isEmpty already has isNotEmpty
+                col.filterOperators ??= getGridStringOperators().flatMap(op => op.value.includes('Empty') ? op : [ // isEmpty already has isNotEmpty
                     op,
                     {
                         ...op,
@@ -49,7 +49,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                         } },
                         label: "(not) " + ((localeText as any)['filterOperator' + _.upperFirst(op.value)] || op.value)
                     } satisfies typeof op
-                ]).flat()
+                ])
             const { mergeRender } = col
             if (!mergeRender)
                 return col

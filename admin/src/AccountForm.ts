@@ -4,7 +4,7 @@ import { createElement as h, ReactNode, useEffect, useRef, useState } from 'reac
 import { BoolField, Form, MultiSelectField, NumberField } from '@hfs/mui-grid-form'
 import { Alert } from '@mui/material'
 import { apiCall } from './api'
-import { alertDialog, toast, useDialogBarColors } from './dialog'
+import { alertDialog, useDialogBarColors } from './dialog'
 import { isEqualLax, useIsMobile, wantArray } from './misc'
 import { IconBtn, modifiedProps } from './mui'
 import { Account } from './AccountsPage'
@@ -101,7 +101,6 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                             throw e
                         }
                     done(got?.username)
-                    toast("Account created", 'success')
                     return
                 }
                 const got = await apiCall('set_account', {
@@ -112,7 +111,6 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     await apiNewPassword(values.username, password)
                 if (account.username === username)
                     state.username = values.username
-                setTimeout(() => toast("Account modified", 'success'), 1) // workaround: showing a dialog at this point is causing a crash if we are in a dialog
                 done(got?.username) // username may have been changed, so we pass it back
             }
         }

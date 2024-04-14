@@ -201,7 +201,7 @@ export class QuickZipStream extends Readable {
                 offset = ZIP64_SIZE_LIMIT
             }
             const extraData = buffer(!extra.length ? []
-                : [ 2,1, 2,8*extra.length, ...extra.map(x=> [8,x]).flat() ])
+                : [ 2,1, 2,8*extra.length, ...extra.flatMap(x=> [8,x]) ])
             if (extraData.length && version < 45)
                 version = 45
             this.controlledPush([
