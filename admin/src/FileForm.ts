@@ -8,7 +8,8 @@ import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, Sel
 import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
-    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback
+    onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
+    useRequestRender
 } from './misc'
 import { Btn, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
@@ -289,7 +290,12 @@ interface LinkFieldProps extends FieldProps<string> {
     statusApi: UseApi<any> // receive status from parent, to avoid asking server at each click on a file
 }
 function LinkField({ value, statusApi }: LinkFieldProps) {
-    const { data, reload, error } = statusApi
+    const { reload, error } = statusApi
+    // workaround to get fresh data and be rerendered even when mounted inside imperative dialog
+    const requestRender = useRequestRender()
+    useEffect(() => statusApi.sub(requestRender), [])
+    const data = statusApi.getData()
+
     const urls: string[] = data?.urls.https || data?.urls.http
     const baseHost = data?.baseUrl && new URL(data.baseUrl).host
     const root = useMemo(() => baseHost && _.find(data.roots, (root, host) => matches(baseHost, host)),

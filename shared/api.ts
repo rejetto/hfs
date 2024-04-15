@@ -1,8 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash';
-import { useCallback, useEffect, useRef } from 'react';
-import { Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait } from '.'
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { Dict, EventEmitter, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait } from '.'
 
 export const API_URL = '/~/api/'
 
@@ -112,7 +112,10 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         setForcer(v => v + 1)
         reloadingRef.current = pendingPromise()
     }, [setForcer])
-    return { data, setData, error, reload, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current,  }
+    const ee = useMemo(() => new EventEmitter, [])
+    const sub = useCallback((cb: EventListener) => ee.on('data', cb), [])
+    useEffect(() => ee.emit('data'), [data])
+    return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current,  }
 }
 
 type EventHandler = (type:string, data?:any) => void

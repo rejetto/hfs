@@ -140,6 +140,14 @@ export function createDurationFormatter({ locale=undefined, unitDisplay='narrow'
     }
 }
 
+export class EventEmitter extends EventTarget {
+    emit(name: string) { this.dispatchEvent(new Event(name)) }
+    on(name: string, cb: EventListener) {
+        this.addEventListener(name, cb)
+        return () => this.removeEventListener(name, cb)
+    }
+}
+
 Element.prototype.replaceChildren ||= function(this:Element, addNodes) { // polyfill
     while (this.lastChild) this.removeChild(this.lastChild);
     if (addNodes !== undefined) this.append(addNodes);
