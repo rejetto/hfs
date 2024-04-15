@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { apiCall, useApiList } from './api'
+import { apiCall, useApiEx, useApiList } from './api'
 import { createElement as h, Fragment, useEffect } from 'react'
 import { Box, Link } from '@mui/material'
 import { DataTable } from './DataTable'
@@ -8,7 +8,9 @@ import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade }
 import { HTTP_FAILED_DEPENDENCY, prefix, with_, xlate } from './misc'
 import { alertDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
-import { BoolField, Field, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
+import { Account } from './AccountsPage'
+import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField
+} from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
@@ -169,6 +171,7 @@ const type2comp = {
     multiselect: MultiSelectField,
     array: ArrayField,
     real_path: FileField,
+    username: UsernameField,
 }
 
 export async function startPlugin(id: string) {
@@ -180,4 +183,14 @@ export async function startPlugin(id: string) {
     catch(e: any) {
         alertDialog(`Plugin ${id} didn't start, with error: ${String(e?.message || e)}`, 'error')
     }
+}
+
+function UsernameField({ value, onChange, ...rest }: FieldProps<string>) {
+    const { data, element } = useApiEx<{ list: Account[] }>('get_accounts')
+    return element || h(SelectField as Field<string>, {
+        value, onChange,
+        options: data?.list.map(x => x.username),
+        helperText: "Only users, no groups here",
+        ...rest,
+    })
 }

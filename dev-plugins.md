@@ -118,7 +118,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 ### FieldDescriptor
 
 Currently, these properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'array'` . Default is `string`.
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'array' | 'username'ì` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
@@ -147,6 +147,7 @@ Based on `type`, other properties are supported:
   - `folders: boolean` allow to select a folder. Default is `false`.
   - `defaultPath: string` what path to start from if no value is set. E.g. __dirname if you want to start with your plugin's folder.
   - `fileMask: string` restrict files that are displayed. E.g. `*.jpg|*.png`
+- `username`
 
 ## api object
 
@@ -421,6 +422,7 @@ If you want to override a text regardless of the language, use the special langu
 
 - 8.8 (v0.53.0)
   - new event: menuZip
+- config.type:username
 - 8.72 (v0.52.0)
   - HFS.toast
   - HFS.misc functions

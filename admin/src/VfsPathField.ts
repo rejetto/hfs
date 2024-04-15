@@ -8,7 +8,7 @@ interface VfsPathFieldProps extends FieldProps<string> {
     autocompleteProps: Partial<AutocompleteProps<string, false, true, undefined>>
 }
 
-export default function VfsPathField({ value='', onChange, helperText, setApi, autocompleteProps, onlyFolders=true, ...props }: VfsPathFieldProps) {
+export default function VfsPaathField({ value='', onChange, helperText, setApi, autocompleteProps, onlyFolders=true, ...props }: VfsPathFieldProps) {
     const uri = dirname(value)
     const { list, loading } = useApiList('get_file_list', { uri, admin: true, onlyFolders })
     const options = useMemo(() => [uri + '/'].concat(list.map(x => value + x.n)), [list, uri])
