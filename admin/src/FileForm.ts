@@ -9,7 +9,7 @@ import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
-    useRequestRender
+    useRequestRender, splitAt
 } from './misc'
 import { Btn, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
@@ -373,8 +373,11 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
 export async function changeBaseUrl() {
     return new Promise(async resolve => {
         const res = await apiCall('get_status')
-        const { base_url } = await apiCall('get_config', { only: ['base_url'] })
+        const { base_url, roots } = await apiCall('get_config', { only: ['base_url', 'roots'] })
         const urls: string[] = res.urls.https || res.urls.http
+        const domainsFromRoots = Object.keys(roots).map(x => x.split('|')).flat().filter(x => !/[*?]/.test(x))
+        const proto = splitAt('//', urls[0])[0] + '//'
+        urls.push(...domainsFromRoots.map(x => proto + x))
         const { close } = newDialog({
             title: "Main address",
             Content() {
