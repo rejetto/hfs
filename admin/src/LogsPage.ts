@@ -254,9 +254,9 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
         if (extra?.ua && !showAgent)
             setShowAgent(true)
         x.notes = extra?.dl ? "fully downloaded"
-            : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra.size, { sep: NBSP })
+            : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra?.size, { sep: NBSP })
                 : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
-                    : x.notes
+                    : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (x.notes || '')
         return x
     }
 }

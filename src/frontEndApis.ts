@@ -49,6 +49,7 @@ export const frontEndApis: ApiHandlers = {
 
     async create_folder({ uri, name }, ctx) {
         apiAssertTypes({ string: { uri, name } })
+        ctx.logExtra(null, { name, target: decodeURI(uri) })
         if (!isValidFileName(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
         const parentNode = await urlToNode(uri, ctx)
@@ -68,6 +69,7 @@ export const frontEndApis: ApiHandlers = {
 
     async delete({ uri }, ctx) {
         apiAssertTypes({ string: { uri } })
+        ctx.logExtra(null, { target: decodeURI(uri) })
         const node = await urlToNode(uri, ctx)
         if (!node)
             throw new ApiError(HTTP_NOT_FOUND)
@@ -87,6 +89,7 @@ export const frontEndApis: ApiHandlers = {
 
     async rename({ uri, dest }, ctx) {
         apiAssertTypes({ string: { uri, dest } })
+        ctx.logExtra(null, { target: decodeURI(uri), destination: decodeURI(dest) })
         if (dest.includes('/') || dirTraversal(dest))
             throw new ApiError(HTTP_FORBIDDEN)
         const node = await urlToNode(uri, ctx)
@@ -117,6 +120,7 @@ export const frontEndApis: ApiHandlers = {
 
     async move_files({ uri_from, uri_to }, ctx) {
         apiAssertTypes({ array: { uri_from }, string: { uri_to } })
+        ctx.logExtra(null, { target: uri_from.map(decodeURI), destination: decodeURI(uri_to) })
         const destNode = await urlToNode(uri_to, ctx)
         const code = !destNode ? HTTP_NOT_FOUND : statusCodeForMissingPerm(destNode, 'can_upload', ctx)
         if (code) return new ApiError(code)
@@ -139,6 +143,7 @@ export const frontEndApis: ApiHandlers = {
 
     async comment({ uri, comment }, ctx) {
         apiAssertTypes({ string: { uri, comment } })
+        ctx.logExtra(null, { target: decodeURI(uri) })
         const node = await urlToNode(uri, ctx)
         if (!node)
             throw new ApiError(HTTP_NOT_FOUND)

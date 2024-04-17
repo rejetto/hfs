@@ -137,7 +137,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
 
 declare module "koa" {
     interface BaseContext {
-        logExtra(o: Falsy | Dict<any>): void
+        logExtra(o: Falsy | Dict<any>, params?: Dict<any>): void
     }
     interface DefaultState {
         dontLog?: boolean // don't log this request
@@ -147,9 +147,8 @@ declare module "koa" {
 }
 
 events.on('app', () => { // wait for app to be set
-    app.context.logExtra = function(o) { // no => as we need 'this'
-        if (o)
-            Object.assign((this as any).state.logExtra ||= {}, o)
+    app.context.logExtra = function(anything, params) { // no => as we need 'this'
+        _.merge((this as any).state, { logExtra: { ...anything, params } }) // params will be considered as parameters of the API
     }
 })
 
