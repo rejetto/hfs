@@ -24,7 +24,8 @@ interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridP
     addToFooter?: ReactNode
 }
 export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, addToFooter, ...rest }: DataTableProps) {
-    useWindowSize(); const width = window.outerWidth // workaround: width returned by useWindowSize is not good
+    let { width } = useWindowSize()
+    width = Math.min(width, screen.availWidth) // workaround: width returned by useWindowSize is not good when toggling mobile-mode in chrome
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
