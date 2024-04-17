@@ -33,7 +33,7 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
         if (root === '' || root === '/') return
         if (root === undefined) {
             if (ctx.state.skipFilters || !rootsMandatory.get() || isLocalHost(ctx)) return
-            disconnect(ctx, 'no-root')
+            disconnect(ctx, 'bad-domain')
             return true // true will avoid calling next
         }
         if (!params) {
