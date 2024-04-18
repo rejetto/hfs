@@ -14,6 +14,7 @@ import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
+import { SwitchThemeBtn } from './theme'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
@@ -126,7 +127,8 @@ export default function HomePage() {
                                         h(Box, { mt: 1 }, renderChangelog(x.body))
                                     )),
                                 )),
-                        ))
+                        )),
+       h(SwitchThemeBtn, { variant: 'outlined' }),
     )
 }
 

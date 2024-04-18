@@ -17,6 +17,7 @@ const INIT = {
     username: '',
     monitorOnlyFiles: true,
     customHtmlSection: '',
+    darkTheme: undefined as undefined | boolean,
     onlinePluginsColumns: {
         version: false,
         pushed_at: false,
@@ -26,7 +27,7 @@ const INIT = {
 Object.assign(INIT, JSON.parse(localStorage[STORAGE_KEY]||null))
 export const state = proxy(INIT)
 
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'customHtmlSection']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'customHtmlSection', 'darkTheme']
 const storeSettings = _.debounce(() =>
     localStorage[STORAGE_KEY] = JSON.stringify(_.pick(state, SETTINGS_TO_STORE)), 500, { maxWait: 1000 })
 for (const k of SETTINGS_TO_STORE)

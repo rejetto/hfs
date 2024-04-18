@@ -1,7 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createTheme, useMediaQuery } from '@mui/material'
-import { useMemo } from 'react'
+import { createElement as h, useMemo } from 'react'
+import { state, useSnapState } from './state'
+import { Btn, BtnProps } from './mui'
+import { Brightness4, Brightness7 } from '@mui/icons-material'
 
 export function useDark() {
     return useMediaQuery('(prefers-color-scheme: dark)')
@@ -9,7 +12,9 @@ export function useDark() {
 
 const EMPTY = {}
 export function useMyTheme() {
-    const lightMode = useDark() ? null : EMPTY
+    const { darkTheme } = useSnapState()
+    const detected = useDark()
+    const lightMode = (darkTheme ?? detected) ? null : EMPTY
     return useMemo(() => createTheme({
         palette: lightMode || {
             mode: 'dark',
@@ -42,4 +47,15 @@ export function useMyTheme() {
             }
         }
     }), [lightMode])
+}
+
+export function SwitchThemeBtn(props: BtnProps) {
+    const { darkTheme } = useSnapState()
+    const darkDetected = useDark()
+    const currentlyDark = darkTheme ?? darkDetected
+    return h(Btn, {
+        icon: currentlyDark ? Brightness7 : Brightness4,
+        onClick: () => state.darkTheme = !currentlyDark,
+        ...props,
+    }, currentlyDark ? "Light theme" : "Dark theme")
 }

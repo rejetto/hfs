@@ -121,7 +121,7 @@ interface IconBtnProps extends Omit<BtnProps, 'icon' | 'children'> { icon: SvgIc
 export const IconBtn = forwardRef((props: IconBtnProps, ref: ForwardedRef<HTMLButtonElement>) =>
     h(Btn, { ref, ...props }))
 
-interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
+export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
     icon?: SvgIconComponent
     title?: ReactNode
     disabled?: boolean | string
