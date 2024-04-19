@@ -166,6 +166,7 @@
         "Menu": "Menu",
 
         "clipboard": "Clipboard ({content})",
-        "to_clipboard_source_tooltip": "Go to the folder where the clipboard contents are located"
+        "to_clipboard_source_tooltip": "Go to the folder where the clipboard contents are located",
+        "more_items": "{rest} more item(s)"
     }
 }

@@ -158,6 +158,7 @@
         "Menu": "Menu",
 
         "clipboard": "Appunti ({content})",
-        "to_clipboard_source_tooltip": "Vai alla cartella d'origine dei file negli appunti"
+        "to_clipboard_source_tooltip": "Vai alla cartella d'origine dei file negli appunti",
+        "more_items": "{rest,plural,one{Un altro elemento} other{# altri elementi}}"
     }
 }

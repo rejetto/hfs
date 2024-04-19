@@ -244,7 +244,7 @@ function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
                 )
             }),
-            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h('a', { href: '#', onClick: () => setAll(true) }, t('more_items', { rest }, "{rest} more items"))))
+            rest > 0 && h('tr', {}, h('td', { colSpan: 99 }, h('a', { href: '#', onClick: () => setAll(true) }, t('more_items', { rest }, "{rest} more item(s)"))))
         )
     )
 }
