@@ -50,7 +50,7 @@ export default  {
     async add_account({ overwrite, username, ...rest }) {
         const existing = getAccount(username)
         if (existing) {
-            if (overwrite) return new ApiError(HTTP_CONFLICT)
+            if (!overwrite) return new ApiError(HTTP_CONFLICT)
             await updateAccount(existing, rest)
             return _.pick(existing, 'username')
         }
