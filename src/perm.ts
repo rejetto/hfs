@@ -148,6 +148,7 @@ export function addAccount(username: string, props: Partial<Account>) {
     const copy: Account = setHidden(_.pickBy(props, Boolean), { username }) // have the field in the object but hidden so that stringification won't include it
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [username]: copy }))
+    saveAccountsAsap()
     return copy
 }
 
