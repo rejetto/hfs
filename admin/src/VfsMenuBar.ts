@@ -64,7 +64,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                                 { k: 'root', label: "Home/Root", comp: VfsPathField, placeholder: "default", helperText: "Root path in VFS" },
                             ],
                             toField: x => Object.entries(x || {}).map(([host,root]) => ({ host, root })),
-                            fromField: x => Object.fromEntries(x.map((row: any) => [row.host, row.root])),
+                            fromField: x => Object.fromEntries(x.map((row: any) => [row.host, row.root || ''])),
                         },
                         {
                             k: 'roots_mandatory',
