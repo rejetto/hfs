@@ -6,6 +6,8 @@ for (const k of ['log','warn','error']) {
     console[k as 'log'] = (...args: any[]) => {
         const rec = { ts: new Date(), k, msg: args.join(' ') }
         consoleLog.push(rec)
+        if (consoleLog.length > 100_000) // limit to avoid infinite space
+            consoleLog.splice(0, 1_000)
         events.emit('console', rec)
         return original(...args)
     }
