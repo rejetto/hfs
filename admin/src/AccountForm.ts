@@ -119,6 +119,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     })
 }
 
+// you can set password directly in add/set_account, but using this api instead will add extra security because it is not sent as clear-text, so it's especially good if you are not in localhost and not using https
 export async function apiNewPassword(username: string, password: string) {
     const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
     const res = await createVerifierAndSalt(srp6aNimbusRoutines, username, password)

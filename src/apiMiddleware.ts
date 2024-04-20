@@ -29,7 +29,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         const safe = isPost && ctx.get('x-hfs-anti-csrf') // POST is safe because browser will enforce SameSite cookie
             || apiName.startsWith('get_') // "get_" apis are safe because they make no change
         if (!safe)
-            return send(HTTP_FOOL)
+            return send(HTTP_FOOL, "missing header x-hfs-anti-csrf=1")
         const apiFun = apis.hasOwnProperty(apiName) && apis[apiName]!
         if (!apiFun)
             return send(HTTP_NOT_FOUND, 'invalid api')
