@@ -72,6 +72,8 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         return ctx.status = HTTP_METHOD_NOT_ALLOWED
     try {
         const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
+        if (!stats.isFile())
+            return ctx.status = HTTP_METHOD_NOT_ALLOWED
         ctx.set('Last-Modified', stats.mtime.toUTCString())
         ctx.fileSource = // legacy pre-0.51
         ctx.state.fileSource = source
