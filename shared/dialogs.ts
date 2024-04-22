@@ -71,12 +71,11 @@ function back() {
 }
 
 ;(async () => {
-    while (history.state.$dialog) { // it happens if the user reloads the browser leaving open dialogs
+    while (history.state?.$dialog) { // it happens if the user reloads the browser leaving open dialogs
         history.back()
         await wait(1) // history.state is not changed without this, on chrome123
     }
 })()
-
 
 export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     useEffect(() => domOn('popstate', () => {
