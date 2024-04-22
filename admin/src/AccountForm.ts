@@ -31,7 +31,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     const ref = useRef<HTMLFormElement>()
     const expired = Boolean(values.expire)
     return h(Form, {
-        formRef:  ref,
+        formRef: ref,
         values,
         set(v, k) {
             setValues(values => ({ ...values, [k]: v }))

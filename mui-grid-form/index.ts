@@ -1,16 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    createElement as h,
-    FC,
-    Fragment,
-    HTMLProps,
-    isValidElement,
-    ReactElement,
-    ReactNode,
-    useEffect,
-    useState,
-    useRef,
+    createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState, useRef,
     MutableRefObject
 } from 'react'
 import { Box, BoxProps, Button, Grid } from '@mui/material'
@@ -73,7 +64,6 @@ export interface FormProps<Values> extends Partial<BoxProps> {
     formRef?: MutableRefObject<HTMLFormElement | undefined>
     saveOnEnter?: boolean
     gridProps?: Partial<GridProps>
-    formProps?: HTMLProps<HTMLFormElement>
 }
 enum Phase { Idle, WaitValues, Validating }
 
@@ -90,7 +80,6 @@ export function Form<Values extends Dict>({
     onError,
     saveOnEnter,
     gridProps,
-    formProps,
     ...rest
 }: FormProps<Values>) {
     const mounted = useRef(false)
@@ -111,104 +100,101 @@ export function Form<Values extends Dict>({
     const keyMet: Dict<number> = {}
 
     const apis: Dict<FieldApi<unknown>> = {} // consider { [K in keyof Values]?: FieldApi<Values[K]> }
-    return h('form', {
-        ref: formRef && (x => formRef.current = x ? x as HTMLFormElement : undefined),
-        ...formProps,
+    return h(Box, {
+        component: 'form',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 3,
+        ref: formRef,
         onSubmit(ev) {
             ev.preventDefault()
         },
         onKeyDown(ev) {
             if (saveBtn && !saveBtn.disabled && (ev.ctrlKey || ev.metaKey) && ev.key === 'Enter')
                 pleaseSubmit()
-        }
-    },
-        h(Box, {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 3,
-            ...rest
         },
-            h(Grid, { container:true, rowSpacing:3, columnSpacing:1, ...gridProps },
-                fields.map((row, idx) => {
-                    if (!row)
-                        return null
-                    if (isValidElement(row))
-                        return h(Grid, { key: idx, item: true, xs: 12 }, row)
-                    const { k, fromField=_.identity, toField=_.identity, getError, error, ...field } = row
-                    let errMsg = errors[k] || error || fieldExceptions[k]
-                    if (errMsg === true)
-                        errMsg = "Not valid"
-                    if (k) {
-                        const originalValue = row.hasOwnProperty('value') ? row.value : values?.[k]
-                        const whole = { ...row, ...field }
-                        Object.assign(field, {
-                            value: toField(originalValue),
-                            error: Boolean(errMsg || error) || undefined,
-                            setApi(api) { apis[k] = api },
-                            onKeyDown(event: any) {
-                                if (saveOnEnter && event.key === 'Enter')
-                                    pleaseSubmit()
-                            },
-                            onChange(v: unknown) {
-                                try {
-                                    v = fromField(v, { originalValue })
-                                    setFieldExceptions(x => ({ ...x, [k]: false }))
-                                    if ((apis[k]?.isEqual || _.isEqual)(v, originalValue)) return
-                                    set(v, k)
-                                    pleaseValidate(k)
-                                }
-                                catch (e) {
-                                    setFieldExceptions(x => ({ ...x, [k]: (e as any)?.message || String(e) || true }))
-                                }
-                            },
-                        } as Partial<FieldProps<any>>)
-                        if (Array.isArray(field.helperText))
-                            field.helperText = h(Fragment, {}, ...field.helperText)
-                        if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
-                            field.helperText = !field.helperText ? errMsg
-                                : h(Fragment, {},
-                                    h('span', { style: { borderBottom: '1px solid' } }, errMsg),
-                                    h(Box, { color: 'text.primary', component: 'span', /*avoid console warning*/ display: 'block' },
-                                        field.helperText),
-                                )
-                        if (field.label === undefined)
-                            field.label = labelFromKey(k)
-                        _.defaults(field, defaults?.(whole))
-                    }
-                    {
-                        const { xs=12, sm, md, lg, xl, comp=StringField, before, after,
-                            fromField, toField, // don't propagate
-                            ...rest } = field
-                        Object.assign(rest, { name: k })
-                        const n = (keyMet[k] = (keyMet[k] || 0) + 1)
-                        return h(Grid, { key: k ? k + n : idx, item: true, xs, sm, md, lg, xl },
-                            before,
-                            isValidElement(comp) ? comp : h(comp, rest),
-                            after
-                        )
-                    }
-                })
-            ),
-            saveBtn && h(Box, {
-                display: 'flex',
-                alignItems: 'center',
-                sx: Object.assign({},
-                    stickyBar && {
-                        width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', borderRadius: 1,
-                        position: 'sticky', bottom: 0, p: 1, m: -1, boxShadow: '0px 0px 30px #000',
-                    },
-                    barSx)
-            },
-                h(LoadingButton, {
-                    variant: 'contained',
-                    startIcon: h(Save),
-                    children: "Save",
-                    loading: useDebounce(phase !== Phase.Idle), // debounce fixes click being ignored at state change, and flickering
-                    ...saveBtn,
-                    onClick: pleaseSubmit,
-                }),
-                ...addToBar,
-            )
+        ...rest,
+    },
+        h(Grid, { container:true, rowSpacing:3, columnSpacing:1, ...gridProps },
+            fields.map((row, idx) => {
+                if (!row)
+                    return null
+                if (isValidElement(row))
+                    return h(Grid, { key: idx, item: true, xs: 12 }, row)
+                const { k, fromField=_.identity, toField=_.identity, getError, error, ...field } = row
+                let errMsg = errors[k] || error || fieldExceptions[k]
+                if (errMsg === true)
+                    errMsg = "Not valid"
+                if (k) {
+                    const originalValue = row.hasOwnProperty('value') ? row.value : values?.[k]
+                    const whole = { ...row, ...field }
+                    Object.assign(field, {
+                        value: toField(originalValue),
+                        error: Boolean(errMsg || error) || undefined,
+                        setApi(api) { apis[k] = api },
+                        onKeyDown(event: any) {
+                            if (saveOnEnter && event.key === 'Enter')
+                                pleaseSubmit()
+                        },
+                        onChange(v: unknown) {
+                            try {
+                                v = fromField(v, { originalValue })
+                                setFieldExceptions(x => ({ ...x, [k]: false }))
+                                if ((apis[k]?.isEqual || _.isEqual)(v, originalValue)) return
+                                set(v, k)
+                                pleaseValidate(k)
+                            }
+                            catch (e) {
+                                setFieldExceptions(x => ({ ...x, [k]: (e as any)?.message || String(e) || true }))
+                            }
+                        },
+                    } as Partial<FieldProps<any>>)
+                    if (Array.isArray(field.helperText))
+                        field.helperText = h(Fragment, {}, ...field.helperText)
+                    if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
+                        field.helperText = !field.helperText ? errMsg
+                            : h(Fragment, {},
+                                h('span', { style: { borderBottom: '1px solid' } }, errMsg),
+                                h(Box, { color: 'text.primary', component: 'span', /*avoid console warning*/ display: 'block' },
+                                    field.helperText),
+                            )
+                    if (field.label === undefined)
+                        field.label = labelFromKey(k)
+                    _.defaults(field, defaults?.(whole))
+                }
+                {
+                    const { xs=12, sm, md, lg, xl, comp=StringField, before, after,
+                        fromField, toField, // don't propagate
+                        ...rest } = field
+                    Object.assign(rest, { name: k })
+                    const n = (keyMet[k] = (keyMet[k] || 0) + 1)
+                    return h(Grid, { key: k ? k + n : idx, item: true, xs, sm, md, lg, xl },
+                        before,
+                        isValidElement(comp) ? comp : h(comp, rest),
+                        after
+                    )
+                }
+            })
+        ),
+        saveBtn && h(Box, {
+            display: 'flex',
+            alignItems: 'center',
+            sx: Object.assign({},
+                stickyBar && {
+                    width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', borderRadius: 1,
+                    position: 'sticky', bottom: 0, p: 1, m: -1, boxShadow: '0px 0px 30px #000',
+                },
+                barSx)
+        },
+            h(LoadingButton, {
+                variant: 'contained',
+                startIcon: h(Save),
+                children: "Save",
+                loading: useDebounce(phase !== Phase.Idle), // debounce fixes click being ignored at state change, and flickering
+                ...saveBtn,
+                onClick: pleaseSubmit,
+            }),
+            ...addToBar,
         )
     )
 
