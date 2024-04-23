@@ -43,11 +43,11 @@ Let's first look at the things you can export:
 
 All the following properties are optional unless otherwise specified.
 
-- `description: string` try to explain what this plugin is for.
+- `description: string` try to explain what this plugin is for. (JSON syntax)
 - `version: number` use progressive numbers to distinguish each release
 - `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. Mandatory. [Refer to API version history](#api-version-history)   
-- `depend: { repo: string, version: number }[]` declare what other plugins this depends on.
-- `repo: string | object` pointer to a GitHub repo where this plugin is hosted.
+- `depend: { repo: string, version: number }[]` declare what other plugins this depends on. (JSON syntax)
+- `repo: string | object` pointer to a GitHub repo where this plugin is hosted. (JSON syntax)
   - the string form is for GitHub repos. Example: "rejetto/file-icons"
   - the object form will point to other custom repo. Object properties:
     - `web: string` link to a web page 

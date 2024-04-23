@@ -1,6 +1,6 @@
 openapi: 3.0.1
 info:
-  title: HFS 3 HTTP API
+  title: HFS 3
   description: ''
   version: 1.0.0
 tags:
@@ -163,7 +163,12 @@ paths:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties:
+                  username:
+                    type: string
+                    description: returned because it is normalized
+                required:
+                  - username
       security: []
   /~/api/get_config:
     get:
@@ -261,10 +266,7 @@ paths:
               required:
                 - username
                 - changes
-            example:
-              username: john
-              password: betterUseLongPasswords
-              overwrite: false
+            example: ''
       responses:
         '200':
           description: Success
@@ -272,7 +274,12 @@ paths:
             application/json:
               schema:
                 type: object
-                properties: {}
+                properties:
+                  username:
+                    type: string
+                    description: returned because it is normalized
+                required:
+                  - username
       security: []
   /~/api/set_config:
     post:
@@ -335,10 +342,50 @@ paths:
                   type: string
               required:
                 - username
-            example:
-              username: john
-              password: betterUseLongPasswords
-              overwrite: false
+            example: ''
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      security: []
+  /~/api/change_srp:
+    post:
+      summary: safer update of the password
+      deprecated: false
+      description: >-
+        use SRP protocol to change the password without transmitting it. If your
+        channel is trusted, you can just specify 'password' in set_account or
+        add_account, that's much simpler.
+      tags: []
+      parameters:
+        - name: x-hfs-anti-csrf
+          in: header
+          description: necessary only for POST requests
+          example: '1'
+          schema:
+            type: string
+            default: '1'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                salt:
+                  type: string
+                verifier:
+                  type: string
+              required:
+                - username
+                - salt
+                - verifier
+            example: ''
       responses:
         '200':
           description: Success
