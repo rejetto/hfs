@@ -57,8 +57,8 @@ export default  {
             await updateAccount(existing, rest)
             return _.pick(existing, 'username')
         }
-        const acc = addAccount(username, rest)
-        return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST)
+        const acc = await addAccount(username, rest)
+        return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST) // return username because it is normalized
     },
 
     del_account({ username }) {

@@ -56,10 +56,9 @@ createAdminConfig.sub(v => {
     createAdminConfig.set('')
 })
 
-export function createAdmin(password: string, username='admin') {
-    const acc = addAccount(username, { admin: true })
+export async function createAdmin(password: string, username='admin') {
+    const acc = await addAccount(username, { admin: true, password })
     if (!acc) return console.log("cannot create, already exists")
-    updateAccount(acc!, { password })
     console.log("account admin created")
 }
 
@@ -92,7 +91,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
     account.expire &&= new Date(account.expire)
     if (username !== usernameWas)
         renameAccount(usernameWas, username)
-    if (jsonWas !== JSON.stringify(account))
+    if (jsonWas !== JSON.stringify(account)) // this test will miss the 'username' field, because hidden, but renameAccount is already calling saveAccountsASAP
         saveAccountsAsap()
 }
 
@@ -141,14 +140,14 @@ export function renameAccount(from: string, to: string) {
     }
 }
 
-export function addAccount(username: string, props: Partial<Account>) {
+export async function addAccount(username: string, props: Partial<Account>) {
     username = normalizeUsername(username)
     if (!username || getAccount(username, false))
         return
     const copy: Account = setHidden(_.pickBy(props, Boolean), { username }) // have the field in the object but hidden so that stringification won't include it
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [username]: copy }))
-    saveAccountsAsap()
+    await updateAccount(copy, copy)
     return copy
 }
 
