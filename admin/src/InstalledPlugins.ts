@@ -29,8 +29,6 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         initializing,
         disableColumnSelector: true,
-        disableColumnMenu: true,
-        hideFooter: true,
         noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,
         columns: [
             {
