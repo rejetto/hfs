@@ -47,7 +47,7 @@ const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // fals
     warning: ['⚠️', false],
 }
 
-document.fonts.ready.then(async ()=> {
+document.fonts?.ready.then(async ()=> {
     const fontTester = '9px fontello'
     await document.fonts.load(fontTester) // force font to be loaded even if we didn't display anything with it yet
     state.iconsReady = document.fonts.check(fontTester)

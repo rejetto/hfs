@@ -64,7 +64,8 @@ export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: a
     }).join('')
 
     function plural(v: any, rest: string) {
-        const plural = new Intl.PluralRules(selectedLang || embedded).select(Number(v))
+        const plural = !Intl.PluralRules ? 'other'
+            : new Intl.PluralRules(selectedLang || embedded).select(Number(v))
         let other = ''
         let pickNext = false
         let collectOther = false

@@ -2,7 +2,8 @@
 
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Dict, EventEmitter, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait } from '.'
+import { Callback, Dict, EventEmitter, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait,
+    buildUrlQueryString, } from '.'
 
 export const API_URL = '/~/api/'
 
@@ -112,7 +113,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         reloadingRef.current = pendingPromise()
     }, [setForcer])
     const ee = useMemo(() => new EventEmitter, [])
-    const sub = useCallback((cb: EventListener) => ee.on('data', cb), [])
+    const sub = useCallback((cb: Callback) => ee.on('data', cb), [])
     useEffect(() => ee.emit('data'), [data])
     return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current,  }
 }
@@ -122,7 +123,7 @@ type EventHandler = (type:string, data?:any) => void
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     params = _.omitBy(params, _.isUndefined)
     console.debug('API EVENTS', cmd, params)
-    const source = new EventSource(getPrefixUrl() + API_URL + cmd + '?' + new URLSearchParams(params))
+    const source = new EventSource(getPrefixUrl() + API_URL + cmd + buildUrlQueryString(params))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {

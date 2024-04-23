@@ -301,7 +301,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     const { reload, error } = statusApi
     // workaround to get fresh data and be rerendered even when mounted inside imperative dialog
     const requestRender = useRequestRender()
-    useEffect(() => statusApi.sub(requestRender), [])
+    useEffect(() => { statusApi.sub(requestRender) }, [])
     const data = statusApi.getData()
 
     const urls: string[] = data?.urls.https || data?.urls.http

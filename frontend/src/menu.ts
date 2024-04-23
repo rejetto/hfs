@@ -3,7 +3,8 @@
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog, toast } from './dialog'
-import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, throw_, useStateMounted, VfsPerms, working } from './misc'
+import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, throw_, useStateMounted, VfsPerms, working,
+    buildUrlQueryString} from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -96,11 +97,11 @@ export function MenuPanel() {
                 disabled: !can_archive,
                 tooltip: list ? t('zip_tooltip_selected', "Download selected elements as a single zip file")
                     : t('zip_tooltip_whole', "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded."),
-                href: '?'+String(new URLSearchParams(_.pickBy({
+                href: buildUrlQueryString(_.pickBy({
                     get: 'zip',
                     search: remoteSearch,
                     list
-                }))),
+                })),
                 ...!list && {
                     confirm: remoteSearch ? t('zip_confirm_search', "Download ALL results of this search as ZIP archive?")
                         : t('zip_confirm_folder', "Download WHOLE folder as ZIP archive?"),

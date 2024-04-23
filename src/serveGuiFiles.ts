@@ -107,6 +107,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
                         session: session instanceof ApiError ? null : session,
                         plugins,
+                        loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),
                         prefixUrl: ctx.state.revProxyPath,
                         dontOverwriteUploading: dontOverwriteUploading.get(),
                         customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
@@ -129,10 +130,6 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     ${!isFrontend ? '' : mapPlugins((plug,id) =>
                         plug.frontend_css?.map(f =>
                             `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
-                        .flat().filter(Boolean).join('\n')}
-                    ${!isFrontend ? '' : mapPlugins((plug,id) =>
-                        plug.frontend_js?.map(f =>
-                            `<script defer plugin=${JSON.stringify(id)} src='${f.includes('//') ? f : pub + id + '/' + f}'></script>`))
                         .flat().filter(Boolean).join('\n')}
                 `
             if (isBody && isClose)

@@ -85,8 +85,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 return () => clearTimeout(h)
             }, [autoPlaying, cur])
             const {mediaSession} = navigator
-            mediaSession.setActionHandler('nexttrack', goNext)
-            mediaSession.setActionHandler('previoustrack', goPrev)
+            mediaSession?.setActionHandler('nexttrack', goNext)
+            mediaSession?.setActionHandler('previoustrack', goPrev)
 
             const {t} = useI18N()
             const autoPlaySecondsLabel = t('autoplay_seconds', "Seconds to wait on images")
@@ -154,13 +154,17 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                                 const covers = state.list.filter(x => folder === dirname(x.n) // same folder
                                     && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
                                 setCover(_.maxBy(covers, 's')?.n || '')
-                                const meta = navigator.mediaSession.metadata = new MediaMetadata({
+                                const meta = {
                                     title: cur.name,
                                     album: decodeURIComponent(basename(dirname(cur.uri))),
                                     artwork: covers.map(x => ({ src: x.n }))
-                                })
-                                if (cur.ext === 'mp3')
+                                }
+                                if (window.MediaMetadata)
+                                    navigator.mediaSession.metadata = new MediaMetadata(meta)
+                                if (cur.ext === 'mp3') {
                                     setTags(Object.assign(meta, await getId3Tags(location + cur.n).catch(() => {})))
+                                    Object.assign(navigator.mediaSession?.metadata || {}, meta)
+                                }
                             }
                         }),
                         tags && h('div', { className: 'meta-tags' },

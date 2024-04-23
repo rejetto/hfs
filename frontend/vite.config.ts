@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import legacy from '@vitejs/plugin-legacy'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -18,5 +19,12 @@ export default defineConfig({
                 ws: true,
             }
         }
-    }
+    },
+    plugins: [
+        legacy({
+            renderModernChunks: false, // single version, legacy one
+            polyfills: false, // keeping polyfills at a minimum, manually
+            targets: ['firefox 40'],
+        }),
+    ],
 })

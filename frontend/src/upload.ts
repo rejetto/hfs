@@ -4,7 +4,8 @@ import { createElement as h, DragEvent, Fragment, useMemo, CSSProperties, useSta
 import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
-    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_, cpuSpeedIndex
+    HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_, cpuSpeedIndex,
+    buildUrlQueryString,
 } from './misc'
 import _ from 'lodash'
 import { INTERNAL_Snapshot, proxy, ref, snapshot, subscribe, useSnapshot } from 'valtio'
@@ -335,7 +336,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     let uploadPath = path(toUpload.file)
     if (toUpload.name)
         uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
-    req.open('PUT', to + encodeURIComponent(uploadPath) + '?' + new URLSearchParams({
+    req.open('PUT', to + encodeURIComponent(uploadPath) + buildUrlQueryString({
         notificationChannel,
         ...resume && { resume: String(resume) },
         ...toUpload.comment && { comment: toUpload.comment },

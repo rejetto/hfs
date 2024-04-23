@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { apiCall } from './api'
-import { DAY, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
+import { Callback, DAY, Dict, getOrSet, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
 export * from './react'
 export * from './dialogs'
 export * from './md'
@@ -35,6 +35,10 @@ function getScriptAttr(k: string) {
 }
 
 export const urlParams = Object.fromEntries(new URLSearchParams(window.location.search).entries())
+
+export function buildUrlQueryString(params: Dict) { // not using URLSearchParams.toString as it doesn't work on firefox50
+    return '?' + Object.entries(params).map(pair => pair.map(encodeURIComponent).join('=') ).join('&')
+}
 
 export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: WindowEventMap[K]) => void, { target=window }={}) {
     target.addEventListener(eventName, cb)
@@ -115,6 +119,15 @@ export function disableConsoleDebug() {
     console.debug = (...args) => (window as any).DEV && was(...args)
 }
 
+export function loadScript(url: string, more={}) {
+    const el = document.createElement('script')
+    el.type = 'text/javascript'
+    el.src = url
+    for (const [k,v] of Object.entries(more))
+        el.setAttribute(k, String(v))
+    document.head.appendChild(el)
+}
+
 type DurationUnit = 'day' | 'hour' | 'minute' | 'second'
 export function createDurationFormatter({ locale=undefined, unitDisplay='narrow', largest='day', smallest='second', maxTokens, skipZeroes }:
             { skipZeroes?: boolean, largest?: DurationUnit, smallest?: DurationUnit, locale?: string, unitDisplay?: 'long' | 'short' | 'narrow', maxTokens?: 1 | 2 | 3 }={}) {
@@ -140,11 +153,16 @@ export function createDurationFormatter({ locale=undefined, unitDisplay='narrow'
     }
 }
 
-export class EventEmitter extends EventTarget {
-    emit(name: string) { this.dispatchEvent(new Event(name)) }
-    on(name: string, cb: EventListener) {
-        this.addEventListener(name, cb)
-        return () => this.removeEventListener(name, cb)
+// basic event emitter without names
+export class EventEmitter {
+    listeners = {} as Record<string, Callback[]>
+    emit(name: string, ...args: any[]) {
+        for (const cb of this.listeners[name] || []) cb(...args)
+    }
+    on(name: string, cb: Callback) {
+        const q = getOrSet(this.listeners, name, () => [])
+        q.push(cb)
+        return () => _.pull(q, cb)
     }
 }
 
