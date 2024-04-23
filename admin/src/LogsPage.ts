@@ -23,6 +23,7 @@ export default function LogsPage() {
     const files = typedKeys(logLabels)
     const shorterLabels = !useBreakpoint('sm') && { error_log: "Errors" }
     const file = files[tab]
+    const fileAvailable = file !== 'console'
     return h(Fragment, {},
         h(Flex, { gap: 0  },
             h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
@@ -32,7 +33,12 @@ export default function LogsPage() {
                     sx: { minWidth: 0, px: { xs: 1.5, sm: 2 } } // save space
                 }))),
             h(Box, { flex: 1 }),
-            h(IconBtn, { icon: Download, title: "Download as file", link: API_URL + `get_log_file?file=${file}` }),
+            h(IconBtn, {
+                icon: Download,
+                title: fileAvailable ? "Download as file" : "Not available",
+                link: API_URL + `get_log_file?file=${file}`,
+                disabled: !fileAvailable
+            }),
             h(IconBtn, { icon: Settings, title: "Options", onClick: showLogOptions })
         ),
         files.map(f =>
