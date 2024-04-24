@@ -9,7 +9,7 @@ import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from 
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { CFG, debounceAsync, FRONTEND_OPTIONS, getOrSet, newObj, onlyTruthy, repeat } from './misc'
+import { CFG, debounceAsync, FRONTEND_OPTIONS, newObj, onlyTruthy, parseFile } from './misc'
 import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio/vanilla'
 import { customHtmlState, getSection } from './customHtml'
@@ -40,11 +40,9 @@ function serveStatic(uri: string): Koa.Middleware {
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
         const fullPath = join(__dirname, '..', DEV_STATIC, folder, serveApp ? '/index.html': ctx.path)
-        const content = await getOrSet(cache, ctx.path, async () => {
-            const data = await fs.readFile(fullPath).catch(() => null)
-            return serveApp || !data ? data
-                : adjustBundlerLinks(ctx, uri, data)
-        })
+        const content = await parseFile(fullPath,
+            raw => serveApp || !raw.length ? raw : adjustBundlerLinks(ctx, uri, raw) )
+            .catch(() => null)
         if (content === null)
             return ctx.status = HTTP_NOT_FOUND
         if (!serveApp)
