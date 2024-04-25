@@ -358,6 +358,10 @@ export function isWindowsDrive(s?: string) {
     return s && /^[a-zA-Z]:$/.test(s)
 }
 
+export function isTimestampString(v: unknown) {
+    return typeof v === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z*$/.test(v)
+}
+
 export function isEqualLax(a: any,b: any): boolean {
     return a == b //eslint-disable-line
         || (a && b && typeof a === 'object' && typeof b === 'object'
