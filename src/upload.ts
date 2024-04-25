@@ -12,7 +12,7 @@ import { Callback, dirTraversal, escapeHTML, loadFileAttr, storeFileAttr, try_ }
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
-import { updateConnection, updateConnectionForCtx } from './connections'
+import { disconnect, updateConnection, updateConnectionForCtx } from './connections'
 import { roundSpeed } from './throttler'
 import { getCurrentUsername } from './auth'
 import { setCommentFor } from './comments'
@@ -41,8 +41,14 @@ const cache: any = {}
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     if (dirTraversal(path))
         return fail(HTTP_FOOL)
-    if (statusCodeForMissingPerm(base, 'can_upload', ctx))
+    if (statusCodeForMissingPerm(base, 'can_upload', ctx)) {
+        if (!ctx.get('x-hfs-wait')) { // you can disable the following behavior
+            // avoid waiting hours for just an error
+            const t = setTimeout(() => disconnect(ctx), 30_000)
+            ctx.res.on('finish', () => clearTimeout(t))
+        }
         return fail()
+    }
     const fullPath = join(base.source!, path)
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
