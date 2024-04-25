@@ -69,7 +69,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
                 const fn = (f as any).originalFilename
                 ctx.state.uploadPath = decodeURI(ctx.path) + fn
                 ctx.state.uploads!.push(fn)
-                return uploadWriter(node!, fn, ctx) || new Writable()
+                return uploadWriter(node!, fn, ctx)
+                    || new Writable({ write(data,enc,cb) { cb() } }) // just discard data
             }
         })
         return new Promise<void>(res => form.parse(ctx.req, err => {
