@@ -34,7 +34,8 @@ function App() {
 
 function ApplyTheme(props:any) {
     return h(Box, {
-        sx: { bgcolor: 'background.default', color: 'text.primary', flex: 1, },
+        sx: { bgcolor: 'background.default', color: 'text.primary', flex: 1,
+            maxWidth: '100%' /*avoid horizontal overflow (eg: customHtml with long line) */ },
         ...props
     })
 }
