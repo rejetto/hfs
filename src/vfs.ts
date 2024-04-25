@@ -191,8 +191,10 @@ export function hasPermission(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Cont
 
 export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ctx: Koa.Context, assign=true) {
     const ret = getCode()
-    if (ret && assign)
+    if (ret && assign) {
         ctx.status = ret
+        ctx.body = ret === HTTP_UNAUTHORIZED ? "Unauthorized" : "Forbidden"
+    }
     return ret
 
     function getCode() {
