@@ -19,6 +19,7 @@ import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
+import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -381,6 +382,12 @@ function watchPlugin(id: string, path: string) {
             await initPlugin(pluginData, {
                 srcDir: __dirname,
                 storageDir,
+                async openDb(filename: string, options?: KvStorageOptions){
+                    if (!filename) throw Error("missing filename")
+                    const db = new KvStorage(options)
+                    await db.open(join(storageDir, filename))
+                    return db
+                },
                 log(...args: any[]) {
                     console.log('plugin', id+':', ...args)
                 },

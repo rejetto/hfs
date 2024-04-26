@@ -183,7 +183,10 @@ The `api` object you get as parameter of the `init` contains the following:
   then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin.
 
 - `customApiCall: (method: string, ...params) => any[]` this will invoke other plugins if they define `method`
-  exported inside `customApi: object` 
+  exported inside `customApi: object`
+  
+- `openDb: (filename, options) => Promise<{ get, put, del, close, unlink, sublevel }>` LevelDB-like class for storage.
+  Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details. 
 
 ## Front-end specific
 
@@ -420,7 +423,8 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 8.8 (v0.53.0)
+- 8.81 (v0.53.0)
+  - api.openDb 
   - new event: menuZip
 - config.type:username
 - 8.72 (v0.52.0)
