@@ -120,19 +120,20 @@ async function rename(entry: DirEntry) {
     try {
         const { n, uri } = entry
         await apiCall('rename', { uri, dest }, { modal: working })
-        const isCurrentFolder = uri === location.pathname
-        if (!isCurrentFolder) {
+        const renamingCurrentFolder = uri === location.pathname
+        if (!renamingCurrentFolder) {
             // update state instead of re-getting the list
             const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
-            const newEntry = new DirEntry(newN, entry)
+            const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping old key, we avoid unmounting the element, that's causing focus lost
             const i = _.findIndex(state.list, { n })
             state.list[i] = newEntry
+            // update filteredList too
             const j = _.findIndex(state.filteredList, { n })
             if (j >= 0)
                 state.filteredList![j] = newEntry
         }
         alertDialog(t`Operation successful`).then(() => {
-            if (isCurrentFolder)
+            if (renamingCurrentFolder)
                 getHFS().navigate(uri + '../' + pathEncode(dest) + '/')
         })
     }

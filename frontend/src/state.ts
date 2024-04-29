@@ -102,6 +102,7 @@ export class DirEntry {
     public readonly isFolder:boolean
     public readonly t?:Date
     public readonly cantOpen: boolean
+    public readonly key?: string
 
     constructor(n: string, rest?: any) {
         Object.assign(this, rest) // we actually allow any custom property to be memorized

@@ -113,7 +113,7 @@ function FilesList() {
             msgInstead ? h('p', {}, msgInstead)
                 : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry, idx) =>
                     h(Entry, {
-                        key: entry.n,
+                        key: entry.key || entry.n,
                         midnight,
                         separator: idx > 0 && !(idx % pageSize) ? String(offset + idx) : undefined,
                         entry,
