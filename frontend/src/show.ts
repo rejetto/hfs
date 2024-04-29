@@ -35,6 +35,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                     goTo(shuffle[0])
             }, [shuffle])
             useEventListener('keydown', ({ key }) => {
+                if (key === 'Escape') return close()
                 if (key === 'ArrowLeft') return goPrev()
                 if (key === 'ArrowRight') return goNext()
                 if (key === 'ArrowDown') return scrollY(1)
