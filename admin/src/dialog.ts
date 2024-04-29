@@ -60,8 +60,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
             ref,
             sx: {
                 p: d.padding ? 1 : 0, pt: '16px !important', overflow: 'initial',
-                display: 'flex', flexDirection: 'column', justifyContent: 'center',
-                alignItems: 'center',
+                display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'stretch',
                 ...sx,
             }
         }, h(d.Content) )
