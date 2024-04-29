@@ -677,7 +677,7 @@ button .icon + .label {
         height: 100%;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: space-evenly;
         align-items: center;
         position: relative;
     }
