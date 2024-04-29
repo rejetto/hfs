@@ -501,7 +501,7 @@ button .icon + .label {
 
 .popup-menu-button {
     font-size: .8em; padding: .2em .3em; position: absolute; opacity: .8; white-space: nowrap;
-    &:hover { opacity: 1 }
+    &:hover,&:focus { opacity: 1 }
 }
 
 .file-dialog .dialog { min-width: 13em; } /* more room for title */
