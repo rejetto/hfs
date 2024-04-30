@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, wantArray } from './misc'
+import { HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
@@ -73,7 +73,8 @@ export async function updateAccount(account: Account, change: Partial<Account> |
         await change?.(account)
     else
         Object.assign(account, objSameKeys(change, x => x || undefined))
-
+    for (const [k,v] of typedEntries(account))
+        if (!v) delete account[k] // we consider all account fields, when falsy, as equivalent to be missing (so, default value applies)
     const { username, password } = account
     if (password) {
         console.debug('hashing password for', username)
@@ -145,11 +146,11 @@ export async function addAccount(username: string, props: Partial<Account>) {
     username = normalizeUsername(username)
     if (!username || getAccount(username, false))
         return
-    const copy: Account = setHidden(_.pickBy(props, Boolean), { username }) // have the field in the object but hidden so that stringification won't include it
+    const newAccount: Account = setHidden({}, { username }) // have the field in the object but hidden so that stringification won't include it
     accountsConfig.set(accounts =>
-        Object.assign(accounts, { [username]: copy }))
-    await updateAccount(copy, copy)
-    return copy
+        Object.assign(accounts, { [username]: newAccount }))
+    await updateAccount(newAccount, props)
+    return newAccount
 }
 
 export function delAccount(username: string) {

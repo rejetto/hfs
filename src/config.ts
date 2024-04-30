@@ -135,7 +135,7 @@ export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
         if (save === false) // false is used when loading whole config, and in such case we should not leave previous values untreated. Also, we need this only after we already `started`.
             for (const k of Object.keys(state))
                 if (!newCfg.hasOwnProperty(k))
-                    apply(k, newCfg[k])
+                    apply(k, undefined)
         return
     }
     // first time we emit also for the default values
