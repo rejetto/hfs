@@ -52,8 +52,9 @@ export function saveSrpInfo(account:Account, salt:string | bigint, verifier: str
 const createAdminConfig = defineConfig('create-admin', '')
 createAdminConfig.sub(v => {
     if (!v) return
-    createAdmin(v)
     createAdminConfig.set('')
+    // we can't createAdmin right away, as its changes will be lost after return, when our caller (setConfig) applies undefined properties. setTimeout is good enough, as the process is sync.
+    setTimeout(() => createAdmin(v))
 })
 
 export async function createAdmin(password: string, username='admin') {
