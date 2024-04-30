@@ -58,9 +58,8 @@ createAdminConfig.sub(v => {
 })
 
 export async function createAdmin(password: string, username='admin') {
-    const acc = await addAccount(username, { admin: true, password })
-    if (!acc) return console.log("cannot create, already exists")
-    console.log("account admin created")
+    const acc = await addAccount(username, { admin: true, password }, true)
+    console.log(acc ? "account admin created" : "something went wrong")
 }
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
@@ -142,15 +141,17 @@ export function renameAccount(from: string, to: string) {
     }
 }
 
-export async function addAccount(username: string, props: Partial<Account>) {
+export async function addAccount(username: string, props: Partial<Account>, updateExisting=false) {
     username = normalizeUsername(username)
-    if (!username || getAccount(username, false))
-        return
-    const newAccount: Account = setHidden({}, { username }) // have the field in the object but hidden so that stringification won't include it
+    if (!username) return
+    let account = getAccount(username, false)
+    if (account && !updateExisting) return
+    account = setHidden(account || {}, { username })  // hidden so that stringification won't include it
+    Object.assign(account, _.pickBy(props, Boolean))
     accountsConfig.set(accounts =>
-        Object.assign(accounts, { [username]: newAccount }))
-    await updateAccount(newAccount, props)
-    return newAccount
+        Object.assign(accounts, { [username]: account }))
+    await updateAccount(account, account)
+    return account
 }
 
 export function delAccount(username: string) {
