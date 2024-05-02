@@ -192,7 +192,10 @@ export default function InternetPage() {
                         label: "Domain for certificate",
                         sm: values.acme_domain?.length > 30 ? 12 : 6,
                         required: true,
-                        helperText: md("Example: your.domain.com\nMultiple domains separated by commas")
+                        multiline: true,
+                        fromField: x => x.replaceAll('\n', ','),
+                        toField: x => x.replaceAll(',', '\n'),
+                        helperText: md("Example: your.domain.com\nMultiple domains on separated lines")
                     },
                     { k: 'acme_email', label: "E-mail for certificate", sm: true },
                     {
