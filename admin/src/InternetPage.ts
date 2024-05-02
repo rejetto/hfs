@@ -66,7 +66,7 @@ export default function InternetPage() {
             data && h(Flex, {},
                 data.error ? h(ErrorIcon, { color: 'error', ref }) : h(Check, { color: 'success', ref }),
                 formatTimestamp(data.ts), ' – ',
-                prefix("Error: ", stripTags(data.error)) || "Updated successfully",
+                prefix("Error: ", stripTags(data.error)).slice(0, 500) || "Updated successfully",
             ),
             "This tool can keep your domain updated with your latest IP address. Not every service is compatible, and most of them have their own software for the job, which is superior, but we offer this lightweight solution in case you are more keen to it.",
             h(ConfigForm<{
@@ -99,7 +99,7 @@ export default function InternetPage() {
                                 }, label + " wizard")
                             )
                         ),
-                        { k: CFG.dynamic_dns_url, label: "Updater URL",
+                        { k: CFG.dynamic_dns_url, label: "Updater URL", multiline: true,
                             helperText: "Refer to your DNS service provider to know what URL can automatically keep your domain updated. Supported symbols are $IP4, $IP6, $IPX. Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used."
                         },
                     ]

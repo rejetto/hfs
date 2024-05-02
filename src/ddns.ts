@@ -19,24 +19,27 @@ dynamicDnsUrl.sub(v => {
     stop?.()
     if (!v) return
     let lastIps: any
-    const [templateUrl, re] = splitAt('>', v)
     stop = repeat(HOUR, async () => {
         const ips = await getPublicIps()
         if (_.isEqual(lastIps, ips)) return
         lastIps = ips
-        const url = replace(templateUrl, {
-            IPX: ips[0] || '',
-            IP4: _.find(ips, isIPv4) || '',
-            IP6: _.find(ips, isIPv6) || '',
-        }, '$')
-        const error = await httpWithBody(url, { httpThrow: false, headers: { 'User-Agent': "HFS/" + VERSION } }) // UA specified as requested by no-ip guidelines
-            .then(async res => {
-                const str = String(res.body).trim()
-                return (re ? str.match(re) : res.ok) ? '' : (str || res.statusMessage)
-            }, (err: any) => err.code || err.message || String(err) )
-        last = { ts: new Date().toJSON(), error, url }
+        const all = await Promise.all(v.split('\n').map(async line => {
+            const [templateUrl, re] = splitAt('>', line)
+            const url = replace(templateUrl, {
+                IPX: ips[0] || '',
+                IP4: _.find(ips, isIPv4) || '',
+                IP6: _.find(ips, isIPv6) || '',
+            }, '$')
+            const error = await httpWithBody(url, { httpThrow: false, headers: { 'User-Agent': "HFS/" + VERSION } }) // UA specified as requested by no-ip guidelines
+                .then(async res => {
+                    const str = String(res.body).trim()
+                    return (re ? str.match(re) : res.ok) ? '' : (str || res.statusMessage)
+                }, (err: any) => err.code || err.message || String(err) )
+            return { ts: new Date().toJSON(), error, url }
+        }))
+        last = _.find(all, 'error') || all[0] // the system is designed for just one result, and we give precedence to errors
         events.emit('dynamicDnsError', last)
-        console.log('dynamic dns update', error || 'ok')
+        console.log('dynamic dns update', last?.error || 'ok')
     })
 })
 
