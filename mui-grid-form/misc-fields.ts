@@ -45,7 +45,7 @@ export function NumberField({ value, onChange, setApi, required, min, max, step,
             sx: { pr: '6px', '& input': { pl: '.2em', textAlign: 'right' } },
             endAdornment: h(InputAdornment, {
                 position: 'end',
-                sx: { mt: '1.2em', ml: '5px', '& p': { fontSize: '80%' } }
+                sx: { mt: '1.2em', ml: '5px', '& p': { fontSize: '80%', '.Mui-focused &': { color: 'text.primary' } } }
             }, unit),
         }),
         ...props,
