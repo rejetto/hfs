@@ -1,4 +1,4 @@
-exports.version = 2
+exports.version = 2.1
 exports.description = "Introduce increasing delays between login attempts."
 exports.apiRequired = 3 // log
 
@@ -15,10 +15,13 @@ const byIp = {}
 exports.init = api => {
     const LOGIN_URI = api.Const.API_URI + 'loginSrp1'
     const { getOrSet } = api.require('./misc')
+    const { getCurrentUsername } = api.require('./auth')
     return {
         async middleware(ctx) {
-            if (ctx.path !== LOGIN_URI) return
             const { ip } = ctx
+            if (getCurrentUsername(ctx)) // login was successful
+                delete byIp[ip]
+            if (ctx.path !== LOGIN_URI) return
             const now = Date.now()
             const rec = getOrSet(byIp, ip, () => ({ delay: 0, next: now }))
             const wait = rec.next - now
