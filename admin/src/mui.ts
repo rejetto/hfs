@@ -117,7 +117,7 @@ function useRefPass<T=unknown>(forwarded: ForwardedRef<any>) {
     })
 }
 
-interface IconBtnProps extends Omit<BtnProps, 'icon' | 'children'> { icon: SvgIconComponent }
+export interface IconBtnProps extends Omit<BtnProps, 'icon' | 'children'> { icon: SvgIconComponent }
 export const IconBtn = forwardRef((props: IconBtnProps, ref: ForwardedRef<HTMLButtonElement>) =>
     h(Btn, { ref, ...props }))
 

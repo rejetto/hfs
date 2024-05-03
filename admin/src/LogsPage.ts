@@ -17,6 +17,7 @@ import { ClearAll, Download, Settings, SmartToy } from '@mui/icons-material'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
+import { useBlockIp } from './useBlockIp'
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
@@ -130,11 +131,15 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
         renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
     }
     const rows = useMemo(() => showApi || list?.[0]?.uri === undefined ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]) //TODO TypeError: l.uri is undefined
+    const blockIp = useBlockIp()
+    const isConsole = file === 'console'
     return hidden ? null : h(DataTable, {
         error,
         loading: connecting,
         rows,
         compact: true,
+        actionsProps: { hideUnder: 'md' },
+        actions: ({ row }) => [ !isConsole && blockIp.iconBtn(row.ip, "From log") ],
         addToFooter: h(Box, {}, // 4 icons don't fit the tabs row on mobile
             pauseButton,
             showApiButton,
@@ -149,7 +154,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
             }, "Load whole log"),
             addToFooter,
         ),
-        columns: file === 'console' ? [
+        columns: isConsole ? [
             tsColumn,
             {
                 field: 'k',

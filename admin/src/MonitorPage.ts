@@ -3,16 +3,17 @@
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { LinkOff, Lock, Block, FolderZip, Upload, Download, ChevronRight, ChevronLeft } from '@mui/icons-material'
+import { LinkOff, Lock, FolderZip, Upload, Download, ChevronRight, ChevronLeft } from '@mui/icons-material'
 import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp,
+import { formatBytes, ipForUrl, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp,
     formatPerc, md } from "./misc"
 import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { agentIcons } from './LogsPage'
 import { state, useSnapState } from './state'
+import { useBlockIp } from './useBlockIp'
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -96,6 +97,7 @@ function Connections() {
     const rows = useMemo(() =>
             list?.filter((x: any) => !monitorOnlyFiles || x.op).map((x: any, id: number) => ({ id, ...x })),
         [!pause && list, monitorOnlyFiles]) //eslint-disable-line
+    const blockIp = useBlockIp()
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center' },
             h(SelectField as Field<boolean>, {
@@ -203,20 +205,10 @@ function Connections() {
                     doneMessage: true,
                     onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])).then(x => x.result > 0)
                 }),
-                h(IconBtn, {
-                    icon: Block,
-                    title: "Block IP",
-                    confirm: "Block address " + row.ip,
-                    disabled: row.ip === props?.you,
-                    onClick: () => blockIp(row.ip),
-                }),
+                blockIp.iconBtn(row.ip, "From monitoring", { disabled: row.ip === props?.you }),
             ]
         })
     )
-}
-
-function blockIp(ip: string) {
-    return manipulateConfig('block', data => [...data, { ip }])
 }
 
 function formatSpeedK(value: number | undefined) {

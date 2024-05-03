@@ -3,4 +3,6 @@
 import EventEmitter from 'events'
 
 // app-wide events
-export default new EventEmitter().setMaxListeners(100)
+const ee = new EventEmitter().setMaxListeners(100)
+
+export default ee
