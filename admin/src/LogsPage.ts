@@ -77,7 +77,8 @@ export default function LogsPage() {
                             },
                             { k: CFG.log_gui, sm: 6, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
                             { k: CFG.log_api, sm: 6, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
-                            { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information" },
+                            { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information. Can double the size of your logs on disk." },
+                            { k: CFG.log_spam, sm: 6, comp: BoolField, label: "Log spam requests", helperText: md`Spam are *failed* requests that are considered attacks aimed *not* to HFS and therefore harmless` },
                         ]
                     }
                 })
