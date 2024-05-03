@@ -43,8 +43,8 @@ function MoreInfo() {
         (allInfo || sm) && pair('connections', { title: () => `${status.ips} IP(s)` }),
         pair('sent', { render: formatBytes, minWidth: '4em' }),
         (allInfo || sm) && pair('got', { render: formatBytes, minWidth: '4em' }),
-        pair('outSpeed', { label: "Output speed", render: formatSpeedK }),
-        (allInfo || md) && pair('inSpeed', { label: "Input speed", render: formatSpeedK }),
+        pair('outSpeed', { label: "Output speed", render: formatSpeedK, minWidth: '5em' }),
+        (allInfo || md) && pair('inSpeed', { label: "Input speed", render: formatSpeedK, minWidth: '5em' }),
         !xl && h(IconBtn, { size: 'small', icon: allInfo ? ChevronLeft : ChevronRight, title: "Show more", onClick: () => setAllInfo(x => !x) }),
     )
 
