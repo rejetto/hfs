@@ -22,7 +22,7 @@ function downloadProgress(id: string, status: DownloadStatus) {
         delete downloading[id]
     else
         downloading[id] = status
-    events.emit('pluginDownload_'+id, status)
+    events.emit('pluginDownload', { id, status })
 }
 
 // determine default branch, possibly without consuming api quota

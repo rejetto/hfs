@@ -4,7 +4,6 @@ import { consoleLog } from './consoleLog'
 import { HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
 import events from './events'
 import { loggers } from './log'
-import { onOff } from './misc'
 import { SendListReadable } from './SendList'
 import { serveFile } from './serveFile'
 
@@ -41,11 +40,8 @@ export default {
                 if (!_.find(loggers, { name: file }))
                     return list.error(HTTP_NOT_FOUND, true)
                 list.ready()
-                ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
-                    [file](entry) {
-                        list.add(entry)
-                    }
-                }))
+                // unsubscribe when connection is interrupted
+                ctx.res.once('close', events.on(file, x => list.add(x)))
             }
         })
 

@@ -1,6 +1,6 @@
-exports.version = 2.1
+exports.version = 3
 exports.description = "Introduce increasing delays between login attempts."
-exports.apiRequired = 3 // log
+exports.apiRequired = 8.8 // attemptingLogin
 
 exports.config = {
     increment: { type: 'number', min: 1, defaultValue: 5, helperText: "Seconds to add to the delay for each login attempt" },
@@ -13,29 +13,29 @@ exports.configDialog = {
 const byIp = {}
 
 exports.init = api => {
-    const LOGIN_URI = api.Const.API_URI + 'loginSrp1'
     const { getOrSet } = api.require('./misc')
-    const { getCurrentUsername } = api.require('./auth')
     return {
-        async middleware(ctx) {
-            const { ip } = ctx
-            if (getCurrentUsername(ctx)) // login was successful
-                delete byIp[ip]
-            if (ctx.path !== LOGIN_URI) return
-            const now = Date.now()
-            const rec = getOrSet(byIp, ip, () => ({ delay: 0, next: now }))
-            const wait = rec.next - now
-            const max = api.getConfig('max') * 1000
-            const inc = api.getConfig('increment') * 1000
-            rec.delay = Math.min(max, rec.delay + inc)
-            rec.next += rec.delay
-            clearTimeout(rec.timer)
-            if (wait > 0) {
-                api.log('delaying', ip, 'for', Math.round(wait / 1000))
-                ctx.set('x-anti-brute-force', wait)
-                await new Promise(resolve => setTimeout(resolve, wait))
+        unload: api.events.multi({
+            attemptingLogin: async  ctx => {
+                const { ip } = ctx
+                const now = new Date
+                const rec = getOrSet(byIp, ip, () => ({ attempts: 0, next: now }))
+                const max = api.getConfig('max') * 1000
+                const delay = Math.min(max, 1000 * api.getConfig('increment') * ++rec.attempts)
+                const wait = rec.next - now
+                rec.next = new Date(+rec.next + delay)
+                clearTimeout(rec.timer)
+                if (wait > 0) {
+                    api.log('delaying', ip, 'for', Math.round(wait / 1000))
+                    ctx.set('x-anti-brute-force', wait)
+                    await new Promise(resolve => setTimeout(resolve, wait))
+                }
+                rec.timer = setTimeout(() => delete byIp[ip], max * 10) // no memory leak
+            },
+            login: ctx => {
+                if (ctx.state.account)
+                    delete byIp[ctx.ip] // reset if login was successful
             }
-            rec.timer = setTimeout(() => delete byIp[ip], rec.delay * 10) // no memory leak
-        }
+    })
     }
 }

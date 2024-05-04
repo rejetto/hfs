@@ -1,11 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import EventEmitter from 'events'
 import { argv, ORIGINAL_CWD, VERSION } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { DAY, debounceAsync, newObj, onOff, throw_, tryJson, wait, with_ } from './misc'
+import { DAY, debounceAsync, newObj, throw_, tryJson, wait, with_ } from './misc'
 import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
@@ -18,8 +17,6 @@ const configProps: Record<string, { defaultValue?: unknown }> = {}
 
 let started = false // this will tell the difference for subscribeConfig()s that are called before or after config is loaded
 let state: Record<string, any> = {} // current state of config properties
-const cfgEvents = new EventEmitter()
-cfgEvents.setMaxListeners(10_000)
 const filePath = with_(argv.config || process.env.HFS_CONFIG, p => {
     if (!p)
         return FILE
@@ -51,7 +48,7 @@ class Version extends String {
     }
 }
 
-const CONFIG_CHANGE_EVENT_PREFIX = 'new.'
+const CONFIG_CHANGE_EVENT_PREFIX = 'config.'
 export const currentVersion = new Version(VERSION)
 const configVersion = defineConfig('version', VERSION, v => new Version(v))
 
@@ -70,15 +67,12 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
         sub(cb: Subscriber<T>) {
             if (started) // initial event already passed, we'll make the first call
                 cb(getConfig(k), { k, was: defaultValue, defaultValue, version: configVersion.compiled() })
-            const eventName = CONFIG_CHANGE_EVENT_PREFIX + k
-            return onOff(cfgEvents, {
-                [eventName](v, was, version) {
-                    if (stack.includes(cb)) return // avoid infinite loop in case a subscriber changes the value
-                    stack.push(cb)
-                    try { return cb(v, { k, was, version, defaultValue }) }
-                    finally { stack.pop() }
-                }
-            })
+            return events.on(CONFIG_CHANGE_EVENT_PREFIX + k, (v, was, version) => {
+                if (stack.includes(cb)) return // avoid infinite loop in case a subscriber changes the value
+                stack.push(cb)
+                try { return cb(v, { k, was, version, defaultValue }) }
+                finally { stack.pop() }
+            }, { warnAfter: 1000 }) // e.g. each plugin watch enable_plugins
         },
         set(v: T | Updater) {
             if (typeof v === 'function')
@@ -161,7 +155,7 @@ function setConfig1(k: string, newV: unknown, saveChanges=true, valueVersion?: V
     if (started && same(newV, state[k])) return // no change
     const was = getConfig(k) // include cloned default, if necessary
     state[k] = newV
-    cfgEvents.emit(CONFIG_CHANGE_EVENT_PREFIX + k, getConfig(k), was, valueVersion)
+    events.emit(CONFIG_CHANGE_EVENT_PREFIX + k, getConfig(k), was, valueVersion)
     if (saveChanges)
         saveConfigAsap()
 

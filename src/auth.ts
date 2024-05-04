@@ -5,6 +5,7 @@ import { Context } from 'koa'
 import { srpClientPart } from './srp'
 import { DAY, getOrSet } from './cross'
 import { createHash } from 'node:crypto'
+import events from './events'
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
 
@@ -43,6 +44,7 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     if (!s)
         return ctx.throw(HTTP_SERVER_ERROR,'session')
     if (username === false) {
+        events.emit('logout', ctx)
         delete s.username
         return
     }
@@ -52,6 +54,7 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     s.ts = Date.now()
     if (!a.expire && a.days_to_live)
         updateAccount(a, { expire: new Date(Date.now() + a.days_to_live! * DAY) })
+    await events.emitAsync('login', ctx)
 }
 
 // since session are currently stored in cookies, we need to store this information

@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { apiCall } from './api'
-import { Callback, DAY, Dict, getOrSet, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
+import { DAY, Dict, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
 export * from './react'
 export * from './dialogs'
 export * from './md'
@@ -151,19 +151,6 @@ export function createDurationFormatter({ locale=undefined, unitDisplay='narrow'
             ms %= mul
         }
         return fmtList.format(a)
-    }
-}
-
-// basic event emitter without names
-export class EventEmitter {
-    listeners = {} as Record<string, Callback[]>
-    emit(name: string, ...args: any[]) {
-        for (const cb of this.listeners[name] || []) cb(...args)
-    }
-    on(name: string, cb: Callback) {
-        const q = getOrSet(this.listeners, name, () => [])
-        q.push(cb)
-        return () => _.pull(q, cb)
     }
 }
 

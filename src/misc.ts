@@ -43,19 +43,6 @@ export function pattern2filter(pattern: string){
         !s || !pattern || matcher(basename(s))
 }
 
-// install multiple handlers and returns a handy 'uninstall' function which requires no parameter. Pass a map {event:handler}
-export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: any[]) => void }) {
-    events = { ...events } // avoid later modifications, as we need this later for uninstallation
-    for (const [k,cb] of Object.entries(events))
-        for (const e of k.split(' '))
-            em.on(e, cb)
-    return () => {
-        for (const [k,cb] of Object.entries(events))
-            for (const e of k.split(' '))
-                em.off(e, cb)
-    }
-}
-
 export function isLocalHost(c: Connection | Koa.Context | string) {
     const ip = typeof c === 'string' ? c : c.socket.remoteAddress // don't use Context.ip as it is subject to proxied ips, and that's no use for localhost detection
     return ip && isIpLocalHost(ip)

@@ -7,9 +7,8 @@ import {
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { Callback, HTTP_CONFLICT, newObj, onOff, waitFor } from './misc'
+import { HTTP_CONFLICT, newObj, waitFor } from './misc'
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import events from './events'
 import { rm } from 'fs/promises'
 import { downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, searchPlugins } from './github'
 import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
@@ -94,31 +93,31 @@ const apis: ApiHandlers = {
     get_online_plugins({ text }, ctx) {
         return new SendListReadable({
             async doAtStart(list) {
+                const repos = [] as string[]
+                list.events(ctx, {
+                    pluginInstalled: p => {
+                        if (repos.includes(p.repo))
+                            list.update({ id: p.repo }, { installed: true })
+                    },
+                    pluginUninstalled: folder => {
+                        const repo = getFolder2repo()[folder]
+                        if (typeof repo !== 'string') return // custom repo
+                        if (repos.includes(repo))
+                            list.update({ id: repo }, { installed: false })
+                    },
+                    pluginDownload({ id, status }) {
+                        if (repos.includes(id))
+                            list.update({ id }, { downloading: status ?? null })
+                    }
+                })
                 try {
-                    // avoid creating N listeners on ctx.req, and getting a warning
-                    const undo: Callback[] = []
-                    ctx.req.once('close', () => undo.forEach(x => x()))
-
                     const already = Object.values(getFolder2repo()).map(String)
                     for await (const pl of await searchPlugins(text, { skipRepos: already })) {
                         const repo = pl.repo || pl.id // .repo property can be more trustworthy in case github user renamed and left the previous link in 'repo'
                         const missing = await getMissingDependencies(pl)
                         if (missing.length) pl.missing = missing
                         list.add(pl)
-                        // watch for events about this plugin, until this request is closed
-                        undo.push(onOff(events, {
-                            pluginInstalled: p => {
-                                if (p.repo === repo)
-                                    list.update({ id: repo }, { installed: true })
-                            },
-                            pluginUninstalled: folder => {
-                                if (repo === getFolder2repo()[folder])
-                                    list.update({ id: repo }, { installed: false })
-                            },
-                            ['pluginDownload_' + repo](status) {
-                                list.update({ id: repo }, { downloading: status ?? null })
-                            }
-                        }))
+                        repos.push(repo)
                     }
                 } catch (err: any) {
                     list.error(err.code || err.message)

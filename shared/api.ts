@@ -2,8 +2,9 @@
 
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Callback, Dict, EventEmitter, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait,
+import { Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait,
     buildUrlQueryString, } from '.'
+import { BetterEventEmitter } from '../src/events'
 
 export const API_URL = '/~/api/'
 
@@ -112,9 +113,9 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         setForcer(v => v + 1)
         reloadingRef.current = pendingPromise()
     }, [setForcer])
-    const ee = useMemo(() => new EventEmitter, [])
+    const ee = useMemo(() => new BetterEventEmitter, [])
     const sub = useCallback((cb: Callback) => ee.on('data', cb), [])
-    useEffect(() => ee.emit('data'), [data])
+    useEffect(() => { ee.emit('data') }, [data])
     return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current,  }
 }
 
