@@ -6,10 +6,6 @@ import './index.scss'
 import '@hfs/shared/min-crypto-polyfill'
 import '@hfs/shared/polyfills'
 import App from './App'
-import { disableConsoleDebug } from '@hfs/shared'
-
-//@ts-ignore
-if (import.meta.env.PROD) disableConsoleDebug()
 
 createRoot(document.getElementById('root')!)
     .render( h(StrictMode, {}, h(App)) )

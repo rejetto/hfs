@@ -28,7 +28,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
         const sid = Math.random()
         ongoingLogins[sid] = step1
         setTimeout(()=> delete ongoingLogins[sid], 60_000)
-        ctx.session.loggingIn = { username, sid }
+        ctx.session.loggingIn = { username, sid } // temporarily store until process is complete
         return rest
     }
     catch (code: any) {
@@ -42,13 +42,13 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     if (!ctx.session.loggingIn)
         return new ApiError(HTTP_CONFLICT)
     const { username, sid } = ctx.session.loggingIn
+    delete ctx.session.loggingIn
     const step1 = ongoingLogins[sid]
     if (!step1)
         return new ApiError(HTTP_NOT_FOUND)
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
         await setLoggedIn(ctx, username)
-        delete ctx.session.loggingIn
         return {
             proof: String(M2),
             redirect: ctx.state.account?.redirect,

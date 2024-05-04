@@ -17,13 +17,17 @@ defineConfig('max_kbps', Infinity).sub(v =>
 const ip2group: Record<string, {
     count: number
     group: ThrottleGroup
-    destroy: () => void
 }> = {}
 
 const SymThrStr = Symbol('stream')
 const SymTimeout = Symbol('timeout')
 
 const maxKbpsPerIp = defineConfig('max_kbps_per_ip', Infinity)
+maxKbpsPerIp.sub(v => {
+    for (const [ip, {group}] of Object.entries(ip2group))
+        if (ip) // empty-string = unlimited group
+            group.updateLimit(v)
+})
 
 export const throttler: Koa.Middleware = async (ctx, next) => {
     await next()
@@ -34,14 +38,11 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     if (!body || !(body instanceof Readable))
         return
     // we wrap the stream also for unlimited connections to get speed and other features
-    const ipGroup = getOrSet(ip2group, ctx.ip, ()=> {
-        const doLimit = ctx.state.account?.ignore_limits || isLocalHost(ctx) ? undefined : true
-        const group = new ThrottleGroup(Infinity, doLimit && mainThrottleGroup)
-
-        const unsub = doLimit && maxKbpsPerIp.sub(v =>
-            group.updateLimit(v))
-        return { group, count:0, destroy: unsub }
-    })
+    const noLimit = ctx.state.account?.ignore_limits || isLocalHost(ctx)
+    const ipGroup = getOrSet(ip2group, noLimit ? '' : ctx.ip, () => ({
+        count:0,
+        group: new ThrottleGroup(noLimit ? Infinity : maxKbpsPerIp.get(), noLimit ? undefined : mainThrottleGroup),
+    }))
     const conn = getConnection(ctx)
     if (!conn) throw 'assert throttler connection'
 
@@ -72,7 +73,6 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         update.flush()
         closed = true
         if (--ipGroup.count) return // any left?
-        ipGroup.destroy?.()
         delete ip2group[ctx.ip]
     })
 

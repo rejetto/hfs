@@ -29,6 +29,12 @@ Object.assign(HFS, {
     cpuSpeedIndex,
 })
 
+//@ts-ignore
+if (import.meta.env.PROD) {
+    const was = console.debug
+    console.debug = (...args) => (window as any).DEV && was(...args)
+}
+
 function getScriptAttr(k: string) {
     return document.currentScript?.getAttribute(k)
         || console.error("this function must be called at the very top of your file")
@@ -112,11 +118,6 @@ export function focusSelector(selector: string, root: HTMLElement | Document=doc
         res.focus()
         return true
     }
-}
-
-export function disableConsoleDebug() {
-    const was = console.debug
-    console.debug = (...args) => (window as any).DEV && was(...args)
 }
 
 export function loadScript(url: string, more={}) {

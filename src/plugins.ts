@@ -217,12 +217,12 @@ export class Plugin implements CommonPluginInterface {
     }
 }
 
-const SERVER_CODE_ID = '.'
+export const SERVER_CODE_ID = '.' // a name that will surely be not found among plugin folders
 const serverCode = defineConfig('server_code', '', async (script, { k }) => {
     const res: any = {}
     try {
         new Function('exports', script)(res) // parse
-        return new Plugin(SERVER_CODE_ID, '', await initPlugin(res), _.noop) // '.' is a name that will surely be not found among plugin folders
+        return new Plugin(SERVER_CODE_ID, '', await initPlugin(res), _.noop)
     }
     catch (e: any) {
         return console.error(k + ':', e.message || String(e))
@@ -246,7 +246,7 @@ type PluginMiddleware = (ctx:Koa.Context) => Promisable<void | Stop | CallMeAfte
 type Stop = true
 type CallMeAfter = ()=>any
 
-export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string }
+export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string } // string is github, object is custom
 type Depend = { repo: string, version?: number }[]
 export interface CommonPluginInterface {
     id: string

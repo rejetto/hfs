@@ -73,7 +73,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     ctx.type = 'html'
 
-    const isFrontend = filesUri === FRONTEND_URI
+    const isFrontend = filesUri === FRONTEND_URI ? ' ' : '' // as a string will allow neater code later
 
     const pub = ctx.state.revProxyPath + PLUGINS_PUB_URI
 
@@ -96,7 +96,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
             const isOpen = !isClose
             if (isHead && isOpen)
                 return all + `
-                    ${!isFrontend ? '' : `
+                    ${isFrontend && `
                         <title>${title.get()}</title>
                         <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
                     ` + getSection('htmlHead')}
@@ -120,14 +120,14 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 `
             if (isBody && isOpen)
                 return  all + `
-                    ${!isFrontend ? '' : getSection('top')}
+                    ${isFrontend && getSection('top')}
                     <style>
                     :root {
-                        ${_.map(plugins, (configs, pluginName) =>
+                        ${_.map(plugins, (configs, pluginName) => // make plugin configs accessible via css
                             _.map(configs, (v,k) => `--${pluginName}-${k}: ${serializeCss(v)};`).join('\n')).join('')}
                     }
                     </style>
-                    ${!isFrontend ? '' : mapPlugins((plug,id) =>
+                    ${isFrontend && mapPlugins((plug,id) =>
                         plug.frontend_css?.map(f =>
                             `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
                         .flat().filter(Boolean).join('\n')}
