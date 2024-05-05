@@ -5,7 +5,7 @@ import { Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addA
     changeSrpHelper, updateAccount } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
-import { getCurrentUsername, invalidSessions } from './auth'
+import { getCurrentUsername, invalidateSessionBefore } from './auth'
 import { apiAssertTypes } from './misc'
 
 export type AccountAdminSend = NonNullable<ReturnType<typeof prepareAccount>>
@@ -15,7 +15,7 @@ function prepareAccount(ac: Account | undefined) {
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
-        invalidated: invalidSessions.has(ac.username),
+        invalidated: invalidateSessionBefore.get(ac.username),
     }
 }
 
@@ -68,7 +68,7 @@ export default  {
 
     invalidate_sessions({ username }) {
         apiAssertTypes({ string: { username } })
-        invalidSessions.add(username)
+        invalidateSessionBefore.set(username, Date.now())
         return {}
     },
 

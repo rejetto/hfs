@@ -330,8 +330,8 @@ export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
     }
 }
 
-export function formatTimestamp(x: string | Date) {
-    return !x ? '-' : (x instanceof Date ? x : new Date(x)).toLocaleString()
+export function formatTimestamp(x: number | string | Date) {
+    return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString()
 }
 
 export function isPrimitive(x: unknown): x is boolean | string | number | undefined | null {

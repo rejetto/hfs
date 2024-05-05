@@ -9,7 +9,7 @@ import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
 import basicAuth from 'basic-auth'
-import { invalidSessions, setLoggedIn, srpCheck } from './auth'
+import { invalidateSessionBefore, setLoggedIn, srpCheck } from './auth'
 import { constants } from 'zlib'
 import { getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
@@ -95,7 +95,7 @@ export function getProxyDetected() {
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
     if (ctx.session?.username) {
-        if (invalidSessions.delete(ctx.session.username))
+        if (ctx.session.ts < invalidateSessionBefore.get(ctx.session.username)!)
             delete ctx.session.username
         ctx.session.maxAge = sessionDuration.compiled()
     }

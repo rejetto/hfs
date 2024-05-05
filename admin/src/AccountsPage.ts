@@ -42,7 +42,7 @@ export default function AccountsPage() {
                         h(ListItem, { key: username },
                             h(ListItemText, {}, username))))
             )
-            : with_(selectedAccount || { username: '', hasPassword: sel === 'new-user', adminActualAccess: false, invalidated: true }, a =>
+            : with_(selectedAccount || { username: '', hasPassword: sel === 'new-user', adminActualAccess: false, invalidated: undefined }, a =>
                 h(AccountForm, {
                     account: a,
                     groups: list.filter(x => !x.hasPassword).map( x => x.username ),

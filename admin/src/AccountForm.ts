@@ -5,7 +5,7 @@ import { BoolField, Form, MultiSelectField, NumberField } from '@hfs/mui-grid-fo
 import { Alert } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
-import { isEqualLax, useIsMobile, wantArray } from './misc'
+import { formatTimestamp, isEqualLax, prefix, useIsMobile, wantArray } from './misc'
 import { IconBtn, modifiedProps } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
@@ -48,9 +48,8 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             }),
             h(IconBtn, {
                 icon: AutoDelete,
-                title: "Invalidate past sessions",
+                title: `Invalidate past sessions ${prefix('(', formatTimestamp(account.invalidated || 0), ')')}`,
                 doneMessage: true,
-                disabled: account.invalidated,
                 onClick: () => apiCall('invalidate_sessions', { username: account.username }).then(reload)
             }),
             ...wantArray(addToBar),

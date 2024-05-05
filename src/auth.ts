@@ -46,11 +46,13 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
         delete s.username
         return
     }
-    invalidSessions.delete(username)
-    s.username = normalizeUsername(username)
     const a = ctx.state.account = getAccount(username)
-    if (a && !a.expire && a.days_to_live)
+    if (!a) return
+    s.username = normalizeUsername(username)
+    s.ts = Date.now()
+    if (!a.expire && a.days_to_live)
         updateAccount(a, { expire: new Date(Date.now() + a.days_to_live! * DAY) })
 }
 
-export const invalidSessions = new Set<string>() // since session are currently stored in cookies, we need to memorize this until we meet again
+// since session are currently stored in cookies, we need to store this information
+export const invalidateSessionBefore = new Map<string, number>()
