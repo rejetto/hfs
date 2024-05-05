@@ -116,7 +116,7 @@ export const adminApis: ApiHandlers = {
             platform: process.platform,
             urls: await getUrls(),
             ips: await getIps(false),
-            baseUrl: getBaseUrlOrDefault(),
+            baseUrl: await getBaseUrlOrDefault(),
             roots: roots.get(),
             updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
             proxyDetected: getProxyDetected(),

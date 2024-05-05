@@ -27,8 +27,8 @@ const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
 export const baseUrl = defineConfig('base_url', '',
     x => /(?<=\/\/)[^\/]+/.exec(x)?.[0]) // compiled is host only
 
-export function getBaseUrlOrDefault() {
-    return baseUrl.get() || defaultBaseUrl.get()
+export async function getBaseUrlOrDefault() {
+    return baseUrl.get() || await defaultBaseUrl.get()
 }
 
 export function getHttpsWorkingPort() {

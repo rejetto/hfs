@@ -128,7 +128,7 @@ const apis: ApiHandlers = {
         simplifyName(child)
         ;(parentNode.children ||= []).unshift(child)
         saveVfs()
-        const link = rest.url ? undefined : getBaseUrlOrDefault()
+        const link = rest.url ? undefined : await getBaseUrlOrDefault()
             + (parent ? enforceFinal('/', parent) : '/')
             + encodeURIComponent(getNodeName(child))
             + (isDir ? '/' : '')
