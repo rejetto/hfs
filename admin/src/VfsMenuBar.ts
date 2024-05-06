@@ -5,7 +5,7 @@ import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/mat
 import { Microsoft, Storage } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import { prefix } from './misc'
-import { Btn, Flex, IconBtn, reloadBtn } from './mui'
+import { Btn, Flex, IconBtn, reloadBtn, useBreakpoint } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import VfsPathField from './VfsPathField'
 import { alertDialog, promptDialog } from './dialog'
@@ -41,6 +41,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
 function SystemIntegrationButton({ platform }: { platform: string | undefined }) {
     const isWindows = platform === 'win32'
     const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
+    const sm = useBreakpoint('sm')
     return h(Btn, {
         icon: Microsoft,
         variant: 'outlined',
@@ -57,7 +58,8 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
                     h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
                 )
                 const parent = await promptDialog(msg, {
-                    field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home" },
+                    field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home",
+                        autoFocus: sm }, // this dialog is tall, and mobile keyboard will disrupt user's ability to view its content
                     form: { saveOnEnter: false }
                 })
                 return typeof parent === 'string' && apiCall('windows_integration', { parent }).then(reload)
