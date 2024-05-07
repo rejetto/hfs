@@ -158,12 +158,12 @@ async function apiGithub(uri: string) {
     })
 }
 
-export async function searchPlugins(text='') {
+export async function searchPlugins(text='', { skipRepos=[''] }={}) {
     const projectInfo = await getProjectInfo()
     const list = await apiGithub('search/repositories?q=topic:hfs-plugin+' + encodeURI(text))
     return new AsapStream(list.items.map(async (it: any) => {
         const repo = it.full_name as string
-        if (projectInfo?.plugins_blacklist?.includes(repo)) return
+        if (projectInfo?.plugins_blacklist?.includes(repo) || skipRepos.includes(repo)) return
         const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
         if (!pl) return
         Object.assign(pl, { // inject some extra useful fields
