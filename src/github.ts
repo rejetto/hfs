@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import events from './events'
-import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync } from './misc'
+import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray } from './misc'
 import { DISABLING_SUFFIX, findPluginByRepo, getAvailablePlugins, getPluginInfo, mapPlugins,
     parsePluginSource, PATH as PLUGINS_PATH, Repo } from './plugins'
 import { ApiError } from './apiMiddleware'
@@ -158,10 +158,24 @@ async function apiGithub(uri: string) {
     })
 }
 
+async function *apiGithubPaginated<T=any>(uri: string) {
+    const PAGE_SIZE = 100
+    let page = 1
+    let n = 0
+    while (1) {
+        const res = await apiGithub(uri + `&page=${page++}&per_page=${PAGE_SIZE}`)
+        for (const x of res.items)
+            yield x as T
+        const now = res.items.length
+        n += now
+        if (!now || n >= res.total_count) break
+    }
+}
+
 export async function searchPlugins(text='', { skipRepos=[''] }={}) {
     const projectInfo = await getProjectInfo()
-    const list = await apiGithub('search/repositories?q=topic:hfs-plugin+' + encodeURI(text))
-    return new AsapStream(list.items.map(async (it: any) => {
+    const list = await asyncGeneratorToArray(apiGithubPaginated(`search/repositories?q=topic:hfs-plugin+` + encodeURI(text)))
+    return new AsapStream(list.map(async it => { // using AsapStream we parallelize these promises and produce each result as it's ready
         const repo = it.full_name as string
         if (projectInfo?.plugins_blacklist?.includes(repo) || skipRepos.includes(repo)) return
         const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
