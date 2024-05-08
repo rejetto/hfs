@@ -23,7 +23,7 @@ const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
-const MSG_ISP = `It is possible that your Internet Provider won't let you get incoming connections. Ask them if they sell "public IP" as an extra service.`
+const MSG_ISP = `It's possible that don't have a public IP, so that HFS won't be reachable on the Internet. Ask your Internet Provider if they sell "public IP" as an extra service.`
 
 export default function InternetPage() {
     const [checkResult, setCheckResult] = useState<boolean | undefined>()
@@ -243,26 +243,16 @@ export default function InternetPage() {
 
     function baseUrlBox() {
         const url = config.data?.base_url
-        const hostname = url && new URL(url).hostname
-        const domain = !isIP(hostname) && hostname
         return config.element || h(TitleCard, { icon: Public, title: "Address" },
             h(Flex, { flexWrap: 'wrap' },
                 "Main address: ",
                 url ? h('tt', {}, url) : "automatic, not configured",
-                h(Flex, {}, // keep buttons together when wrapping
-                    h(Btn, {
-                        size: 'small',
-                        variant: 'outlined',
-                        'aria-label': "Change address",
-                        onClick: () => void changeBaseUrl().then(config.reload)
-                    }, "Change"),
-                    domain && h(Btn, {
-                        size: 'small',
-                        variant: 'outlined',
-                        onClick: () => apiCall('check_domain', { domain })
-                            .then(() => alertDialog("Domain seems ok", 'success'))
-                    }, "Check"),
-                ),
+                h(Btn, {
+                    size: 'small',
+                    variant: 'outlined',
+                    'aria-label': "Change address",
+                    onClick: () => void changeBaseUrl().then(config.reload)
+                }, "Change"),
             ),
             h(ConfigForm<{ roots: any, force_address: boolean }>, {
                 saveOnChange: true,
@@ -334,6 +324,12 @@ export default function InternetPage() {
         setChecking(true)
         try {
             const url = config.data?.base_url
+            {
+                const hostname = url && new URL(url).hostname
+                const domain = !isIP(hostname) && hostname
+                if (domain && false === await apiCall('check_domain', { domain }).catch(e =>
+                    confirmDialog(String(e), { confirmText: "Continue anyway" }) )) return
+            }
             const urlResult = url && await apiCall('self_check', { url }).catch(() =>
                 alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
             if (urlResult?.success) {
