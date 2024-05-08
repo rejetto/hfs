@@ -6,7 +6,6 @@ import { API_URL, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
     typedKeys, NBSP, _dbg, mapFilter } from '@hfs/shared'
-import { logLabels } from './OptionsPage'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
     hTooltip, Btn, wikiLink
@@ -18,6 +17,12 @@ import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
 import { useBlockIp } from './useBlockIp'
+
+const logLabels = {
+    log: "Access",
+    error_log: "Access error",
+    console: "Console",
+}
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)

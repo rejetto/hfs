@@ -30,12 +30,6 @@ subscribe(state, (ops) => {
         recalculateChanges()
 })
 
-export const logLabels = {
-    log: "Access",
-    error_log: "Access error",
-    console: "Console",
-}
-
 export default function OptionsPage() {
     const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
     const snap = useSnapState()

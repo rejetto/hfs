@@ -274,13 +274,9 @@ export async function getIps(external=true) {
     if (e && !ips.includes(e))
         ips.unshift(e)
     const noLinkLocal = ips.filter(x => !isLinkLocal(x))
-    const ret = v4first(noLinkLocal.length ? noLinkLocal : ips)
+    const ret =  _.sortBy(noLinkLocal.length ? noLinkLocal : ips, isIPv6) // false=IPV4 comes first
     defaultBaseUrl.localIp = ret[0] || ''
     return ret
-
-    function v4first(a: string[]) {
-        return _.sortBy(a, isIPv6) // works because `false` comes first
-    }
 }
 
 export async function getUrls() {

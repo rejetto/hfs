@@ -5,7 +5,7 @@ import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
     HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_, cpuSpeedIndex,
-    buildUrlQueryString,
+    buildUrlQueryString, randomId,
 } from './misc'
 import _ from 'lodash'
 import { INTERNAL_Snapshot, proxy, ref, snapshot, subscribe, useSnapshot } from 'valtio'
@@ -346,7 +346,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 
     async function subscribeNotifications() {
         if (notificationChannel) return
-        notificationChannel = 'upload-' + Math.random().toString(36).slice(2)
+        notificationChannel = 'upload-' + randomId()
         notificationSource = await getNotification(notificationChannel, async (name, data) => {
             const {uploading} = uploadState
             if (!uploading) return
