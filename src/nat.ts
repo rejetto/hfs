@@ -59,11 +59,10 @@ export const getPublicIps = debounceAsync(async () => {
             if (!validIps.length) throw "no good"
             return validIps
         }) )))
-    return _.uniq(ips.flat())
+    return defaultBaseUrl.publicIps = _.uniq(ips.flat())
 }, 0, { retain: 10 * MINUTE })
 
 export const getNatInfo = debounceAsync(async () => {
-    const gettingIps = getPublicIps() // don't wait, do it in parallel
     const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
@@ -74,12 +73,13 @@ export const getNatInfo = debounceAsync(async () => {
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
     const externalPort = mapped?.public.port
+    if (localIp)
+        defaultBaseUrl.localIp = localIp
     defaultBaseUrl.port = externalPort || internalPort || 0
     return {
         upnp: Boolean(res),
         localIp,
         gatewayIp,
-        publicIps: defaultBaseUrl.publicIps = await gettingIps,
         externalIp: defaultBaseUrl.externalIp,
         mapped,
         mapped80: _.find(mappings, x => x.private.host === localIp && x.private.port === 80 && x.public.port === 80),
@@ -88,6 +88,7 @@ export const getNatInfo = debounceAsync(async () => {
         proto: status?.https?.listening ? 'https' : status?.http?.listening ? 'http' : '',
     }
 })
+getNatInfo()
 
 function findGateway(): Promise<string | undefined> {
     return new Promise((resolve, reject) =>

@@ -15,6 +15,7 @@ import { selfCheck } from './selfCheck'
 
 const apis: ApiHandlers = {
     get_nat: getNatInfo,
+    get_public_ips: getPublicIps,
 
     async check_domain({ domain }) {
         apiAssertTypes({ string: domain })
@@ -60,15 +61,15 @@ const apis: ApiHandlers = {
         if (url)
             return await selfCheck(url)
                 || new ApiError(HTTP_SERVICE_UNAVAILABLE)
-        const nat = await getNatInfo()
-        if (!nat.publicIps.length)
+        const [publicIps, nat] = await Promise.all([getPublicIps(), getNatInfo()])
+        if (!publicIps.length)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'cannot detect public ip')
         if (!nat.internalPort)
             return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
         const finalPort = nat.externalPort || nat.internalPort
         const proto = nat.proto || (getCertObject() ? 'https' : 'http')
         const defPort = proto === 'https' ? 443 : 80
-        const results = onlyTruthy(await promiseBestEffort(nat.publicIps.map(ip =>
+        const results = onlyTruthy(await promiseBestEffort(publicIps.map(ip =>
             selfCheck(`${proto}://${ip}${finalPort === defPort ? '' : ':' + finalPort}`) )))
         return results.length ? results : new ApiError(HTTP_SERVICE_UNAVAILABLE)
     },
