@@ -174,7 +174,9 @@ async function *apiGithubPaginated<T=any>(uri: string) {
 
 export async function searchPlugins(text='', { skipRepos=[''] }={}) {
     const projectInfo = await getProjectInfo()
-    const list = await asyncGeneratorToArray(apiGithubPaginated(`search/repositories?q=topic:hfs-plugin+` + encodeURI(text)))
+    const list = await Promise.all(['', 'user:'].map(specifier => // search text with multiple specifiers
+        asyncGeneratorToArray(apiGithubPaginated(`search/repositories?q=topic:hfs-plugin+${specifier}${encodeURI(text)}`))))
+        .then(all => all.flat()) // make it a single array
     return new AsapStream(list.map(async it => { // using AsapStream we parallelize these promises and produce each result as it's ready
         const repo = it.full_name as string
         if (projectInfo?.plugins_blacklist?.includes(repo) || skipRepos.includes(repo)) return
