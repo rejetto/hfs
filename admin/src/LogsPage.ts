@@ -51,16 +51,7 @@ export default function LogsPage() {
             title: "Log options",
             dialogProps: { sx: { maxWidth: '40em' } },
             Content() {
-                return h(ConfigForm<{
-                    [CFG.log]: string
-                    [CFG.error_log]: string
-                    [CFG.log_rotation]: string
-                    [CFG.dont_log_net]: string
-                    [CFG.log_gui]: boolean
-                    [CFG.log_api]: boolean
-                    [CFG.log_ua]: boolean
-                }>, {
-                    keys: [ CFG.log, CFG.error_log, CFG.log_rotation, CFG.dont_log_net, CFG.log_gui, CFG.log_api, CFG.log_ua ],
+                return h(ConfigForm, {
                     barSx: { gap: 2, width: '100%', ...useDialogBarColors() },
                     form: {
                         stickyBar: true,

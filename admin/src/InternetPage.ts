@@ -72,7 +72,6 @@ export default function InternetPage() {
             h(ConfigForm<{
                 [CFG.dynamic_dns_url]: string,
             }>, {
-                keys: [CFG.dynamic_dns_url],
                 form: (v, { setValues }) => ({
                     fields: [
                         h(Flex, {},
@@ -123,7 +122,7 @@ export default function InternetPage() {
                 keys: [ CFG.geo_enable, CFG.geo_allow, CFG.geo_list, CFG.geo_allow_unknown ],
                 form: values => ({ fields: [
                     { k: CFG.geo_enable, comp: BoolField, label: "Enable", helperText: md("Necessary database will be downloaded every month (2MB). Service is made possibly thanks to [IP2Location](https://www.ip2location.com).") },
-                    ...!values[CFG.geo_enable] ? [] : [
+                    ...!values?.[CFG.geo_enable] ? [] : [
                         {
                             k: CFG.geo_allow,
                             comp: SelectField,
@@ -259,11 +258,10 @@ export default function InternetPage() {
                 onSave() {
                     status.reload() // this config is affecting status data
                 },
-                keys: [CFG.roots, CFG.force_address],
                 form: {
                     fields: [
                         {
-                            k: 'roots',
+                            k: CFG.roots,
                             label: false,
                             helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
                             comp: ArrayField,

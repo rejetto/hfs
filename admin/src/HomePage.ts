@@ -15,6 +15,8 @@ import { Account } from './AccountsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { SwitchThemeBtn } from './theme'
+import { BoolField } from '@hfs/mui-grid-form'
+import { ConfigForm } from './ConfigForm'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
@@ -33,7 +35,7 @@ export default function HomePage() {
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const { data: account } = useApiEx<Account>(username && 'get_account')
-    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
+    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies'] })
     const { list: plugins } = useApiList('get_plugins')
     const [checkPlugins, setCheckPlugins] = useState(false)
     const { list: pluginUpdates} = useApiList(checkPlugins && 'get_plugin_updates')
@@ -95,23 +97,31 @@ export default function HomePage() {
                 icon: UpdateIcon,
                 onClick: () => update()
             }, "Update from local file")
-            : !updates ? h(Btn, {
-                variant: 'outlined',
-                icon: UpdateIcon,
-                onClick() {
-                    setCheckPlugins(true)
-                    return apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
-                },
-                async onContextMenu(ev) {
-                    ev.preventDefault()
-                    if (!status.updatePossible)
-                        return alertDialog("Automatic update is only for binary versions", 'warning')
-                    const res = await promptDialog("Enter a link to the zip to install")
-                    if (res)
-                        await update(res)
-                },
-                title: status.updatePossible && "Right-click if you want to install a zip",
-            }, "Check for updates")
+            : !updates ? h(Flex, { flexWrap: 'wrap' },
+                h(Btn, {
+                    variant: 'outlined',
+                    icon: UpdateIcon,
+                    onClick() {
+                        setCheckPlugins(true)
+                        return apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
+                    },
+                    async onContextMenu(ev) {
+                        ev.preventDefault()
+                        if (!status.updatePossible)
+                            return alertDialog("Automatic update is only for binary versions", 'warning')
+                        const res = await promptDialog("Enter a link to the zip to install")
+                        if (res)
+                            await update(res)
+                    },
+                    title: status.updatePossible && "Right-click if you want to install a zip",
+                }, "Check for updates"),
+                h(ConfigForm, {
+                    saveOnChange: true,
+                    form: { fields: [
+                        { k: 'update_to_beta', comp: BoolField, label: "Include beta versions" },
+                    ] }
+                })
+            )
             : with_(_.find(updates, 'isNewer'), newer =>
                 !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
                     : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
