@@ -55,7 +55,10 @@ export function SwitchThemeBtn(props: BtnProps) {
     const currentlyDark = darkTheme ?? darkDetected
     return h(Btn, {
         icon: currentlyDark ? Brightness7 : Brightness4,
-        onClick: () => state.darkTheme = !currentlyDark,
+        onClick: () => {
+            const v = !currentlyDark
+            return state.darkTheme = darkDetected === v ? undefined : v
+        },
         ...props,
     }, currentlyDark ? "Light theme" : "Dark theme")
 }
