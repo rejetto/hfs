@@ -272,10 +272,13 @@ export async function getIps(external=true) {
     ))
     const e = external && defaultBaseUrl.externalIp
     if (e && !ips.includes(e))
-        ips.unshift(e)
+        ips.push(e)
     const noLinkLocal = ips.filter(x => !isLinkLocal(x))
-    const ret =  _.sortBy(noLinkLocal.length ? noLinkLocal : ips, isIPv6) // false=IPV4 comes first
-    defaultBaseUrl.localIp = ret[0] || ''
+    const ret = _.sortBy(noLinkLocal.length ? noLinkLocal : ips, [
+        x => x !== defaultBaseUrl.localIp, // use the "nat" info to put best ip first
+        isIPv6 // false=IPV4 comes first
+    ])
+    defaultBaseUrl.localIp ||= ret[0] || ''
     return ret
 }
 
