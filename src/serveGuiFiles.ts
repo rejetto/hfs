@@ -89,7 +89,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const timestamp = await getFaviconTimestamp()
     const lang = await getLangData(ctx)
     return body
-        .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
+        .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)(?!\?)/g, '$1' + ctx.state.revProxyPath + filesUri)
         .replace(/<(\/)?(head|body)>/g, (all, isClose, name) => { // must make these changes in one .replace call, otherwise we may encounter head/body tags due to customHtml. This simple trick makes html parsing unnecessary.
             const isHead = name === 'head'
             const isBody = !isHead

@@ -16,6 +16,7 @@ import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
 import { asyncGeneratorToReadable, filterMapGenerator, pathEncode } from './misc'
+import { basicWeb } from './basicWeb'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -102,9 +103,10 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return serveFrontendFiles(ctx, next)
     }
     ctx.set({ server: `HFS ${VERSION} ${BUILD_TIMESTAMP}` })
+    if (basicWeb(ctx, node)) return
     return get === 'zip' ? zipStreamFromFolder(node, ctx)
         : get === 'list' ? sendFolderList(node, ctx)
-            : serveFrontendFiles(ctx, next)
+        : serveFrontendFiles(ctx, next)
 }
 
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {

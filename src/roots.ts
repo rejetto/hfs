@@ -18,6 +18,7 @@ forceAddress.sub((v, { version }) => { // convert from legacy configs
 
 export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
     (() => {
+        ctx.state.originalPath = ctx.path
         const root = roots.compiled()?.(ctx.host)
         if (!ctx.state.skipFilters && forceAddress.get())
             if (root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled()) {
@@ -44,4 +45,10 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
 
 function join(a: string, b: any) {
     return a + (b && b[0] !== '/' ? '/' : '') + b
+}
+
+declare module "koa" {
+    interface DefaultState {
+        originalPath: string // before roots is applied
+    }
 }
