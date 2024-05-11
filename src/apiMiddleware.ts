@@ -36,19 +36,8 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         // we don't rely on SameSite cookie option because it's https-only
         let res
         try {
-            if (ctx.state.revProxyPath)
-                for (const [k,v] of Object.entries(params))
-                    if (k.startsWith('uri'))
-                        if (typeof v === 'string')
-                            fixUri(params, k)
-                        else if (typeof (v as any)?.[0] === 'string')
-                            (v as string[]).forEach((x,i) => fixUri(v,i))
             res = await apiFun(params, ctx)
             if (res === null) return
-
-            function fixUri(obj: any, k: string | number) {
-                obj[k] = removeStarting(ctx.state.revProxyPath, obj[k])
-            }
         }
         catch(e) {
             if (typeof e === 'string') // message meant to be transmitted

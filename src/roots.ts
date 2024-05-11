@@ -1,5 +1,5 @@
 import { defineConfig } from './config'
-import { ADMIN_URI, API_URI, CFG, isLocalHost, makeMatcher, SPECIAL_URI } from './misc'
+import { ADMIN_URI, API_URI, CFG, isLocalHost, makeMatcher, removeStarting, SPECIAL_URI } from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
 import _ from 'lodash'
@@ -37,12 +37,17 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             return true // true will avoid calling next
         }
         if (!params) {
-            ctx.path = join(root, ctx.path)
+            ctx.path = join(root, ctx.path, '')
             return
         }
         for (const [k,v] of Object.entries(params))
             if (k.startsWith('uri'))
                 params[k] = Array.isArray(v) ? v.map(x => join(root, x)) : join(root, v)
+
+        function join(a: string, b: any, removePrefix=ctx.state.revProxyPath) {
+            return a + (b && b[0] !== '/' ? '/' : '')
+                + removeStarting(removePrefix, b) // removal must be done before adding the root
+        }
     })() || next()
 
 function join(a: string, b: any) {
