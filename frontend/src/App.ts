@@ -36,7 +36,7 @@ function App() {
 
 function NavigationExtractor(props: any) {
     const go = useNavigate() // expose navigate function for programmatic usage
-    getHFS().navigate = (uri: string) => go((uri.startsWith('/') ? getPrefixUrl() : '') + uri)
+    getHFS().navigate = (uri: string) => go(getPrefixUrl() + uri)
     return h(Fragment, props)
 }
 
