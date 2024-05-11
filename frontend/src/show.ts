@@ -93,7 +93,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             return h(FlexV, {
                 gap: 0,
                 alignItems: 'stretch',
-                className: ZoomMode[mode],
+                className: keepNav ? undefined : ZoomMode[mode], // keepNav=audio, and we don't want zoom on it
                 props: {
                     role: 'dialog',
                     onMouseMove() {
