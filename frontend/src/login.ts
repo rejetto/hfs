@@ -114,7 +114,8 @@ export async function loginDialog(closable=false) {
                         const res = await login(usr, pwd)
                         close(true)
                         if (res?.redirect)
-                            getHFS().navigate(res.redirect)
+                            setTimeout(() => // workaround: the history.back() issued by closing the dialog is messing with our navigation
+                                getHFS().navigate(res.redirect) )
                     } catch (err: any) {
                         await alertDialog(err)
                         usrRef.current?.focus()
