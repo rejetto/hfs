@@ -677,7 +677,7 @@ button .icon + .label {
         height: 100%;
         display: flex;
         flex-direction: column;
-        justify-content: space-evenly;
+        justify-content: center;
         align-items: center;
         position: relative;
     }
@@ -716,7 +716,7 @@ button .icon + .label {
     .freeY, .fullWidth {
         .main { overflow-y: auto; }
         .showing { max-height: initial; margin: auto; }
-        .showing-container { overflow: auto; align-items: flex-start;}
+        .showing-container { overflow: auto; align-items: flex-start; justify-content: flex-start; }
     }
     .fullWidth {
         .showing-container, .showing { width: 100%; }
