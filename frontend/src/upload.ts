@@ -33,7 +33,6 @@ export const uploadState = proxy<{
     partial: number // relative to uploading file. This is how much we have done of the current queue.
     speed: number
     eta: number
-    policyForExisting: 'skip' | 'overwrite' | 'rename'
 }>({
     eta: 0,
     speed: 0,
@@ -46,7 +45,6 @@ export const uploadState = proxy<{
     errors: [],
     doneByte: 0,
     done: [],
-    policyForExisting: renameEnabled ? 'rename' : 'skip'
 })
 
 // keep track of speed
@@ -107,8 +105,8 @@ export function showUpload() {
     }
 
     function Content(){
-        const { qs, paused, eta, speed, policyForExisting, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
-        const { props } = useSnapState()
+        const { qs, paused, eta, speed, adding } = useSnapshot(uploadState) as Readonly<typeof uploadState>
+        const { props, uploadOnExisting } = useSnapState()
         const etaStr = useMemo(() => !eta ? '' : formatTime(eta*1000, 0, 2), [eta])
         const inQ = _.sumBy(qs, q => q.entries.length) - (uploadState.uploading ? 1 : 0)
         const queueStr = inQ && t('in_queue', { n: inQ }, "{n} in queue")
@@ -129,11 +127,11 @@ export function showUpload() {
                                 onClick: () => pickFiles({ folder: true })
                             }, t`Pick folder`),
                             h('button', { className: 'create-folder', onClick: createFolder }, t`Create folder`),
-                            h(Select<typeof policyForExisting>, {
+                            h(Select<typeof uploadOnExisting>, {
                                 style: { width: 'unset' },
                                 'aria-label': t`Overwrite policy`,
-                                value: policyForExisting || '',
-                                onChange: v => uploadState.policyForExisting = v,
+                                value: uploadOnExisting || '',
+                                onChange: v => state.uploadOnExisting = v,
                                 options: onlyTruthy([
                                     { value: 'skip', label: t`Skip existing files` },
                                     renameEnabled && { value: 'rename', label: t`Rename to avoid overwriting` },
@@ -340,7 +338,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         notificationChannel,
         ...resume && { resume: String(resume) },
         ...toUpload.comment && { comment: toUpload.comment },
-        ...with_(uploadState.policyForExisting, x => x !== 'rename' && { existing: x }), // rename is the default
+        ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default
     }), true)
     req.send(toUpload.file.slice(resume))
 
