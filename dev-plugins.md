@@ -171,7 +171,18 @@ The `api` object you get as parameter of the `init` contains the following:
 - `storageDir: string` folder where a plugin is supposed to store run-time data. This folder is preserved during
   an update of the plugin, while the rest could be deleted. 
 
-- `events: EventEmitter` this is the main events emitter used by HFS.
+- `events` this is the main events emitter used by HFS. 
+  These are backend side events, not to be confused with frontend ones. It's not the standard EventEmitter class, 
+  and the API is slightly different.
+  
+  - `events.on(name: string, listener: Callback): Callback` 
+   
+    call your listener every time the event is emitted. 
+    The returned callback will unsubscribe the event.
+    
+  - `events.once(name: string, listener?: Callback): Promise<eventArguments>` 
+    
+    when the event is emitted, your (optional) listener is called, and the returned promise is resolved. 
 
 - `require: function` use this instead of standard `require` function to access modules already loaded by HFS. Example:
   ```js
@@ -425,23 +436,24 @@ If you want to override a text regardless of the language, use the special langu
 
 - 8.81 (v0.53.0)
   - api.openDb 
-  - new event: menuZip
-- config.type:username
+  - frontend event: menuZip
+  - config.type:username
+  - api.events class has changed
 - 8.72 (v0.52.0)
   - HFS.toast
   - HFS.misc functions
   - HFS.state.uri
-  - ~~new event: uriChanged~~
+  - ~~frontend event: uriChanged~~
 - 8.65 (v0.51.0)
   - plugin's own hfs-lang files
   - HFS.state.props.can_overwrite
   - ctx.state.considerAsGui
-  - new event: userPanelAfterInfo
+  - frontend event: userPanelAfterInfo
   - breaking: moved custom properties from ctx to ctx.state
   - HFS.navigate
   - internationalization
 - 8.5 (v0.49.0)
-  - new event: entry
+  - frontend event: entry
   - exports.onDirEntry: entry.icon
   - customApiCall supports any number of parameters
 - 8.4 (v0.48.2)
@@ -456,7 +468,7 @@ If you want to override a text regardless of the language, use the special langu
   - HFS.watchState, emit, useApi
   - api.storageDir, customApiCall
   - exports.depend
-  - new event: fileShow
+  - frontend event: fileShow
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
   - full URL support for frontend_js and frontend_css
   - custom.html
@@ -464,18 +476,18 @@ If you want to override a text regardless of the language, use the special langu
   - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
   - second parameter of onEvent is now deprecated
   - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
-  - new event: entryIcon
+  - frontend event: entryIcon
 - 8 (v0.43.0)
   - entry.name & .uri
   - tools.dialogLib
   - HFS.getPluginConfig()
 - 7 (v0.42.0)
-  - new event: fileMenu
+  - frontend event: fileMenu
   - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
 - 6 (v0.38.0)
   - config.frontend
 - 5 (v0.33.0)
-  - new event: afterEntryName
+  - frontend event: afterEntryName
 - 4.1 (v0.23.4)
   - config.type:array added $width, $column and fixed height 
 - 4 (v0.23.0)
