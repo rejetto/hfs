@@ -1,5 +1,5 @@
 import { defineConfig } from './config'
-import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, makeMatcher, removeStarting, SPECIAL_URI } from './misc'
+import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI } from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
 import _ from 'lodash'
@@ -48,11 +48,3 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
                     params[k] = Array.isArray(v) ? v.map(cb) : cb(v)
         }
     })() || next()
-
-function join(a: string, b: string, joiner='/') { // similar to path.join but OS independent
-    if (!b) return a
-    if (!a) return b
-    const ends = a.at(-1) === joiner
-    const starts = b[0] === joiner
-    return a + (!ends && !starts ? joiner + b : ends && starts ? b.slice(1) : b)
-}
