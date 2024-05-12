@@ -1,5 +1,5 @@
 import { defineConfig } from './config'
-import { ADMIN_URI, API_URI, CFG, isLocalHost, makeMatcher, removeStarting, SPECIAL_URI } from './misc'
+import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, makeMatcher, removeStarting, SPECIAL_URI } from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
 import _ from 'lodash'
@@ -21,10 +21,11 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
         let params: undefined | typeof ctx.state.params | typeof ctx.query // undefined if we are not going to work on api parameters
         if (ctx.path.startsWith(SPECIAL_URI)) { // special uris should be excluded...
             if (!ctx.path.startsWith(API_URI)) return // ...unless it's an api
+            params = ctx.state.params || ctx.query // for api we'll translate params
+            changeUriParams(v => removeStarting(ctx.state.revProxyPath, v))  // removal must be done before adding the root
             let { referer } = ctx.headers
             referer &&= new URL(referer).pathname
             if (referer?.startsWith(ctx.state.revProxyPath + ADMIN_URI)) return // exclude apis for admin-panel
-            params = ctx.state.params || ctx.query // for api we'll translate params
         }
         if (_.isEmpty(roots.get())) return
         const host2root = roots.compiled()
@@ -36,20 +37,22 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             disconnect(ctx, 'bad-domain')
             return true // true will avoid calling next
         }
-        if (!params) {
-            ctx.path = join(root, ctx.path, '')
-            return
-        }
-        for (const [k,v] of Object.entries(params))
-            if (k.startsWith('uri'))
-                params[k] = Array.isArray(v) ? v.map(x => join(root, x)) : join(root, v)
+        changeUriParams(v => join(root, v))
+        if (!params)
+            ctx.path = join(root, ctx.path)
 
-        function join(a: string, b: any, removePrefix=ctx.state.revProxyPath) {
-            return a + (b && b[0] !== '/' ? '/' : '')
-                + removeStarting(removePrefix, b) // removal must be done before adding the root
+        function changeUriParams(cb: Callback<string, string>) {
+            if (!params) return
+            for (const [k, v] of Object.entries(params))
+                if (k.startsWith('uri'))
+                    params[k] = Array.isArray(v) ? v.map(cb) : cb(v)
         }
     })() || next()
 
-function join(a: string, b: any) {
-    return a + (b && b[0] !== '/' ? '/' : '') + b
+function join(a: string, b: string, joiner='/') { // similar to path.join but OS independent
+    if (!b) return a
+    if (!a) return b
+    const ends = a.at(-1) === joiner
+    const starts = b[0] === joiner
+    return a + (!ends && !starts ? joiner + b : ends && starts ? b.slice(1) : b)
 }
