@@ -202,12 +202,10 @@ export default function OptionsPage() {
                                     color: 'warning.main', ml: 1
                                 }))
                     } },
-                    { k: 'v', label: "Mime type", placeholder: "auto", $width: 2,
-                        toField: (x: any) => x === 'auto' ? '' : x, fromField: (x: string) => !x ? 'auto' : x.toLowerCase(),
-                        helperText: "Leave empty to get automatic value", },
+                    { k: 'v', label: "Mime type", placeholder: "auto", $width: 2, helperText: "Leave empty to get automatic value" },
                 ],
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
-                fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v])),
+                fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
             },
             { k: 'server_code', comp: TextEditorField, sm: 12, getError: v => try_(() => new Function(v) && null, e => e.message),
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
