@@ -59,7 +59,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         return
     const fn = basename(source)
     mime = mime ?? mimeCfg.compiled()(fn)
-    if (mime === MIME_AUTO)
+    if (!mime || mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''
     if (mime)
         ctx.type = mime
