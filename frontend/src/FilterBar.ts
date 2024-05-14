@@ -18,7 +18,7 @@ export function FilterBar() {
     const sel = Object.keys(selected).length
     const fil = filteredList?.length
     const tabIndex = showFilter ? undefined : -1
-    return h('div', { id: 'filter-bar', className: showFilter ? 'show-sliding' : 'before-sliding', 'aria-hidden': !showFilter },
+    return h('div', { id: 'filter-bar', style: { display: showFilter ? undefined : 'none' } },
         h(Checkbox, {
             value: all,
             tabIndex,
