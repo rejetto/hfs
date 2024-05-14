@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { shortenAgent, wait } from './misc'
+import { shortenAgent, try_, wait } from './misc'
 import { ApiHandlers } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
@@ -71,7 +71,7 @@ export default {
                     : s.uploadPath ? { op: 'upload',path: decodeURIComponent(s.uploadPath) }
                         : {
                             op: !s.considerAsGui && s.op || undefined,
-                            path: decodeURIComponent(ctx.originalUrl)
+                            path: try_(() => decodeURIComponent(ctx.originalUrl), () => ctx.originalUrl),
                         },
                 opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,
                 opTotal: s.opTotal,
