@@ -1,8 +1,9 @@
 import { defineConfig, getConfig } from './config'
-import { ADMIN_URI, API_URI, CFG, isLocalHost, makeMatcher, SPECIAL_URI } from './misc'
+import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI } from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
 import { baseUrl } from './listen'
+import _ from 'lodash'
 
 export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string }, map => {
     const list = Object.keys(map)
@@ -29,23 +30,25 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
         let params: undefined | typeof ctx.state.params | typeof ctx.query // undefined if we are not going to work on api parameters
         if (ctx.path.startsWith(SPECIAL_URI)) { // special uris should be excluded...
             if (!ctx.path.startsWith(API_URI)) return // ...unless it's an api
+            params = ctx.state.params || ctx.query // for api we'll translate params
+            changeUriParams(v => removeStarting(ctx.state.revProxyPath, v))  // removal must be done before adding the root
             let { referer } = ctx.headers
             referer &&= new URL(referer).pathname
             if (referer?.startsWith(ctx.state.revProxyPath + ADMIN_URI)) return // exclude apis for admin-panel
-            params = ctx.state.params || ctx.query // for api we'll translate params
         }
-        if (!params) {
+        if (_.isEmpty(roots.get())) return
+        if (root === '' || root === '/') return
+        changeUriParams(v => join(root, v))
+        if (!params)
             ctx.path = join(root, ctx.path)
-            return
-        }
-        for (const [k,v] of Object.entries(params))
-            if (k.startsWith('uri'))
-                params[k] = Array.isArray(v) ? v.map(x => join(root, x)) : join(root, v)
-    })() || next()
 
-function join(a: string, b: any) {
-    return a + (b && b[0] !== '/' ? '/' : '') + b
-}
+        function changeUriParams(cb: Callback<string, string>) {
+            if (!params) return
+            for (const [k, v] of Object.entries(params))
+                if (k.startsWith('uri'))
+                    params[k] = Array.isArray(v) ? v.map(cb) : cb(v)
+        }
+    })() || next()
 
 declare module "koa" {
     interface DefaultState {

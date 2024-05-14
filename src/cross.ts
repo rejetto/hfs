@@ -105,6 +105,14 @@ export function prefix(pre: Falsy | string, v: string | number | undefined | nul
     return v ? (pre||'') + v + (post || '') : ''
 }
 
+export function join(a: string, b: string, joiner='/') { // similar to path.join but OS independent
+    if (!b) return a
+    if (!a) return b
+    const ends = a.at(-1) === joiner
+    const starts = b[0] === joiner
+    return a + (!ends && !starts ? joiner + b : ends && starts ? b.slice(1) : b)
+}
+
 export function wait<T=undefined>(ms: number, val?: T): Promise<T | undefined> {
     return new Promise(res=> setTimeout(res,ms,val))
 }
@@ -118,7 +126,11 @@ export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Tru
 }
 
 export function enforceFinal(sub:string, s:string, evenEmpty=false) {
-    return !evenEmpty && !s || s.endsWith(sub) ? s : s+sub
+    return evenEmpty && !s || !s.endsWith(sub) ? s + sub : s
+}
+
+export function enforceStarting(sub:string, s:string, evenEmpty=false) {
+    return evenEmpty && !s || !s.startsWith(sub) ? sub + s : s
 }
 
 export function removeStarting(sub: string, s: string) {
