@@ -167,12 +167,10 @@ export default function OptionsPage() {
                                     color: 'warning.main', ml: 1
                                 }))
                     } },
-                    { k: 'v', label: "Mime type", placeholder: "auto", $width: 2,
-                        toField: (x: any) => x === 'auto' ? '' : x, fromField: (x: string) => !x ? 'auto' : x.toLowerCase(),
-                        helperText: "Leave empty to get automatic value", },
+                    { k: 'v', label: "Mime type", placeholder: "auto", $width: 2, helperText: "Leave empty to get automatic value" },
                 ],
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
-                fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v])),
+                fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
             },
             { k: 'block', label: false, comp: ArrayField, prepend: true, sm: 12,
                 fields: [
