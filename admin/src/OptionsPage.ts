@@ -172,7 +172,7 @@ export default function OptionsPage() {
             { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg', sm: 12,
                 helperText: "The icon associated to your website" },
 
-            h(Section, { title: "Others" }),
+            h(Section, { title: "Uploads" }),
             { k: 'dont_overwrite_uploading', comp: BoolField, sm: 4, md: 6, label: "Don't overwrite uploading",
                 helperText: "Files will be numbered to avoid overwriting" },
             { k: 'delete_unfinished_uploads_after', comp: NumberField, sm: 4, md: 3, min : 0, unit: "seconds", placeholder: "Never",
@@ -180,6 +180,7 @@ export default function OptionsPage() {
             { k: 'min_available_mb', comp: NumberField, sm: 4, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
 
+            h(Section, { title: "Others" }),
             { k: 'keep_session_alive', comp: BoolField, sm: true, helperText: "Keeps you logged in while the page is left open and the computer is on" },
             { k: 'session_duration', comp: NumberField, sm: 4, md: 3, min: 5, unit: "seconds", required: true },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, label: "Calculate ZIP size for", unit: "seconds",
