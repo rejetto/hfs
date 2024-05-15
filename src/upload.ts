@@ -1,11 +1,6 @@
 import { getNodeByName, hasPermission, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
-import {
-    HTTP_CONFLICT, HTTP_FOOL,
-    HTTP_PAYLOAD_TOO_LARGE,
-    HTTP_RANGE_NOT_SATISFIABLE,
-    HTTP_SERVER_ERROR,
-} from './const'
+import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import { Callback, dirTraversal, escapeHTML, loadFileAttr, storeFileAttr, try_ } from './misc'
@@ -16,6 +11,8 @@ import { disconnect, updateConnection, updateConnectionForCtx } from './connecti
 import { roundSpeed } from './throttler'
 import { getCurrentUsername } from './auth'
 import { setCommentFor } from './comments'
+import _ from 'lodash'
+import events from './events'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -95,7 +92,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     const resuming = resume && resumable
     if (!resuming)
         resume = 0
-    const ret = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
+    const writeStream = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
         : fs.createWriteStream(tempName)
     if (resuming) {
         fs.rm(tempName, () => {})
@@ -103,33 +100,34 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     }
     cancelDeletion(tempName)
     trackProgress()
-    ret.once('close', async () => {
-        if (!ctx.req.aborted) {
-            let dest = fullPath
-            if (dontOverwriteUploading.get() && fs.existsSync(dest) && !await overwriteAnyway()) {
-                const ext = extname(dest)
-                const base = dest.slice(0, -ext.length)
-                let i = 1
-                do dest = `${base} (${i++})${ext}`
-                while (fs.existsSync(dest))
-            }
-            return fs.rename(tempName, dest, err => {
-                setUploadMeta(err ? tempName : dest, ctx)
-                if (err)
-                    console.error("couldn't rename temp to", dest, String(err))
-                else if (ctx.query.comment)
-                    setCommentFor(dest, escapeHTML(String(ctx.query.comment)))
-                if (resumable)
-                    delayedDelete(resumable, 0)
-            })
+    writeStream.once('close', async () => {
+        if (ctx.req.aborted) {
+            if (resumable) // we don't want to be left with 2 temp files
+                return delayedDelete(tempName, 0)
+            const sec = deleteUnfinishedUploadsAfter.get()
+            return _.isNumber(sec) && delayedDelete(tempName, sec)
         }
-        if (resumable) // we don't want to be left with 2 temp files
-            return delayedDelete(tempName, 0)
-        const sec = deleteUnfinishedUploadsAfter.get()
-        if (typeof sec !== 'number') return
-        delayedDelete(tempName, sec)
+        let dest = fullPath
+        if (dontOverwriteUploading.get() && fs.existsSync(dest) && !await overwriteAnyway()) {
+            const ext = extname(dest)
+            const base = dest.slice(0, -ext.length)
+            let i = 1
+            do dest = `${base} (${i++})${ext}`
+            while (fs.existsSync(dest))
+        }
+        return fs.rename(tempName, dest, err => {
+            setUploadMeta(err ? tempName : dest, ctx)
+            if (err)
+                console.error("couldn't rename temp to", dest, String(err))
+            else if (ctx.query.comment)
+                setCommentFor(dest, escapeHTML(String(ctx.query.comment)))
+            if (resumable)
+                delayedDelete(resumable, 0)
+        })
     })
-    return ret
+    const obj = { ctx, writeStream }
+    events.emit('uploadStart', obj)
+    return obj.writeStream
 
     async function overwriteAnyway() {
         if (ctx.query.overwrite === undefined // legacy pre-0.52
@@ -147,13 +145,13 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         if (!conn) return
         const h = setInterval(() => {
             const now = Date.now()
-            const got = ret.bytesWritten
+            const got = writeStream.bytesWritten
             const inSpeed = roundSpeed((got - lastGot) / (now - lastGotTime))
             lastGot = got
             lastGotTime = now
             updateConnection(conn, { inSpeed, got }, { opProgress: (resume + got) / opTotal })
         }, 1000)
-        ret.once('close', () => clearInterval(h) )
+        writeStream.once('close', () => clearInterval(h) )
     }
 
     function delayedDelete(path: string, secs: number, cb?: Callback) {
