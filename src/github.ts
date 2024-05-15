@@ -162,13 +162,19 @@ async function *apiGithubPaginated<T=any>(uri: string) {
     const PAGE_SIZE = 100
     let page = 1
     let n = 0
-    while (1) {
-        const res = await apiGithub(uri + `&page=${page++}&per_page=${PAGE_SIZE}`)
-        for (const x of res.items)
-            yield x as T
-        const now = res.items.length
-        n += now
-        if (!now || n >= res.total_count) break
+    try {
+        while (1) {
+            const res = await apiGithub(uri + `&page=${page++}&per_page=${PAGE_SIZE}`)
+            for (const x of res.items)
+                yield x as T
+            const now = res.items.length
+            n += now
+            if (!now || n >= res.total_count) break
+        }
+    }
+    catch(e: any) {
+        if (e.message !== '422') // for some strange reason github api is returning this error if we search repos for a missing user, instead of empty set
+            throw e
     }
 }
 
