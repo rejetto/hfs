@@ -20,13 +20,6 @@ forceAddress.sub((v, { version }) => { // convert from legacy configs
 export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
     (() => {
         ctx.state.originalPath = ctx.path
-        const root = roots.compiled()?.(ctx.host)
-        if (!ctx.state.skipFilters && forceAddress.get())
-            if (root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled()) {
-                disconnect(ctx, forceAddress.key())
-                return true // true will avoid calling next
-            }
-        if (!root || root === '/') return // not transformation is required
         let params: undefined | typeof ctx.state.params | typeof ctx.query // undefined if we are not going to work on api parameters
         if (ctx.path.startsWith(SPECIAL_URI)) { // special uris should be excluded...
             if (!ctx.path.startsWith(API_URI)) return // ...unless it's an api
@@ -37,6 +30,13 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             if (referer?.startsWith(ctx.state.revProxyPath + ADMIN_URI)) return // exclude apis for admin-panel
         }
         if (_.isEmpty(roots.get())) return
+        const root = roots.compiled()?.(ctx.host)
+        if (!ctx.state.skipFilters && forceAddress.get())
+            if (root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled()) {
+                disconnect(ctx, forceAddress.key())
+                return true // true will avoid calling next
+            }
+        if (!root || root === '/') return // not transformation is required
         if (root === '' || root === '/') return
         changeUriParams(v => join(root, v))
         if (!params)
