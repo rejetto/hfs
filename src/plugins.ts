@@ -219,6 +219,8 @@ export class Plugin implements CommonPluginInterface {
 
 const SERVER_CODE_ID = '.'
 const serverCode = defineConfig('server_code', '', async (script, { k }) => {
+    try { (await serverCode.compiled())?.unload() }
+    catch {}
     const res: any = {}
     try {
         new Function('exports', script)(res) // parse
