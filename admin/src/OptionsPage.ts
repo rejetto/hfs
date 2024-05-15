@@ -114,7 +114,7 @@ export default function OptionsPage() {
             },
 
             httpsEnabled && { k: 'force_https', comp: BoolField, label: "Force HTTPS", sm: 4, disabled: !httpsEnabled || values.port < 0,
-                helperText: "Not applied to localhost"
+                helperText: "Not applied to localhost. Doesn't work with proxies."
             },
 
             { k: 'listen_interface', comp: SelectField, sm: 4, options: [{ label: "any", value: '' }, '127.0.0.1', '::1', ...status?.ips||[]] },
