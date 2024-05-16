@@ -58,10 +58,10 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         isFolder && !entry.web && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
     const props = [
-        [t`Name`, entry.name],
-        typeof s === 'number' && [t`Size`, h(Fragment, {},
-            formatBytes(s), h('small', {}, prefix(' (', s > 1024 && s.toLocaleString(), ')')) ) ],
-        entry.t && [t`Timestamp`, entry.t.toLocaleString()],
+        { id: 'name', label: t`Name`, value: entry.name },
+        typeof s === 'number' && { id: 'size', label: t`Size`,
+            value: h(Fragment, {}, formatBytes(s), h('small', {}, prefix(' (', s > 1024 && s.toLocaleString(), ')')) ) },
+        entry.t && { id: 'timestamp', label: t`Timestamp`, value: entry.t.toLocaleString() },
     ]
     const res = hfsEvent('fileMenu', { entry, menu, props })
     if (res)
@@ -77,12 +77,12 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             const {t} = useI18N()
             const details = useApi('get_file_details', { uris: [entry.uri] }).data
             const showProps = [ ...props,
-                with_(details?.[0]?.upload, x => x && [ t`Uploader`, x.ip + prefix(' (', x.username, ')') ])
+                with_(details?.[0]?.upload, x => x && { id: 'uploader', label: t`Uploader`, value: x.ip + prefix(' (', x.username, ')') })
             ]
             return h(Fragment, {},
                 h('dl', { className: 'file-dialog-properties' },
                     dontBotherWithKeys(showProps.map(prop => isValidElement(prop) ? prop
-                        : Array.isArray(prop) ? h(Fragment, {}, h('dt', {}, prop[0]), h('dd', {}, prop[1]))
+                        : _.isPlainObject(prop) ? h('div', { id: `menu-prop-${prop.id}` }, h('dt', {}, prop.label), h('dd', {}, prop.value))
                             : null
                     ))
                 ),
@@ -94,6 +94,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                                 key: i,
                                 href: '#',
                                 ..._.omit(e, ['label', 'icon', 'toggled']),
+                                id: e.id && `menu-entry-${e.id}`,
                                 className: e.toggled ? 'toggled' : undefined,
                                 async onClick(event: MouseEvent) {
                                     if (!e.href)

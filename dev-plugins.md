@@ -320,7 +320,7 @@ This is a list of available frontend-events, with respective object parameter an
           onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
           //...rest is transfered to <a> element, for example 'target', or 'title' 
       }
-      type FileMenuProp = [ReactNode,ReactNode] | ReactElement
+      type FileMenuProp = { id?: string, label: ReactNode, value: ReactNode } | ReactElement
       ```
       Example, if you want to remove the 'show' item of the menu:
       ```typescript
@@ -443,6 +443,7 @@ If you want to override a text regardless of the language, use the special langu
   - frontend event: menuZip
   - config.type:username
   - api.events class has changed
+  - frontend event "fileMenu": changed props format
 - 8.72 (v0.52.0)
   - HFS.toast
   - HFS.misc functions
