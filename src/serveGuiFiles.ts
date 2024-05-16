@@ -110,6 +110,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),
                         prefixUrl: ctx.state.revProxyPath,
                         dontOverwriteUploading: dontOverwriteUploading.get(),
+                        forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
                         customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
                             ['top', 'bottom']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),

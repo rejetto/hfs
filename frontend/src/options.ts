@@ -4,7 +4,7 @@ import { newDialog } from './dialog'
 import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 import { Checkbox, FlexV, Select } from './components'
-import { hIcon, MAX_TILE_SIZE, SORT_BY_OPTIONS, THEME_OPTIONS } from './misc'
+import { getHFS, hIcon, MAX_TILE_SIZE, SORT_BY_OPTIONS, THEME_OPTIONS } from './misc'
 import { MenuLink } from './menu'
 import { t } from './i18n'
 import _ from 'lodash'
@@ -67,7 +67,7 @@ export function showOptions (){
                 }),
             ),
 
-            h(Select, {
+            !getHFS().forceTheme && h(Select, {
                 options: _.map(THEME_OPTIONS, (value, label) => ({ label: t(["theme:", "Theme:", ]) + ' ' + t(label), value })),
                 value: snap.theme,
                 onChange(v) {

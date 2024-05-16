@@ -3,7 +3,7 @@
 import { apiCall, useApiEx, useApiList } from './api'
 import { createElement as h, Fragment, useEffect } from 'react'
 import { Box, Link } from '@mui/material'
-import { DataTable } from './DataTable'
+import { DataTable, DataTableColumn } from './DataTable'
 import { Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
 import { HTTP_FAILED_DEPENDENCY, prefix, with_, xlate } from './misc'
 import { alertDialog, formDialog, toast } from './dialog'
@@ -14,7 +14,7 @@ import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectFiel
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
-import { Btn, hTooltip, IconBtn } from './mui'
+import { Btn, hTooltip, IconBtn, iconTooltip } from './mui'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
@@ -194,17 +194,17 @@ function UsernameField({ value, onChange, ...rest }: FieldProps<string>) {
     })
 }
 
-export const descriptionField = {
+export const descriptionField: DataTableColumn = {
     field: 'description',
     mergeRender: { other: 'isTheme', sx: { float: 'left' } },
 }
 
-export const themeField = {
+export const themeField: DataTableColumn = {
     field: 'isTheme',
     headerName: "theme",
     hidden: true,
     type: 'boolean',
-    renderCell({ value }: any) {
-        return value ? h(ThemeIcon, { fontSize: 'small', sx: { mr: '.3em' } }) : null
+    renderCell({ value }) {
+        return value && iconTooltip(ThemeIcon, _.isString(value) ? `${value} theme` : "theme", { fontSize: '1.2rem', mr: '.3em' })
     }
-} as const
+}

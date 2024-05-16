@@ -9,12 +9,13 @@ import { Center, Flex, useBreakpoint } from './mui'
 
 const ACTIONS = 'Actions'
 
+export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
+    hidden?: boolean
+    hideUnder?: Breakpoint | number
+    mergeRender?: { other: string, override?: Partial<GridColDef<R>> } & BoxProps
+}
 interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
-    columns: Array<GridColDef<R> & {
-        hidden?: boolean
-        hideUnder?: Breakpoint | number
-        mergeRender?: { other: string, override?: Partial<GridColDef<R>> } & BoxProps
-    }>
+    columns: Array<DataTableColumn<R>>
     actions?: ({ row, id }: any) => ReactNode[]
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
     initializing?: boolean
