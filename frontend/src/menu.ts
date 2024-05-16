@@ -152,11 +152,12 @@ export function MenuPanel() {
     }
 }
 
-export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
+export function MenuLink({ href, target, confirm, confirmOptions, id, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
     return h('a', {
         tabIndex: -1,
         href,
         target,
+        id,
         async onClick(ev) {
             if (!confirm) return
             ev.preventDefault()
