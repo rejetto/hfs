@@ -99,6 +99,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         tempName = resumable
     }
     cancelDeletion(tempName)
+    ctx.state.uploadDestinationPath = tempName
     trackProgress()
     writeStream.once('close', async () => {
         if (ctx.req.aborted) {
@@ -115,6 +116,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
             do dest = `${base} (${i++})${ext}`
             while (fs.existsSync(dest))
         }
+        ctx.state.uploadDestinationPath = dest
         return fs.rename(tempName, dest, err => {
             setUploadMeta(err ? tempName : dest, ctx)
             if (err)
@@ -171,5 +173,11 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         if (status)
             ctx.status = status
         notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
+    }
+}
+
+declare module "koa" {
+    interface DefaultState {
+        uploadDestinationPath?: string
     }
 }
