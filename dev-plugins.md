@@ -46,6 +46,8 @@ All the following properties are optional unless otherwise specified.
 - `description: string` try to explain what this plugin is for. (JSON syntax)
 - `version: number` use progressive numbers to distinguish each release
 - `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. Mandatory. [Refer to API version history](#api-version-history)   
+- `isTheme: boolean` set true if this is a theme that's not supposed to work together with other themes. 
+  Running a theme will cause other themes to be stopped. Missing this, HFS will check if the name of the plugin ends with `-theme`.  
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. (JSON syntax)
 - `repo: string | object` pointer to a GitHub repo where this plugin is hosted. (JSON syntax)
   - the string form is for GitHub repos. Example: "rejetto/file-icons"
@@ -153,9 +155,9 @@ Based on `type`, other properties are supported:
 
 The `api` object you get as parameter of the `init` contains the following:
 
-- `getConfig(key: string): any` get config's value set up by using `exports.config`.
+- `getConfig(key: string): any` get plugin's config value, described in `exports.config`.
 
-- `setConfig(key: string, value: any)` set config's value set up by using `exports.config`.
+- `setConfig(key: string, value: any)` set plugin's config value.
 
 - `subscribeConfig(key: string, callback: (value: any) => void): Unsubscriber`
   will call `callback` with initial value and then at each change.  

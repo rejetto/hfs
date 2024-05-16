@@ -7,7 +7,7 @@ import { HTTP_FAILED_DEPENDENCY, xlate } from './misc'
 import { Download, Search } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
-import { renderName, startPlugin } from './InstalledPlugins'
+import { descriptionField, renderName, startPlugin, themeField } from './InstalledPlugins'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -55,8 +55,9 @@ export default function OnlinePlugins() {
                     field: 'license',
                     width: 80,
                 },
+                themeField,
                 {
-                    field: 'description',
+                    ...descriptionField,
                     flex: 3,
                     hideUnder: 'sm',
                 },

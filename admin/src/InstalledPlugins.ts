@@ -4,7 +4,7 @@ import { apiCall, useApiEx, useApiList } from './api'
 import { createElement as h, Fragment, useEffect } from 'react'
 import { Box, Link } from '@mui/material'
 import { DataTable } from './DataTable'
-import { Delete, Error as ErrorIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
+import { Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
 import { HTTP_FAILED_DEPENDENCY, prefix, with_, xlate } from './misc'
 import { alertDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -44,8 +44,9 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 width: 70,
                 hideUnder: 'sm',
             },
+            themeField,
             {
-                field: 'description',
+                ...descriptionField,
                 flex: 1,
                 hideUnder: 'sm',
             },
@@ -192,3 +193,18 @@ function UsernameField({ value, onChange, ...rest }: FieldProps<string>) {
         ...rest,
     })
 }
+
+export const descriptionField = {
+    field: 'description',
+    mergeRender: { other: 'isTheme', sx: { float: 'left' } },
+}
+
+export const themeField = {
+    field: 'isTheme',
+    headerName: "theme",
+    hidden: true,
+    type: 'boolean',
+    renderCell({ value }: any) {
+        return value ? h(ThemeIcon, { fontSize: 'small', sx: { mr: '.3em' } }) : null
+    }
+} as const

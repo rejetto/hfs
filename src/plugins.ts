@@ -54,6 +54,8 @@ export async function stopPlugin(id: string) {
 }
 
 export async function startPlugin(id: string) {
+    if (getPluginInfo(id)?.isTheme)
+        await Promise.all(mapPlugins((pl, id) => pl.isTheme && stopPlugin(id)))
     enablePlugin(id)
     await waitRunning(id)
 }
@@ -180,6 +182,7 @@ export class Plugin implements CommonPluginInterface {
     get version(): undefined | number { return this.data?.version }
     get description(): undefined | string { return this.data?.description }
     get apiRequired(): undefined | number | [number,number] { return this.data?.apiRequired }
+    get isTheme(): undefined | boolean { return this.data?.isTheme }
     get repo(): undefined | Repo { return this.data?.repo }
     get depend(): undefined | Depend { return this.data?.depend }
 
@@ -258,6 +261,7 @@ export interface CommonPluginInterface {
     apiRequired?: number | [number,number]
     repo?: Repo
     depend?: Depend
+    isTheme?: boolean
 }
 export interface AvailablePlugin extends CommonPluginInterface {
     branch?: string
@@ -481,6 +485,7 @@ export function parsePluginSource(id: string, source: string) {
     pl.repo = tryJson(/exports.repo *= *(.*);? *$/m.exec(source)?.[1])
     pl.version = Number(/exports.version *= *(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
+    pl.isTheme = tryJson(/exports.isTheme *= *(true|false)/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
     pl.depend = tryJson(/exports.depend *= *(\[.*\])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("plugin dependency discarded", x) )
