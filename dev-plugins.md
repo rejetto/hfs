@@ -12,7 +12,7 @@ Normally you'll have a plug-in that's a theme, and another that's a firewall,
 but nothing is preventing a single plug-in from doing both tasks.
 
 ## Exported object
-`plugin.js` is a javascript module, and its main way to communicate with HFS is by exporting things.
+`plugin.js` is a javascript module (executed by Node.js), and its main way to communicate with HFS is by exporting things.
 For example, it can define its description like this 
 ```js
 exports.description = "I'm a nice plugin"
@@ -49,6 +49,7 @@ All the following properties are optional unless otherwise specified.
 - `isTheme: boolean | "light" | "dark"` set true if this is a theme that's not supposed to work together with other themes. 
   Running a theme will cause other themes to be stopped. Missing this, HFS will check if the name of the plugin ends with `-theme`.
   Special values "light" and "dark" to declare the theme is (for example) dark and forces HFS to use dark-theme as a base.   
+- `preview: string | string[]` one or more images you want to show before your plugin is downloaded. 
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. (JSON syntax)
 - `repo: string | object` pointer to a GitHub repo where this plugin is hosted. (JSON syntax)
   - the string form is for GitHub repos. Example: "rejetto/file-icons"

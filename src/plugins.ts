@@ -262,6 +262,7 @@ export interface CommonPluginInterface {
     repo?: Repo
     depend?: Depend
     isTheme?: boolean | 'light' | 'dark'
+    preview?: string | string[]
 }
 export interface AvailablePlugin extends CommonPluginInterface {
     branch?: string
@@ -486,6 +487,7 @@ export function parsePluginSource(id: string, source: string) {
     pl.version = Number(/exports.version *= *(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
     pl.isTheme = tryJson(/exports.isTheme *= *(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
+    pl.preview = tryJson(/exports.preview *= *(.+)/.exec(source)?.[1]) ?? undefined
     pl.depend = tryJson(/exports.depend *= *(\[.*\])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("plugin dependency discarded", x) )

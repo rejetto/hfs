@@ -3,8 +3,8 @@
 import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
 import { DataTable } from './DataTable'
-import { HTTP_FAILED_DEPENDENCY, xlate } from './misc'
-import { Download, Search } from '@mui/icons-material'
+import { HTTP_FAILED_DEPENDENCY, newDialog, wantArray, xlate } from './misc'
+import { ArrowBack, ArrowForward, Download, RemoveRedEye, Search } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
 import { descriptionField, renderName, startPlugin, themeField } from './InstalledPlugins'
@@ -12,7 +12,7 @@ import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import _ from 'lodash'
 import { PLUGIN_ERRORS } from './PluginsPage'
-import { IconBtn } from './mui'
+import { Flex, IconBtn } from './mui'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -88,7 +88,16 @@ export default function OnlinePlugins() {
                             return alertDialog(msg, 'error')
                         })
                     }
-                })
+                }),
+                h(IconBtn, {
+                    icon: RemoveRedEye,
+                    disabled: !row.preview,
+                    onClick: () => newDialog({
+                        title: id,
+                        dialogProps: { sx: { minHeight: '50vh', minWidth: '50vw' } }, // the image will use available space, so we must reserve it (while mobile is going full-screen)
+                        Content: () => h(ShowImages, { imgs: wantArray(row.preview) })
+                    })
+                }),
             ]
         })
     )
@@ -115,3 +124,15 @@ export default function OnlinePlugins() {
     }
 }
 
+function ShowImages({ imgs }: { imgs: string[] }) {
+    const [cur, setCur] = useState(0)
+    return h(Flex, { vert: true, flex: 1 },
+        h(Flex, { vert: true, center: true, height: 0, flex: 'auto' },
+            h('img', { src: imgs[cur], style: { margin: 'auto', /*center*/ maxWidth: '100%', maxHeight: '100%' /*limit*/ } }),
+        ),
+        imgs.length > 1 && h(Flex, { center: true },
+            h(IconBtn, { icon: ArrowBack,    disabled: !cur, onClick: () => setCur(cur - 1) }),
+            h(IconBtn, { icon: ArrowForward, disabled: cur >= imgs.length - 1, onClick: () => setCur(cur + 1) }),
+        ),
+    )
+}
