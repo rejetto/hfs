@@ -37,6 +37,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 flex: .3,
                 minWidth: 150,
                 renderCell: renderName,
+                valueGetter({ row }) { return row.repo || row.id },
                 mergeRender: { other: 'description', fontSize: 'x-small' }
             },
             {
