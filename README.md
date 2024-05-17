@@ -34,7 +34,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - accounts
 - resumable downloads & uploads
 - download folders as zip archive
-- remote delete
+- delete, move and rename files
 - simple website serving
 - plug-ins
 - real-time monitoring of connections
@@ -43,10 +43,13 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - geographic firewall
 - admin web interface
 - multi-language front-end
-- virtual hosting (plug-in)
+- virtual hosting
 - anti-brute-force (plug-in)
 - [reverse-proxy support](https://github.com/rejetto/hfs/wiki/Reverse-proxy)
 - comments in file descript.ion
+- integrated media player
+- [customizable with html, css and javascript](https://github.com/rejetto/hfs/wiki/Customization)
+- dynamic-dns updater
 
 ## Installation
 
@@ -169,14 +172,14 @@ But you may still want to stay with HFS 2.x (so far) for the following reasons
 
 While this project focuses on ease of use, we care about security.
 - HTTPS support
-- Passwords are not saved, and user password is safe even logging in without https thanks to [SRP](https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol)
+- Passwords are not saved, and not disclosed even without https thanks to [SRP](https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol)
 - Automated tests ran on every release, including libraries audit
 - No default admin password
 
 Some actions you can take for improved security:
 - use https, better if using a proper certificate, even free with [Letsencrypt](https://letsencrypt.org/).
 - have a domain (ddns is ok too), configure it in "Internet" page, and enable "Accept requests only using domain"
-- install rejetto/antidos plugin
+- install "antidos" plugin
 - ensure "antibrute" plugin is running
 - disable "unprotected admin on localhost"
 
