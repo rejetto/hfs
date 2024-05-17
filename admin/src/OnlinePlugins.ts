@@ -4,7 +4,7 @@ import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
 import { DataTable } from './DataTable'
 import { HTTP_FAILED_DEPENDENCY, newDialog, wantArray, xlate } from './misc'
-import { ArrowBack, ArrowForward, Download, RemoveRedEye, Search } from '@mui/icons-material'
+import { ArrowBack, ArrowForward, Download, RemoveRedEye, Search, Warning } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
 import { descriptionField, renderName, startPlugin, themeField } from './InstalledPlugins'
@@ -76,7 +76,10 @@ export default function OnlinePlugins() {
                     progress: row.downloading,
                     disabled: row.installed && "Already installed",
                     tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
-                    confirm: "WARNING - Proceed only if you trust this author and this plugin",
+                    confirm: h(Flex, { vert: true, alignItems: 'center' },
+                        h(Warning, { color: 'warning', fontSize: 'large' }),
+                        "Proceed only if you trust this plugin",
+                    ),
                     async onClick() {
                         if (row.missing && !await confirmDialog("This will also install: " + _.map(row.missing, 'repo').join(', '))) return
                         const branch = row.branch || row.default_branch
