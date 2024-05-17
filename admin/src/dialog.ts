@@ -118,6 +118,7 @@ export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="
     const dialog = newDialog({
         className: 'dialog-confirm',
         onClose: promise.resolve,
+        dialogProps: { sx: { alignItems: 'center' } },
         ...rest,
         Content
     })
