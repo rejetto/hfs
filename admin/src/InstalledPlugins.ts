@@ -6,7 +6,7 @@ import { Box, Link } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import { Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
 import { HTTP_FAILED_DEPENDENCY, prefix, with_, xlate } from './misc'
-import { alertDialog, formDialog, toast } from './dialog'
+import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { Account } from './AccountsPage'
 import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField
@@ -121,9 +121,14 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 icon: Delete,
                 title: "Uninstall",
                 size,
-                confirm: "Remove?",
                 async onClick() {
-                    await apiCall('uninstall_plugin', { id })
+                    const res = await confirmDialog(`${id}: delete configuration too?`, {
+                        trueText: "Yes",
+                        falseText: "No",
+                        after: ({ onClick }) => h(Btn, { variant: 'outlined', onClick(){ onClick(undefined) } }, "Abort")
+                    })
+                    if (res === undefined) return
+                    await apiCall('uninstall_plugin', { id, deleteConfig: res })
                     toast("Plugin uninstalled")
                 }
             }),

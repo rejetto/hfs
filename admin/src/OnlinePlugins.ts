@@ -105,7 +105,7 @@ export default function OnlinePlugins() {
     async function installPlugin(id: string, branch?: string): Promise<any> {
         try {
             const res = await apiCall('download_plugin', { id, branch, stop: true }, { timeout: false })
-            if (await confirmDialog(`Plugin ${id} downloaded`, { confirmText: "Start" }))
+            if (await confirmDialog(`Plugin ${id} downloaded`, { trueText: "Start" }))
                 await startPlugin(res.id)
         }
         catch(e:any) {

@@ -211,11 +211,11 @@ export default function InternetPage() {
                     async onClick() {
                         const [domain, ...altNames] = values.acme_domain.split(',')
                         const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
-                        if (fresh && !await confirmDialog("Your certificate is still good", { confirmText: "Make a new one anyway" }))
+                        if (fresh && !await confirmDialog("Your certificate is still good", { trueText: "Make a new one anyway" }))
                             return
                         if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
                         const res = await apiCall('check_domain', { domain }).catch(e =>
-                            confirmDialog(String(e), { confirmText: "Continue anyway" }) )
+                            confirmDialog(String(e), { trueText: "Continue anyway" }) )
                         if (res === false) return
                         await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
                             .then(async () => {
@@ -231,7 +231,7 @@ export default function InternetPage() {
     }
 
     async function notEnabled() {
-        if (!await confirmDialog("HTTPS is currently disabled.\nFull configuration is available in the Options page.", { confirmText: "Enable it"})) return
+        if (!await confirmDialog("HTTPS is currently disabled.\nFull configuration is available in the Options page.", { trueText: "Enable it"})) return
         const stop = waitDialog()
         try {
             await apiCall('set_config', { values: { https_port: 443 } })
@@ -327,7 +327,7 @@ export default function InternetPage() {
                 const hostname = url && new URL(url).hostname
                 const domain = !isIP(hostname) && hostname
                 if (domain && false === await apiCall('check_domain', { domain }).catch(e =>
-                    confirmDialog(String(e), { confirmText: "Continue anyway" }) )) return
+                    confirmDialog(String(e), { trueText: "Continue anyway" }) )) return
             }
             const urlResult = url && await apiCall('self_check', { url }).catch(() =>
                 alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
@@ -352,7 +352,7 @@ export default function InternetPage() {
                 return alertDialog(MSG_ISP, 'warning')
             const msg = "We couldn't reach your server from the Internet. "
             if (data.upnp && !data!.mapped)
-                return confirmDialog(msg + "Try port-forwarding on your router", { confirmText: "Fix it" }).then(async go => {
+                return confirmDialog(msg + "Try port-forwarding on your router", { trueText: "Fix it" }).then(async go => {
                     if (!go) return
                     try { await mapPort(data!.internalPort!, '', '') }
                     catch { await mapPort(HIGHER_PORT, '') }
@@ -382,7 +382,7 @@ export default function InternetPage() {
     async function configure() {
         if (!data) return // shut up ts
         if (wrongMap)
-            return await confirmDialog(`There is a port-forwarding but it is pointing to the wrong port (${wrongMap})`, { confirmText: "Fix it" })
+            return await confirmDialog(`There is a port-forwarding but it is pointing to the wrong port (${wrongMap})`, { trueText: "Fix it" })
                 && fixPort()
         if (!data.upnp)
             return alertDialog(h(Box, { lineHeight: 1.5 }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')

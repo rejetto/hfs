@@ -152,9 +152,11 @@ const apis: ApiHandlers = {
         return {}
     },
 
-    async uninstall_plugin({ id }) {
+    async uninstall_plugin({ id, deleteConfig }) {
         await stopPlugin(id)
         await rm(PLUGINS_PATH + '/' + id,  { recursive: true, force: true })
+        if (deleteConfig)
+            setPluginConfig(id, null)
         return {}
     }
 

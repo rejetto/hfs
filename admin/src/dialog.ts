@@ -2,7 +2,8 @@
 
 import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, Modal
 } from '@mui/material'
-import { createElement as h, Dispatch, Fragment, isValidElement, ReactElement, ReactNode, SetStateAction,
+import {
+    createElement as h, Dispatch, FC, Fragment, isValidElement, ReactElement, ReactNode, SetStateAction,
     useEffect, useRef, useState
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
@@ -104,8 +105,15 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
     return Object.assign(promise, dialog)
 }
 
-interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string, confirmText?: string, dontText?: string }
-export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText="Don't",  ...rest }: ConfirmOptions={}) {
+interface ConfirmOptions extends Omit<DialogOptions, 'Content'> {
+    href?: string,
+    trueText?: string,
+    falseText?: string,
+    before?: FC<{ onClick: (result: any) => unknown }>
+    after?: FC<{ onClick: (result: any) => unknown }>
+}
+
+export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="Don't", before, after,  ...rest }: ConfirmOptions={}) {
     const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',
@@ -119,11 +127,13 @@ export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText
         return h(Fragment, {},
             h(Box, { mb: 2 }, typeof msg === 'string' ? md(msg) : msg),
             h(Flex, {},
+                before?.({ onClick: (v: any) => dialog.close(v) }),
                 h('a', {
                     href,
                     onClick: () => dialog.close(true),
-                }, h(Button, { variant: 'contained' }, confirmText)),
-                h(Button, { onClick: () => dialog.close(false) }, dontText),
+                }, h(Button, { variant: 'contained' }, trueText)),
+                h(Button, { onClick: () => dialog.close(false) }, falseText),
+                after?.({ onClick: (v: any) => dialog.close(v) }),
             ),
         )
     }

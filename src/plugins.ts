@@ -70,11 +70,11 @@ async function waitRunning(id: string, state=true) {
 }
 
 // nullish values are equivalent to defaultValues
-export function setPluginConfig(id: string, changes: Dict) {
+export function setPluginConfig(id: string, changes: Dict | null) {
     pluginsConfig.set(allConfigs => {
         const fields = getPluginConfigFields(id)
         const oldConfig = allConfigs[id]
-        const newConfig = _.pickBy({ ...oldConfig, ...changes },
+        const newConfig = changes && _.pickBy({ ...oldConfig, ...changes },
             (v, k) => v != null && !same(v, fields?.[k]?.defaultValue))
         return { ...allConfigs, [id]: _.isEmpty(newConfig) ? undefined : newConfig }
     })
