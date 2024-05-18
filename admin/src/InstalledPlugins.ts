@@ -144,7 +144,7 @@ export function renderName({ row, value }: any) {
         repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
             : !repo ? value
                 : with_(repo?.split('/'), arr => h(Fragment, {},
-                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin' }, arr[1].replace(/hfs-/, '')),
+                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, arr[1].replace(/hfs-/, '')),
                     '\xa0by ', arr[0]
                 ))
     )
