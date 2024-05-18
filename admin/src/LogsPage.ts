@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useMemo, useState } from 'react';
+import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
@@ -89,7 +89,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const { pause, pauseButton } = usePauseButton()
     const [showApi, showApiButton] = useToggleButton("Show APIs", "Hide APIs", v => ({
         icon: SmartToy,
-        sx: { rotate: v ? '0deg' : '180deg' },
+        sx: { rotate: v ? 0 : '180deg' },
         disabled: file === 'console',
     }), true)
     const [totalSize, setTotalSize] = useState(NaN)
@@ -97,7 +97,9 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const [skipped, setSkipped] = useState(0)
     const MAX = 2**20
     const invert = true
-    useApi('get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
+    const [firstSight, setFirstSight] = useState(!hidden)
+    useEffect(() => setFirstSight(x => x || !hidden), [hidden])
+    useApi(firstSight && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
             const lines = body.split('\n')
@@ -118,7 +120,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
             setList(x => [...x, ...treated])
         }
     })
-    const { list, setList, error, connecting } = useApiList('get_log', { file }, { invert, pause, map: enhanceLogLine })
+    const { list, setList, error, connecting } = useApiList(firstSight && 'get_log', { file }, { invert, pause, map: enhanceLogLine })
     const tsColumn: GridColDef = {
         field: 'ts',
         headerName: "Timestamp",
