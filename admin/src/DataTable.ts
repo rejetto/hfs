@@ -131,6 +131,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             },
             onCellClick({ field, row }) {
                 if (field === ACTIONS) return
+                if (window.getSelection()?.type === 'Range') return // not a click but a drag
                 const n = apiRef.current.getVisibleColumns().length
                 const showCols = manipulatedColumns.filter(x =>
                     x.renderCell || x.field === ACTIONS || row[x.field] !== undefined)
