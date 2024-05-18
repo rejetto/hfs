@@ -25,6 +25,7 @@ import './geo'
 import { geoFilter } from './geo'
 import { rootsMiddleware } from './roots'
 import events from './events'
+import { trackIpsMw } from './ip'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
@@ -38,6 +39,7 @@ app.use(sessionMiddleware)
     .use(someSecurity)
     .use(prepareState)
     .use(geoFilter)
+    .use(trackIpsMw)
     .use(gzipper)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
     .use(headRequests)

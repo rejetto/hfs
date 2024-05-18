@@ -6,6 +6,7 @@ import events from './events'
 import { loggers } from './log'
 import { SendListReadable } from './SendList'
 import { serveFile } from './serveFile'
+import { ips } from './ip'
 
 export default {
     async get_log_file({ file = 'log', range = '' }, ctx) {
@@ -27,6 +28,12 @@ export default {
         return new SendListReadable({
             bufferTime: 10,
             async doAtStart(list) {
+                if (file === 'ips') {
+                    for await (const [k, v] of ips.iterator())
+                        list.add({ ip: k, ...v })
+                    list.ready()
+                    return
+                }
                 if (file === 'console') {
                     for (const chunk of _.chunk(consoleLog, 1000)) { // avoid occupying the thread too long
                         for (const x of chunk)
@@ -46,4 +53,9 @@ export default {
         })
 
     },
+
+    reset_ips() {
+        return ips.clear()
+    },
+
 } satisfies ApiHandlers

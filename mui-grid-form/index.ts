@@ -26,6 +26,7 @@ export interface FieldDescriptor<T=any> extends FieldApi<T> {
     before?: ReactNode
     after?: ReactNode
     getError?: GetError
+    parentProps?: Partial<GridProps>,
     [extraProp: string]: any
 }
 
@@ -163,12 +164,12 @@ export function Form<Values extends Dict>({
                     _.defaults(field, defaults?.(whole))
                 }
                 {
-                    const { xs=12, sm, md, lg, xl, comp=StringField, before, after,
+                    const { xs=12, sm, md, lg, xl, comp=StringField, before, after, parentProps,
                         fromField, toField, // don't propagate
                         ...rest } = field
                     Object.assign(rest, { name: k })
                     const n = (keyMet[k] = (keyMet[k] || 0) + 1)
-                    return h(Grid, { key: k ? k + n : idx, item: true, xs, sm, md, lg, xl },
+                    return h(Grid, { key: k ? k + n : idx, item: true, xs, sm, md, lg, xl, ...parentProps },
                         before,
                         isValidElement(comp) ? comp : h(comp, rest),
                         after

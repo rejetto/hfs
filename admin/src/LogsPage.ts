@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
-import { API_URL, useApi, useApiList } from './api'
+import { API_URL, apiCall, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
     typedKeys, NBSP, _dbg, mapFilter } from '@hfs/shared'
@@ -17,12 +17,16 @@ import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
 import { useBlockIp } from './useBlockIp'
+import { ALL as COUNTRIES } from './countries'
 
 const logLabels = {
     log: "Access",
     error_log: "Access error",
     console: "Console",
+    ips: "IPs",
 }
+
+let reloadIps: any
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
@@ -75,6 +79,14 @@ export default function LogsPage() {
                             { k: CFG.log_api, sm: 6, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
                             { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information. Can double the size of your logs on disk." },
                             { k: CFG.log_spam, sm: 6, comp: BoolField, label: "Log spam requests", helperText: md`Spam are *failed* requests that are considered attacks aimed *not* to HFS and therefore harmless` },
+                            { k: CFG.track_ips, sm: 6, comp: BoolField, label: "Keep track of IPs",
+                                parentProps: { display: 'flex', gap: 1 },
+                                after: h(Btn, {
+                                    size: 'small', variant: 'outlined', color: 'warning',
+                                    confirm: true, doneMessage: true,
+                                    onClick: () => apiCall('reset_ips').then(reloadIps)
+                                }, "Reset")
+                            },
                         ]
                     }
                 })
@@ -120,7 +132,9 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
             setList(x => [...x, ...treated])
         }
     })
-    const { list, setList, error, connecting } = useApiList(firstSight && 'get_log', { file }, { invert, pause, map: enhanceLogLine })
+    const { list, setList, error, connecting, reload } = useApiList(firstSight && 'get_log', { file }, { invert, pause, map: enhanceLogLine })
+    if (file === 'ips')
+        reloadIps = reload
     const tsColumn: GridColDef = {
         field: 'ts',
         headerName: "Timestamp",
@@ -165,6 +179,21 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                 headerName: "Message",
                 flex: 1,
                 mergeRender: { other: 'k', override: { valueFormatter: ({ value }) => value !== 'log' && value } }
+            }
+        ] : file === 'ips' ? [
+            tsColumn,
+            {
+                field: 'ip',
+                headerName: "Address",
+                flex: 1,
+            },
+            {
+                headerName: "Country",
+                field: 'country',
+                flex: 1,
+                hidden: !showCountry,
+                valueGetter: ({ value }) => _.find(COUNTRIES, { code: value })?.name || value,
+                renderCell: ({ row }) => h(Country, { code: row.country, long: true, def: '-' }),
             }
         ] : [
             {
@@ -259,7 +288,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     function enhanceLogLine(x: any) {
         if (!x) return
         const { extra } = x
-        if (extra?.country && !showCountry)
+        if ((extra?.country || x.country) && !showCountry)
             setShowCountry(true)
         if (extra?.ua && !showAgent)
             setShowAgent(true)
