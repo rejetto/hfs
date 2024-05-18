@@ -316,7 +316,7 @@ export async function rescan() {
 function watchPlugin(id: string, path: string) {
     const module = resolve(path)
     let starting: PendingPromise | undefined
-    enablePlugins.sub(() => { // we take care of enabled-state after it was loaded
+    const unsub = enablePlugins.sub(() => { // we take care of enabled-state after it was loaded
         if (!getPluginInfo(id)) return // not loaded yet
         const enabled = isPluginEnabled(id)
         if (enabled !== isPluginRunning(id))
@@ -334,6 +334,7 @@ function watchPlugin(id: string, path: string) {
         events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
     })
     return () => {
+        unsub()
         unwatch()
         return onUninstalled()
     }
