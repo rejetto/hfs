@@ -77,7 +77,10 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     await next()
     console.debug(ctx.status, ctx.method, ctx.originalUrl)
     if (ctx.status === HTTP_NOT_FOUND && !logSpam.get()
-        && /wlwmanifest.xml$|robots.txt$|\.(php)$|cgi/.test(ctx.path)) return
+    && /wlwmanifest.xml$|robots.txt$|\.(php)$|cgi/.test(ctx.path)) {
+        events.emit('spam', ctx)
+        return
+    }
     const conn = getConnection(ctx) // collect reference before close
     // don't await, as we don't want to hold the middlewares chain
     ctx.state.completed.then(() => {
@@ -146,6 +149,7 @@ declare module "koa" {
         dontLog?: boolean // don't log this request
         logExtra?: object
         completed?: Promise<unknown>
+        spam?: boolean // this request was marked as spam
     }
 }
 
