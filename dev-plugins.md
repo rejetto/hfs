@@ -49,7 +49,7 @@ All the following properties are optional unless otherwise specified.
 - `isTheme: boolean | "light" | "dark"` set true if this is a theme that's not supposed to work together with other themes. 
   Running a theme will cause other themes to be stopped. Missing this, HFS will check if the name of the plugin ends with `-theme`.
   Special values "light" and "dark" to declare the theme is (for example) dark and forces HFS to use dark-theme as a base.   
-- `preview: string | string[]` one or more images you want to show before your plugin is downloaded. 
+- `preview: string | string[]` one or more URLs to images you want to show before your plugin is downloaded. (JSON syntax) 
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. (JSON syntax)
 - `repo: string | object` pointer to a GitHub repo where this plugin is hosted. (JSON syntax)
   - the string form is for GitHub repos. Example: "rejetto/file-icons"
@@ -73,7 +73,7 @@ All the following properties are optional unless otherwise specified.
     Plugins with custom repos are not included in search results, but the update feature will still work.   
 
 WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
-used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects).
+used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
 
 - `init` described in the previous section. 
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
