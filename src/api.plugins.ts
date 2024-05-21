@@ -39,7 +39,7 @@ const apis: ApiHandlers = {
                         if (!online) return
                         const disk = getPluginInfo(folder)
                         if (!disk) return // plugin removed in the meantime?
-                        if (online.version! > disk.version) { // it IS newer
+                        if (online.version !== disk.version) { // not just newer one, in case a version was retired
                             online.id = disk.id // id is installation-dependant, and online cannot know
                             online.repo = serialize(disk).repo // show the user the current repo we are getting this update from, not a possibly-changed future one
                             list.add(online)
