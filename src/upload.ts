@@ -111,7 +111,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         let dest = fullPath
         if (dontOverwriteUploading.get() && fs.existsSync(dest) && !await overwriteAnyway()) {
             const ext = extname(dest)
-            const base = dest.slice(0, -ext.length)
+            const base = dest.slice(0, -ext.length || Infinity)
             let i = 1
             do dest = `${base} (${i++})${ext}`
             while (fs.existsSync(dest))
