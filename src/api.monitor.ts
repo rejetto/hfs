@@ -2,12 +2,13 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { shortenAgent, try_, wait } from './misc'
+import { apiAssertTypes, shortenAgent, try_, wait, wantArray } from './misc'
 import { ApiHandlers } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
 import { getCurrentUsername } from './auth'
 import { SendListReadable } from './SendList'
+import { storedMap } from './persistence'
 
 export default {
 
@@ -86,14 +87,20 @@ export default {
             yield {
                 outSpeed: totalOutSpeed,
                 inSpeed: totalInSpeed,
-                got: totalGot,
-                sent: totalSent,
+                sent_got: [totalSent.get(), totalGot.get()],
                 connections: filtered.length,
                 ips: _.uniqBy(filtered, x => x.ip).length,
             }
             await wait(1000)
         }
     },
+
+    async clear_persistent({ k }) {
+        apiAssertTypes({ string_array: { k } })
+        for (const x of wantArray(k))
+            void storedMap.del(x)
+    },
+
 } satisfies ApiHandlers
 
 function ignore(conn: Connection) {

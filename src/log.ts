@@ -153,7 +153,7 @@ declare module "koa" {
     }
 }
 
-events.on('app', () => { // wait for app to be set
+events.once('app', () => { // wait for app to be set
     app.context.logExtra = function(anything, params) { // no => as we need 'this'
         _.merge((this as any).state, { logExtra: { ...anything, params } }) // params will be considered as parameters of the API
     }

@@ -26,6 +26,7 @@ import { geoFilter } from './geo'
 import { rootsMiddleware } from './roots'
 import events from './events'
 import { trackIpsMw } from './ip'
+import { storedMap } from './persistence'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
@@ -50,7 +51,8 @@ app.use(sessionMiddleware)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
     .use(serveGuiAndSharedFiles)
     .on('error', errorHandler)
-events.emit('app', app)
+storedMap.once('open', () =>
+    events.emit('app', app))
 
 function errorHandler(err:Error & { code:string, path:string }) {
     const { code } = err

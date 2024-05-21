@@ -153,7 +153,7 @@ export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
 // But koa-session doesn't support 2 cookies, so I made this hacky solution: keep track of the options object, to modify the key at run-time.
 let internalSessionMw: any
 let options: any
-events.on('app', () => // wait for app to be defined
+events.once('app', () => // wait for app to be defined
     internalSessionMw = session(options = { signed: true, rolling: true, sameSite: 'lax' } as const, app) )
 export const sessionMiddleware: Koa.Middleware = (ctx, next) => {
     options.key = 'hfs_' + ctx.protocol

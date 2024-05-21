@@ -120,8 +120,7 @@ export class AsapStream<T> extends Readable {
 
 export function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: any  } }) {
     for (const [types,params] of Object.entries(paramsByType))
-        for (const type of types.split('_'))
-            for (const [name,val] of Object.entries(params))
-                if (type === 'array' ? !Array.isArray(val) : typeof val !== type)
-                    throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
+        for (const [name,val] of Object.entries(params))
+            if (! types.split('_').some(type => type === 'array' ? Array.isArray(val) : typeof val === type))
+                throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
 }

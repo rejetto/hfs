@@ -8,6 +8,7 @@ import { getOrSet, isLocalHost } from './misc'
 import { Connection, getConnection, updateConnection } from './connections'
 import _ from 'lodash'
 import events from './events'
+import { storedMap } from './persistence'
 
 const mainThrottleGroup = new ThrottleGroup(Infinity)
 
@@ -64,7 +65,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
             conn[SymTimeout] = setTimeout(update, DELAY)
     }, DELAY, { leading: true, maxWait:DELAY })
     ts.on('sent', (n: number) => {
-        totalSent += n
+        totalSent.set(x => (x || 0) + n)
         update()
     })
 
@@ -96,26 +97,30 @@ export function roundSpeed(n: number) {
     return _.round(n, 1) || _.round(n, 3) // further precision if necessary
 }
 
-export let totalSent = 0
-export let totalGot = 0
+export let totalSent = storedMap.singleSync<number>('totalSent', 0)
+export let totalGot = storedMap.singleSync<number>('totalGot', 0)
 export let totalOutSpeed = 0
 export let totalInSpeed = 0
 
-let lastSent = totalSent
-let lastGot = totalGot
+let lastSent: number | undefined
+let lastGot: number | undefined
 let last = Date.now()
 setInterval(() => {
     const now = Date.now()
-    const past = (now - last) / 1000 // seconds
+    const past = now - last
     last = now
-    const deltaSentKb = (totalSent - lastSent) / 1000
-    lastSent = totalSent
-    const deltaGotKb = (totalGot - lastGot) / 1000
-    lastGot = totalGot
-    totalOutSpeed = roundSpeed(deltaSentKb / past)
-    totalInSpeed = roundSpeed(deltaGotKb / past)
+    {
+        const v = totalSent.get()
+        totalOutSpeed = roundSpeed((v - (lastSent ?? v)) / past)
+        lastSent = v
+    }
+    {
+        const v = totalGot.get()
+        totalInSpeed = roundSpeed((v - (lastGot ?? v)) / past)
+        lastGot = v
+    }
 }, 1000)
 
 events.on('connection', (c: Connection) =>
     c.socket.on('data', data =>
-        totalGot += data.length ))
+        totalGot.set(x => (x || 0) + data.length) ))
