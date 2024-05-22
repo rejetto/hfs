@@ -48,7 +48,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.state.uploadPath = decPath
         const dest = uploadWriter(folder, rest, ctx)
         if (dest) {
-            await pipeline(ctx.req, dest)
+            void pipeline(ctx.req, dest)
+            await dest.lockMiddleware  // we need to wait more than just the stream
             ctx.body = {}
         }
         return
@@ -63,6 +64,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_BAD_REQUEST
         ctx.body = {}
         ctx.state.uploads = []
+        let locks: Promise<any>[] = []
         const form = formidable({
             maxFileSize: Infinity,
             allowEmptyFiles: true,
@@ -70,13 +72,16 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
                 const fn = (f as any).originalFilename
                 ctx.state.uploadPath = decodeURI(ctx.path) + fn
                 ctx.state.uploads!.push(fn)
-                return uploadWriter(node!, fn, ctx)
-                    || new Writable({ write(data,enc,cb) { cb() } }) // just discard data
+                const ret = uploadWriter(node!, fn, ctx)
+                if (!ret)
+                    return new Writable({ write(data,enc,cb) { cb() } }) // just discard data
+                locks.push(ret.lockMiddleware)
+                return ret
             }
         })
-        return new Promise<void>(res => form.parse(ctx.req, err => {
+        return new Promise<any>(res => form.parse(ctx.req, err => {
             if (err) console.error(String(err))
-            res()
+            res(Promise.all(locks))
         }))
     }
     const { get } = ctx.query

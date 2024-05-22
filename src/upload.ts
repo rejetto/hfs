@@ -3,7 +3,7 @@ import Koa from 'koa'
 import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, dirTraversal, escapeHTML, loadFileAttr, storeFileAttr, try_ } from './misc'
+import { Callback, dirTraversal, escapeHTML, loadFileAttr, pendingPromise, storeFileAttr, try_ } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -13,6 +13,7 @@ import { getCurrentUsername } from './auth'
 import { setCommentFor } from './comments'
 import _ from 'lodash'
 import events from './events'
+import { rename } from 'fs/promises'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -101,35 +102,47 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     cancelDeletion(tempName)
     ctx.state.uploadDestinationPath = tempName
     trackProgress()
-    writeStream.once('close', async () => {
-        if (ctx.req.aborted) {
-            if (resumable) // we don't want to be left with 2 temp files
-                return delayedDelete(tempName, 0)
-            const sec = deleteUnfinishedUploadsAfter.get()
-            return _.isNumber(sec) && delayedDelete(tempName, sec)
-        }
-        let dest = fullPath
-        if (dontOverwriteUploading.get() && fs.existsSync(dest) && !await overwriteAnyway()) {
-            const ext = extname(dest)
-            const base = dest.slice(0, -ext.length || Infinity)
-            let i = 1
-            do dest = `${base} (${i++})${ext}`
-            while (fs.existsSync(dest))
-        }
-        ctx.state.uploadDestinationPath = dest
-        return fs.rename(tempName, dest, err => {
-            setUploadMeta(err ? tempName : dest, ctx)
-            if (err)
-                console.error("couldn't rename temp to", dest, String(err))
-            else if (ctx.query.comment)
-                setCommentFor(dest, escapeHTML(String(ctx.query.comment)))
-            if (resumable)
-                delayedDelete(resumable, 0)
-        })
-    })
     const obj = { ctx, writeStream }
     events.emit('uploadStart', obj)
-    return obj.writeStream
+    const lockMiddleware = pendingPromise()
+    writeStream.once('close', async () => {
+        try {
+            if (ctx.req.aborted) {
+                if (resumable) // we don't want to be left with 2 temp files
+                    return delayedDelete(tempName, 0)
+                const sec = deleteUnfinishedUploadsAfter.get()
+                return _.isNumber(sec) && delayedDelete(tempName, sec)
+            }
+            let dest = fullPath
+            if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
+                const ext = extname(dest)
+                const base = dest.slice(0, -ext.length || Infinity)
+                let i = 1
+                do dest = `${base} (${i++})${ext}`
+                while (fs.existsSync(dest))
+            }
+            try {
+                await rename(tempName, dest)
+                ctx.state.uploadDestinationPath = dest
+                setUploadMeta(dest, ctx)
+                if (ctx.query.comment)
+                    setCommentFor(dest, escapeHTML(String(ctx.query.comment)))
+                if (resumable)
+                    delayedDelete(resumable, 0)
+                events.emit('uploadFinished', obj)
+            }
+            catch (err: any) {
+                setUploadMeta(tempName, ctx)
+                console.error("couldn't rename temp to", dest, String(err))
+            }
+        }
+        finally {
+            lockMiddleware.resolve()
+        }
+    })
+    return Object.assign(obj.writeStream, {
+        lockMiddleware
+    })
 
     async function overwriteAnyway() {
         if (ctx.query.overwrite === undefined // legacy pre-0.52
