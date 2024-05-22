@@ -47,6 +47,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         }
         return fail()
     }
+    // enforce minAvailableMb
     const fullPath = join(base.source!, path)
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
@@ -66,21 +67,26 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         catch(e: any) { // warn, but let it through
             console.warn("can't check disk size:", e.message || String(e))
         }
+    // optionally 'skip'
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT)
+    // if upload creates a folder, then add meta to it too
     if (fs.mkdirSync(dir, { recursive: true }))
         setUploadMeta(dir, ctx)
+    // use temporary name while uploading
     const keepName = basename(fullPath).slice(-200)
     let tempName = join(dir, 'hfs$upload-' + keepName)
     const resumable = fs.existsSync(tempName) && tempName
     if (resumable)
         tempName = join(dir, 'hfs$upload2-' + keepName)
+    // checks for resume feature
     let resume = Number(ctx.query.resume)
     const size = resumable && try_(() => fs.statSync(resumable).size)
     if (size === undefined) // stat failed
         return fail(HTTP_SERVER_ERROR)
     if (resume > size)
         return fail(HTTP_RANGE_NOT_SATISFIABLE)
+    // warn frontend about resume possibility
     if (!resume && resumable) {
         const timeout = 30
         notifyClient(ctx, 'upload.resumable', { [path]: size, expires: Date.now() + timeout * 1000 })
@@ -90,6 +96,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                     tempName = resumable
             }) )
     }
+    // append if resuming
     const resuming = resume && resumable
     if (!resuming)
         resume = 0
@@ -102,9 +109,11 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     cancelDeletion(tempName)
     ctx.state.uploadDestinationPath = tempName
     trackProgress()
+    // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
     const obj = { ctx, writeStream }
     events.emit('uploadStart', obj)
-    const lockMiddleware = pendingPromise()
+
+    const lockMiddleware = pendingPromise() // outside we need to know when all operations stopped
     writeStream.once('close', async () => {
         try {
             if (ctx.req.aborted) {
@@ -126,7 +135,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 ctx.state.uploadDestinationPath = dest
                 setUploadMeta(dest, ctx)
                 if (ctx.query.comment)
-                    setCommentFor(dest, escapeHTML(String(ctx.query.comment)))
+                    void setCommentFor(dest, escapeHTML(String(ctx.query.comment)))
                 if (resumable)
                     delayedDelete(resumable, 0)
                 events.emit('uploadFinished', obj)
