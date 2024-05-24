@@ -61,8 +61,7 @@ const apis: ApiHandlers = {
         if (isPluginRunning(id))
             return { msg: 'already running' }
         await stopPlugin(id)
-        await startPlugin(id)
-        return {}
+        return startPlugin(id).then(() => 0, e => new ApiError(HTTP_SERVER_ERROR, e.message))
     },
 
     async stop_plugin({ id }) {
