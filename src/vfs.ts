@@ -137,7 +137,7 @@ export async function getNodeByName(name: string, parent: VfsNode) {
                 }
             ret.rename = renameUnderPath(parent.rename, name)
         }
-        ret.source = enforceFinal('/', parent.source) + onDisk
+        ret.source = join(parent.source, onDisk)
         ret.original = undefined // overwrite in applyParentToChild, so we know this is not part of the vfs
         return ret
     }

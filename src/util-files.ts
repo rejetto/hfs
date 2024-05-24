@@ -1,8 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import fs, { readFile, stat } from 'fs/promises'
-import { Promisable, try_, tryJson, wait, isWindowsDrive } from './misc'
-import { promisify } from 'util'
+import { Promisable, try_, wait, isWindowsDrive } from './misc'
 import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
@@ -11,8 +10,6 @@ import { runCmd } from './util-os'
 import { once, Readable } from 'stream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
-// @ts-ignore
-import fsx from 'fs-x-attributes'
 
 export async function isDirectory(path: string) {
     try { return (await fs.stat(path)).isDirectory() }
@@ -154,20 +151,6 @@ export function createFileWithPath(path: string, options?: Parameters<typeof cre
 
 export function isValidFileName(name: string) {
     return !/[/*?<>|\\]/.test(name) && !dirTraversal(name)
-}
-
-const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
-export function storeFileAttr(path: string, k: string, v: any) {
-    return promisify(fsx.set)(path, FILE_ATTR_PREFIX + k, JSON.stringify(v))
-        .then(() => true, (e: any) => {
-            console.error("couldn't store metadata on", path, String(e.message || e))
-            return false
-        })
-}
-
-export async function loadFileAttr(path: string, k: string) {
-    return tryJson(String(await promisify(fsx.get)(path, FILE_ATTR_PREFIX + k)))
-        ?? undefined // normalize, as we get null instead of undefined on windows
 }
 
 // read and parse a file, caching unless timestamp has changed

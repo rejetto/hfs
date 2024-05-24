@@ -9,6 +9,7 @@ import yaml from 'yaml'
 import { argv, BUILD_TIMESTAMP, VERSION } from './const'
 import { createInterface } from 'readline'
 import { startPlugin, stopPlugin } from './plugins'
+import { purgeFileAttr } from './fileAttr'
 
 if (!argv.updating)
     try {
@@ -122,4 +123,8 @@ const commands = {
         params: '<name>',
         cb: stopPlugin,
     },
+    'purge-file-attr': {
+        params: '',
+        cb: purgeFileAttr,
+    }
 }
