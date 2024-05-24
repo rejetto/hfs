@@ -1,6 +1,8 @@
 import { t, useI18N } from './i18n'
-import { dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode } from './misc'
+import {
+    dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
+    pathEncode, closeDialog
+} from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
@@ -57,11 +59,20 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
         isFolder && !entry.web && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
+    const folder = entry.n.slice(0, -entry.name.length - 1)
     const props = [
         { id: 'name', label: t`Name`, value: entry.name },
         typeof s === 'number' && { id: 'size', label: t`Size`,
             value: h(Fragment, {}, formatBytes(s), h('small', {}, prefix(' (', s > 1024 && s.toLocaleString(), ')')) ) },
         entry.t && { id: 'timestamp', label: t`Timestamp`, value: entry.t.toLocaleString() },
+        folder && {
+            id: 'folder',
+            label: t`Folder`,
+            value: h(Link, {
+                to: location.pathname + folder + '/',
+                onClick: () => closeDialog(null, true)
+            }, folder.replaceAll('/', ' / '))
+        },
     ]
     const res = hfsEvent('fileMenu', { entry, menu, props })
     if (res)

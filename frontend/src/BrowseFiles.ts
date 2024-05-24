@@ -193,8 +193,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerDir = isFolder ? '' : n.substring(0, (n.lastIndexOf('/') || -1) +1) // n works both for files and links
-    const containerName = containerDir && n.slice(0, -name.length)
+    const containerName = n.slice(0, -name.length)
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
@@ -219,7 +218,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
                 },
             }),
             h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                ...isFolder || entry.web ? [ // internal navigation, use Link component
+                isFolder || entry.web ? h(Fragment, {}, // internal navigation, use Link component
                     h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
                         ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
                     // popup button is here to be able to detect link-wrapper:hover
@@ -227,11 +226,8 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
                         className: 'popup-menu-button',
                         onClick: fileMenu
                     }, hIcon('menu'), t`Menu`)
-                ] : containerName ? [
-                    h('a', { href: uri, onClick, tabIndex: -1, 'aria-hidden': true }, ico),
-                    h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
-                    h('a', { href: uri, onClick, ...ariaProps }, name)
-                ] : [h('a', { href: uri, onClick, target: entry.target, ...ariaProps }, ico, name)],
+                ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps },
+                    ico, h('span', { className: 'container-folder' }, containerName), name ),
             ),
             h(CustomCode, { name: 'afterEntryName', entry }),
             entry.comment && h('div', { className: 'entry-comment' }, entry.comment),

@@ -282,6 +282,8 @@ ul.dir {
         border-bottom: 1px solid var(--faint-contrast);
         &:nth-of-type(odd) { background-color: var(--ghost-contrast); }
 
+        .container-folder { font-size: smaller }
+
         input[type=checkbox] {
             margin-right: 1em;
         }
