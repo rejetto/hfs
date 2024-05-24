@@ -143,7 +143,7 @@ export function renderName({ row, value }: any) {
         errorIcon(row.error),
         repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
             : !repo ? value
-                : with_(repo?.split('/'), arr => h(Box, { sx: { textWrap: 'wrap' } },
+                : with_(repo?.split('/'), arr => h('span', { style: { textWrap: 'wrap' } },
                     h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, arr[1].replace(/hfs-/, '')),
                     '\xa0by ', arr[0]
                 ))
