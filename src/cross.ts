@@ -136,11 +136,11 @@ export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Tru
 }
 
 export function enforceFinal(sub:string, s:string, evenEmpty=false) {
-    return evenEmpty && !s || !s.endsWith(sub) ? s + sub : s
+    return (s ? !s.endsWith(sub) : evenEmpty) ? s + sub : s
 }
 
 export function enforceStarting(sub:string, s:string, evenEmpty=false) {
-    return evenEmpty && !s || !s.startsWith(sub) ? sub + s : s
+    return (s ? !s.startsWith(sub) : evenEmpty) ? sub + s : s
 }
 
 export function removeStarting(sub: string, s: string) {
