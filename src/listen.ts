@@ -122,9 +122,10 @@ const considerHttps = debounceAsync(async () => {
                 return httpsSrv.error = "cannot read " + namesForOutput[cantRead]
         }
     }
-    catch(e) {
-        httpsSrv!.error = "bad private key or certificate"
-        console.log("failed to create https server: check your private key and certificate", String(e))
+    catch(e: any) {
+        httpsSrv ||= Object.assign(https.createServer({}), { name: 'https' }) // a dummy container, in case creation failed because of certificate errors
+        httpsSrv.error = "bad private key or certificate"
+        console.error("failed to create https server: check your private key and certificate", e.message)
         return
     }
     port = await startServer(httpsSrv, { port, host: listenInterface.get() })
