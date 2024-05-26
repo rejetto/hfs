@@ -7,7 +7,7 @@ import { mapPlugins } from './plugins'
 
 const FILE = 'custom.html'
 
-export const customHtmlSections: ReadonlyArray<string> = ['beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
+export const customHtmlSections: ReadonlyArray<string> = ['style', 'beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
     'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead']
 
 export const customHtmlState = proxy({

@@ -103,7 +103,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         const { authenticate } = ctx.query
         const downloadManagerDetected = /DAP|FDM|[Mm]anager/.test(ctx.get('user-agent'))
         if (downloadManagerDetected || authenticate)
-            return ctx.set('WWW-Authenticate', authenticate || 'Basic') // we support basic authentication
+            return ctx.set('WWW-Authenticate', authenticate || 'Basic') // basic authentication for DMs getting the folder as a zip
         ctx.state.serveApp = true
         return serveFrontendFiles(ctx, next)
     }
