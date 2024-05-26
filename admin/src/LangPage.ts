@@ -55,7 +55,7 @@ export default function LangPage() {
                     h(IconBtn, {
                         icon: Delete,
                         title: row.embedded ? "Cannot delete (embedded)" : "Delete",
-                        confirm: "Delete?",
+                        confirm: `Delete language code "${row.code}"?`,
                         disabled: row.embedded,
                         async onClick() {
                             await apiCall('del_lang', _.pick(row, 'code'))

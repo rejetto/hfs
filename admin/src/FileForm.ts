@@ -117,7 +117,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             h(IconBtn, {
                 icon: Delete,
                 title: "Delete",
-                confirm: "Delete?",
+                confirm: `Delete ${file.name}?`,
                 disabled: isRoot,
                 onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(({ errors: [err] }) => {
                     if (err)

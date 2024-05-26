@@ -42,7 +42,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             !add && h(IconBtn, {
                 icon: Delete,
                 title: "Delete",
-                confirm: "Delete?",
+                confirm: `Delete ${account.username}?`,
                 ...username === account.username && { disabled: true, title: "Cannot delete current account" },
                 onClick: () => apiCall('del_account', { username: account.username }).then(reload)
             }),
