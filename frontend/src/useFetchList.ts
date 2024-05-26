@@ -2,7 +2,7 @@
 
 import { DirEntry, DirList, state, useSnapState } from './state'
 import { useEffect, useRef } from 'react'
-import { apiEvents } from '@hfs/shared/api'
+import { apiCall, apiEvents } from '@hfs/shared/api'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
@@ -91,7 +91,10 @@ export default function useFetchList() {
                             state.stopSearch?.()
                             state.error = xlate(error, HTTP_MESSAGES)
                             if (error === HTTP_UNAUTHORIZED && snap.username)
-                                void alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
+                                apiCall('refresh_session').then(x => {
+                                    if (x.username) // check if username was actually considered (or instead session was refused)
+                                        void alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
+                                })
                             state.loginRequired = error === HTTP_UNAUTHORIZED
                             lastReq.current = null
                             continue
