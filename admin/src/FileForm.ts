@@ -163,7 +163,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_see', "If you can't see, you may still download with a direct link"),
             perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? true : 12 }),
-            perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
+            perm('can_list', undefined, { contentText: "subfolders" }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
             showSize && { k: 'size', comp: DisplayField, sm: 6, lg: 4, toField: formatBytes },
@@ -208,7 +208,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
 }
 
 function perm2word(perm: string) {
-    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip' })
+    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip', list: 'access folder' })
 }
 
 interface WhoFieldProps extends FieldProps<Who | undefined> {
