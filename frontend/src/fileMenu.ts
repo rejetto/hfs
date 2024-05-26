@@ -86,9 +86,9 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             : [ev.pageX, ev.pageY - scrollY] as [number, number],
         Content() {
             const {t} = useI18N()
-            const details = useApi('get_file_details', { uris: [entry.uri] }).data
+            const details = useApi('get_file_details', { uris: [entry.uri] }).data?.details?.[0]
             const showProps = [ ...props,
-                with_(details?.[0]?.upload, x => x && { id: 'uploader', label: t`Uploader`, value: x.ip + prefix(' (', x.username, ')') })
+                with_(details?.upload, x => x && { id: 'uploader', label: t`Uploader`, value: x.ip + prefix(' (', x.username, ')') })
             ]
             return h(Fragment, {},
                 h('dl', { className: 'file-dialog-properties' },
