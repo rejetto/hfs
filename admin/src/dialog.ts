@@ -15,6 +15,7 @@ import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
 import _ from 'lodash'
 import { err2msg } from './misc'
+import { useSnapState } from './state'
 export * from '@hfs/shared/dialogs'
 
 dialogsDefaults.Container = function Container(d: DialogOptions) {
@@ -68,7 +69,8 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
 }
 
 export function useDialogBarColors() {
-    return useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
+    const { darkTheme } = useSnapState()
+    return darkTheme ?? useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
 }
 
 type AlertType = 'error' | 'warning' | 'info' | 'success'
