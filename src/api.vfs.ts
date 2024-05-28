@@ -36,7 +36,7 @@ const apis: ApiHandlers = {
                 : { size: source ? -1 : undefined }
             if (copyStats.mtime && Number(copyStats.mtime) === Number(copyStats.ctime))
                 delete copyStats.mtime
-            const inherited = node.parent && permsFromParent(node.parent, node.original || node)
+            const inherited = node.parent && permsFromParent(node.parent, {})
             const byMasks = node.original && _.pickBy(node, (v,k) =>
                 v !== (node.original as any)[k] // something is changing me...
                 && !(inherited && k in inherited) // ...and it's not inheritance...
