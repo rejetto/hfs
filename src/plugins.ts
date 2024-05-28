@@ -139,8 +139,11 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
         if (path.startsWith(PLUGINS_PUB_URI)) {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
             const name = a.shift()!
-            if (plugins.hasOwnProperty(name)) // do it only if the plugin is loaded
+            if (plugins.hasOwnProperty(name)) { // do it only if the plugin is loaded
+                if (ctx.get('referer')?.endsWith('/'))
+                    ctx.state.considerAsGui = true
                 await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), MIME_AUTO)
+            }
             return
         }
         if (ctx.body === undefined && ctx.status === HTTP_NOT_FOUND) // no response was provided by plugins, so we'll do

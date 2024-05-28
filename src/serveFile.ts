@@ -7,7 +7,7 @@ import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONT
 import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { CFG, Dict, makeMatcher, matches } from './misc'
+import { CFG, Dict, makeMatcher, matches, with_ } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'
@@ -37,6 +37,8 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     ctx.state.vfsNode = node // useful to tell service files from files shared by the user
     if ('dl' in ctx.query) // please, download
         ctx.attachment(name)
+    else if (ctx.get('referer')?.endsWith('/') && with_(ctx.get('accept'), x => x && !x.includes('text')))
+        ctx.state.considerAsGui = true
     await serveFile(ctx, source||'', mimeString)
 
     if (await limitDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
