@@ -182,8 +182,8 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
         const dontShow = [perm, ...onlyTruthy(_.map(show, (v,k) => !v && k))]
         const others = _.difference(Object.keys(defaultPerms), dontShow)
         let inherit = file.inherited?.[perm] ?? defaultPerms[perm]
-        if (typeof inherit === 'string' && _.get(show, inherit) === false) // is 'inherit' referring another permission that is not displayed?
-            inherit = _.get(values, inherit) ?? _.get(defaultPerms, inherit)! // then show its value instead
+        while (typeof inherit === 'string' && _.get(show, inherit) === false) // is 'inherit' referring another permission that is not displayed?
+            inherit = _.get(values, inherit) ?? _.get(file.inherited, inherit) ?? _.get(defaultPerms, inherit)! // then show its value instead
         return {
             comp: WhoField,
             k: perm, sm: 6, xl: 4,
