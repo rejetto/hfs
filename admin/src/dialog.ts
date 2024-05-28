@@ -149,12 +149,12 @@ type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
 export async function formDialog<T>(
     { form, values, ...options }: Omit<DialogOptions, 'Content'> & {
         values?: Partial<T>,
-        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>),
+        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>), // allow callback form
     },
 ) : Promise<T> {
     return new Promise(resolve => {
         const dialog = newDialog({
-            className: 'dialog-confirm',
+            className: 'dialog-form',
             onClose: resolve,
             ...options,
             Content() {
@@ -172,11 +172,11 @@ export async function formDialog<T>(
                                 return newV
                             })
                         },
-                        save: {
-                            ...props.save,
+                        save: props.save !== false && {
                             onClick() {
                                 dialog.close(curValues)
-                            }
+                            },
+                            ...props.save,
                         }
                     })
                 )

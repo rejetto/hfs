@@ -92,8 +92,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                     || !row.config && "No options available for this plugin",
                 progress: false,
                 async onClick() {
-                    const pl = await apiCall('get_plugin', { id })
-                    let lastSaved = pl.config
+                    const { config: lastSaved } = await apiCall('get_plugin', { id })
                     const values = await formDialog({
                         title: `Options for ${id}`,
                         form: values => ({
@@ -103,7 +102,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                             barSx: { gap: 1 },
                             addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
                         }),
-                        values: pl.config,
+                        values: lastSaved,
                         dialogProps: _.merge({ sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
                             row.configDialog),
                     })
