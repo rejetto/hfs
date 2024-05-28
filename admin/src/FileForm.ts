@@ -63,14 +63,14 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
     const barColors = useDialogBarColors()
     const { movingFile } = useSnapState()
 
-    const needSourceWarning = !hasSource && "Works only on folders with source! "
+    const needSourceWarning = !hasSource && h(Box, { color: 'warning.main', component: 'span' }, "Works only on folders with disk source! ")
     const show: Record<keyof VfsPerms, boolean> = {
         can_read: !isLink,
         can_see: true,
         can_archive: !isLink,
         can_list: isDir,
-        can_upload: isDir && hasSource,
-        can_delete: isDir && hasSource,
+        can_upload: isDir,
+        can_delete: isDir,
     }
     return h(Form, {
         values,
@@ -146,9 +146,9 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
                 : isDir && hasSource && h(Alert, { severity: 'info' }, `To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"`),
             !isRoot && { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
             isLink ? { k: 'url', label: "URL", lg: 12, required: true }
-                : { k: 'source', label: "Load content from disk", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
-                    placeholder: "no",
-                    helperText: !values.source ? "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk."
+                : { k: 'source', label: "Disk source", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
+                    placeholder: "none",
+                    helperText: !values.source ? "This field is currently empty, and thus this element is a virtual-folder, no upload or delete is possible here."
                         : isDir ? "Content from this path on disk will be listed, but you can also add more" : undefined,
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
