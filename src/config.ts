@@ -137,7 +137,7 @@ export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
         if (!newCfg.hasOwnProperty(k))
             apply(k, newCfg[k], true)
     started = true
-    events.emit('config ready')
+    events.emit('configReady')
     if (version !== VERSION) // be sure to save version
         saveConfigAsap()
 

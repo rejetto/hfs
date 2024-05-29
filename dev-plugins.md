@@ -52,25 +52,25 @@ All the following properties are optional unless otherwise specified.
 - `preview: string | string[]` one or more URLs to images you want to show before your plugin is downloaded. (JSON syntax) 
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. (JSON syntax)
 - `repo: string | object` pointer to a GitHub repo where this plugin is hosted. (JSON syntax)
-  - the string form is for GitHub repos. Example: "rejetto/file-icons"
-  - the object form will point to other custom repo. Object properties:
-    - `web: string` link to a web page 
-    - `main: string` link to the plugin.js (can be relative to `web`)
-    - `zip: string` link to the zip with the whole plugin (can be relative to `web`)
-    - `zipRoot: string` optional, in case the plugin in the zip is inside a folder
-    
-    Example: 
-    ```
-    { 
-      "web": "https://github.com/rejetto/file-icons", 
-      "zip": "/archive/refs/heads/main.zip",
-      "zipRoot: "file-icons-main/dist", 
-      "main": "https://raw.githubusercontent.com/rejetto/file-icons/main/dist/plugin.js" 
-    }
-    ```
-    Note that in this example we are pointing to a github repo just for clarity. You are not supposed to use this
-    complicated object form to link github, use the string form.
-    Plugins with custom repos are not included in search results, but the update feature will still work.   
+    - the string form is for GitHub repos. Example: "rejetto/file-icons"
+    - the object form will point to other custom repo. Object properties:
+        - `web: string` link to a web page
+        - `main: string` link to the plugin.js (can be relative to `web`)
+        - `zip: string` link to the zip with the whole plugin (can be relative to `web`)
+        - `zipRoot: string` optional, in case the plugin in the zip is inside a folder
+
+      Example:
+      ```
+      { 
+        "web": "https://github.com/rejetto/file-icons", 
+        "zip": "/archive/refs/heads/main.zip",
+        "zipRoot: "file-icons-main/dist", 
+        "main": "https://raw.githubusercontent.com/rejetto/file-icons/main/dist/plugin.js" 
+      }
+      ```
+      Note that in this example we are pointing to a github repo just for clarity. You are not supposed to use this
+      complicated object form to link github, use the string form.
+      Plugins with custom repos are not included in search results, but the update feature will still work.
 
 WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
@@ -139,18 +139,18 @@ Based on `type`, other properties are supported:
     - `options: { [label]: AnyJsonValue }`
 - `multiselect` it's like `select` but its result is an array of values.
 - `array` list of objects
-  - `fields`: an object of `FieldDescriptor`s, i.e. same format as `config`.
-    This field will be use for both the configuration of the grid's column, and the form's field.
-    Other than properties of `FieldDescriptor` you get these extra properties:
-    - `$column`: where you can put all the properties you want specifically to be set on the [grid's column](https://mui.com/x/api/data-grid/grid-col-def/).
-    - `$width`: a shortcut property that can substitute `$column: { width }` or `$column: { flex }`.
-      By default, a column gets flex:1 unless you specify $width. A value of 8 and higher is considered width's pixels,
-      while lower are flex-values.
+    - `fields`: an object of `FieldDescriptor`s, i.e. same format as `config`.
+      This field will be use for both the configuration of the grid's column, and the form's field.
+      Other than properties of `FieldDescriptor` you get these extra properties:
+        - `$column`: where you can put all the properties you want specifically to be set on the [grid's column](https://mui.com/x/api/data-grid/grid-col-def/).
+        - `$width`: a shortcut property that can substitute `$column: { width }` or `$column: { flex }`.
+          By default, a column gets flex:1 unless you specify $width. A value of 8 and higher is considered width's pixels,
+          while lower are flex-values.
 - `real_path` path to server disk
-  - `files: boolean` allow to select a file. Default is `true`.
-  - `folders: boolean` allow to select a folder. Default is `false`.
-  - `defaultPath: string` what path to start from if no value is set. E.g. __dirname if you want to start with your plugin's folder.
-  - `fileMask: string` restrict files that are displayed. E.g. `*.jpg|*.png`
+    - `files: boolean` allow to select a file. Default is `true`.
+    - `folders: boolean` allow to select a folder. Default is `false`.
+    - `defaultPath: string` what path to start from if no value is set. E.g. __dirname if you want to start with your plugin's folder.
+    - `fileMask: string` restrict files that are displayed. E.g. `*.jpg|*.png`
 - `username`
 
 ## api object
@@ -162,7 +162,7 @@ The `api` object you get as parameter of the `init` contains the following:
 - `setConfig(key: string, value: any)` set plugin's config value.
 
 - `subscribeConfig(key: string, callback: (value: any) => void): Unsubscriber`
-  will call `callback` with initial value and then at each change.  
+  will call `callback` with initial value and then at each change.
 
 - `getHfsConfig(key: string): any` similar to getConfig, but retrieves HFS' config instead.
 
@@ -173,20 +173,20 @@ The `api` object you get as parameter of the `init` contains the following:
 - `getConnections: Connections[]` retrieve current list of active connections.
 
 - `storageDir: string` folder where a plugin is supposed to store run-time data. This folder is preserved during
-  an update of the plugin, while the rest could be deleted. 
+  an update of the plugin, while the rest could be deleted.
 
-- `events` this is the main events emitter used by HFS. 
-  These are backend side events, not to be confused with frontend ones. It's not the standard EventEmitter class, 
+- `events` this is the main events emitter used by HFS.
+  These are backend side events, not to be confused with frontend ones. It's not the standard EventEmitter class,
   and the API is slightly different.
-  
-  - `events.on(name: string, listener: Callback): Callback` 
-   
-    call your listener every time the event is emitted. 
-    The returned callback will unsubscribe the event.
-    
-  - `events.once(name: string, listener?: Callback): Promise<eventArguments>` 
-    
-    when the event is emitted, your (optional) listener is called, and the returned promise is resolved. 
+
+    - `events.on(name: string, listener: Callback): Callback`
+
+      call your listener every time the event is emitted.
+      The returned callback will unsubscribe the event.
+
+    - `events.once(name: string, listener?: Callback): Promise<eventArguments>`
+
+      when the event is emitted, your (optional) listener is called, and the returned promise is resolved.
 
 - `require: function` use this instead of standard `require` function to access modules already loaded by HFS. Example:
   ```js
@@ -199,9 +199,9 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `customApiCall: (method: string, ...params) => any[]` this will invoke other plugins if they define `method`
   exported inside `customApi: object`
-  
+
 - `openDb: (filename, options) => Promise<{ get, put, del, close, unlink, sublevel }>` LevelDB-like class for storage.
-  Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details. 
+  Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
 
 ## Front-end specific
 
@@ -215,25 +215,25 @@ The HFS objects contains many properties:
 - `useApi`
 - `reloadList`
 - `logout`
-- `prefixUrl: string` normally an empty string, it will be set in case a [reverse-proxy wants to mount HFS on a path](https://github.com/rejetto/hfs/wiki/Reverse-proxy).  
+- `prefixUrl: string` normally an empty string, it will be set in case a [reverse-proxy wants to mount HFS on a path](https://github.com/rejetto/hfs/wiki/Reverse-proxy).
 - `state` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
 - `watchState: (key: string, callback)=>function`
-  - watch the `key` property of the state object above
-  - `callback(newValue)` will be called at each change
-  - use returned callback to stop watching
+    - watch the `key` property of the state object above
+    - `callback(newValue)` will be called at each change
+    - use returned callback to stop watching
 - `React` whole React object, as for `require('react')` (JSX syntax is not supported here)
 - `h` shortcut for React.createElement
 - `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
 - `_` [lodash library](https://lodash.com/docs/)
 - `toast: (message: string | ReactElement, type: ToastType='info')`
-  - show a brief message that doesn't steal focus
-  - `ToastType = 'error' | 'warning' | 'info' | 'success'`
+    - show a brief message that doesn't steal focus
+    - `ToastType = 'error' | 'warning' | 'info' | 'success'`
 - `dialogLib` this exposes all functions available in [dialog.ts](https://github.com/rejetto/hfs/blob/main/frontend/src/dialog.ts), for example alertDialog and newDialog. These are not documented yet, and subject to change without notification, but you can study the sources if you are interested in using them.
 - `misc` many functions and constants available in [cross.ts](https://github.com/rejetto/hfs/blob/main/src/cross.ts). These are not documented, probably never will, and are subject to change without notifications, but you can study the sources if you are interested in using them.
 - `navigate: (uri: string): void` use this if you have to change the page address without causing reload
-- `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts. 
+- `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts.
 - `Icon: ReactComponent` Properties:
-  - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
+    - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
 - `useBatch: (worker, job) => any`
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
@@ -259,11 +259,11 @@ Some frontend-events can return Html, which can be expressed in several ways
 - as DOM Nodes, as for document.createElement()
 - as ReactElement
 - as array of ReactNode
-- null, undefined, false and empty-string will just be discarded 
+- null, undefined, false and empty-string will just be discarded
 
 These events will receive a `def` property, with the default content that will be displayed if no callback return
 a valid output. You can decide to embed such default content inside your content.
-You can produce output for such events also by adding sections (with same name as the event) to file `custom.html`. 
+You can produce output for such events also by adding sections (with same name as the event) to file `custom.html`.
 
 This is a list of available frontend-events, with respective object parameter and output.
 
@@ -288,9 +288,9 @@ This is a list of available frontend-events, with respective object parameter an
         - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
     - output `Html`
 - `entry`
-  - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
-  - parameter `{ entry: Entry }` (refer above for Entry object)
-  - output `Html`
+    - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
+    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - output `Html`
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
     - parameter `{ entry: Entry }` (refer above for Entry object)
@@ -307,7 +307,7 @@ This is a list of available frontend-events, with respective object parameter an
     - output `Html`
 - `fileMenu`
     - add or manipulate entries of the menu. If you return something, that will be added to the menu.
-      You can also delete or replace the content of the `menu` array.   
+      You can also delete or replace the content of the `menu` array.
     - parameter `{ entry: Entry, menu: FileMenuEntry[], props: FileMenuProp[] }`
     - output `undefined | FileMenuEntry | FileMenuEntry[]`
       ```typescript
@@ -332,18 +332,88 @@ This is a list of available frontend-events, with respective object parameter an
       ```
       or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
 - `fileShow`
-  - you receive an entry of the list, and optionally produce React Component for visualization.
-  - parameter `{ entry: Entry }` (refer above for Entry object)
-  - output `ReactComponent`
+    - you receive an entry of the list, and optionally produce React Component for visualization.
+    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - output `ReactComponent`
 - `menuZip`
-  - parameter `{ def: ReactNode }` 
-  - output `Html`
+    - parameter `{ def: ReactNode }`
+    - output `Html`
 - `userPanelAfterInfo`
-  - no parameter
-  - output `Html`
+    - no parameter
+    - output `Html`
 - `uriChanged`
-  - DEPRECATED: use `watchState('uri', callback)` instead.  
-  - parameter `{ uri: string, previous: string }`
+    - DEPRECATED: use `watchState('uri', callback)` instead.
+    - parameter `{ uri: string, previous: string }`
+
+## Back-end events
+
+These events happen in the server, and not in the browser.
+You can listen to these events accessing `api.events` in the `init` function of the plugin.
+E.g.:
+```js
+exports.init = function(api) {
+    const cancelListening = api.events.on('spam', () => 'spam received!')
+    // pass the canceller callback to the 'unload', so the subscription will be correctly disposed when the plugin is stopped   
+    return { unload: cancelListening }
+}
+```
+
+Of course the example above can be written more shortly as follows, but they are equivalent.
+
+```js
+exports.init = api => ({
+    unload: api.events.on('spam', () => 'spam received!')
+})
+```
+
+### Async
+
+Only where specified, events support async listeners, like
+```js
+api.events.on('deleting', async () => your-code-here)
+```
+
+### Stop, the way you prevent default behavior
+
+Some events allow you to stop their default behavior, by returning `false`.
+This is reported in the list below with the word "stoppable".
+
+```js
+api.events.on('deleting', ({ node }) => node.source.endsWith('.jpg'))
+```
+
+The example above will return false only when the file is NOT ending with .jpg, thus allowing only jpg files to be deleted.
+
+### Available events
+
+This section is still partially documented, and you may need to have a look at the sources for further details.
+
+- `deleting`
+    - parameters: { node, ctx }
+    - async supported
+    - stoppable
+- `logout`
+- `config ready`
+- `config.KEY` where KEY is the key of a config that has changed
+- `connectionClosed`
+- `connection`
+- `connectionUpdated`
+- `console`
+- `dynamicDnsError`
+- `httpsReady`
+- `spam`
+- `log`
+- `error_log`
+- `failedLogin`
+- `accountRenamed`
+- `pluginDownload`
+- `pluginUpdated`
+- `pluginInstalled`
+- `pluginUninstalled`
+- `pluginStopped`
+- `pluginStarted`
+- `uploadStart`
+- `uploadFinished`
 
 ## Other files
 
@@ -354,7 +424,7 @@ These files have a special meaning:
 
 - `public` folder, and its files will be accessible at `/~/plugins/PLUGIN_NAME/FILENAME`
 - `custom.html` file, that works exactly like the main `custom.html`. Even when same section is specified
-  by 2 (or more) files, both contents are appended.  
+  by 2 (or more) files, both contents are appended.
 
 ## Dependencies
 
@@ -396,7 +466,7 @@ Most React developers are used to JSX, which is not (currently) supported here.
 If you want, you can try solutions to JSX support, like transpiling.
 Anyway, React is not JSX, and can be easily used without.
 
-Any time in JSX you do 
+Any time in JSX you do
 ```jsx
 <button onClick={() => console.log('hi')}>Say hi</button>
 ```
@@ -432,77 +502,77 @@ HFS._.set(HFS.lang, 'en.translate.Options', 'Settings')
 ```
 
 This works because all translations are stored inside `HFS.lang`.
-Using `HFS._.set` is not necessary, but in this case is convenient, because the language-code key may not exist. 
+Using `HFS._.set` is not necessary, but in this case is convenient, because the language-code key may not exist.
 
-If you want to override a text regardless of the language, use the special language-code `all`. 
+If you want to override a text regardless of the language, use the special language-code `all`.
 
 ## API version history
 
 - 8.82 (v0.53.0)
-  - api.openDb 
-  - frontend event: menuZip
-  - config.type:username
-  - api.events class has changed
-  - frontend event "fileMenu": changed props format
+    - api.openDb
+    - frontend event: menuZip
+    - config.type:username
+    - api.events class has changed
+    - frontend event "fileMenu": changed props format
 - 8.72 (v0.52.0)
-  - HFS.toast
-  - HFS.misc functions
-  - HFS.state.uri
-  - ~~frontend event: uriChanged~~
+    - HFS.toast
+    - HFS.misc functions
+    - HFS.state.uri
+    - ~~frontend event: uriChanged~~
 - 8.65 (v0.51.0)
-  - plugin's own hfs-lang files
-  - HFS.state.props.can_overwrite
-  - ctx.state.considerAsGui
-  - frontend event: userPanelAfterInfo
-  - breaking: moved custom properties from ctx to ctx.state
-  - HFS.navigate
-  - internationalization
+    - plugin's own hfs-lang files
+    - HFS.state.props.can_overwrite
+    - ctx.state.considerAsGui
+    - frontend event: userPanelAfterInfo
+    - breaking: moved custom properties from ctx to ctx.state
+    - HFS.navigate
+    - internationalization
 - 8.5 (v0.49.0)
-  - frontend event: entry
-  - exports.onDirEntry: entry.icon
-  - customApiCall supports any number of parameters
+    - frontend event: entry
+    - exports.onDirEntry: entry.icon
+    - customApiCall supports any number of parameters
 - 8.4 (v0.48.2)
-  - HFS.fileShow
-  - api.Const (api.const is now deprecated)
+    - HFS.fileShow
+    - api.Const (api.const is now deprecated)
 - 8.3 (v0.47.0)
-  - HFS.useBatch
-  - FileMenuEntry.id, .subLabel
+    - HFS.useBatch
+    - FileMenuEntry.id, .subLabel
 - 8.23 (v0.46.0)
-  - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
-  - platform-dependent distribution
-  - HFS.watchState, emit, useApi
-  - api.storageDir, customApiCall
-  - exports.depend
-  - frontend event: fileShow
+    - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
+    - platform-dependent distribution
+    - HFS.watchState, emit, useApi
+    - api.storageDir, customApiCall
+    - exports.depend
+    - frontend event: fileShow
 - 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
-  - full URL support for frontend_js and frontend_css
-  - custom.html
-  - entry.cantOpen, ext, isFolder
-  - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
-  - second parameter of onEvent is now deprecated
-  - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
-  - frontend event: entryIcon
+    - full URL support for frontend_js and frontend_css
+    - custom.html
+    - entry.cantOpen, ext, isFolder
+    - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
+    - second parameter of onEvent is now deprecated
+    - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
+    - frontend event: entryIcon
 - 8 (v0.43.0)
-  - entry.name & .uri
-  - tools.dialogLib
-  - HFS.getPluginConfig()
+    - entry.name & .uri
+    - tools.dialogLib
+    - HFS.getPluginConfig()
 - 7 (v0.42.0)
-  - frontend event: fileMenu
-  - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
+    - frontend event: fileMenu
+    - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
 - 6 (v0.38.0)
-  - config.frontend
+    - config.frontend
 - 5 (v0.33.0)
-  - frontend event: afterEntryName
+    - frontend event: afterEntryName
 - 4.1 (v0.23.4)
-  - config.type:array added $width, $column and fixed height 
+    - config.type:array added $width, $column and fixed height
 - 4 (v0.23.0)
-  - config.type:real_path
-  - api.subscribeConfig
-  - api.setConfig
-  - api.getHfsConfig
+    - config.type:real_path
+    - api.subscribeConfig
+    - api.setConfig
+    - api.getHfsConfig
 - 3 (v0.21.0)
-  - config.defaultValue
-  - async for init/unload
-  - api.log
+    - config.defaultValue
+    - async for init/unload
+    - api.log
 - 2
-  - config.type:array
+    - config.type:array

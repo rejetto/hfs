@@ -132,7 +132,7 @@ const considerHttps = debounceAsync(async () => {
     if (!port) return
     httpsSrv.on('connection', newConnection)
     printUrls(httpsSrv.name)
-    events.emit('https ready')
+    events.emit('httpsReady')
     defaultBaseUrl.proto = 'https'
     defaultBaseUrl.port = getCurrentPort(httpsSrv) ?? 0
 })

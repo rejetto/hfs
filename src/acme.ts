@@ -111,7 +111,7 @@ export const makeCert = debounceAsync(async (domain: string, email?: string, alt
 const acmeDomain = defineConfig('acme_domain', '')
 const acmeEmail = defineConfig('acme_email', '')
 const acmeRenew = defineConfig('acme_renew', false) // handle config changes
-events.once('https ready', () => repeat(HOUR, renewCert))
+events.once('httpsReady', () => repeat(HOUR, renewCert))
 
 // checks if the cert is near expiration date, and if so renews it
 const renewCert = debounceAsync(async () => {
