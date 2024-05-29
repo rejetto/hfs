@@ -116,7 +116,12 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     trackProgress()
     // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
     const obj = { ctx, writeStream }
-    events.emit('uploadStart', obj)
+    const resEvent = events.emit('uploadStart', obj)
+    if (resEvent?.preventDefault())
+        return writeStream.close(() => {
+            try { fs.unlinkSync(writeStream.path) }
+            catch {}
+        })
 
     const lockMiddleware = pendingPromise() // outside we need to know when all operations stopped
     writeStream.once('close', async () => {
@@ -144,6 +149,9 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 if (resumable)
                     delayedDelete(resumable, 0)
                 events.emit('uploadFinished', obj)
+                if (resEvent) for (const cb of resEvent)
+                    if (_.isFunction(cb))
+                        cb(obj)
             }
             catch (err: any) {
                 setUploadMeta(tempName, ctx)

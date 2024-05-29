@@ -170,7 +170,7 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `Const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
 
-- `getConnections: Connections[]` retrieve current list of active connections.
+- `getConnections(): Connections[]` retrieve current list of active connections.
 
 - `storageDir: string` folder where a plugin is supposed to store run-time data. This folder is preserved during
   an update of the plugin, while the rest could be deleted.
@@ -188,7 +188,7 @@ The `api` object you get as parameter of the `init` contains the following:
 
       when the event is emitted, your (optional) listener is called, and the returned promise is resolved.
 
-- `require: function` use this instead of standard `require` function to access modules already loaded by HFS. Example:
+- `require(module: string)` use this instead of standard `require` function to access modules already loaded by HFS. Example:
   ```js
   const { watchLoad } = api.require('./watchLoad')
   ```
@@ -197,10 +197,10 @@ The `api` object you get as parameter of the `init` contains the following:
   If you need something for your plugin that's not covered by `api`, you can test it with this method, but you should
   then discuss it on the forum because an addition to `api` is your best option for making a future-proof plugin.
 
-- `customApiCall: (method: string, ...params) => any[]` this will invoke other plugins if they define `method`
+- `customApiCall(method: string, ...params): any[]` this will invoke other plugins if they define `method`
   exported inside `customApi: object`
 
-- `openDb: (filename, options) => Promise<{ get, put, del, close, unlink, sublevel }>` LevelDB-like class for storage.
+- `openDb(filename, options): Promise<{ get, put, del, close, unlink, sublevel }>` LevelDB-like class for storage.
   Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
 
 ## Front-end specific
@@ -390,6 +390,7 @@ This section is still partially documented, and you may need to have a look at t
 
 - `deleting`
     - parameters: { node, ctx }
+    - called just before trying to delete a file or folder (which still may not exist and fail)
     - async supported
     - stoppable
 - `logout`
@@ -413,6 +414,9 @@ This section is still partially documented, and you may need to have a look at t
 - `pluginStopped`
 - `pluginStarted`
 - `uploadStart`
+    - parameters: { ctx, writeStream } 
+    - stoppable
+    - return: callback to call when upload is finished
 - `uploadFinished`
 
 ## Other files
