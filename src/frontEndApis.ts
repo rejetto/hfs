@@ -78,6 +78,8 @@ export const frontEndApis: ApiHandlers = {
         if (!hasPermission(node, 'can_delete', ctx))
             throw new ApiError(HTTP_UNAUTHORIZED)
         try {
+            if (await events.emitAsync('deleting', { node, ctx }).preventDefault())
+                return null // stop
             await rm(node.source, { recursive: true })
             void setCommentFor(node.source, '')
             return {}

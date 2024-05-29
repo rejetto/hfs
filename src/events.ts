@@ -38,16 +38,23 @@ export class BetterEventEmitter {
     emit(event: string, ...args: any[]) {
         let cbs = this.listeners.get(event)
         if (!cbs?.size) return
-        const ret = []
+        const ret: any[] = []
         for (const cb of cbs) {
             const res = cb(...args)
             if (res !== undefined)
                 ret.push(res)
         }
-        return ret
+        return Object.assign(ret, {
+            preventDefault: () => ret.some(r => r === false)
+        })
     }
     emitAsync(event: string, ...args: any[]) {
-        return Promise.all(this.emit(event, ...args) || [])
+        const ret = Promise.all(this.emit(event, ...args) || [])
+        return Object.assign(ret, {
+            async preventDefault() {
+                return (await ret).some((x: any) => x === false)
+            }
+        })
     }
 }
 
