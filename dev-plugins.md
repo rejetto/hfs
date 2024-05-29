@@ -98,7 +98,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
 - `onDirEntry: ({ entry: DirEntry, listUri: string }) => Promisable<void | false>` by providing this callback you can manipulate
   the record that is sent to the frontend (`entry`), or you can return false to exclude this entry from the results.
-  Refer to source `frontend/src/stats.ts`.
+  Refer to source `frontend/src/state.ts`.
 - `config: { [key]: FieldDescriptor }` declare a set of admin-configurable values owned by the plugin
   that will be displayed inside Admin-panel for change. Each property is identified by its key,
   and the descriptor is another object with options about the field. 
