@@ -1,12 +1,11 @@
 import { srpClientSequence } from '../src/srp'
-import { createReadStream } from 'fs'
+import { createReadStream, statSync } from 'fs'
 import { dirname, join } from 'path'
 import _ from 'lodash'
 import { findDefined, randomId, tryJson, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { rm, writeFile } from 'fs/promises'
-import { Readable } from 'stream'
 /*
 import { PORT, srv } from '../src'
 
@@ -154,10 +153,12 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function reqUpload(dest: string, tester: Tester, body?: Readable | string) {
+function reqUpload(dest: string, tester: Tester, body?: string) {
+    const fn = join(__dirname, 'page/gpl.png')
     return req(dest, tester, {
         method: 'PUT',
-        body: body ?? createReadStream(join(__dirname, 'page/gpl.png'))
+        headers: { 'content-length': body?.length ?? statSync(fn).size },
+        body: body ?? createReadStream(fn)
     })
 }
 

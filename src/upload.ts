@@ -1,6 +1,7 @@
 import { getNodeByName, hasPermission, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
-import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR } from './const'
+import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR,
+    HTTP_BAD_REQUEST } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import { Callback, dirTraversal, escapeHTML, loadFileAttr, pendingPromise, storeFileAttr, try_ } from './misc'
@@ -52,7 +53,11 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
     const reqSize = Number(ctx.headers["content-length"])
-    if (reqSize)
+    if (isNaN(reqSize)) {
+        if (min)
+            return fail(HTTP_BAD_REQUEST, 'content-length mandatory')
+    }
+    else
         try {
             if (!Object.hasOwn(cache, dir)) {
                 cache[dir] = getDiskSpaceSync(dir)
@@ -191,9 +196,11 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         delete waitingToBeDeleted[path]
     }
 
-    function fail(status?: number) {
+    function fail(status?: number, msg?: string) {
         if (status)
             ctx.status = status
+        if (msg)
+            ctx.body = msg
         notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
     }
 }

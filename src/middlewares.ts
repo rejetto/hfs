@@ -47,7 +47,7 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
 }
 
 let proxyDetected: undefined | Koa.Context
-export const someSecurity: Koa.Middleware = async (ctx, next) => {
+export const someSecurity: Koa.Middleware = (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
     // don't allow sessions to change ip
     const ss = ctx.session
