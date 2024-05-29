@@ -41,7 +41,7 @@ export default {
                         await wait(0)
                     }
                     list.ready()
-                    events.on('console', x => list.add(x))
+                    ctx.res.once('close', events.on('console', x => list.add(x)))
                     return
                 }
                 if (!_.find(loggers, { name: file }))
