@@ -6,7 +6,7 @@ import events from './events'
 import { loggers } from './log'
 import { SendListReadable } from './SendList'
 import { serveFile } from './serveFile'
-import { ips } from './ip'
+import { ips } from './ips'
 
 export default {
     async get_log_file({ file = 'log', range = '' }, ctx) {

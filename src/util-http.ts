@@ -33,6 +33,10 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, ...o
         options.headers ??= {}
         if (body) {
             options.method ||= 'POST'
+            if (_.isPlainObject(body)) {
+                options.headers['Content-Type'] ??= 'application/json'
+                body = JSON.stringify(body)
+            }
             if (!(body instanceof Readable))
                 options.headers['Content-Length'] ??= Buffer.byteLength(body)
         }

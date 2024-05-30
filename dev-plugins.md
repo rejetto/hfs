@@ -388,10 +388,10 @@ The example above will return false only when the file is NOT ending with .jpg, 
 This section is still partially documented, and you may need to have a look at the sources for further details.
 
 - `deleting`
-    - parameters: { node, ctx }
-    - called just before trying to delete a file or folder (which still may not exist and fail)
-    - async supported
-    - stoppable
+  - parameters: { node, ctx }
+  - called just before trying to delete a file or folder (which still may not exist and fail)
+  - async supported
+  - stoppable
 - `logout`
 - `config ready`
 - `config.KEY` where KEY is the key of a config that has changed
@@ -413,10 +413,12 @@ This section is still partially documented, and you may need to have a look at t
 - `pluginStopped`
 - `pluginStarted`
 - `uploadStart`
-    - parameters: { ctx, writeStream } 
-    - stoppable
-    - return: callback to call when upload is finished
+  - parameters: { ctx, writeStream } 
+  - stoppable
+  - return: callback to call when upload is finished
 - `uploadFinished`
+- `publicIpsChanged`
+  - parameters: { IPs, IP4, IP6, IPX }
 
 # The `ctx` object
 

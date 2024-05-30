@@ -2,6 +2,8 @@
 
 type Listener = (...args: any[]) => unknown
 type Listeners = Set<Listener>
+const LISTENERS_SUFFIX = '\0listeners'
+
 export class BetterEventEmitter {
     protected listeners = new Map<string, Listeners>()
     on(event: string | string[], listener: Listener, { warnAfter=10 }={}) {
@@ -14,11 +16,20 @@ export class BetterEventEmitter {
             cbs.add(listener)
             if (cbs.size > warnAfter)
                 console.warn("Warning: many events listeners for ", e)
+            this.emit(e + LISTENERS_SUFFIX, cbs)
         }
         return () => {
-            for (const e of event)
-                this.listeners.get(e)?.delete(listener)
+            for (const e of event) {
+                const cbs = this.listeners.get(e)
+                if (!cbs) continue
+                cbs.delete(listener)
+                this.emit(e + LISTENERS_SUFFIX, cbs)
+            }
         }
+    }
+    // call me when listeners for event have changed
+    onListeners(event: string, listener: Listener) {
+        return this.on(event + LISTENERS_SUFFIX, listener)
     }
     once(event: string, listener?: Listener) {
         return new Promise<any[]>(resolve => {

@@ -25,7 +25,7 @@ import './geo'
 import { geoFilter } from './geo'
 import { rootsMiddleware } from './roots'
 import events from './events'
-import { trackIpsMw } from './ip'
+import { trackIpsMw } from './ips'
 import { storedMap } from './persistence'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
