@@ -88,12 +88,10 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
     ctx.status = 404
   }
   ```
-  You'll find more examples by studying plugins like `vhosting` or `antibrute`.
-  This API is based on [Koa](https://koajs.com), because that's what HFS is using.
-  To know what the Context object contains please refer to [Koa documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
-  You don't get the `next` parameter as in standard Koa middlewares because this is different, but we are now explaining how to achieve the same results.
+  You'll find more examples by studying plugins like `antidos` or `antibrute`.
   To interrupt other middlewares on this http request, return `true`.
   If you want to execute something in the "upstream" of middlewares, return a function.
+  You can read more in [the ctx object](#the-ctx-object) section.
 
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
 - `onDirEntry: ({ entry: DirEntry, listUri: string }) => Promisable<void | false>` by providing this callback you can manipulate
@@ -419,6 +417,38 @@ This section is still partially documented, and you may need to have a look at t
     - stoppable
     - return: callback to call when upload is finished
 - `uploadFinished`
+
+# The `ctx` object
+
+HFS is currently based on [Koa](https://koajs.com), so you'll see some things related to it in the backend API.
+The most prominent is the `ctx` object, short for "context".
+To know what the Context object contains please refer to [Koa documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
+
+HFS adds a few useful properties in the `ctx.state` object. Some of it may turn to be useful,
+so we prepared this list as a quick reference, but beware that it may become out of date and needs double check.
+If so, please report, and we'll do our best to update it asap.
+Where information is too little, you'll have to consult the source code, sorry.
+
+        originalPath: string // before roots is applied
+        browsing?: string // for admin/monitoring
+        dontLog?: boolean // don't log this request
+        logExtra?: object
+        completed?: Promise<unknown>
+        spam?: boolean // this request was marked as spam
+        params: Record<string, any>
+        account?: Account // user logged in
+        revProxyPath: string
+        connection: Connection
+        skipFilters?: boolean
+        vfsNode?: VfsNode
+        includesLastByte?: boolean
+        serveApp?: boolean // please, serve the frontend app
+        uploadPath?: string // current one
+        uploads?: string[] // in case of request with potentially multiple uploads (POST), we register all filenames (no full path)
+        length?: number
+        originalStream?: typeof ctx.body
+        uploadDestinationPath?: string
+        archive?: string
 
 ## Other files
 
