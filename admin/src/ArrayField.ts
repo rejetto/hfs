@@ -12,7 +12,7 @@ import _ from 'lodash'
 import { Center, IconBtn } from './mui'
 
 type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean }
-export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, ...rest }: ArrayFieldProps<T>) {
+export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, ...rest }: ArrayFieldProps<T>) {
     const rows = useMemo(() => (value||[]).map((x,$idx) =>
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
@@ -67,7 +67,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     title,
                                     size: 'small',
                                     onClick: ev =>
-                                        formDialog<T>({ form, title }).then(x => {
+                                        formDialog<T>({ form, title, values: valuesForAdd }).then(x => {
                                             if (!x) return
                                             const newValue = value?.slice() || []
                                             if (prepend) newValue.unshift(x)

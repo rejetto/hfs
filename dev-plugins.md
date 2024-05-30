@@ -201,6 +201,7 @@ The `api` object you get as parameter of the `init` contains the following:
   exported inside `customApi: object`
 
 - `openDb(filename, options): Promise<{ get, put, del, close, unlink, sublevel }>` LevelDB-like class for storage.
+  The specified file name will be stored in the "storage" folder of the plugin, by default.
   Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
 
 ## Front-end specific
