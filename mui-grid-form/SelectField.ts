@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, ReactNode, useId, useMemo } from 'react'
 import { FieldProps } from '.'
-import { FormControl, FormControlLabel, FormLabel, MenuItem, Radio, InputLabel, Select,
+import { FormControl, FormControlLabel, FormLabel, MenuItem, Radio, InputLabel, Select, LinearProgress,
     ListItemText, Checkbox, FilledInput, RadioGroup, TextField, FormHelperText, Button } from '@mui/material'
 import { SxProps } from '@mui/system'
 
@@ -14,14 +14,14 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
     const { value, onChange, setApi, options, sx, disabled, ...rest } = props
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
     const jsonValue = JSON.stringify(value)
-    const currentOption = normalizedOptions.find(x => JSON.stringify(x.value) === jsonValue)
+    const currentOption = normalizedOptions?.find(x => JSON.stringify(x.value) === jsonValue)
     return h(TextField, { // using TextField because Select is not displaying label correctly
         select: true,
         hiddenLabel: !props.label,
         // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
         value: currentOption ? jsonValue : '',
-        disabled: !normalizedOptions?.length || disabled,
-        children: normalizedOptions.map((o, i) => h(MenuItem, {
+        disabled: normalizedOptions?.length === 0 || disabled,
+        children: !normalizedOptions ? h(LinearProgress) : normalizedOptions.map((o, i) => h(MenuItem, {
             key: i,
             value: JSON.stringify(o?.value),
             children: h(Fragment, { key: i }, o?.label) // without this fragment/key, a label as h(span) will produce warnings
@@ -47,7 +47,7 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
     const { value, onChange, setApi, options, placeholder, helperText, label, valueSeparator = ', ', clearable=true, ...rest } = props
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
     const valueAsOptions = useMemo(() => !Array.isArray(value) ? []
-            : value.map(x => normalizedOptions.find(o => o.value === x) || { value: x, label: String(x) }),
+            : value.map(x => normalizedOptions?.find(o => o.value === x) || { value: x, label: String(x) }),
         [value, normalizedOptions])
     const valueAsJsons = useMemo(() => value?.map(x => JSON.stringify(x)) || [], [value])
     const labelId = useId()
@@ -80,18 +80,22 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
             }),
             ...rest,
         },
-            !normalizedOptions.length && h(ListItemText, { sx: { fontStyle: 'italic', ml: 1 }, onClickCapture(ev) { ev.stopPropagation() } }, "No options available"),
-            normalizedOptions.length > 1 && h(Button, {
+            !normalizedOptions ? h(LinearProgress)
+                : (!normalizedOptions.length && h(ListItemText, {
+                    sx: { fontStyle: 'italic', ml: 1 },
+                    onClickCapture(ev) { ev.stopPropagation() }
+                }, "No options available")),
+            normalizedOptions?.length! > 1 && h(Button, {
                 ref: x => x && Object.assign(x, { role: undefined }), // cancel the role=option on this
                 onClickCapture(event) {
                     event.stopPropagation()
-                    onChange(showClear ? [] : normalizedOptions.map(x => x.value), { was: value, event })
+                    onChange(showClear ? [] : normalizedOptions!.map(x => x.value), { was: value, event })
                 },
             }, showClear ? "Unselect all" : "Select all"),
-            ...normalizedOptions.map(o => h(MenuItem, { value: JSON.stringify(o?.value) }, // encode, as this supports only string|number
+            ...normalizedOptions?.map(o => h(MenuItem, { value: JSON.stringify(o?.value) }, // encode, as this supports only string|number
                 h(Checkbox, { checked: value?.includes(o.value) || false }),
                 h(ListItemText, { primary: renderOption?.(o) ?? o.label })
-            )),
+            )) || [],
         ),
         h(FormHelperText, { id: helperId, error: props.error }, helperText),
     )
@@ -101,7 +105,8 @@ type HelperCommon<T> = Pick<FieldProps<T>, 'value' | 'onChange' | 'label'>
 interface CommonSelectProps<T> extends HelperCommon<T> {
     sx?: SxProps
     disabled?: boolean
-    options: SelectOptions<T>
+    // pass options undefined to display a loading indicator in place of the options
+    options?: SelectOptions<T>
 }
 function commonSelectProps<T>(props: CommonSelectProps<T>) {
     return {
@@ -115,8 +120,8 @@ function commonSelectProps<T>(props: CommonSelectProps<T>) {
     }
 }
 
-function normalizeOptions<T>(options: SelectOptions<T>) {
-    return !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label }))
+function normalizeOptions<T>(options?: SelectOptions<T>) {
+    return !options ? undefined : !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label }))
         : options.map(o => typeof o === 'string' || typeof o === 'number' ? { value: o, label: String(o) } : o as SelectPair<T>)
 }
 

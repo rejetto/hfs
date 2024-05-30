@@ -8,7 +8,7 @@ import {
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
-    focusSelector, md } from '@hfs/shared'
+    focusSelector, md, focusableSelector } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center } from './mui'
 import { useDark } from './theme'
@@ -28,7 +28,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
             if (!el) return
             el.focus()
             if (mobile) return
-            focusSelector('[autofocus]', el) || focusSelector('input,textarea', el)
+            focusSelector('[autofocus]', el) || focusSelector(focusableSelector, el)
         })
         return () => clearTimeout(h)
     }, [ref.current])
