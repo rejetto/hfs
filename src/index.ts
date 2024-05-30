@@ -64,8 +64,8 @@ function errorHandler(err:Error & { code:string, path:string }) {
     console.error(new Date().toLocaleString('en-uk'), 'server error', err)
 }
 
-process.on('uncaughtException', err => {
-    if ((err as any).syscall !== 'watch')
+process.on('uncaughtException', (err: any) => {
+    if (err.syscall !== 'watch' && err.code !== 'ECONNRESET')
         console.error("uncaught:", err)
 })
 
