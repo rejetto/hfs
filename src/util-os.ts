@@ -1,4 +1,5 @@
-import { resolve } from 'path'
+import { dirname, resolve } from 'path'
+import { existsSync } from 'fs'
 import { exec, execSync } from 'child_process'
 import { onlyTruthy, splitAt, try_ } from './misc'
 import _ from 'lodash'
@@ -15,6 +16,8 @@ export function getDiskSpaceSync(path: string) {
             throw Error('miss')
         return { free: Number(one.FreeSpace), total: Number(one.Size) }
     }
+    while (path && !existsSync(path))
+        path = dirname(path)
     const out = try_(() => execSync(`df -k "${path}"`).toString(),
         err => { throw err.status === 1 ? Error('miss') : err.status === 127 ? Error('unsupported') : err })
     if (!out?.startsWith('Filesystem'))
