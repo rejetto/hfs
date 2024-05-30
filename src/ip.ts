@@ -4,6 +4,7 @@ import { defineConfig } from './config'
 import { KvStorage } from '@rejetto/kvstorage'
 import { Middleware } from 'koa'
 import { CFG, isLocalHost, MINUTE } from './misc'
+import { onProcessExit } from './first'
 
 const trackIps = defineConfig(CFG.track_ips, true)
 export const ips = new KvStorage({
@@ -11,6 +12,7 @@ export const ips = new KvStorage({
     maxPutDelay: 10 * MINUTE,
     maxPutDelayCreate: 0,
 })
+onProcessExit(() => ips.flush())
 
 export const trackIpsMw: Middleware = async (ctx, next) => {
     if (trackIps.get() && !isLocalHost(ctx))

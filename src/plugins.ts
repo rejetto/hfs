@@ -7,7 +7,7 @@ import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, IS_WINDO
     PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
+import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir } from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.get_file_list'
@@ -20,6 +20,7 @@ import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
 import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
+import { onProcessExit } from './first'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -98,7 +99,7 @@ export function getPluginConfigFields(id: string) {
     return plugins[id]?.getData().config
 }
 
-async function initPlugin<T>(pl: any, more?: T) {
+async function initPlugin<T>(pl: any, morePassedToInit?: T) {
     return Object.assign(pl, await pl.init?.({
         Const,
         require,
@@ -107,7 +108,7 @@ async function initPlugin<T>(pl: any, more?: T) {
         log: console.log,
         getHfsConfig: getConfig,
         customApiCall,
-        ...more
+        ...morePassedToInit
     }))
 }
 
@@ -166,7 +167,7 @@ type OnDirEntry = (params:OnDirEntryParams) => void | false
 export class Plugin implements CommonPluginInterface {
     started: Date | null = new Date()
 
-    constructor(readonly id:string, readonly folder:string, private readonly data:any, private unwatch:()=>void){
+    constructor(readonly id:string, readonly folder:string, private readonly data:any, private onUnload:()=>unknown){
         if (!data) throw 'invalid data'
 
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
@@ -212,6 +213,7 @@ export class Plugin implements CommonPluginInterface {
         const { id } = this
         try {
             await this.data?.unload?.()
+            await this.onUnload()
             if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
                 console.log('unloaded plugin', id)
         }
@@ -220,7 +222,6 @@ export class Plugin implements CommonPluginInterface {
         }
         if (this.data)
             this.data.unload = undefined
-        this.unwatch()
     }
 }
 
@@ -390,6 +391,7 @@ function watchPlugin(id: string, path: string) {
             console.debug("starting plugin", id)
             const storageDir = resolve(module, '..', STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
             await mkdir(storageDir, { recursive: true })
+            const dbs: KvStorage[] = []
             await initPlugin(pluginData, {
                 srcDir: __dirname,
                 storageDir,
@@ -397,6 +399,7 @@ function watchPlugin(id: string, path: string) {
                     if (!filename) throw Error("missing filename")
                     const db = new KvStorage(options)
                     await db.open(join(storageDir, filename))
+                    dbs.push(db)
                     return db
                 },
                 log(...args: any[]) {
@@ -420,7 +423,12 @@ function watchPlugin(id: string, path: string) {
             const folder = dirname(module)
             const { state, unwatch } = watchLoadCustomHtml(folder)
             pluginData.customHtml = state
-            const plugin = new Plugin(id, folder, pluginData, unwatch)
+
+            const plugin = new Plugin(id, folder, pluginData, async () => {
+                unwatch()
+                await Promise.allSettled(dbs.map(x => x.flush()))
+                dbs.length = 0
+            })
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
@@ -492,7 +500,7 @@ export function parsePluginSource(id: string, source: string) {
     pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
     pl.isTheme = tryJson(/exports.isTheme *= *(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
     pl.preview = tryJson(/exports.preview *= *(.+)/.exec(source)?.[1]) ?? undefined
-    pl.depend = tryJson(/exports.depend *= *(\[.*\])/m.exec(source)?.[1])?.filter((x: any) =>
+    pl.depend = tryJson(/exports.depend *= *(\[.*])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("plugin dependency discarded", x) )
     if (Array.isArray(pl.apiRequired) && (pl.apiRequired.length !== 2 || !pl.apiRequired.every(_.isFinite))) // validate [from,to] form

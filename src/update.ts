@@ -4,7 +4,7 @@ import { getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { httpStream, onProcessExit, unzip } from './misc'
+import { httpStream, unzip } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { access, chmod, stat } from 'fs/promises'
@@ -12,6 +12,7 @@ import { Readable } from 'stream'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
 import { RUNNING_AS_SERVICE } from './util-os'
+import { onProcessExit } from './first'
 
 const updateToBeta = defineConfig('update_to_beta', false)
 

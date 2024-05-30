@@ -3,10 +3,12 @@ import { existsSync } from 'fs'
 import { promisify } from 'util'
 import { access } from 'fs/promises'
 import { tryJson } from './cross'
+import { onProcessExit } from './first'
 // @ts-ignore
 import fsx from 'fs-x-attributes'
 
 let fileAttrDb = new KvStorage({ defaultPutDelay: 1000, maxPutDelay: 5000 })
+onProcessExit(() => fileAttrDb.flush())
 const FN = 'file-attr.kv'
 if (existsSync(FN))
     fileAttrDb.open(FN)

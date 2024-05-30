@@ -1,6 +1,5 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { EventEmitter } from 'events'
 import { basename } from 'path'
 import Koa from 'koa'
 import { Connection } from './connections'
@@ -16,26 +15,6 @@ import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST } from './const'
 import { isIpLocalHost, makeMatcher } from './cross'
 import { isIPv6 } from 'net'
-
-type ProcessExitHandler = (signal:string) => any
-const cbs = new Set<ProcessExitHandler>()
-export function onProcessExit(cb: ProcessExitHandler) {
-    cbs.add(cb)
-    return () => cbs.delete(cb)
-}
-onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal =>
-    Promise.allSettled(Array.from(cbs).map(cb => cb(signal))).then(() =>
-        process.exit(0)))
-
-export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {
-    let already = false
-    for (const e of events)
-        emitter.once(e, (...args) => {
-            if (already) return
-            already = true
-            cb(...args)
-        })
-}
 
 export function pattern2filter(pattern: string){
     const matcher = makeMatcher(pattern.includes('*') ? pattern  // if you specify *, we'll respect its position
