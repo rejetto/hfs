@@ -721,7 +721,10 @@ button .icon + .label {
     .fullWidth {
         .showing-container, .showing { width: 100%; }
     }
-    --nav-size: min(25vh, 25vw);
+    --nav-size: 25vh;
+    @supports (width: min(1px,2px)) {
+        --nav-size: min(25vh, 25vw);
+    }
     .nav {
         position: absolute;
         width: .5em; // closer to the edge
