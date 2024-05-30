@@ -411,8 +411,8 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         resetCounters()
         const msg = h('div', {}, t(['upload_concluded', "Upload terminated"], "Upload concluded:"),
             h(UploadStatus, { snapshot: snap, display: 'flex', flexDirection: 'column' }) )
-        if (uploadState.errors.length || uploadState.skipped.length)
-            alertDialog(msg, 'info')
+        if (snap.errors.length || snap.skipped.length)
+            alertDialog(msg, 'warning')
         else
             toast(msg, 'success')
     }
