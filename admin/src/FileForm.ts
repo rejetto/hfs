@@ -154,9 +154,9 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
             perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_see', "If you can't see, you may still download with a direct link"),
-            perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? true : 12 }),
-            perm('can_list', undefined, { contentText: "subfolders" }),
+            perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? 6 : 12 }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
+            perm('can_list', undefined, { contentText: "subfolders" }),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
             isLink && {
                 k: 'target',

@@ -49,13 +49,10 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
         ...(!integrated?.is ? {
             children: "System integration",
             async onClick() {
-                const msg = h(Box, {}, "We are going to add a command in the right-click of Windows File Manager",
-                    h('img', { src: 'win-shell.png', style: {
-                            display: 'block',
-                            width: 'min(30em, 100%)',
-                            marginTop: '1em',
-                        }  }),
-                    h(Alert, { severity: 'info' }, "It will also automatically copy the URL, ready to paste!"),
+                const msg = h(Box, { width: { xs: '100%', sm: '34em' } },
+                    h('img', { src: 'win-shell.png', style: { display: 'block', width: '100%' }  }),
+                    h(Alert, { severity: 'info' }, "We are going to add a command in the right-click of Windows File Manager.",
+                        h(Box, {}, "It will also automatically copy the URL, ready to paste!")),
                 )
                 const parent = await promptDialog(msg, {
                     field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home",
