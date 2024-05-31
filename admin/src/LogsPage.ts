@@ -23,7 +23,7 @@ const logLabels = {
     log: "Access",
     error_log: "Access error",
     console: "Console",
-    ips: "IPs",
+    ips: "IP's",
 }
 
 let reloadIps: any
@@ -33,7 +33,7 @@ export default function LogsPage() {
     const files = typedKeys(logLabels)
     const shorterLabels = !useBreakpoint('sm') && { error_log: "Errors" }
     const file = files[tab]
-    const fileAvailable = file !== 'console'
+    const fileAvailable = file.endsWith('log')
     return h(Fragment, {},
         h(Flex, { gap: 0  },
             h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
