@@ -1,7 +1,7 @@
 {
     "author": "Pultsari & Win_7",
     "version": 1.2,
-    "hfs_version": "0.52.0",
+    "hfs_version": "0.53.0b8",
     "translate": {
         "Select": "Valitse",
         "n_files": "{n,plural,one{# tiedosto} other{# tiedostoa}}",
