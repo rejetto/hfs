@@ -3,7 +3,7 @@ import { basename, dirname } from 'path'
 import { getNodeName, nodeIsDirectory, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import { ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
-    HTTP_UNAUTHORIZED } from './cross-const'
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK } from './cross-const'
 import { uploadWriter } from './upload'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
@@ -15,7 +15,7 @@ import { allowAdmin, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, filterMapGenerator, pathEncode } from './misc'
+import { asyncGeneratorToReadable, deleteNode, filterMapGenerator, pathEncode } from './misc'
 import { basicWeb } from './basicWeb'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
@@ -83,6 +83,18 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             if (err) console.error(String(err))
             res(Promise.all(locks))
         }))
+    }
+    if (ctx.method === 'DELETE') {
+        const res = await deleteNode(ctx, node, ctx.path)
+        if (typeof res === 'number')
+            return ctx.status = res
+        if (res instanceof Error) {
+            ctx.body = res.message || String(res)
+            return ctx.status = HTTP_SERVER_ERROR
+        }
+        if (res)
+            return ctx.status = HTTP_OK
+        return
     }
     const { get } = ctx.query
     if (node.default && path.endsWith('/') && !get) // final/ needed on browser to make resource urls correctly with html pages

@@ -109,8 +109,9 @@ describe('basics', () => {
 
     it('upload.need account', reqUpload( UPLOAD_DEST, 401))
     it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
-    it('delete.no perm', reqApi('delete', { uri: '/for-admins' }, 403))
-    it('delete.need account', reqApi('delete', { uri: '/for-admins/upload' }, 401))
+    it('delete.no perm', reqApi('delete', { uri: '/for-admins/' }, 405))
+    it('delete.need account', reqApi('delete', { uri: UPLOAD_ROOT }, 401))
+    it('delete.need account.method', req(UPLOAD_ROOT, 401, { method: 'DELETE' }))
     it('rename.no perm', reqApi('delete', { uri: '/for-admins', dest: 'any' }, 403))
     it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
 })
@@ -140,6 +141,8 @@ describe('after-login', () => {
     it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
     it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
     it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_DEST) + '/' + renameTo }, 200))
+    it('reupload', reqUpload(UPLOAD_DEST, 200))
+    it('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
     it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
     it('upload.size', async () => {
         const fn = 'temp/size'

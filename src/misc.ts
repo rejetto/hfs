@@ -12,9 +12,13 @@ export * from './debounceAsync'
 import { Readable, Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
-import { HTTP_BAD_REQUEST } from './const'
+import { HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED } from './const'
 import { isIpLocalHost, makeMatcher } from './cross'
 import { isIPv6 } from 'net'
+import { statusCodeForMissingPerm, VfsNode } from './vfs'
+import events from './events'
+import { rm } from 'fs/promises'
+import { setCommentFor } from './comments'
 
 export function pattern2filter(pattern: string){
     const matcher = makeMatcher(pattern.includes('*') ? pattern  // if you specify *, we'll respect its position
@@ -119,4 +123,22 @@ export function createStreamLimiter(limit: number) {
             cb()
         }
     })
+}
+
+export async function deleteNode(ctx: Koa.Context, node: VfsNode, uri: string) {
+    const { source } = node
+    if (!source)
+        return HTTP_METHOD_NOT_ALLOWED
+    if (statusCodeForMissingPerm(node, 'can_delete', ctx))
+        return ctx.status
+    try {
+        if (await events.emitAsync('deleting', { node, ctx }).preventDefault())
+            return null // stop
+        ctx.logExtra(null, { target: decodeURI(uri) })
+        await rm(source, { recursive: true })
+        void setCommentFor(source, '')
+        return true
+    } catch (e: any) {
+        return e
+    }
 }
