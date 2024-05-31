@@ -112,7 +112,7 @@ describe('basics', () => {
     it('delete.no perm', reqApi('delete', { uri: '/for-admins/' }, 405))
     it('delete.need account', reqApi('delete', { uri: UPLOAD_ROOT }, 401))
     it('delete.need account.method', req(UPLOAD_ROOT, 401, { method: 'DELETE' }))
-    it('rename.no perm', reqApi('delete', { uri: '/for-admins', dest: 'any' }, 403))
+    it('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
     it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
 })
 
