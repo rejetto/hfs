@@ -4,7 +4,8 @@ import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISF
     HTTP_BAD_REQUEST } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, dirTraversal, escapeHTML, loadFileAttr, pendingPromise, storeFileAttr, try_ } from './misc'
+import { Callback, dirTraversal, escapeHTML, loadFileAttr, pendingPromise, storeFileAttr, try_,
+    createStreamLimiter, } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -105,23 +106,23 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     const resuming = resume && resumable
     if (!resuming)
         resume = 0
-    const writeStream = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
-        : fs.createWriteStream(tempName)
+    const writeStream = createStreamLimiter(reqSize ?? Infinity)
     if (resuming) {
         fs.rm(tempName, () => {})
         tempName = resumable
     }
     cancelDeletion(tempName)
     ctx.state.uploadDestinationPath = tempName
-    trackProgress()
     // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
     const obj = { ctx, writeStream }
     const resEvent = events.emit('uploadStart', obj)
-    if (resEvent?.preventDefault())
-        return writeStream.close(() => {
-            try { fs.unlinkSync(writeStream.path) }
-            catch {}
-        })
+    if (resEvent?.preventDefault()) return
+
+    const fileStream = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
+        : fs.createWriteStream(tempName)
+    writeStream.pipe(fileStream)
+    Object.assign(obj, { fileStream })
+    trackProgress()
 
     const lockMiddleware = pendingPromise() // outside we need to know when all operations stopped
     writeStream.once('close', async () => {
@@ -182,7 +183,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         if (!conn) return
         const h = setInterval(() => {
             const now = Date.now()
-            const got = writeStream.bytesWritten
+            const got = fileStream.bytesWritten
             const inSpeed = roundSpeed((got - lastGot) / (now - lastGotTime))
             lastGot = got
             lastGotTime = now

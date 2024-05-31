@@ -17,9 +17,11 @@ const appStarted = new Promise(resolve =>
 const username = 'rejetto'
 const password = 'password'
 const API = '/~/api/'
+const ROOT = 'tests/'
 const BASE_URL = 'http://localhost:81'
 const UPLOAD_ROOT = '/for-admins/upload/'
-const UPLOAD_DEST = UPLOAD_ROOT + 'temp/gpl.png'
+const UPLOAD_RELATIVE = 'temp/gpl.png'
+const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to saturate buffers
 const throttle = BIG_CONTENT.length /1000 /0.5 // KB, finish in 0.5s, quick but still overlapping downloads
 
@@ -120,7 +122,7 @@ describe('accounts', () => {
 })
 
 describe('limits', () => {
-    const fn = 'tests/big'
+    const fn = ROOT + 'big'
     before(() => writeFile(fn, BIG_CONTENT))
     it('max_dl', () => testMaxDl('/' + fn, 1, 2))
     after(() => rm(fn))
@@ -139,6 +141,21 @@ describe('after-login', () => {
     it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
     it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_DEST) + '/' + renameTo }, 200))
     it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
+    it('upload.size', async () => {
+        const fn = 'temp/size'
+        await reqUpload(UPLOAD_ROOT + fn, 200, BIG_CONTENT)()
+        const { size } = statSync(ROOT + fn)
+        if (size !== BIG_CONTENT.length)
+            throw Error(`wrote ${size}`)
+    })
+    it('upload.too much', async () => {
+        const fn = 'temp/tooMuch'
+        const wrongSize = BIG_CONTENT.length / 2
+        await reqUpload(UPLOAD_ROOT + fn, 200, BIG_CONTENT, wrongSize)()
+        const { size } = statSync(ROOT + fn)
+        if (size !== wrongSize)
+            throw Error(`wrote ${size}`)
+    })
     it('max_dl.account', async () => {
         const uri = UPLOAD_ROOT + 'temp/big'
         await reqUpload(uri, 200, BIG_CONTENT)()
@@ -153,11 +170,11 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function reqUpload(dest: string, tester: Tester, body?: string) {
+function reqUpload(dest: string, tester: Tester, body?: string, size?: number) {
     const fn = join(__dirname, 'page/gpl.png')
     return req(dest, tester, {
         method: 'PUT',
-        headers: { 'content-length': body?.length ?? statSync(fn).size },
+        headers: { 'content-length': size ?? body?.length ?? statSync(fn).size },
         body: body ?? createReadStream(fn)
     })
 }

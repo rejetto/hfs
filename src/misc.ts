@@ -9,7 +9,7 @@ export * from './util-files'
 export * from './fileAttr'
 export * from './cross'
 export * from './debounceAsync'
-import { Readable } from 'stream'
+import { Readable, Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST } from './const'
@@ -103,4 +103,20 @@ export function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: a
         for (const [name,val] of Object.entries(params))
             if (! types.split('_').some(type => type === 'array' ? Array.isArray(val) : typeof val === type))
                 throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
+}
+
+export function createStreamLimiter(limit: number) {
+    let got = 0
+    return new Transform({
+        transform(chunk, enc, cb) {
+            const left = limit - got
+            got += chunk.length
+            if (left > 0) {
+                this.push(chunk.length >= left ? chunk.slice(0, left) : chunk)
+                if (got >= limit)
+                    this.end()
+            }
+            cb()
+        }
+    })
 }

@@ -34,11 +34,11 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, ...o
         if (body) {
             options.method ||= 'POST'
             if (_.isPlainObject(body)) {
-                options.headers['Content-Type'] ??= 'application/json'
+                options.headers['content-type'] ??= 'application/json'
                 body = JSON.stringify(body)
             }
             if (!(body instanceof Readable))
-                options.headers['Content-Length'] ??= Buffer.byteLength(body)
+                options.headers['content-length'] ??= Buffer.byteLength(body)
         }
         if (jar)
             options.headers.cookie = _.map(jar, (v,k) => `${k}=${v}; `).join('')
