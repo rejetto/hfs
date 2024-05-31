@@ -7,8 +7,10 @@ import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, IS_WINDO
     PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy,
-    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir } from './misc'
+import {
+    adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
+    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir
+} from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
@@ -405,8 +407,11 @@ function watchPlugin(id: string, path: string) {
                 log(...args: any[]) {
                     console.log('plugin', id+':', ...args)
                 },
-                getConfig: (cfgKey: string) =>
-                    pluginsConfig.get()?.[id]?.[cfgKey] ?? pluginData.config?.[cfgKey]?.defaultValue,
+                getConfig(cfgKey?: string) {
+                    const cur = pluginsConfig.get()?.[id]
+                    return cfgKey ? cur?.[cfgKey] ?? pluginData.config?.[cfgKey]?.defaultValue
+                        : _.defaults(cur, objSameKeys(pluginData.config, x => x.defaultValue))
+                },
                 setConfig: (cfgKey: string, value: any) =>
                     setPluginConfig(id, { [cfgKey]: value }),
                 subscribeConfig(cfgKey: string, cb: Callback<any>) {

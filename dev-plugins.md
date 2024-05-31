@@ -155,8 +155,9 @@ Based on `type`, other properties are supported:
 
 The `api` object you get as parameter of the `init` contains the following:
 
-- `getConfig(key: string): any` get plugin's config value, described in `exports.config`.
-
+- `getConfig(key?: string): any` get plugin's config value, described in `exports.config`.
+  If key is not provided, an object with all keys is returned. 
+  
 - `setConfig(key: string, value: any)` set plugin's config value.
 
 - `subscribeConfig(key: string, callback: (value: any) => void): Unsubscriber`
@@ -449,7 +450,7 @@ Where information is too little, you'll have to consult the source code, sorry.
         uploads?: string[] // in case of request with potentially multiple uploads (POST), we register all filenames (no full path)
         length?: number
         originalStream?: typeof ctx.body
-        uploadDestinationPath?: string
+        uploadDestinationPath?: string // this value is the temporary file in uploadStart and the final one in uploadFinished
         archive?: string
 
 ## Other files
@@ -551,6 +552,7 @@ If you want to override a text regardless of the language, use the special langu
     - config.type:username
     - api.events class has changed
     - frontend event "fileMenu": changed props format
+    - api.getConfig() without parameters
 - 8.72 (v0.52.0)
     - HFS.toast
     - HFS.misc functions
