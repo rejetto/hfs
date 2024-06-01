@@ -430,6 +430,8 @@ function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snapshot<typ
         s, ' – ', h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }) )
 
     function showDetails() {
+        if (!uploadDialogIsOpen)
+            closeDialog() // don't nest dialogs unnecessarily (apply only to the dialog outside upload-dialog)
         alertDialog(h('div', {},
             ([
                 [msgDone, done],
