@@ -171,6 +171,8 @@
 
         "clipboard": "Leikepöytä ({content})",
         "to_clipboard_source_tooltip": "Mene kansioon jossa leikepöydän kohteet sijaitsevat",
-        "more_items": "{n} lisää kohteita"
+        "more_items": "{n} lisää kohteita",
+        "Show details": "Näytä yksityiskohdat",
+        "upload_conflict": "on jo olemassa"
     }
 }

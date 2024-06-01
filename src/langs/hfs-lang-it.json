@@ -160,6 +160,7 @@
         "clipboard": "Appunti ({content})",
         "to_clipboard_source_tooltip": "Vai alla cartella d'origine dei file negli appunti",
         "more_items": "{n,plural,one{Un altro elemento} other{# altri elementi}}",
-        "Show details": "Mostra dettagli"
+        "Show details": "Mostra dettagli",
+        "upload_conflict": "esiste già"
     }
 }
