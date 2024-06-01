@@ -18,7 +18,7 @@
         "select_tooltip": "Selezionare serve con la funziona Zip e per cancellare (dove disponibile), ma puoi anche filtrare la lista",
         "delete_hint": "Per poter cancellare bisogna prima cliccare Seleziona",
         "delete_confirm": "Cancellare {n,plural, one{l'elemento} =8 =11 {gli # elementi} other{i # elementi}}?",
-        "delete_completed": "Cancellazione: {n} riusciti",
+        "delete_completed": "Cancellazione{n,plural, one{ riuscita} other{: # riusciti}}",
         "delete_failed": ", {n,plural, one{# fallito} other{# falliti}}",
         "delete_select": "Seleziona qualcosa per poter cancellare",
         "Delete": "Cancella",
@@ -159,6 +159,7 @@
 
         "clipboard": "Appunti ({content})",
         "to_clipboard_source_tooltip": "Vai alla cartella d'origine dei file negli appunti",
-        "more_items": "{rest,plural,one{Un altro elemento} other{# altri elementi}}"
+        "more_items": "{n,plural,one{Un altro elemento} other{# altri elementi}}",
+        "Show details": "Mostra dettagli"
     }
 }
