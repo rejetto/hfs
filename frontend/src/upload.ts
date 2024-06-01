@@ -437,9 +437,9 @@ function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snapshot<typ
                 [msgDone, done],
                 [msgSkipped, skipped],
                 [msgErrors, errors]
-            ] as const).map(([msg, list]) =>
-                msg && h('div', {}, msg, h('ul', {},
-                    list.map(x => h('li', {}, x.name || x.file.name)) )))
+            ] as const).map(([msg, list], i) =>
+                msg && h('div', { key: i }, msg, h('ul', {},
+                    list.map((x, i) => h('li', { key: i }, x.name || x.file.name)) )))
         ))
     }
 }
