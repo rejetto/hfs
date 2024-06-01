@@ -5,7 +5,7 @@ import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
     HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_, cpuSpeedIndex,
-    buildUrlQueryString, randomId,
+    buildUrlQueryString, randomId, HTTP_MESSAGES,
 } from './misc'
 import _ from 'lodash'
 import { INTERNAL_Snapshot, proxy, ref, snapshot, subscribe, useSnapshot } from 'valtio'
@@ -19,7 +19,7 @@ import { subscribeKey } from 'valtio/utils'
 
 const renameEnabled = getHFS().dontOverwriteUploading
 
-interface ToUpload { file: File, comment?: string, name?: string, to?: string }
+interface ToUpload { file: File, comment?: string, name?: string, to?: string, error?: string }
 export const uploadState = proxy<{
     done: ToUpload[]
     doneByte: number
@@ -378,11 +378,13 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     }
 
     function error(status: number) {
-        if (uploadState.errors.push(toUpload)) return
         const ERRORS = {
             [HTTP_PAYLOAD_TOO_LARGE]: t`file too large`,
+            [HTTP_CONFLICT]: t('upload_conflict', "already exists"),
         }
-        const specifier = (ERRORS as any)[status]
+        const specifier = (ERRORS as any)[status] || HTTP_MESSAGES[status]
+        toUpload.error = specifier
+        if (uploadState.errors.push(toUpload)) return
         const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
         closeLast?.()
         closeLast = alertDialog(msg, 'error').close
@@ -439,7 +441,7 @@ function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snapshot<typ
                 [msgErrors, errors]
             ] as const).map(([msg, list], i) =>
                 msg && h('div', { key: i }, msg, h('ul', {},
-                    list.map((x, i) => h('li', { key: i }, x.name || x.file.name)) )))
+                    list.map((x, i) => h('li', { key: i }, x.name || x.file.name, prefix(' (', x.error, ')'))) )))
         ))
     }
 }
