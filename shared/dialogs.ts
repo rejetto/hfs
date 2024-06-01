@@ -55,9 +55,11 @@ function tabCycle(target: EventTarget | null, invert=false) {
     return true
 }
 
-function isDescendant(child: Node | null, parent: Node) {
+export function isDescendant(child: Node | null | undefined, parentMatch: Node | null | undefined | ((child: Node) => boolean)) {
+    if (!parentMatch) return false
+    const fun = typeof parentMatch === 'function'
     while (child) {
-        if (child === parent)
+        if (fun ? parentMatch(child) : child === parentMatch)
             return true
         child = child.parentNode
     }
@@ -175,9 +177,11 @@ export function newDialog(options: DialogOptions) {
     options.ts = ts
     focusBak.push(document.activeElement) // saving this inside options object doesn't work (didn't dig enough to say why)
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
-    dialogs.push(options)
-    if (options.closable !== false)
-        history.pushState({ $dialog: $id, ts, idx: history.state.idx + 1 }, '')
+    setTimeout(() => { // in case dialogs were just closed, account for window.history delay. This should be harmless as ux is unaffected, and programmatically you already didn't expect this to happen immediately but at state change
+        dialogs.push(options)
+        if (options.closable !== false)
+            history.pushState({ $dialog: $id, ts, idx: history.state.idx + 1 }, '')
+    }, 1)
     return { close }
 
     function close(v?:any) {
