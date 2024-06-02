@@ -10,6 +10,6 @@ for (const k of ['log','warn','error']) {
         if (consoleLog.length > 100_000) // limit to avoid infinite space
             consoleLog.splice(0, 1_000)
         events.emit('console', rec)
-        return original(ts.toLocaleTimeString('en-uk'), ...args)
+        return original(ts.toLocaleTimeString(undefined, { hourCycle: 'h24' }), ...args) // bundled nodejs doesn't have locales (and apparently uses en-US)
     }
 }
