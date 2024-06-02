@@ -143,11 +143,7 @@ const apis: ApiHandlers = {
         if (!online)
             return new ApiError(HTTP_CONFLICT)
         await checkDependencies(online)
-        const enabled = isPluginEnabled(id)
-        await stopPlugin(id)
         await downloadPlugin(found.repo, { branch: online.branch, overwrite: true })
-        if (enabled)
-            void startPlugin(id) // don't wait, in case it fails to start
         return {}
     },
 

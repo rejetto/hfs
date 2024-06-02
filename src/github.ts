@@ -1,9 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import events from './events'
-import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray } from './misc'
-import { DISABLING_SUFFIX, findPluginByRepo, getAvailablePlugins, getPluginInfo, mapPlugins,
-    parsePluginSource, PATH as PLUGINS_PATH, Repo } from './plugins'
+import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait } from './misc'
+import {
+    DISABLING_SUFFIX, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginEnabled, mapPlugins,
+    parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER
+} from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 import { DEV, HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
@@ -66,6 +68,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
 
         async function go(url: string, folder: string, zipRoot: string) {
             const installPath = PLUGINS_PATH + '/' + folder
+            const tempInstallPath = installPath + '--' + DISABLING_SUFFIX
             const foldersToCopy = [ // from longer to shorter, so we first test the longer
                 zipRoot + '-' + process.platform + '-' + process.arch,
                 zipRoot + '-' + process.platform,
@@ -73,19 +76,32 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             ].map(x => x + '/')
             // github zip doesn't have content-length, so we cannot produce progress event
             const stream = await httpStream(url)
-            const MAIN = 'plugin.js'
             await unzip(stream, async path => {
                 const folder = foldersToCopy.find(x => path.startsWith(x))
                 if (!folder || path.endsWith('/')) return false
                 let dest = path.slice(folder.length)
-                if (dest === MAIN) // avoid being possibly loaded before the download is complete
-                    dest += DISABLING_SUFFIX
-                dest = join(installPath, dest)
+                dest = join(tempInstallPath, dest)
                 return rm(dest, { force: true }).then(() => dest, () => false)
             })
-            const main = join(installPath, MAIN)
-            await rename(main + DISABLING_SUFFIX, main) // we are good now, restore name
+            // ready to replace
+            const wasEnabled = isPluginEnabled(folder)
+            if (wasEnabled)
+                await stopPlugin(folder) // stop old
+            let retry = 3
+            while (retry--) { // move data, and consider late release of the resource, up to a few seconds
+                const res = rename(join(installPath, STORAGE_FOLDER), join(tempInstallPath, STORAGE_FOLDER))
+                if (await res.then(() => true, e => e.code === 'ENOENT')) break
+                await wait(1000)
+            }
+            // delete old
+            await rm(installPath, { recursive: true }).catch(e => {
+                if (e.code !== 'ENOENT') throw e
+            })
+            // final replace
+            await rename(tempInstallPath, installPath)
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
+            if (wasEnabled)
+                void startPlugin(folder) // don't wait, in case it fails to start
             return folder
         }
     }
