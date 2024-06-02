@@ -144,8 +144,10 @@ export default function HomePage() {
 
 function renderChangelog(s: string) {
     return md(s, {
-        onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues
-            h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew) ))
+        onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b|(https:.*\S+)/g, m =>  // link issues and urls
+            m[1] ? h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew))
+                : h(Link, { href: m[2], target: '_blank' }, m[2] )
+        )
     })
 }
 
