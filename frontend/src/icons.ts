@@ -47,10 +47,13 @@ const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // fals
     warning: ['⚠️', false],
 }
 
-document.fonts.ready.then(async ()=> {
+const documentComplete = document.readyState === 'complete' ? Promise.resolve()
+    : new Promise(res => document.addEventListener('readystatechange', res))
+// fonts.ready seems to be unreliable with iphone + additional <script> in custom-html + plugins using frontend_js, but still can be interesting if it resolves faster the document.complete, as we specifically interested in the fonts
+Promise.race([documentComplete, document.fonts?.ready]).then(async () => {
     const fontTester = '9px fontello'
     await document.fonts.load(fontTester) // force font to be loaded even if we didn't display anything with it yet
-    state.iconsReady = document.fonts.check(fontTester)
+    state.iconsReady = document.fonts.check(fontTester)//Boolean(Array.from(document.fonts.values()).find(x => x.family === 'fontello'))
 })
 
 interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
