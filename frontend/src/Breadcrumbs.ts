@@ -39,6 +39,7 @@ function Breadcrumb({ path, label, current, title }:{ current?: boolean, path: s
         className: 'breadcrumb',
         to: path || '/',
         title,
+        reloadDocument: true, // this is necessary when navigating to a folder with index.html
         async onClick(ev) {
             if (!current) return
             ev.preventDefault()
