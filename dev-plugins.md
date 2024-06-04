@@ -80,7 +80,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   You can also include external files, by entering a full URL. Multiple files can be specified as `['file1.css', 'file2.css']`.  
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL.
-- `middleware: (Context) => void | true | function` a function that will be used as a middleware: use this to interfere with http activity.
+- `middleware: (Context) => Promisable<void | true | function>` a function that will be used as a middleware: use this to interfere with http activity.
   
   ```js
   exports.middleware = ctx => {
@@ -90,7 +90,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   ```
   You'll find more examples by studying plugins like `antidos` or `antibrute`.
   To interrupt other middlewares on this http request, return `true`.
-  If you want to execute something in the "upstream" of middlewares, return a function.
+  If you want to execute something in the "upstream" of middlewares, return a function. This function can be async.
   You can read more in [the ctx object](#the-ctx-object) section.
 
 - `unload: function` called when unloading a plugin. This is a good place for example to clearInterval().
