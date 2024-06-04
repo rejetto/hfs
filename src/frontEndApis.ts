@@ -149,10 +149,10 @@ export const frontEndApis: ApiHandlers = {
     },
 }
 
-export function notifyClient(ctx: Koa.Context, name: string, data: any) {
-    const {notificationChannel} = ctx.query
-    if (notificationChannel)
-        events.emit(NOTIFICATION_PREFIX + notificationChannel, name, data)
+export function notifyClient(channel: string | Koa.Context, name: string, data: any) {
+    if (typeof channel !== 'string')
+        channel = String(channel.query.notificationChannel)
+    events.emit(NOTIFICATION_PREFIX + channel, name, data)
 }
 
 const NOTIFICATION_PREFIX = 'notificationChannel:'
