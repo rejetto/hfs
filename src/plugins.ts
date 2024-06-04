@@ -23,6 +23,7 @@ import { dirname, join, resolve } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
 import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
 import { onProcessExit } from './first'
+import { notifyClient } from './frontEndApis'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -110,6 +111,7 @@ async function initPlugin<T>(pl: any, morePassedToInit?: T) {
         log: console.log,
         getHfsConfig: getConfig,
         customApiCall,
+        notifyClient,
         ...morePassedToInit
     }))
 }

@@ -11,7 +11,7 @@ import _ from 'lodash'
 import { INTERNAL_Snapshot, proxy, ref, snapshot, subscribe, useSnapshot } from 'valtio'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
-import { apiCall, getNotification } from '@hfs/shared/api'
+import { apiCall, getNotifications } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { Link } from 'react-router-dom'
 import { t } from './i18n'
@@ -345,7 +345,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     async function subscribeNotifications() {
         if (notificationChannel) return
         notificationChannel = 'upload-' + randomId()
-        notificationSource = await getNotification(notificationChannel, async (name, data) => {
+        notificationSource = await getNotifications(notificationChannel, async (name, data) => {
             const {uploading} = uploadState
             if (!uploading) return
             if (name === 'upload.resumable') {

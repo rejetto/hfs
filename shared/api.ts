@@ -172,7 +172,7 @@ export function useApiEvents<T=any>(cmd: string, params: Dict={}) {
     return { data, loading, error }
 }
 
-export async function getNotification(channel: string, cb: (name: string, data:any) => void): Promise<EventSource> {
+export async function getNotifications(channel: string, cb: (name: string, data:any) => void): Promise<EventSource> {
     return new Promise(resolve => {
         const ret = apiEvents('get_notifications', { channel }, (type, entries) => {
             if (type === 'connected')

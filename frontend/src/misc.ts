@@ -6,7 +6,7 @@ import { newDialog, toast } from './dialog'
 import { Icon } from './icons'
 import { Dict, getHFS, HTTP_MESSAGES, useBatch } from '@hfs/shared'
 import * as misc from '../../src/cross'
-import { apiCall, useApi } from '@hfs/shared/api'
+import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
 import { state } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
@@ -66,6 +66,7 @@ const tools = {
 Object.assign(getHFS(), {
     ...tools,
     emit: hfsEvent,
+    getNotifications,
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
         const key = 'hfs.' + name
         document.addEventListener(key, wrapper)

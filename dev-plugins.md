@@ -203,6 +203,8 @@ The `api` object you get as parameter of the `init` contains the following:
   The specified file name will be stored in the "storage" folder of the plugin, by default.
   Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
 
+- `notifyClient(channel: string, eventName: string, data?: any)` send a message to those frontends that are on the same channel.
+
 ## Front-end specific
 
 The following information applies to the default front-end, and may not apply to a custom one.
@@ -235,6 +237,8 @@ The HFS objects contains many properties:
 - `Icon: ReactComponent` Properties:
     - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
 - `useBatch: (worker, job) => any`
+- `getNotifications(channel: string, cb: (eventName: string, data:any) => void)`
+  receive messages when the backend uses `notifyClient` on the same channel. 
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -421,6 +425,30 @@ This section is still partially documented, and you may need to have a look at t
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
 
+# Notifications (backend-to-frontend events)
+
+You can send messages from the backend (plugin.js) using `api.notifyClient`, and receive on the frontend
+using `HFS.getNotifications`. Find details in the reference above.
+
+Example:
+
+`plugin.js`
+```js
+exports.init = api => {
+    const t = setInterval(() => api.notifyClient('test', 'message', 'hello'), 5000)
+    return {
+        frontend_js: 'main.js',
+        unload() {
+            clearInterval(t)
+        }
+    }
+}
+```
+`public/main.js`
+```js
+HFS.getNotifications('test', console.log)
+```
+
 # The `ctx` object
 
 HFS is currently based on [Koa](https://koajs.com), so you'll see some things related to it in the backend API.
@@ -546,13 +574,14 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 8.82 (v0.53.0)
+- 8.84 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
     - config.type:username
     - api.events class has changed
     - frontend event "fileMenu": changed props format
     - api.getConfig() without parameters
+    - api.notifyClient + HFS.getNotifications
 - 8.72 (v0.52.0)
     - HFS.toast
     - HFS.misc functions
