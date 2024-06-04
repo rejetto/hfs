@@ -153,10 +153,10 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
             perm('can_read', "Who can see but not download will be asked to login"),
-            perm('can_see', "If you can't see, you may still download with a direct link"),
+            perm('can_see', ["Control what appears in the list.", wikiLink('Permissions', " More help.")]),
             perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? 6 : 12 }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
-            perm('can_list', undefined, { contentText: "subfolders" }),
+            perm('can_list', "Permission to requests the list of a folder. The list will include only things you can see.", { contentText: "subfolders" }),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
             isLink && {
                 k: 'target',
@@ -172,7 +172,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
             showWebsite && { k: 'default', comp: BoolField, xl: true,
-                label: "Serve as website if index.html is found" + (inheritedDefault && values.default == null ? ' (inherited)' : ''),
+                label: "Serve as web-page if index.html is found" + (inheritedDefault && values.default == null ? ' (inherited)' : ''),
                 value: values.default ?? inheritedDefault,
                 toField: Boolean, fromField: (v:boolean) => v && !inheritedDefault ? 'index.html' : v ? null : false,
                 helperText: md("...instead of showing list of files")
@@ -208,7 +208,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
 }
 
 function perm2word(perm: string) {
-    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip', list: 'access folder' })
+    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip', list: 'access list' })
 }
 
 interface WhoFieldProps extends FieldProps<Who | undefined> {
