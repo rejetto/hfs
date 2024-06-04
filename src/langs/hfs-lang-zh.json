@@ -53,7 +53,7 @@
         "Search was interrupted": "搜索已中断",
         "Stop list": "停止",
 
-        "upload_starting": "开始下载",
+        "download_starting": "开始下载",
         "wrong_account": "用户 {u} 没有访问权限,请更换用户",
         "no_upload_here": "没有上传权限",
         "Create folder": "创建文件夹",

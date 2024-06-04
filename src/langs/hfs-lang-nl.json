@@ -53,7 +53,7 @@
         "Search was interrupted": "Zoeken is onderbroken",
         "Stop list": "Stop lijst",
 
-        "upload_starting": "Uw download zou nu moeten starten",
+        "download_starting": "Uw download zou nu moeten starten",
         "wrong_account": "Account {u} heeft geen toegang, probeer een andere",
         "no_upload_here": "Geen upload toestemming voor de huidige map",
         "Create folder": "Creeer map",

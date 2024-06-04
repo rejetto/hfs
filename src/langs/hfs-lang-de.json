@@ -53,7 +53,7 @@
         "Search was interrupted": "Suche wurde abgebrochen",
         "Stop list": "Suche abbrechen",
 
-        "upload_starting": "Ihr Download sollte jetzt starten",
+        "download_starting": "Ihr Download sollte jetzt starten",
         "wrong_account": "Account {u} hat keinen Zugriff, versuchen Sie einen anderen",
         "no_upload_here": "Keine Uploadberechtigung für den momentanen Ordner",
         "Create folder": "Ordner erstellen",

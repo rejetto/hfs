@@ -53,7 +53,7 @@
         "Search was interrupted": "Haku keskeytetty",
         "Stop list": "Pysäytä listaus",
 
-        "upload_starting": "Aloitetaan lataaminen",
+        "download_starting": "Aloitetaan lataaminen",
         "wrong_account": "Tilillä {u} ei ole pääsyä, kokeile toista",
         "no_upload_here": "Ei lähetysoikeutta tähän kansioon",
         "Create folder": "Tee uusi kansio",

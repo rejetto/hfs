@@ -53,7 +53,7 @@
         "Search was interrupted": "検索は中断されました",
         "Stop list": "リストを停止",
 
-        "upload_starting": "ダウンロードはまもなく開始します",
+        "download_starting": "ダウンロードはまもなく開始します",
         "wrong_account": "アカウント {u}はアクセスできません 他のアカウントで試してください",
         "no_upload_here": "このフォルダにアップロードは許可されていません",
         "Create folder": "新しいフォルダ",

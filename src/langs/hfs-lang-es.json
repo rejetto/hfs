@@ -53,7 +53,7 @@
         "Search was interrupted": "La búsqueda fue interrumpida",
         "Stop list": "Detener Lista",
 
-        "upload_starting": "Su descarga debería iniciarse ahora",
+        "download_starting": "Su descarga debería iniciarse ahora",
         "wrong_account": "La cuenta {u} no tiene acceso.",
         "no_upload_here": "No tiene permisos para subir a la carpeta actual",
         "Create folder": "Crear carpeta",

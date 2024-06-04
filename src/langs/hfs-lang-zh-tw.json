@@ -53,7 +53,7 @@
         "Search was interrupted": "搜尋已中止",
         "Stop list": "停止",
 
-        "upload_starting": "開始下載",
+        "download_starting": "開始下載",
         "wrong_account": "使用者 {u} 沒有存取權限,請更換使用者",
         "no_upload_here": "沒有上傳權限",
         "Create folder": "建立資料夾",

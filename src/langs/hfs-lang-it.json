@@ -51,7 +51,7 @@
         "Search was interrupted": "Ricerca interrotta",
         "Stop list": "Interrompi",
 
-        "upload_starting": "Ora dovrebbe iniziare il download",
+        "download_starting": "Ora dovrebbe iniziare il download",
         "wrong_account": "L'account {u} non ha accesso a questa cartella, prova con un altro",
         "no_upload_here": "Non hai il permesso di uplodare in questa cartella",
         "Create folder": "Crea cartella",

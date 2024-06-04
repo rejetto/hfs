@@ -53,7 +53,7 @@
         "Search was interrupted": "Tìm kiếm bị gián đoạn!",
         "Stop list": "DỪNG",
 
-        "upload_starting": "Tải lên bây giờ sẽ bắt đầu",
+        "download_starting": "Tải lên bây giờ sẽ bắt đầu",
         "wrong_account": "Tài khoản {u} ko có quyền, chọn tk khác đi:)",
         "no_upload_here": "Không có quyền tải lên cho thư mục hiện tại",
         "Create folder": "Tạo thư mục",

@@ -53,7 +53,7 @@
         "Search was interrupted": "Search was interrupted",
         "Stop list": "Stop list",
 
-        "upload_starting": "Your download should now start",
+        "download_starting": "Your download should now start",
         "wrong_account": "Account {u} has no access, try another",
         "no_upload_here": "No upload permission for the current folder",
         "Create folder": "Create folder",

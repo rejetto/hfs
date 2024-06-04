@@ -53,7 +53,7 @@
         "Search was interrupted": "Поиск прерван",
         "Stop list": "Остановить",
 
-        "upload_starting": "Загрузка началась",
+        "download_starting": "Загрузка началась",
         "wrong_account": "Пользователь {u} не имеет доступа к этой папке",
         "no_upload_here": "Нет доступа к загрузке файлов в эту папку",
         "Create folder": "Создать папку",

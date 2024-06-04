@@ -54,7 +54,7 @@
         "Search was interrupted": "Претрага је прекинута", 
         "Stop list": "Заустави", 
 	    "Upload": "Отпреми",
-        "upload_starting": "Отпремање је почело", 
+        "download_starting": "Отпремање је почело",
         "wrong_account": "Корисник {u} нема приступ овом директоријуму", 
         "no_upload_here": "Немогуће отпремање овде", 
         "Create folder": "Креирај фолдер", 
