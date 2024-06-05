@@ -71,12 +71,12 @@ export function CustomCode({ name, children, ...props }: { name: string, childre
         props.def = children // not using 'default' because user can have unexpected error destructuring object
         const ret = onlyTruthy(hfsEvent(name, props)
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
-                : x === 0 || x && isPrimitive(x) ? h(Html, { key, code: String(x) })
+                : x === 0 || x && isPrimitive(x) ? h(Html, { key }, String(x))
                     : _.isArray(x) ? h(Fragment, { key }, ...x)
                         : null))
         const html = getHFS().customHtml?.[name]
         if (html?.trim?.())
-            ret.push(h(Html, { key: 'x', code: html }))
+            ret.push(h(Html, { key: 'x' }, html))
         return ret
     }, [name, children, ...props ? Object.values(props) : []])
     return result.length || !children ? h(Fragment, {}, result) : children
