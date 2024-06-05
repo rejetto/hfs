@@ -451,7 +451,7 @@ function watchPlugin(id: string, path: string) {
             })
             const folder = dirname(module)
             const { state, unwatch } = watchLoadCustomHtml(folder)
-            pluginData.customHtml = state
+            pluginData.customHtml ??= () => Object.fromEntries(state)
 
             const plugin = new Plugin(id, folder, pluginData, async () => {
                 unwatch()
