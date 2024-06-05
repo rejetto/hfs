@@ -132,7 +132,7 @@ export async function deleteNode(ctx: Koa.Context, node: VfsNode, uri: string) {
     if (statusCodeForMissingPerm(node, 'can_delete', ctx))
         return ctx.status
     try {
-        if (await events.emitAsync('deleting', { node, ctx }).preventDefault())
+        if (await events.emitAsync('deleting', { node, ctx }).isDefaultPrevented())
             return null // stop
         ctx.logExtra(null, { target: decodeURI(uri) })
         await rm(source, { recursive: true })

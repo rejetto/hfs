@@ -383,7 +383,7 @@ api.events.on('deleting', async () => your-code-here)
 
 ### Stop, the way you prevent default behavior
 
-Some events allow you to stop their default behavior, by returning `false`.
+Some events allow you to stop their default behavior, by returning `api.events.stop`.
 This is reported in the list below with the word "stoppable".
 
 ```js

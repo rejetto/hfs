@@ -99,25 +99,25 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 ),
                 entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
                 h('div', { className: 'file-menu' },
-                    dontBotherWithKeys(menu.map((e: FileMenuEntry, i) => // render menu entries
-                        isValidElement(e) ? e
-                            : e?.label && h('a', {
+                    dontBotherWithKeys(menu.map((entry: FileMenuEntry, i) => // render menu entries
+                        isValidElement(entry) ? entry
+                            : entry?.label && h('a', {
                                 key: i,
                                 href: '#',
-                                ..._.omit(e, ['label', 'icon', 'toggled']),
-                                id: e.id && `menu-entry-${e.id}`,
-                                className: e.toggled ? 'toggled' : undefined,
-                                async onClick(event: MouseEvent) {
-                                    if (!e.href)
-                                        event.preventDefault()
-                                    if (false !== await e.onClick?.(event))
+                                ..._.omit(entry, ['label', 'icon', 'toggled']),
+                                id: entry.id && `menu-entry-${entry.id}`,
+                                className: entry.toggled ? 'toggled' : undefined,
+                                async onClick(ev: MouseEvent) {
+                                    if (!entry.href)
+                                        ev.preventDefault()
+                                    if (false !== await entry.onClick?.(ev))
                                         close()
                                 }
                             },
-                                hIcon(e.icon || 'file'),
+                                hIcon(entry.icon || 'file'),
                                 h('label', { style: { display: 'flex', flexDirection: 'column' } },
-                                    h('div', {}, e.label),
-                                    h('small', {}, e.subLabel) )
+                                    h('div', {}, entry.label),
+                                    h('small', {}, entry.subLabel) )
                             )
                     ))
                 )

@@ -6,6 +6,7 @@ const LISTENERS_SUFFIX = '\0listeners'
 
 export class BetterEventEmitter {
     protected listeners = new Map<string, Listeners>()
+    stop = Symbol()
     on(event: string | string[], listener: Listener, { warnAfter=10 }={}) {
         if (typeof event === 'string')
             event = [event]
@@ -56,15 +57,13 @@ export class BetterEventEmitter {
                 ret.push(res)
         }
         return Object.assign(ret, {
-            preventDefault: () => ret.some(r => r === false)
+            isDefaultPrevented: () => ret.some(r => r === this.stop),
         })
     }
     emitAsync(event: string, ...args: any[]) {
         const ret = Promise.all(this.emit(event, ...args) || [])
         return Object.assign(ret, {
-            async preventDefault() {
-                return (await ret).some((x: any) => x === false)
-            }
+            isDefaultPrevented: async () => (await ret).some((r: any) => r === this.stop)
         })
     }
 }

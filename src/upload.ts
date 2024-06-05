@@ -116,7 +116,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
     const obj = { ctx, writeStream }
     const resEvent = events.emit('uploadStart', obj)
-    if (resEvent?.preventDefault()) return
+    if (resEvent?.isDefaultPrevented()) return
 
     const fileStream = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
         : fs.createWriteStream(tempName)
