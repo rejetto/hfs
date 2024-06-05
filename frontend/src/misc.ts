@@ -4,10 +4,10 @@ import React, { createElement as h } from 'react'
 import { Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon } from './icons'
-import { Dict, getHFS, HTTP_MESSAGES, useBatch } from '@hfs/shared'
+import { Dict, getHFS, Html, HTTP_MESSAGES, useBatch } from '@hfs/shared'
 import * as misc from '../../src/cross'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
-import { state } from './state'
+import { state, useSnapState } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
 import _ from 'lodash'
@@ -16,6 +16,7 @@ import { logout } from './login'
 import { subscribeKey } from 'valtio/utils'
 import { uploadState } from './upload'
 import { fileShow } from './show'
+import { debounceAsync } from '../../src/debounceAsync'
 export * from '@hfs/shared'
 
 export function err2msg(err: number | Error) {
@@ -67,6 +68,9 @@ Object.assign(getHFS(), {
     ...tools,
     emit: hfsEvent,
     getNotifications,
+    debounceAsync,
+    useSnapState,
+    html: (html: string) => h(Html, {}, html),
     onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
         const key = 'hfs.' + name
         document.addEventListener(key, wrapper)
