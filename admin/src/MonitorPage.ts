@@ -149,7 +149,7 @@ function Connections() {
                     field: 'started',
                     headerName: "Started",
                     type: 'dateTime',
-                    width: 100,
+                    width: 96,
                     hideUnder: 'lg',
                     valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
                 },
