@@ -2,9 +2,22 @@
 
 // like lodash.debounce, but also avoids async invocations to overlap
 export function debounceAsync<Cancelable extends boolean = false, A extends unknown[] = unknown[], R = unknown>(
+    // the function you want to not call too often, too soon
     callback: (...args: A) => Promise<R>,
+    // time to wait after invocation of the debounced function. If you call again while waiting, the timer starts again.
     wait: number=100,
-    options: { leading?: boolean, maxWait?:number, retain?: number, retainFailure?: number, cancelable?: Cancelable }={}
+    options: {
+        // in a train of invocations, should we execute also the first one, or just the last one?
+        leading?: boolean,
+        // since the wait-ing is renewed at each invocation, indefinitely, do you want to put a cap to it?
+        maxWait?: number,
+        // for how long do you want to cache last success value, and return that at next invocation?
+        retain?: number,
+        // for how long do you want to cache last failure value, and return that at next invocation?
+        retainFailure?: number,
+        // should we offer a cancel method to the returned function?
+        cancelable?: Cancelable
+    } = {}
 ) {
     type MaybeUndefined<T> = Cancelable extends true ? undefined | T : T
     type MaybeR = MaybeUndefined<R>

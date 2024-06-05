@@ -82,7 +82,9 @@ export default function useFetchList() {
                         if (!Array.isArray(entry)) continue // unexpected
                         const [op, par] = entry
                         const error = op === LIST.error && par
-                        if (error === HTTP_METHOD_NOT_ALLOWED) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
+                        // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
+                        // it also happens accessing a web-page folder, and the reload is the right solution too.
+                        if (error === HTTP_METHOD_NOT_ALLOWED) {
                             state.messageOnly = t('download_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
                             continue
