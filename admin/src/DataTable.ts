@@ -12,6 +12,7 @@ const ACTIONS = 'Actions'
 export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
     hidden?: boolean
     hideUnder?: Breakpoint | number
+    dialogHidden?: boolean
     mergeRender?: { other: string, override?: Partial<GridColDef<R>> } & BoxProps
 }
 interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
@@ -136,7 +137,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
                 const n = apiRef.current.getVisibleColumns().length
                 const showCols = manipulatedColumns.filter(x =>
-                    x.renderCell || x.field === ACTIONS || row[x.field] !== undefined)
+                    !x.dialogHidden && (x.renderCell || x.field === ACTIONS || row[x.field] !== undefined))
                 if (showCols.length <= n) return
                 newDialog({
                     title: "Details",
