@@ -64,10 +64,10 @@ setInterval(() => {
     uploadState.eta = uploadState.speed && Math.round(left / uploadState.speed)
 }, 5_000)
 
-window.onbeforeunload = e => {
+window.onbeforeunload = ev => {
     if (!uploadState.qs.length) return
-    e.preventDefault()
-    return e.returnValue = t("Uploading") // modern browsers ignore this message
+    ev.preventDefault()
+    return ev.returnValue = t("Uploading") // modern browsers ignore this message
 }
 
 let reloadOnClose = false
