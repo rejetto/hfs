@@ -115,7 +115,8 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   When necessary your plugin will read its value using `api.getConfig('message')`.
 
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
-- `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to front-end 
+- `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to front-end.
+- `customHtml: object | () => object` return custom-html sections programmatically.
 
 ### FieldDescriptor
 
@@ -591,6 +592,7 @@ If you want to override a text regardless of the language, use the special langu
     - HFS.debounceAsync
     - middleware: ctx.stop()
       - the old way of returning true is now deprecated
+    - exports.customHtml
 - 8.72 (v0.52.0)
     - HFS.toast
     - HFS.misc functions
