@@ -24,6 +24,7 @@ import { watchLoadCustomHtml } from './customHtml'
 import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
 import { onProcessExit } from './first'
 import { notifyClient } from './frontEndApis'
+import { app } from './index'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -116,6 +117,13 @@ async function initPlugin<T>(pl: any, morePassedToInit?: T) {
     }))
 }
 
+const already = new Set()
+function warnOnce(msg: string) {
+    if (already.has(msg)) return
+    already.add(msg)
+    console.log('Warning: ' + msg)
+}
+
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     const after: Dict<CallMeAfter> = {}
     // run middleware plugins
@@ -129,7 +137,11 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 lastStatus = ctx.status
                 lastBody = ctx.body
             }
-            if (res === true)
+            if (res === true) { // true for legacy pre-0.53
+                ctx.stop()
+                warnOnce(`plugin ${id} is using deprecated API (return true on middleware) and may not work with future versions (check for an update to "${id}")`)
+            }
+            if (ctx.isStopped)
                 console.debug("plugin blocked request", ctx.pluginBlockedRequest = id)
             if (typeof res === 'function')
                 after[id] = res
@@ -163,6 +175,16 @@ function printError(id: string, e: any) {
     console.log(`error middleware plugin ${id}: ${e?.message || e}`)
     console.debug(e)
 }
+
+declare module "koa" {
+    interface BaseContext {
+        stop(): void
+    }
+}
+events.once('app', () => Object.assign(app.context, {
+    isStopped: false,
+    stop() { this.isStopped = true }
+}))
 
 // return false to ask to exclude this entry from results
 interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
