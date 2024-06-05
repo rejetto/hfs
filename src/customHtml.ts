@@ -36,11 +36,11 @@ export function watchLoadCustomHtml(folder='') {
 
 export function getSection(name: string) {
     return (customHtmlState.sections.get(name) || '')
-        + mapPlugins(pl => pl.getData().customHtml?.()[name]).join('\n')
+        + mapPlugins(pl => pl.getData().getCustomHtml()[name]).join('\n')
 }
 
 export function getAllSections() {
-    const keys = mapPlugins(pl => Object.keys(pl.getData().customHtml?.()))
+    const keys = mapPlugins(pl => Object.keys(pl.getData().getCustomHtml()))
     keys.push(Array.from(customHtmlState.sections.keys()))
     const all = _.uniq(keys.flat())
     return Object.fromEntries(all.map(x => [x, getSection(x)]))

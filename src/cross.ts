@@ -456,6 +456,10 @@ export function mapFilter<T=unknown, R=T>(arr: T[], map: (x:T, idx: number) => R
     }, [] as R[])
 }
 
+export function callable<T>(x: T | ((...args: unknown[]) => T), ...args: unknown[]) {
+    return _.isFunction(x) ? x(...args) : x
+}
+
 export function shortenAgent(agent: string) {
     return _.findKey(BROWSERS, re => re.test(agent))
         || /^[^/(]+ ?/.exec(agent)?.[0]

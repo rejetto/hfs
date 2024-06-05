@@ -8,7 +8,7 @@ import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, IS_WINDO
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
+    adjustStaticPathForGlob, callable, Callback, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir
 } from './misc'
 import { defineConfig, getConfig } from './config'
@@ -451,7 +451,8 @@ function watchPlugin(id: string, path: string) {
             })
             const folder = dirname(module)
             const { state, unwatch } = watchLoadCustomHtml(folder)
-            pluginData.customHtml ??= () => Object.fromEntries(state)
+            pluginData.getCustomHtml = () =>
+                Object.assign(Object.fromEntries(state), callable(pluginData.customHtml) || {})
 
             const plugin = new Plugin(id, folder, pluginData, async () => {
                 unwatch()
