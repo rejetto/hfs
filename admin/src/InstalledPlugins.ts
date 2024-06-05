@@ -208,8 +208,9 @@ export const descriptionField: DataTableColumn = {
 
 export const themeField: DataTableColumn = {
     field: 'isTheme',
-    headerName: "theme",
+    headerName: "is theme",
     hidden: true,
+    dialogHidden: true,
     type: 'boolean',
     renderCell({ value }) {
         return value && iconTooltip(ThemeIcon, _.isString(value) ? `${value} theme` : "theme", { fontSize: '1.2rem', mr: '.3em' })
