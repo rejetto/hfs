@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, HTMLAttributes, ReactNode } from 'react'
+import { createElement as h, Fragment, HTMLAttributes, ReactNode, useMemo } from 'react'
 
 export const MD_TAGS = {
     a: 'a',
@@ -9,6 +9,7 @@ export const MD_TAGS = {
     '**': 'b',
 }
 type OnText = (s: string) => ReactNode
+// md-inspired formatting, very simplified
 export function md(text: string | TemplateStringsArray, { linkTarget='_blank', onText=(x=>x) as OnText }={}) {
     if (typeof text !== 'string')
         text = text[0]
@@ -16,7 +17,7 @@ export function md(text: string | TemplateStringsArray, { linkTarget='_blank', o
         m[4] ? h(MD_TAGS.a, { href: m[5], target: linkTarget }, onText(m[4]))
             : m[3] ? h('br')
             : m[1] ? h((MD_TAGS as any)[ m[1] ] || Fragment, {}, onText(m[2]))
-            : h(Html, { code: m[6] }),
+            : h(Html, {}, m[6]),
         onText)
 }
 
@@ -33,9 +34,8 @@ export function replaceStringToReact(text: string, re: RegExp, cb: (match: RegEx
     return h(Fragment, {}, ...res, onText(text.slice(last, Infinity)))
 }
 
-export function Html({ code, ...rest }: { code:string } & HTMLAttributes<any>) {
-    return !code ? null : h('span', { ...rest, ref(x) {
-            if (x)
-                x.replaceChildren(document.createRange().createContextualFragment(code))
-        } })
+export function Html({ children, ...rest }: { children?: string } & HTMLAttributes<any>) {
+    return useMemo(() => !children ? null
+        : h('span', { ...rest, ref: x => x && x.replaceChildren(document.createRange().createContextualFragment(children)) }),
+    [children])
 }
