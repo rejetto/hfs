@@ -62,7 +62,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 renderCell(params: any) {
                     const { columns } = params.api.store.getSnapshot()
                     const showOther = columns.columnVisibilityModel[other] === false
-                    return h(Box, {}, col.renderCell ? col.renderCell(params) : params.formattedValue,
+                    return h(Box, { maxHeight: '100%', sx: { textWrap: 'wrap' } }, // wrap if necessary, but stay within the row
+                        col.renderCell ? col.renderCell(params) : params.formattedValue,
                         showOther && h(Box, { ...compact && { lineHeight: '1em', fontSize: 'smaller' }, ...props },
                             renderCell({ ...columns.lookup[other], ...override }, params.row) ) )
                 }

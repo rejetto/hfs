@@ -139,7 +139,7 @@ const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColD
     dateTime: {
         field: { comp: DateTimeField },
         column: {
-            type: 'dateTime', minWidth: 90, flex: 0.5,
+            type: 'dateTime', minWidth: 96, flex: 0.5,
             valueGetter: ({ value }) => value && new Date(value),
             renderCell: ({ value }) => value && h(Box, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
         }

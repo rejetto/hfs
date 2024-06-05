@@ -139,7 +139,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
         field: 'ts',
         headerName: "Timestamp",
         type: 'dateTime',
-        width: 90,
+        width: 96,
         valueGetter: ({ value }) => new Date(value as string),
         renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
     }
