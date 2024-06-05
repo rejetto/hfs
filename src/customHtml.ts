@@ -4,6 +4,7 @@ import { proxy } from 'valtio/vanilla' // without /vanilla we trigger react depe
 import Dict = NodeJS.Dict
 import { writeFile } from 'fs/promises'
 import { mapPlugins } from './plugins'
+import _ from 'lodash'
 
 const FILE = 'custom.html'
 
@@ -35,7 +36,14 @@ export function watchLoadCustomHtml(folder='') {
 
 export function getSection(name: string) {
     return (customHtmlState.sections.get(name) || '')
-        + mapPlugins(pl => pl.getData().customHtml?.get(name)).join('\n')
+        + mapPlugins(pl => pl.getData().customHtml?.()[name]).join('\n')
+}
+
+export function getAllSections() {
+    const keys = mapPlugins(pl => Object.keys(pl.getData().customHtml?.()))
+    keys.push(Array.from(customHtmlState.sections.keys()))
+    const all = _.uniq(keys.flat())
+    return Object.fromEntries(all.map(x => [x, getSection(x)]))
 }
 
 export async function saveCustomHtml(sections: Dict<string>) {

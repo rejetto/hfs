@@ -12,7 +12,7 @@ import { join, extname } from 'path'
 import { CFG, debounceAsync, FRONTEND_OPTIONS, newObj, onlyTruthy, parseFile } from './misc'
 import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio/vanilla'
-import { customHtmlState, getSection } from './customHtml'
+import { customHtmlState, getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
@@ -111,8 +111,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         prefixUrl: ctx.state.revProxyPath,
                         dontOverwriteUploading: dontOverwriteUploading.get(),
                         forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
-                        customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
-                            ['top', 'bottom']), // exclude the sections we already apply in this phase
+                        customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
                         lang
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
