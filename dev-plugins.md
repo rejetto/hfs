@@ -218,11 +218,12 @@ The HFS objects contains many properties:
 - `reloadList`
 - `logout`
 - `prefixUrl: string` normally an empty string, it will be set in case a [reverse-proxy wants to mount HFS on a path](https://github.com/rejetto/hfs/wiki/Reverse-proxy).
-- `state` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
+- `state: StateObject` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
 - `watchState: (key: string, callback)=>function`
     - watch the `key` property of the state object above
     - `callback(newValue)` will be called at each change
     - use returned callback to stop watching
+- `useSnapState: () => StateObject` React hook version of the `state` object above 
 - `React` whole React object, as for `require('react')` (JSX syntax is not supported here)
 - `h` shortcut for React.createElement
 - `t` [translator function](https://github.com/rejetto/hfs/blob/main/frontend/src/i18n.ts)
@@ -232,13 +233,16 @@ The HFS objects contains many properties:
     - `ToastType = 'error' | 'warning' | 'info' | 'success'`
 - `dialogLib` this exposes all functions available in [dialog.ts](https://github.com/rejetto/hfs/blob/main/frontend/src/dialog.ts), for example alertDialog and newDialog. These are not documented yet, and subject to change without notification, but you can study the sources if you are interested in using them.
 - `misc` many functions and constants available in [cross.ts](https://github.com/rejetto/hfs/blob/main/src/cross.ts). These are not documented, probably never will, and are subject to change without notifications, but you can study the sources if you are interested in using them.
-- `navigate: (uri: string): void` use this if you have to change the page address without causing reload
+- `navigate: (uri: string) => void` use this if you have to change the page address without causing reload
 - `emit: (name: string, params?: object) => any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts.
 - `Icon: ReactComponent` Properties:
     - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
 - `useBatch: (worker, job) => any`
 - `getNotifications(channel: string, cb: (eventName: string, data:any) => void)`
   receive messages when the backend uses `notifyClient` on the same channel. 
+- `html: (html: string) => ReactNode` convert html code to React
+- `debounceAsync: function` like lodash.debounce, but also avoids async invocations to overlap.
+  For details please refer to `src/debounceAsync.ts`. 
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -574,7 +578,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 8.84 (v0.53.0)
+- 8.85 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
     - config.type:username
@@ -582,6 +586,9 @@ If you want to override a text regardless of the language, use the special langu
     - frontend event "fileMenu": changed props format
     - api.getConfig() without parameters
     - api.notifyClient + HFS.getNotifications
+    - HFS.html
+    - HFS.useSnapState
+    - HFS.debounceAsync
 - 8.72 (v0.52.0)
     - HFS.toast
     - HFS.misc functions
