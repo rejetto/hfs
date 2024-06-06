@@ -2,7 +2,7 @@
 
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
-import { alertDialog, newDialog } from './dialog'
+import { alertDialog, newDialog, toast } from './dialog'
 import { getHFS, hIcon, makeSessionRefresher, srpClientSequence, working,
     HTTP_CONFLICT, HTTP_UNAUTHORIZED,} from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
@@ -36,6 +36,7 @@ export function logout(){
             throw res
         state.username = ''
         reloadList()
+        toast(t`Logged out`, 'success')
     })
 }
 
@@ -113,6 +114,7 @@ export async function loginDialog(closable=false) {
                     try {
                         const res = await login(usr, pwd)
                         close(true)
+                        toast(t`Logged in`, 'success')
                         if (res?.redirect)
                             setTimeout(() => // workaround: the history.back() issued by closing the dialog is messing with our navigation
                                 getHFS().navigate(res.redirect), 10) // from my tests 1 was enough, 0 was not (not always). Would be nice to find a cleaner way

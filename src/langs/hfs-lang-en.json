@@ -169,6 +169,8 @@
         "to_clipboard_source_tooltip": "Go to the folder where the clipboard contents are located",
         "more_items": "{n} more item(s)",
         "Show details": "Show details",
-        "upload_conflict": "already exists"
+        "upload_conflict": "already exists",
+        "Logged in": "Logged in",
+        "Logged out": "Logged out"
     }
 }
