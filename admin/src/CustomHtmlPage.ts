@@ -62,7 +62,7 @@ export default function CustomHtmlPage() {
                 setAll(all => ({ ...all, [section]: v }))
             },
             onKeyDown(ev) {
-                if (['s','Enter'].includes(isCtrlKey(ev) as any)) {
+                if (['s','S','Enter'].includes(isCtrlKey(ev) as any)) {
                     void save()
                     ev.preventDefault()
                 }
