@@ -353,6 +353,12 @@ This is a list of available frontend-events, with respective object parameter an
 - `uriChanged`
     - DEPRECATED: use `watchState('uri', callback)` instead.
     - parameter `{ uri: string, previous: string }`
+- All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
+  - `afterMenuBar` between menu-bar and breadcrumbs
+  - `afterList` at the end of the files list
+  - `unauthorized` displayed behind the login dialog accessing a protected folder
+  - `htmlHead` inside the `<head>` element
+  - `userPanelAfterInfo` visible to logged-in users, after the click on the button with their username, between user-info and buttons 
 
 ## Back-end events
 
