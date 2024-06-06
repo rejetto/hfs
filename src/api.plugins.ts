@@ -2,7 +2,7 @@
 
 import {
     AvailablePlugin, enablePlugins, getAvailablePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
-    PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginEnabled, isPluginRunning,
+    PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning,
     stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies,
 } from './plugins'
 import _ from 'lodash'

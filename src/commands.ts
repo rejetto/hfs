@@ -8,8 +8,9 @@ import { openAdmin } from './listen'
 import yaml from 'yaml'
 import { argv, BUILD_TIMESTAMP, VERSION } from './const'
 import { createInterface } from 'readline'
-import { startPlugin, stopPlugin } from './plugins'
+import { getAvailablePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
+import { downloadPlugin } from './github'
 
 if (!argv.updating)
     try {
@@ -122,6 +123,17 @@ const commands = {
     'stop-plugin': {
         params: '<name>',
         cb: stopPlugin,
+    },
+    'download-plugin': {
+        params: '<githubUser/repo>',
+        cb: downloadPlugin,
+    },
+    'list-plugins': {
+        params: '',
+        cb() {
+            mapPlugins(p => console.log('ON:', p.id), false)
+            getAvailablePlugins().map(p => console.log('OFF:', p.id))
+        }
     },
     'purge-file-attr': {
         params: '',
