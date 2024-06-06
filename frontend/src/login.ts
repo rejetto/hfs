@@ -30,14 +30,15 @@ async function login(username:string, password:string) {
 const sessionRefresher = makeSessionRefresher(state)
 sessionRefresher(getHFS().session)
 
-export function logout(){
-    return apiCall('logout', {}, { modal: working }).catch(res => {
-        if (res.code !== HTTP_UNAUTHORIZED) // we expect this error code
+export function logout() {
+    // browsers (chrome125) memorize basic-auth credentials based on the path. Returning 401 on /~/api won't be effective on other paths, so we make a call "here" (as doing the same on / wasn't effective).
+    return fetch('?get=logout').then(res => {
+        if (res.status !== HTTP_UNAUTHORIZED) // we expect this error code
             throw res
         state.username = ''
         reloadList()
         toast(t`Logged out`, 'success')
-    })
+    }).finally(working())
 }
 
 export let closeLoginDialog: undefined | (() => void)
