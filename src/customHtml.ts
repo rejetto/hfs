@@ -9,7 +9,7 @@ import _ from 'lodash'
 const FILE = 'custom.html'
 
 export const customHtmlSections: ReadonlyArray<string> = ['style', 'beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
-    'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead']
+    'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo']
 
 export const customHtmlState = proxy({
     sections: watchLoadCustomHtml().state
