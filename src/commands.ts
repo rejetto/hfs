@@ -36,10 +36,9 @@ function parseCommandLine(line: string) {
         return console.error("insufficient parameters, expected: " + cmd.params)
     Promise.resolve(cmd.cb(...params)).then(() => console.log("+++ command executed"),
         (err: any) => {
-            if (typeof err === 'string')
-                console.error("command failed:", err)
-            else
+            if (typeof err !== 'string' && !err?.message)
                 throw err
+            console.error("command failed:", err.message || err)
         })
 }
 
@@ -98,7 +97,7 @@ const commands = {
     },
     update: {
         params: '[<version>=latest]',
-        cb: update
+        cb: update,
     },
     'check-update': {
         params: '',
