@@ -28,7 +28,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         return true
     }
     const forced = get === 'basic'
-    if (forced || detectBasicAgent()) {
+    if (forced || detectBasicAgent(ctx)) {
         ctx.type = 'html'
         const force = forced ? '?get=basic' : ''
         const walker = walkNode(node, { ctx, depth: 0 })
@@ -53,11 +53,12 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         return `<a href='${href}'>${label}</a>`
     }
 
-    function detectBasicAgent() {
-        const ua = ctx.get('user-agent')
-        const v = autoBasic.get()
-        return v && (/Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|Firefox\/(\d|[123]\d)\./.test(ua)
-            || _.isString(v) && ua.includes(v))
-    }
-
 }
+
+export function detectBasicAgent(ctx: Koa.Context) {
+    const ua = ctx.get('user-agent')
+    const v = autoBasic.get()
+    return v && (/Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|curl|Firefox\/(\d|[123]\d)\./.test(ua)
+        || _.isString(v) && ua.includes(v))
+}
+
