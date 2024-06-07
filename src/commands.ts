@@ -101,7 +101,7 @@ const commands = {
     'check-update': {
         params: '',
         async cb() {
-            const update = _.find(await getUpdates(), x => x.isNewer)
+            const update = (await getUpdates(true))[0]
             if (!update)
                 throw "you already have the latest version: " + VERSION
             console.log("new version available", update.name)
