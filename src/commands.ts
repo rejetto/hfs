@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createAdmin, getAccount, updateAccount } from './perm'
-import { getConfig, configKeyExists, setConfig } from './config'
+import { configKeyExists, setConfig, getWholeConfig } from './config'
 import _ from 'lodash'
 import { getUpdates, update } from './update'
 import { openAdmin } from './listen'
@@ -11,6 +11,7 @@ import { createInterface } from 'readline'
 import { getAvailablePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
+import { makeMatcher } from './cross'
 
 if (!argv.updating)
     try {
@@ -82,11 +83,11 @@ const commands = {
         }
     },
     'get-config': {
-        params: '<key>',
-        cb(key: string) {
-            if (!configKeyExists(key))
-                throw "specified key doesn't exist"
-            console.log(yaml.stringify(getConfig(key), { lineWidth:1000 }).trim())
+        params: '[<key-mask>]',
+        cb(key='*') {
+            const matcher = makeMatcher(key)
+            const filtered = _.pickBy(getWholeConfig({}), (v, k) => matcher(k))
+            console.log('\n' + yaml.stringify(filtered, { lineWidth:1000 }).trim())
         }
     },
     quit: {
