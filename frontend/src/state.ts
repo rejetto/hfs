@@ -89,6 +89,7 @@ function storeSettings() {
 }
 
 export class DirEntry {
+    static FORBIDDEN = 'FORBIDDEN'
     public readonly n: string
     public readonly s?: number
     public readonly m?: string
@@ -103,9 +104,9 @@ export class DirEntry {
     public readonly name: string
     public readonly uri: string
     public readonly ext: string = ''
-    public readonly isFolder:boolean
+    public readonly isFolder: boolean
     public readonly t?:Date
-    public readonly cantOpen: boolean
+    public readonly cantOpen?: true | typeof DirEntry.FORBIDDEN
     public readonly key?: string
 
     constructor(n: string, rest?: any) {
@@ -122,7 +123,8 @@ export class DirEntry {
             this.t = new Date(t)
         this.name = this.isFolder ? this.n.slice(this.n.lastIndexOf('/', this.n.length - 2) + 1, -1)
             : this.n.slice(this.n.lastIndexOf('/') + 1)
-        this.cantOpen = Boolean(this.p?.includes(this.isFolder ? 'l' : 'r'))  // to open we need list for folders and read for files
+        const x = this.isFolder && !this.web  ? 'L' : 'R' // to open we need list for folders and read for files
+        this.cantOpen = this.p?.match(x) ? true : this.p?.match(x.toLowerCase()) ? DirEntry.FORBIDDEN : undefined
     }
 
     getNext() {

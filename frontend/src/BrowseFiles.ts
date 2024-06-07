@@ -4,13 +4,13 @@ import { Link } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
 import { useMediaQuery, useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, getHFS } from './misc'
 import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
-import { useAuthorized } from './login'
+import { loginDialog, useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
@@ -207,6 +207,17 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
     const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
+    const loginProps = entry.cantOpen && {
+        async onClick(ev: any) {
+            ev.preventDefault()
+            if (entry.cantOpen === DirEntry.FORBIDDEN)
+                return alertDialog(t`Forbidden`, 'warning')
+            if (!await loginDialog(true, false)) return
+            if (isFolder && !entry.web) // internal navigation
+                return setTimeout(() => getHFS().navigate(uri)) // couldn't find the reason why navigating sync is reverted back
+            location.href = uri
+        }
+    }
     return h('li', { className, label: separator },
         h(CustomCode, { name: 'entry', entry },
             showFilter && h(Checkbox, {
@@ -220,15 +231,16 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
                 },
             }),
             h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                isFolder || entry.web ? h(Fragment, {}, // internal navigation, use Link component
-                    h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                // we treat webpages as folders, with menu to comment
+                isFolder ? h(Fragment, {}, // internal navigation, use Link component
+                    h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps, ...loginProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
                         ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
                     // popup button is here to be able to detect link-wrapper:hover
                     file_menu_on_link && !showingButton && h('button', {
                         className: 'popup-menu-button',
                         onClick: fileMenu
                     }, hIcon('menu'), t`Menu`)
-                ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps },
+                ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps, ...loginProps },
                     ico, h('span', { className: 'container-folder' }, containerName), name ),
             ),
             h(CustomCode, { name: 'afterEntryName', entry }),
@@ -269,7 +281,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
     const dd = '2-digit'
     return h('div', { className: 'entry-details' },
         h(CustomCode, { name: 'additionalEntryDetails', entry }),
-        entry.p?.match(entry.isFolder ? /l/i : /r/i) && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
+        entry.cantOpen && hIcon(entry.cantOpen === DirEntry.FORBIDDEN ? 'lock' : 'password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),
         time && h('span', {
             className: 'entry-ts',

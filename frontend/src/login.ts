@@ -16,7 +16,6 @@ async function login(username:string, password:string) {
         stopWorking()
         sessionRefresher(res)
         state.loginRequired = false
-        reloadList()
         return res
     }, (err: any) => {
         stopWorking()
@@ -43,7 +42,7 @@ export function logout() {
 
 export let closeLoginDialog: undefined | (() => void)
 let lastPromise: Promise<any>
-export async function loginDialog(closable=false) {
+export async function loginDialog(closable=true, reloadAfter=true) {
     return lastPromise = new Promise(resolve => {
         if (closeLoginDialog)
             return lastPromise
@@ -119,6 +118,8 @@ export async function loginDialog(closable=false) {
                         if (res?.redirect)
                             setTimeout(() => // workaround: the history.back() issued by closing the dialog is messing with our navigation
                                 getHFS().navigate(res.redirect), 10) // from my tests 1 was enough, 0 was not (not always). Would be nice to find a cleaner way
+                        else if (reloadAfter)
+                            reloadList()
                     } catch (err: any) {
                         await alertDialog(err)
                         usrRef.current?.focus()
@@ -141,7 +142,7 @@ export function useAuthorized() {
         if (!loginRequired)
             return closeLoginDialog?.()
         if (!closeLoginDialog)
-            void loginDialog()
+            void loginDialog(false)
     }, [loginRequired])
     return loginRequired ? null : true
 }

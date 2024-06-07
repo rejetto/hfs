@@ -180,7 +180,7 @@ function LoginButton() {
         icon: 'login',
         label: t`Login`,
         onClickAnimation: false,
-        onClick: () => loginDialog(true),
+        onClick: () => loginDialog(),
     })
 }
 
