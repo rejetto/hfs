@@ -24,14 +24,14 @@ interface Release {
     isNewer: boolean // introduced by us
 }
 
-export async function getUpdates() {
+export async function getUpdates(strict=false) {
     const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
     const verStable = ver(stable)
     const ret = await getBetas()
     stable.isNewer = currentVersion.olderThan(stable.tag_name)
     if (stable.isNewer || RUNNING_BETA)
         ret.push(stable)
-    return ret
+    return ret.filter(x => !strict || x.isNewer)
 
     function ver(x: any) {
         return versionToScalar(x.name)
@@ -77,7 +77,7 @@ export async function update(tagOrUrl: string='') {
     if (!updateSource) {
         if (/^\d/.test(tagOrUrl)) // work even if the tag is passed without the initial 'v' (useful for console commands)
             tagOrUrl = 'v' + tagOrUrl
-        const update = !tagOrUrl ? (await getUpdates())[0]
+        const update = !tagOrUrl ? (await getUpdates(true))[0]
             : await getRepoInfo(HFS_REPO + '/releases/tags/' + tagOrUrl).catch(e => {
                 if (e.message === '404') console.error("version not found")
                 else throw e
