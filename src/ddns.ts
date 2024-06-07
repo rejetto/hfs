@@ -14,13 +14,14 @@ const dynamicDnsUrl = defineConfig(CFG.dynamic_dns_url, '')
 // listening this event will trigger public-ips fetching
 const EVENT = 'publicIpsChanged'
 let stopFetching: any
-let lastIps: any
+let lastIPs: any
 events.onListeners(EVENT, cbs => {
     stopFetching?.()
-    if (!cbs?.size()) return
+    if (!cbs?.size) return
     stopFetching = repeat(HOUR, async () => {
         const IPs = await getPublicIps()
-        if (_.isEqual(lastIps, IPs)) return
+        if (_.isEqual(lastIPs, IPs)) return
+        lastIPs = IPs
         events.emit(EVENT, {
             IPs,
             IPX: IPs[0] || '',
