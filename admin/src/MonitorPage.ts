@@ -31,7 +31,6 @@ function MoreInfo() {
     if (status && connections)
         Object.assign(status, connections)
     const [allInfo, setAllInfo] = useState(false)
-    const lg = useBreakpoint('lg')
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
     const formatDuration = createDurationFormatter({ maxTokens: 2, skipZeroes: true })
@@ -132,7 +131,7 @@ function Connections() {
                     flex: 1,
                     maxWidth: 400,
                     renderCell: ({ row, value }) => ipForUrl(value) + ' :' + row.port,
-                    mergeRender: { other: 'user', fontSize: 'small' },
+                    mergeRender: { user: { fontSize: 'small' } },
                 },
                 {
                     field: 'country',
@@ -184,7 +183,7 @@ function Connections() {
                     hideUnder: 'sm',
                     type: 'number',
                     renderCell: ({ value, row }) => formatSpeedK(Math.max(value||0, row.inSpeed||0) || undefined),
-                    mergeRender: { other: 'sent', fontSize: 'small', textAlign: 'right' }
+                    mergeRender: { sent: { fontSize: 'small', textAlign: 'right'  }}
                 },
                 {
                     field: 'sent',

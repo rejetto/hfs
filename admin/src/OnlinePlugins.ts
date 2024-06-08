@@ -40,7 +40,7 @@ export default function OnlinePlugins() {
                     headerName: "name",
                     flex: 1,
                     renderCell: renderName,
-                    mergeRender: { other: 'description', fontSize: 'x-small' },
+                    mergeRender: { description: { fontSize: 'x-small' } },
                 },
                 {
                     field: 'version',

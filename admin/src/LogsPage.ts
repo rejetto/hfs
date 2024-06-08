@@ -178,7 +178,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                 field: 'msg',
                 headerName: "Message",
                 flex: 1,
-                mergeRender: { other: 'k', override: { valueFormatter: ({ value }) => value !== 'log' && value } }
+                mergeRender: { k: { override: { valueFormatter: ({ value }) => value !== 'log' && value } } }
             }
         ] : file === 'ips' ? [
             tsColumn,
@@ -200,14 +200,12 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                 field: 'ip',
                 headerName: "Address",
                 flex: .6,
-                minWidth: 100,
+                minWidth: 130,
                 maxWidth: 230,
                 mergeRender: {
-                    other: 'user',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: '.5em',
-                    override: { renderCell: ({ value, row }) => h(Fragment, {}, h('span', {}, value), h(Country, { code: row.extra?.country })) }
+                    user: { display: 'flex', justifyContent: 'space-between', gap: '.5em', },
+                    country: showCountry && {},
+                    ua: {},
                 },
             },
             {
@@ -268,7 +266,8 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                 headerName: "URI",
                 flex: 2,
                 minWidth: 100,
-                mergeRender: { other: 'method', fontSize: 'small' },
+                sx: { wordBreak: 'break-all' }, // be flexible, uri can be a mess
+                mergeRender: { method: {}, status: {} },
                 renderCell: ({ value, row }) => {
                     const [path, query] = splitAt('?', value).map(decodeURIComponent)
                     const ul = row.extra?.ul
@@ -319,11 +318,11 @@ export function agentIcons(agent: string | undefined) {
         win: UW + '0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg',
         apple: UW + '7/74/Apple_logo_dark_grey.svg', // grey works for both themes
     })
-    return hTooltip(agent, undefined, h('span', { fontSize: '18px' }, browserIcon || short, ' ', osIcon) )
+    return hTooltip(agent, undefined, h('span', {}, browserIcon || short, ' ', osIcon) )
 
     function icon(k: string, map: Dict<string>) {
         const src = map[k]
-        return src && h('img', { src, style: { height: '1em', verticalAlign: 'bottom', marginRight: '.2em' } })
+        return src && h('img', { src, style: { height: '1.3em', verticalAlign: 'bottom', marginRight: '.2em' } })
     }
 }
 

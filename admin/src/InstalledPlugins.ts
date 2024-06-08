@@ -38,7 +38,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 minWidth: 150,
                 renderCell: renderName,
                 valueGetter({ row }) { return row.repo || row.id },
-                mergeRender: { other: 'description', fontSize: 'x-small' }
+                mergeRender: { description: { fontSize: 'x-small' } }
             },
             {
                 field: 'version',
@@ -203,7 +203,7 @@ function UsernameField({ value, onChange, ...rest }: FieldProps<string>) {
 
 export const descriptionField: DataTableColumn = {
     field: 'description',
-    mergeRender: { other: 'isTheme', sx: { float: 'left' } },
+    mergeRender: { isTheme: { sx: { float: 'left' } }} ,
 }
 
 export const themeField: DataTableColumn = {
