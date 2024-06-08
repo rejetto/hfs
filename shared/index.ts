@@ -26,6 +26,7 @@ Object.assign(HFS, {
     getPluginKey: () => getScriptAttr('plugin'),
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
+    loadScript: (uri: string) => loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri),
     cpuSpeedIndex,
 })
 
