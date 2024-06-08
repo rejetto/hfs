@@ -125,8 +125,8 @@ Currently, these properties are supported:
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
-- `frontend: boolean` expose this setting on the frontend, so that javascript can access it as
-   `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`
+- `frontend: boolean` expose this setting on the frontend, so that javascript can access it 
+   using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`
 
 Based on `type`, other properties are supported:
 - `string`
@@ -358,7 +358,6 @@ This is a list of available frontend-events, with respective object parameter an
   - `afterList` at the end of the files list
   - `footer` at the bottom of the screen, even after the clipboard-bar (when visible)
   - `unauthorized` displayed behind the login dialog accessing a protected folder
-  - `htmlHead` inside the `<head>` element
   - `userPanelAfterInfo` visible to logged-in users, after the click on the button with their username, between user-info and buttons
 
 ## Back-end events
@@ -600,6 +599,7 @@ If you want to override a text regardless of the language, use the special langu
     - middleware: ctx.stop()
       - the old way of returning true is now deprecated
     - exports.customHtml
+    - more functions in HFS.misc
 - 8.72 (v0.52.0)
     - HFS.toast
     - HFS.misc functions

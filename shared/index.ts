@@ -121,12 +121,16 @@ export function focusSelector(selector: string, root: HTMLElement | Document=doc
 }
 
 export function loadScript(url: string, more={}) {
-    const el = document.createElement('script')
-    el.type = 'text/javascript'
-    el.src = url
-    for (const [k,v] of Object.entries(more))
-        el.setAttribute(k, String(v))
-    document.head.appendChild(el)
+    return new Promise((resolve, reject) => {
+        const el = document.createElement('script')
+        el.type = 'text/javascript'
+        el.src = url
+        el.onload = resolve
+        el.onerror = reject
+        for (const [k,v] of Object.entries(more))
+            el.setAttribute(k, String(v))
+        document.head.appendChild(el)
+    })
 }
 
 type DurationUnit = 'day' | 'hour' | 'minute' | 'second'

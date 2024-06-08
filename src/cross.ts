@@ -433,6 +433,7 @@ export function matches(s: string, mask: string, emptyMaskReturns=false) {
     return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
 }
 
+// if delimiter is specified, it is prefixed to symbols. If it contains a space, the part after the space is considered as suffix.
 export function replace(s: string, symbols: Dict<string | Callback<string, string>>, delimiter='') {
     const [open, close] = splitAt(' ', delimiter)
     for (const [k, v] of Object.entries(symbols))
