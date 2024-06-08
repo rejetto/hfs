@@ -87,7 +87,7 @@ export default {
             yield {
                 outSpeed: totalOutSpeed,
                 inSpeed: totalInSpeed,
-                sent_got: [totalSent.get(), totalGot.get()],
+                sent_got: [totalSent.get(), totalGot.get(), totalGotSentResetTime.get()],
                 connections: filtered.length,
                 ips: _.uniqBy(filtered, x => x.ip).length,
             }
@@ -97,6 +97,7 @@ export default {
 
     async clear_persistent({ k }) {
         apiAssertTypes({ string_array: { k } })
+        totalGotSentResetTime.set(new Date)
         for (const x of wantArray(k))
             void storedMap.del(x)
     },
@@ -113,3 +114,5 @@ function getConnAddress(conn: Connection) {
         port: conn.socket.remotePort,
     }
 }
+
+const totalGotSentResetTime = storedMap.singleSync<Date>('totalGotSentResetTime', new Date)

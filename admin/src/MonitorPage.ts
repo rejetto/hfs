@@ -43,6 +43,7 @@ function MoreInfo() {
         }),
         (allInfo || sm) && pair('sent_got', {
             render: x => ({ Sent: formatBytes(x[0]), Got: formatBytes(x[1]) }),
+            title: x => "Since: " + formatTimestamp(x[2]),
             onDelete: () => apiCall('clear_persistent', { k: ['totalSent', 'totalGot'] })
                 .then(() => alertDialog("Done", 'success'), alertDialog)
         }),

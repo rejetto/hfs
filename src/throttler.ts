@@ -65,7 +65,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
             conn[SymTimeout] = setTimeout(update, DELAY)
     }, DELAY, { leading: true, maxWait:DELAY })
     ts.on('sent', (n: number) => {
-        totalSent.set(x => (x || 0) + n)
+        totalSent.set(x => x + n)
         update()
     })
 
@@ -97,8 +97,8 @@ export function roundSpeed(n: number) {
     return _.round(n, 1) || _.round(n, 3) // further precision if necessary
 }
 
-export let totalSent = storedMap.singleSync<number>('totalSent', 0)
-export let totalGot = storedMap.singleSync<number>('totalGot', 0)
+export const totalSent = storedMap.singleSync<number>('totalSent', 0)
+export const totalGot = storedMap.singleSync<number>('totalGot', 0)
 export let totalOutSpeed = 0
 export let totalInSpeed = 0
 
@@ -123,4 +123,4 @@ setInterval(() => {
 
 events.on('connection', (c: Connection) =>
     c.socket.on('data', data =>
-        totalGot.set(x => (x || 0) + data.length) ))
+        totalGot.set(x => x + data.length) ))
