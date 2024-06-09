@@ -2,7 +2,7 @@
 
 import { getNodeName, hasPermission, nodeIsDirectory, nodeIsLink, urlToNode, VfsNode, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
-import { filterMapGenerator, isWindowsDrive, pattern2filter, wantArray } from './misc'
+import { filterMapGenerator, isWindowsDrive, pattern2filter, safeDecodeURIComponent, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
@@ -18,7 +18,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.mime = 'zip'
     // ctx.query.list is undefined | string | string[]
     const list = wantArray(ctx.query.list)[0]?.split('*') // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
-    const name = list?.length === 1 ? decodeURIComponent(basename(list[0]!)) : getNodeName(node)
+    const name = list?.length === 1 ? safeDecodeURIComponent(basename(list[0]!)) : getNodeName(node)
     ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
     const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
@@ -34,7 +34,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                     }
                     continue
                 }
-                let folder = dirname(decodeURIComponent(uri)) // decodeURI() won't account for %23=#
+                let folder = dirname(safeDecodeURIComponent(uri)) // decodeURI() won't account for %23=#
                 folder = folder === '.' ? '' : folder + '/'
                 yield { ...subNode, name: folder + getNodeName(subNode) } // reflect relative path in archive, otherwise way may have name-clashes
             }
