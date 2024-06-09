@@ -8,7 +8,18 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
+import {
+    debounceAsync,
+    ipForUrl,
+    makeNetMatcher,
+    MINUTE,
+    objSameKeys,
+    onlyTruthy,
+    prefix,
+    runAt,
+    wait,
+    waitFor
+} from './misc'
 import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -214,7 +225,8 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 if (code === 'EACCES' && port < 1024)
                     srv.error = `lacking permission on port ${port}, try with permission (${IS_WINDOWS ? 'administrator' : 'sudo'}) or port > 1024`
                 if (code === 'EADDRINUSE') {
-                    srv.busy = findProcess('port', port).then(res => res?.[0]?.name || '', () => '')
+                    srv.busy = findProcess('port', port).then(res =>
+                        res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '), () => '')
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
                 }
                 console.error(srv.name, srv.error)
