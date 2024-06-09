@@ -214,3 +214,7 @@ function closeDialogAt(i: number, value?: any) {
     ;(focusBak.pop() as any)?.focus?.() // if element is not HTMLElement, it doesn't have focus method
     return d?.onClose?.(value)
 }
+
+export function anyDialogOpen() {
+    return dialogs.length > 0
+}

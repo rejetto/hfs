@@ -4,7 +4,7 @@ import { createElement as h, Fragment, useState } from 'react'
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
 import { AppBar, Box, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
-import { Dialogs } from './dialog'
+import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
 import { useBreakpoint} from './mui'
 import { LoginRequired } from './LoginRequired'
@@ -50,6 +50,7 @@ function Routed() {
     const xs = current?.noPaddingOnMobile ? 0 : 1
     const navigate = useNavigate()
     useEventListener('keydown', ({ key, ctrlKey, altKey }) => {
+        if (anyDialogOpen()) return
         if (!(isMac ? ctrlKey : altKey)) return // alt doesn't work on Mac, but it is the only suitable key on Windows
         const idx = Number(xlate(key, { 0: 10 })) // key 0 is after 9 and works as 10
         if (!idx) return
