@@ -44,8 +44,8 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         stream.push(_.map(links, (v,k) => a(k, v)).join(' ') + '\n<ul>\n')
         if (ctx.state.originalPath.length > 1)
             stream.push('<li>' + a('..' + force, '..') + '\n')
-        stream.push('</ul>\n')
-        stream.push(getSection('basicFooter'))
+        stream.on('ending', () =>
+            stream.push('</ul>\n' + getSection('basicFooter')) )
         return true
     }
 

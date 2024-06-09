@@ -80,8 +80,11 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
             void iterator.return?.()
         },
         read() {
-            iterator.next().then(it =>
-                this.push(it.done ? null : it.value))
+            iterator.next().then(it => {
+                if (it.done)
+                    this.emit('ending')
+                return this.push(it.done ? null : it.value)
+            })
         }
     })
 }
