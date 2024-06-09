@@ -191,9 +191,9 @@ export async function startPlugin(id: string) {
     }
 }
 
-function UsernameField({ value, onChange, ...rest }: FieldProps<string>) {
+function UsernameField({ value, onChange, multiple, ...rest }: FieldProps<string>) {
     const { data, element, loading } = useApiEx<{ list: Account[] }>('get_accounts')
-    return !loading && element || h(SelectField as Field<string>, {
+    return !loading && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
         value, onChange,
         options: data?.list.map(x => x.username),
         helperText: "Only users, no groups here",
