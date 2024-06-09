@@ -76,8 +76,9 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     await next()
     console.debug(ctx.status, ctx.method, ctx.originalUrl)
-    if (ctx.status === HTTP_NOT_FOUND && !logSpam.get()
-    && /wlwmanifest.xml$|robots.txt$|\.(php)$|cgi/.test(ctx.path)) {
+    if (!logSpam.get()
+        && (ctx.querystring.includes('{.exec|')
+            || ctx.status === HTTP_NOT_FOUND && /wlwmanifest.xml$|robots.txt$|\.(php)$|cgi/.test(ctx.path))) {
         events.emit('spam', ctx)
         return
     }
