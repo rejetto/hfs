@@ -59,7 +59,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
         isFolder && !entry.web && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
-    const folder = entry.n.slice(0, -entry.name.length - 1)
+    const folder = entry.n.slice(0, -entry.name.length - (entry.isFolder ? 2 : 1))
     const props = [
         { id: 'name', label: t`Name`, value: entry.name },
         typeof s === 'number' && { id: 'size', label: t`Size`,
@@ -69,7 +69,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             id: 'folder',
             label: t`Folder`,
             value: h(Link, {
-                to: location.pathname + folder + '/',
+                to: (folder.startsWith('/') ? '' : location.pathname) + folder + '/',
                 onClickCapture: () => closeDialog(null, true)
             }, folder.replaceAll('/', ' / '))
         },
