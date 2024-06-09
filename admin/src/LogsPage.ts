@@ -5,7 +5,7 @@ import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
-    typedKeys, NBSP, _dbg, mapFilter } from '@hfs/shared'
+    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent } from '@hfs/shared'
 import { logLabels } from './OptionsPage'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
@@ -237,7 +237,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                 minWidth: 100,
                 mergeRender: { other: 'method', fontSize: 'small' },
                 renderCell: ({ value, row }) => {
-                    const [path, query] = splitAt('?', value).map(decodeURIComponent)
+                    const [path, query] = splitAt('?', value).map(safeDecodeURIComponent)
                     const ul = row.extra?.ul
                     if (ul)
                         return typeof ul === 'string' ? ul // legacy pre-0.51

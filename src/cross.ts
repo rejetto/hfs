@@ -468,6 +468,11 @@ export function mapFilter<T=unknown, R=T>(arr: T[], map: (x:T, idx: number) => R
     }, [] as R[])
 }
 
+export function safeDecodeURIComponent(s: string) {
+    try { return decodeURIComponent(s) }
+    catch { return s }
+}
+
 export function shortenAgent(agent: string) {
     return _.findKey(BROWSERS, re => re.test(agent))
         || /^[^/(]+ ?/.exec(agent)?.[0]
