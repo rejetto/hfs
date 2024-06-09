@@ -42,7 +42,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (ctx.method === 'PUT') { // curl -T file url/
         const decPath = decodeURIComponent(path)
         let rest = basename(decPath)
-        const folder = await urlToNode(dirname(decPath), ctx, vfs, v => rest = v+'/'+rest)
+        const folder = await urlToNode(dirname(path), ctx, vfs, v => rest = v+'/'+rest)
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
