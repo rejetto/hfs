@@ -70,7 +70,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             label: t`Folder`,
             value: h(Link, {
                 to: (folder.startsWith('/') ? '' : location.pathname) + folder + '/',
-                onClickCapture: () => closeDialog(null, true)
+                onClick: () => closeDialog(null, true)
             }, folder.replaceAll('/', ' / '))
         },
     ]
