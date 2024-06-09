@@ -238,6 +238,7 @@ The HFS objects contains many properties:
 - `emit(name: string, params?: object): any[]` use this to emit a custom event. Prefix name with your plugin name to avoid conflicts.
 - `Icon: ReactComponent` Properties:
     - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
+- `iconBtn(icon: string, onClick: function, props?: any)` render a React Icon Button. For icons, refer to `Icon` component.
 - `useBatch(worker, job): any`
 - `getNotifications(channel: string, cb: (eventName: string, data:any) => void)`
   receive messages when the backend uses `notifyClient` on the same channel. 
@@ -586,7 +587,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 8.85 (v0.53.0)
+- 8.87 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
     - config.type:username
@@ -598,6 +599,7 @@ If you want to override a text regardless of the language, use the special langu
     - HFS.useSnapState
     - HFS.debounceAsync
     - HFS.loadScript
+    - HFS.iconBtn
     - middleware: ctx.stop()
       - the old way of returning true is now deprecated
     - exports.customHtml

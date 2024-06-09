@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import React, { createElement as h } from 'react'
-import { Spinner } from './components'
+import { iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon } from './icons'
 import { Dict, getHFS, Html, HTTP_MESSAGES, useBatch } from '@hfs/shared'
@@ -59,7 +59,7 @@ export function hfsEvent(name: string, params?:Dict) {
 }
 
 const tools = {
-    h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, useBatch, fileShow, toast,
+    h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow, toast,
     misc: { ...cross, ...shared },
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
