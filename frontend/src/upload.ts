@@ -451,10 +451,13 @@ async function createFolder() {
         await alertDialog(h(() =>
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
-                h(Link, { to: uri + name + '/', onClickCapture() { // "capture" because dialogs must be closed (popping from history) before we push a new state in the history
-                    closeDialog()
-                    closeDialog()
-                } }, t('enter_folder', "Enter the folder")),
+                h(Link, {
+                    to: uri + encodeURIComponent(name) + '/',
+                    onClickCapture() { // "capture" because dialogs must be closed (popping from history) before we push a new state in the history
+                        closeDialog()
+                        closeDialog()
+                    }
+                }, t('enter_folder', "Enter the folder")),
             )))
     }
     catch(e: any) {
