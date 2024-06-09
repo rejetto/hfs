@@ -202,7 +202,7 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `openDb(filename, options): Promise<{ get, put, del, close, unlink, sublevel }>` LevelDB-like class for storage.
   The specified file name will be stored in the "storage" folder of the plugin, by default.
-  Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
+  DB is automatically closed when the plugin is unloaded. Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
 
 - `notifyClient(channel: string, eventName: string, data?: any)` send a message to those frontends that are on the same channel.
 
@@ -220,6 +220,7 @@ The HFS objects contains many properties:
 - `logout`
 - `prefixUrl: string` normally an empty string, it will be set in case a [reverse-proxy wants to mount HFS on a path](https://github.com/rejetto/hfs/wiki/Reverse-proxy).
 - `state: StateObject` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
+  - you'll find here some interesting values, like `username` and `loading`. 
 - `watchState(key: string, callback): function`
     - watch the `key` property of the state object above
     - `callback(newValue)` will be called at each change
@@ -239,6 +240,8 @@ The HFS objects contains many properties:
 - `Icon: ReactComponent` Properties:
     - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
 - `iconBtn(icon: string, onClick: function, props?: any)` render a React Icon Button. For icons, refer to `Icon` component.
+- `domOn(eventName: string, cb: function, { target }?): function` convenient alternative to addEventListener/removeEventListener.
+  The default target is window. Returns a callback to remove the listener. 
 - `useBatch(worker, job): any`
 - `getNotifications(channel: string, cb: (eventName: string, data:any) => void)`
   receive messages when the backend uses `notifyClient` on the same channel. 

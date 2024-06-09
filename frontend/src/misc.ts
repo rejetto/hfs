@@ -4,7 +4,7 @@ import React, { createElement as h } from 'react'
 import { iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon } from './icons'
-import { Dict, getHFS, Html, HTTP_MESSAGES, useBatch } from '@hfs/shared'
+import { Dict, domOn, getHFS, Html, HTTP_MESSAGES, useBatch } from '@hfs/shared'
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
@@ -59,7 +59,8 @@ export function hfsEvent(name: string, params?:Dict) {
 }
 
 const tools = {
-    h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow, toast,
+    h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
+    toast, domOn,
     misc: { ...cross, ...shared },
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
