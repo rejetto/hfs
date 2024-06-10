@@ -218,39 +218,40 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
             location.href = uri
         }
     }
-    return h('li', { className, label: separator },
-        h(CustomCode, { name: 'entry', entry },
-            showFilter && h(Checkbox, {
-                disabled: isLink,
-                'aria-labelledby': ariaId,
-                value: selected[uri],
-                onChange(v) {
-                    if (v)
-                        return state.selected[uri] = true
-                    delete state.selected[uri]
-                },
-            }),
-            h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                // we treat webpages as folders, with menu to comment
-                isFolder ? h(Fragment, {}, // internal navigation, use Link component
-                    h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps, ...loginProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
-                        ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
-                    // popup button is here to be able to detect link-wrapper:hover
-                    file_menu_on_link && !showingButton && h('button', {
-                        className: 'popup-menu-button',
-                        onClick: fileMenu
-                    }, hIcon('menu'), t`Menu`)
-                ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps, ...loginProps },
-                    ico, h('span', { className: 'container-folder' }, containerName), name ),
-            ),
-            h(CustomCode, { name: 'afterEntryName', entry }),
-            entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
-            h('div', { className: 'entry-panel' },
-                h(EntryDetails, { entry, midnight }),
-                showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
-            ),
-            h('div'),
+    return h(CustomCode, {
+        name: 'entry',
+        entry,
+        render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null
+    }, showFilter && h(Checkbox, {
+            disabled: isLink,
+            'aria-labelledby': ariaId,
+            value: selected[uri],
+            onChange(v) {
+                if (v)
+                    return state.selected[uri] = true
+                delete state.selected[uri]
+            },
+        }),
+        h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
+            // we treat webpages as folders, with menu to comment
+            isFolder ? h(Fragment, {}, // internal navigation, use Link component
+                h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps, ...loginProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                    ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
+                // popup button is here to be able to detect link-wrapper:hover
+                file_menu_on_link && !showingButton && h('button', {
+                    className: 'popup-menu-button',
+                    onClick: fileMenu
+                }, hIcon('menu'), t`Menu`)
+            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps, ...loginProps },
+                ico, h('span', { className: 'container-folder' }, containerName), name ),
         ),
+        h(CustomCode, { name: 'afterEntryName', entry }),
+        entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
+        h('div', { className: 'entry-panel' },
+            h(EntryDetails, { entry, midnight }),
+            showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
+        ),
+        h('div'),
     )
 
     function fileMenu(ev: MouseEvent) {
