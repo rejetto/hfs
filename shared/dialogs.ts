@@ -19,6 +19,7 @@ export interface DialogOptions {
     position?: [number, number]
     dialogProps?: Record<string, any>
     $id?: number
+    $opening?: NodeJS.Timeout
     ts?: number
 
     Container?: FunctionComponent<DialogOptions>
@@ -177,14 +178,15 @@ export function newDialog(options: DialogOptions) {
     options.ts = ts
     focusBak.push(document.activeElement) // saving this inside options object doesn't work (didn't dig enough to say why)
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
-    setTimeout(() => { // in case dialogs were just closed, account for window.history delay. This should be harmless as ux is unaffected, and programmatically you already didn't expect this to happen immediately but at state change
+    options.$opening = setTimeout(() => { // in case dialogs were just closed, account for window.history delay. This should be harmless as ux is unaffected, and programmatically you already didn't expect this to happen immediately but at state change
         dialogs.push(options)
         if (options.closable !== false)
             history.pushState({ $dialog: $id, ts, idx: history.state.idx + 1 }, '')
-    }, 1)
+    }, 10) // 10 for firefox, chrome125 seems to be ok with 1
     return { close }
 
     function close(v?:any) {
+        clearTimeout(options.$opening) // in case it was not open yet
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
         if (history.state.$dialog === $id)
