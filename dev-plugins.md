@@ -304,7 +304,7 @@ This is a list of available frontend-events, with respective object parameter an
 - `entry`
     - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
     - parameter `{ entry: Entry }` (refer above for Entry object)
-    - output `Html`
+    - output `Html | null` return null if you want to hide this entry
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
     - parameter `{ entry: Entry }` (refer above for Entry object)
@@ -525,6 +525,13 @@ Be sure to also fill the "description" field, especially with words that people 
 The files intended to be installed must go in a folder named `dist`.
 You can keep other files outside.
 
+Hint: if you go in your .hfs/plugins folder on linux and mac, and enter 
+
+    ln -s /PATH_TO_YOUR_REPO/dist MY_PLUGIN_NAME
+
+you'll install your repo, so that you can edit the sources and see effects in real-time, and still be editing your repo,
+ready to commit.
+
 If you have platform-dependent files, you can put those files in `dist-PLATFORM` or `dist-PLATFORM-ARCHITECTURE`.
 For example, if you want some files to be installed only on Windows with Intel CPUs, put them in `dist-win32-x64`.
 
@@ -590,7 +597,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 8.87 (v0.53.0)
+- 8.88 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
     - config.type:username
@@ -607,6 +614,7 @@ If you want to override a text regardless of the language, use the special langu
       - the old way of returning true is now deprecated
     - exports.customHtml
     - more functions in HFS.misc
+    - frontend event 'entry' can now ask to skip an entry
 - 8.72 (v0.52.0)
     - HFS.toast
     - HFS.misc functions
