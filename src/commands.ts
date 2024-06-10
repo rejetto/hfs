@@ -11,7 +11,8 @@ import { createInterface } from 'readline'
 import { getAvailablePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
-import { makeMatcher } from './cross'
+import { formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
+import apiMonitor from './api.monitor'
 
 if (!argv.updating)
     try {
@@ -138,5 +139,17 @@ const commands = {
     'purge-file-attr': {
         params: '',
         cb: purgeFileAttr,
+    },
+    status: {
+        params: '',
+        async cb() {
+            const conn = (await apiMonitor.get_connection_stats().next()).value
+            if (conn) {
+                const {sent_got: sg} = conn
+                console.log(`Speed ↑ ${formatSpeed(conn.outSpeed)} ↓ ${formatSpeed(conn.inSpeed)}`)
+                console.log(`Transfered ↑ ${formatBytes(sg[0])} ↓ ${formatBytes(sg[1])} since ${formatTimestamp(sg[2])}`)
+                console.log(`Connections ${conn.connections} (${conn.ips} IPs)`)
+            }
+        }
     }
 }

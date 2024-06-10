@@ -87,7 +87,7 @@ export default {
             yield {
                 outSpeed: totalOutSpeed,
                 inSpeed: totalInSpeed,
-                sent_got: [totalSent.get(), totalGot.get(), totalGotSentResetTime.get()],
+                sent_got: [totalSent.get(), totalGot.get(), totalGotSentResetTime.get()] as const,
                 connections: filtered.length,
                 ips: _.uniqBy(filtered, x => x.ip).length,
             }
