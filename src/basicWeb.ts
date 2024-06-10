@@ -22,9 +22,9 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         return true
     }
     if (get === 'logout') {
-        ctx.body = `<script>location = '?'</script>`
+        ctx.body = `<script>setTimeout(() => location = '?', 1000)</script>`
         setLoggedIn(ctx, false)
-        ctx.status = HTTP_UNAUTHORIZED
+        ctx.status = HTTP_UNAUTHORIZED // not effective on firefox30
         return true
     }
     const forced = get === 'basic'
@@ -40,7 +40,8 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         ctx.body = stream
         stream.push(`<title>${title.get()}</title><body>`)
         stream.push(getSection('basicHeader'))
-        const links: Dict<string> = getCurrentUsername(ctx) ? { '?get=logout': "Logout" } : { '?get=login': "Login" }
+        const u = getCurrentUsername(ctx)
+        const links: Dict<string> = u ? { '?get=logout': `Logout (${u})` } : { '?get=login': "Login" }
         stream.push(_.map(links, (v,k) => a(k, v)).join(' ') + '\n<ul>\n')
         if (ctx.state.originalPath.length > 1)
             stream.push('<li>' + a('..' + force, '..') + '\n')
