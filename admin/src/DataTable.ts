@@ -76,7 +76,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             }
         })
         if (actions)
-            ret.push({
+            ret.unshift({
                 field: ACTIONS,
                 width: 40 * actionsLength,
                 headerName: '',
