@@ -138,8 +138,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
 export function renderName({ row, value }: any) {
     const { repo } = row
     return h(Fragment, {},
-        errorIcon(row.badApi, true),
-        errorIcon(row.error),
+        errorIcon(row.error || row.badApi, !row.error),
         repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
             : !repo ? value
                 : with_(repo?.split('/'), arr => h(Fragment, {},

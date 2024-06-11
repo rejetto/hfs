@@ -413,7 +413,7 @@ function watchPlugin(id: string, path: string) {
             deleteModule(require.resolve(module)) // avoid caching at next import
             calculateBadApi(pluginData)
             if (pluginData.badApi)
-                console.log("plugin", id, pluginData.badApi)
+                throw Error(pluginData.badApi)
 
             await alreadyRunning?.unload(true)
             console.debug("starting plugin", id)
