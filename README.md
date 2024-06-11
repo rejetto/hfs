@@ -135,9 +135,7 @@ Configuration is stored in the file `config.yaml`, exception made for custom HTM
 
 These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
 if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
-You can decide a different cwd passing `--cwd SOME_FOLDER` parameter at command line.
-
-You can decide also a different file for config by passing `--config SOME_FILE`, or inside an *env* called `HFS_CONFIG`.
+You can decide a different folder passing `--cwd SOME_FOLDER` parameter at command line.
 Any relative path provided is relative to the *cwd*.
 
 [Check details about config file format](config.md).

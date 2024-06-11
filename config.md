@@ -196,6 +196,6 @@ For each account entries, this is the list of properties you can have:
 
 ### Specify another file
 
-Do you need to load a different config file, even from a different folder?
+Do you need to load a different config file that's not `config.yaml`?
 Use this parameter at command line `--config PATH` or similarly with an env `HFS_CONFIG`.
 The path you specify can be either a folder, or full-path to the file.
