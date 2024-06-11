@@ -17,7 +17,7 @@ import LogoutPage from './LogoutPage';
 import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
-import { getHFS, replaceStringToReact } from '@hfs/shared'
+import { getHFS, replaceStringToReact, REPO_URL } from '@hfs/shared'
 import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
 import { useWindowSize } from 'usehooks-ts'
@@ -60,8 +60,9 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                 display: 'flex', flexDirection: 'column', '&>a': { flex: '0' },
             }
         },
-            h(Box, { display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' },
-                h(Box, { fontSize: 'min(3rem, max(5vw, 4vh))' }, 'HFS'),
+            h(Box, { id: 'hfs-name', display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' },
+                h('a', { href: REPO_URL, target: 'website', style: { textDecoration: 'none' } },
+                    h(Box, { color: 'primary.contrastText', fontSize: 'min(3rem, max(5vw, 4vh))' }, 'HFS')),
                 h(Box, { fontSize: 'small' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),
             ),
@@ -79,7 +80,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
                 ),
                 { key: it.path, placement: 'right' }
             )),
-            !short && h(Box, { sx: { flex: 1, opacity: .7, background: `url(${logo}) no-repeat bottom`, backgroundSize: 'contain', margin: 2 } }),
+            !short && h(Box, { id: 'hfs-logo', sx: { flex: 1, opacity: .7, background: `url(${logo}) no-repeat bottom`, backgroundSize: 'contain', margin: 2 } }),
         )
     )
 }
