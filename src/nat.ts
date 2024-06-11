@@ -1,7 +1,7 @@
 import { proxy } from 'valtio'
 import { Client } from 'nat-upnp-rejetto'
 import { debounceAsync } from './debounceAsync'
-import { haveTimeout, HOUR, inCommon, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
+import { haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
 import { httpString } from './util-http'
@@ -21,7 +21,7 @@ export const defaultBaseUrl = proxy({
         const defPort = this.proto === 'https' ? 443 : 80
         const status = await getServerStatus()
         const port = this.port || (this.proto === 'https' ? status.https.port : status.http.port)
-        return `${this.proto}://${ this.publicIps[0] || this.externalIp || this.localIp}${!port || port === defPort ? '' : ':' + port}`
+        return `${this.proto}://${ipForUrl(this.publicIps[0] || this.externalIp || this.localIp)}${!port || port === defPort ? '' : ':' + port}`
     }
 })
 
