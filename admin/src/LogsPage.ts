@@ -308,7 +308,7 @@ export function agentIcons(agent: string | undefined) {
         Chromium: UW + 'f/fe/Chromium_Material_Icon.svg',
         Firefox: UW + 'a/a0/Firefox_logo%2C_2019.svg',
         Safari: UW + '5/52/Safari_browser_logo.svg',
-        Edge: UW + 'f/f6/Edge_Logo_2019.svg',
+        Edge: UW + '9/98/Microsoft_Edge_logo_%282019%29.svg',
         Opera: UW + '4/49/Opera_2015_icon.svg',
     })
     const os = _.findKey(OSS, re => re.test(agent))
