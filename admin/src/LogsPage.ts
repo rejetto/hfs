@@ -303,27 +303,34 @@ export function agentIcons(agent: string | undefined) {
     if (!agent) return
     const UW = 'https://upload.wikimedia.org/wikipedia/commons/'
     const short = shortenAgent(agent)
-    const browserIcon = icon(short, {
+    const browserIcon = h(AgentIcon, { k: short, altText: true, map: {
         Chrome: UW + 'e/e1/Google_Chrome_icon_%28February_2022%29.svg',
         Chromium: UW + 'f/fe/Chromium_Material_Icon.svg',
         Firefox: UW + 'a/a0/Firefox_logo%2C_2019.svg',
         Safari: UW + '5/52/Safari_browser_logo.svg',
         Edge: UW + '9/98/Microsoft_Edge_logo_%282019%29.svg',
         Opera: UW + '4/49/Opera_2015_icon.svg',
-    })
+    } })
     const os = _.findKey(OSS, re => re.test(agent))
-    const osIcon = os && icon(os, {
+    const osIcon = os && h(AgentIcon, { k: os, map: {
         android: UW + 'd/d7/Android_robot.svg',
         linux: UW + '0/0a/Tux-shaded.svg',
         win: UW + '0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg',
         apple: UW + '7/74/Apple_logo_dark_grey.svg', // grey works for both themes
-    })
-    return hTooltip(agent, undefined, h('span', {}, browserIcon || short, ' ', osIcon) )
+    } })
+    return hTooltip(agent, undefined, h('span', {}, browserIcon, ' ', osIcon) )
+}
 
-    function icon(k: string, map: Dict<string>) {
-        const src = map[k]
-        return src && h('img', { src, style: { height: '1.3em', verticalAlign: 'bottom', marginRight: '.2em' } })
-    }
+const alreadyFailed: any = {}
+
+function AgentIcon({ k, map, altText }: { k: string, map: Dict<string>, altText?: boolean }) {
+    const src = map[k]
+    const [err, setErr] = useState(alreadyFailed[k])
+    return !src || err ? h(Fragment, {}, altText ? k : null) : h('img', {
+        src: err ? `/${k}.svg` : src,
+        style: { height: '1.3em', verticalAlign: 'bottom', marginRight: '.2em' },
+        onError() { setErr(alreadyFailed[k] = true) }
+    })
 }
 
 const OSS = {

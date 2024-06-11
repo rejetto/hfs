@@ -138,7 +138,7 @@ export default function HomePage() {
                                     )),
                                 )),
                         )),
-       h(SwitchThemeBtn, { variant: 'outlined' }),
+        h(SwitchThemeBtn, { variant: 'outlined' }),
     )
 }
 
