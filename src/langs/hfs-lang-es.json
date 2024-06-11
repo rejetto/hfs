@@ -1,20 +1,20 @@
 {
     "author": "Eidy Estupiñan Varona, Arturo Fernández Rivas",
-    "version": 1.2,
-    "hfs_version": "0.52.0",
+    "version": 1.3,
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Seleccionar",
         "n_files": "{n,plural,one{# archivo} other {# archivos}}",
         "n_folders": "{n,plural,one{# carpeta} other{# carpetas}}",
         "filter_count": "{n,plural, one{# filtrado} other{# filtrados}}",
         "select_count": "{n,plural, one{# seleccionado} other{# seleccionados}}",
-        "filter_placeholder": "Escriba aquí para filtrar la lista a continuación",
+        "filter_placeholder": "Escriba aquí para filtrar la lista de archivos",
         "Select some files": "Seleccione algunos archivos",
-        "zip_checkboxes": "Use las casillas de verificación para seleccionar los archivos, luego puede usar la opción Zip nuevamente",
+        "zip_checkboxes": "Use las casillas de verificación para seleccionar archivos, después podrá comprimirlos",
         "zip_tooltip_selected": "Descargue los elementos seleccionados como un solo archivo zip",
         "zip_tooltip_whole": "Descargue la lista completa (sin filtrar) o los archivos seleccionados, como un solo archivo zip.",
-        "zip_confirm_search": "¿Descargar TODOS los resultados de esta búsqueda como archivo ZIP?",
-        "zip_confirm_folder": "¿Descargar toda la carpeta como archivo Zip?",
+        "zip_confirm_search": "¿Descargar TODOS los resultados de esta búsqueda como un archivo ZIP?",
+        "zip_confirm_folder": "¿Descargar toda la carpeta como un archivo Zip?",
         "select_tooltip": "La selección se aplica a \"Zip\" y \"Eliminar\" (cuando esté disponible), pero también puede filtrar la lista",
         "delete_hint": "Para eliminar, primero debe seleccionar",
         "delete_confirm": "Eliminar {n,plural, one {# elemento} other {# elementos}}?",
@@ -24,7 +24,7 @@
         "Delete": "Eliminar",
         "Options": "Opciones",
         "Search": "Buscar",
-        "Zip": "Zip",
+        "Zip": "Descargar zip",
         "search_msg": "Buscar en esta carpeta y subcarpetas",
         "Searching": "Buscando",
         "Searched": "Buscado",
@@ -167,6 +167,11 @@
         "Overwrite policy": "Reglas para sobreescribir",
         "Rename to avoid overwriting": "Renombrar para evitar sobrescribir",
         "Overwrite existing files": "Sobrescribir archivos existentes",
-        "Menu": "Menú"
+        "Menu": "Menú",
+        "clipboard": "Portapapeles ({content})",
+        "to_clipboard_source_tooltip": "Ir a la carpeta del portapapeles",
+        "more_items": "{n} más elemento(s)",
+        "Show details": "Mostrar detalles",
+        "upload_conflict": "ya existe"
     }
 }
