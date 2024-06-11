@@ -48,6 +48,7 @@ export function buildUrlQueryString(params: Dict) { // not using URLSearchParams
 }
 
 export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: WindowEventMap[K]) => void, { target=window }={}) {
+    if (!target) return
     target.addEventListener(eventName, cb)
     return () => target.removeEventListener(eventName, cb)
 }

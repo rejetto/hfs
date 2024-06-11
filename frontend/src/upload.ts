@@ -163,7 +163,7 @@ export function showUpload() {
                         rec.comment = s || undefined
                     },
                     async edit(rec) {
-                        const s = await promptDialog(t('upload_name', "Upload with new name"), { def: rec.file.name })
+                        const s = await promptDialog(t('upload_name', "Upload with new name"), { value: rec.file.name })
                         if (!s) return
                         rec.name = s
                     },
@@ -499,6 +499,6 @@ async function createFolder() {
     }
 }
 
-export function inputComment(filename: string, def?: string) {
-    return promptDialog(t('enter_comment', { name: filename }, "Comment for {name}"), { def, type: 'textarea' })
+export function inputComment(filename: string, value?: string) {
+    return promptDialog(t('enter_comment', { name: filename }, "Comment for {name}"), { value, type: 'textarea' })
 }

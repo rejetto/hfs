@@ -127,7 +127,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
 }
 
 async function rename(entry: DirEntry) {
-    const dest = await promptDialog(t`Name`, { def: entry.name, title: t`Rename` })
+    const dest = await promptDialog(t`Name`, { value: entry.name, title: t`Rename` })
     if (!dest) return
     try {
         const { n, uri } = entry
