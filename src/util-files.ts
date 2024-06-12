@@ -112,10 +112,7 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
             .on('entry', (entry: any) =>
                 pending = pending.then(async () => { // don't overlap writings
                     const { path, type } = entry
-                    const dest = await try_(() => cb(path), e => {
-                        console.warn(String(e))
-                        return false
-                    })
+                    const dest = await try_(() => cb(path), e => console.warn(String(e)))
                     if (!dest || type !== 'File')
                         return entry.autodrain()
                     console.debug('unzip', dest)

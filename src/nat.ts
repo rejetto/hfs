@@ -31,7 +31,7 @@ const originalMethod = upnpClient.getGateway
 upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), 0, { retain: HOUR, retainFailure: 30_000 })
 upnpClient.getGateway().then(res => {
     console.debug('upnp', res.gateway.description)
-}, () => {})
+}, e => console.debug('upnp failed:', e.message || String(e)))
 
 // poll external ip
 repeat(10 * MINUTE, () => upnpClient.getPublicIp().then(v => {

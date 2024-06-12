@@ -13,7 +13,7 @@ import { Readable, Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
 import { HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED } from './const'
-import { isIpLocalHost, makeMatcher } from './cross'
+import { isIpLocalHost, makeMatcher, try_ } from './cross'
 import { isIPv6 } from 'net'
 import { statusCodeForMissingPerm, VfsNode } from './vfs'
 import events from './events'
@@ -48,11 +48,15 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
             console.warn("error in network mask", x)
             continue
         }
-        const address = parseAddress(m[1]!)
+        const address = try_(() => parseAddress(m[1]!),
+            () => console.error("invalid address " + m[1]))
+        if (!address) continue
         if (m[2])
-            bl.addSubnet(address, Number(m[2]))
+            try { bl.addSubnet(address, Number(m[2])) }
+            catch { console.error("invalid net mask " + x) }
         else if (m[3])
-            bl.addRange(address, parseAddress(m[2]!))
+            try { bl.addRange(address, parseAddress(m[2]!)) }
+            catch { console.error("invalid address " + m[2]) }
         else
             bl.addAddress(address)
     }
@@ -60,6 +64,7 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         neg !== bl.check(parseAddress(ip))
 }
 
+// can throw ERR_INVALID_ADDRESS
 function parseAddress(s: string) {
     return new SocketAddress({ address: s, family: isIPv6(s) ? 'ipv6' : 'ipv4' })
 }

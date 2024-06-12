@@ -164,7 +164,7 @@ export function setHidden<T, ADD>(dest: T, src: ADD) {
     }))) as T & ADD
 }
 
-export function try_(cb: () => any, onException?: (e:any) => any) {
+export function try_<T,E=undefined>(cb: () => T, onException?: (e:any) => E) {
     try {
         return cb()
     }
