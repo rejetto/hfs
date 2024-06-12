@@ -1,7 +1,7 @@
 {
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
-    "version": 2.1,
-    "hfs_version": "0.52.0",
+    "version": 2.2,
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
@@ -167,6 +167,14 @@
         "Overwrite policy": "Chính sách ghi đè",
         "Rename to avoid overwriting": "Đổi tên để tránh ghi đè file có sẳn",
         "Overwrite existing files": "Ghi đè file có sẳn",
-        "Menu": "Menu"
+        "Menu": "Menu",
+
+       "clipboard": "Bộ nhớ tạm: ({content}) file/folder bên trong",
+       "to_clipboard_source_tooltip": "Trở về thư mục các file/folder trong bộ nhớ tạm thuộc về",
+       "more_items": "Thêm {n} file/folder...",
+       "Show details": "Chi tiết",
+       "upload_conflict": "đang tồn tại",
+       "Logged in": "Đã đăng nhập!",
+       "Logged out": "Đã đăng xuất!"
     }
 }
