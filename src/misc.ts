@@ -60,8 +60,13 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         else
             bl.addAddress(address)
     }
-    return (ip: string) =>
-        neg !== bl.check(parseAddress(ip))
+    return (ip: string) => {
+        try { return neg !== bl.check(parseAddress(ip)) }
+        catch {
+            console.error("invalid address " + ip)
+            return false
+        }
+    }
 }
 
 // can throw ERR_INVALID_ADDRESS
