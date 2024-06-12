@@ -4,11 +4,11 @@
 
 ## Introduction
 
-HFS is the best way via web to access or share files from your disk.
+Access via web your files directly from your disk.
 
 - You be the server, share files **fresh from your disk**, with **unlimited** space and bandwidth.
-- It's all very **fast**. Try download zipping 100GB, it starts immediately!
-- **Easy to use**. HFS tries to detect problems and suggest solutions.
+- **Fast!** Try zipping 100GB, download starts immediately!
+- **Intelligent**. HFS tries to detect problems and suggest solutions.
 - Share **even a single file** with our *virtual file system*, even with a different name, all without touching the real file. Present things the way you want!
 - **Watch** all activities in real-time.
 - **Control bandwidth**, decide how much to give.
@@ -150,7 +150,9 @@ In the Languages section of the Admin-panel you can install additional language 
 
 If your language is missing, please consider [translating yourself](https://github.com/rejetto/hfs/wiki/Translation). 
 
-## Why you should upgrade from HFS 2.x to 3
+## Why you should upgrade from HFS 2.x
+
+HFS 2.x is vulnerable to important attacks, and there is no known solution at the moment.
 
 As you can see from the list of features, we already have some goods that you cannot find in HFS 2.
 Other than that, you can also consider: 
@@ -159,12 +161,6 @@ Other than that, you can also consider:
 - passwords are never really stored, just a non-reversible hash is
 - faster search (up to 12x)
 - more flexible permissions
-
-But you may still want to stay with HFS 2.x (so far) for the following reasons
-
-- smaller
-- more tested
-- classic window interface (can be easier for some people)
 
 ## Security
 
