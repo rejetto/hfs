@@ -1,7 +1,7 @@
 import { proxy } from 'valtio'
 import { Client } from 'nat-upnp-rejetto'
 import { debounceAsync } from './debounceAsync'
-import { haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
+import { haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, try_, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
 import { httpString } from './util-http'
@@ -67,7 +67,8 @@ export const getNatInfo = debounceAsync(async () => {
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
     console.debug('mappings found', mappings?.map(x => x.description))
-    const gatewayIp = res ? new URL(res.gateway.description).hostname : await findGateway().catch(() => undefined)
+    const gatewayIp = res && try_(() => new URL(res.gateway.description).hostname, () => console.debug('unexpected upnp gw', res.gateway?.description))
+        || await findGateway().catch(() => undefined)
     const localIps = await getIps(false)
     const localIp = res?.address || gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp!)) : localIps[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
