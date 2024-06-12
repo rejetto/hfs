@@ -1,5 +1,5 @@
 import { defineConfig, getConfig } from './config'
-import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI } from './misc'
+import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI, try_ } from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
 import { baseUrl } from './listen'
@@ -25,9 +25,8 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             if (!ctx.path.startsWith(API_URI)) return // ...unless it's an api
             params = ctx.state.params || ctx.query // for api we'll translate params
             changeUriParams(v => removeStarting(ctx.state.revProxyPath, v))  // removal must be done before adding the root
-            let { referer } = ctx.headers
-            referer &&= new URL(referer).pathname
-            if (referer?.startsWith(ctx.state.revProxyPath + ADMIN_URI)) return // exclude apis for admin-panel
+            const { referer } = ctx.headers
+            if (referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))) return // exclude apis for admin-panel
         }
         if (_.isEmpty(roots.get())) return
         const root = roots.compiled()?.(ctx.host)

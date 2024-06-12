@@ -15,7 +15,7 @@ import { allowAdmin, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, deleteNode, filterMapGenerator, pathEncode } from './misc'
+import { asyncGeneratorToReadable, deleteNode, filterMapGenerator, pathEncode, try_ } from './misc'
 import { basicWeb, detectBasicAgent } from './basicWeb'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
@@ -27,9 +27,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
     // dynamic import on frontend|admin (used for non-https login) while developing (vite4) is not producing a relative path
     if (DEV && path.startsWith('/node_modules/')) {
-        let { referer } = ctx.headers
-        referer &&= new URL(referer).pathname
-        return referer?.startsWith(ADMIN_URI) ? serveAdminFiles(ctx, next)
+        const { referer: r } = ctx.headers
+        return try_(() => r && new URL(r).pathname?.startsWith(ADMIN_URI)) ? serveAdminFiles(ctx, next)
             : serveFrontendFiles(ctx, next)
     }
     if (path.startsWith(FRONTEND_URI))
