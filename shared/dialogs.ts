@@ -21,6 +21,7 @@ export interface DialogOptions {
     $id?: number
     $opening?: NodeJS.Timeout
     ts?: number
+    closed?: Promise<void>
 
     Container?: FunctionComponent<DialogOptions>
 }
@@ -70,7 +71,12 @@ export function isDescendant(child: Node | null | undefined, parentMatch: Node |
 let ignorePopState = false
 function back() {
     ignorePopState = true
+    let was = history.state
     history.back()
+    return new Promise<void>(res => {
+        const h = setInterval(() => was !== history.state && res() , 10)
+        setTimeout(() => clearTimeout(h), 500)
+    })
 }
 
 ;(async () => {
@@ -190,7 +196,7 @@ export function newDialog(options: DialogOptions) {
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
         if (history.state.$dialog === $id)
-            back()
+            options.closed = back()
         return closeDialogAt(i, v)
     }
 }
@@ -204,7 +210,7 @@ export function closeDialog(v?:any, skipHistory=false) {
             continue
         if (!skipHistory) {
             if (history.state.$dialog !== d.$id) return
-            back()
+            d.closed = back()
         }
         closeDialogAt(i, v)
         return d

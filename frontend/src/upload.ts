@@ -486,10 +486,12 @@ async function createFolder() {
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
                 h(Link, {
-                    to: uri + encodeURIComponent(name) + '/',
-                    onClickCapture() { // "capture" because dialogs must be closed (popping from history) before we push a new state in the history
-                        closeDialog()
-                        closeDialog()
+                    to: '', // wasn't able
+                    async onClick(ev) {
+                        ev.preventDefault()
+                        await closeDialog()?.closed
+                        await closeDialog()?.closed
+                        getHFS().navigate(uri + encodeURIComponent(name) + '/')
                     }
                 }, t('enter_folder', "Enter the folder")),
             )))
