@@ -6,8 +6,10 @@ import _ from 'lodash'
 import { mkdir, stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, enforceFinal, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
-    VfsNodeAdminSend } from './misc'
+import {
+    dirStream, enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
+    VfsNodeAdminSend
+} from './misc'
 import { IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE } from './const'
 import { getDiskSpaces, getDiskSpaceSync, getDrives } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
@@ -129,7 +131,7 @@ const apis: ApiHandlers = {
         ;(parentNode.children ||= []).unshift(child)
         saveVfs()
         const link = rest.url ? undefined : await getBaseUrlOrDefault()
-            + (parent ? enforceFinal('/', parent) : '/')
+            + (parent ? enforceStarting('/', enforceFinal('/', parent)) : '/')
             + encodeURIComponent(getNodeName(child))
             + (isDir ? '/' : '')
         return { name, link }
