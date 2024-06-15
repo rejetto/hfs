@@ -3,8 +3,10 @@
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { alertDialog, newDialog, toast } from './dialog'
-import { getHFS, hIcon, makeSessionRefresher, srpClientSequence, working,
-    HTTP_CONFLICT, HTTP_UNAUTHORIZED,} from './misc'
+import {
+    getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth,
+    HTTP_CONFLICT, HTTP_UNAUTHORIZED,
+} from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
 import { reloadList } from './useFetchList'
@@ -31,7 +33,7 @@ sessionRefresher(getHFS().session)
 
 export function logout() {
     // browsers (chrome125) memorize basic-auth credentials based on the path. Returning 401 on /~/api won't be effective on other paths, so we make a call "here" (as doing the same on / wasn't effective).
-    return fetch('?get=logout').then(res => {
+    return fetch('?get=logout', { credentials: 'include' }).then(res => { // had to add 'credentials' for ff52: no cookie = no reset-cookie
         if (res.status !== HTTP_UNAUTHORIZED) // we expect this error code
             throw res
         state.username = ''
@@ -44,6 +46,8 @@ export let closeLoginDialog: undefined | (() => void)
 let lastPromise: Promise<any>
 export async function loginDialog(closable=true, reloadAfter=true) {
     return lastPromise = new Promise(resolve => {
+        if (fallbackToBasicAuth())
+            return location.href = '/?get=login'
         if (closeLoginDialog)
             return lastPromise
         let going = false

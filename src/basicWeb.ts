@@ -24,7 +24,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
     if (get === 'logout') {
         ctx.body = `<script>location = ${JSON.stringify(ctx.get('referer'))}</script>`
         setLoggedIn(ctx, false)
-        ctx.status = HTTP_UNAUTHORIZED // not effective on firefox30
+        ctx.status = HTTP_UNAUTHORIZED // not effective on firefox52, but the redirection is
         return true
     }
     const forced = get === 'basic'

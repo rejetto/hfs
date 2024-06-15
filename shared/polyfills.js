@@ -379,4 +379,43 @@ curl -H 'user-agent: Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firef
         }
         return AddEntriesFromIterable(t, e, o)
     })
+
+    ;(function (global) {
+        if (global.AbortController && global.AbortSignal) return
+
+        function AbortSignal () {
+            this.aborted = false
+            this._listeners = []
+        }
+
+        AbortSignal.prototype.addEventListener = function (type, listener) {
+            if (type === 'abort') this._listeners.push(listener)
+        }
+
+        AbortSignal.prototype.removeEventListener = function (type, listener) {
+            if (type === 'abort') {
+                var index = this._listeners.indexOf(listener)
+                if (index !== -1) this._listeners.splice(index, 1)
+            }
+        }
+
+        AbortSignal.prototype.dispatchEvent = function (event) {
+            if (event.type === 'abort') {
+                this.aborted = true
+                this._listeners.forEach(listener => listener.call(this, event))
+            }
+        }
+
+        function AbortController () {
+            this.signal = new AbortSignal()
+        }
+
+        AbortController.prototype.abort = function () {
+            this.signal.dispatchEvent({ type: 'abort' })
+        }
+
+        global.AbortController = AbortController
+        global.AbortSignal = AbortSignal
+    })(typeof self !== 'undefined' ? self : this);
+
 })('object' === typeof window && window || 'object' === typeof self && self || 'object' === typeof global && global || {})

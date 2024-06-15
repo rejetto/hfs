@@ -135,6 +135,11 @@ export function loadScript(url: string, more={}) {
     })
 }
 
+export function fallbackToBasicAuth() {
+    // @ts-ignore this is a trick from polyfills.js
+    return BigInt === Number
+}
+
 type DurationUnit = 'day' | 'hour' | 'minute' | 'second'
 export function createDurationFormatter({ locale=undefined, unitDisplay='narrow', largest='day', smallest='second', maxTokens, skipZeroes }:
             { skipZeroes?: boolean, largest?: DurationUnit, smallest?: DurationUnit, locale?: string, unitDisplay?: 'long' | 'short' | 'narrow', maxTokens?: 1 | 2 | 3 }={}) {
