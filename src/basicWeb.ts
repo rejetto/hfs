@@ -28,7 +28,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         return true
     }
     const forced = get === 'basic'
-    if (forced || detectBasicAgent(ctx)) {
+    if (forced || detectBasicAgent(ctx) && get !== 'nobasic') {
         ctx.type = 'html'
         const force = forced ? '?get=basic' : ''
         const walker = walkNode(node, { ctx, depth: 0 })
