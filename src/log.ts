@@ -106,7 +106,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
                     renameSync(path, newPath)
                 }
                 catch(e: any) {  // ok, rename failed, but this doesn't mean we ain't gonna log
-                    console.error(String(e || e.message))
+                    console.error(e.message || String(e))
                 }
                 stream = logger.reopen() // keep variable updated
                 if (!stream) return

@@ -2,8 +2,25 @@
 
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
-import { dirStream, enforceFinal, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy, isValidFileName,
-    throw_, VfsPerms, Who, isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting } from './misc'
+import {
+    dirStream,
+    getOrSet,
+    isDirectory,
+    makeMatcher,
+    setHidden,
+    onlyTruthy,
+    isValidFileName,
+    throw_,
+    VfsPerms,
+    Who,
+    isWhoObject,
+    WHO_ANY_ACCOUNT,
+    defaultPerms,
+    PERM_KEYS,
+    removeStarting,
+    HTTP_SERVER_ERROR,
+    try_
+} from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
@@ -204,14 +221,19 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
         // calculate value of permission resolving references to other permissions, avoiding infinite loop
         let who: Who | undefined
         let max = PERM_KEYS.length
+        let cur = perm
         do {
-            who = node[perm]
+            who = node[cur]
             if (isWhoObject(who))
                 who = who.this
-            who ??= defaultPerms[perm]
-            if (!max-- || typeof who !== 'string' || who === WHO_ANY_ACCOUNT)
+            who ??= defaultPerms[cur]
+            if (typeof who !== 'string' || who === WHO_ANY_ACCOUNT)
                 break
-            perm = who
+            if (!max--) {
+                console.error(`endless loop in permission ${perm}=${node[perm] ?? defaultPerms[perm]} for ${node.url || getNodeName(node)}`)
+                return HTTP_SERVER_ERROR
+            }
+            cur = who
         } while (1)
 
         if (Array.isArray(who)) {
@@ -223,7 +245,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
         }
         return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
             : who === WHO_ANY_ACCOUNT ? (getCurrentUsername(ctx) ? 0 : HTTP_UNAUTHORIZED)
-                : throw_(Error('invalid permission: ' + JSON.stringify(who)))
+                : throw_(Error(`invalid permission: ${perm}=${try_(() => JSON.stringify(who))}`))
     }
 }
 
