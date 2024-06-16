@@ -37,7 +37,8 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         controller.abort(aborted = 'timeout')
         console.debug('API TIMEOUT', cmd, params??'')
     }, ms)
-    return Object.assign(fetch(getPrefixUrl() + API_URL + cmd, {
+    const l = location // rebuilding the whole url makes it resistant to url-with-credentials
+    return Object.assign(fetch(`${l.protocol}//${l.host}${getPrefixUrl()}${API_URL}${cmd}`, {
         method: options.method || 'POST',
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         signal: controller.signal,
