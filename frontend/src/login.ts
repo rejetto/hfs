@@ -32,14 +32,15 @@ const sessionRefresher = makeSessionRefresher(state)
 sessionRefresher(getHFS().session)
 
 export function logout() {
-    // browsers (chrome125) memorize basic-auth credentials based on the path. Returning 401 on /~/api won't be effective on other paths, so we make a call "here" (as doing the same on / wasn't effective).
-    return fetch('?get=logout', { credentials: 'include' }).then(res => { // had to add 'credentials' for ff52: no cookie = no reset-cookie
-        if (res.status !== HTTP_UNAUTHORIZED) // we expect this error code
+    return apiCall('logout', {}, { modal: working }).catch(res => {
+        if (res.code !== HTTP_UNAUTHORIZED) // we expect this error code
             throw res
         state.username = ''
+        if (fallbackToBasicAuth())
+            return location.reload() // reloading avoids nasty warnings with ff52
         reloadList()
         toast(t`Logged out`, 'success')
-    }).finally(working())
+    })
 }
 
 export let closeLoginDialog: undefined | (() => void)

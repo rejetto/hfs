@@ -67,6 +67,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     }
 }
 
+// this api is here for consistency, but frontend is actually using
 export const logout: ApiHandler = async ({}, ctx) => {
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
