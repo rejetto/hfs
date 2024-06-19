@@ -334,7 +334,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     let uploadPath = path(toUpload.file)
     if (toUpload.name)
         uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
-    req.open('PUT', to + encodeURIComponent(uploadPath) + buildUrlQueryString({
+    req.open('PUT', to + encodeURI(uploadPath) + buildUrlQueryString({
         notificationChannel,
         ...resume && { resume: String(resume) },
         ...toUpload.comment && { comment: toUpload.comment },
