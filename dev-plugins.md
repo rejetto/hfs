@@ -90,6 +90,9 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   ```
   You'll find more examples by studying plugins like `antidos` or `antibrute`.
   To interrupt other middlewares on this http request, call `ctx.stop()`.
+  In past versions stop() was not available, and to get the same effect you'd `return true`, therefore a possible way
+  to be compatible with older versions is to `return ctx.stop?.() || true`. 
+
   If you want to execute something in the "upstream" of middlewares, return a function. This function can be async.
   You can read more in [the ctx object](#the-ctx-object) section.
 
@@ -599,7 +602,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 8.88 (v0.53.0)
+- 8.89 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
     - config.type:username
