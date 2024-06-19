@@ -48,6 +48,8 @@ else if (!winExe) { // still considering whether to use this behavior with Windo
     process.chdir(dir)
 }
 console.log('cwd', process.cwd())
+if (APP_PATH !== process.cwd())
+    console.log('app', APP_PATH)
 console.log('node', process.version)
 console.log('platform', process.platform)
 console.log('pid', process.pid)
