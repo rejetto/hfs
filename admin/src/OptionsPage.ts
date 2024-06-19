@@ -353,7 +353,7 @@ export async function suggestMakingCert() {
             onClose: resolve,
             Content: () => h(Box, { p: 1, lineHeight: 1.5, },
                 h(Box, {}, "HTTPS needs a certificate to work."),
-                h(Box, {}, "We suggest you to ", h(InLink, { to: 'internet', onClick: close }, "get a free but proper certificate"), '.'),
+                h(Box, {}, "We suggest you to ", h(InLink, { to: 'internet' }, "get a free but proper certificate"), '.'),
                 h(Box, {}, "If you don't have a domain ", h(LinkBtn, { onClick: makeCertAndSave }, "make a self-signed certificate"),
                     " but that ", wikiLink('HTTPS#certificate', " won't be perfect"), '.' ),
             )

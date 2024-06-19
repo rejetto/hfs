@@ -86,7 +86,7 @@ export default function VfsPage() {
             },
         })
         closeDialogRef.current = close
-        return close // auto-close dialog if we are switching to side-panel
+        return () => void close() // auto-close dialog if we are switching to side-panel
     }, [isSideBreakpoint, _.last(selectedFiles)?.id])
 
     useEffect(() => {

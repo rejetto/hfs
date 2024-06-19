@@ -69,7 +69,7 @@ export default function AccountsPage() {
             Content: () => sideContent,
             onClose: selectNone,
         })
-        return close
+        return () => void close()
     }, [isSideBreakpoint, sel, selectedAccount])
 
     return element || h(Grid, { container: true, maxWidth: '80em' },

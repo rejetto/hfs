@@ -8,7 +8,8 @@ import { domOn, isPrimitive, objSameKeys, wait } from '.'
 export interface DialogOptions {
     Content: FunctionComponent<any>,
     closable?: boolean,
-    onClose?: (v?:any)=> any,
+    onClose?: (v?: any) => any,
+    closingValue?: any,
     className?: string,
     icon?: string | ReactNode | FunctionComponent,
     closableProps?: any,
@@ -186,6 +187,7 @@ export function newDialog(options: DialogOptions) {
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
     options.$opening = setTimeout(() => { // in case dialogs were just closed, account for window.history delay. This should be harmless as ux is unaffected, and programmatically you already didn't expect this to happen immediately but at state change
         dialogs.push(options)
+        options = dialogs[dialogs.length - 1] // replace with proxy object, to stay in sync with its changes
         if (options.closable !== false)
             history.pushState({ $dialog: $id, ts, idx: history.state.idx + 1 }, '')
     }, 10) // 10 for firefox, chrome125 seems to be ok with 1
@@ -197,7 +199,8 @@ export function newDialog(options: DialogOptions) {
         if (i < 0) return
         if (history.state.$dialog === $id)
             options.closed = back()
-        return closeDialogAt(i, v)
+        closeDialogAt(i, v)
+        return options
     }
 }
 
@@ -220,7 +223,9 @@ export function closeDialog(v?:any, skipHistory=false) {
 function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
     ;(focusBak.pop() as any)?.focus?.() // if element is not HTMLElement, it doesn't have focus method
-    return d?.onClose?.(value)
+    d.closingValue = value
+    d?.onClose?.(value)
+    return d
 }
 
 export function anyDialogOpen() {
