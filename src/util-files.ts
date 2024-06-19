@@ -98,8 +98,8 @@ export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyF
         const winPath = path.replace(/\//g, '\\')
         const out = await runCmd('dir', ['/ah', '/b', depth ? '/s' : '/c', winPath]) // cannot pass '', so we pass /c as a noop parameter
             .catch(()=>'') // error in case of no matching file
-        return out.split('\r\n').slice(0,-1).map(x =>
-            !depth ? x : x.slice(winPath.length + 1).replace(/\\/g, '/'))
+        return out.split('\n').map(x =>
+            x.slice(!depth ? 0 : winPath.length + 1).trim().replace(/\\/g, '/'));
     }
 }
 
