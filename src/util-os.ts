@@ -65,7 +65,8 @@ export async function getDrives() {
 
 // execute win32 shell commands
 export async function runCmd(cmd: string, args: string[] = []) {
-    const { stdout, stderr } = await promisify(exec)(`@chcp 65001 >nul & cmd /c ${cmd} ${args.join(' ')}`, { encoding: 'utf-8' })
+    const line = `@chcp 65001 >nul & cmd /c ${cmd} ${args.map(x => x.includes(' ') ? `"${x}"` : x).join(' ')}`
+    const { stdout, stderr } = await promisify(exec)(line, { encoding: 'utf-8' })
     return (stderr || stdout).replace(/\r/g, '')
 }
 
