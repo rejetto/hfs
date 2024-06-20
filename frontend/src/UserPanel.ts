@@ -21,7 +21,7 @@ export default function showUserPanel() {
                 h('div', {}, t`Username`, ': ', snap.username),
                 snap.accountExp && h('div', {}, t`Account expiration`, ': ', formatTimestamp(snap.accountExp)),
                 h(CustomCode, { name: 'userPanelAfterInfo' }),
-                snap.canChangePassword && h(Btn, {
+                snap.canChangePassword && !fallbackToBasicAuth() && h(Btn, {
                     icon: 'password',
                     label: t`Change password`,
                     id: 'change-password',
