@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.53.0-rc13",
+  "version": "0.53.0-rc14",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -71,8 +71,8 @@
   "dependencies": {
     "@koa/router": "^12.0.1",
     "@node-rs/crc32": "^1.6.0",
-    "@rejetto/kvstorage": "^0.10.2",
-    "acme-client": "^5.2.0",
+    "@rejetto/kvstorage": "^0.11.1",
+    "acme-client": "^5.3.1",
     "buffer-crc32": "^0.2.13",
     "fast-glob": "^3.2.7",
     "find-process": "^1.4.7",

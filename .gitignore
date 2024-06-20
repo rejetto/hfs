@@ -13,3 +13,4 @@ custom.html
 accounts.yaml
 .DS_Store
 storage
+*.kv
