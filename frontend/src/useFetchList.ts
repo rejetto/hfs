@@ -114,9 +114,10 @@ export default function useFetchList() {
                         return state.stopSearch?.()
             }
         })
-        state.stopSearch = ()=>{
+        return state.stopSearch = () => {
             state.stopSearch = undefined
             buffer.length = 0
+            lastReq.current = lastUri.current = ''
             state.loading = false
             clearInterval(timer)
             src.close()
