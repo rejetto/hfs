@@ -140,7 +140,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                         h('div', {}, cur.name),
                         t`Loading failed`
                     ) : h('div', { className: 'showing-container', ref: containerRef },
-                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: `url(${pathEncode(cover)})`, } }),
+                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: `url("${pathEncode(cover)}")`, } }),
                         h(getShowType(cur) || Fragment, {
                             src: cur.uri,
                             className: 'showing',
