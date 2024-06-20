@@ -73,7 +73,6 @@
     "@node-rs/crc32": "^1.6.0",
     "@rejetto/kvstorage": "^0.10.2",
     "acme-client": "^5.2.0",
-    "basic-auth": "^2.0.1",
     "buffer-crc32": "^0.2.13",
     "fast-glob": "^3.2.7",
     "find-process": "^1.4.7",

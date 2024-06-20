@@ -8,7 +8,6 @@ import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
-import basicAuth from 'basic-auth'
 import { invalidateSessionBefore, setLoggedIn, srpCheck } from './auth'
 import { constants } from 'zlib'
 import { getHttpsWorkingPort } from './listen'
@@ -117,8 +116,13 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
 
     function getHttpAccount() {
-        const credentials = basicAuth(ctx.req)
-        return doLogin(credentials?.name||'', credentials?.pass||'')
+        const b64 = ctx.get('authorization')?.split(' ')[1]
+        if (!b64) return
+        try {
+            const [u, p] = atob(b64).split(':')
+            return doLogin(u!, p||'')
+        }
+        catch {}
     }
 
     async function doLogin(u: string, p: string) {

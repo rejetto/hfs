@@ -49,7 +49,7 @@ export default function showUserPanel() {
                     label: t`Logout`,
                     id: 'logout',
                     onClick() {
-                        if (fallbackToBasicAuth())
+                        if (fallbackToBasicAuth()) // this is effective on ff52, but not on chrome125
                             return location.href = `//LOGOUT%00:@${location.host}/?get=logout` // redirect, to execute the body content
                         logout().then(closeDialog, alertDialog)
                     }
