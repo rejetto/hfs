@@ -55,7 +55,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         await options.onResponse?.(res, result)
         if (!res.ok)
             throw new ApiError(res.status, data === undefined ? body : `Failed API ${cmd}: ${res.statusText}`, data)
-        return result as T
+        return result as Awaited<T extends (...args: any[]) => infer R ? R : T>
     }, err => {
         stop?.()
         if (err?.message?.includes('fetch')) {
@@ -86,7 +86,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef<ReturnType<typeof apiCall>>()
     const reloadingRef = useRef<any>()
-    const dataRef = useRef<T>()
+    const dataRef = useRef<any>()
     useEffect(() => {
         loadingRef.current?.abort()
         setData(undefined)

@@ -15,24 +15,15 @@ import { Account } from './AccountsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { SwitchThemeBtn } from './theme'
-import { BoolField } from '@hfs/mui-grid-form'
+import { CheckboxField } from '@hfs/mui-grid-form'
 import { ConfigForm } from './ConfigForm'
-
-interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
-
-interface Status {
-    http: ServerStatus
-    https: ServerStatus
-    frpDetected: boolean
-    proxyDetected?: boolean
-    updatePossible: boolean | string
-    version: string
-}
+import { Release } from '../../src/update'
+import { adminApis } from '../../src/adminApis'
 
 export default function HomePage() {
     const SOLUTION_SEP = " — "
     const { username } = useSnapState()
-    const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Status>('get_status')
+    const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<typeof adminApis.get_status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const { data: account } = useApiEx<Account>(username && 'get_account')
     const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies'] })
@@ -92,7 +83,16 @@ export default function HomePage() {
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
             )),
         entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
+        !updates && with_(status.autoCheckUpdateResult, x => x?.isNewer && h(Update, { info: x, bodyCollapsed: true, title: "An update has been found" })),
         pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
+        h(ConfigForm, {
+            gridProps: { sx: { columns: '13em 2', gap: 0, display: 'block', mt: 0, '&>div.MuiGrid-item': { pt: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
+            saveOnChange: true,
+            form: { fields: [
+                    { k: 'auto_check_update', comp: CheckboxField, label: "Check updates daily" },
+                    { k: 'update_to_beta', comp: CheckboxField, label: "Include beta versions" },
+                ] }
+        }),
         status.updatePossible === 'local' ? h(Btn, {
                 icon: UpdateIcon,
                 onClick: () => update()
@@ -103,7 +103,7 @@ export default function HomePage() {
                     icon: UpdateIcon,
                     onClick() {
                         setCheckPlugins(true)
-                        return apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
+                        return apiCall<typeof adminApis.check_update>('check_update').then(x => setUpdates(x.options), alertDialog)
                     },
                     async onContextMenu(ev) {
                         ev.preventDefault()
@@ -115,30 +115,29 @@ export default function HomePage() {
                     },
                     title: status.updatePossible && "Right-click if you want to install a zip",
                 }, "Check for updates"),
-                h(ConfigForm, {
-                    saveOnChange: true,
-                    form: { fields: [
-                        { k: 'update_to_beta', comp: BoolField, label: "Include beta versions" },
-                    ] }
-                })
             )
             : with_(_.find(updates, 'isNewer'), newer =>
                 !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
                     : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
                         : h(Flex, { vert: true },
-                            updates.map((x: any) =>
-                                h(Flex, { key: x.name, alignItems: 'flex-start', flexWrap: 'wrap' },
-                                    h(Card, {}, h(CardContent, {},
-                                        h(Btn, {
-                                            icon: UpdateIcon,
-                                            ...!x.isNewer && x.prerelease && { color: 'warning', variant: 'outlined' },
-                                            onClick: () => update(x.tag_name)
-                                        }, prefix("Install ", x.name, x.isNewer ? '' : " (older)")),
-                                        h(Box, { mt: 1 }, renderChangelog(x.body))
-                                    )),
-                                )),
-                        )),
+                            updates.map((x: any) => h(Update, { info: x })) )),
         h(SwitchThemeBtn, { variant: 'outlined' }),
+    )
+}
+
+function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean }) {
+    const [collapsed, setCollapsed] = useState(bodyCollapsed)
+    return h(Flex, { key: info.name, alignItems: 'flex-start', flexWrap: 'wrap' },
+        h(Card, {}, h(CardContent, {},
+            title && h(Box, { fontSize: 'larger', mb: 1 }, title),
+            h(Btn, {
+                icon: UpdateIcon,
+                ...!info.isNewer && info.prerelease && { color: 'warning', variant: 'outlined' },
+                onClick: () => update(info.tag_name)
+            }, prefix("Install ", info.name, info.isNewer ? '' : " (older)")),
+            collapsed ? h(LinkBtn, { sx: { display: 'block', mt: 1 }, onClick(){ setCollapsed(false) } }, "See details")
+                : h(Box, { mt: 1 }, renderChangelog(info.body))
+        )),
     )
 }
 
