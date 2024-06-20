@@ -183,7 +183,10 @@ function stringify(obj: any) {
 }
 
 console.log("config", filePath)
-export const configFile = watchLoad(filePath, text => setConfig(yaml.parse(text, { uniqueKeys: false })||{}, false), {
+export const configFile = watchLoad(filePath, text => {
+    try { setConfig(yaml.parse(text, { uniqueKeys: false }) || {}, false) }
+    catch(e: any) { console.error("Error in", filePath, ':', e.message || String(e)) }
+}, {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
         setConfig({}, false)
