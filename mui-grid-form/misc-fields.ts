@@ -52,14 +52,14 @@ export function NumberField({ value, onChange, setApi, required, min, max, step,
     })
 }
 
-export function BoolField({ label='', value, onChange, setApi, helperText, error,
+export function BoolField({ label='', value, onChange, setApi, helperText, error, Control=Switch,
                               type, // avoid passing this by accident, as it disrupts the control
                               ...props }: FieldProps<boolean>) {
     const setter = () => value ?? false
     const [state, setState] = useState(setter)
     useEffect(() => setState(setter),
         [value]) //eslint-disable-line
-    const control = h(Switch, {
+    const control = h(Control, {
         checked: state,
         ...props,
         onChange(event) {
@@ -70,6 +70,10 @@ export function BoolField({ label='', value, onChange, setApi, helperText, error
         h(FormControlLabel, { label, control, labelPlacement: 'end', ...props.size==='small' && { sx: { '& .MuiFormControlLabel-label': { fontSize: '.9rem' } } } }),
         helperText && h(FormHelperText, { sx: { mt: 0 }, error }, helperText)
     )
+}
+
+export function CheckboxField(props: FieldProps<boolean>) {
+    return h(BoolField, { Control: Checkbox, ...props })
 }
 
 export function CheckboxesField({ label, options, value, onChange, columns, columnWidth }: FieldProps<string[]> & { options: string[] }) {

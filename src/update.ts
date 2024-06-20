@@ -4,25 +4,44 @@ import { getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { exists, httpStream, prefix, unzip, xlate } from './misc'
+import { DAY, MINUTE, exists, debounceAsync, httpStream, unzip, prefix, xlate } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { access, chmod, stat } from 'fs/promises'
+import { chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
 import { RUNNING_AS_SERVICE } from './util-os'
 import { onProcessExit } from './first'
+import { storedMap } from './persistence'
+import _ from 'lodash'
 
 const updateToBeta = defineConfig('update_to_beta', false)
+const autoCheckUpdate = defineConfig('auto_check_update', true)
+const lastCheckUpdate = storedMap.singleSync<number>('lastCheckUpdate', 0)
+const AUTO_CHECK_EVERY = DAY
 
-interface Release {
+export const autoCheckUpdateResult = storedMap.singleSync<Release | undefined>('autoCheckUpdateResult', undefined)
+setInterval(debounceAsync(async () => {
+    if (!autoCheckUpdate.get()) return
+    if (Date.now() < lastCheckUpdate.get() + AUTO_CHECK_EVERY) return
+    console.log("checking for updates")
+    const u = (await getUpdates(true))[0]
+    if (u) console.log("new version available", u.name)
+    autoCheckUpdateResult.set(u)
+    lastCheckUpdate.set(Date.now())
+}), MINUTE / 30)
+
+export type Release = { // not using interface, as it will not work with kvstorage.Jsonable
     prerelease: boolean,
     tag_name: string,
     name: string,
-    assets: any[],
+    body: string,
+    assets: { name: string, browser_download_url: string }[],
     isNewer: boolean // introduced by us
 }
+const ReleaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer'] satisfies (keyof Release)[]
+const ReleaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
 
 export async function getUpdates(strict=false) {
     const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
@@ -31,7 +50,9 @@ export async function getUpdates(strict=false) {
     stable.isNewer = currentVersion.olderThan(stable.tag_name)
     if (stable.isNewer || RUNNING_BETA)
         ret.push(stable)
-    return ret.filter(x => !strict || x.isNewer)
+    // prune a bit, as it will be serialized, but it has a lot of unused data
+    return ret.filter(x => !strict || x.isNewer).map(x =>
+        Object.assign(_.pick(x, ReleaseKeys), { assets: x.assets.map(a => _.pick(a, ReleaseAssetKeys)) }))
 
     function ver(x: any) {
         return versionToScalar(x.name)
@@ -117,7 +138,7 @@ export async function update(tagOrUrl: string='') {
             catch {}
             renameSync(bin, oldBin)
             console.log("launching new version in background", newBinFile)
-            launch(newBin, ['--updating', binFile], { sync: true }) // sync necessary to work on mac by double-click
+            launch(newBin, ['--updating', binFile], { sync: true }) // sync necessary to work on Mac by double-click
         })
         console.log("quitting")
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
