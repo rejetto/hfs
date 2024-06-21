@@ -1,8 +1,8 @@
 // other plugins can use ctx.state.download_counter_ignore to mark downloads that shouldn't be counted
 
 exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
-exports.version = 5.11 // change in API
-exports.apiRequired = 8.3
+exports.version = 6 // new format
+exports.apiRequired = 8.89  // openDb
 
 exports.config = {
     where: { frontend: true, type: 'select', defaultValue: 'menu',
@@ -15,31 +15,22 @@ exports.configDialog = {
 }
 
 exports.init = async api => {
-    const _ = api.require('lodash')
-    const yaml = api.require('yaml')
-    const { writeFile, readFile } = api.require('fs/promises')
-    const { debounceAsync, newObj } = api.require('./misc')
+    const db = await api.openDb('counters.kv', { defaultPutDelay: 5_000, maxPutDelay: 30_000 })
 
-    const countersFile = 'counters.yaml'
-
-    let counters = {}
-    const save = debounceAsync(async () => {
-        await writeFile(countersFile, yaml.stringify(counters))
-        console.debug('counters saved')
-    }, 5_000, { maxWait:30_000 })
-
-    // load previous stats
-    try {
+    try { // load legacy file
+        const countersFile = 'counters.yaml'
+        const yaml = api.require('yaml')
+        const { readFile, unlink } = api.require('fs/promises')
         const data = await readFile(countersFile, 'utf8')
-        counters = yaml.parse(data) || {}
-        counters = newObj(counters, (v,k,setKey) => setKey(uri2key(k)) && v)
-        console.debug('counters loaded')
+        for (const [k,v] of Object.entries(yaml.parse(data)))
+            db.put(uri2key(k), v)
+        await unlink(countersFile)
+        api.log("data converted")
     }
     catch(err) {
         if (err.code !== 'ENOENT')
-            console.debug(countersFile, err)
+            api.log(err)
     }
-
     return {
         frontend_js: 'main.js',
         frontend_css: 'style.css',
@@ -53,13 +44,12 @@ exports.init = async api => {
                     : ctx.state.originalStream?.getArchiveEntries?.().filter(x => x.at(-1) !== '/').map(x => key + uri2key(x))
                 if (!entries) return
                 for (const k of entries)
-                    counters[k] = counters[k] + 1 || 1
-                save()
+                    db.put(k, db.getSync(k) + 1)
             })
         },
         onDirEntry({ entry, listUri })  {
             const k = uri2key(listUri + entry.n)
-            const n = counters[k]
+            const n = db.getSync(k)
             if (n)
                 entry.hits = n
         }
