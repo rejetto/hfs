@@ -237,15 +237,13 @@ export class Plugin implements CommonPluginInterface {
         if (!this.started) return
         this.started = null
         const { id } = this
-        try {
-            await this.data?.unload?.()
-            await this.onUnload()
-            if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
-                console.log('unloaded plugin', id)
-        }
+        try { await this.data?.unload?.() }
         catch(e) {
             console.log('error unloading plugin', id, String(e))
         }
+        await this.onUnload()
+        if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
+            console.log('unloaded plugin', id)
         if (this.data)
             this.data.unload = undefined
     }
@@ -458,7 +456,7 @@ function watchPlugin(id: string, path: string) {
 
             const plugin = new Plugin(id, folder, pluginData, async () => {
                 unwatch()
-                await Promise.allSettled(dbs.map(x => x.flush()))
+                await Promise.allSettled(dbs.map(x => x.close()))
                 dbs.length = 0
             })
             if (alreadyRunning)
