@@ -13,7 +13,7 @@ export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string 
 })
 const forceAddress = defineConfig(CFG.force_address, false)
 forceAddress.sub((v, { version }) => { // convert from legacy configs
-    if (version?.olderThan('0.53.0'))
+    if (version?.olderThan('0.53.0-alpha2'))
         forceAddress.set(getConfig('force_base_url') || getConfig('roots_mandatory') || false)
 })
 
