@@ -140,7 +140,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                         h('div', {}, cur.name),
                         t`Loading failed`
                     ) : h('div', { className: 'showing-container', ref: containerRef },
-                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: `url("${pathEncode(cover)}")`, } }),
+                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: `url("${cover}")`, } }),
                         h(getShowType(cur) || Fragment, {
                             src: cur.uri,
                             className: 'showing',
@@ -152,19 +152,27 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                             async onPlay() {
                                 const folder = dirname(cur.n)
                                 const covers = !isAudio ? [] : state.list.filter(x => folder === dirname(x.n) // same folder
-                                    && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
-                                setCover(_.maxBy(covers, 's')?.n || '')
+                                    && x.name.match(/(?:folder|cover|front|albumart.*)\.jpe?g$/i))
+                                setCover(pathEncode(_.maxBy(covers, 's')?.n || ''))
                                 const meta = {
                                     title: cur.name,
                                     album: decodeURIComponent(basename(dirname(cur.uri))),
                                     artwork: covers.map(x => ({ src: x.n }))
                                 }
-                                if (window.MediaMetadata)
-                                    navigator.mediaSession.metadata = new MediaMetadata(meta)
+                                const m = window.MediaMetadata && (navigator.mediaSession.metadata = new MediaMetadata(meta))
                                 if (cur.ext === 'mp3') {
                                     setTags(Object.assign(meta, await getId3Tags(location.pathname + cur.n).catch(() => {})))
-                                    Object.assign(navigator.mediaSession?.metadata || {}, meta)
+                                    if (m) Object.assign(m, meta)
                                 }
+                                hfsEvent('showPlay', {
+                                    entry: cur,
+                                    meta,
+                                    setCover(src: any) {
+                                        if (typeof src !== 'string') return
+                                        setCover(src)
+                                        if (m) navigator.mediaSession.metadata = new MediaMetadata(Object.assign(meta, { artwork: [{ src }] }))
+                                    }
+                                })
                             }
                         }),
                         tags && h('div', { className: 'meta-tags' },
