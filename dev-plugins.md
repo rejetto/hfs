@@ -354,6 +354,9 @@ This is a list of available frontend-events, with respective object parameter an
     - you receive an entry of the list, and optionally produce React Component for visualization.
     - parameter `{ entry: Entry }` (refer above for Entry object)
     - output `ReactComponent`
+- `showPlay`
+    - emitted on each file played inside file-show. Use setCover if you want to customize the background picture.
+    - parameter `{ entry: Entry, setCover(uri: string), meta: { title, album, artist, year } }`
 - `menuZip`
     - parameter `{ def: ReactNode }`
     - output `Html`
@@ -610,6 +613,8 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
+- 8.9 (v0.54.0)
+  - frontend event: showPlay
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
