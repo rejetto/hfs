@@ -57,8 +57,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 }
             })
             const [showNav, setShowNav] = useState(false)
-            const keepNav = getShowType(cur) === Audio
-            useEffect(() => setShowNav(keepNav), [keepNav])
+            const isAudio = getShowType(cur) === Audio
+            useEffect(() => setShowNav(isAudio), [isAudio])
             const timerRef = useRef(0)
             const navClass = 'nav' + (showNav ? '' : ' nav-hidden')
 
@@ -93,11 +93,11 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             return h(FlexV, {
                 gap: 0,
                 alignItems: 'stretch',
-                className: keepNav ? undefined : ZoomMode[mode], // keepNav=audio, and we don't want zoom on it
+                className: isAudio ? undefined : ZoomMode[mode], // we don't want zoom on audio
                 props: {
                     role: 'dialog',
                     onMouseMove() {
-                        if (keepNav) return
+                        if (isAudio) return
                         setShowNav(true)
                         clearTimeout(timerRef.current)
                         timerRef.current = +setTimeout(() => setShowNav(false), 1_000)
@@ -151,7 +151,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                             onError: curFailed,
                             async onPlay() {
                                 const folder = dirname(cur.n)
-                                const covers = state.list.filter(x => folder === dirname(x.n) // same folder
+                                const covers = !isAudio ? [] : state.list.filter(x => folder === dirname(x.n) // same folder
                                     && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
                                 setCover(_.maxBy(covers, 's')?.n || '')
                                 const meta = {
