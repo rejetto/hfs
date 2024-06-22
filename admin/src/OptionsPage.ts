@@ -139,9 +139,9 @@ export default function OptionsPage() {
             },
             { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer, },
 
-            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true,
+            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true, autoRowHeight: true,
                 fields: [
-                    { k: 'ip', label: "Blocked IP", sm: 6, required: true, helperText: h(WildcardsSupported) },
+                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, helperText: h(WildcardsSupported) },
                     { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, helperText: "Leave empty for no expiration" },
                     {
                         k: 'disabled',
