@@ -13,8 +13,9 @@ interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardText
     required?: boolean
     start?: ReactNode
     end?: ReactNode
+    wrap?: boolean
 }
-export function StringField({ value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, ...props }: StringFieldProps) {
+export function StringField({ value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, wrap, ...props }: StringFieldProps) {
     const normalized = value ?? ''
     setApi?.({
         getError() {
@@ -42,6 +43,7 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         value: state,
         onChange(ev) {
             let val = ev.target.value
+            if (wrap && val.includes('\n')) return // prevent newlines, we are a wrapped yet single line
             if (onTyping) {
                 const res = onTyping(val)
                 if (res === false) return
@@ -66,6 +68,7 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
                 go(ev)
         },
         InputProps: {
+            ...wrap && { multiline: true },
             startAdornment: start && h(InputAdornment, { position: 'start' }, start),
             endAdornment: end && h(InputAdornment, { position: 'end' }, end),
             ...props.InputProps,

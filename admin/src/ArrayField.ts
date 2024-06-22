@@ -11,8 +11,8 @@ import { DateTimeField } from './DateTimeField'
 import _ from 'lodash'
 import { Center, IconBtn } from './mui'
 
-type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean }
-export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, ...rest }: ArrayFieldProps<T>) {
+type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean, autoRowHeight?: boolean }
+export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight, ...rest }: ArrayFieldProps<T>) {
     const rows = useMemo(() => (value||[]).map((x,$idx) =>
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
@@ -27,7 +27,10 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
         h(Box, { ...rest },
             h(DataGrid, {
                 rows,
-                sx: { '.MuiDataGrid-virtualScroller': { minHeight: '3em' } },
+                ...autoRowHeight && { getRowHeight: () => 'auto' as const },
+                sx: { '.MuiDataGrid-virtualScroller': { minHeight: '3em' },
+                    ...autoRowHeight && { '.MuiDataGrid-cell': { minHeight: '52px !important' } }
+                },
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
                 slots: {
@@ -42,7 +45,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                 columns: [
                     ...fields.map(f => {
                         const def = byType[f.$type]?.column
-                        return ({
+                        return {
                             field: f.k,
                             headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
                             disableColumnMenu: true,
@@ -52,7 +55,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                             ...def,
                             ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
                             ...f.$column,
-                        })
+                        }
                     }),
                     {
                         field: '',
