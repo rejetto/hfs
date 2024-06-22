@@ -59,7 +59,7 @@ createAdminConfig.sub(v => {
 
 export async function createAdmin(password: string, username='admin') {
     const acc = await addAccount(username, { admin: true, password }, true)
-    console.log(acc ? "account admin created" : "something went wrong")
+    console.log(acc ? "account admin set" : "something went wrong")
 }
 
 const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())

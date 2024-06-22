@@ -147,6 +147,7 @@ export default function OptionsPage() {
                         k: 'disabled',
                         $type: 'boolean',
                         label: "Enabled",
+                        helperText: "In case you want to not block without deleting the rule",
                         toField: (x: any) => !x,
                         fromField: (x: any) => x ? undefined : true,
                         sm: 6,

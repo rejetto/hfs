@@ -36,6 +36,7 @@ import { ip2country } from './geo'
 import { roots } from './roots'
 import { SendListReadable } from './SendList'
 import { get_dynamic_dns_error } from './ddns'
+import { block, BlockingRule } from './block'
 
 export const adminApis = {
 
@@ -135,6 +136,20 @@ export const adminApis = {
         await writeFile(files.cert, cert)
         return files
     },
+
+    async add_block({ merge, ip, expire, comment }: BlockingRule & { merge?: Partial<BlockingRule> }) {
+        apiAssertTypes({
+            string: { ip },
+            string_undefined: { comment, expire },
+            object_undefined: { merge },
+        })
+        block.set(was => {
+            const found = merge && _.findIndex(was, merge)
+            return found ? was.map((x, i) => i === found ? { ...x, ip: `${x.ip}|${ip}` } : x)
+                : [...was, { ip, expire, comment }]
+        })
+        return {}
+    }
 
 } satisfies ApiHandlers
 
