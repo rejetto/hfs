@@ -34,7 +34,6 @@ exports.init = async api => {
     return {
         frontend_js: 'main.js',
         frontend_css: 'style.css',
-        unload: () => save.flush(), // we may have pending savings
         middleware: ctx => () => { // callback = execute after other middlewares are done
             if (ctx.status >= 300 || ctx.state.download_counter_ignore || ctx.state.considerAsGui || ctx.state.includesLastByte === false) return
             if (!(ctx.state.vfsNode || api.getConfig('archives') && ctx.state.archive)) return
