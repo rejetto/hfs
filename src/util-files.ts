@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import fs, { readFile, stat } from 'fs/promises'
+import { access, mkdir, readFile, stat } from 'fs/promises'
 import { Promisable, try_, wait, isWindowsDrive } from './misc'
 import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
@@ -12,12 +12,12 @@ import { once, Readable } from 'stream'
 import unzipper from 'unzip-stream'
 
 export async function isDirectory(path: string) {
-    try { return (await fs.stat(path)).isDirectory() }
+    try { return (await stat(path)).isDirectory() }
     catch {}
 }
 
 export async function readFileBusy(path: string): Promise<string> {
-    return fs.readFile(path, 'utf8').catch(e => {
+    return readFile(path, 'utf8').catch(e => {
         if ((e as any)?.code !== 'EBUSY')
             throw e
         console.debug('busy')
@@ -128,7 +128,7 @@ export async function prepareFolder(path: string, dirnameIt=true) {
         path = dirname(path)
     if (isWindowsDrive(path)) return
     try {
-        await fs.mkdir(path, { recursive: true })
+        await mkdir(path, { recursive: true })
         return true
     }
     catch {
@@ -148,6 +148,10 @@ export function createFileWithPath(path: string, options?: Parameters<typeof cre
 
 export function isValidFileName(name: string) {
     return !/[/*?<>|\\]/.test(name) && !dirTraversal(name)
+}
+
+export function exists(path: string) {
+    return access(path).then(() => true, () => false)
 }
 
 // read and parse a file, caching unless timestamp has changed

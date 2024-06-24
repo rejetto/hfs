@@ -4,7 +4,7 @@ import { getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { httpStream, unzip } from './misc'
+import { exists, httpStream, unzip } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { access, chmod, stat } from 'fs/promises'
@@ -63,7 +63,7 @@ export async function getUpdates(strict=false) {
 const LOCAL_UPDATE = 'hfs-update.zip' // update from file takes precedence over net
 
 export function localUpdateAvailable() {
-    return access(LOCAL_UPDATE).then(() => true, () => false)
+    return exists(LOCAL_UPDATE)
 }
 
 export async function updateSupported() {

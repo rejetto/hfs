@@ -61,7 +61,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     else
         try {
             if (!Object.hasOwn(cache, dir)) {
-                cache[dir] = getDiskSpaceSync(dir)
+                const c = cache[dir] = getDiskSpaceSync(dir)
+                if (!c) throw 'miss'
                 setTimeout(() => delete cache[dir], 3_000) // invalidate shortly
             }
             const { free } = cache[dir]

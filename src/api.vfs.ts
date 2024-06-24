@@ -11,7 +11,7 @@ import {
     VfsNodeAdminSend
 } from './misc'
 import { IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE } from './const'
-import { getDiskSpaces, getDiskSpaceSync, getDrives } from './util-os'
+import { getDiskSpace, getDiskSpaces, getDrives } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { promisify } from 'util'
 import { execFile } from 'child_process'
@@ -195,8 +195,7 @@ const apis: ApiHandlers = {
                     }
                     return
                 }
-                try { list.props(getDiskSpaceSync(path)) }
-                catch {} // continue anyway
+                const sendPropsAsap = getDiskSpace(path).then(x => x && list.props(x))
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
@@ -217,6 +216,7 @@ const apis: ApiHandlers = {
                             })
                         } catch {} // just ignore entries we can't stat
                     }
+                    await sendPropsAsap.catch(() => {})
                     list.close()
                 } catch (e: any) {
                     list.error(e.code || e.message || String(e), true)
