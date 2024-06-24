@@ -8,9 +8,10 @@ import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
 
 export function getDiskSpaceSync(path: string) {
+    const timeout = 1000
     if (IS_WINDOWS) {
         const drive = resolve(path).slice(0, 2).toUpperCase()
-        const out = execSync('wmic logicaldisk get Size,FreeSpace,Name /format:list').toString().replace(/\r/g, '')
+        const out = execSync('wmic logicaldisk get Size,FreeSpace,Name /format:list', { timeout }).toString().replace(/\r/g, '')
         const one = parseKeyValueObjects(out).find(x => x.Name === drive)
         if (!one)
             throw Error('miss')
@@ -18,7 +19,7 @@ export function getDiskSpaceSync(path: string) {
     }
     while (path && !existsSync(path))
         path = dirname(path)
-    const out = try_(() => execSync(`df -k "${path}"`).toString(),
+    const out = try_(() => execSync(`df -k "${path}"`, { timeout }).toString(),
         err => { throw err.status === 1 ? Error('miss') : err.status === 127 ? Error('unsupported') : err })
     if (!out?.startsWith('Filesystem'))
         throw Error('unsupported')
