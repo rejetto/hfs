@@ -141,12 +141,10 @@ export async function loginDialog(closable=true, reloadAfter=true) {
 
 export function useAuthorized() {
     const { loginRequired } = useSnapState()
-    if (location.hash === '#LOGIN')
-        state.loginRequired = true
     useEffect(() => {
         if (!loginRequired)
-            return closeLoginDialog?.()
-        if (!closeLoginDialog)
+            closeLoginDialog?.()
+        else if (!closeLoginDialog)
             void loginDialog(false)
     }, [loginRequired])
     return loginRequired ? null : true

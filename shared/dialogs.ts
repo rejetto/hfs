@@ -91,6 +91,7 @@ export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     useEffect(() => domOn('popstate', () => {
         if (ignorePopState)
             return ignorePopState = false
+        if (!history.state) return
         const { $dialog } = history.state
         if ($dialog && !dialogs.find(x => x.$id === $dialog)) // it happens if the user, after closing a dialog, goes forward in the history
             return back()
@@ -189,7 +190,7 @@ export function newDialog(options: DialogOptions) {
         dialogs.push(options)
         options = dialogs[dialogs.length - 1] // replace with proxy object, to stay in sync with its changes
         if (options.closable !== false)
-            history.pushState({ $dialog: $id, ts, idx: history.state.idx + 1 }, '')
+            history.pushState({ $dialog: $id, ts, idx: 1 + (history.state?.idx || 0) }, '')
     }, 10) // 10 for firefox, chrome125 seems to be ok with 1
     return { close }
 
@@ -197,7 +198,7 @@ export function newDialog(options: DialogOptions) {
         clearTimeout(options.$opening) // in case it was not open yet
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
-        if (history.state.$dialog === $id)
+        if (history.state?.$dialog === $id)
             options.closed = back()
         closeDialogAt(i, v)
         return options

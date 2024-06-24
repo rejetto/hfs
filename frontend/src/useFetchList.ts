@@ -10,6 +10,7 @@ import { alertDialog } from './dialog'
 import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, waitFor, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { closeLoginDialog } from './login'
 
 export function usePath() {
     return useLocation().pathname
@@ -30,6 +31,7 @@ export default function useFetchList() {
     const lastReloader = useRef(snap.listReloader)
     const isMounted = useIsMounted()
     const navigate = useNavigate()
+    const { loginRequired=false } = snap // undefined=false
     useEffect(()=>{
         const previous = lastUri.current
         lastUri.current = uri
@@ -77,7 +79,10 @@ export default function useFetchList() {
                     state.loading = false
                     return
                 case 'msg':
-                    state.loginRequired = false
+                    const showLogin = location.hash === '#LOGIN'
+                    if (closeLoginDialog)
+                        location.hash = ''
+                    state.loginRequired = showLogin
                     for (const entry of data) {
                         if (!Array.isArray(entry)) continue // unexpected
                         const [op, par] = entry
@@ -122,7 +127,7 @@ export default function useFetchList() {
             clearInterval(timer)
             src.close()
         }
-    }, [uri, search, snap.username, snap.listReloader, snap.loginRequired])
+    }, [uri, search, snap.username, snap.listReloader, loginRequired])
 }
 
 export function reloadList() {
