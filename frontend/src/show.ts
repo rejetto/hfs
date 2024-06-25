@@ -90,6 +90,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
 
             const {t} = useI18N()
             const autoPlaySecondsLabel = t('autoplay_seconds', "Seconds to wait on images")
+            const folder = dirname(cur.n)
             return h(FlexV, {
                 gap: 0,
                 alignItems: 'stretch',
@@ -105,7 +106,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 }
             },
                 h('div', { className: 'bar' },
-                    h('div', { className: 'filename' }, cur.n),
+                    h('div', { className: 'filename' }, h('small', {}, folder), cur.n.slice(folder.length)),
                     h('div', { className: 'controls' }, // keep on same row
                         h(EntryDetails, { entry: cur, midnight: useMidnight() }),
                         useWindowSize().width > 800 && iconBtn('?', showHelp),
@@ -150,7 +151,6 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                             },
                             onError: curFailed,
                             async onPlay() {
-                                const folder = dirname(cur.n)
                                 const covers = !isAudio ? [] : state.list.filter(x => folder === dirname(x.n) // same folder
                                     && x.name.match(/(?:folder|cover|front|albumart.*)\.jpe?g$/i))
                                 setCover(pathEncode(_.maxBy(covers, 's')?.n || ''))
