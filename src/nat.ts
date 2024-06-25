@@ -28,7 +28,7 @@ export const defaultBaseUrl = proxy({
 export const upnpClient = new Client({ timeout: 4_000 })
 const originalMethod = upnpClient.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
-upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), 0, { retain: HOUR, retainFailure: 30_000 })
+upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), { retain: HOUR, retainFailure: 30_000 })
 upnpClient.getGateway().then(res => {
     console.debug('upnp', res.gateway.description)
 }, e => console.debug('upnp failed:', e.message || String(e)))
@@ -60,7 +60,7 @@ export const getPublicIps = debounceAsync(async () => {
             return validIps
         }) )))
     return defaultBaseUrl.publicIps = _.uniq(ips.flat())
-}, 0, { retain: 10 * MINUTE })
+}, { retain: 10 * MINUTE })
 
 export const getNatInfo = debounceAsync(async () => {
     const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)

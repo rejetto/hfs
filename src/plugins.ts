@@ -308,7 +308,7 @@ export function getAvailablePlugins() {
     return Object.values(availablePlugins)
 }
 
-const rescanAsap = debounceAsync(rescan, 1000)
+const rescanAsap = debounceAsync(rescan, { wait: 1000 })
 if (!existsSync(PATH))
     try { mkdirSync(PATH) }
     catch {}

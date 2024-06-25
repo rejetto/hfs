@@ -13,7 +13,7 @@ interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile, getText
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt, immediateFirst }:Options={}): WatchLoadReturn {
     let doing = false
     let watcher: FSWatcher | undefined
-    const debounced = debounceAsync(load, 500, { maxWait: 1000 })
+    const debounced = debounceAsync(load, { wait: 500, maxWait: 1000 })
     let retry: NodeJS.Timeout
     let last: string | undefined
     install(true)
