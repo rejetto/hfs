@@ -43,7 +43,10 @@ Configuration can be done in several ways
 - `log` path of the log file. Default is `access.log`.
 - `log_rotation` frequency of log rotation. Accepted values are `daily`, `weekly`, `monthly`, or empty string to disable. Default is `weekly`.
 - `log_api` should api calls be logged? Default is `true`. 
-- `log_gui` should GUI files be logged? Default is `false`. 
+- `log_gui` should GUI files be logged? Default is `false`.
+- `log_spam` log *failed* requests that are considered spam. Default is false.
+- `log_ua` include user-agent in the logs. Default is false.
+- `track_ips` keep track of all IP addresses seen. Default is true.
 - `error_log` path of the log file for errors. Default is `error.log`.
 - `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
 - `dont_log_net` don't include in log entries if IP matches this network mask. Default is `127.0.0.1|::1`.
@@ -92,6 +95,12 @@ Configuration can be done in several ways
 - `descript_ion_encoding` text encoding to be used for file *DESCRIPT.ION*. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
 - `server_code` javascript code that works similarly to [a plugin](dev-plugins.md). 
 - `tiles_size` starting value for frontend's tiles size. Default is 0.
+- `auto_play_seconds` starting value for frontend's auto_play_seconds (used in Show). Default is 5.
+- `theme` starting value for theme. Default is "auto".
+- `sort_by` starting value for sort-by. Values can be: name, extension, size, time. Default is "name".
+- `sort_numerics` starting value for sort-numeric-names. Default is false.
+- `folders_first` starting value for sort-folders-first. Default is true.
+- `invert_order` starting value for invert-order. Default is false.
 - `update_to_beta` includes beta versions searching for updates. Default is false.
 - `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.
   ```
@@ -109,6 +118,7 @@ Configuration can be done in several ways
 - `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address.
      Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
      Multiple URLs are supported and you can specify one for each line.   
+- `auto_basic` automatically detect (based on user-agent) when the basic web inteface should be served, to support legacy browsers. Default true.
 - `create-admin` special entry to quickly create an admin account. The value will be set as password. As soon as the account is created, this entry is removed. 
 
 #### Virtual File System (VFS)
