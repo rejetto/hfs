@@ -16,7 +16,7 @@ import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssPr
 import { agentIcons } from './LogsPage'
 import { state, useSnapState } from './state'
 import { useBlockIp } from './useBlockIp'
-import { alertDialog } from './dialog'
+import { alertDialog, confirmDialog } from './dialog'
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -43,8 +43,9 @@ function MoreInfo() {
         (allInfo || sm) && pair('sent_got', {
             render: x => ({ Sent: formatBytes(x[0]), Got: formatBytes(x[1]) }),
             title: x => "Since: " + formatTimestamp(x[2]),
-            onDelete: () => apiCall('clear_persistent', { k: ['totalSent', 'totalGot'] })
-                .then(() => alertDialog("Done", 'success'), alertDialog)
+            onDelete: () => confirmDialog("Reset stats?")
+                .then(yes => yes && apiCall('clear_persistent', { k: ['totalSent', 'totalGot'] })
+                    .then(() => alertDialog("Done", 'success'), alertDialog) )
         }),
         (allInfo || sm) && pair('ips', { label: "IPs" }),
         pair('outSpeed', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
