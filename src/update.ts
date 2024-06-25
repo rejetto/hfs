@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getRepoInfo } from './github'
+import { getProjectInfo, getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
@@ -25,6 +25,7 @@ export const autoCheckUpdateResult = storedMap.singleSync<Release | undefined>('
 setInterval(debounceAsync(async () => {
     if (!autoCheckUpdate.get()) return
     if (Date.now() < lastCheckUpdate.get() + AUTO_CHECK_EVERY) return
+    getProjectInfo() // check for alerts
     console.log("checking for updates")
     const u = (await getUpdates(true))[0]
     if (u) console.log("new version available", u.name)

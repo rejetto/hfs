@@ -51,6 +51,7 @@ export default function HomePage() {
             ]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
         username && entry('', "Welcome "+username),
+        dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
             : entry('success', "Server is working"),
         !vfs ? h(LinearProgress)
@@ -143,6 +144,7 @@ function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Relea
 
 function renderChangelog(s: string) {
     return md(s, {
+        html: false,
         onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b|(https:.*\S+)/g, m =>  // link issues and urls
             m[1] ? h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew))
                 : h(Link, { href: m[2], target: '_blank' }, m[2] )

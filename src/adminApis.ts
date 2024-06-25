@@ -37,6 +37,7 @@ import { roots } from './roots'
 import { SendListReadable } from './SendList'
 import { get_dynamic_dns_error } from './ddns'
 import { addBlock, BlockingRule } from './block'
+import { alerts } from './github'
 
 export const adminApis = {
 
@@ -121,6 +122,7 @@ export const adminApis = {
             roots: roots.get(),
             updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
             autoCheckUpdateResult: autoCheckUpdateResult.get(), // in this form, we get the same type of the serialized json
+            alerts: alerts.get(),
             proxyDetected: getProxyDetected(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)

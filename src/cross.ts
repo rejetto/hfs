@@ -466,6 +466,13 @@ export function safeDecodeURIComponent(s: string) {
     catch { return s }
 }
 
+export function popKey(o: any, k: string) {
+    if (!o) return
+    const x = o[k]
+    delete o[k]
+    return x
+}
+
 export function shortenAgent(agent: string) {
     return _.findKey(BROWSERS, re => re.test(agent))
         || /^[^/(]+ ?/.exec(agent)?.[0]
