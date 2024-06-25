@@ -51,6 +51,7 @@ export default function HomePage() {
             ]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
         username && entry('', "Welcome "+username),
+        dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
             : entry('success', "Server is working"),
         !vfs ? h(LinearProgress)
@@ -102,7 +103,8 @@ export default function HomePage() {
                     variant: 'outlined',
                     icon: UpdateIcon,
                     onClick() {
-                        setCheckPlugins(true)
+                        apiCall('wait_project_info').then(reloadStatus)
+                        setCheckPlugins(true) // this only happens once, actually (until you change page)
                         return apiCall<typeof adminApis.check_update>('check_update').then(x => setUpdates(x.options), alertDialog)
                     },
                     async onContextMenu(ev) {
@@ -143,6 +145,7 @@ function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Relea
 
 function renderChangelog(s: string) {
     return md(s, {
+        html: false,
         onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b|(https:.*\S+)/g, m =>  // link issues and urls
             m[1] ? h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew))
                 : h(Link, { href: m[2], target: '_blank' }, m[2] )
@@ -182,7 +185,9 @@ function entry(color: Color, ...content: ReactNode[]) {
         h(({ success: CheckCircle, info: Info, '': Info, warning: Warning, error: Error })[color], {
             sx: { mr: 1, color: color ? undefined : 'primary.main' }
         }),
-        ...content)
+        h('span', { style: ['warning', 'error'].includes(color) ? { animation: '1s blink' } : undefined },
+            ...content)
+    )
 }
 
 function fsLink(text=`File System page`) {

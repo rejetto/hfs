@@ -3,3 +3,8 @@
   clip-path: rect(1px 1px 1px 1px);
   clip: rect(1px, 1px, 1px, 1px); // legacy browsers
 }
+
+@keyframes blink {
+  0% {opacity: 1}
+  50% {opacity: 0.2}
+}

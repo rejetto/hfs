@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getRepoInfo } from './github'
+import { getProjectInfo, getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
@@ -51,6 +51,7 @@ const ReleaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewe
 const ReleaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
 
 export async function getUpdates(strict=false) {
+    getProjectInfo() // check for alerts
     const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
     const verStable = ver(stable)
     const ret = await getBetas()

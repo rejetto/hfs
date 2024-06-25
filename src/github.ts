@@ -1,18 +1,21 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import events from './events'
-import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait } from './misc'
+import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey } from './misc'
 import {
     DISABLING_SUFFIX, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginEnabled, mapPlugins,
     parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER
 } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
-import { DEV, HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
-    HTTP_SERVER_ERROR } from './const'
+import {
+    DEV, HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
+    HTTP_SERVER_ERROR, VERSION
+} from './const'
 import { rename, rm } from 'fs/promises'
 import { join } from 'path'
 import { readFileSync } from 'fs'
+import { storedMap } from './persistence'
 
 const DIST_ROOT = 'dist'
 
@@ -212,11 +215,29 @@ export async function searchPlugins(text='', { skipRepos=[''] }={}) {
     }))
 }
 
+export const alerts = storedMap.singleSync<string[]>('alerts', [])
 // centralized hosted information, to be used as little as possible
 const FN = 'central.json'
 let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
 export const getProjectInfo = debounceAsync(
     () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .then(JSON.parse, () => null)
-        .then(x => Object.assign({ ...builtIn }, DEV ? null : x) ), // fall back to built-in
+        .then(o => {
+            o = Object.assign({ ...builtIn }, DEV ? null : o) // fall back to built-in
+            // merge byVersions info in the main object, but collect alerts separately, to preserve multiple instances
+            const allAlerts: string[] = [o.alert]
+            for (const [ver, more] of Object.entries(popKey(o, 'byVersion') || {}))
+                if (VERSION.match(new RegExp(ver))) {
+                    allAlerts.push((more as any).alert)
+                    Object.assign(o, more)
+                }
+            _.remove(allAlerts, x => !x)
+            alerts.set(was => {
+                if (!_.isEqual(was, allAlerts))
+                    for (const a of allAlerts)
+                        console.log("ALERT:", a)
+                return allAlerts
+            })
+            return o
+        }),
     { retain: DAY, retainFailure: 60_000 })
