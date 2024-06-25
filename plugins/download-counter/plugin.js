@@ -5,7 +5,7 @@ exports.version = 6 // new format
 exports.apiRequired = 8.89  // openDb
 
 exports.config = {
-    where: { frontend: true, type: 'select', defaultValue: 'menu',
+    where: { frontend: true, label: "Where to display counter", type: 'select', defaultValue: 'menu',
         options: ['list', { value: 'menu', label: "file menu" }],
     },
     archives: { defaultValue: true, type: 'boolean', label: "Count files in zip/archives" },

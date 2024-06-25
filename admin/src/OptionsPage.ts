@@ -161,8 +161,8 @@ export default function OptionsPage() {
             },
             { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
 
-            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, label: "Auto-play seconds delay" },
-            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: "Zero = list mode" },
+            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
+            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
             { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
             { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
 
