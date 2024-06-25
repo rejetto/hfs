@@ -89,7 +89,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         const { size } = stats
         const range = applyRange(ctx, size)
         ctx.body = createReadStream(source, range)
-        if (ctx.vfsNode)
+        if (ctx.state.vfsNode)
             monitorAsDownload(ctx, size, range?.start)
     }
     catch (e: any) {
@@ -104,7 +104,6 @@ export function monitorAsDownload(ctx: Koa.Context, size?: number, offset?: numb
     ctx.body.on('end', () =>
         updateConnection(conn, {}, { opProgress: 1 }) )
     updateConnection(conn, {}, {
-        op: 'download',
         opProgress: 0,
         opTotal: size,
         opOffset: size && offset && (offset / size),
