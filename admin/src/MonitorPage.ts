@@ -116,7 +116,7 @@ function Connections() {
                 fullWidth: false,
                 value: monitorOnlyFiles,
                 onChange: v => state.monitorOnlyFiles = v,
-                options: { "Show only files": true, "Show all connections": false }
+                options: { "Show downloads+uploads": true, "Show all connections": false }
             }),
         ),
         h(DataTable, {
