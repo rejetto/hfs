@@ -36,7 +36,7 @@ import { ip2country } from './geo'
 import { roots } from './roots'
 import { SendListReadable } from './SendList'
 import { get_dynamic_dns_error } from './ddns'
-import { block, BlockingRule } from './block'
+import { addBlock, BlockingRule } from './block'
 
 export const adminApis = {
 
@@ -143,11 +143,7 @@ export const adminApis = {
             string_undefined: { comment, expire },
             object_undefined: { merge },
         })
-        block.set(was => {
-            const found = merge && _.findIndex(was, merge)
-            return found ? was.map((x, i) => i === found ? { ...x, ip: `${x.ip}|${ip}` } : x)
-                : [...was, { ip, expire, comment }]
-        })
+        addBlock({ ip, expire, comment }, merge)
         return {}
     }
 

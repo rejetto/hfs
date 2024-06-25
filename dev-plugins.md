@@ -171,6 +171,13 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `log(...args)` print log in a standard form for plugins.
 
+- `addBlock({ ip, expire?, comment?, disabled? }, merge?)` add a blocking rule on specified IP. You can use merge to
+   append the IP to an existing rule (if any, otherwise is created). Eg: 
+    ```js  
+    // try to append to existing rule, by comment
+    addBlock({ ip: '1.2.3.4' }, { comment: "banned by my plugin" }) 
+    ```
+
 - `Const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
 
 - `getConnections(): Connections[]` retrieve current list of active connections.
@@ -614,7 +621,8 @@ If you want to override a text regardless of the language, use the special langu
 ## API version history
 
 - 8.9 (v0.54.0)
-  - frontend event: showPlay
+    - frontend event: showPlay
+    - api.addBlock 
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
