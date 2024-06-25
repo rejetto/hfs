@@ -25,6 +25,7 @@ import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
 import { onProcessExit } from './first'
 import { notifyClient } from './frontEndApis'
 import { app } from './index'
+import { addBlock } from './block'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -113,6 +114,7 @@ async function initPlugin<T>(pl: any, morePassedToInit?: T) {
         getHfsConfig: getConfig,
         customApiCall,
         notifyClient,
+        addBlock,
         ...morePassedToInit
     }))
 }

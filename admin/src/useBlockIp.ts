@@ -16,7 +16,7 @@ export function useBlockIp() {
             ...isBlocked(ip) && { disabled: true, title: "Blocked" },
             ...options,
             onClick() {
-                return apiCall('add_block', { ip, comment, merge: { comment } })
+                return apiCall('add_block', { ip, merge: { comment } })
                     .then(reload).then(() => toast("Blocked", 'success'))
             },
         }),
