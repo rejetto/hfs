@@ -106,7 +106,7 @@ export const makeCert = debounceAsync(async (domain: string, email?: string, alt
     await fs.writeFile(KEY_FILE, res.key)
     cert.set(CERT_FILE) // update config
     privateKey.set(KEY_FILE)
-}, 0)
+})
 
 const acmeDomain = defineConfig('acme_domain', '')
 const acmeEmail = defineConfig('acme_email', '')
@@ -126,5 +126,5 @@ const renewCert = debounceAsync(async () => {
         return console.log("certificate still good")
     await makeCert(domain, acmeEmail.get(), altNames)
         .catch(e => console.log("error renewing certificate: ", String(e.message || e)))
-}, 0, { retain: DAY, retainFailure: HOUR })
+}, { retain: DAY, retainFailure: HOUR })
 

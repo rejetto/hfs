@@ -65,7 +65,7 @@ function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer
 const getFaviconTimestamp = debounceAsync(async () => {
     const f = favicon.get()
     return !f ? 0 : fs.stat(f).then(x => x?.mtimeMs || 0, () => 0)
-}, 0, { retain: 5_000 })
+}, { retain: 5_000 })
 
 async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const session = await refresh_session({}, ctx)

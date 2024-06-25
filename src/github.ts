@@ -219,4 +219,4 @@ export const getProjectInfo = debounceAsync(
     () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .then(JSON.parse, () => null)
         .then(x => Object.assign({ ...builtIn }, DEV ? null : x) ), // fall back to built-in
-    0, { retain: DAY, retainFailure: 60_000 } )
+    { retain: DAY, retainFailure: 60_000 })
