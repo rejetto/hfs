@@ -9,7 +9,7 @@ import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from 
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { CFG, debounceAsync, FRONTEND_OPTIONS, newObj, onlyTruthy, parseFile } from './misc'
+import { CFG, debounceAsync, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile } from './misc'
 import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio/vanilla'
 import { customHtmlState, getAllSections, getSection } from './customHtml'
@@ -119,12 +119,15 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     </script>
                 `
             if (isBody && isOpen)
-                return  all + `
+                return `${all}
                     ${isFrontend && getSection('top')}
                     <style>
                     :root {
                         ${_.map(plugins, (configs, pluginName) => // make plugin configs accessible via css
-                            _.map(configs, (v,k) => `--${pluginName}-${k}: ${serializeCss(v)};`).join('\n')).join('')}
+                    _.map(configs, (v, k) => {
+                        v = serializeCss(v)
+                        return typeof v === 'string' && `\n--${pluginName}-${k}: ${v};`
+                    }).filter(Boolean).join('')).join('')}
                     }
                     ${getSection('style')}
                     </style>
@@ -140,8 +143,8 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
 }
 
 function serializeCss(v: any) {
-    return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}|rgba?\(.+\)$/.test(v) ? v
-        : JSON.stringify(v)
+    return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}|rgba?\(.+\)$/.test(v) ? v // colors
+        : isPrimitive(v) ? JSON.stringify(v)?.replace(/</g, '&lt;') : undefined
 }
 
 function serveProxied(port: string | undefined, uri: string) { // used for development only

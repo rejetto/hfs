@@ -71,7 +71,7 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
         try {
             const args = whoIsWaiting
             whoIsWaiting = undefined
-            runningCallback = callback(...args)
+            runningCallback = Promise.resolve(callback(...args)) // cast to promise, in case callback was not really async (or hybrid)
             runningCallback.then(() => latestHasFailed = false, () => latestHasFailed = true)
             return await runningCallback as MaybeUndefined<R> // await necessary to go-finally at the right time and even on exceptions
         }
