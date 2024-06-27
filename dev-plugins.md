@@ -129,7 +129,9 @@ Currently, these properties are supported:
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
 - `frontend: boolean` expose this setting on the frontend, so that javascript can access it 
-   using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`
+   using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`.
+   Hint: if you need to use a numeric config in CSS but you need to add a unit (like `em`),
+   the trick is to use something like this `calc(var(--plugin-something) * 1em)`.
 
 Based on `type`, other properties are supported:
 - `string`
@@ -215,6 +217,10 @@ The `api` object you get as parameter of the `init` contains the following:
   DB is automatically closed when the plugin is unloaded. Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
 
 - `notifyClient(channel: string, eventName: string, data?: any)` send a message to those frontends that are on the same channel.
+
+- `misc` many functions and constants available in [misc.ts](https://github.com/rejetto/hfs/blob/main/src/misc.ts).
+  These are not documented, probably never will, and are subject to change without notifications,
+  but you can study the sources if you are interested in using them. It's just a shorter version of `api.require('./misc')`
 
 ## Front-end specific
 
@@ -623,6 +629,7 @@ If you want to override a text regardless of the language, use the special langu
 - 8.9 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 
+    - api.misc
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
