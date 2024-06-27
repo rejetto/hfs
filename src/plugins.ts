@@ -11,6 +11,7 @@ import {
     adjustStaticPathForGlob, callable, Callback, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir
 } from './misc'
+import * as misc from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
@@ -115,6 +116,7 @@ async function initPlugin<T>(pl: any, morePassedToInit?: T) {
         customApiCall,
         notifyClient,
         addBlock,
+        misc,
         ...morePassedToInit
     }))
 }
