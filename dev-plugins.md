@@ -602,7 +602,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 8.89 (v0.53.0)
+- 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
     - config.type:username

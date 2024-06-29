@@ -84,15 +84,15 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
 }
 
 // given a function that works on a batch of requests, returns the function that works on a single request
-export function singleWorkerFromBatchWorker<Args extends any[]>(batchWorker: (batch: Args[]) => unknown) {
+export function singleWorkerFromBatchWorker<Args extends any[]>(batchWorker: (batch: Args[]) => unknown, { maxWait=Infinity }={}) {
     let batch: Args[] = []
     const debounced = debounceAsync(async () => {
         const ret = batchWorker(batch)
-        batch = []
+        batch = [] // this is reset as batchWorker starts, but without waiting
         return ret
-    })
+    }, 100, { maxWait })
     return (...args: Args) => {
-        batch.push(args)
-        return debounced()
+        const idx = batch.push(args) - 1
+        return debounced().then((x: any) => x[idx])
     }
 }
