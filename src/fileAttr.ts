@@ -4,6 +4,8 @@ import { promisify } from 'util'
 import { access } from 'fs/promises'
 import { tryJson } from './cross'
 import { onProcessExit } from './first'
+import { utimes, stat } from 'node:fs/promises'
+import { IS_WINDOWS } from './const'
 // @ts-ignore
 const fsx = import('fs-x-attributes').then(x => ({ set: promisify(x.set), get: promisify(x.get) }),
     () => console.log('fs-x-attributes not available') )
@@ -15,8 +17,11 @@ if (existsSync(FN))
     fileAttrDb.open(FN)
 const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
 export async function storeFileAttr(path: string, k: string, v: any) {
-    if (await fsx.then(x => x?.set(path, FILE_ATTR_PREFIX + k, JSON.stringify(v)).then(() => 1, () => 0)))
+    const s = await stat(path)
+    if (await fsx.then(x => x?.set(path, FILE_ATTR_PREFIX + k, JSON.stringify(v)).then(() => 1, () => 0))) {
+        if (IS_WINDOWS) utimes(path, s.atime, s.mtime) // restore timestamps, necessary only on Windows
         return true
+    }
     // fallback to our kv-storage
     if (!fileAttrDb.isOpen())
         await fileAttrDb.open(FN)
