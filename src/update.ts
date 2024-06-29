@@ -4,7 +4,7 @@ import { getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { exists, httpStream, unzip } from './misc'
+import { exists, httpStream, prefix, unzip, xlate } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { access, chmod, stat } from 'fs/promises'
@@ -84,10 +84,13 @@ export async function update(tagOrUrl: string='') {
             }) as Release | undefined
         if (!update)
             throw "update not found"
-        const assetSearch = ({ win32: 'windows', darwin: 'mac', linux: 'linux' } as any)[process.platform]
+        const plat = '-' + xlate(process.platform, { win32: 'windows', darwin: 'mac' })
+        const assetSearch = `${plat}-${process.arch}.zip`
+        const legacyAssetSearch = `${plat}${prefix('-', xlate(process.arch, { x64: '', arm64: 'arm' }))}.zip` // legacy pre-0.53.0-rc16
         if (!assetSearch)
             throw "this feature doesn't support your platform: " + process.platform
-        const asset = update.assets.find((x: any) => x.name.endsWith('.zip') && x.name.includes(assetSearch))
+        const asset = update.assets.find((x: any) => x.name.endsWith(assetSearch))
+            || update.assets.find((x: any) => x.name.endsWith(legacyAssetSearch))
         if (!asset)
             throw "asset not found"
         const url = asset.browser_download_url
