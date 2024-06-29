@@ -42,6 +42,8 @@ const apis: ApiHandlers = {
                         if (online.version !== disk.version) { // not just newer one, in case a version was retired
                             online.id = disk.id // id is installation-dependant, and online cannot know
                             online.repo = serialize(disk).repo // show the user the current repo we are getting this update from, not a possibly-changed future one
+                            if (online.version! < disk.version)
+                                (online as any).downgrade = true
                             list.add(online)
                         }
                     } catch (err: any) {

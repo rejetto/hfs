@@ -138,6 +138,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
 export function renderName({ row, value }: any) {
     const { repo } = row
     return h(Fragment, {},
+        row.downgrade && errorIcon("This version is older than the one you installed. It is possible that the author found a problem with your version and decided to retire it.", true),
         errorIcon(row.error || row.badApi, !row.error),
         repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
             : !repo ? value
