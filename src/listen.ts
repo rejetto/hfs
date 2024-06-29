@@ -28,6 +28,7 @@ import { X509Certificate } from 'crypto'
 import events from './events'
 import { isIPv6 } from 'net'
 import { defaultBaseUrl } from './nat'
+import { storedMap } from './persistence'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -49,8 +50,10 @@ export function getHttpsWorkingPort() {
 const commonServerOptions: http.ServerOptions = { requestTimeout: 0 }
 const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'headersTimeout' is not recognized by type lib, and 'timeout' is not effective when passed in parameters
 
+const readyToListen = Promise.all([ storedMap.isOpening(), events.once('app') ])
+
 const considerHttp = debounceAsync(async () => {
-    await waitFor(() => app)
+    await readyToListen
     void stopServer(httpSrv)
     httpSrv = Object.assign(http.createServer(commonServerOptions, app.callback()), { name: 'http' }, commonServerAssign)
     const port = await startServer(httpSrv, { port: portCfg.get(), host: listenInterface.get() })
@@ -92,12 +95,12 @@ export function getCertObject() {
 }
 
 const considerHttps = debounceAsync(async () => {
+    await readyToListen
     void stopServer(httpsSrv)
     defaultBaseUrl.proto = 'http'
     defaultBaseUrl.port = getCurrentPort(httpSrv) ?? 0
     let port = httpsPortCfg.get()
     try {
-        await waitFor(() => app)
         httpsSrv = Object.assign(
             https.createServer(port === PORT_DISABLED ? {} : { ...commonServerOptions, key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
             { name: 'https' },
