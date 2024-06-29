@@ -513,6 +513,14 @@ These files have a special meaning:
 - `custom.html` file, that works exactly like the main `custom.html`. Even when same section is specified
   by 2 (or more) files, both contents are appended.
 
+## Storage
+
+Plugins that need to store generated data persistently should put all the files in the "storage" folder that is
+automatically created for each plugin. In your plugin you can get this path by reading `api.storageDir`.
+
+There is a very powerful way to store data, that is by using `api.openDb`. This will automatically create the file
+inside the storage folder. For further details please refer to the dedicated documentation.
+
 ## Dependencies
 
 You run vanilla javascript here, in the backend and/or in the browser, so the tools you have for dependencies
