@@ -470,7 +470,9 @@ function watchPlugin(id: string, path: string) {
             events.emit('pluginStarted:'+id)
         } catch (e: any) {
             await markItAvailable()
-            e = e.message || String(e)
+            const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
+            const where = parsed?.length > 1 ? `\n${parsed[0]}` : ''
+            e = e.message + where || String(e)
             console.log(`plugin error: ${id}:`, e)
             setError(id, e)
         }

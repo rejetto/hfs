@@ -281,6 +281,7 @@ async function ip2countryBatch(ips: string[]) {
 export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
     return h(Tooltip, { title, children,
         ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel },
+        componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } },
         ...props
     })
 }
