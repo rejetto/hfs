@@ -10,6 +10,7 @@ export interface DialogOptions {
     closable?: boolean,
     onClose?: (v?: any) => any,
     closingValue?: any,
+    closed?: Promise<void>
     className?: string,
     icon?: string | ReactNode | FunctionComponent,
     closableProps?: any,
@@ -22,7 +23,6 @@ export interface DialogOptions {
     $id?: number
     $opening?: NodeJS.Timeout
     ts?: number
-    closed?: Promise<void>
 
     Container?: FunctionComponent<DialogOptions>
 }
