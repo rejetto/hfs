@@ -115,4 +115,6 @@ function getConnAddress(conn: Connection) {
     }
 }
 
-const totalGotSentResetTime = storedMap.singleSync<Date>('totalGotSentResetTime', new Date)
+const totalGotSentResetTime = storedMap.singleSync('totalGotSentResetTime', new Date(0))
+totalGotSentResetTime.ready().then(() => // because default value is not stored, and we need to init this value
+    totalGotSentResetTime.set(was => was.getTime() ? was : new Date) )
