@@ -8,5 +8,5 @@ export const storedMap = new KvStorage({
     maxPutDelayCreate: 1000,
     rewriteLater: true
 })
-storedMap.open('data.kv')
+export const storageOpening = storedMap.open('data.kv')
 onProcessExit(() => storedMap.flush())
