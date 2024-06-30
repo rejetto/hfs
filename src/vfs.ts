@@ -199,6 +199,10 @@ export async function nodeIsDirectory(node: VfsNode) {
     return isFolder
 }
 
+export async function hasDefaultFile(node: VfsNode, ctx: Koa.Context) {
+    return node.default && await urlToNode(node.default, ctx, node) || undefined
+}
+
 export function nodeIsLink(node: VfsNode) {
     return node.url
 }

@@ -1,7 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { applyParentToChild, getNodeName, hasPermission, masksCouldGivePermission, nodeIsDirectory,
-    statusCodeForMissingPerm, urlToNode, VfsNode, walkNode } from './vfs'
+import {
+    applyParentToChild, getNodeName, hasDefaultFile, hasPermission, masksCouldGivePermission, nodeIsDirectory,
+    statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+} from './vfs'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
@@ -25,8 +27,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
     admin &&= ctxAdminAccess(ctx) // validate 'admin' flag
     if (dirTraversal(search))
         return fail(HTTP_FOOL)
-    if (await hasDefaultFile(node) || !await nodeIsDirectory(node)) // in case of files without permission, we are provided with the frontend, and the location is the file itself
-        // so we first check if you have a permission problem, to tell frontend to show login, otherwise we fallback to method_not_allowed, as it's proper for files.
+    if (await hasDefaultFile(node, ctx) || !await nodeIsDirectory(node)) // in case of files without permission, we are provided with the frontend, and the location is the file itself
+        // so, we first check if you have a permission problem, to tell frontend to show login, otherwise we fall back to method_not_allowed, as it's proper for files.
         return fail(statusCodeForMissingPerm(node, 'can_read', ctx) ? undefined : HTTP_METHOD_NOT_ALLOWED)
     if (!admin && statusCodeForMissingPerm(node, 'can_list', ctx))
         return fail()
@@ -99,10 +101,6 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         }
     }
 
-    async function hasDefaultFile(node: VfsNode) {
-        return node.default && await urlToNode(node.default, ctx, node)
-    }
-
     async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
         const { source, url } = node
         const name = getNodeName(node)
@@ -127,7 +125,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
                 s: isFolder ? undefined : st?.size,
                 p: (pr + pl + pd + pa) || undefined,
                 comment: await getCommentFor(source),
-                web: await hasDefaultFile(node) ? true : undefined,
+                web: await hasDefaultFile(node, ctx) ? true : undefined,
             }
         }
         catch {
