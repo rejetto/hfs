@@ -5,7 +5,7 @@ import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/mat
 import { Microsoft, Storage } from '@mui/icons-material'
 import { reloadVfs } from './VfsPage'
 import { prefix } from './misc'
-import { Btn, Flex, IconBtn, reloadBtn, useBreakpoint } from './mui'
+import { Btn, Flex, reloadBtn, useBreakpoint } from './mui'
 import { apiCall, ApiObject, useApi } from './api'
 import VfsPathField from './VfsPathField'
 import { alertDialog, promptDialog } from './dialog'
@@ -19,9 +19,10 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
         width: 'fit-content',
     },
         reloadBtn(() => reloadVfs()),
-        h(IconBtn, {
+        h(Btn, {
             icon: Storage,
             title: "Disk spaces",
+            progress: false,
             onClick: () => apiCall<Awaited<ReturnType<typeof getDiskSpaces>>>('get_disk_spaces').then(res =>
                 alertDialog(h(List, { dense: true }, res.map(x => h(ListItem, { key: x.name },
                     h(ListItemIcon, {}, h(Storage)),
