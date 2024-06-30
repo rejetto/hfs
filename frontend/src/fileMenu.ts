@@ -29,7 +29,8 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     const { uri, isFolder, s } = entry
     const canRead = !entry.p?.includes('r')
     const canArchive = entry.p?.includes('A') || state.props?.can_archive && !entry.p?.includes('a')
-    const cantDownload = entry.cantOpen || isFolder && !(canRead && canArchive) // folders needs list+read+archive
+    const canList = !entry.p?.match(/L/i)
+    const cantDownload = entry.cantOpen || isFolder && !(canRead && canArchive && canList) // folders needs list+read+archive
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
