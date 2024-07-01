@@ -4,7 +4,7 @@ import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISF
     HTTP_BAD_REQUEST } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, dirTraversal, escapeHTML, loadFileAttr, pendingPromise, storeFileAttr, try_,
+import { Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_,
     createStreamLimiter, } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
@@ -147,7 +147,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 ctx.state.uploadDestinationPath = dest
                 setUploadMeta(dest, ctx)
                 if (ctx.query.comment)
-                    void setCommentFor(dest, escapeHTML(String(ctx.query.comment)))
+                    void setCommentFor(dest, String(ctx.query.comment))
                 if (resumable)
                     delayedDelete(resumable, 0)
                 events.emit('uploadFinished', obj)
