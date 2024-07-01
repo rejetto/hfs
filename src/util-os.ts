@@ -15,8 +15,12 @@ export function getDiskSpaceSync(path: string) {
         return parseLogicaldisk(execSync(makeLogicaldisk(path), { timeout: LOGICALDISK_TIMEOUT }).toString())[0]
     while (path && !existsSync(path))
         path = dirname(path)
-    try { return parseDfResult(execSync(`df -k "${path}"`, { timeout: DF_TIMEOUT }).toString())[0] }
+    try { return parseDfResult(execSync(`df -k ${bashEscape(path)}`, { timeout: DF_TIMEOUT }).toString())[0] }
     catch(e: any) { throw parseDfResult(e) }
+}
+
+function bashEscape(par: string) {
+    return `"${par.replaceAll('"', '\\"')}"`
 }
 
 export async function getDiskSpace(path: string) {
@@ -83,6 +87,7 @@ const wmicFields = ['Size','FreeSpace','Name','Description'] as const
 
 function makeLogicaldisk(path='') {
     const drive = resolve(path).slice(0, 2).toUpperCase()
+    if (!drive.match(/^(|\w:)$/)) throw 'invalid-path'
     return `wmic logicaldisk ${prefix(`where "DeviceID = '`, drive, `'"`)} get ${wmicFields.join()} /format:list`
 }
 
