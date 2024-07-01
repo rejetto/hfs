@@ -8,7 +8,7 @@ import {
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, dirTraversal, escapeHTML, loadFileAttr, storeFileAttr, try_ } from './misc'
+import { Callback, dirTraversal, loadFileAttr, storeFileAttr, try_ } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -112,7 +112,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 if (err)
                     console.error("couldn't rename temp to", dest, String(err))
                 else if (ctx.query.comment)
-                    setCommentFor(dest, escapeHTML(String(ctx.query.comment)))
+                    setCommentFor(dest, String(ctx.query.comment))
                 if (resumable)
                     delayedDelete(resumable, 0)
             })
