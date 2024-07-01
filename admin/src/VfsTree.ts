@@ -105,7 +105,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                     const rel = ps && source?.startsWith(ps) ? '.' + source.slice(ps.length) : source
                     return !rel || !source?.endsWith(name) || rel.length > 45 ? name
                         : h('span', {},
-                            h('span', { style: { opacity: .4 } }, rel.slice(0,-name.length)),
+                            h('span', { style: { opacity: .4, fontSize: 'small' } }, rel.slice(0,-name.length)),
                             rel.slice(-name.length),
                         )
                 })()
