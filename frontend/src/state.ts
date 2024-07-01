@@ -152,7 +152,7 @@ export type DirList = DirEntry[]
 const exts = {
     image: ['jpeg','jpg','gif','png','webp','svg'],
     audio: ['mp3','wav','m4a','ogg','flac'],
-    video: ['mp4','mpeg','mpg','webm','mov','m4v'],
+    video: ['mp4','mpeg','mpg','webm','mov','m4v','mkv'],
     archive: ['zip', 'rar', 'gz', 'tgz'],
 }
 
