@@ -85,11 +85,9 @@ export async function update(tagOrUrl: string='') {
         if (!update)
             throw "update not found"
         const plat = '-' + xlate(process.platform, { win32: 'windows', darwin: 'mac' })
-        const assetSearch = `${plat}-${process.arch}.zip`
+        const assetSearch = `${plat}-${process.arch}`
         const legacyAssetSearch = `${plat}${prefix('-', xlate(process.arch, { x64: '', arm64: 'arm' }))}.zip` // legacy pre-0.53.0-rc16
-        if (!assetSearch)
-            throw "this feature doesn't support your platform: " + process.platform
-        const asset = update.assets.find((x: any) => x.name.endsWith(assetSearch))
+        const asset = update.assets.find((x: any) => x.name.includes(assetSearch) && x.name.endsWith('.zip'))
             || update.assets.find((x: any) => x.name.endsWith(legacyAssetSearch))
         if (!asset)
             throw "asset not found"
