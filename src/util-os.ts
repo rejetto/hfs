@@ -1,6 +1,6 @@
 import { dirname, resolve } from 'path'
 import { existsSync } from 'fs'
-import { exec, execSync } from 'child_process'
+import { exec, execSync, spawnSync } from 'child_process'
 import { onlyTruthy, splitAt, try_ } from './misc'
 import _ from 'lodash'
 import { pid } from 'node:process'
@@ -18,7 +18,7 @@ export function getDiskSpaceSync(path: string) {
     }
     while (path && !existsSync(path))
         path = dirname(path)
-    const out = try_(() => execSync(`df -k "${path}"`).toString(),
+    const out = try_(() => spawnSync('df', ['-k', path]).stdout.toString(),
         err => { throw err.status === 1 ? Error('miss') : err.status === 127 ? Error('unsupported') : err })
     if (!out?.startsWith('Filesystem'))
         throw Error('unsupported')
