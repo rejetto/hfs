@@ -1,14 +1,14 @@
 import { t, useI18N } from './i18n'
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog
+    pathEncode, closeDialog, anyDialogOpen
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
 import { DirEntry, state } from './state'
 import { deleteFiles } from './menu'
-import { Link } from 'react-router-dom'
+import { Link, LinkProps } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
 import { alertDialog, promptDialog } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
@@ -36,9 +36,9 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
             if (x === 'open') {
-                if (entry.cantOpen) return
+                if (entry.cantOpen === DirEntry.FORBIDDEN) return
                 const open = { id: 'open', icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder || entry.web ? undefined : '_blank' }
-                return !isFolder ? open : h(Link, { to: uri, onClick: () => close() }, hIcon(open.icon), open.label)
+                return !isFolder ? open : h(LinkClosingDialog, { to: uri, reloadDocument: entry.web }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
                 return (state.props?.can_delete || entry.p?.includes('d')) && {
@@ -58,7 +58,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         }),
         state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
         state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
-        isFolder && !entry.web && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
+        isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
     const folder = entry.n.slice(0, -entry.name.length - (entry.isFolder ? 2 : 1))
     const props = [
@@ -165,4 +165,17 @@ async function editComment(entry: DirEntry) {
 
 function updateEntry(entry: DirEntry, cb: (e: DirEntry) => unknown) {
     cb(_.find(state.list, { n: entry.n })!)
+}
+
+export function LinkClosingDialog(props: LinkProps) {
+    return h(Link, props.reloadDocument ? props : {
+        ...props,
+        to: '', // workaround to get dialogs and browser-history work correctly
+        async onClick(ev) {
+            ev.preventDefault()
+            while (anyDialogOpen())
+                await closeDialog()?.closed
+            getHFS().navigate(props.to)
+        }
+    })
 }

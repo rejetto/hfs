@@ -16,6 +16,7 @@ import { state, useSnapState } from './state'
 import { Link } from 'react-router-dom'
 import { t } from './i18n'
 import { subscribeKey } from 'valtio/utils'
+import { LinkClosingDialog } from './fileMenu'
 
 const renameEnabled = getHFS().dontOverwriteUploading
 
@@ -485,15 +486,7 @@ async function createFolder() {
         await alertDialog(h(() =>
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
-                h(Link, {
-                    to: '', // wasn't able
-                    async onClick(ev) {
-                        ev.preventDefault()
-                        await closeDialog()?.closed
-                        await closeDialog()?.closed
-                        getHFS().navigate(uri + encodeURIComponent(name) + '/')
-                    }
-                }, t('enter_folder', "Enter the folder")),
+                h(LinkClosingDialog, { to: uri + encodeURIComponent(name) + '/' }, t('enter_folder', "Enter the folder")),
             )))
     }
     catch(e: any) {
