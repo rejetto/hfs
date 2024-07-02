@@ -1,6 +1,6 @@
 import { dirname, resolve } from 'path'
 import { existsSync } from 'fs'
-import { exec, ExecOptions, execSync } from 'child_process'
+import { exec, ExecOptions, execSync, spawnSync } from 'child_process'
 import { exists, onlyTruthy, prefix, splitAt } from './misc'
 import _ from 'lodash'
 import { pid } from 'node:process'
@@ -10,17 +10,18 @@ import { IS_WINDOWS } from './const'
 const DF_TIMEOUT = 2000
 const LOGICALDISK_TIMEOUT = DF_TIMEOUT
 
+// not using statfsSync because it's not available in node 18.5.0 (latest version with pkg)
 export function getDiskSpaceSync(path: string) {
     if (IS_WINDOWS)
         return parseLogicaldisk(execSync(makeLogicaldisk(path), { timeout: LOGICALDISK_TIMEOUT }).toString())[0]
     while (path && !existsSync(path))
         path = dirname(path)
-    try { return parseDfResult(execSync(`df -k ${bashEscape(path)}`, { timeout: DF_TIMEOUT }).toString())[0] }
+    try { return parseDfResult(spawnSync('df', ['-k', path], { timeout: DF_TIMEOUT }).stdout.toString())[0] }
     catch(e: any) { throw parseDfResult(e) }
 }
 
 export function bashEscape(par: string) {
-    return `"${par.replaceAll('"', '\\"')}"`
+    return `'${par.replaceAll(/(["'$`\\])/g, "\\$1")}'`
 }
 
 export function cmdEscape(par: string) {
