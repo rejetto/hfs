@@ -37,8 +37,6 @@ export async function getDiskSpaces(): Promise<{ name: string, free: number, tot
         return onlyTruthy(await Promise.all(drives.map(getDiskSpace)))
     }
     return parseDfResult(await promisify(exec)(`df -k`, { timeout: DF_TIMEOUT }).then(x => x.stdout, e => e))
-        .filter(x => !/^\/(dev|System)\b/.test(x.name))
-
 }
 
 function parseDfResult(result: string | Error) {
@@ -52,8 +50,9 @@ function parseDfResult(result: string | Error) {
     return onlyTruthy(out.map(one => {
         const bits = one.split(/\s+/)
         if (bits[0] === 'tempfs') return
-        const name = bits.pop() || bits.shift() || ''
-        const [, used=0, free=0] = bits.map(x => Number(x) * 1024)
+        const name = bits.pop() || ''
+        if (/^\/(dev|sys|run|System\/Volumes\/(VM|Preboot|Update|xarts|iSCPreboot|Hardware))\b/.test(name)) return
+        const [used=0, free=0] = bits.map(x => Number(x) * 1024).slice(2)
         const total = used + free
         return total && { free, total, name }
     }))
