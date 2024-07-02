@@ -45,7 +45,8 @@ export default function useFetchList() {
             return
         }
 
-        const params = { uri, search }
+        const params = { uri, search, ...snap.searchOptions }
+        params.wild = params.wild ? undefined : 'no'
         if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
         lastParams.current = params
         lastReloader.current = snap.listReloader

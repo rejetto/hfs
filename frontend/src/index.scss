@@ -497,6 +497,8 @@ button .icon + .label {
     }
 }
 
+form label+input { margin-top: .2em; }
+
 .miss-perm  { margin: 0 0.3em }
 
 .popup-menu-button {

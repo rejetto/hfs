@@ -19,7 +19,7 @@ import { SendListReadable } from './SendList'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string }
 
-export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search, c, onlyFolders, admin }, ctx) => {
+export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search, wild, c, onlyFolders, admin }, ctx) => {
     const node = await urlToNode(uri, ctx)
     const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
     if (!node)
@@ -34,7 +34,9 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         return fail()
     offset = Number(offset)
     limit = Number(limit)
-    const filter = pattern2filter(String(search || ''))
+    search = String(search || '').toLocaleLowerCase()
+    const filter = wild === 'no' ? (s: string) => s.includes(search)
+        : pattern2filter(search)
     const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, depth: search ? Infinity : 0 })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
