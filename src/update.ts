@@ -7,11 +7,11 @@ import { spawn, spawnSync } from 'child_process'
 import { exists, httpStream, prefix, unzip, xlate } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { access, chmod, stat } from 'fs/promises'
+import { chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
-import { RUNNING_AS_SERVICE } from './util-os'
+import { cmdEscape, RUNNING_AS_SERVICE } from './util-os'
 import { onProcessExit } from './first'
 
 const updateToBeta = defineConfig('update_to_beta', false)
@@ -129,7 +129,7 @@ export async function update(tagOrUrl: string='') {
 }
 
 function launch(cmd: string, pars: string[]=[], options?: { sync: boolean } & Parameters<typeof spawn>[2]) {
-    return (options?.sync ? spawnSync : spawn)(cmd, pars, { detached: true, shell: true, stdio: [0,1,2], ...options })
+    return (options?.sync ? spawnSync : spawn)(cmdEscape(cmd), pars, { detached: true, shell: true, stdio: [0,1,2], ...options })
 }
 
 if (argv.updating) { // we were launched with a temporary name, restore original name to avoid breaking references

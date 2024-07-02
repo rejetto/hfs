@@ -19,7 +19,11 @@ export function getDiskSpaceSync(path: string) {
     catch(e: any) { throw parseDfResult(e) }
 }
 
-function bashEscape(par: string) {
+export function bashEscape(par: string) {
+    return `"${par.replaceAll('"', '\\"')}"`
+}
+
+export function cmdEscape(par: string) {
     return `"${par.replaceAll('"', '\\"')}"`
 }
 
