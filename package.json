@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.53.0-rc18",
+  "version": "0.53.0-rc19",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -28,7 +28,7 @@
     "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && cd .. && node prune_modules",
     "dist-pre": "cd dist && rm -rf node_modules/@node-rs/crc32-*",
     "dist-bin-win": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc && pkg . --public -C gzip -t node18-win-x64 && zip hfs-windows-x64-$(jq -r .version ../package.json).zip hfs.exe -r plugins && cd ..",
-    "dist-bin-mac-arm": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-arm64 && pkg . --public -C gzip -t node20-macos-arm64 && zip hfs-mac-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
+    "dist-bin-mac-arm": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-arm64 && pkg . --public -C gzip -t node18-macos-arm64 && zip hfs-mac-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-bin-mac": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-x64 && pkg . --public -C gzip -t node18-macos-x64 && zip hfs-mac-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-bin-linux": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-linux-x64-gnu && pkg . --public -C gzip -t node18-linux-x64 && zip hfs-linux-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-win": "npm run dist-modules && npm run dist-bin-win",

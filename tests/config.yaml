@@ -1,5 +1,4 @@
 port: 81
-open_browser_at_start: false
 allowed_referer: x.com
 vfs:
   masks:
@@ -112,7 +111,7 @@ vfs:
       masks:
         "**/*":
           maskOnly: files
-          can_list: false # ineffective because of masksOnly
+          can_list: false
           can_read: false
         "*/page":
           can_list: false
@@ -138,7 +137,7 @@ accounts:
     disabled: true
   admins:
     admin: true
-version: 0.53.0-rc17
+version: 0.53.0-rc19
 max_downloads_per_account: 2
 max_downloads: 1
 roots:
