@@ -10,11 +10,11 @@ import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
-import { loginDialog, useAuthorized } from './login'
+import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
-import { openFileMenu } from './fileMenu'
+import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
 import { fileShow } from './show'
 
@@ -202,22 +202,11 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = getEntryIcon(entry)
-    const onClick = !isLink && !entry.web && file_menu_on_link && fileMenu || undefined
+    const onClick = !isFolder && !isLink && !entry.web && file_menu_on_link && fileMenu || makeOnClickOpen(entry)
     const hasHover = useMediaQuery('(hover: hover)')
     const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
     const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
-    const loginProps = entry.cantOpen && {
-        async onClick(ev: any) {
-            ev.preventDefault()
-            if (entry.cantOpen === DirEntry.FORBIDDEN)
-                return alertDialog(t`Forbidden`, 'warning')
-            if (!await loginDialog(true, false)) return
-            if (isFolder && !entry.web) // internal navigation
-                return setTimeout(() => getHFS().navigate(uri)) // couldn't find the reason why navigating sync is reverted back
-            location.href = uri
-        }
-    }
     return h(CustomCode, {
         name: 'entry',
         entry,
@@ -235,14 +224,14 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
             // we treat webpages as folders, with menu to comment
             isFolder ? h(Fragment, {}, // internal navigation, use Link component
-                h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps, ...loginProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                h(Link, { to: uri, reloadDocument: entry.web, onClick, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
                     ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
                 // popup button is here to be able to detect link-wrapper:hover
                 file_menu_on_link && !showingButton && h('button', {
                     className: 'popup-menu-button',
                     onClick: fileMenu
                 }, hIcon('menu'), t`Menu`)
-            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps, ...loginProps },
+            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps },
                 ico, h('span', { className: 'container-folder' }, containerName), name ),
         ),
         h(CustomCode, { name: 'afterEntryName', entry }),

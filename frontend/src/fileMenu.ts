@@ -14,6 +14,7 @@ import { alertDialog, promptDialog } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
 import { inputComment } from './upload'
 import { cut } from './clip'
+import { loginDialog } from './login'
 
 interface FileMenuEntry {
     id?: string
@@ -30,15 +31,23 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     const canRead = !entry.p?.includes('r')
     const canArchive = entry.p?.includes('A') || state.props?.can_archive && !entry.p?.includes('a')
     const canList = !entry.p?.match(/L/i)
-    const cantDownload = entry.cantOpen || isFolder && !(canRead && canArchive && canList) // folders needs list+read+archive
+    const forbidden = entry.cantOpen === DirEntry.FORBIDDEN
+    const cantDownload = forbidden || isFolder && !(canRead && canArchive && canList) // folders needs list+read+archive
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
             if (x === 'open') {
-                if (entry.cantOpen === DirEntry.FORBIDDEN) return
-                const open = { id: 'open', icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder || entry.web ? undefined : '_blank' }
-                return !isFolder ? open : h(LinkClosingDialog, { to: uri, reloadDocument: entry.web }, hIcon(open.icon), open.label)
+                if (forbidden) return
+                const open = {
+                    id: 'open',
+                    icon: 'play',
+                    label: t('file_open', "Open"),
+                    href: uri,
+                    target: isFolder || entry.web ? undefined : '_blank',
+                    onClick: makeOnClickOpen(entry)
+                }
+                return !isFolder || open.onClick ? open : h(LinkClosingDialog, { to: uri, reloadDocument: entry.web }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
                 return (state.props?.can_delete || entry.p?.includes('d')) && {
@@ -178,4 +187,16 @@ export function LinkClosingDialog(props: LinkProps) {
             getHFS().navigate(props.to)
         }
     })
+}
+
+export function makeOnClickOpen(entry: DirEntry) {
+    return !entry.cantOpen ? undefined : async (ev: any) => {
+        ev.preventDefault()
+        if (entry.cantOpen === DirEntry.FORBIDDEN)
+            return alertDialog(t`Forbidden`, 'warning')
+        if (!await loginDialog(true, false)) return
+        if (entry.isFolder && !entry.web) // internal navigation
+            return setTimeout(() => getHFS().navigate(entry.uri)) // couldn't find the reason why navigating sync is reverted back
+        location.href = entry.uri
+    }
 }
