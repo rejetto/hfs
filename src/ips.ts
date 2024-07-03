@@ -15,7 +15,7 @@ export const ips = new KvStorage({
 onProcessExit(() => ips.flush())
 
 export const trackIpsMw: Middleware = async (ctx, next) => {
-    if (trackIps.get() && !isLocalHost(ctx))
+    if (ips.isOpen() && !isLocalHost(ctx))
         ips.put(ctx.ip, { ts: new Date, country: ctx.state.connection.country })
     await next()
 }
