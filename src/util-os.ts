@@ -1,23 +1,18 @@
-import { dirname, resolve } from 'path'
-import { existsSync } from 'fs'
-import { exec, ExecOptions, execSync, spawnSync } from 'child_process'
-import { exists, onlyTruthy, prefix, splitAt } from './misc'
+import { resolve } from 'path'
+import { statfsSync } from 'fs'
+import { statfs } from 'node:fs/promises'
+import { exec, ExecOptions } from 'child_process'
+import { haveTimeout, onlyTruthy, prefix, splitAt } from './misc'
 import _ from 'lodash'
 import { pid } from 'node:process'
 import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
 
 const DF_TIMEOUT = 2000
-const LOGICALDISK_TIMEOUT = DF_TIMEOUT
 
-// not using statfsSync because it's not available in node 18.5.0 (latest version with pkg)
 export function getDiskSpaceSync(path: string) {
-    if (IS_WINDOWS)
-        return parseLogicaldisk(execSync(makeLogicaldisk(path), { timeout: LOGICALDISK_TIMEOUT }).toString())[0]
-    while (path && !existsSync(path))
-        path = dirname(path)
-    try { return parseDfResult(spawnSync('df', ['-k', path], { timeout: DF_TIMEOUT }).stdout.toString())[0] }
-    catch(e: any) { throw parseDfResult(e) }
+    const s = statfsSync(path)
+    return { free: s.bavail * s.bsize, total: s.blocks * s.bsize }
 }
 
 export function bashEscape(par: string) {
@@ -29,17 +24,14 @@ export function cmdEscape(par: string) {
 }
 
 export async function getDiskSpace(path: string) {
-    if (IS_WINDOWS)
-        return parseLogicaldisk(await runCmd(makeLogicaldisk(path), [], { timeout: LOGICALDISK_TIMEOUT }))[0]
-    while (path && !await exists(path))
-        path = dirname(path)
-    return parseDfResult(await promisify(exec)(`df -k`, { timeout: DF_TIMEOUT }).then(x => x.stdout, e => e))[0]
+    const s = await haveTimeout(DF_TIMEOUT, statfs(path))
+    return { name: path, free: s.bavail * s.bsize, total: s.blocks * s.bsize }
 }
 
 export async function getDiskSpaces(): Promise<{ name: string, free: number, total: number, description?: string }[]> {
     if (IS_WINDOWS) {
-        const drives = await getDrives() // since network-drives can hang 'wmic' for many seconds checking disk space (issue#648), and a single timeout would make whole operation fail, so we fork the job on each drive
-        return onlyTruthy(await Promise.all(drives.map(getDiskSpace)))
+        const drives = await getDrives()
+        return onlyTruthy(await Promise.all(drives.map(x => getDiskSpace(x).catch(() => {}))))
     }
     return parseDfResult(await promisify(exec)(`df -k`, { timeout: DF_TIMEOUT }).then(x => x.stdout, e => e))
 }

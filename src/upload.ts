@@ -60,12 +60,13 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     }
     else
         try {
-            if (!Object.hasOwn(cache, dir)) {
-                const c = cache[dir] = getDiskSpaceSync(dir)
+            const statDir = base.source!
+            if (!Object.hasOwn(cache, statDir)) {
+                const c = cache[statDir] = getDiskSpaceSync(statDir)
                 if (!c) throw 'miss'
-                setTimeout(() => delete cache[dir], 3_000) // invalidate shortly
+                setTimeout(() => delete cache[statDir], 3_000) // invalidate shortly
             }
-            const { free } = cache[dir]
+            const { free } = cache[statDir]
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
             if (reqSize > free - (min || 0))

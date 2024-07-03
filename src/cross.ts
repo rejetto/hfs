@@ -117,6 +117,7 @@ export function wait<T=undefined>(ms: number, val?: T): Promise<T | undefined> {
     return new Promise(res=> setTimeout(res,ms,val))
 }
 
+// throws after ms
 export function haveTimeout<T>(ms: number, job: Promise<T>, error?: any) {
     return Promise.race([job, wait(ms).then(() => { throw error || Error('timeout') })])
 }
