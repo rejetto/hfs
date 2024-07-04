@@ -1,5 +1,5 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
-import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
 } from './misc'
@@ -11,6 +11,7 @@ import { t, useI18N } from './i18n'
 import { alertDialog } from './dialog'
 import _ from 'lodash'
 import { getId3Tags } from './id3'
+import { subscribeKey } from 'valtio/utils'
 
 enum ZoomMode {
     fullWidth,
@@ -28,12 +29,18 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
             const [shuffle, setShuffle] = useState<undefined|DirList>()
+            // shuffle the rest of the list as we continue getting entries, leaving intact the part we've already played/being through
+            const shuffleIdx = useMemo(() => shuffle?.findIndex(x => x.n === cur.n), [cur])
+            useEffect(() => subscribeKey(state, 'list', list => {
+                const n = 1 + (shuffleIdx ?? Infinity)
+                setShuffle(x => list && x?.slice(0, n).concat(_.shuffle(list.slice(n))))
+            }), [shuffleIdx])
             const [repeat, setRepeat, { get: getRepeat }] = useStateMounted(false)
             const [cover, setCover] = useState('')
             useEffect(() => {
                 if (shuffle)
                     goTo(shuffle[0])
-            }, [shuffle])
+            }, [Boolean(shuffle)])
             useEventListener('keydown', ({ key }) => {
                 if (key === 'Escape') return close()
                 if (key === 'ArrowLeft') return goPrev()
