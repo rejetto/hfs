@@ -47,9 +47,9 @@ function MoreInfo() {
                 .then(yes => yes && apiCall('clear_persistent', { k: ['totalSent', 'totalGot'] })
                     .then(() => alertDialog("Done", 'success'), alertDialog) )
         }),
-        (allInfo || sm) && pair('ips', { label: "IPs" }),
         pair('outSpeed', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
         pair('inSpeed', { label: "Input", render: formatSpeedK, minWidth: '8.5em' }),
+        (allInfo || sm) && pair('ips', { label: "IPs", title: () => "Currently connected" }),
         (md || allInfo && md || status?.http?.error) && pair('http', { label: "HTTP", render: port }),
         (md || allInfo && md || status?.https?.error) && pair('https', { label: "HTTPS", render: port }),
         !md && h(IconBtn, {
