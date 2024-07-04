@@ -115,7 +115,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
                         lang
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
-                    document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
+                    document.documentElement.setAttribute('ver', HFS.VERSION.split('-')[0])
                     </script>
                 `
             if (isBody && isOpen)

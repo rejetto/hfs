@@ -17,10 +17,8 @@ export function usePath() {
 }
 
 // allow links with ?search
-waitFor(() => urlParams).then(x => {
-    if (x)
-        state.remoteSearch = x.search
-})
+setTimeout(() => // wait, urlParams is defined at top level
+    state.remoteSearch = urlParams.search || '')
 
 export default function useFetchList() {
     const snap = useSnapState()
