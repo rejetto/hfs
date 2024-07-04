@@ -162,7 +162,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                                 if (window.MediaMetadata)
                                     navigator.mediaSession.metadata = new MediaMetadata(meta)
                                 if (cur.ext === 'mp3') {
-                                    setTags(Object.assign(meta, await getId3Tags(location + cur.n).catch(() => {})))
+                                    setTags(Object.assign(meta, await getId3Tags(location.pathname + cur.n).catch(() => {})))
                                     Object.assign(navigator.mediaSession?.metadata || {}, meta)
                                 }
                             }
