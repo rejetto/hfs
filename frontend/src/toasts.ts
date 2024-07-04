@@ -12,7 +12,7 @@ type Content = string | ReactElement
 export function toast(content: Content, type: ToastType='info', { timeout=5_000 }: { timeout?: number } & Omit<ToastOptions, 'id' | 'content' | 'type'>={}) {
     console.debug("toast", content)
     const id = Math.random()
-    toasts.push({ id, content, type })
+    toasts.push({ id, content, type, close })
     const closed = pendingPromise()
     setTimeout(close, timeout)
     return {
@@ -29,12 +29,15 @@ export function toast(content: Content, type: ToastType='info', { timeout=5_000 
 }
 
 interface ToastOptions extends Omit<Partial<HTMLAttributes<HTMLDivElement>>, 'id' | 'content'> {
-    id: number
     content: Content
     type: ToastType
-    closed?: boolean
 }
-const toasts = proxy<ToastOptions[]>([])
+interface ToastRecord extends ToastOptions {
+    id: number
+    closed?: boolean
+    close: () => void
+}
+const toasts = proxy<ToastRecord[]>([])
 
 export function Toasts() {
     const snap = useSnapshot(toasts)
@@ -44,7 +47,7 @@ export function Toasts() {
     )
 }
 
-function Toast({ content, type, closed, id, ...props }: ToastOptions) {
+function Toast({ content, type, closed, id, close, ...props }: ToastRecord) {
     const [addClass, setAddClass] = useState('before')
     const [height, setHeight] = useState('')
     useEffect(() => {
@@ -59,7 +62,14 @@ function Toast({ content, type, closed, id, ...props }: ToastOptions) {
     }, [addClass])
     const ref = useRef<HTMLDivElement | null>()
     content = useMemo(() => isValidElement(content) ? cloneElement(content) : content, [content]) // proxied elements are frozen, and crash
-    return h('div', { ...props, ref, style: { height }, onTransitionEnd, className: `toast ${addClass} ${_.isString(type) ? 'toast-' + type : ''} ${props.className || ''}`},
+    return h('div', {
+            ...props,
+            ref,
+            style: { height },
+            onTransitionEnd,
+            onClick: close,
+            className: `toast ${addClass} ${_.isString(type) ? 'toast-' + type : ''} ${props.className || ''}`
+        },
         h('div', { className: 'toast-icon' }, isValidElement(type) ? type : hIcon(type)),
         h('div', { className: 'toast-content' }, content)
     )
