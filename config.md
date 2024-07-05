@@ -27,13 +27,15 @@ config config.yaml
 
 Configuration can be done in several ways
 - accessing the Admin-panel with your browser
-    - it will automatically open when you start HFS. Bookmark it. if your port is 8000 the address will be http://localhost:8000/~/admin
+    - it will automatically open when you start HFS. Bookmark it.
+      If your port is 8000 the address will be http://localhost:8000/~/admin
 - passing via command line at start in the form `--NAME VALUE`
-- using envs in the form `HFS_NAME` (eg: `HFS_PORT`)
+- using envs in the form `HFS_<uppercase property name>`, like `HFS_PORT=80` if you want to change the config `port`, but same applies to any other config available,
 - directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
   - if you don't want to use an editor, consider typing this (example) command inside the folder where the config file is:
     `echo "port: 1080" >> config.yaml` 
 - after HFS has started you can enter console command in the form `config NAME VALUE`
+- setting special env `HFS_ENV_BOOTSTRAP=true` will disable other envs when file config.yaml already exists. 
 
 `NAME` stands for the property name that you want to change. See the complete list below.
 

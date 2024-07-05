@@ -111,9 +111,10 @@ export function getWholeConfig({ omit, only }: { omit?:string[], only?:string[] 
 // pass a value to `save` to force saving decision, or leave undefined for auto. Passing false will also reset previously loaded configs.
 export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
     const version = _.isString(newCfg.version) ? new Version(newCfg.version) : undefined
+    const considerEnvs = !process.env['HFS_ENV_BOOTSTRAP'] || !started && _.isEmpty(newCfg)
     // first time we consider also CLI args
     const argCfg = !started && _.pickBy(newObj(configProps,
-        (x, k) => argv[k] ?? tryJson(process.env['HFS_' + k.toUpperCase()], _.identity)),
+        (x, k) => argv[k] ?? tryJson(considerEnvs ? process.env['HFS_' + k.toUpperCase()] : '', _.identity)),
             x => x !== undefined)
     if (! _.isEmpty(argCfg)) {
         saveConfigAsap() // don't set `save` argument, as it would interfere below at check `save===false`
