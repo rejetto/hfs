@@ -708,12 +708,13 @@ form label+input { margin-top: .2em; }
         background-repeat: no-repeat;
         background-size: contain;
         background-position: center;
-        z-index: -1; // otherwise firefox
-        opacity: .3;
+        z-index: -1; // otherwise firefox (forgot to finished this comment)
+        opacity: .4;
         transition: opacity 1s;
         &.none { opacity: 0; }
     }
-    audio.showing { min-width: 60%; }
+    audio.showing { min-width: 60%; transition: opacity 1s; }
+    .cover:not(.none)+audio { opacity: .7; }
     audio.showing, // even on mobile, we need the whole thing to control it decently, and nav-s don't seem to be a problem
     img.showing { max-width: 100% } // we are ok with overlapping for simple images
     .main {
