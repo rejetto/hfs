@@ -16,7 +16,7 @@ import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
-import { fileShow } from './show'
+import { fileShow, getShowType } from './show'
 
 export const MISSING_PERM = "Missing permission"
 
@@ -248,7 +248,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         if (ev.altKey || ev.ctrlKey || isMac && ev.metaKey) return
         ev.preventDefault()
         const special = isMac ? ev.shiftKey : ev.metaKey
-        if (special)
+        if (special && getShowType(entry))
             return fileShow(entry, { startPlaying: true })
         openFileMenu(entry, ev, onlyTruthy([
             file_menu_on_link && 'open',
