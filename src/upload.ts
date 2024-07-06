@@ -60,7 +60,10 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     }
     else
         try {
-            const statDir = base.source!
+            // refer to the source of the closest node that actually belongs to the vfs, so that cache is more effective
+            let closestVfsNode: typeof base | undefined = base
+            while (closestVfsNode && !closestVfsNode.original) closestVfsNode = closestVfsNode.parent
+            const statDir = closestVfsNode!.source!
             if (!Object.hasOwn(cache, statDir)) {
                 const c = cache[statDir] = getDiskSpaceSync(statDir)
                 if (!c) throw 'miss'
