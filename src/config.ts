@@ -114,7 +114,7 @@ export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
     const considerEnvs = !process.env['HFS_ENV_BOOTSTRAP'] || !started && _.isEmpty(newCfg)
     // first time we consider also CLI args
     const argCfg = !started && _.pickBy(newObj(configProps,
-        (x, k) => argv[k] ?? tryJson(considerEnvs ? process.env['HFS_' + k.toUpperCase()] : '', _.identity)),
+        (x, k) => argv[k] ?? tryJson(considerEnvs ? process.env['HFS_' + k.toUpperCase().replaceAll('-','_')] : '', _.identity)),
             x => x !== undefined)
     if (! _.isEmpty(argCfg)) {
         saveConfigAsap() // don't set `save` argument, as it would interfere below at check `save===false`
