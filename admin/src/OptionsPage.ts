@@ -117,7 +117,19 @@ export default function OptionsPage() {
                 helperText: "Not applied to localhost. Doesn't work with proxies."
             },
 
-            { k: 'listen_interface', comp: SelectField, sm: 4, options: [{ label: "any", value: '' }, '127.0.0.1', '::1', ...status?.ips||[]] },
+            {
+                k: 'listen_interface',
+                comp: SelectField,
+                sm: 4,
+                options: [
+                    { label: "any", value: '' },
+                    { label: "any IPv4", value: '0.0.0.0' },
+                    { label: "any IPv6", value: '::' },
+                    '127.0.0.1',
+                    '::1',
+                    ...status?.ips || []
+                ]
+            },
             { k: 'max_kbps',        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, sm: 4, label: "Limit output per-IP" },
 
