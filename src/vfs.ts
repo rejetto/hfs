@@ -42,6 +42,7 @@ export interface VfsNodeStored extends VfsPerms {
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
     accept?: string
+    comment?: string
 }
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity

@@ -171,17 +171,18 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             showTimestamps && { k: 'mtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
-            showWebsite && { k: 'default', comp: BoolField, xl: true,
+            showWebsite && { k: 'default', comp: BoolField, xl: showWebsite ? 8 : 12,
                 label: "Serve as web-page if index.html is found" + (inheritedDefault && values.default == null ? ' (inherited)' : ''),
                 value: values.default ?? inheritedDefault,
                 toField: Boolean, fromField: (v:boolean) => v && !inheritedDefault ? 'index.html' : v ? null : false,
                 helperText: md("...instead of showing list of files")
             },
-            isDir && { k: 'masks', multiline: true,
+            { k: 'comment', multiline: true, xl: true },
+            isDir && { k: 'masks', multiline: true, xl: 6,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
                 sx: { '& textarea': { fontFamily: 'monospace' } },
                 helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Masks-field', "(examples)")]
-            }
+            },
         ]
     })
 

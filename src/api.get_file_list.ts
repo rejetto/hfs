@@ -45,7 +45,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
     const can_archive = admin || hasPermission(fakeChild, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
     const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
-    const comment = await getCommentFor(node.source)
+    const comment = node.comment ?? await getCommentFor(node.source)
     const props = { can_archive, can_upload, can_delete, can_overwrite, can_comment, comment, accept: node.accept }
     ctx.state.browsing = uri.replace(/\/{2,}/g, '/')
     updateConnectionForCtx(ctx)
@@ -126,7 +126,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
                 m: !st || Math.abs(+st.mtime - +st.ctime) < 1000 ? undefined : st.mtime,
                 s: isFolder ? undefined : st?.size,
                 p: (pr + pl + pd + pa) || undefined,
-                comment: await getCommentFor(source),
+                comment: node.comment ?? await getCommentFor(source),
                 web: await hasDefaultFile(node, ctx) ? true : undefined,
             }
         }
