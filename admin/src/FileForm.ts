@@ -153,11 +153,11 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
             perm('can_read', "Who can see but not download will be asked to login"),
-            perm('can_see', ["Control what appears in the list.", wikiLink('Permissions', " More help.")]),
             perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? 6 : 12 }),
-            perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_list', "Permission to requests the list of a folder. The list will include only things you can see.", { contentText: "subfolders" }),
+            perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
+            perm('can_see', ["See this item in the list. ", wikiLink('Permissions', "More help.")]),
             isLink && {
                 k: 'target',
                 comp: BoolField,
