@@ -30,6 +30,8 @@ Object.assign(HFS, {
     cpuSpeedIndex,
 })
 
+export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.gif|*.svg'
+
 //@ts-ignore
 if (import.meta.env.PROD) {
     const was = console.debug

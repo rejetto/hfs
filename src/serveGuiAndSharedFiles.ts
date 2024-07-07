@@ -98,6 +98,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { get } = ctx.query
     if (node.default && path.endsWith('/') && !get) // final/ needed on browser to make resource urls correctly with html pages
         node = await urlToNode(node.default, ctx, node) ?? node
+    if (get === 'icon')
+        return serveFile(ctx, node.icon || '|') // pipe to cause not-found
     if (!await nodeIsDirectory(node))
         return node.url ? ctx.redirect(node.url)
             : !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment

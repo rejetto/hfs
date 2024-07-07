@@ -32,7 +32,7 @@ export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
-
+export type StringifyProps<T> = { [P in keyof T]: Exclude<T[P], Date> extends T[P] ? string | Exclude<T[P], Date> : T[P] }
 export interface VfsPerms {
     can_see?: Who
     can_read?: Who

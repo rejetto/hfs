@@ -17,7 +17,7 @@ import { ctxAdminAccess } from './adminApis'
 import { dontOverwriteUploading } from './upload'
 import { SendListReadable } from './SendList'
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string }
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string, icon?: string | true }
 
 export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search, wild, c, onlyFolders, admin }, ctx) => {
     const node = await urlToNode(uri, ctx)
@@ -46,7 +46,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
     const can_comment = can_upload && areCommentsEnabled()
     const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
     const comment = node.comment ?? await getCommentFor(node.source)
-    const props = { can_archive, can_upload, can_delete, can_overwrite, can_comment, comment, accept: node.accept }
+    const props = { can_archive, can_upload, can_delete, can_overwrite, can_comment, comment, accept: node.accept, icon: getNodeIcon(node) }
     ctx.state.browsing = uri.replace(/\/{2,}/g, '/')
     updateConnectionForCtx(ctx)
     if (!list)
@@ -103,6 +103,10 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         }
     }
 
+    function getNodeIcon(node: VfsNode) {
+        return node.icon?.includes('.') || node.icon // true = specific for this file, otherwise is a SYS_ICONS
+    }
+
     async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
         const { source, url } = node
         const name = getNodeName(node)
@@ -127,6 +131,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
                 s: isFolder ? undefined : st?.size,
                 p: (pr + pl + pd + pa) || undefined,
                 comment: node.comment ?? await getCommentFor(source),
+                icon: getNodeIcon(node),
                 web: await hasDefaultFile(node, ctx) ? true : undefined,
             }
         }

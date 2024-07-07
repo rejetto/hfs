@@ -7,7 +7,7 @@ import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, MAX_TILE_SIZE, REPO_URL, isIpLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
-    CFG, md } from './misc'
+    CFG, md, IMAGE_FILEMASK } from './misc'
 import { iconTooltip, InLink, LinkBtn, modifiedProps, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
@@ -182,7 +182,7 @@ export default function OptionsPage() {
             { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, md: 3,  },
             { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, md: 3,  },
             { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, md: true,  label: "Sort numeric names" },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg', sm: 12,
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, sm: 12,
                 helperText: "The icon associated to your website" },
 
             h(Section, { title: "Uploads" }),

@@ -3,7 +3,8 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { FRONTEND_OPTIONS, getHFS, hIcon, objSameKeys, pathEncode, typedKeys } from './misc'
+import { FRONTEND_OPTIONS, getHFS, hIcon, objSameKeys, pathEncode, StringifyProps, typedKeys } from './misc'
+import { DirEntry as ServerDirEntry } from '../../src/api.get_file_list'
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
     stopSearch?: ()=>void,
@@ -90,14 +91,14 @@ function storeSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(_.pick(state, SETTINGS_TO_STORE)))
 }
 
-export class DirEntry {
+export class DirEntry implements StringifyProps<ServerDirEntry> {
     static FORBIDDEN = 'FORBIDDEN'
     public readonly n: string
     public readonly s?: number
     public readonly m?: string
     public readonly c?: string
     public readonly p?: string
-    public readonly icon?: string
+    public readonly icon?: string | true
     public readonly web?: true
     public readonly url?: string
     public readonly target?: string
@@ -146,7 +147,7 @@ export class DirEntry {
     }
 
     getDefaultIcon() {
-        return hIcon(this.icon ?? (this.isFolder || this.web ? 'folder' : this.url ? 'link' : ext2type(this.ext) || 'file'))
+        return hIcon(this.icon === true ? `${this.n}?get=icon` : (this.icon ?? (this.isFolder || this.web ? 'folder' : this.url ? 'link' : ext2type(this.ext) || 'file')))
     }
 }
 export type DirList = DirEntry[]

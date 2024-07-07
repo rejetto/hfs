@@ -9,9 +9,9 @@ import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
-    useRequestRender, splitAt
+    useRequestRender, splitAt, IMAGE_FILEMASK
 } from './misc'
-import { Btn, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
+import { Btn, Flex, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
 import _ from 'lodash'
 import FileField from './FileField'
@@ -22,6 +22,8 @@ import { moveVfs } from './VfsTree'
 import QrCreator from 'qr-creator';
 import MenuButton from './MenuButton'
 import addFiles, { addLink, addVirtual } from './addFiles'
+import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
+import { hIcon } from '@hfs/frontend/src/misc'
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
@@ -72,6 +74,8 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
         can_upload: isDir,
         can_delete: isDir,
     }
+    const defaultIcon = !values.icon
+    const embeddedIcon = values.icon && !values.icon.includes('.')
     return h(Form, {
         values,
         set(v, k) {
@@ -152,6 +156,24 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
                         : isDir ? "Content from this path on disk will be listed, but you can also add more" : undefined,
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
+            {
+                k: 'iconType',
+                comp: SelectField,
+                options: ['default', 'file', 'embedded'],
+                value: !values.icon ? 'default' : embeddedIcon ? 'embedded' : 'file',
+                fromField: v => setValues({ ...values, icon: v === 'default' ? '' : v === 'file' ? 'select.a.file' : Object.keys(SYS_ICONS)[0] }),
+                xs: defaultIcon ? 12 : true,
+            },
+            !defaultIcon && { k: 'icon', xs: 7, md: 8, xl: 10,
+                ...embeddedIcon ? {
+                    comp: SelectField, // uniqBy to avoid same icon (with different names), but it works only on array, so first step is to convert the object
+                    options: _.map(_.uniqBy(_.map(SYS_ICONS, (v,k) => [k, v[0], v[1] ?? k] as const), x => x[2]), ([k, emoji]) =>
+                        ({ value: k, label: h(Flex, { gap: '.5em' }, hIcon(k), hIcon(emoji), ' ', k) }) ), // show both font-icon and emoji versions
+                    helperText: "Second icon you see is the fallback"
+                } : {
+                    label: "Icon file", placeholder: "default", comp: FileField, fileMask: IMAGE_FILEMASK,
+                }
+            },
             perm('can_read', "Who can see but not download will be asked to login"),
             perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? 6 : 12 }),
             perm('can_list', "Permission to requests the list of a folder. The list will include only things you can see.", { contentText: "subfolders" }),

@@ -99,12 +99,6 @@ select { text-align: center; } // it is surely cooler on the options dialog
 [class^="fa-"]:before, [class*=" fa-"]:before { /* don't need extra margin on fontello icons */
     margin: 0;
 }
-.icon {
-    font-size: 1.2em;
-    height: 1.2em; width: 1.4em; // give similar size to <img> icons
-
-    display: inline-block; text-align: center; // same size for font icons
-}
 img.file-icon { height: 1em; }
 .file-icon {
     background-size: contain;
