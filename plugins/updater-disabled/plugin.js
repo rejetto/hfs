@@ -37,7 +37,7 @@ exports.init = async api => {
         fs.rename(NEW, UPDATING, err => {
             if (err) return
             api.log("exiting for update")
-            process.exit(0)
+            process.emit('SIGTERM')
         })
     }, 5000)
     return {

@@ -94,7 +94,7 @@ const commands = {
     quit: {
         params: '',
         cb() {
-            process.exit(0)
+            process.emit('SIGTERM')
         }
     },
     update: {
