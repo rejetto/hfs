@@ -16,21 +16,6 @@ exports.configDialog = {
 
 exports.init = async api => {
     const db = await api.openDb('counters.kv', { defaultPutDelay: 5_000, maxPutDelay: 30_000 })
-
-    try { // load legacy file
-        const countersFile = 'counters.yaml'
-        const yaml = api.require('yaml')
-        const { readFile, unlink } = api.require('fs/promises')
-        const data = await readFile(countersFile, 'utf8')
-        for (const [k,v] of Object.entries(yaml.parse(data)))
-            db.put(uri2key(k), v)
-        await unlink(countersFile)
-        api.log("data converted")
-    }
-    catch(err) {
-        if (err.code !== 'ENOENT')
-            api.log(err)
-    }
     return {
         frontend_js: 'main.js',
         frontend_css: 'style.css',

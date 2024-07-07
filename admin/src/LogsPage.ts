@@ -272,7 +272,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                     const [path, query] = splitAt('?', value).map(safeDecodeURIComponent)
                     const ul = row.extra?.ul
                     if (ul)
-                        return typeof ul === 'string' ? ul // legacy pre-0.51
+                        return typeof ul === 'string' ? ul //legacy pre-0.51
                             : path + ul.join(' + ')
                     if (!path.startsWith(API_URL))
                         return [path, query && h(Box, { key: 0, component: 'span', color: 'text.secondary', fontSize: 'smaller' }, '?', query)]

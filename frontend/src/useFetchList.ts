@@ -37,7 +37,6 @@ export default function useFetchList() {
             state.uri = uri // this should be a better way than uriChanged
             state.showFilter = false
             state.stopSearch?.()
-            hfsEvent('uriChanged', { uri, previous }) // legacy pre-0.52, remove in 0.54
         }
         state.searchManuallyInterrupted = false
         if (previous && previous !== uri && search) {
