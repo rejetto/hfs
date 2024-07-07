@@ -16,7 +16,7 @@ import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
-import { mkdir, readFile } from 'fs/promises'
+import { mkdir, readFile, rename } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
@@ -323,7 +323,7 @@ export async function rescan() {
     console.debug('scanning plugins')
     const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
-        patterns.push(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0])
+        patterns.unshift(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
     const met = []
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue
@@ -415,7 +415,9 @@ function watchPlugin(id: string, path: string) {
 
             await alreadyRunning?.unload(true)
             console.debug("starting plugin", id)
-            const storageDir = resolve(module, '..', STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
+            const storageDir = resolve(PATH, id, STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
+            if (!module.startsWith(process.cwd())) //legacy pre-0.53.0, bundled plugins' storageDir was not under cwd
+                await rename(resolve(module, '..', STORAGE_FOLDER), storageDir).catch(() => {})
             await mkdir(storageDir, { recursive: true })
             const dbs: KvStorage[] = []
             await initPlugin(pluginData, {
