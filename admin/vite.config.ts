@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
-import vitePluginImport from 'vite-plugin-babel-import';
+//import vitePluginImport from 'vite-plugin-babel-import';
+// package.json/devDependencies: "vite-plugin-babel-import": "github:rejetto/vite-plugin-babel-import"
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -8,7 +9,7 @@ export default defineConfig({
         emptyOutDir: true,
         target: "es2015",
         rollupOptions: {
-            plugins: [
+       /*     plugins: [
                 vitePluginImport([
                     { // speed up build process (~2s on my M1) by bringing "modules transformed" from 11k+ down to 1.7k+
                         libraryName: '@mui/icons-material',
@@ -17,7 +18,7 @@ export default defineConfig({
                         ignoreStyles: [],
                     },
                 ])
-            ],
+            ],*/
             onwarn(warning, warn) {
                 if (warning.code === 'MODULE_LEVEL_DIRECTIVE' && warning.message.includes(`"use client"`)) return
                 warn(warning)
@@ -29,7 +30,8 @@ export default defineConfig({
         host: '127.0.0.1',
         proxy: {
             '/~/': {
-                target: 'http://localhost',
+                target:
+                    'http://localhost',
                 proxyTimeout: 2000,
                 changeOrigin: true,
                 ws: true,
