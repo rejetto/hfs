@@ -379,7 +379,7 @@ export function isIpLocalHost(ip: string) {
 }
 
 export function isIpLan(ip: string) {
-    return /^(?:|:10\..*|172\.(1[6-9]|2\d|3[01])\..*|192\.168\..*)$/.test(ip)
+    return /^(?:10\..*|172\.(1[6-9]|2\d|3[01])\..*|192\.168\..*)$/.test(ip)
 }
 
 export function ipForUrl(ip: string) {
