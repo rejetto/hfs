@@ -6,6 +6,7 @@ import { findDefined, randomId, tryJson, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { rm, writeFile } from 'fs/promises'
+import { Readable } from 'stream'
 /*
 import { PORT, srv } from '../src'
 
@@ -137,6 +138,14 @@ describe('after-login', () => {
     it('upload.never', reqUpload('/random', 403))
     it('upload.ok', reqUpload(UPLOAD_DEST, 200))
     it('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 418))
+    it('upload.overlap', async () => {
+        const seconds = .3
+        const throttled = Readable.from(BIG_CONTENT).pipe(new ThrottledStream(new ThrottleGroup(BIG_CONTENT.length / 1000 / seconds)))
+        const first = reqUpload(UPLOAD_DEST, 200, throttled, BIG_CONTENT.length)()
+        await wait(100)
+        await reqUpload(UPLOAD_DEST, 409)() // should conflict
+        await first
+    })
     const renameTo = 'z'
     it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
     it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
@@ -173,11 +182,11 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function reqUpload(dest: string, tester: Tester, body?: string, size?: number) {
+function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number) {
     const fn = join(__dirname, 'page/gpl.png')
     return req(dest, tester, {
         method: 'PUT',
-        headers: { 'content-length': size ?? body?.length ?? statSync(fn).size },
+        headers: { 'content-length': size ?? (body as any)?.length ?? statSync(fn).size }, // it's ok that Readable.length is undefined
         body: body ?? createReadStream(fn)
     })
 }
