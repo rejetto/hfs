@@ -45,6 +45,9 @@ const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // fals
     repeat: ['🔁', 'reload'],
     success: ['👍', 'check'],
     warning: ['⚠️', false],
+    audio: ['🎧'],
+    video: ['🎥'],
+    image: ['📸'],
 }
 
 const documentComplete = document.readyState === 'complete' ? Promise.resolve()
