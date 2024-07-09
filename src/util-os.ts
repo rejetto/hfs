@@ -80,7 +80,10 @@ async function getWindowsServicePids() {
     return _.uniq(res.split('\n').slice(1).map(x => Number(x.trim())))
 }
 
-export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => x.includes(pid))
+export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => x.includes(pid), e => {
+    console.log("couldn't determine if we are running as a service")
+    console.debug(e)
+})
 
 function parseKeyValueObjects<T extends string>(all: string, keySep='=', lineSep='\n', objectSep=/\n\n+/) {
     return all.split(objectSep).map(obj =>
