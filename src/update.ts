@@ -76,9 +76,9 @@ export async function getUpdates(strict=false) {
             if (!res.length) break
             const curV = currentVersion.getScalar()
             for (const x of res) {
-                if (!x.prerelease) continue // prerelease are all the end
+                if (!x.prerelease || x.name.endsWith('-ignore')) continue
                 const v = ver(x)
-                if (v <= verStable) // prerelease-s are locally ordered, so as soon as we reach verStable we are done
+                if (v < verStable) // we don't consider betas before stable
                     return ret
                 if (v === curV) continue // skip current
                 x.isNewer = v > curV // make easy to know what's newer
