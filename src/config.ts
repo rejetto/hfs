@@ -190,6 +190,7 @@ export const configFile = watchLoad(filePath, text => {
 }, {
     failedOnFirstAttempt(){
         console.log("No config file, using defaults")
-        setConfig({}, false)
+        setTimeout(() => // this is called synchronously, but we need to call setConfig after first tick, when all configs are defined
+            setConfig({}, false))
     }
 })
