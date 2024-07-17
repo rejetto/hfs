@@ -82,6 +82,7 @@ export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyF
         onlyDirectories: onlyFolders,
         suppressErrors: true,
         objectMode: true,
+        unique: false,
     })
     const skip = await getItemsToSkip(path)
     for await (const entry of dirStream) {
