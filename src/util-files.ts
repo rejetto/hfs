@@ -8,6 +8,7 @@ import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { runCmd } from './util-os'
 import { once, Readable } from 'stream'
+import { createDirStream, DirStreamEntry } from './dirStream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
 
@@ -71,27 +72,16 @@ export function adjustStaticPathForGlob(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
 }
 
+// wrapper adding a few features: hidden files, onlyFiles and onlyFolders
 export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyFolders = false }={}) {
     if (!await isDirectory(path))
         throw Error('ENOTDIR')
-    const dirStream = glob.stream(depth ? '**/*' : '*', {
-        cwd: path,
-        dot: true,
-        deep: depth + 1,
-        onlyFiles,
-        onlyDirectories: onlyFolders,
-        suppressErrors: true,
-        objectMode: true,
-        unique: false,
-    })
     const skip = await getItemsToSkip(path)
-    for await (const entry of dirStream) {
-        let { path, dirent } = entry as any
-        const isDir = dirent.isDirectory()
-        if (!isDir && !dirent.isFile()) continue
-        path = String(path)
-        if (!skip?.includes(path))
-            yield [path, isDir] as const
+    for await (const entry of createDirStream(path, depth)) {
+        const dirent = entry as DirStreamEntry
+        if (dirent.isDirectory() ? onlyFiles : (onlyFolders || !dirent.isFile())) continue
+        if (skip?.includes(entry.path)) continue
+        yield dirent
     }
 
     async function getItemsToSkip(path: string) {

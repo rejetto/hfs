@@ -199,9 +199,11 @@ const apis: ApiHandlers = {
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
-                    for await (const [name, isDir] of dirStream(path)) {
+                    for await (const entry of dirStream(path)) {
                         if (ctx.req.aborted)
                             return
+                        const {path:name} = entry
+                        const isDir = entry.isDirectory()
                         if (!isDir)
                             if (!files || fileMask && !matching(name))
                                 continue

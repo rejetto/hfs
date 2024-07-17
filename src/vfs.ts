@@ -292,13 +292,15 @@ export async function* walkNode(parent: VfsNode, {
     && !masksCouldGivePermission(parent.masks, requiredPerm))
         return
 
+    let n = 0
     try {
         let lastDir = prefixPath.slice(0, -1) || '.'
         parentsCache.set(lastDir, parent)
-        // it's important to keep using dirStream in deep-mode, as it is manyfold faster (it parallelizes)
-        for await (const [path, isFolder] of dirStream(source, { depth, onlyFolders })) {
+        for await (const entry of dirStream(source, { depth, onlyFolders })) {
             if (ctx?.req.aborted)
                 return
+            const {path} = entry
+            const isFolder = entry.isDirectory()
             const name = prefixPath + (parent.rename?.[path] || path)
             if (took?.has(normalizeFilename(name))) continue
             if (depth) {
@@ -317,11 +319,14 @@ export async function* walkNode(parent: VfsNode, {
                 parentsCache.set(name, item)
             if (canSee(item))
                 yield item
+            entry.closingBranch?.then(p =>
+                parentsCache.delete(p || '.'))
         }
     }
     catch(e) {
-        console.debug('glob', source, e) // ENOTDIR, or lacking permissions
+        console.debug('walkNode', source, e) // ENOTDIR, or lacking permissions
     }
+    parentsCache.clear() // hoping for faster GC
 
     // item will be changed, so be sure to pass a temp node
      function canSee(item: VfsNode) {
