@@ -202,7 +202,8 @@ function UsernameField({ value, onChange, multiple, ...rest }: FieldProps<string
 
 export const descriptionField: DataTableColumn = {
     field: 'description',
-    mergeRender: { isTheme: { sx: { float: 'left' } }} ,
+    mergeRender: { isTheme: {} } ,
+    mergeRenderSx: { float: 'left' },
 }
 
 export const themeField: DataTableColumn = {

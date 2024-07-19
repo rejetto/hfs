@@ -16,6 +16,7 @@ export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
     dialogHidden?: boolean
     sx?: SxProps
     mergeRender?: { [other: string]: false | { override?: Partial<GridColDef<R>> } & BoxProps }
+    mergeRenderSx?: SxProps
 }
 interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
     columns: Array<DataTableColumn<R>>
@@ -63,12 +64,11 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                     const { columns } = params.api.store.getSnapshot()
                     return h(Box, { maxHeight: '100%', sx: { textWrap: 'wrap', ...sx } }, // wrap if necessary, but stay within the row
                         col.renderCell ? col.renderCell(params) : params.formattedValue,
-                        h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '2px' }, // wrap, normally causing overflow/hiding, if it doesn't fit
+                        h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '2px', ...col.mergeRenderSx }, // wrap, normally causing overflow/hiding, if it doesn't fit
                             ...onlyTruthy(_.map(col.mergeRender, (props, other) => {
                                 if (!props || columns.columnVisibilityModel[other] !== false) return null
-                                const { override, ...rest } = props
-                                const rendered = renderCell({ ...columns.lookup[other], ...override }, params.row)
-                                return rendered && h(Box, { ...rest, ...compact && { lineHeight: '1em' } }, rendered)
+                                const rendered = renderCell({ ...columns.lookup[other], ...props.override }, params.row)
+                                return rendered && h(Box, { ...props, ...{ override: undefined }, ...compact && { lineHeight: '1em' } }, rendered)
                             }))
                         )
                     )
