@@ -10,6 +10,7 @@ import { alertDialog } from './dialog'
 import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, waitFor, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { closeLoginDialog } from './login'
 
 export function usePath() {
     return useLocation().pathname
@@ -26,10 +27,11 @@ export default function useFetchList() {
     const uri = usePath() // this api can still work removing the initial slash, but then we'll have a mixed situation that will require plugins an extra effort
     const search = snap.remoteSearch || undefined
     const lastUri = useRef('')
-    const lastReq = useRef<any>()
+    const lastParams = useRef<any>()
     const lastReloader = useRef(snap.listReloader)
     const isMounted = useIsMounted()
     const navigate = useNavigate()
+    const { loginRequired=false } = snap // undefined=false
     useEffect(()=>{
         const previous = lastUri.current
         lastUri.current = uri
@@ -46,8 +48,8 @@ export default function useFetchList() {
         }
 
         const params = { uri, search }
-        if (snap.listReloader === lastReloader.current && _.isEqual(params, lastReq.current)) return
-        lastReq.current = params
+        if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
+        lastParams.current = params
         lastReloader.current = snap.listReloader
 
         state.list = []
@@ -69,7 +71,7 @@ export default function useFetchList() {
                 case 'error':
                     state.stopSearch?.()
                     state.error = t`connection error`
-                    lastReq.current = null
+                    lastParams.current = null
                     return
                 case 'closed':
                     flush()
@@ -77,13 +79,18 @@ export default function useFetchList() {
                     state.loading = false
                     return
                 case 'msg':
-                    state.loginRequired = false
+                    const showLogin = location.hash === '#LOGIN'
+                    if (closeLoginDialog)
+                        location.hash = ''
+                    state.loginRequired = showLogin
                     for (const entry of data) {
                         if (!Array.isArray(entry)) continue // unexpected
                         const [op, par] = entry
                         const error = op === LIST.error && par
-                        if (error === HTTP_METHOD_NOT_ALLOWED) { // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
-                            state.messageOnly = t('upload_starting', "Your download should now start")
+                        // "method not allowed" happens when we try to directly access an unauthorized file, and we get a login prompt, and then get_file_list the file (because we didn't know it was file or folder)
+                        // it also happens accessing a web-page folder, and the reload is the right solution too.
+                        if (error === HTTP_METHOD_NOT_ALLOWED) {
+                            state.messageOnly = t('download_starting', "Your download should now start")
                             window.location.reload() // reload will start the download, because now we got authenticated
                             continue
                         }
@@ -96,7 +103,7 @@ export default function useFetchList() {
                                         void alertDialog(t('wrong_account', { u: snap.username }, "Account {u} has no access, try another"), 'warning')
                                 })
                             state.loginRequired = error === HTTP_UNAUTHORIZED
-                            lastReq.current = null
+                            lastParams.current = null
                             continue
                         }
                         if (uri && !uri.endsWith('/'))  // now we know it was a folder for sure
@@ -112,14 +119,18 @@ export default function useFetchList() {
                         return state.stopSearch?.()
             }
         })
-        state.stopSearch = ()=>{
+        state.stopSearch = () => {
             state.stopSearch = undefined
             buffer.length = 0
             state.loading = false
             clearInterval(timer)
             src.close()
         }
-    }, [uri, search, snap.username, snap.listReloader, snap.loginRequired])
+        return () => {
+            state.stopSearch?.()
+            lastParams.current = null
+        }
+    }, [uri, search, snap.username, snap.listReloader, loginRequired])
 }
 
 export function reloadList() {

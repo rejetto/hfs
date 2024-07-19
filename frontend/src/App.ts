@@ -9,7 +9,7 @@ import { useSnapState } from './state'
 import { I18Nprovider } from './i18n'
 import { proxy, useSnapshot } from "valtio"
 import { Spinner } from "./components"
-import { enforceStarting, getHFS, getPrefixUrl } from '@hfs/shared'
+import { enforceStarting, getHFS, getPrefixUrl, loadScript } from '@hfs/shared'
 import { Toasts } from './toasts'
 
 function App() {
@@ -46,3 +46,8 @@ const pageState = proxy({ ready: document.readyState === 'complete' })
 document.addEventListener('readystatechange', () => {
     pageState.ready = document.readyState === 'complete'
 })
+
+// load plugins' now, as vite-legacy delayed app's loading
+for (const [plugin, files] of Object.entries(getHFS().loadScripts))
+    if (Array.isArray(files)) for (const f of files)
+        loadScript(f, { plugin })

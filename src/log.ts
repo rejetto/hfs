@@ -9,7 +9,7 @@ import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './auth'
-import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat } from './misc'
+import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat, HTTP_NOT_FOUND } from './misc'
 import { extname } from 'path'
 import events from './events'
 import { getConnection } from './connections'
@@ -66,6 +66,7 @@ errorLogFile.sub(path => {
 const logRotation = defineConfig(CFG.log_rotation, 'weekly')
 const dontLogNet = defineConfig(CFG.dont_log_net, '127.0.0.1|::1', v => makeNetMatcher(v))
 const logUA = defineConfig(CFG.log_ua, false)
+const logSpam = defineConfig(CFG.log_spam, false)
 
 const debounce = _.debounce(cb => cb(), 1000)
 
@@ -75,6 +76,12 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     await next()
     console.debug(ctx.status, ctx.method, ctx.originalUrl)
+    if (!logSpam.get()
+        && (ctx.querystring.includes('{.exec|')
+            || ctx.status === HTTP_NOT_FOUND && /wlwmanifest.xml$|robots.txt$|\.(php)$|cgi/.test(ctx.path))) {
+        events.emit('spam', ctx)
+        return
+    }
     const conn = getConnection(ctx) // collect reference before close
     // don't await, as we don't want to hold the middlewares chain
     ctx.state.completed.then(() => {
@@ -99,7 +106,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
                     renameSync(path, newPath)
                 }
                 catch(e: any) {  // ok, rename failed, but this doesn't mean we ain't gonna log
-                    console.error(String(e || e.message))
+                    console.error(e.message || String(e))
                 }
                 stream = logger.reopen() // keep variable updated
                 if (!stream) return
@@ -143,10 +150,11 @@ declare module "koa" {
         dontLog?: boolean // don't log this request
         logExtra?: object
         completed?: Promise<unknown>
+        spam?: boolean // this request was marked as spam
     }
 }
 
-events.on('app', () => { // wait for app to be set
+events.once('app', () => { // wait for app to be set
     app.context.logExtra = function(anything, params) { // no => as we need 'this'
         _.merge((this as any).state, { logExtra: { ...anything, params } }) // params will be considered as parameters of the API
     }

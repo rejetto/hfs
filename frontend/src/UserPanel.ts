@@ -7,7 +7,7 @@ import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
 import { Btn, CustomCode } from './components'
-import { formatTimestamp, hIcon, working } from './misc'
+import { formatTimestamp, hIcon, fallbackToBasicAuth, working } from './misc'
 import { t } from './i18n'
 
 export default function showUserPanel() {
@@ -21,7 +21,7 @@ export default function showUserPanel() {
                 h('div', {}, t`Username`, ': ', snap.username),
                 snap.accountExp && h('div', {}, t`Account expiration`, ': ', formatTimestamp(snap.accountExp)),
                 h(CustomCode, { name: 'userPanelAfterInfo' }),
-                snap.canChangePassword && h(Btn, {
+                snap.canChangePassword && !fallbackToBasicAuth() && h(Btn, {
                     icon: 'password',
                     label: t`Change password`,
                     id: 'change-password',
@@ -49,6 +49,8 @@ export default function showUserPanel() {
                     label: t`Logout`,
                     id: 'logout',
                     onClick() {
+                        if (fallbackToBasicAuth()) // this is effective on ff52, but not on chrome125
+                            return location.href = `//LOGOUT%00:@${location.host}/?get=logout` // redirect, to execute the body content
                         logout().then(closeDialog, alertDialog)
                     }
                 })

@@ -8,7 +8,12 @@ This file is mostly aimed to developers.
 
 At this stage you have a javascript output. For binary files you'll also have to `npm run dist-bin`.
 
-You could instead run *dist* to run both *build-all* & *dist-bin*.  
+You could instead run *dist* to run both *build-all* & *dist-bin*.
+
+## Troubleshooting
+
+- If you get error "Rollup failed to resolve import "@mui/icons-material/..."
+  - edit `admin/src/vite.config.ts` and remove the `vitePluginImport` part
 
 # Dev environment
 

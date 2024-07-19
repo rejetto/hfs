@@ -27,13 +27,15 @@ config config.yaml
 
 Configuration can be done in several ways
 - accessing the Admin-panel with your browser
-    - it will automatically open when you start HFS. Bookmark it. if your port is 8000 the address will be http://localhost:8000/~/admin
+    - it will automatically open when you start HFS. Bookmark it.
+      If your port is 8000 the address will be http://localhost:8000/~/admin
 - passing via command line at start in the form `--NAME VALUE`
-- using envs in the form `HFS_NAME` (eg: `HFS_PORT`)
+- using envs in the form `HFS_<uppercase property name>`, like `HFS_PORT=80` if you want to change the config `port`, but same applies to any other config available,
 - directly editing the `config.yaml` file. As soon as you save it is reloaded and changes are applied
   - if you don't want to use an editor, consider typing this (example) command inside the folder where the config file is:
     `echo "port: 1080" >> config.yaml` 
 - after HFS has started you can enter console command in the form `config NAME VALUE`
+- setting special env `HFS_ENV_BOOTSTRAP=true` will disable other envs when file config.yaml already exists. 
 
 `NAME` stands for the property name that you want to change. See the complete list below.
 
@@ -43,7 +45,10 @@ Configuration can be done in several ways
 - `log` path of the log file. Default is `access.log`.
 - `log_rotation` frequency of log rotation. Accepted values are `daily`, `weekly`, `monthly`, or empty string to disable. Default is `weekly`.
 - `log_api` should api calls be logged? Default is `true`. 
-- `log_gui` should GUI files be logged? Default is `false`. 
+- `log_gui` should GUI files be logged? Default is `false`.
+- `log_spam` log *failed* requests that are considered spam. Default is false.
+- `log_ua` include user-agent in the logs. Default is false.
+- `track_ips` keep track of all IP addresses seen. Default is true.
 - `error_log` path of the log file for errors. Default is `error.log`.
 - `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
 - `dont_log_net` don't include in log entries if IP matches this network mask. Default is `127.0.0.1|::1`.
@@ -83,15 +88,21 @@ Configuration can be done in several ways
 - `session_duration` after how many seconds should the login session expire. Default is a day.
 - `acme_domain` domain used for ACME certificate generation. Default is none. 
 - `acme_email` email used for ACME certificate generation. Default is none.
-- `force_base_url` disconnect any connection that's not using the domain used for ACME certificate generation. Default is none.
 - `acme_renew` automatically renew acme certificate close to expiration. Default is false.
 - `listen_interface` network interface to listen on, by specifying IP address. Default is any.
 - `base_url` URL to be used for links generation. Default is automatic.
+- `force_address` disconnect any request not made with one of the hosts specified in `roots` or `base_url`. Default is false.
 - `ignore_proxies` stop warning about detected proxies. Default is false. 
 - `descript_ion` enable reading and writing of comments in the old file format *DESCRIPT.ION*. Default is yes.
 - `descript_ion_encoding` text encoding to be used for file *DESCRIPT.ION*. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
 - `server_code` javascript code that works similarly to [a plugin](dev-plugins.md). 
 - `tiles_size` starting value for frontend's tiles size. Default is 0.
+- `auto_play_seconds` starting value for frontend's auto_play_seconds (used in Show). Default is 5.
+- `theme` starting value for theme. Default is "auto".
+- `sort_by` starting value for sort-by. Values can be: name, extension, size, time. Default is "name".
+- `sort_numerics` starting value for sort-numeric-names. Default is false.
+- `folders_first` starting value for sort-folders-first. Default is true.
+- `invert_order` starting value for invert-order. Default is false.
 - `update_to_beta` includes beta versions searching for updates. Default is false.
 - `roots` maps hosts (or mask of hosts) to a root different from the home folder. Default is none. E.g.
   ```
@@ -99,7 +110,6 @@ Configuration can be done in several ways
     music.domain.com: /music
     image.domain.com: /image
   ``` 
-- `roots_mandatory` disconnect any request not made with one of the hosts specified in `roots`. Default is false. 
 - `max_downloads` limit the number of concurrent downloads on the whole server. Default is unlimited.
 - `max_downloads_per_ip` limit the number of concurrent downloads for the same IP address. Default is unlimited.
 - `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in, and will override other similar settings. Default is unlimited.
@@ -107,7 +117,10 @@ Configuration can be done in several ways
 - `geo_allow` set true if `geo_list` should be treated as white-list, set false for black-list. Default will ignore the list.
 - `geo_list` list of country codes to be used as white-list or black-list. Default is empty.
 - `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
-- `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address. Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.  
+- `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address.
+     Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
+     Multiple URLs are supported and you can specify one for each line.   
+- `auto_basic` automatically detect (based on user-agent) when the basic web inteface should be served, to support legacy browsers. Default true.
 - `create-admin` special entry to quickly create an admin account. The value will be set as password. As soon as the account is created, this entry is removed. 
 
 #### Virtual File System (VFS)
@@ -124,8 +137,10 @@ Valid keys in a node are:
   Value is a dictionary, where the key is the original name.
 - `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
 - `url`: when this value is present, the element is a link to the URL you specify.
+- `target`: optional, for links only, used to [open the link in a new browser](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). E.g. `_blank`
 - `accept`:  valid only on upload folders, used to restrict the type of files you can upload. E.g. `.zip,.rar`
 - `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".
+  The value must be an absolute or relative path in the VFS, not a path on disk. It works also with other type of files.  
 - `can_read`: specify who can download this entry. Value is a `WhoCan` descriptor, which is one of these values
     - `true`: anyone can, even people who didn't log in. This is normally the default value.
     - `false`: no one can.
@@ -193,6 +208,6 @@ For each account entries, this is the list of properties you can have:
 
 ### Specify another file
 
-Do you need to load a different config file, even from a different folder?
+Do you need to load a different config file that's not `config.yaml`?
 Use this parameter at command line `--config PATH` or similarly with an env `HFS_CONFIG`.
 The path you specify can be either a folder, or full-path to the file.

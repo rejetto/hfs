@@ -9,10 +9,10 @@ import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-g
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import { DateTimeField } from './DateTimeField'
 import _ from 'lodash'
-import { IconBtn } from './mui'
+import { Center, IconBtn } from './mui'
 
 type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean }
-export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, ...rest }: ArrayFieldProps<T>) {
+export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, ...rest }: ArrayFieldProps<T>) {
     const rows = useMemo(() => (value||[]).map((x,$idx) =>
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
@@ -30,6 +30,9 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                 sx: { '.MuiDataGrid-virtualScroller': { minHeight: '3em' } },
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
+                slots: {
+                    noRowsOverlay: () => h(Center, {}, noRows || "No entries"),
+                },
                 slotProps: {
                     pagination: {
                         showFirstButton: true,
@@ -64,7 +67,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     title,
                                     size: 'small',
                                     onClick: ev =>
-                                        formDialog<T>({ form, title }).then(x => {
+                                        formDialog<T>({ form, title, values: valuesForAdd }).then(x => {
                                             if (!x) return
                                             const newValue = value?.slice() || []
                                             if (prepend) newValue.unshift(x)
@@ -136,7 +139,7 @@ const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColD
     dateTime: {
         field: { comp: DateTimeField },
         column: {
-            type: 'dateTime', minWidth: 90, flex: 0.5,
+            type: 'dateTime', minWidth: 96, flex: 0.5,
             valueGetter: ({ value }) => value && new Date(value),
             renderCell: ({ value }) => value && h(Box, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
         }

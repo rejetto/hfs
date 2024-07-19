@@ -24,24 +24,14 @@ export const FRONTEND_OPTIONS = {
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
-    'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua',
-    'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'roots_mandatory'])
+    'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
+    'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
-
-interface Mapping {
-    public: { host: string; port: number }
-    private: { host: string; port: number }
-    protocol: string
-    enabled: boolean
-    description: string
-    ttl: number
-    local: boolean
-}
 
 export interface VfsPerms {
     can_see?: Who
@@ -127,6 +117,7 @@ export function wait<T=undefined>(ms: number, val?: T): Promise<T | undefined> {
     return new Promise(res=> setTimeout(res,ms,val))
 }
 
+// throws after ms
 export function haveTimeout<T>(ms: number, job: Promise<T>, error?: any) {
     return Promise.race([job, wait(ms).then(() => { throw error || Error('timeout') })])
 }
@@ -174,7 +165,7 @@ export function setHidden<T, ADD>(dest: T, src: ADD) {
     }))) as T & ADD
 }
 
-export function try_(cb: () => any, onException?: (e:any) => any) {
+export function try_<T,E=undefined>(cb: () => T, onException?: (e:any) => E) {
     try {
         return cb()
     }
@@ -253,14 +244,12 @@ export function findDefined<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string
     }
 }
 
-export function newObj<S extends (object | undefined | null),VR=any>(
+export function newObj<S extends (object | undefined | null),VR=unknown>(
     src: S,
-    returnNewValue: (value:Truthy<S[keyof S]>, key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true, depth: number) => any,
+    returnNewValue: (value: S[keyof S], key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true, depth: number) => any,
     recur: boolean | number=false
 ) {
-    if (!src)
-        return {}
-    const pairs = Object.entries(src).map( ([k,v]) => {
+    const pairs = Object.entries(src || {}).map( ([k,v]) => {
         if (typeof k === 'symbol') return
         let _k: undefined | typeof k = k
         const curDepth = typeof recur === 'number' ? recur : 0
@@ -354,8 +343,8 @@ export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
     }
 }
 
-export function formatTimestamp(x: string | Date) {
-    return !x ? '-' : (x instanceof Date ? x : new Date(x)).toLocaleString()
+export function formatTimestamp(x: number | string | Date) {
+    return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString()
 }
 
 export function isPrimitive(x: unknown): x is boolean | string | number | undefined | null {
@@ -390,7 +379,7 @@ export function isIpLocalHost(ip: string) {
 }
 
 export function isIpLan(ip: string) {
-    return /^(?:|:10\..*|172\.(1[6-9]|2\d|3[01])\..*|192\.168\..*)$/.test(ip)
+    return /^(?:10\..*|172\.(1[6-9]|2\d|3[01])\..*|192\.168\..*)$/.test(ip)
 }
 
 export function ipForUrl(ip: string) {
@@ -445,10 +434,11 @@ export function matches(s: string, mask: string, emptyMaskReturns=false) {
     return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
 }
 
-export function replace(s: string, symbols: Dict<string | Callback<string>>, delimiter='') {
+// if delimiter is specified, it is prefixed to symbols. If it contains a space, the part after the space is considered as suffix.
+export function replace(s: string, symbols: Dict<string | Callback<string, string>>, delimiter='') {
     const [open, close] = splitAt(' ', delimiter)
-    for (const [k, v] of typedEntries(symbols))
-        s = s.replace(open + k + close, _.isFunction(v) ? v() : v)
+    for (const [k, v] of Object.entries(symbols))
+        s = s.replaceAll(open + k + close, v as any) // typescript doesn't handle overloaded functions (like replaceAll) with union types https://stackoverflow.com/a/66510061/646132
     return s
 }
 
@@ -466,6 +456,10 @@ export function mapFilter<T=unknown, R=T>(arr: T[], map: (x:T, idx: number) => R
             ret.push(y) // push is much faster than unshift, therefore invert using reduceRight https://measurethat.net/Benchmarks/Show/29/0/array-push-vs-unshift
         return ret
     }, [] as R[])
+}
+
+export function callable<T>(x: T | ((...args: unknown[]) => T), ...args: unknown[]) {
+    return _.isFunction(x) ? x(...args) : x
 }
 
 export function safeDecodeURIComponent(s: string) {

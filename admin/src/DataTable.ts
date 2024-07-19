@@ -6,15 +6,19 @@ import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, us
 import { newDialog, onlyTruthy } from '@hfs/shared'
 import _ from 'lodash'
 import { Center, Flex, useBreakpoint } from './mui'
+import { SxProps } from '@mui/system'
 
 const ACTIONS = 'Actions'
 
+export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
+    hidden?: boolean
+    hideUnder?: Breakpoint | number
+    dialogHidden?: boolean
+    sx?: SxProps
+    mergeRender?: { [other: string]: false | { override?: Partial<GridColDef<R>> } & BoxProps }
+}
 interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
-    columns: Array<GridColDef<R> & {
-        hidden?: boolean
-        hideUnder?: Breakpoint | number
-        mergeRender?: { other: string, override?: Partial<GridColDef<R>> } & BoxProps
-    }>
+    columns: Array<DataTableColumn<R>>
     actions?: ({ row, id }: any) => ReactNode[]
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
     initializing?: boolean
@@ -30,11 +34,11 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
     const manipulatedColumns = useMemo(() => {
-        const { localeText } = enUS.components.MuiDataGrid.defaultProps
+        const { localeText } = enUS.components.MuiDataGrid.defaultProps as any
         const ret = columns.map(col => {
-            const { type } = col
+            const { type, sx } = col
             if (!type || type === 'string') // offer negated version of default string operators
-                col.filterOperators ??= getGridStringOperators().map(op => op.value.includes('Empty') ? op : [ // isEmpty already has isNotEmpty
+                col.filterOperators ??= getGridStringOperators().flatMap(op => op.value.includes('Empty') ? op : [ // isEmpty already has isNotEmpty
                     op,
                     {
                         ...op,
@@ -47,27 +51,32 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                             const res = op.getApplyFilterFnV7?.(item, col)
                             return res ? _.negate(res) : null
                         } },
-                        label: "(not) " + ((localeText as any)['filterOperator' + _.upperFirst(op.value)] || op.value)
+                        label: "(not) " + (localeText['filterOperator' + _.upperFirst(op.value)] || op.value)
                     } satisfies typeof op
-                ]).flat()
-            const { mergeRender } = col
-            if (!mergeRender)
+                ])
+            if (!col.mergeRender)
                 return col
-            const { other, override, ...props } = mergeRender
             return {
                 ...col,
                 originalRenderCell: col.renderCell || true,
                 renderCell(params: any) {
                     const { columns } = params.api.store.getSnapshot()
-                    const showOther = columns.columnVisibilityModel[other] === false
-                    return h(Box, {}, col.renderCell ? col.renderCell(params) : params.formattedValue,
-                        showOther && h(Box, { ...compact && { lineHeight: '1em', fontSize: 'smaller' }, ...props },
-                            renderCell({ ...columns.lookup[other], ...override }, params.row) ) )
+                    return h(Box, { maxHeight: '100%', sx: { textWrap: 'wrap', ...sx } }, // wrap if necessary, but stay within the row
+                        col.renderCell ? col.renderCell(params) : params.formattedValue,
+                        h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '2px' }, // wrap, normally causing overflow/hiding, if it doesn't fit
+                            ...onlyTruthy(_.map(col.mergeRender, (props, other) => {
+                                if (!props || columns.columnVisibilityModel[other] !== false) return null
+                                const { override, ...rest } = props
+                                const rendered = renderCell({ ...columns.lookup[other], ...override }, params.row)
+                                return rendered && h(Box, { ...rest, ...compact && { lineHeight: '1em' } }, rendered)
+                            }))
+                        )
+                    )
                 }
             }
         })
         if (actions)
-            ret.push({
+            ret.unshift({
                 field: ACTIONS,
                 width: 40 * actionsLength,
                 headerName: '',
@@ -118,8 +127,9 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
             apiRef,
+            ...rest,
             slots: {
-                ...(noRows || initializing) && { noRowsOverlay: () => initializing ? null : h(Center, {}, noRows) },
+                noRowsOverlay: () => initializing ? null : h(Center, {}, noRows || "No entries"),
                 footer: CustomFooter,
             },
             slotProps: {
@@ -134,7 +144,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
                 const n = apiRef.current.getVisibleColumns().length
                 const showCols = manipulatedColumns.filter(x =>
-                    x.renderCell || x.field === ACTIONS || row[x.field] !== undefined)
+                    !x.dialogHidden && (x.renderCell || x.field === ACTIONS || row[x.field] !== undefined))
                 if (showCols.length <= n) return
                 newDialog({
                     title: "Details",
@@ -162,7 +172,6 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                     }
                 })
             },
-            ...rest,
             onColumnVisibilityModelChange: x => setVis(x),
             columnVisibilityModel: {
                 ...Object.fromEntries(hideCols.map(x => [x, false])),

@@ -1,10 +1,12 @@
-exports.version = 2
+exports.version = 3
 exports.description = "Introduce increasing delays between login attempts."
-exports.apiRequired = 3 // log
+exports.apiRequired = 8.8 // attemptingLogin
 
 exports.config = {
-    increment: { type: 'number', min: 1, defaultValue: 5, helperText: "Seconds to add to the delay for each login attempt" },
-    max: { type: 'number', min: 1, defaultValue: 60, helperText: "Max seconds to delay before next login is allowed" },
+    increment: { type: 'number', min: 1, defaultValue: 5, unit: "seconds", helperText: "How longer user must wait for each login attempt" },
+    max: { type: 'number', min: 1, defaultValue: 60, label: "Max delay", unit: "seconds", helperText: "Max seconds to delay before next login is allowed" },
+    blockAfter: { type: 'number', xs: 6, min: 1, max: 9999, defaultValue: 100, label: "Block IP after", unit: "attempts", helperText: "localhost excluded" },
+    blockForHours: { type: 'number', xs: 6, min: 0, defaultValue: 24, label: "Block for", unit: "hours" },
 }
 exports.configDialog = {
     maxWidth: 'xs',
@@ -13,26 +15,35 @@ exports.configDialog = {
 const byIp = {}
 
 exports.init = api => {
-    const LOGIN_URI = api.Const.API_URI + 'loginSrp1'
-    const { getOrSet } = api.require('./misc')
+    const { getOrSet, isLocalHost, HOUR } = api.require('./misc')
+    const { block } = api.require('./block')
     return {
-        async middleware(ctx) {
-            if (ctx.path !== LOGIN_URI) return
-            const { ip } = ctx
-            const now = Date.now()
-            const rec = getOrSet(byIp, ip, () => ({ delay: 0, next: now }))
-            const wait = rec.next - now
-            const max = api.getConfig('max') * 1000
-            const inc = api.getConfig('increment') * 1000
-            rec.delay = Math.min(max, rec.delay + inc)
-            rec.next += rec.delay
-            clearTimeout(rec.timer)
-            if (wait > 0) {
-                api.log('delaying', ip, 'for', Math.round(wait / 1000))
-                ctx.set('x-anti-brute-force', wait)
-                await new Promise(resolve => setTimeout(resolve, wait))
+        unload: api.events.multi({
+            attemptingLogin: async  ctx => {
+                const { ip } = ctx
+                const now = new Date
+                const rec = getOrSet(byIp, ip, () => ({ attempts: 0, next: now }))
+                const max = api.getConfig('max') * 1000
+                const delay = Math.min(max, 1000 * api.getConfig('increment') * ++rec.attempts)
+                const wait = rec.next - now
+                rec.next = new Date(+rec.next + delay)
+                if (rec.attempts > api.getConfig('blockAfter') && !isLocalHost(ctx)) {
+                    const hours = api.getConfig('blockForHours')
+                    const newRule = { ip, comment: "From antibrute plugin", expire: hours ? new Date(now.getTime() + hours * HOUR) : undefined }
+                    block.set(x => [...x, newRule])
+                }
+                clearTimeout(rec.timer)
+                if (wait > 0) {
+                    api.log('delaying', ip, 'for', Math.round(wait / 1000))
+                    ctx.set('x-anti-brute-force', wait)
+                    await new Promise(resolve => setTimeout(resolve, wait))
+                }
+                rec.timer = setTimeout(() => delete byIp[ip], 24 * HOUR) // no memory leak
+            },
+            login: ctx => {
+                if (ctx.state.account)
+                    delete byIp[ctx.ip] // reset if login was successful
             }
-            rec.timer = setTimeout(() => delete byIp[ip], rec.delay * 10) // no memory leak
-        }
+    })
     }
 }

@@ -53,7 +53,7 @@
         "Search was interrupted": "A keresés megszakadt",
         "Stop list": "Stop lista",
 
-        "upload_starting": "A letöltésnek hamarosan elkezdődik",
+        "download_starting": "A letöltésnek hamarosan elkezdődik",
         "wrong_account": "A(z) {u} fióknak nincs hozzáférése, próbálkozzon egy másikkal",
         "no_upload_here": "Nincs feltöltési engedély az aktuális mappához",
         "Create folder": "Mappa létrehozása",

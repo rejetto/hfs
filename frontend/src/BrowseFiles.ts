@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
 import { useMediaQuery, useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, getHFS } from './misc'
 import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -14,9 +14,9 @@ import { useAuthorized } from './login'
 import { acceptDropFiles, enqueue } from './upload'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
-import { openFileMenu } from './fileMenu'
+import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
-import { fileShow } from './show'
+import { fileShow, getShowType } from './show'
 
 export const MISSING_PERM = "Missing permission"
 
@@ -26,8 +26,8 @@ export function BrowseFiles() {
     const { props, tile_size=0 } = useSnapState()
     const propsDropFiles = useMemo(() => ({
         id: 'files-dropper',
-        ...acceptDropFiles(files =>
-            props?.can_upload ? enqueue(files.map(file => ({ file })))
+        ...acceptDropFiles((files, to) =>
+            props?.can_upload ? enqueue(files.map(file => ({ file })), location.pathname + to)
                 : alertDialog(t("Upload not available"), 'warning')
         ),
     }), [props])
@@ -44,7 +44,9 @@ export function BrowseFiles() {
             props?.comment && h('div', { className: 'entry-comment' }, props.comment),
             error ? h(ErrorMsg, { err: error }) : h(FilesList),
             h(CustomCode, { name: 'afterList' }),
+            h('div', { style: { flex: 1 }}),
             h(ClipBar),
+            h(CustomCode, { name: 'footer' }),
         )
     )
 }
@@ -190,57 +192,55 @@ const PAGE_SEPARATOR_CLASS = 'page-separator'
 
 interface EntryProps { entry: DirEntry, midnight: Date, separator?: string }
 const Entry = ({ entry, midnight, separator }: EntryProps) => {
-    const { uri, isFolder, name } = entry
+    const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerDir = isFolder || isLink ? '' : uri.substring(0, (uri.lastIndexOf('/') || -1) +1)
-    const containerName = containerDir && entry.n.slice(0, -name.length)
+    const containerName = n.slice(0, -name.length)
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
     if (separator)
         className += ' ' + PAGE_SEPARATOR_CLASS
     const ico = getEntryIcon(entry)
-    const onClick = !isLink && !entry.web && file_menu_on_link && fileMenu || undefined
+    const onClick = !isFolder && !isLink && !entry.web && file_menu_on_link && fileMenu || makeOnClickOpen(entry)
     const hasHover = useMediaQuery('(hover: hover)')
     const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
     const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
-    return h('li', { className, label: separator },
-        h(CustomCode, { name: 'entry', entry },
-            showFilter && h(Checkbox, {
-                disabled: isLink,
-                'aria-labelledby': ariaId,
-                value: selected[uri],
-                onChange(v) {
-                    if (v)
-                        return state.selected[uri] = true
-                    delete state.selected[uri]
-                },
-            }),
-            h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
-                ...isFolder || entry.web ? [ // internal navigation, use Link component
-                    h(Link, { to: uri, reloadDocument: entry.web, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
-                        ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
-                    // popup button is here to be able to detect link-wrapper:hover
-                    file_menu_on_link && !showingButton && h('button', {
-                        className: 'popup-menu-button',
-                        onClick: fileMenu
-                    }, hIcon('menu'), t`Menu`)
-                ] : containerName ? [
-                    h('a', { href: uri, onClick, tabIndex: -1, 'aria-hidden': true }, ico),
-                    h(Link, { to: containerDir, className: 'container-folder', tabIndex: -1 }, containerName),
-                    h('a', { href: uri, onClick, ...ariaProps }, name)
-                ] : [h('a', { href: uri, onClick, ...ariaProps }, ico, name)],
-            ),
-            h(CustomCode, { name: 'afterEntryName', entry }),
-            entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
-            h('div', { className: 'entry-panel' },
-                h(EntryDetails, { entry, midnight }),
-                showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
-            ),
-            h('div'),
+    return h(CustomCode, {
+        name: 'entry',
+        entry,
+        render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null
+    }, showFilter && h(Checkbox, {
+            disabled: isLink,
+            'aria-labelledby': ariaId,
+            value: selected[uri],
+            onChange(v) {
+                if (v)
+                    return state.selected[uri] = true
+                delete state.selected[uri]
+            },
+        }),
+        h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
+            // we treat webpages as folders, with menu to comment
+            isFolder ? h(Fragment, {}, // internal navigation, use Link component
+                h(Link, { to: uri, reloadDocument: entry.web, onClick, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                    ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
+                // popup button is here to be able to detect link-wrapper:hover
+                file_menu_on_link && !showingButton && h('button', {
+                    className: 'popup-menu-button',
+                    onClick: fileMenu
+                }, hIcon('menu'), t`Menu`)
+            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps },
+                ico, h('span', { className: 'container-folder' }, containerName), name ),
         ),
+        h(CustomCode, { name: 'afterEntryName', entry }),
+        entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
+        h('div', { className: 'entry-panel' },
+            h(EntryDetails, { entry, midnight }),
+            showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
+        ),
+        h('div'),
     )
 
     function fileMenu(ev: MouseEvent) {
@@ -248,7 +248,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         if (ev.altKey || ev.ctrlKey || isMac && ev.metaKey) return
         ev.preventDefault()
         const special = isMac ? ev.shiftKey : ev.metaKey
-        if (special)
+        if (special && getShowType(entry))
             return fileShow(entry, { startPlaying: true })
         openFileMenu(entry, ev, onlyTruthy([
             file_menu_on_link && 'open',
@@ -271,7 +271,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
     const dd = '2-digit'
     return h('div', { className: 'entry-details' },
         h(CustomCode, { name: 'additionalEntryDetails', entry }),
-        entry.p?.match(entry.isFolder ? /l/i : /r/i) && hIcon('password', { className: 'miss-perm', title: t(MISSING_PERM) }),
+        entry.cantOpen && hIcon(entry.cantOpen === DirEntry.FORBIDDEN ? 'lock' : 'password', { className: 'miss-perm', title: t(MISSING_PERM) }),
         h(EntrySize, { s }),
         time && h('span', {
             className: 'entry-ts',

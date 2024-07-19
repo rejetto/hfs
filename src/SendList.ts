@@ -2,7 +2,6 @@ import { Readable } from 'stream'
 import _ from 'lodash'
 import { LIST, wantArray } from './cross'
 import { Context } from 'koa'
-import { onOff } from './misc'
 import events from './events'
 
 type SendListFunc<T> = (list:SendListReadable<T>) => void
@@ -109,9 +108,8 @@ export class SendListReadable<T> extends Readable {
         this.processBuffer.flush()
         this.push(null)
     }
-    events(ctx: Context, eventMap: Parameters<typeof onOff>[1]) {
-        const off = onOff(events, eventMap)
-        ctx.res.once('close', off)
+    events(ctx: Context, eventMap: Parameters<typeof events.multi>[0]) {
+        ctx.res.once('close', events.multi(eventMap))
         return this
     }
     isClosed() {

@@ -18,11 +18,13 @@ export function ClipBar() {
         return null
     const there = dirname(clip[0].uri) + '/'
     return h('div', { id: 'clipBar' },
-        h(Btn, { label: t`Cancel clipboard`, icon: 'close', onClick: cancel }),
-        h(Btn, { label: t('to_clipboard_source', "Back to source folder"), icon: 'parent', onClick: goBack, disabled: here === there }),
+        h(Btn, { label: t('clipboard', { content: t('n_items', { n: clip.length }, "{n,plural, one{# item} other{# items}}"), }, `Clipboard ({content})`),
+            onClick: show, style: { flex: 1 } }),
         h(Btn, { label: t`Paste`, icon: 'paste', onClick: paste, disabled: here === there || !props?.can_upload }),
-        h('div', { onClick: show, style: { flex: 1 } },
-            clip.length === 1 ? clip[0].name : t('n_items', { n: clip.length }, "{n,plural, one{# item} other{# items}}") ),
+        h(Btn, { label: t`Cancel clipboard`, icon: 'close', onClick: cancel }),
+        h(Btn, { label: t('to_clipboard_source', "Back to source folder"), icon: 'parent', onClick: goBack, disabled: here === there,
+            tooltip: t('to_clipboard_source_tooltip', "Go to the folder where the clipboard contents are located"),
+        }),
     )
 
     function cancel() {
@@ -34,7 +36,7 @@ export function ClipBar() {
     }
 
     function show() {
-        alertDialog(h('div', {},
+        alertDialog(h('div', { id: 'clipboard-content' },
             t('clipboard_list', "Items in clipboard:"),
             clip.map(x => h('li', {}, x.name)),
         ))

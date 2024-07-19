@@ -3,16 +3,20 @@
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { LinkOff, Lock, Block, FolderZip, Upload, Download, ChevronRight, ChevronLeft } from '@mui/icons-material'
+import { LinkOff, Lock, FolderZip, Upload, Download, ChevronRight, ChevronLeft } from '@mui/icons-material'
 import { Box, Chip, ChipProps } from '@mui/material'
 import { DataTable } from './DataTable'
-import { formatBytes, ipForUrl, manipulateConfig, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp,
-    formatPerc, md } from "./misc"
+import {
+    formatBytes, ipForUrl, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp, formatPerc, md, Callback,
+    reactJoin,
+} from "./misc"
 import { IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { agentIcons } from './LogsPage'
 import { state, useSnapState } from './state'
+import { useBlockIp } from './useBlockIp'
+import { alertDialog } from './dialog'
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -27,36 +31,45 @@ function MoreInfo() {
     if (status && connections)
         Object.assign(status, connections)
     const [allInfo, setAllInfo] = useState(false)
-    const xl = useBreakpoint('xl')
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
     const formatDuration = createDurationFormatter({ maxTokens: 2, skipZeroes: true })
-    return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: '1em', mb: 2 },
+    return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: { xs: .5, md: 1 }, mb: { xs: 1, sm: 2 } },
         (allInfo || md) && pair('started', {
             label: "Uptime",
             render: x => formatDuration(Date.now() - +new Date(x)),
             title: x => "Started: " + formatTimestamp(x),
         }),
-        (allInfo || xl) && pair('http', { label: "HTTP", render: port }),
-        (allInfo || xl) && pair('https', { label: "HTTPS", render: port }),
-        (allInfo || sm) && pair('connections', { title: () => `${status.ips} IP(s)` }),
-        pair('sent', { render: formatBytes, minWidth: '4em' }),
-        (allInfo || sm) && pair('got', { render: formatBytes, minWidth: '4em' }),
-        pair('outSpeed', { label: "Output speed", render: formatSpeedK }),
-        (allInfo || md) && pair('inSpeed', { label: "Input speed", render: formatSpeedK }),
-        !xl && h(IconBtn, { size: 'small', icon: allInfo ? ChevronLeft : ChevronRight, title: "Show more", onClick: () => setAllInfo(x => !x) }),
+        (allInfo || sm) && pair('sent_got', {
+            render: x => ({ Sent: formatBytes(x[0]), Got: formatBytes(x[1]) }),
+            title: x => "Since: " + formatTimestamp(x[2]),
+            onDelete: () => apiCall('clear_persistent', { k: ['totalSent', 'totalGot'] })
+                .then(() => alertDialog("Done", 'success'), alertDialog)
+        }),
+        (allInfo || sm) && pair('ips', { label: "IPs" }),
+        pair('outSpeed', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
+        pair('inSpeed', { label: "Input", render: formatSpeedK, minWidth: '8.5em' }),
+        (md || allInfo && md || status?.http?.error) && pair('http', { label: "HTTP", render: port }),
+        (md || allInfo && md || status?.https?.error) && pair('https', { label: "HTTPS", render: port }),
+        !md && h(IconBtn, {
+            size: 'small',
+            icon: allInfo ? ChevronLeft : ChevronRight,
+            title: "Show more",
+            onClick: () => setAllInfo(x => !x)
+        }),
     )
 
     type Color = ChipProps['color']
-    type Render = (v: any) => [string, Color?] | string
+    type Render = (v: any) => [string, Color?] | string | { [label: string]: string }
     interface PairOptions {
         label?: string
         render?: Render
         minWidth?: StandardCSSProperties['minWidth']
         title?: (v: any) => string
+        onDelete?: Callback
     }
 
-    function pair(k: string, { label, minWidth, render, title }: PairOptions={}) {
+    function pair(k: string, { label, minWidth, render, title, onDelete }: PairOptions={}) {
         let v = _.get(status, k)
         if (v === undefined)
             return null
@@ -72,11 +85,11 @@ function MoreInfo() {
         return hTooltip(renderedTitle, undefined, h(Chip, {
             variant: 'filled',
             color,
-            label: h(Fragment, {},
-                h('b',{},label),
-                ': ',
-                h('span', { style:{ display: 'inline-block', minWidth } }, v),
-            ),
+            onDelete,
+            label: reactJoin(' – ', _.map(_.isPlainObject(v) ? v : { [label]: v }, (v,label) =>
+                h('span', { style:{ display: 'inline-block', minWidth } },
+                    h('b',{}, label), ': ', v,
+                ))),
         }) )
     }
 
@@ -96,6 +109,7 @@ function Connections() {
     const rows = useMemo(() =>
             list?.filter((x: any) => !monitorOnlyFiles || x.op).map((x: any, id: number) => ({ id, ...x })),
         [!pause && list, monitorOnlyFiles]) //eslint-disable-line
+    const blockIp = useBlockIp()
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center' },
             h(SelectField as Field<boolean>, {
@@ -117,7 +131,7 @@ function Connections() {
                     flex: 1,
                     maxWidth: 400,
                     renderCell: ({ row, value }) => ipForUrl(value) + ' :' + row.port,
-                    mergeRender: { other: 'user', fontSize: 'small' },
+                    mergeRender: { user: { fontSize: 'small' } },
                 },
                 {
                     field: 'country',
@@ -135,7 +149,7 @@ function Connections() {
                     field: 'started',
                     headerName: "Started",
                     type: 'dateTime',
-                    width: 100,
+                    width: 96,
                     hideUnder: 'lg',
                     valueFormatter: ({ value }) => new Date(value as string).toLocaleTimeString()
                 },
@@ -169,7 +183,7 @@ function Connections() {
                     hideUnder: 'sm',
                     type: 'number',
                     renderCell: ({ value, row }) => formatSpeedK(Math.max(value||0, row.inSpeed||0) || undefined),
-                    mergeRender: { other: 'sent', fontSize: 'small', textAlign: 'right' }
+                    mergeRender: { sent: { fontSize: 'small', textAlign: 'right'  }}
                 },
                 {
                     field: 'sent',
@@ -203,20 +217,10 @@ function Connections() {
                     doneMessage: true,
                     onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])).then(x => x.result > 0)
                 }),
-                h(IconBtn, {
-                    icon: Block,
-                    title: "Block IP",
-                    confirm: "Block address " + row.ip,
-                    disabled: row.ip === props?.you,
-                    onClick: () => blockIp(row.ip),
-                }),
+                blockIp.iconBtn(row.ip, "From monitoring", { disabled: row.ip === props?.you }),
             ]
         })
     )
-}
-
-function blockIp(ip: string) {
-    return manipulateConfig('block', data => [...data, { ip }])
 }
 
 function formatSpeedK(value: number | undefined) {

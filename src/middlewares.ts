@@ -7,11 +7,10 @@ import { DAY, dirTraversal, isLocalHost, splitAt, stream2string, tryJson } from 
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount } from './perm'
-import { Connection, disconnect, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
-import basicAuth from 'basic-auth'
-import { invalidSessions, setLoggedIn, srpCheck } from './auth'
+import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
+import { invalidateSessionBefore, setLoggedIn, srpCheck } from './auth'
 import { constants } from 'zlib'
-import { baseUrl, getHttpsWorkingPort } from './listen'
+import { getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
 import session from 'koa-session'
 import { app } from './index'
@@ -19,7 +18,6 @@ import events from './events'
 
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
-const forceBaseUrl = defineConfig('force_base_url', false)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
 
@@ -48,7 +46,7 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
 }
 
 let proxyDetected: undefined | Koa.Context
-export const someSecurity: Koa.Middleware = async (ctx, next) => {
+export const someSecurity: Koa.Middleware = (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
     // don't allow sessions to change ip
     const ss = ctx.session
@@ -76,8 +74,6 @@ export const someSecurity: Koa.Middleware = async (ctx, next) => {
     catch {
         return ctx.status = HTTP_FOOL
     }
-    if (!ctx.state.skipFilters && forceBaseUrl.get() && baseUrl.compiled() && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
-        return disconnect(ctx, 'force-domain')
     if (!ctx.secure && forceHttps.get() && getHttpsWorkingPort() && !isLocalHost(ctx)) {
         const { URL } = ctx
         URL.protocol = 'https'
@@ -98,7 +94,7 @@ export function getProxyDetected() {
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
     if (ctx.session?.username) {
-        if (invalidSessions.delete(ctx.session.username))
+        if (ctx.session.ts < invalidateSessionBefore.get(ctx.session.username)!)
             delete ctx.session.username
         ctx.session.maxAge = sessionDuration.compiled()
     }
@@ -114,22 +110,31 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     function urlLogin() {
         const { login }  = ctx.query
         if (!login) return
-        const [u,p] = splitAt(':', String(login))
+        const [u, p] = splitAt(':', String(login))
         ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
         return doLogin(u, p)
     }
 
     function getHttpAccount() {
-        const credentials = basicAuth(ctx.req)
-        return doLogin(credentials?.name||'', credentials?.pass||'')
+        const b64 = ctx.get('authorization')?.split(' ')[1]
+        if (!b64) return
+        try {
+            const [u, p] = atob(b64).split(':')
+            return doLogin(u!, p||'')
+        }
+        catch {}
     }
 
     async function doLogin(u: string, p: string) {
+        if (!u || u === ctx.session?.username) return // providing credentials, but not needed
+        await events.emitAsync('attemptingLogin', ctx)
         const a = await srpCheck(u, p)
         if (a) {
-            setLoggedIn(ctx, a.username)
+            await setLoggedIn(ctx, a.username)
             ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
         }
+        else if (u)
+            events.emit('failedLogin', ctx, { username: u })
         return a
     }
 }
@@ -152,7 +157,7 @@ export const paramsDecoder: Koa.Middleware = async (ctx, next) => {
 // But koa-session doesn't support 2 cookies, so I made this hacky solution: keep track of the options object, to modify the key at run-time.
 let internalSessionMw: any
 let options: any
-events.on('app', () => // wait for app to be defined
+events.once('app', () => // wait for app to be defined
     internalSessionMw = session(options = { signed: true, rolling: true, sameSite: 'lax' } as const, app) )
 export const sessionMiddleware: Koa.Middleware = (ctx, next) => {
     options.key = 'hfs_' + ctx.protocol

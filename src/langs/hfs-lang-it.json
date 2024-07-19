@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
-    "version": 1.9,
-    "hfs_version": "0.52.0",
+    "version": 2.53,
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -18,7 +18,7 @@
         "select_tooltip": "Selezionare serve con la funziona Zip e per cancellare (dove disponibile), ma puoi anche filtrare la lista",
         "delete_hint": "Per poter cancellare bisogna prima cliccare Seleziona",
         "delete_confirm": "Cancellare {n,plural, one{l'elemento} =8 =11 {gli # elementi} other{i # elementi}}?",
-        "delete_completed": "Cancellazione: {n} riusciti",
+        "delete_completed": "Cancellazione{n,plural, one{ riuscita} other{: # riusciti}}",
         "delete_failed": ", {n,plural, one{# fallito} other{# falliti}}",
         "delete_select": "Seleziona qualcosa per poter cancellare",
         "Delete": "Cancella",
@@ -51,7 +51,7 @@
         "Search was interrupted": "Ricerca interrotta",
         "Stop list": "Interrompi",
 
-        "upload_starting": "Ora dovrebbe iniziare il download",
+        "download_starting": "Ora dovrebbe iniziare il download",
         "wrong_account": "L'account {u} non ha accesso a questa cartella, prova con un altro",
         "no_upload_here": "Non hai il permesso di uplodare in questa cartella",
         "Create folder": "Crea cartella",
@@ -154,6 +154,15 @@
         "upload_skipped": "{n,plural, one{# saltato} other{# saltati}}",
         "Overwrite policy": "Per i file esistenti",
         "Rename to avoid overwriting": "Rinomina per non sovrascrivere",
-        "Overwrite existing files": "Sovrascrivi i file esistenti"
+        "Overwrite existing files": "Sovrascrivi i file esistenti",
+        "Menu": "Menu",
+
+        "clipboard": "Appunti ({content})",
+        "to_clipboard_source_tooltip": "Vai alla cartella d'origine dei file negli appunti",
+        "more_items": "{n,plural,one{Un altro elemento} other{# altri elementi}}",
+        "Show details": "Mostra dettagli",
+        "upload_conflict": "esiste già",
+        "Logged in": "Benvenuto",
+        "Logged out": "Arrivederci"
     }
 }

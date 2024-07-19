@@ -53,7 +53,7 @@
         "Search was interrupted": "Pesquisa foi interrompida",
         "Stop list": "Lista parada",
 
-        "upload_starting": "Seu download deve começar agora",
+        "download_starting": "Seu download deve começar agora",
         "wrong_account": "A conta {u} não tem acesso, tente outra.",
         "no_upload_here": "Você não possui permissão para enviar arquivos na pasta atual",
         "Create folder": "Criar pasta",

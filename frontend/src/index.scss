@@ -31,9 +31,9 @@
         --good-contrast: #aaa;
         --button-bg: #345;
         --button-text: #999;
-        --success: #383;
-        --warning: #883;
-        --error: #a33;
+        --success: #272;
+        --warning: #772;
+        --error: #a22;
 
         color-scheme: dark;
         .highlightedText { color: #fff; text-shadow: 0 0 3px #fff; }
@@ -124,7 +124,7 @@ button {
     padding: .5em;
     &:not(.before-sliding) { min-width: min-content; }
     &.small { padding: 0 0.4em; height: 30px; }
-    .icon { position: relative; top: .05em; }
+    .icon { position: relative; top: .05em; margin: -.2em 0; }
     border: transparent;
     text-decoration: none;
     border-radius: 0.3em;
@@ -270,7 +270,6 @@ kbd {
 }
 
 ul.dir {
-    flex: 1;
     padding: 0;
     margin: 0;
     clear: both;
@@ -281,6 +280,8 @@ ul.dir {
         padding: 0.3em 0.3em 0.4em;
         border-bottom: 1px solid var(--faint-contrast);
         &:nth-of-type(odd) { background-color: var(--ghost-contrast); }
+
+        .container-folder { font-size: smaller }
 
         input[type=checkbox] {
             margin-right: 1em;
@@ -400,6 +401,8 @@ ul.dir {
     }
 }
 
+ul { padding-left: 2em }
+
 button .icon + .label {
     cursor: inherit;
     margin-left: .4em;
@@ -415,6 +418,7 @@ button .icon + .label {
 .dialog-alert .dialog-content {
     text-align: center;
     p { text-align: left; display: inline-block; }
+    ul { text-align: left; } // bullet points should be aligned
 }
 
 .dialog {
@@ -541,6 +545,11 @@ button .icon + .label {
     box-shadow: 0 0 .3em .3em var(--bg);
 
     display: flex; align-items: center; gap: 0.5em;
+    margin: 0 1px;
+}
+#clipboard-content {
+    text-align: left;
+    li:first-of-type { margin-top: .5em }
 }
 
 .tiles-mode {
@@ -784,7 +793,7 @@ button .icon + .label {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
     body, button, select { font-size: 14pt; }
     #menu-bar, #filter-bar, #clipBar {
-        button .label { display: none } /* icons only */
+        button .icon + .label { display: none } /* icons only */
     }
     #filter-bar {
         margin-top: 0.4em;

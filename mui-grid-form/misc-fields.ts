@@ -45,7 +45,7 @@ export function NumberField({ value, onChange, setApi, required, min, max, step,
             sx: { pr: '6px', '& input': { pl: '.2em', textAlign: 'right' } },
             endAdornment: h(InputAdornment, {
                 position: 'end',
-                sx: { mt: '1.2em', ml: '5px', '& p': { fontSize: '80%' } }
+                sx: { mt: '1.2em', ml: '5px', '& p': { fontSize: '80%', '.Mui-focused &': { color: 'text.primary' } } }
             }, unit),
         }),
         ...props,
@@ -66,9 +66,9 @@ export function BoolField({ label='', value, onChange, setApi, helperText, error
             onChange((event.target as any).checked, { event, was: value })
         }
     })
-    return h(Box, { ml: 1, mt: 1, sx: error ? { color: 'error.main', outlineOffset: 6, outline: '1px solid' } : undefined },
+    return h(Box, { ml: 1, sx: error ? { color: 'error.main', outlineOffset: 6, outline: '1px solid' } : undefined },
         h(FormControlLabel, { label, control, labelPlacement: 'end', ...props.size==='small' && { sx: { '& .MuiFormControlLabel-label': { fontSize: '.9rem' } } } }),
-        helperText && h(FormHelperText, { error }, helperText)
+        helperText && h(FormHelperText, { sx: { mt: 0 }, error }, helperText)
     )
 }
 

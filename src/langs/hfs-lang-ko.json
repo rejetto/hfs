@@ -53,7 +53,7 @@
         "Search was interrupted": "검색이 중단되었습니다.",
         "Stop list": "중지 목록",
 
-        "upload_starting": "이제 다운로드가 시작됩니다.",
+        "download_starting": "이제 다운로드가 시작됩니다.",
         "wrong_account": "계정 {u}은(는) 접근 권한이 없습니다. 다른 계정을 시도해보십시오.",
         "no_upload_here": "현재 폴더에 대한 업로드 권한이 없습니다.",
         "Create folder": "폴더 생성",

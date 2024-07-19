@@ -4,7 +4,7 @@ exports.apiRequired = 8.3 // useBatch
 exports.frontend_js = "main.js"
 
 exports.configDialog = {
-    sx: { maxWidth: '15em' },
+    sx: { maxWidth: '20em' },
 }
 
 exports.config = {

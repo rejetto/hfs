@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule",
-    "version": 2.5,
-    "hfs_version": "0.52.0",
+    "version": 2.6,
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{# файл} few{# файла} many{# файлов}}",
@@ -137,7 +137,7 @@
         "showHelp_F_body": "полноэкранный режим",
         "Destination": "Назначение",
         "in_queue": "{n} в очереди",
-        "enter_comment": "Комментарий для файла",
+        "enter_comment": "Комментарий для {name}",
         "Comment": "Комментировать",
         "upload_dd_hint": "Вы можете загрузить файлы перетащив их в список файлов",
         "Upload not available": "Загрузка недоступна",
@@ -146,7 +146,7 @@
         "good_bad": "{good} {good,plural, one{перемещён} other{перемещено}}, {bad} неуспешно",
         "after_cut": "Выбранное скопировано в буфер обмена.\nПерейдите в папку назначения для вставки.",
         "Cancel clipboard": "Отменить буфер обмена",
-        "to_clipboard_source": "Вернуться в исходную папку",
+        "to_clipboard_source": "В папку",
         "Paste": "Вставить",
         "clipboard_list": "Элементы в буфере обмена:",
         "Close": "Закрыть",
@@ -168,10 +168,12 @@
         "Overwrite existing files": "Перезаписать существующие файлы",
         "Menu": "Меню",
 
-
-        "_PLUGINS SECTION": "",
-        "_PLUGIN thumbnails":  "",
-        "Enable tiles mode": "Просмотр в режиме плиток",
-        "thumbnails_switchBack": "Изменить вид можно в настройках"
+        "clipboard": "Буфер обмена ({content})",
+        "to_clipboard_source_tooltip": "Перейти в папку где находится содержимое из буфера обмена",
+        "more_items": "Ещё {rest} элементов",
+        "Show details": "Показать детали",
+        "upload_conflict": "уже существует",
+        "Logged in": "Вход выполнен",
+        "Logged out": "Выход выполнен"
     }
 }

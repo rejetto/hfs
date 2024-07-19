@@ -4,11 +4,12 @@ import { proxy } from 'valtio/vanilla' // without /vanilla we trigger react depe
 import Dict = NodeJS.Dict
 import { writeFile } from 'fs/promises'
 import { mapPlugins } from './plugins'
+import _ from 'lodash'
 
 const FILE = 'custom.html'
 
-export const customHtmlSections: ReadonlyArray<string> = ['beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
-    'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead']
+export const customHtmlSections: ReadonlyArray<string> = ['style', 'beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
+    'footer', 'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo']
 
 export const customHtmlState = proxy({
     sections: watchLoadCustomHtml().state
@@ -35,7 +36,14 @@ export function watchLoadCustomHtml(folder='') {
 
 export function getSection(name: string) {
     return (customHtmlState.sections.get(name) || '')
-        + mapPlugins(pl => pl.getData().customHtml?.get(name)).join('\n')
+        + mapPlugins(pl => pl.getData().getCustomHtml()[name]).join('\n')
+}
+
+export function getAllSections() {
+    const keys = mapPlugins(pl => Object.keys(pl.getData().getCustomHtml()))
+    keys.push(Array.from(customHtmlState.sections.keys()))
+    const all = _.uniq(keys.flat())
+    return Object.fromEntries(all.map(x => [x, getSection(x)]))
 }
 
 export async function saveCustomHtml(sections: Dict<string>) {

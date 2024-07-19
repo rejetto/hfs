@@ -5,7 +5,7 @@ import { disconnect, getConnections, normalizeIp } from './connections'
 import { makeNetMatcher, MINUTE, onlyTruthy } from './misc'
 import { Socket } from 'net'
 
-interface BlockingRule { ip: string, comment?: string, expire?: Date, disabled?: boolean }
+export interface BlockingRule { ip: string, comment?: string, expire?: Date, disabled?: boolean }
 
 export const block = defineConfig('block', [] as BlockingRule[], rules => {
     const now = new Date()

@@ -25,6 +25,7 @@ import './geo'
 import { geoFilter } from './geo'
 import { rootsMiddleware } from './roots'
 import events from './events'
+import { trackIpsMw } from './ips'
 
 ok(_.intersection(Object.keys(frontEndApis), Object.keys(adminApis)).length === 0) // they share same endpoints, don't clash
 
@@ -38,12 +39,13 @@ app.use(sessionMiddleware)
     .use(someSecurity)
     .use(prepareState)
     .use(geoFilter)
+    .use(trackIpsMw)
     .use(gzipper)
     .use(paramsDecoder) // must be done before plugins, so they can manipulate params
     .use(headRequests)
+    .use(rootsMiddleware)
     .use(logMw)
     .use(throttler)
-    .use(rootsMiddleware)
     .use(pluginsMiddleware)
     .use(mount(API_URI, apiMiddleware({ ...frontEndApis, ...adminApis })))
     .use(serveGuiAndSharedFiles)
@@ -55,13 +57,14 @@ function errorHandler(err:Error & { code:string, path:string }) {
     if (DEV && code === 'ENOENT' && err.path.endsWith('sockjs-node')) return // spam out dev stuff
     if (code === 'ECANCELED' || code === 'ECONNRESET' || code === 'ECONNABORTED'  || code === 'EPIPE'
         || code === 'ERR_STREAM_WRITE_AFTER_END' // happens disconnecting uploads, don't care
+        || code === 'ERR_STREAM_PREMATURE_CLOSE' // happens when many files are sent (not locally), but I checked that the files are written completely. Introduced after node18.5.0 and is thrown by pipeline() used by PUT method handler.
         || code === 'HPE_INVALID_METHOD' // cannot serve you like that
         || code === 'HPE_INVALID_EOF_STATE') return // someone interrupted, don't care
-    console.error('server error', err)
+    console.error(new Date().toLocaleString('en-uk'), 'server error', err)
 }
 
-process.on('uncaughtException', err => {
-    if ((err as any).syscall !== 'watch')
+process.on('uncaughtException', (err: any) => {
+    if (err.syscall !== 'watch' && err.code !== 'ECONNRESET')
         console.error("uncaught:", err)
 })
 

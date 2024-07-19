@@ -16,12 +16,14 @@ import _ from 'lodash'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import { ConfigForm } from './ConfigForm'
 import { DynamicDnsResult } from '../../src/ddns'
+import { ArrayField } from './ArrayField'
+import VfsPathField from './VfsPathField'
 
 const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
-const MSG_ISP = `It is possible that your Internet Provider won't let you get incoming connections. Ask them if they sell "public IP" as an extra service.`
+const MSG_ISP = `It's possible that don't have a public IP, so that HFS won't be reachable on the Internet. Ask your Internet Provider if they sell "public IP" as an extra service.`
 
 export default function InternetPage() {
     const [checkResult, setCheckResult] = useState<boolean | undefined>()
@@ -33,10 +35,11 @@ export default function InternetPage() {
         h && s ? 'error' : h || s ? 'warning' : 'success')
     type GetNat = Awaited<ReturnType<typeof getNatInfo>>
     const nat = useApiEx<GetNat>('get_nat', {}, { timeout: 20 })
+    const { data: publicIps } = useApiEx('get_public_ips')
     const { data } = nat
     const port = data?.internalPort
     const wrongMap = data?.mapped && data.mapped.private.port !== port && data.mapped.private.port
-    const doubleNat = data?.externalIp && data?.publicIps && !data.publicIps.includes(data.externalIp)
+    const doubleNat = data?.externalIp && publicIps && !publicIps.includes(data.externalIp)
     const verifyAgain = useRequestRender()
     useEffect(() => {
         if (verifyAgain.state) // skip first
@@ -44,8 +47,8 @@ export default function InternetPage() {
     }, [verifyAgain.state])
     return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
         h(Alert, { severity: 'info' }, "This page makes sure your site is working correctly on the Internet"),
-        baseUrlBox(),
         networkBox(),
+        baseUrlBox(),
         httpsBox(),
         geoBox(),
         ddnsBox(),
@@ -64,13 +67,12 @@ export default function InternetPage() {
             data && h(Flex, {},
                 data.error ? h(ErrorIcon, { color: 'error', ref }) : h(Check, { color: 'success', ref }),
                 formatTimestamp(data.ts), ' – ',
-                prefix("Error: ", stripTags(data.error)) || "Updated successfully",
+                prefix("Error: ", stripTags(data.error)).slice(0, 500) || "Updated successfully",
             ),
             "This tool can keep your domain updated with your latest IP address. Not every service is compatible, and most of them have their own software for the job, which is superior, but we offer this lightweight solution in case you are more keen to it.",
             h(ConfigForm<{
                 [CFG.dynamic_dns_url]: string,
             }>, {
-                keys: [CFG.dynamic_dns_url],
                 form: (v, { setValues }) => ({
                     fields: [
                         h(Flex, {},
@@ -97,7 +99,7 @@ export default function InternetPage() {
                                 }, label + " wizard")
                             )
                         ),
-                        { k: CFG.dynamic_dns_url, label: "Updater URL",
+                        { k: CFG.dynamic_dns_url, label: "Updater URL", multiline: true,
                             helperText: "Refer to your DNS service provider to know what URL can automatically keep your domain updated. Supported symbols are $IP4, $IP6, $IPX. Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used."
                         },
                     ]
@@ -121,7 +123,7 @@ export default function InternetPage() {
                 keys: [ CFG.geo_enable, CFG.geo_allow, CFG.geo_list, CFG.geo_allow_unknown ],
                 form: values => ({ fields: [
                     { k: CFG.geo_enable, comp: BoolField, label: "Enable", helperText: md("Necessary database will be downloaded every month (2MB). Service is made possibly thanks to [IP2Location](https://www.ip2location.com).") },
-                    ...!values[CFG.geo_enable] ? [] : [
+                    ...!values?.[CFG.geo_enable] ? [] : [
                         {
                             k: CFG.geo_allow,
                             comp: SelectField,
@@ -190,7 +192,10 @@ export default function InternetPage() {
                         label: "Domain for certificate",
                         sm: values.acme_domain?.length > 30 ? 12 : 6,
                         required: true,
-                        helperText: md("Example: your.domain.com\nMultiple domains separated by commas")
+                        multiline: true,
+                        fromField: x => x.replaceAll('\n', ','),
+                        toField: x => x.replaceAll(',', '\n'),
+                        helperText: md("Example: your.domain.com\nMultiple domains on separated lines")
                     },
                     { k: 'acme_email', label: "E-mail for certificate", sm: true },
                     {
@@ -206,11 +211,11 @@ export default function InternetPage() {
                     async onClick() {
                         const [domain, ...altNames] = values.acme_domain.split(',')
                         const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
-                        if (fresh && !await confirmDialog("Your certificate is still good", { confirmText: "Make a new one anyway" }))
+                        if (fresh && !await confirmDialog("Your certificate is still good", { trueText: "Make a new one anyway" }))
                             return
                         if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
                         const res = await apiCall('check_domain', { domain }).catch(e =>
-                            confirmDialog(String(e), { confirmText: "Continue anyway" }) )
+                            confirmDialog(String(e), { trueText: "Continue anyway" }) )
                         if (res === false) return
                         await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
                             .then(async () => {
@@ -226,7 +231,7 @@ export default function InternetPage() {
     }
 
     async function notEnabled() {
-        if (!await confirmDialog("HTTPS is currently disabled.\nFull configuration is available in the Options page.", { confirmText: "Enable it"})) return
+        if (!await confirmDialog("HTTPS is currently disabled.\nFull configuration is available in the Options page.", { trueText: "Enable it"})) return
         const stop = waitDialog()
         try {
             await apiCall('set_config', { values: { https_port: 443 } })
@@ -238,34 +243,41 @@ export default function InternetPage() {
 
     function baseUrlBox() {
         const url = config.data?.base_url
-        const hostname = url && new URL(url).hostname
-        const domain = !isIP(hostname) && hostname
-        return config.element || h(TitleCard, { icon: Public, title: "Address / Domain" },
+        return config.element || h(TitleCard, { icon: Public, title: "Address" },
             h(Flex, { flexWrap: 'wrap' },
-                url || "Automatic, not configured",
-                h(Flex, {}, // keep buttons together when wrapping
-                    h(Btn, {
-                        size: 'small',
-                        variant: 'outlined',
-                        'aria-label': "Change address",
-                        onClick: () => void changeBaseUrl().then(config.reload)
-                    }, "Change"),
-                    domain && h(Btn, {
-                        size: 'small',
-                        variant: 'outlined',
-                        onClick: () => apiCall('check_domain', { domain })
-                            .then(() => alertDialog("Domain seems ok", 'success'))
-                    }, "Check"),
-                ),
+                "Main address: ",
+                url ? h('tt', {}, url) : "automatic, not configured",
+                h(Btn, {
+                    size: 'small',
+                    variant: 'outlined',
+                    'aria-label': "Change address",
+                    onClick: () => void changeBaseUrl().then(config.reload)
+                }, "Change"),
             ),
-            h(ConfigForm<{ force_base_url: boolean }>, {
-                keys: ['force_base_url'],
+            h(ConfigForm<{ roots: any, force_address: boolean }>, {
                 saveOnChange: true,
+                onSave() {
+                    status.reload() // this config is affecting status data
+                },
                 form: {
                     fields: [
-                        { k: 'force_base_url', comp: BoolField, disabled: !url,
-                            label: "Accept requests only using domain (and localhost)",
-                            helperText: !url && "You must specify an address, for this option"
+                        {
+                            k: CFG.roots,
+                            label: false,
+                            helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
+                            comp: ArrayField,
+                            fields: [
+                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com" },
+                                { k: 'root', label: "Home/Root", comp: VfsPathField, placeholder: "default", helperText: "Root path in VFS",
+                                    $column: { renderCell({ value }: any) { return value || h('i', {}, 'default') } } },
+                            ],
+                            toField: x => Object.entries(x || {}).map(([host,root]) => ({ host, root })),
+                            fromField: x => Object.fromEntries(x.map((row: any) => [row.host, row.root || ''])),
+                        },
+                        {
+                            k: CFG.force_address,
+                            label: "Accept requests only using domains above (and localhost)",
+                            comp: BoolField,
                         }
                     ]
                 },
@@ -275,8 +287,8 @@ export default function InternetPage() {
 
     function networkBox() {
         if (nat.error) return nat.element
-        if (!data) return h(CircularProgress)
-        const direct = data?.publicIps.includes(data?.localIp!)
+        if (!data || !publicIps) return h(CircularProgress)
+        const direct = publicIps.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
                 below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
@@ -290,13 +302,13 @@ export default function InternetPage() {
                         "port ", wrongMap ? 'is wrong' : data?.externalPort || "unknown"),
             }),
             h(DataLine),
-            h(Device, { name: "Internet", icon: PublicTwoTone, ip: data?.publicIps,
+            h(Device, { name: "Internet", icon: PublicTwoTone, ip: publicIps,
                 color: checkResult ? 'success' : checkResult === false ? 'error' : doubleNat ? 'warning' : undefined,
                 below: checking ? h(LinearProgress, { sx: { height: '1em' } }) : h(Box, { fontSize: 'smaller' },
                     doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    data?.publicIps.length > 0 && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
+                    publicIps.length > 0 && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
                 )
             }),
         )
@@ -311,6 +323,12 @@ export default function InternetPage() {
         setChecking(true)
         try {
             const url = config.data?.base_url
+            {
+                const hostname = url && new URL(url).hostname
+                const domain = !isIP(hostname) && hostname
+                if (domain && false === await apiCall('check_domain', { domain }).catch(e =>
+                    confirmDialog(String(e), { trueText: "Continue anyway" }) )) return
+            }
             const urlResult = url && await apiCall('self_check', { url }).catch(() =>
                 alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
             if (urlResult?.success) {
@@ -334,7 +352,7 @@ export default function InternetPage() {
                 return alertDialog(MSG_ISP, 'warning')
             const msg = "We couldn't reach your server from the Internet. "
             if (data.upnp && !data!.mapped)
-                return confirmDialog(msg + "Try port-forwarding on your router", { confirmText: "Fix it" }).then(async go => {
+                return confirmDialog(msg + "Try port-forwarding on your router", { trueText: "Fix it" }).then(async go => {
                     if (!go) return
                     try { await mapPort(data!.internalPort!, '', '') }
                     catch { await mapPort(HIGHER_PORT, '') }
@@ -364,7 +382,7 @@ export default function InternetPage() {
     async function configure() {
         if (!data) return // shut up ts
         if (wrongMap)
-            return await confirmDialog(`There is a port-forwarding but it is pointing to the wrong port (${wrongMap})`, { confirmText: "Fix it" })
+            return await confirmDialog(`There is a port-forwarding but it is pointing to the wrong port (${wrongMap})`, { trueText: "Fix it" })
                 && fixPort()
         if (!data.upnp)
             return alertDialog(h(Box, { lineHeight: 1.5 }, md(`We cannot help you configuring your router because UPnP is not available.\nFind more help [on this website](${PORT_FORWARD_URL}).`)), 'info')

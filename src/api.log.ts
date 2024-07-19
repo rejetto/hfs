@@ -4,9 +4,9 @@ import { consoleLog } from './consoleLog'
 import { HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
 import events from './events'
 import { loggers } from './log'
-import { onOff } from './misc'
 import { SendListReadable } from './SendList'
 import { serveFile } from './serveFile'
+import { ips } from './ips'
 
 export default {
     async get_log_file({ file = 'log', range = '' }, ctx) {
@@ -28,6 +28,12 @@ export default {
         return new SendListReadable({
             bufferTime: 10,
             async doAtStart(list) {
+                if (file === 'ips') {
+                    for await (const [k, v] of ips.iterator())
+                        list.add({ ip: k, ...v })
+                    list.ready()
+                    return
+                }
                 if (file === 'console') {
                     for (const chunk of _.chunk(consoleLog, 1000)) { // avoid occupying the thread too long
                         for (const x of chunk)
@@ -35,19 +41,21 @@ export default {
                         await wait(0)
                     }
                     list.ready()
-                    events.on('console', x => list.add(x))
+                    ctx.res.once('close', events.on('console', x => list.add(x)))
                     return
                 }
                 if (!_.find(loggers, { name: file }))
                     return list.error(HTTP_NOT_FOUND, true)
                 list.ready()
-                ctx.res.once('close', onOff(events, { // unsubscribe when connection is interrupted
-                    [file](entry) {
-                        list.add(entry)
-                    }
-                }))
+                // unsubscribe when connection is interrupted
+                ctx.res.once('close', events.on(file, x => list.add(x)))
             }
         })
 
     },
+
+    reset_ips() {
+        return ips.clear()
+    },
+
 } satisfies ApiHandlers

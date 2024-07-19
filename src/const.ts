@@ -7,7 +7,7 @@ import { mkdirSync } from 'fs'
 import { basename, dirname, join } from 'path'
 export * from './cross-const'
 
-export const API_VERSION = 8.72
+export const API_VERSION = 8.891
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
 export const HFS_REPO = 'rejetto/hfs'
 
@@ -48,6 +48,8 @@ else if (!winExe) { // still considering whether to use this behavior with Windo
     process.chdir(dir)
 }
 console.log('cwd', process.cwd())
+if (APP_PATH !== process.cwd())
+    console.log('app', APP_PATH)
 console.log('node', process.version)
-console.log('platform', process.platform)
+console.log('platform', process.platform, process.arch)
 console.log('pid', process.pid)

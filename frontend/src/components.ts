@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix } from './misc'
+import { Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix } from './misc'
 import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
     useMemo, useState, ComponentPropsWithoutRef } from 'react'
@@ -66,20 +66,30 @@ export function Select<T extends string>({ onChange, value, options, ...props }:
     }, options.map(({ value, label }) => h('option', { key: value, value }, label)))
 }
 
-export function CustomCode({ name, children, ...props }: { name: string, children?: ReactNode } & any) {
+export function CustomCode({ name, children, render, ...props }: {
+    name: string,
+    children?: ReactNode,
+    render?: Callback<ReactNode, ReactNode>
+    [k :string]: any,
+}) {
     const result = useMemo(() => {
         props.def = children // not using 'default' because user can have unexpected error destructuring object
+        let keep = true
         const ret = onlyTruthy(hfsEvent(name, props)
             .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
-                : x === 0 || x && isPrimitive(x) ? h(Html, { key, code: String(x) })
+                : x === 0 || x && isPrimitive(x) ? h(Html, { key }, String(x))
                     : _.isArray(x) ? h(Fragment, { key }, ...x)
-                        : null))
+                        : x === null ? keep = false
+                            : null))
+        if (!keep)
+            return null
         const html = getHFS().customHtml?.[name]
         if (html?.trim?.())
-            ret.push(h(Html, { key: 'x', code: html }))
+            ret.push(h(Html, { key: 'x' }, html))
         return ret
     }, [name, children, ...props ? Object.values(props) : []])
-    return result.length || !children ? h(Fragment, {}, result) : children
+    render ??= _.identity
+    return h(Fragment, {}, render(result && (result.length || !children ? result : children)) )
 }
 
 interface IconBtnOptions extends ButtonHTMLAttributes<any> { style?: any, title?: string }
@@ -100,21 +110,25 @@ export interface BtnProps extends ComponentPropsWithoutRef<"button"> {
     className?: string,
     onClick?: () => unknown
     onClickAnimation?: boolean
+    asText?: boolean
 }
 
-export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, ...rest }: BtnProps) {
+export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, asText, ...rest }: BtnProps) {
     const [working, setWorking] = useState(false)
-    return h('button', {
+    return h(asText ? 'a' : 'button', {
         title: label + prefix(' - ', tooltip),
         'aria-label': label,
         'aria-pressed': toggled,
-        onClick() {
+        onClick(ev) {
+            if (asText)
+                ev.preventDefault()
             if (!onClick) return
             if (onClickAnimation !== false)
                 setWorking(true)
             Promise.resolve(onClick()).finally(() => setWorking(false))
         },
         ...rest,
+        ...asText ? { role: 'button', style: { cursor: 'pointer', ...rest.style } } : undefined,
         className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
     }, icon && hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }

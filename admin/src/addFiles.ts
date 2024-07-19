@@ -63,7 +63,7 @@ export async function addVirtual() {
 export async function addLink() {
     try {
         const { id: parent } = getFolderFromSelected()
-        const res = await apiCall('add_vfs', { parent, name: 'new link', url: 'https://google.com' })
+        const res = await apiCall('add_vfs', { parent, name: 'new link', url: 'https://example.com' })
         reloadVfs([ parent + encodeURI(res.name) ])
         toast("Link created", 'success', {
             onClose: () => focusSelector('input[name=url]')

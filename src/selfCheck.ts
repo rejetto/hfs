@@ -9,7 +9,7 @@ import { httpString } from './util-http'
 let selfChecking = false
 
 const CHECK_URL = SPECIAL_URI + 'self-check'
-export const selfCheckMiddleware: Middleware = async (ctx, next) => {
+export const selfCheckMiddleware: Middleware = (ctx, next) => {
     if (!selfChecking || !ctx.url.startsWith(CHECK_URL))
         return next()
     ctx.body = 'HFS'

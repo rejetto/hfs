@@ -14,14 +14,14 @@ export { toast } from './toasts'
 _.merge(dialogsDefaults, { closableProps: { 'aria-label': t`Close` } })
 
 interface PromptOptions extends Partial<DialogOptions> {
-    def?: string,
+    value?: string,
     type?: string,
     trim?: boolean,
     helperText?: ReactNode,
     inputProps?: Partial<InputHTMLAttributes<string>>
     onSubmit?: (v: string) => Promisable<string>
 }
-export async function promptDialog(msg: string, { def, type, helperText, trim=true, inputProps, onSubmit, ...rest }:PromptOptions={}) : Promise<string | undefined> {
+export async function promptDialog(msg: string, { value, type, helperText, trim=true, inputProps, onSubmit, ...rest }:PromptOptions={}) : Promise<string | undefined> {
     const textarea = type === 'textarea' && type
     return new Promise(resolve => newDialog({
         className: 'dialog-prompt',
@@ -38,8 +38,8 @@ export async function promptDialog(msg: string, { def, type, helperText, trim=tr
             if (!e) return
             const inp = e as HTMLInputElement
             setTimeout(()=> inp.focus(),100)
-            if (def)
-                inp.value = def
+            if (value)
+                inp.value = value
             if (textarea) {
                 function resize() {
                     inp.style.height = 'auto'
@@ -56,7 +56,7 @@ export async function promptDialog(msg: string, { def, type, helperText, trim=tr
                 type,
                 name: 'input',
                 style: {
-                    width: def ? (def.length / 2) + 'em' : 'auto',
+                    width: value ? (value.length / 2) + 'em' : 'auto',
                     minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box',
                     ...textarea && { width: '30em', maxHeight: '70vh' },
                 },

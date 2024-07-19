@@ -30,12 +30,6 @@ subscribe(state, (ops) => {
         recalculateChanges()
 })
 
-export const logLabels = {
-    log: "Access",
-    error_log: "Access error",
-    console: "Console",
-}
-
 export default function OptionsPage() {
     const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
     const snap = useSnapState()
@@ -100,62 +94,104 @@ export default function OptionsPage() {
             return { sm: 6 }
         },
         fields: [
-            { k: 'port', comp: PortField, md: 4, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: PortField, md: 4, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            h(Section, { title: "Networking" }),
+            { k: 'port', comp: PortField, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: PortField, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
                         void suggestMakingCert()
                     return v
                 }
             },
-            status && { k: 'listen_interface', comp: SelectField, md: 4, options: [{ label: "any", value: '' }, '127.0.0.1', '::1', ...status?.ips] },
-            httpsEnabled && values.port >= 0 && { k: 'force_https', comp: BoolField, md: 4, label: "Force HTTPS",
-                helperText: "Not applied to localhost"
-            },
-            httpsEnabled && { k: 'cert', comp: FileField, md: 4, label: "HTTPS certificate file",
+            httpsEnabled && { k: 'cert', comp: FileField, sm: 4, label: "HTTPS certificate file",
                 helperText: wikiLink('HTTPS#certificate', "What is this?"),
                 error: with_(status?.https.error, e => isCertError(e) && (
                     status.https.listening ? e
                         : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: suggestMakingCert }, "make one")] )),
             },
-            httpsEnabled && { k: 'private_key', comp: FileField, md: 4, label: "HTTPS private key file",
+            httpsEnabled && { k: 'private_key', comp: FileField, sm: 4, label: "HTTPS private key file",
                 ...with_(status?.https.error, e => isKeyError(e) ? { error: true, helperText: e } : null)
             },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg',
-                helperText: "The icon associated to your website" },
-            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer, sm: 12, md: 6 },
-            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start",
-                helperText: "Browser is automatically launched with HFS"
+
+            httpsEnabled && { k: 'force_https', comp: BoolField, label: "Force HTTPS", sm: 4, disabled: !httpsEnabled || values.port < 0,
+                helperText: "Not applied to localhost. Doesn't work with proxies."
+            },
+
+            { k: 'listen_interface', comp: SelectField, sm: 4, options: [{ label: "any", value: '' }, '127.0.0.1', '::1', ...status?.ips||[]] },
+            { k: 'max_kbps',        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
+            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, sm: 4, label: "Limit output per-IP" },
+
+            { k : CFG.max_downloads, ...maxDownloadsDefaults, helperText: "Number of simultaneous downloads" },
+            { k : CFG.max_downloads_per_ip, ...maxDownloadsDefaults, label: "Max downloads per-IP" },
+            { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
+
+            { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
+                helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
             },
             { k: 'localhost_admin', comp: BoolField, label: "Unprotected admin on localhost",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "Access Admin-panel without entering credentials"
             },
-            { k: 'max_kbps',        ...maxSpeedDefaults, label: "Limit output", helperText: "Doesn't apply to localhost" },
-            { k: 'max_kbps_per_ip', ...maxSpeedDefaults, label: "Limit output per-IP" },
-            { k : CFG.max_downloads, ...maxDownloadsDefaults, helperText: "Number of simultaneous downloads" },
-            { k : CFG.max_downloads_per_ip, ...maxDownloadsDefaults, label: "Max downloads per-IP" },
-            { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
-            { k: 'dont_overwrite_uploading', comp: BoolField, sm: 12, md: 6, label: "Don't overwrite uploading",
-                helperText: "Files will be numbered to avoid overwriting" },
-            { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",
-                helperText: "Leave empty to never delete" },
-            { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
-                label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
-            { k: 'keep_session_alive', comp: BoolField, helperText: "Keeps you logged in while the page is left open and the computer is on" },
-            { k: 'session_duration', comp: NumberField, sm: 3, min: 5, unit: "seconds", required: true },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 3, label: "Calculate ZIP size for", unit: "seconds",
-                helperText: "If time is not enough, the browser will not show download percentage" },
-            { k: 'update_to_beta', comp: BoolField, helperText: "Include betas searching updates" },
-            { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
-                helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
-            },
-            { k: 'descript_ion', comp: BoolField, label: "Support file DESCRIPT.ION", helperText: "Old file format, used for comments" },
-            { k: 'descript_ion_encoding', label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
-                options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
-            { k: 'proxies', comp: NumberField, min: 0, max: 9, label: "How many HTTP proxies between this server and users?",
+
+            { k: 'proxies', comp: NumberField, min: 0, max: 9, label: "Number of HTTP proxies",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
+            },
+            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer, },
+
+            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true,
+                fields: [
+                    { k: 'ip', label: "Blocked IP", sm: 6, required: true, helperText: h(WildcardsSupported) },
+                    { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, helperText: "Leave empty for no expiration" },
+                    {
+                        k: 'disabled',
+                        $type: 'boolean',
+                        label: "Enabled",
+                        toField: (x: any) => !x,
+                        fromField: (x: any) => x ? undefined : true,
+                        sm: 6,
+                    },
+                    { k: 'comment' },
+                ],
+            },
+
+            h(Section, { title: "Front-end", subtitle: "Following options affect only the front-end" }),
+            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 4,
+                options: { "by clicking on file name": true, "by dedicated button": false  }
+            },
+            { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
+
+            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
+            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
+            { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
+            { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
+
+            { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, md: 3,  },
+            { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, md: 3,  },
+            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, md: true,  label: "Sort numeric names" },
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg', sm: 12,
+                helperText: "The icon associated to your website" },
+
+            h(Section, { title: "Uploads" }),
+            { k: 'dont_overwrite_uploading', comp: BoolField, sm: 4, md: 6, label: "Don't overwrite uploading",
+                helperText: "Files will be numbered to avoid overwriting" },
+            { k: 'delete_unfinished_uploads_after', comp: NumberField, sm: 4, md: 3, min : 0, unit: "seconds", placeholder: "Never",
+                helperText: "Leave empty to never delete" },
+            { k: 'min_available_mb', comp: NumberField, sm: 4, md: 3, min : 0, unit: "MBytes", placeholder: "None",
+                label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
+
+            h(Section, { title: "Others" }),
+            { k: 'keep_session_alive', comp: BoolField, sm: true, helperText: "Keeps you logged in while the page is left open and the computer is on" },
+            { k: 'session_duration', comp: NumberField, sm: 4, md: 3, min: 5, unit: "seconds", required: true },
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, label: "Calculate ZIP size for", unit: "seconds",
+                helperText: "If time is not enough, the browser will not show download percentage" },
+
+            { k: 'descript_ion', comp: BoolField, label: "Enable comments", helperText: "In file DESCRIPT.ION" },
+            { k: 'descript_ion_encoding', label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+                options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
+
+            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start",
+                helperText: "Browser is automatically launched with HFS"
             },
             { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, md: 6,
                 fields: [
@@ -172,37 +208,10 @@ export default function OptionsPage() {
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
             },
-            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: 12,
-                fields: [
-                    { k: 'ip', label: "Blocked IP", sm: 6, required: true, helperText: h(WildcardsSupported) },
-                    { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, helperText: "Leave empty for no expiration" },
-                    {
-                        k: 'disabled',
-                        $type: 'boolean',
-                        label: "Enabled",
-                        toField: (x: any) => !x,
-                        fromField: (x: any) => x ? undefined : true,
-                        sm: 6,
-                    },
-                    { k: 'comment' },
-                ],
-            },
             { k: 'server_code', comp: TextEditorField, sm: 12, getError: v => try_(() => new Function(v) && null, e => e.message),
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
 
-            h(Section, { title: "Front-end", subtitle: "Following options affect only the front-end" }),
-            { k: 'file_menu_on_link', comp: SelectField, label: "Access file menu", md: 4,
-                options: { "by clicking on file name": true, "by dedicated button": false  }
-            },
-            { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
-            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, label: "Auto-play seconds delay" },
-            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: "Zero = list mode" },
-            { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
-            { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
-            { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, md: 3, },
-            { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, md: 3, },
-            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, md: 3, label: "Sort numeric names" },
         ]
     })
 
@@ -344,7 +353,7 @@ export async function suggestMakingCert() {
             onClose: resolve,
             Content: () => h(Box, { p: 1, lineHeight: 1.5, },
                 h(Box, {}, "HTTPS needs a certificate to work."),
-                h(Box, {}, "We suggest you to ", h(InLink, { to: 'internet', onClick: close }, "get a free but proper certificate"), '.'),
+                h(Box, {}, "We suggest you to ", h(InLink, { to: 'internet' }, "get a free but proper certificate"), '.'),
                 h(Box, {}, "If you don't have a domain ", h(LinkBtn, { onClick: makeCertAndSave }, "make a self-signed certificate"),
                     " but that ", wikiLink('HTTPS#certificate', " won't be perfect"), '.' ),
             )

@@ -53,7 +53,7 @@
 		"Search was interrupted": "Recherche interrompue",
 		"Stop list": "Arrêter le chargement de la liste",
 
-		"upload_starting": "Votre télé-chargement devrait commencer maintenant",
+		"download_starting": "Votre télé-chargement devrait commencer maintenant",
 		"wrong_account": "Aucun accès défini pour ce compte, essayez avec un autre compte",
 		"no_upload_here": "Pas de permission de télé-versement pour ce dossier",
 		"Create folder": "Créez un dossier",

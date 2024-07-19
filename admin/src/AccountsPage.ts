@@ -10,7 +10,7 @@ import { TreeItem, TreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import _ from 'lodash'
-import { alertDialog, confirmDialog } from './dialog'
+import { alertDialog, confirmDialog, toast } from './dialog'
 import { useSnapState } from './state'
 import { importAccountsCsv } from './importAccountsCsv'
 import { AccountAdminSend } from '../../src/api.accounts'
@@ -42,7 +42,7 @@ export default function AccountsPage() {
                         h(ListItem, { key: username },
                             h(ListItemText, {}, username))))
             )
-            : with_(selectedAccount || { username: '', hasPassword: sel === 'new-user', adminActualAccess: false, invalidated: true }, a =>
+            : with_(selectedAccount || { username: '', hasPassword: sel === 'new-user', adminActualAccess: false, invalidated: undefined }, a =>
                 h(AccountForm, {
                     account: a,
                     groups: list.filter(x => !x.hasPassword).map( x => x.username ),
@@ -54,8 +54,9 @@ export default function AccountsPage() {
                     ],
                     reload,
                     done(username) {
-                        setSel([username])
+                        setSel(isSideBreakpoint ? [username] : [])
                         reload()
+                        toast("Account saved", 'success')
                     }
                 }))
     useEffect(() => {
@@ -68,7 +69,7 @@ export default function AccountsPage() {
             Content: () => sideContent,
             onClose: selectNone,
         })
-        return close
+        return () => void close()
     }, [isSideBreakpoint, sel, selectedAccount])
 
     return element || h(Grid, { container: true, maxWidth: '80em' },

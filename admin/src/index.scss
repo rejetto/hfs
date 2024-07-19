@@ -43,6 +43,7 @@ div.MuiTreeItem-content { padding: 0; } // remove wasting horizontal padding
 .MuiDataGrid-cell {
   line-height: 1.1em;
 }
+.MuiDataGrid-filterForm { flex-wrap: wrap; justify-content: space-evenly; row-gap: 1em; } // fit on mobile
 
 .wrap[role=cell] { white-space: normal !important }
 

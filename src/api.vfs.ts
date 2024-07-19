@@ -6,10 +6,12 @@ import _ from 'lodash'
 import { mkdir, stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
-import { dirStream, enforceFinal, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
-    VfsNodeAdminSend } from './misc'
+import {
+    dirStream, enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
+    VfsNodeAdminSend
+} from './misc'
 import { IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE } from './const'
-import { getDiskSpaces, getDiskSpaceSync, getDrives } from './util-os'
+import { getDiskSpace, getDiskSpaces, getDrives } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { promisify } from 'util'
 import { execFile } from 'child_process'
@@ -21,7 +23,7 @@ async function urlToNodeOriginal(uri: string) {
     return n?.isTemp ? n.original : n
 }
 
-const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url', ...PERM_KEYS]
+const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url','target', ...PERM_KEYS]
 
 const apis: ApiHandlers = {
 
@@ -129,7 +131,7 @@ const apis: ApiHandlers = {
         ;(parentNode.children ||= []).unshift(child)
         saveVfs()
         const link = rest.url ? undefined : await getBaseUrlOrDefault()
-            + (parent ? enforceFinal('/', parent) : '/')
+            + (parent ? enforceStarting('/', enforceFinal('/', parent)) : '/')
             + encodeURIComponent(getNodeName(child))
             + (isDir ? '/' : '')
         return { name, link }
@@ -193,8 +195,7 @@ const apis: ApiHandlers = {
                     }
                     return
                 }
-                try { list.props(getDiskSpaceSync(path)) }
-                catch {} // continue anyway
+                const sendPropsAsap = getDiskSpace(path).then(x => x && list.props(x))
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
@@ -215,6 +216,7 @@ const apis: ApiHandlers = {
                             })
                         } catch {} // just ignore entries we can't stat
                     }
+                    await sendPropsAsap.catch(() => {})
                     list.close()
                 } catch (e: any) {
                     list.error(e.code || e.message || String(e), true)

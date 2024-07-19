@@ -14,6 +14,9 @@ import { VfsNode } from './VfsPage'
 import { Account } from './AccountsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
+import { SwitchThemeBtn } from './theme'
+import { BoolField } from '@hfs/mui-grid-form'
+import { ConfigForm } from './ConfigForm'
 
 interface ServerStatus { listening: boolean, port: number, error?: string, busy?: string }
 
@@ -32,7 +35,7 @@ export default function HomePage() {
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<Status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const { data: account } = useApiEx<Account>(username && 'get_account')
-    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'update_to_beta'] })
+    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies'] })
     const { list: plugins } = useApiList('get_plugins')
     const [checkPlugins, setCheckPlugins] = useState(false)
     const { list: pluginUpdates} = useApiList(checkPlugins && 'get_plugin_updates')
@@ -94,23 +97,31 @@ export default function HomePage() {
                 icon: UpdateIcon,
                 onClick: () => update()
             }, "Update from local file")
-            : !updates ? h(Btn, {
-                variant: 'outlined',
-                icon: UpdateIcon,
-                onClick() {
-                    setCheckPlugins(true)
-                    return apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
-                },
-                async onContextMenu(ev) {
-                    ev.preventDefault()
-                    if (!status.updatePossible)
-                        return alertDialog("Automatic update is only for binary versions", 'warning')
-                    const res = await promptDialog("Enter a link to the zip to install")
-                    if (res)
-                        await update(res)
-                },
-                title: status.updatePossible && "Right-click if you want to install a zip",
-            }, "Check for updates")
+            : !updates ? h(Flex, { flexWrap: 'wrap' },
+                h(Btn, {
+                    variant: 'outlined',
+                    icon: UpdateIcon,
+                    onClick() {
+                        setCheckPlugins(true)
+                        return apiCall('check_update').then(x => setUpdates(x.options), alertDialog)
+                    },
+                    async onContextMenu(ev) {
+                        ev.preventDefault()
+                        if (!status.updatePossible)
+                            return alertDialog("Automatic update is only for binary versions", 'warning')
+                        const res = await promptDialog("Enter a link to the zip to install")
+                        if (res)
+                            await update(res)
+                    },
+                    title: status.updatePossible && "Right-click if you want to install a zip",
+                }, "Check for updates"),
+                h(ConfigForm, {
+                    saveOnChange: true,
+                    form: { fields: [
+                        { k: 'update_to_beta', comp: BoolField, label: "Include beta versions" },
+                    ] }
+                })
+            )
             : with_(_.find(updates, 'isNewer'), newer =>
                 !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
                     : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
@@ -126,21 +137,25 @@ export default function HomePage() {
                                         h(Box, { mt: 1 }, renderChangelog(x.body))
                                     )),
                                 )),
-                        ))
+                        )),
+        h(SwitchThemeBtn, { variant: 'outlined' }),
     )
 }
 
 function renderChangelog(s: string) {
     return md(s, {
-        onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b/g, m =>  // link issues
-            h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew) ))
+        onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b|(https:.*\S+)/g, m =>  // link issues and urls
+            m[1] ? h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew))
+                : h(Link, { href: m[2], target: '_blank' }, m[2] )
+        )
     })
 }
 
 async function update(tag?: string) {
     if (!await confirmDialog("Installation may take less than a minute, depending on the speed of your server")) return
     toast('Downloading')
-    const err = await apiCall('update', { tag }).then(() => 0, e => e)
+    const err = await apiCall('update', { tag }, { timeout: 600 /*download can be lengthy*/ })
+        .then(() => 0, e => e)
     if (err)
         return alertDialog(err)
     toast("Restarting")

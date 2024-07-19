@@ -1,42 +1,42 @@
-import { defineConfig } from './config'
-import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI } from './misc'
+import { defineConfig, getConfig } from './config'
+import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI, try_ } from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
+import { baseUrl } from './listen'
 import _ from 'lodash'
 
 export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string }, map => {
-    if (_.isArray(map)) { // legacy pre 0.51.0-alpha5, remove in 0.52
-        roots.set(Object.fromEntries(map.map(x => [x.host, x.root])))
-        return
-    }
     const list = Object.keys(map)
     const matchers = list.map(hostMask => makeMatcher(hostMask))
     const values = Object.values(map)
     return (host: string) => values[matchers.findIndex(m => m(host))]
 })
-const rootsMandatory = defineConfig(CFG.roots_mandatory, false)
+const forceAddress = defineConfig(CFG.force_address, false)
+forceAddress.sub((v, { version }) => { // convert from legacy configs
+    if (version?.olderThan('0.53.0-alpha2'))
+        forceAddress.set(getConfig('force_base_url') || getConfig('roots_mandatory') || false)
+})
 
 export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
     (() => {
+        ctx.state.originalPath = ctx.path
         let params: undefined | typeof ctx.state.params | typeof ctx.query // undefined if we are not going to work on api parameters
         if (ctx.path.startsWith(SPECIAL_URI)) { // special uris should be excluded...
             if (!ctx.path.startsWith(API_URI)) return // ...unless it's an api
             params = ctx.state.params || ctx.query // for api we'll translate params
             changeUriParams(v => removeStarting(ctx.state.revProxyPath, v))  // removal must be done before adding the root
-            let { referer } = ctx.headers
-            referer &&= new URL(referer).pathname
-            if (referer?.startsWith(ctx.state.revProxyPath + ADMIN_URI)) return // exclude apis for admin-panel
+            const { referer } = ctx.headers
+            if (referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))) return // exclude apis for admin-panel
         }
         if (_.isEmpty(roots.get())) return
-        const host2root = roots.compiled()
-        if (!host2root) return
-        const root = host2root(ctx.host)
+        const root = roots.compiled()?.(ctx.host)
+        if (!ctx.state.skipFilters && forceAddress.get())
+            if (root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled()) {
+                disconnect(ctx, forceAddress.key())
+                return true // true will avoid calling next
+            }
+        if (!root || root === '/') return // not transformation is required
         if (root === '' || root === '/') return
-        if (root === undefined) {
-            if (ctx.state.skipFilters || !rootsMandatory.get() || isLocalHost(ctx)) return
-            disconnect(ctx, 'bad-domain')
-            return true // true will avoid calling next
-        }
         changeUriParams(v => join(root, v))
         if (!params)
             ctx.path = join(root, ctx.path)
@@ -48,3 +48,9 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
                     params[k] = Array.isArray(v) ? v.map(cb) : cb(v)
         }
     })() || next()
+
+declare module "koa" {
+    interface DefaultState {
+        originalPath: string // before roots is applied
+    }
+}

@@ -1,12 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useMemo, useState } from 'react';
+import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
-import { API_URL, useApi, useApiList } from './api'
+import { API_URL, apiCall, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
 import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
     typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent } from '@hfs/shared'
-import { logLabels } from './OptionsPage'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
     hTooltip, Btn, wikiLink
@@ -17,13 +16,24 @@ import { ClearAll, Download, Settings, SmartToy } from '@mui/icons-material'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
+import { useBlockIp } from './useBlockIp'
+import { ALL as COUNTRIES } from './countries'
+
+const logLabels = {
+    log: "Access",
+    error_log: "Access error",
+    console: "Console",
+    ips: "IP's",
+}
+
+let reloadIps: any
 
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
     const files = typedKeys(logLabels)
     const shorterLabels = !useBreakpoint('sm') && { error_log: "Errors" }
     const file = files[tab]
-    const fileAvailable = file !== 'console'
+    const fileAvailable = file.endsWith('log')
     return h(Fragment, {},
         h(Flex, { gap: 0  },
             h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },
@@ -50,16 +60,7 @@ export default function LogsPage() {
             title: "Log options",
             dialogProps: { sx: { maxWidth: '40em' } },
             Content() {
-                return h(ConfigForm<{
-                    [CFG.log]: string
-                    [CFG.error_log]: string
-                    [CFG.log_rotation]: string
-                    [CFG.dont_log_net]: string
-                    [CFG.log_gui]: boolean
-                    [CFG.log_api]: boolean
-                    [CFG.log_ua]: boolean
-                }>, {
-                    keys: [ CFG.log, CFG.error_log, CFG.log_rotation, CFG.dont_log_net, CFG.log_gui, CFG.log_api, CFG.log_ua ],
+                return h(ConfigForm, {
                     barSx: { gap: 2, width: '100%', ...useDialogBarColors() },
                     form: {
                         stickyBar: true,
@@ -76,7 +77,16 @@ export default function LogsPage() {
                             },
                             { k: CFG.log_gui, sm: 6, comp: BoolField, label: "Log interface loading", helperText: "Some requests are necessary to load the interface" },
                             { k: CFG.log_api, sm: 6, comp: BoolField, label: "Log API requests", helperText: "Requests for commands" },
-                            { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information" },
+                            { k: CFG.log_ua, sm: 6, comp: BoolField, label: "Log User-Agent", helperText: "Contains browser and possibly OS information. Can double the size of your logs on disk." },
+                            { k: CFG.log_spam, sm: 6, comp: BoolField, label: "Log spam requests", helperText: md`Spam are *failed* requests that are considered attacks aimed *not* to HFS and therefore harmless` },
+                            { k: CFG.track_ips, sm: 6, comp: BoolField, label: "Keep track of IPs",
+                                parentProps: { display: 'flex', gap: 1 },
+                                after: h(Btn, {
+                                    size: 'small', variant: 'outlined', color: 'warning',
+                                    confirm: true, doneMessage: true,
+                                    onClick: () => apiCall('reset_ips').then(reloadIps)
+                                }, "Reset")
+                            },
                         ]
                     }
                 })
@@ -91,7 +101,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const { pause, pauseButton } = usePauseButton()
     const [showApi, showApiButton] = useToggleButton("Show APIs", "Hide APIs", v => ({
         icon: SmartToy,
-        sx: { rotate: v ? '0deg' : '180deg' },
+        sx: { rotate: v ? 0 : '180deg' },
         disabled: file === 'console',
     }), true)
     const [totalSize, setTotalSize] = useState(NaN)
@@ -99,7 +109,9 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const [skipped, setSkipped] = useState(0)
     const MAX = 2**20
     const invert = true
-    useApi('get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
+    const [firstSight, setFirstSight] = useState(!hidden)
+    useEffect(() => setFirstSight(x => x || !hidden), [hidden])
+    useApi(firstSight && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
             const lines = body.split('\n')
@@ -120,21 +132,27 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
             setList(x => [...x, ...treated])
         }
     })
-    const { list, setList, error, connecting } = useApiList('get_log', { file }, { invert, pause, map: enhanceLogLine })
+    const { list, setList, error, connecting, reload } = useApiList(firstSight && 'get_log', { file }, { invert, pause, map: enhanceLogLine })
+    if (file === 'ips')
+        reloadIps = reload
     const tsColumn: GridColDef = {
         field: 'ts',
         headerName: "Timestamp",
         type: 'dateTime',
-        width: 90,
+        width: 96,
         valueGetter: ({ value }) => new Date(value as string),
         renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
     }
     const rows = useMemo(() => showApi || list?.[0]?.uri === undefined ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]) //TODO TypeError: l.uri is undefined
+    const blockIp = useBlockIp()
+    const isConsole = file === 'console'
     return hidden ? null : h(DataTable, {
         error,
         loading: connecting,
         rows,
         compact: true,
+        actionsProps: { hideUnder: 'md' },
+        actions: ({ row }) => [ !isConsole && blockIp.iconBtn(row.ip, "From log") ],
         addToFooter: h(Box, {}, // 4 icons don't fit the tabs row on mobile
             pauseButton,
             showApiButton,
@@ -149,7 +167,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
             }, "Load whole log"),
             addToFooter,
         ),
-        columns: file === 'console' ? [
+        columns: isConsole ? [
             tsColumn,
             {
                 field: 'k',
@@ -160,21 +178,34 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                 field: 'msg',
                 headerName: "Message",
                 flex: 1,
-                mergeRender: { other: 'k', override: { valueFormatter: ({ value }) => value !== 'log' && value } }
+                mergeRender: { k: { override: { valueFormatter: ({ value }) => value !== 'log' && value } } }
+            }
+        ] : file === 'ips' ? [
+            tsColumn,
+            {
+                field: 'ip',
+                headerName: "Address",
+                flex: 1,
+            },
+            {
+                headerName: "Country",
+                field: 'country',
+                flex: 1,
+                hidden: !showCountry,
+                valueGetter: ({ value }) => _.find(COUNTRIES, { code: value })?.name || value,
+                renderCell: ({ row }) => h(Country, { code: row.country, long: true, def: '-' }),
             }
         ] : [
             {
                 field: 'ip',
                 headerName: "Address",
                 flex: .6,
-                minWidth: 100,
+                minWidth: 130,
                 maxWidth: 230,
                 mergeRender: {
-                    other: 'user',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: '.5em',
-                    override: { renderCell: ({ value, row }) => h(Fragment, {}, h('span', {}, value), h(Country, { code: row.extra?.country })) }
+                    user: { display: 'flex', justifyContent: 'space-between', gap: '.5em', },
+                    country: showCountry && {},
+                    ua: {},
                 },
             },
             {
@@ -235,7 +266,8 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                 headerName: "URI",
                 flex: 2,
                 minWidth: 100,
-                mergeRender: { other: 'method', fontSize: 'small' },
+                sx: { wordBreak: 'break-all' }, // be flexible, uri can be a mess
+                mergeRender: { method: {}, status: {} },
                 renderCell: ({ value, row }) => {
                     const [path, query] = splitAt('?', value).map(safeDecodeURIComponent)
                     const ul = row.extra?.ul
@@ -255,7 +287,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     function enhanceLogLine(x: any) {
         if (!x) return
         const { extra } = x
-        if (extra?.country && !showCountry)
+        if ((extra?.country || x.country) && !showCountry)
             setShowCountry(true)
         if (extra?.ua && !showAgent)
             setShowAgent(true)
@@ -271,27 +303,34 @@ export function agentIcons(agent: string | undefined) {
     if (!agent) return
     const UW = 'https://upload.wikimedia.org/wikipedia/commons/'
     const short = shortenAgent(agent)
-    const browserIcon = icon(short, {
+    const browserIcon = h(AgentIcon, { k: short, altText: true, map: {
         Chrome: UW + 'e/e1/Google_Chrome_icon_%28February_2022%29.svg',
         Chromium: UW + 'f/fe/Chromium_Material_Icon.svg',
         Firefox: UW + 'a/a0/Firefox_logo%2C_2019.svg',
         Safari: UW + '5/52/Safari_browser_logo.svg',
-        Edge: UW + 'f/f6/Edge_Logo_2019.svg',
+        Edge: UW + '9/98/Microsoft_Edge_logo_%282019%29.svg',
         Opera: UW + '4/49/Opera_2015_icon.svg',
-    })
+    } })
     const os = _.findKey(OSS, re => re.test(agent))
-    const osIcon = os && icon(os, {
+    const osIcon = os && h(AgentIcon, { k: os, map: {
         android: UW + 'd/d7/Android_robot.svg',
         linux: UW + '0/0a/Tux-shaded.svg',
         win: UW + '0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg',
         apple: UW + '7/74/Apple_logo_dark_grey.svg', // grey works for both themes
-    })
-    return hTooltip(agent, undefined, h('span', { fontSize: '18px' }, browserIcon || short, ' ', osIcon) )
+    } })
+    return hTooltip(agent, undefined, h('span', {}, browserIcon, ' ', osIcon) )
+}
 
-    function icon(k: string, map: Dict<string>) {
-        const src = map[k]
-        return src && h('img', { src, style: { height: '1em', verticalAlign: 'bottom', marginRight: '.2em' } })
-    }
+const alreadyFailed: any = {}
+
+function AgentIcon({ k, map, altText }: { k: string, map: Dict<string>, altText?: boolean }) {
+    const src = map[k]
+    const [err, setErr] = useState(alreadyFailed[k])
+    return !src || err ? h(Fragment, {}, altText ? k : null) : h('img', {
+        src: err ? `/${k}.svg` : src,
+        style: { height: '1.3em', verticalAlign: 'bottom', marginRight: '.2em' },
+        onError() { setErr(alreadyFailed[k] = true) }
+    })
 }
 
 const OSS = {

@@ -3,16 +3,16 @@
 import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
 import { DataTable } from './DataTable'
-import { HTTP_FAILED_DEPENDENCY, xlate } from './misc'
-import { Download, Search } from '@mui/icons-material'
+import { HTTP_FAILED_DEPENDENCY, newDialog, wantArray, xlate } from './misc'
+import { ArrowBack, ArrowForward, Download, RemoveRedEye, Search, Warning } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
-import { renderName, startPlugin } from './InstalledPlugins'
+import { descriptionField, renderName, startPlugin, themeField } from './InstalledPlugins'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import _ from 'lodash'
 import { PLUGIN_ERRORS } from './PluginsPage'
-import { IconBtn } from './mui'
+import { Flex, IconBtn } from './mui'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -40,7 +40,7 @@ export default function OnlinePlugins() {
                     headerName: "name",
                     flex: 1,
                     renderCell: renderName,
-                    mergeRender: { other: 'description', fontSize: 'x-small' },
+                    mergeRender: { description: { fontSize: 'x-small' } },
                 },
                 {
                     field: 'version',
@@ -55,8 +55,9 @@ export default function OnlinePlugins() {
                     field: 'license',
                     width: 80,
                 },
+                themeField,
                 {
-                    field: 'description',
+                    ...descriptionField,
                     flex: 3,
                     hideUnder: 'sm',
                 },
@@ -75,7 +76,10 @@ export default function OnlinePlugins() {
                     progress: row.downloading,
                     disabled: row.installed && "Already installed",
                     tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
-                    confirm: "WARNING - Proceed only if you trust this author and this plugin",
+                    confirm: h(Flex, { vert: true, alignItems: 'center' },
+                        h(Warning, { color: 'warning', fontSize: 'large' }),
+                        "Proceed only if you trust this plugin",
+                    ),
                     async onClick() {
                         if (row.missing && !await confirmDialog("This will also install: " + _.map(row.missing, 'repo').join(', '))) return
                         const branch = row.branch || row.default_branch
@@ -87,7 +91,16 @@ export default function OnlinePlugins() {
                             return alertDialog(msg, 'error')
                         })
                     }
-                })
+                }),
+                h(IconBtn, {
+                    icon: RemoveRedEye,
+                    disabled: !row.preview,
+                    onClick: () => newDialog({
+                        title: id,
+                        dialogProps: { sx: { minHeight: '50vh', minWidth: '50vw' } }, // the image will use available space, so we must reserve it (while mobile is going full-screen)
+                        Content: () => h(ShowImages, { imgs: wantArray(row.preview) })
+                    })
+                }),
             ]
         })
     )
@@ -95,7 +108,7 @@ export default function OnlinePlugins() {
     async function installPlugin(id: string, branch?: string): Promise<any> {
         try {
             const res = await apiCall('download_plugin', { id, branch, stop: true }, { timeout: false })
-            if (await confirmDialog(`Plugin ${id} downloaded`, { confirmText: "Start" }))
+            if (await confirmDialog(`Plugin ${id} downloaded`, { trueText: "Start" }))
                 await startPlugin(res.id)
         }
         catch(e:any) {
@@ -114,3 +127,15 @@ export default function OnlinePlugins() {
     }
 }
 
+function ShowImages({ imgs }: { imgs: string[] }) {
+    const [cur, setCur] = useState(0)
+    return h(Flex, { vert: true, flex: 1 },
+        h(Flex, { vert: true, center: true, height: 0, flex: 'auto' },
+            h('img', { src: imgs[cur], style: { margin: 'auto', /*center*/ maxWidth: '100%', maxHeight: '100%' /*limit*/ } }),
+        ),
+        imgs.length > 1 && h(Flex, { center: true },
+            h(IconBtn, { icon: ArrowBack,    disabled: !cur, onClick: () => setCur(cur - 1) }),
+            h(IconBtn, { icon: ArrowForward, disabled: cur >= imgs.length - 1, onClick: () => setCur(cur + 1) }),
+        ),
+    )
+}

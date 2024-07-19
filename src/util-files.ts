@@ -1,8 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import fs, { readFile, stat } from 'fs/promises'
-import { Promisable, try_, tryJson, wait, isWindowsDrive } from './misc'
-import { promisify } from 'util'
+import { access, mkdir, readFile, stat } from 'fs/promises'
+import { Promisable, try_, wait, isWindowsDrive } from './misc'
 import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
@@ -11,16 +10,14 @@ import { runCmd } from './util-os'
 import { once, Readable } from 'stream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
-// @ts-ignore
-import fsx from 'fs-x-attributes'
 
 export async function isDirectory(path: string) {
-    try { return (await fs.stat(path)).isDirectory() }
+    try { return (await stat(path)).isDirectory() }
     catch {}
 }
 
 export async function readFileBusy(path: string): Promise<string> {
-    return fs.readFile(path, 'utf8').catch(e => {
+    return readFile(path, 'utf8').catch(e => {
         if ((e as any)?.code !== 'EBUSY')
             throw e
         console.debug('busy')
@@ -85,6 +82,7 @@ export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyF
         onlyDirectories: onlyFolders,
         suppressErrors: true,
         objectMode: true,
+        unique: false,
     })
     const skip = await getItemsToSkip(path)
     for await (const entry of dirStream) {
@@ -101,8 +99,8 @@ export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyF
         const winPath = path.replace(/\//g, '\\')
         const out = await runCmd('dir', ['/ah', '/b', depth ? '/s' : '/c', winPath]) // cannot pass '', so we pass /c as a noop parameter
             .catch(()=>'') // error in case of no matching file
-        return out.split('\r\n').slice(0,-1).map(x =>
-            !depth ? x : x.slice(winPath.length + 1).replace(/\\/g, '/'))
+        return out.split('\n').map(x =>
+            x.slice(!depth ? 0 : winPath.length + 1).trim().replace(/\\/g, '/'));
     }
 }
 
@@ -115,10 +113,7 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
             .on('entry', (entry: any) =>
                 pending = pending.then(async () => { // don't overlap writings
                     const { path, type } = entry
-                    const dest = await try_(() => cb(path), e => {
-                        console.warn(String(e))
-                        return false
-                    })
+                    const dest = await try_(() => cb(path), e => console.warn(String(e)))
                     if (!dest || type !== 'File')
                         return entry.autodrain()
                     console.debug('unzip', dest)
@@ -134,7 +129,7 @@ export async function prepareFolder(path: string, dirnameIt=true) {
         path = dirname(path)
     if (isWindowsDrive(path)) return
     try {
-        await fs.mkdir(path, { recursive: true })
+        await mkdir(path, { recursive: true })
         return true
     }
     catch {
@@ -156,18 +151,8 @@ export function isValidFileName(name: string) {
     return !/[/*?<>|\\]/.test(name) && !dirTraversal(name)
 }
 
-const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
-export function storeFileAttr(path: string, k: string, v: any) {
-    return promisify(fsx.set)(path, FILE_ATTR_PREFIX + k, JSON.stringify(v))
-        .then(() => true, (e: any) => {
-            console.error("couldn't store metadata on", path, String(e.message || e))
-            return false
-        })
-}
-
-export async function loadFileAttr(path: string, k: string) {
-    return tryJson(String(await promisify(fsx.get)(path, FILE_ATTR_PREFIX + k)))
-        ?? undefined // normalize, as we get null instead of undefined on windows
+export function exists(path: string) {
+    return access(path).then(() => true, () => false)
 }
 
 // read and parse a file, caching unless timestamp has changed

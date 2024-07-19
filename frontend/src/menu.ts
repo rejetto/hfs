@@ -3,7 +3,8 @@
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, promptDialog, toast } from './dialog'
-import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, throw_, useStateMounted, VfsPerms, working } from './misc'
+import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, throw_, useStateMounted, VfsPerms, working,
+    buildUrlQueryString} from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -15,7 +16,7 @@ import { apiCall } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { t, useI18N } from './i18n'
 import { cut } from './clip'
-import { Btn, BtnProps } from './components'
+import { Btn, BtnProps, CustomCode } from './components'
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
@@ -63,6 +64,8 @@ export function MenuPanel() {
                 icon: 'delete',
                 label: t`Delete`,
                 className: 'show-sliding',
+                disabled: !list.length,
+                tooltip: t('delete_select', "Select something to delete"),
                 onClick: () => deleteFiles(Object.keys(selected))
             } : {
                 id: 'upload-button',
@@ -87,18 +90,18 @@ export function MenuPanel() {
                 label: t`Options`,
                 onClick: showOptions
             }),
-            h(MenuLink, {
+            h(CustomCode, { name: 'menuZip' }, h(MenuLink, {
                 id: 'zip-button',
                 icon: 'archive',
                 label: t`Zip`,
                 disabled: !can_archive,
                 tooltip: list ? t('zip_tooltip_selected', "Download selected elements as a single zip file")
                     : t('zip_tooltip_whole', "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded."),
-                href: '?'+String(new URLSearchParams(_.pickBy({
+                href: buildUrlQueryString(_.pickBy({
                     get: 'zip',
                     search: remoteSearch,
                     list
-                }))),
+                })),
                 ...!list && {
                     confirm: remoteSearch ? t('zip_confirm_search', "Download ALL results of this search as ZIP archive?")
                         : t('zip_confirm_folder', "Download WHOLE folder as ZIP archive?"),
@@ -112,7 +115,7 @@ export function MenuPanel() {
                         }, t`Select some files`),
                     }
                 }
-            }),
+            })),
         ),
         remoteSearch && h('div', { id: 'searched' },
             (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', searchManuallyInterrupted && t`interrupted`, ')')),
@@ -149,11 +152,12 @@ export function MenuPanel() {
     }
 }
 
-export function MenuLink({ href, target, confirm, confirmOptions, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
+export function MenuLink({ href, target, confirm, confirmOptions, id, ...rest }: BtnProps & { href: string, target?: string, confirm?: string, confirmOptions?: ConfirmOptions }) {
     return h('a', {
         tabIndex: -1,
         href,
         target,
+        id,
         async onClick(ev) {
             if (!confirm) return
             ev.preventDefault()
@@ -176,14 +180,12 @@ function LoginButton() {
         icon: 'login',
         label: t`Login`,
         onClickAnimation: false,
-        onClick: () => loginDialog(true),
+        onClick: () => loginDialog(),
     })
 }
 
 export async function deleteFiles(uris: string[]) {
     const n = uris.length
-    if (!n)
-        return void alertDialog(t('delete_select', "Select something to delete"))
     if (!await confirmDialog(t('delete_confirm', {n}, "Delete {n,plural, one{# item} other{# items}}?")))
         return false
     const stop = working()

@@ -9,10 +9,10 @@ import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from 
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { CFG, debounceAsync, FRONTEND_OPTIONS, getOrSet, newObj, onlyTruthy, repeat } from './misc'
+import { CFG, debounceAsync, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile } from './misc'
 import { favicon, title } from './adminApis'
 import { subscribe } from 'valtio/vanilla'
-import { customHtmlState, getSection } from './customHtml'
+import { customHtmlState, getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
@@ -40,11 +40,9 @@ function serveStatic(uri: string): Koa.Middleware {
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
         const fullPath = join(__dirname, '..', DEV_STATIC, folder, serveApp ? '/index.html': ctx.path)
-        const content = await getOrSet(cache, ctx.path, async () => {
-            const data = await fs.readFile(fullPath).catch(() => null)
-            return serveApp || !data ? data
-                : adjustBundlerLinks(ctx, uri, data)
-        })
+        const content = await parseFile(fullPath,
+            raw => serveApp || !raw.length ? raw : adjustBundlerLinks(ctx, uri, raw) )
+            .catch(() => null)
         if (content === null)
             return ctx.status = HTTP_NOT_FOUND
         if (!serveApp)
@@ -75,7 +73,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     ctx.set('Cache-Control', 'no-store, no-cache, must-revalidate')
     ctx.type = 'html'
 
-    const isFrontend = filesUri === FRONTEND_URI
+    const isFrontend = filesUri === FRONTEND_URI ? ' ' : '' // as a string will allow neater code later
 
     const pub = ctx.state.revProxyPath + PLUGINS_PUB_URI
 
@@ -91,14 +89,14 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const timestamp = await getFaviconTimestamp()
     const lang = await getLangData(ctx)
     return body
-        .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)/g, '$1' + ctx.state.revProxyPath + filesUri)
+        .replace(/((?:src|href) *= *['"])\/?(?!([a-z]+:\/)?\/)(?!\?)/g, '$1' + ctx.state.revProxyPath + filesUri)
         .replace(/<(\/)?(head|body)>/g, (all, isClose, name) => { // must make these changes in one .replace call, otherwise we may encounter head/body tags due to customHtml. This simple trick makes html parsing unnecessary.
             const isHead = name === 'head'
             const isBody = !isHead
             const isOpen = !isClose
             if (isHead && isOpen)
                 return all + `
-                    ${!isFrontend ? '' : `
+                    ${isFrontend && `
                         <title>${title.get()}</title>
                         <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
                     ` + getSection('htmlHead')}
@@ -109,10 +107,11 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
                         session: session instanceof ApiError ? null : session,
                         plugins,
+                        loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),
                         prefixUrl: ctx.state.revProxyPath,
                         dontOverwriteUploading: dontOverwriteUploading.get(),
-                        customHtml: _.omit(Object.fromEntries(customHtmlState.sections),
-                            ['top', 'bottom']), // exclude the sections we already apply in this phase
+                        forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
+                        customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
                         lang
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
@@ -120,22 +119,22 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     </script>
                 `
             if (isBody && isOpen)
-                return  all + `
-                    ${!isFrontend ? '' : getSection('top')}
+                return `${all}
+                    ${isFrontend && getSection('top')}
                     <style>
                     :root {
-                        ${_.map(plugins, (configs, pluginName) =>
-                            _.map(configs, (v,k) => `--${pluginName}-${k}: ${serializeCss(v)};`).join('\n')).join('')}
+                        ${_.map(plugins, (configs, pluginName) => // make plugin configs accessible via css
+                    _.map(configs, (v, k) => {
+                        v = serializeCss(v)
+                        return typeof v === 'string' && `\n--${pluginName}-${k}: ${v};`
+                    }).filter(Boolean).join('')).join('')}
                     }
+                    ${getSection('style')}
                     </style>
-                    ${!isFrontend ? '' : mapPlugins((plug,id) =>
-                            plug.frontend_css?.map(f =>
-                                `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
-                            .flat().filter(Boolean).join('\n')}
-                    ${!isFrontend ? '' : mapPlugins((plug,id) =>
-                            plug.frontend_js?.map(f =>
-                                `<script defer plugin=${JSON.stringify(id)} src='${f.includes('//') ? f : pub + id + '/' + f}'></script>`))
-                            .flat().filter(Boolean).join('\n')}
+                    ${isFrontend && mapPlugins((plug,id) =>
+                        plug.frontend_css?.map(f =>
+                            `<link rel='stylesheet' type='text/css' href='${f.includes('//') ? f : pub + id + '/' + f}' plugin=${JSON.stringify(id)}/>`))
+                        .flat().filter(Boolean).join('\n')}
                 `
             if (isBody && isClose)
                 return getSection('bottom') + all
@@ -144,8 +143,8 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
 }
 
 function serializeCss(v: any) {
-    return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}|rgba?\(.+\)$/.test(v) ? v
-        : JSON.stringify(v)
+    return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}|rgba?\(.+\)$/.test(v) ? v // colors
+        : isPrimitive(v) ? JSON.stringify(v)?.replace(/</g, '&lt;') : undefined
 }
 
 function serveProxied(port: string | undefined, uri: string) { // used for development only

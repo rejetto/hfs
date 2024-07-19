@@ -1,21 +1,21 @@
 import { getNodeByName, hasPermission, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
-import {
-    HTTP_CONFLICT, HTTP_FOOL,
-    HTTP_PAYLOAD_TOO_LARGE,
-    HTTP_RANGE_NOT_SATISFIABLE,
-    HTTP_SERVER_ERROR,
-} from './const'
+import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR,
+    HTTP_BAD_REQUEST } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, dirTraversal, loadFileAttr, storeFileAttr, try_ } from './misc'
+import { Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_,
+    createStreamLimiter, } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
-import { updateConnection, updateConnectionForCtx } from './connections'
+import { disconnect, updateConnection, updateConnectionForCtx } from './connections'
 import { roundSpeed } from './throttler'
 import { getCurrentUsername } from './auth'
 import { setCommentFor } from './comments'
+import _ from 'lodash'
+import events from './events'
+import { rename } from 'fs/promises'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -37,23 +37,41 @@ function setUploadMeta(path: string, ctx: Koa.Context) {
 }
 
 // stay sync because we use this function with formidable()
-const cache: any = {}
+const diskSpaceCache: any = {}
+const openFiles = new Set()
 export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
+    let fullPath = ''
     if (dirTraversal(path))
         return fail(HTTP_FOOL)
-    if (statusCodeForMissingPerm(base, 'can_upload', ctx))
+    if (statusCodeForMissingPerm(base, 'can_upload', ctx)) {
+        if (!ctx.get('x-hfs-wait')) { // you can disable the following behavior
+            // avoid waiting hours for just an error
+            const t = setTimeout(() => disconnect(ctx), 30_000)
+            ctx.res.on('finish', () => clearTimeout(t))
+        }
         return fail()
-    const fullPath = join(base.source!, path)
+    }
+    // enforce minAvailableMb
+    fullPath = join(base.source!, path)
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
     const reqSize = Number(ctx.headers["content-length"])
-    if (reqSize)
+    if (isNaN(reqSize)) {
+        if (min)
+            return fail(HTTP_BAD_REQUEST, 'content-length mandatory')
+    }
+    else
         try {
-            if (!Object.hasOwn(cache, dir)) {
-                cache[dir] = getDiskSpaceSync(dir)
-                setTimeout(() => delete cache[dir], 3_000) // invalidate shortly
+            // refer to the source of the closest node that actually belongs to the vfs, so that cache is more effective
+            let closestVfsNode: typeof base | undefined = base
+            while (closestVfsNode && !closestVfsNode.original) closestVfsNode = closestVfsNode.parent
+            const statDir = closestVfsNode!.source!
+            if (!Object.hasOwn(diskSpaceCache, statDir)) {
+                const c = diskSpaceCache[statDir] = getDiskSpaceSync(statDir)
+                if (!c) throw 'miss'
+                setTimeout(() => delete diskSpaceCache[statDir], 3_000) // invalidate shortly
             }
-            const { free } = cache[dir]
+            const { free } = diskSpaceCache[statDir]
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
             if (reqSize > free - (min || 0))
@@ -62,92 +80,133 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         catch(e: any) { // warn, but let it through
             console.warn("can't check disk size:", e.message || String(e))
         }
+    if (openFiles.has(fullPath))
+        return fail(HTTP_CONFLICT, 'uploading')
+    // optionally 'skip'
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
-        return fail(HTTP_CONFLICT)
-    if (fs.mkdirSync(dir, { recursive: true }))
-        setUploadMeta(dir, ctx)
-    const keepName = basename(fullPath).slice(-200)
-    let tempName = join(dir, 'hfs$upload-' + keepName)
-    const resumable = fs.existsSync(tempName) && tempName
-    if (resumable)
-        tempName = join(dir, 'hfs$upload2-' + keepName)
-    let resume = Number(ctx.query.resume)
-    const size = resumable && try_(() => fs.statSync(resumable).size)
-    if (size === undefined) // stat failed
-        return fail(HTTP_SERVER_ERROR)
-    if (resume > size)
-        return fail(HTTP_RANGE_NOT_SATISFIABLE)
-    if (!resume && resumable) {
-        const timeout = 30
-        notifyClient(ctx, 'upload.resumable', { [path]: size, expires: Date.now() + timeout * 1000 })
-        delayedDelete(resumable, timeout, () =>
-            fs.rename(tempName, resumable, err => {
-                if (!err)
-                    tempName = resumable
-            }) )
-    }
-    const resuming = resume && resumable
-    if (!resuming)
-        resume = 0
-    const ret = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
-        : fs.createWriteStream(tempName)
-    if (resuming) {
-        fs.rm(tempName, () => {})
-        tempName = resumable
-    }
-    cancelDeletion(tempName)
-    trackProgress()
-    ret.once('close', async () => {
-        if (!ctx.req.aborted) {
-            let dest = fullPath
-            if (dontOverwriteUploading.get() && fs.existsSync(dest) && !await overwriteAnyway()) {
-                const ext = extname(dest)
-                const base = dest.slice(0, -ext.length)
-                let i = 1
-                do dest = `${base} (${i++})${ext}`
-                while (fs.existsSync(dest))
-            }
-            return fs.rename(tempName, dest, err => {
-                setUploadMeta(err ? tempName : dest, ctx)
-                if (err)
-                    console.error("couldn't rename temp to", dest, String(err))
-                else if (ctx.query.comment)
-                    setCommentFor(dest, String(ctx.query.comment))
-                if (resumable)
-                    delayedDelete(resumable, 0)
-            })
+        return fail(HTTP_CONFLICT, 'exists')
+    openFiles.add(fullPath)
+    try {
+        // if upload creates a folder, then add meta to it too
+        if (fs.mkdirSync(dir, { recursive: true }))
+            setUploadMeta(dir, ctx)
+        // use temporary name while uploading
+        const keepName = basename(fullPath).slice(-200)
+        let tempName = join(dir, 'hfs$upload-' + keepName)
+        const resumable = fs.existsSync(tempName) && !openFiles.has(tempName) && tempName
+        if (resumable)
+            tempName = join(dir, 'hfs$upload2-' + keepName)
+        // checks for resume feature
+        let resume = Number(ctx.query.resume)
+        const size = resumable && try_(() => fs.statSync(resumable).size)
+        if (size === undefined) // stat failed
+            return fail(HTTP_SERVER_ERROR)
+        if (resume > size)
+            return fail(HTTP_RANGE_NOT_SATISFIABLE)
+        // warn frontend about resume possibility
+        if (!resume && resumable) {
+            const timeout = 30
+            notifyClient(ctx, 'upload.resumable', { [path]: size, expires: Date.now() + timeout * 1000 })
+            delayedDelete(resumable, timeout, () =>
+                fs.rename(tempName, resumable, err => {
+                    if (!err)
+                        tempName = resumable
+                }) )
         }
-        if (resumable) // we don't want to be left with 2 temp files
-            return delayedDelete(tempName, 0)
-        const sec = deleteUnfinishedUploadsAfter.get()
-        if (typeof sec !== 'number') return
-        delayedDelete(tempName, sec)
-    })
-    return ret
+        // append if resuming
+        const resuming = resume && resumable
+        if (!resuming)
+            resume = 0
+        const writeStream = createStreamLimiter(reqSize ?? Infinity)
+        if (resuming) {
+            fs.rm(tempName, () => {})
+            tempName = resumable
+        }
+        cancelDeletion(tempName)
+        ctx.state.uploadDestinationPath = tempName
+        // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
+        const obj = { ctx, writeStream }
+        const resEvent = events.emit('uploadStart', obj)
+        if (resEvent?.isDefaultPrevented()) return
+
+        const fileStream = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
+            : fs.createWriteStream(tempName)
+        writeStream.pipe(fileStream)
+        Object.assign(obj, { fileStream })
+        trackProgress()
+
+        const lockMiddleware = pendingPromise() // outside we need to know when all operations stopped
+        writeStream.once('close', async () => {
+            try {
+                if (ctx.req.aborted) {
+                    if (resumable) // we don't want to be left with 2 temp files
+                        return delayedDelete(tempName, 0)
+                    const sec = deleteUnfinishedUploadsAfter.get()
+                    return _.isNumber(sec) && delayedDelete(tempName, sec)
+                }
+                let dest = fullPath
+                if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
+                    const ext = extname(dest)
+                    const base = dest.slice(0, -ext.length || Infinity)
+                    let i = 1
+                    do dest = `${base} (${i++})${ext}`
+                    while (fs.existsSync(dest))
+                }
+                try {
+                    await rename(tempName, dest)
+                    ctx.state.uploadDestinationPath = dest
+                    setUploadMeta(dest, ctx)
+                    if (ctx.query.comment)
+                        void setCommentFor(dest, String(ctx.query.comment))
+                    if (resumable)
+                        delayedDelete(resumable, 0)
+                    events.emit('uploadFinished', obj)
+                    if (resEvent) for (const cb of resEvent)
+                        if (_.isFunction(cb))
+                            cb(obj)
+                }
+                catch (err: any) {
+                    setUploadMeta(tempName, ctx)
+                    console.error("couldn't rename temp to", dest, String(err))
+                }
+            }
+            finally {
+                releaseFile()
+                lockMiddleware.resolve()
+            }
+        })
+        return Object.assign(obj.writeStream, {
+            lockMiddleware
+        })
+
+        function trackProgress() {
+            let lastGot = 0
+            let lastGotTime = 0
+            const opTotal = reqSize + resume
+            Object.assign(ctx.state, { op: 'upload', opTotal, opOffset: resume / opTotal, opProgress: 0 })
+            const conn = updateConnectionForCtx(ctx)
+            if (!conn) return
+            const h = setInterval(() => {
+                const now = Date.now()
+                const got = fileStream.bytesWritten
+                const inSpeed = roundSpeed((got - lastGot) / (now - lastGotTime))
+                lastGot = got
+                lastGotTime = now
+                updateConnection(conn, { inSpeed, got }, { opProgress: (resume + got) / opTotal })
+            }, 1000)
+            writeStream.once('close', () => clearInterval(h) )
+        }
+    }
+    catch (e: any) {
+        releaseFile()
+        throw e
+    }
 
     async function overwriteAnyway() {
         if (ctx.query.overwrite === undefined // legacy pre-0.52
-        && ctx.query.existing !== 'overwrite') return
+            && ctx.query.existing !== 'overwrite') return
         const n = await getNodeByName(path, base)
         return n && hasPermission(n, 'can_delete', ctx)
-    }
-
-    function trackProgress() {
-        let lastGot = 0
-        let lastGotTime = 0
-        const opTotal = reqSize + resume
-        Object.assign(ctx.state, { op: 'upload', opTotal, opOffset: resume / opTotal, opProgress: 0 })
-        const conn = updateConnectionForCtx(ctx)
-        if (!conn) return
-        const h = setInterval(() => {
-            const now = Date.now()
-            const got = ret.bytesWritten
-            const inSpeed = roundSpeed((got - lastGot) / (now - lastGotTime))
-            lastGot = got
-            lastGotTime = now
-            updateConnection(conn, { inSpeed, got }, { opProgress: (resume + got) / opTotal })
-        }, 1000)
-        ret.once('close', () => clearInterval(h) )
     }
 
     function delayedDelete(path: string, secs: number, cb?: Callback) {
@@ -163,9 +222,22 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         delete waitingToBeDeleted[path]
     }
 
-    function fail(status?: number) {
+    function releaseFile() {
+        openFiles.delete(fullPath)
+    }
+
+    function fail(status?: number, msg?: string) {
+        releaseFile()
         if (status)
             ctx.status = status
+        if (msg)
+            ctx.body = msg
         notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
+    }
+}
+
+declare module "koa" {
+    interface DefaultState {
+        uploadDestinationPath?: string
     }
 }

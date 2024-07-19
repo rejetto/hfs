@@ -35,7 +35,9 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     }
     canChangePassword: boolean
     uri: string
+    uploadOnExisting: 'skip' | 'overwrite' | 'rename'
 }>({
+    uploadOnExisting: getHFS().dontOverwriteUploading ? 'rename' : 'skip',
     uri: '',
     canChangePassword: false,
     props: {},
@@ -60,6 +62,7 @@ const SETTINGS_KEY = 'hfs_settings'
 type StateKey = keyof typeof state
 const SETTINGS_WITHOUT_GUI: StateKey[] = ['file_menu_on_link']
 const SETTINGS_TO_STORE: StateKey[] = _.difference(typedKeys(FRONTEND_OPTIONS), SETTINGS_WITHOUT_GUI)
+    .concat(['uploadOnExisting']) // not adding this to FRONTEND_OPTIONS, as its possible values vary with the user permissions, but still makes sense to save on a single browser, supposedly for a single user
 
 loadSettings()
 for (const k of SETTINGS_TO_STORE)
@@ -86,6 +89,7 @@ function storeSettings() {
 }
 
 export class DirEntry {
+    static FORBIDDEN = 'FORBIDDEN'
     public readonly n: string
     public readonly s?: number
     public readonly m?: string
@@ -94,14 +98,15 @@ export class DirEntry {
     public readonly icon?: string
     public readonly web?: true
     public readonly url?: string
+    public readonly target?: string
     public comment?: string
     // we memoize these value for speed
     public readonly name: string
     public readonly uri: string
     public readonly ext: string = ''
-    public readonly isFolder:boolean
+    public readonly isFolder: boolean
     public readonly t?:Date
-    public readonly cantOpen: boolean
+    public readonly cantOpen?: true | typeof DirEntry.FORBIDDEN
     public readonly key?: string
 
     constructor(n: string, rest?: any) {
@@ -118,7 +123,8 @@ export class DirEntry {
             this.t = new Date(t)
         this.name = this.isFolder ? this.n.slice(this.n.lastIndexOf('/', this.n.length - 2) + 1, -1)
             : this.n.slice(this.n.lastIndexOf('/') + 1)
-        this.cantOpen = Boolean(this.p?.includes(this.isFolder ? 'l' : 'r'))  // to open we need list for folders and read for files
+        const x = this.isFolder && !this.web  ? 'L' : 'R' // to open we need list for folders and read for files
+        this.cantOpen = this.p?.match(x) ? true : this.p?.match(x.toLowerCase()) ? DirEntry.FORBIDDEN : undefined
     }
 
     getNext() {
@@ -146,7 +152,7 @@ export type DirList = DirEntry[]
 const exts = {
     image: ['jpeg','jpg','gif','png','webp','svg'],
     audio: ['mp3','wav','m4a','ogg','flac'],
-    video: ['mp4','mpeg','mpg','webm','mov','m4v'],
+    video: ['mp4','mpeg','mpg','webm','mov','m4v','mkv'],
     archive: ['zip', 'rar', 'gz', 'tgz'],
 }
 

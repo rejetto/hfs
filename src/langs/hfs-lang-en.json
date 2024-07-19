@@ -1,7 +1,7 @@
 {
     "author": "NAME OF THE AUTHOR(S) OF THIS TRANSLATION",
     "version": 1.0,
-    "hfs_version": "0.52.0",
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -53,7 +53,7 @@
         "Search was interrupted": "Search was interrupted",
         "Stop list": "Stop list",
 
-        "upload_starting": "Your download should now start",
+        "download_starting": "Your download should now start",
         "wrong_account": "Account {u} has no access, try another",
         "no_upload_here": "No upload permission for the current folder",
         "Create folder": "Create folder",
@@ -163,6 +163,14 @@
         "Overwrite policy": "Overwrite policy",
         "Rename to avoid overwriting": "Rename to avoid overwriting",
         "Overwrite existing files": "Overwrite existing files",
-        "Menu": "Menu"
+        "Menu": "Menu",
+
+        "clipboard": "Clipboard ({content})",
+        "to_clipboard_source_tooltip": "Go to the folder where the clipboard contents are located",
+        "more_items": "{n} more item(s)",
+        "Show details": "Show details",
+        "upload_conflict": "already exists",
+        "Logged in": "Logged in",
+        "Logged out": "Logged out"
     }
 }

@@ -3,6 +3,7 @@
 import { useSnapState } from './state'
 import { useEffect } from 'react'
 import { useMediaQuery } from 'usehooks-ts'
+import { getHFS } from '@hfs/shared'
 
 export default function useTheme() {
     const { theme } = useSnapState()
@@ -10,7 +11,7 @@ export default function useTheme() {
     useEffect(()=>{
         const e = document.body
         if (!e) return
-        const name = theme || (isDarkMode ? 'dark' : 'light')
+        const name = getHFS().forceTheme || theme || (isDarkMode ? 'dark' : 'light')
         const pre = 'theme-'
         const ct = pre + name
         const list = e.classList

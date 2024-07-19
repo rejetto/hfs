@@ -2,18 +2,20 @@
 
 import { Box, Button, CircularProgress, Dialog as MuiDialog, DialogContent, DialogTitle, Modal
 } from '@mui/material'
-import { createElement as h, Dispatch, Fragment, isValidElement, ReactElement, ReactNode, SetStateAction,
+import {
+    createElement as h, Dispatch, FC, Fragment, isValidElement, ReactElement, ReactNode, SetStateAction,
     useEffect, useRef, useState
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
-    focusSelector, md } from '@hfs/shared'
+    focusSelector, md, focusableSelector } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center } from './mui'
 import { useDark } from './theme'
 import { useWindowSize } from 'usehooks-ts'
 import _ from 'lodash'
 import { err2msg } from './misc'
+import { useSnapState } from './state'
 export * from '@hfs/shared/dialogs'
 
 dialogsDefaults.Container = function Container(d: DialogOptions) {
@@ -26,7 +28,7 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
             if (!el) return
             el.focus()
             if (mobile) return
-            focusSelector('[autofocus]', el) || focusSelector('input,textarea', el)
+            focusSelector('[autofocus]', el) || focusSelector(focusableSelector, el)
         })
         return () => clearTimeout(h)
     }, [ref.current])
@@ -48,12 +50,11 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
             sx: {
                 position: 'sticky', top: 0, p: 1, zIndex: 2, boxShadow: '0 0 8px #0004',
                 display: 'flex', alignItems: 'center',
-                gap: 1,
                 ...titleSx
             },
         },
             d.icon && componentOrNode(d.icon),
-            h(Box, { flex:1, minWidth: 40 }, componentOrNode(d.title)),
+            h(Box, { flex:1, minWidth: 40, ml: 1 }, componentOrNode(d.title)),
             d.closable && h(IconBtn, { icon: Close, title: "Close", onClick: () => closeDialog() }),
         ),
         h(DialogContent, {
@@ -68,7 +69,8 @@ dialogsDefaults.Container = function Container(d: DialogOptions) {
 }
 
 export function useDialogBarColors() {
-    return useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
+    const { darkTheme } = useSnapState()
+    return darkTheme ?? useDark() ? { bgcolor: '#2d2d2d' } : { bgcolor:'#ccc', color: '#444', }
 }
 
 type AlertType = 'error' | 'warning' | 'info' | 'success'
@@ -105,12 +107,20 @@ export function alertDialog(msg: ReactElement | string | Error, options?: AlertT
     return Object.assign(promise, dialog)
 }
 
-interface ConfirmOptions extends Omit<DialogOptions, 'Content'> { href?: string, confirmText?: string, dontText?: string }
-export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText="Don't",  ...rest }: ConfirmOptions={}) {
+interface ConfirmOptions extends Omit<DialogOptions, 'Content'> {
+    href?: string,
+    trueText?: string,
+    falseText?: string,
+    before?: FC<{ onClick: (result: any) => unknown }>
+    after?: FC<{ onClick: (result: any) => unknown }>
+}
+
+export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="Don't", before, after,  ...rest }: ConfirmOptions={}) {
     const promise = pendingPromise<boolean>()
     const dialog = newDialog({
         className: 'dialog-confirm',
         onClose: promise.resolve,
+        dialogProps: { sx: { alignItems: 'center' } },
         ...rest,
         Content
     })
@@ -120,11 +130,13 @@ export function confirmDialog(msg: ReactNode, { href, confirmText="Go", dontText
         return h(Fragment, {},
             h(Box, { mb: 2 }, typeof msg === 'string' ? md(msg) : msg),
             h(Flex, {},
+                before?.({ onClick: (v: any) => dialog.close(v) }),
                 h('a', {
                     href,
                     onClick: () => dialog.close(true),
-                }, h(Button, { variant: 'contained' }, confirmText)),
-                h(Button, { onClick: () => dialog.close(false) }, dontText),
+                }, h(Button, { variant: 'contained' }, trueText)),
+                h(Button, { onClick: () => dialog.close(false) }, falseText),
+                after?.({ onClick: (v: any) => dialog.close(v) }),
             ),
         )
     }
@@ -139,12 +151,12 @@ type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
 export async function formDialog<T>(
     { form, values, ...options }: Omit<DialogOptions, 'Content'> & {
         values?: Partial<T>,
-        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>),
+        form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>), // allow callback form
     },
 ) : Promise<T> {
     return new Promise(resolve => {
         const dialog = newDialog({
-            className: 'dialog-confirm',
+            className: 'dialog-form',
             onClose: resolve,
             ...options,
             Content() {
@@ -162,11 +174,11 @@ export async function formDialog<T>(
                                 return newV
                             })
                         },
-                        save: {
-                            ...props.save,
+                        save: props.save !== false && {
                             onClick() {
                                 dialog.close(curValues)
-                            }
+                            },
+                            ...props.save,
                         }
                     })
                 )

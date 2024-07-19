@@ -9,10 +9,10 @@ import { dirTraversal, isValidFileName } from './util-files'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN,
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED } from './const'
 import { hasPermission, statusCodeForMissingPerm, urlToNode } from './vfs'
-import { mkdir, rename, rm, copyFile, unlink } from 'fs/promises'
+import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-import { apiAssertTypes } from './misc'
+import { apiAssertTypes, deleteNode } from './misc'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 
@@ -69,22 +69,15 @@ export const frontEndApis: ApiHandlers = {
 
     async delete({ uri }, ctx) {
         apiAssertTypes({ string: { uri } })
-        ctx.logExtra(null, { target: decodeURI(uri) })
         const node = await urlToNode(uri, ctx)
         if (!node)
             throw new ApiError(HTTP_NOT_FOUND)
-        if (!node.source)
-            throw new ApiError(HTTP_FORBIDDEN)
-        if (!hasPermission(node, 'can_delete', ctx))
-            throw new ApiError(HTTP_UNAUTHORIZED)
-        try {
-            await rm(node.source, { recursive: true })
-            void setCommentFor(node.source, '')
-            return {}
-        }
-        catch (e: any) {
-            throw new ApiError(HTTP_SERVER_ERROR, e)
-        }
+        const res = await deleteNode(ctx, node, uri)
+        if (typeof res === 'number')
+            throw new ApiError(res)
+        if (res instanceof Error)
+            throw new ApiError(HTTP_SERVER_ERROR, res)
+        return res && {}
     },
 
     async rename({ uri, dest }, ctx) {
@@ -156,10 +149,10 @@ export const frontEndApis: ApiHandlers = {
     },
 }
 
-export function notifyClient(ctx: Koa.Context, name: string, data: any) {
-    const {notificationChannel} = ctx.query
-    if (notificationChannel)
-        events.emit(NOTIFICATION_PREFIX + notificationChannel, name, data)
+export function notifyClient(channel: string | Koa.Context, name: string, data: any) {
+    if (typeof channel !== 'string')
+        channel = String(channel.query.notificationChannel)
+    events.emit(NOTIFICATION_PREFIX + channel, name, data)
 }
 
 const NOTIFICATION_PREFIX = 'notificationChannel:'

@@ -41,7 +41,7 @@ async function checkFiles() {
     const TEMP = LOCAL_FILE + '.downloading'
     const { mtime=0 } = await stat(LOCAL_FILE).catch(() => ({ mtime: 0 }))
     const now = Date.now()
-    if (mtime < now - 31 * DAY) { // month-old or non-existing
+    if (+mtime < now - 31 * DAY) { // month-old or non-existing
         console.log('downloading geo-ip db')
         await unzip(await httpStream(URL), path =>
             path.toUpperCase().endsWith(ZIP_FILE) && TEMP)

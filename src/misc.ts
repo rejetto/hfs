@@ -1,60 +1,30 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { EventEmitter } from 'events'
 import { basename } from 'path'
-import _ from 'lodash'
 import Koa from 'koa'
 import { Connection } from './connections'
 import assert from 'assert'
 export * from './util-http'
 export * from './util-files'
+export * from './fileAttr'
 export * from './cross'
 export * from './debounceAsync'
-import { Readable } from 'stream'
+import { Readable, Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
-import { HTTP_BAD_REQUEST } from './const'
-import { isIpLocalHost, makeMatcher } from './cross'
+import { HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED } from './const'
+import { isIpLocalHost, makeMatcher, try_ } from './cross'
 import { isIPv6 } from 'net'
-
-type ProcessExitHandler = (signal:string) => any
-const cbs = new Set<ProcessExitHandler>()
-export function onProcessExit(cb: ProcessExitHandler) {
-    cbs.add(cb)
-    return () => cbs.delete(cb)
-}
-onFirstEvent(process, ['exit', 'SIGQUIT', 'SIGTERM', 'SIGINT', 'SIGHUP'], signal =>
-    Promise.allSettled(Array.from(cbs).map(cb => cb(signal))).then(() =>
-        process.exit(0)))
-
-export function onFirstEvent(emitter:EventEmitter, events: string[], cb: (...args:any[])=> void) {
-    let already = false
-    for (const e of events)
-        emitter.once(e, (...args) => {
-            if (already) return
-            already = true
-            cb(...args)
-        })
-}
+import { statusCodeForMissingPerm, VfsNode } from './vfs'
+import events from './events'
+import { rm } from 'fs/promises'
+import { setCommentFor } from './comments'
 
 export function pattern2filter(pattern: string){
     const matcher = makeMatcher(pattern.includes('*') ? pattern  // if you specify *, we'll respect its position
         : pattern.split('|').map(x => `*${x}*`).join('|'))
     return (s?:string) =>
         !s || !pattern || matcher(basename(s))
-}
-
-// install multiple handlers and returns a handy 'uninstall' function which requires no parameter. Pass a map {event:handler}
-export function onOff(em: EventEmitter, events: { [eventName:string]: (...args: any[]) => void }) {
-    events = { ...events } // avoid later modifications, as we need this later for uninstallation
-    for (const [k,cb] of Object.entries(events))
-        for (const e of k.split(' '))
-            em.on(e, cb)
-    return () => {
-        for (const [k,cb] of Object.entries(events))
-            for (const e of k.split(' '))
-                em.off(e, cb)
-    }
 }
 
 export function isLocalHost(c: Connection | Koa.Context | string) {
@@ -78,18 +48,28 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
             console.warn("error in network mask", x)
             continue
         }
-        const address = parseAddress(m[1]!)
+        const address = try_(() => parseAddress(m[1]!),
+            () => console.error("invalid address " + m[1]))
+        if (!address) continue
         if (m[2])
-            bl.addSubnet(address, Number(m[2]))
+            try { bl.addSubnet(address, Number(m[2])) }
+            catch { console.error("invalid net mask " + x) }
         else if (m[3])
-            bl.addRange(address, parseAddress(m[2]!))
+            try { bl.addRange(address, parseAddress(m[2]!)) }
+            catch { console.error("invalid address " + m[2]) }
         else
             bl.addAddress(address)
     }
-    return (ip: string) =>
-        neg !== bl.check(parseAddress(ip))
+    return (ip: string) => {
+        try { return neg !== bl.check(parseAddress(ip)) }
+        catch {
+            console.error("invalid address ", ip)
+            return false
+        }
+    }
 }
 
+// can throw ERR_INVALID_ADDRESS
 function parseAddress(s: string) {
     return new SocketAddress({ address: s, family: isIPv6(s) ? 'ipv6' : 'ipv4' })
 }
@@ -107,11 +87,14 @@ export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
     return new Readable({
         objectMode: true,
         destroy() {
-            iterator.return?.()
+            void iterator.return?.()
         },
         read() {
-            iterator.next().then(it =>
-                this.push(it.done ? null : it.value))
+            iterator.next().then(it => {
+                if (it.done)
+                    this.emit('ending')
+                return this.push(it.done ? null : it.value)
+            })
         }
     })
 }
@@ -134,8 +117,41 @@ export class AsapStream<T> extends Readable {
 
 export function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: any  } }) {
     for (const [types,params] of Object.entries(paramsByType))
-        for (const type of types.split('_'))
-            for (const [name,val] of Object.entries(params))
-                if (type === 'array' ? !Array.isArray(val) : typeof val !== type)
-                    throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
+        for (const [name,val] of Object.entries(params))
+            if (! types.split('_').some(type => type === 'array' ? Array.isArray(val) : typeof val === type))
+                throw new ApiError(HTTP_BAD_REQUEST, 'bad ' + name)
+}
+
+export function createStreamLimiter(limit: number) {
+    let got = 0
+    return new Transform({
+        transform(chunk, enc, cb) {
+            const left = limit - got
+            got += chunk.length
+            if (left > 0) {
+                this.push(chunk.length >= left ? chunk.slice(0, left) : chunk)
+                if (got >= limit)
+                    this.end()
+            }
+            cb()
+        }
+    })
+}
+
+export async function deleteNode(ctx: Koa.Context, node: VfsNode, uri: string) {
+    const { source } = node
+    if (!source)
+        return HTTP_METHOD_NOT_ALLOWED
+    if (statusCodeForMissingPerm(node, 'can_delete', ctx))
+        return ctx.status
+    try {
+        if (await events.emitAsync('deleting', { node, ctx }).isDefaultPrevented())
+            return null // stop
+        ctx.logExtra(null, { target: decodeURI(uri) })
+        await rm(source, { recursive: true })
+        void setCommentFor(source, '')
+        return true
+    } catch (e: any) {
+        return e
+    }
 }

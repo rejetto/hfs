@@ -1,7 +1,7 @@
 {
     "author": "H.F.P. Pit - PH5HP",
-    "version": 1.2,
-    "hfs_version": "0.52.0",
+    "version": 1.0,
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Selecteer",
         "n_files": "{n,plural,one{# bestand} other{# bestanden}}",
@@ -53,7 +53,7 @@
         "Search was interrupted": "Zoeken is onderbroken",
         "Stop list": "Stop lijst",
 
-        "upload_starting": "Uw download zou nu moeten starten",
+        "download_starting": "Uw download zou nu moeten starten",
         "wrong_account": "Account {u} heeft geen toegang, probeer een andere",
         "no_upload_here": "Geen upload toestemming voor de huidige map",
         "Create folder": "Creeer map",
@@ -121,16 +121,19 @@
         "Operation successful": "Operatie succesvol",
         "Uploader": "Uploader",
         "Download counter": "Download teller",
-        "upload_dd_hint": "U kunt bestanden uploaden door te veslepen & lost te laten in de bestanden lijst",
-        "Cut": "Knip",
+		"upload_dd_hint": "U kunt bestanden uploaden door te veslepen & lost te laten in de bestanden lijst",
+
+		"Cut": "Knip",
         "n_items": "{n,plural, one{# item} other{# items}}",
         "good_bad": "{good} verplaatst, {bad} mislukt",
         "after_cut": "Uw selectie is nu naar het klembord gekopieerd.\nGa naar de bestemmings map om te plakken.",
         "Cancel clipboard": "Cancel clipboard",
-        "to_clipboard_source": "Ga terug naar de bronmap",
+        "to_clipboard_source": "Naar map",
         "Paste": "Plakken",
         "clipboard_list": "Items in het klembord:",
     
+		"Menu": "Menu",
+		"enter_comment": "Opmerking voor {name}",
 		"Close": "Sluit",
 		"Folder": "Map",
 		"Web page": "Web pagina",
@@ -147,6 +150,12 @@
 		"upload_skipped": "{n} overgeslagen",
 		"Overwrite policy": "Overschrijf beleid",
 		"Rename to avoid overwriting": "Hernoem om overschrijven te vermijden",
-		"Overwrite existing files": "Overschrijf bestaande bestanden"
+		"Overwrite existing files": "Overschrijf bestaande bestanden",
+		
+		"clipboard": "Klembord ({content})",
+		"to_clipboard_source_tooltip": "Ga naar de map waar de klembord inhoud is geplaatst",
+		"more_items": "{n} meer item(s)",
+		"Show details": "Laat details zien",
+		"upload_conflict": "bestaat al"
 	}
 }

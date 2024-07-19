@@ -3,7 +3,7 @@
 import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
-import { asyncGeneratorToReadable, CFG, Promisable, removeStarting } from './misc'
+import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
 import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND } from './const'
 import { defineConfig } from './config'
 
@@ -26,7 +26,8 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         const params = isPost ? ctx.state.params || {} : ctx.query
         const apiName = ctx.path
         console.debug('API', ctx.method, apiName, { ...params })
-        const safe = isPost && ctx.get('x-hfs-anti-csrf') // POST is safe because browser will enforce SameSite cookie
+        const noBrowser = ctx.get('user-agent')?.startsWith('curl')
+        const safe = isPost && (!noBrowser || ctx.get('x-hfs-anti-csrf')) // POST is safe because browser will enforce SameSite cookie
             || apiName.startsWith('get_') // "get_" apis are safe because they make no change
         if (!safe)
             return send(HTTP_FOOL, "missing header x-hfs-anti-csrf=1")

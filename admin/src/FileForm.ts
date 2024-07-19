@@ -9,7 +9,7 @@ import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
-    useRequestRender
+    useRequestRender, splitAt
 } from './misc'
 import { Btn, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
@@ -63,14 +63,14 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
     const barColors = useDialogBarColors()
     const { movingFile } = useSnapState()
 
-    const needSourceWarning = !hasSource && "Works only on folders with source! "
+    const needSourceWarning = !hasSource && h(Box, { color: 'warning.main', component: 'span' }, "Works only on folders with disk source! ")
     const show: Record<keyof VfsPerms, boolean> = {
         can_read: !isLink,
         can_see: true,
         can_archive: !isLink,
         can_list: isDir,
-        can_upload: isDir && hasSource,
-        can_delete: isDir && hasSource,
+        can_upload: isDir,
+        can_delete: isDir,
     }
     return h(Form, {
         values,
@@ -117,7 +117,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             h(IconBtn, {
                 icon: Delete,
                 title: "Delete",
-                confirm: "Delete?",
+                confirm: `Delete ${file.name}?`,
                 disabled: isRoot,
                 onClick: () => apiCall('del_vfs', { uris: [file.id] }).then(({ errors: [err] }) => {
                     if (err)
@@ -146,25 +146,33 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
                 : isDir && hasSource && h(Alert, { severity: 'info' }, `To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"`),
             !isRoot && { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
             isLink ? { k: 'url', label: "URL", lg: 12, required: true }
-                : { k: 'source', label: "Load content from disk", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
-                    placeholder: "no",
-                    helperText: !values.source ? "This field is empty, and thus this element is a virtual-folder. You can set this field, pointing at any folder/file on disk."
+                : { k: 'source', label: "Disk source", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
+                    placeholder: "none",
+                    helperText: !values.source ? "This field is currently empty, and thus this element is a virtual-folder, no upload or delete is possible here."
                         : isDir ? "Content from this path on disk will be listed, but you can also add more" : undefined,
             },
-            !isLink && { k: 'id', comp: LinkField, statusApi, xs: 12 },
+            { k: 'id', comp: LinkField, statusApi, xs: 12 },
             perm('can_read', "Who can see but not download will be asked to login"),
-            perm('can_see', "If you can't see, you may still download with a direct link"),
-            perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? true : 12 }),
-            perm('can_list', "Permission to see content of folders", { contentText: "subfolders" }),
+            perm('can_see', ["Control what appears in the list.", wikiLink('Permissions', " More help.")]),
+            perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? 6 : 12 }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
+            perm('can_list', "Permission to requests the list of a folder. The list will include only things you can see.", { contentText: "subfolders" }),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
+            isLink && {
+                k: 'target',
+                comp: BoolField,
+                sm: true,
+                label: "Open in new browser",
+                fromField: x => x ? '_blank' : null,
+                toField: x => x > '',
+            },
             showSize && { k: 'size', comp: DisplayField, sm: 6, lg: 4, toField: formatBytes },
             showTimestamps && { k: 'ctime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },
             showWebsite && { k: 'default', comp: BoolField, xl: true,
-                label: "Serve as website if index.html is found" + (inheritedDefault && values.default == null ? ' (inherited)' : ''),
+                label: "Serve as web-page if index.html is found" + (inheritedDefault && values.default == null ? ' (inherited)' : ''),
                 value: values.default ?? inheritedDefault,
                 toField: Boolean, fromField: (v:boolean) => v && !inheritedDefault ? 'index.html' : v ? null : false,
                 helperText: md("...instead of showing list of files")
@@ -200,7 +208,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
 }
 
 function perm2word(perm: string) {
-    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip' })
+    return xlate(perm.split('_')[1], { read: 'download', archive: 'zip', list: 'access list' })
 }
 
 interface WhoFieldProps extends FieldProps<Who | undefined> {
@@ -293,7 +301,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     const { reload, error } = statusApi
     // workaround to get fresh data and be rerendered even when mounted inside imperative dialog
     const requestRender = useRequestRender()
-    useEffect(() => statusApi.sub(requestRender), [])
+    useEffect(() => { statusApi.sub(requestRender) }, [])
     const data = statusApi.getData()
 
     const urls: string[] = data?.urls.https || data?.urls.http
@@ -316,7 +324,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
-            value: link || `outside of configured base address (${baseHost})`,
+            value: link || `outside of configured main address (${baseHost})`,
             error,
             InputProps: link ? { inputComponent: RenderLink } : undefined,
             end: h(Box, {},
@@ -365,17 +373,20 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
 export async function changeBaseUrl() {
     return new Promise(async resolve => {
         const res = await apiCall('get_status')
-        const { base_url } = await apiCall('get_config', { only: ['base_url'] })
+        const { base_url, roots } = await apiCall('get_config', { only: ['base_url', 'roots'] })
         const urls: string[] = res.urls.https || res.urls.http
+        const domainsFromRoots = Object.keys(roots).map(x => x.split('|')).flat().filter(x => !/[*?]/.test(x))
+        const proto = splitAt('//', urls[0])[0] + '//'
+        urls.push(...domainsFromRoots.map(x => proto + x))
         const { close } = newDialog({
-            title: "Base address",
+            title: "Main address",
             Content() {
                 const [v, setV] = useState(base_url || '')
                 const proto = new URL(v || urls[0]).protocol + '//'
                 const host = urls.includes(v) ? '' : v.slice(proto.length)
                 const check = h(Check, { sx: { ml: 2 } })
                 return h(Box, { display: 'flex', flexDirection: 'column' },
-                    h(Box, { mb: 2 }, "Choose a base address for your links"),
+                    h(Box, { mb: 2 }, "Choose a main address for your links"),
                     h(MenuList, {},
                         h(MenuItem, {
                             selected: !v,

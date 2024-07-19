@@ -3,7 +3,7 @@ import { basename, dirname } from 'path'
 import { getNodeName, nodeIsDirectory, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import { ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
-    HTTP_UNAUTHORIZED } from './cross-const'
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK } from './cross-const'
 import { uploadWriter } from './upload'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
@@ -15,7 +15,8 @@ import { allowAdmin, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, filterMapGenerator, pathEncode } from './misc'
+import { asyncGeneratorToReadable, deleteNode, filterMapGenerator, pathEncode, try_ } from './misc'
+import { basicWeb, detectBasicAgent } from './basicWeb'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -26,9 +27,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     const { path } = ctx
     // dynamic import on frontend|admin (used for non-https login) while developing (vite4) is not producing a relative path
     if (DEV && path.startsWith('/node_modules/')) {
-        let { referer } = ctx.headers
-        referer &&= new URL(referer).pathname
-        return referer?.startsWith(ADMIN_URI) ? serveAdminFiles(ctx, next)
+        const { referer: r } = ctx.headers
+        return try_(() => r && new URL(r).pathname?.startsWith(ADMIN_URI)) ? serveAdminFiles(ctx, next)
             : serveFrontendFiles(ctx, next)
     }
     if (path.startsWith(FRONTEND_URI))
@@ -47,7 +47,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.state.uploadPath = decPath
         const dest = uploadWriter(folder, rest, ctx)
         if (dest) {
-            await pipeline(ctx.req, dest)
+            void pipeline(ctx.req, dest)
+            await dest.lockMiddleware  // we need to wait more than just the stream
             ctx.body = {}
         }
         return
@@ -62,6 +63,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_BAD_REQUEST
         ctx.body = {}
         ctx.state.uploads = []
+        let locks: Promise<any>[] = []
         const form = formidable({
             maxFileSize: Infinity,
             allowEmptyFiles: true,
@@ -69,39 +71,58 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
                 const fn = (f as any).originalFilename
                 ctx.state.uploadPath = decodeURI(ctx.path) + fn
                 ctx.state.uploads!.push(fn)
-                return uploadWriter(node!, fn, ctx)
-                    || new Writable({ write(data,enc,cb) { cb() } }) // just discard data
+                const ret = uploadWriter(node!, fn, ctx)
+                if (!ret)
+                    return new Writable({ write(data,enc,cb) { cb() } }) // just discard data
+                locks.push(ret.lockMiddleware)
+                return ret
             }
         })
-        return new Promise<void>(res => form.parse(ctx.req, err => {
+        return new Promise<any>(res => form.parse(ctx.req, err => {
             if (err) console.error(String(err))
-            res()
+            res(Promise.all(locks))
         }))
+    }
+    if (ctx.method === 'DELETE') {
+        const res = await deleteNode(ctx, node, ctx.path)
+        if (typeof res === 'number')
+            return ctx.status = res
+        if (res instanceof Error) {
+            ctx.body = res.message || String(res)
+            return ctx.status = HTTP_SERVER_ERROR
+        }
+        if (res)
+            return ctx.status = HTTP_OK
+        return
     }
     const { get } = ctx.query
     if (node.default && path.endsWith('/') && !get) // final/ needed on browser to make resource urls correctly with html pages
         node = await urlToNode(node.default, ctx, node) ?? node
     if (!await nodeIsDirectory(node))
-        return !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment
-            : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
-                : ctx.status !== HTTP_UNAUTHORIZED ? null // all errors don't need extra handling, except unauthorized
-                    : path.endsWith('/') ? (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next) // since this is no dir, final / means we are dealing with default file, for which we still provide fancy login
-                        : (ctx.set('WWW-Authenticate', 'Basic'), sendErrorPage(ctx)) // this is necessary to support standard urls with credentials
+        return node.url ? ctx.redirect(node.url)
+            : !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment
+                : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
+                    : ctx.status !== HTTP_UNAUTHORIZED ? null // all errors don't need extra handling, except unauthorized
+                        : detectBasicAgent(ctx) ? (ctx.set('WWW-Authenticate', 'Basic'), sendErrorPage(ctx))
+                            : (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next) // this is necessary to support standard urls with credentials, as chrome125 will send provided credentials only after attempt a GET without them, and after this error
     if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
         if (ctx.status === HTTP_FORBIDDEN)
             return sendErrorPage(ctx, HTTP_FORBIDDEN)
-        const browserDetected = ctx.get('Upgrade-Insecure-Requests') || ctx.get('Sec-Fetch-Mode') // ugh, heuristics
-        if (!browserDetected) // we don't want to trigger basic authentication on browsers, it's meant for download managers only
-            return ctx.set('WWW-Authenticate', 'Basic') // we support basic authentication
+        // detect if we are dealing with a download-manager, as it may need basic authentication, while we don't want it on browsers
+        const { authenticate } = ctx.query
+        const downloadManagerDetected = /DAP|FDM|[Mm]anager/.test(ctx.get('user-agent'))
+        if (downloadManagerDetected || authenticate || detectBasicAgent(ctx))
+            return ctx.set('WWW-Authenticate', authenticate || 'Basic') // basic authentication for DMs getting the folder as a zip
         ctx.state.serveApp = true
         return serveFrontendFiles(ctx, next)
     }
     ctx.set({ server: `HFS ${VERSION} ${BUILD_TIMESTAMP}` })
+    if (basicWeb(ctx, node)) return
     return get === 'zip' ? zipStreamFromFolder(node, ctx)
         : get === 'list' ? sendFolderList(node, ctx)
-            : serveFrontendFiles(ctx, next)
+        : serveFrontendFiles(ctx, next)
 }
 
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {

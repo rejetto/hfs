@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, runAt, wait, waitFor } from './misc'
+import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, } from './misc'
 import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -17,6 +17,7 @@ import { X509Certificate } from 'crypto'
 import events from './events'
 import { isIPv6 } from 'net'
 import { defaultBaseUrl } from './nat'
+import { storedMap } from './persistence'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
@@ -38,8 +39,10 @@ export function getHttpsWorkingPort() {
 const commonServerOptions: http.ServerOptions = { requestTimeout: 0 }
 const commonServerAssign = { headersTimeout: 30_000, timeout: MINUTE } // 'headersTimeout' is not recognized by type lib, and 'timeout' is not effective when passed in parameters
 
+const readyToListen = Promise.all([ storedMap.isOpening(), events.once('app') ])
+
 const considerHttp = debounceAsync(async () => {
-    await waitFor(() => app)
+    await readyToListen
     void stopServer(httpSrv)
     httpSrv = Object.assign(http.createServer(commonServerOptions, app.callback()), { name: 'http' }, commonServerAssign)
     const port = await startServer(httpSrv, { port: portCfg.get(), host: listenInterface.get() })
@@ -81,12 +84,12 @@ export function getCertObject() {
 }
 
 const considerHttps = debounceAsync(async () => {
+    await readyToListen
     void stopServer(httpsSrv)
     defaultBaseUrl.proto = 'http'
     defaultBaseUrl.port = getCurrentPort(httpSrv) ?? 0
     let port = httpsPortCfg.get()
     try {
-        await waitFor(() => app)
         httpsSrv = Object.assign(
             https.createServer(port === PORT_DISABLED ? {} : { ...commonServerOptions, key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
             { name: 'https' },
@@ -132,7 +135,7 @@ const considerHttps = debounceAsync(async () => {
     if (!port) return
     httpsSrv.on('connection', newConnection)
     printUrls(httpsSrv.name)
-    events.emit('https ready')
+    events.emit('httpsReady')
     defaultBaseUrl.proto = 'https'
     defaultBaseUrl.port = getCurrentPort(httpsSrv) ?? 0
 })
@@ -214,7 +217,8 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 if (code === 'EACCES' && port < 1024)
                     srv.error = `lacking permission on port ${port}, try with permission (${IS_WINDOWS ? 'administrator' : 'sudo'}) or port > 1024`
                 if (code === 'EADDRINUSE') {
-                    srv.busy = findProcess('port', port).then(res => res?.[0]?.name || '', () => '')
+                    srv.busy = findProcess('port', port).then(res =>
+                        res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '), () => '')
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
                 }
                 console.error(srv.name, srv.error)
@@ -268,20 +272,19 @@ const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|a
 const isLinkLocal = makeNetMatcher('169.254.0.0/16|FE80::/16')
 
 export async function getIps(external=true) {
-    const ips = onlyTruthy(Object.entries(networkInterfaces()).map(([name, nets]) =>
+    const ips = onlyTruthy(Object.entries(networkInterfaces()).flatMap(([name, nets]) =>
         nets && !ignore.test(name) && nets.map(net => !net.internal && net.address)
-    ).flat())
+    ))
     const e = external && defaultBaseUrl.externalIp
     if (e && !ips.includes(e))
-        ips.unshift(e)
+        ips.push(e)
     const noLinkLocal = ips.filter(x => !isLinkLocal(x))
-    const ret = v4first(noLinkLocal.length ? noLinkLocal : ips)
-    defaultBaseUrl.localIp = ret[0] || ''
+    const ret = _.sortBy(noLinkLocal.length ? noLinkLocal : ips, [
+        x => x !== defaultBaseUrl.localIp, // use the "nat" info to put best ip first
+        isIPv6 // false=IPV4 comes first
+    ])
+    defaultBaseUrl.localIp ||= ret[0] || ''
     return ret
-
-    function v4first(a: string[]) {
-        return _.sortBy(a, isIPv6) // works because `false` comes first
-    }
 }
 
 export async function getUrls() {

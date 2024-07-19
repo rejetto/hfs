@@ -7,12 +7,12 @@ import { createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useC
     ForwardedRef, useState, useMemo } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
-import { formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_ } from './misc'
+import { anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_ } from './misc'
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { LoadingButton } from '@mui/lab'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink, LinkProps as RouterLinkProps, useNavigate } from 'react-router-dom'
 import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import _ from 'lodash'
 import { ALL as COUNTRIES } from './countries'
@@ -117,11 +117,11 @@ function useRefPass<T=unknown>(forwarded: ForwardedRef<any>) {
     })
 }
 
-interface IconBtnProps extends Omit<BtnProps, 'icon' | 'children'> { icon: SvgIconComponent }
+export interface IconBtnProps extends Omit<BtnProps, 'icon' | 'children'> { icon: SvgIconComponent }
 export const IconBtn = forwardRef((props: IconBtnProps, ref: ForwardedRef<HTMLButtonElement>) =>
     h(Btn, { ref, ...props }))
 
-interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
+export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
     icon?: SvgIconComponent
     title?: ReactNode
     disabled?: boolean | string
@@ -197,13 +197,23 @@ export function iconTooltip(icon: SvgIconComponent, tooltip: ReactNode, sx?: SxP
     return hTooltip(tooltip, undefined, h(icon, { sx, ...props }) )
 }
 
-export function InLink(props:any) {
+// link for internal navigation
+export function InLink({ ...props }: LinkProps & RouterLinkProps) {
+    // make links inside dialogs work correctly
+    const nav = useNavigate()
+    props.onClickCapture = async ev => {
+        ev.preventDefault()
+        while (anyDialogOpen())
+            await closeDialog()?.closed
+        nav(props.to)
+    }
     return h(Link, { component: RouterLink, ...props })
 }
 
 export const Center = forwardRef((props: BoxProps, ref) =>
     h(Box, { ref, display:'flex', height:'100%', width:'100%', justifyContent:'center', alignItems:'center',  flexDirection: 'column', ...props }))
 
+// looks like a link, but it's a button
 export function LinkBtn({ ...rest }: LinkProps) {
     return h(Link, {
         ...rest,
@@ -271,6 +281,7 @@ async function ip2countryBatch(ips: string[]) {
 export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
     return h(Tooltip, { title, children,
         ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel },
+        componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } },
         ...props
     })
 }

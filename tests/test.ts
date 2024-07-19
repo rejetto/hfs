@@ -1,5 +1,5 @@
 import { srpClientSequence } from '../src/srp'
-import { createReadStream } from 'fs'
+import { createReadStream, statSync } from 'fs'
 import { dirname, join } from 'path'
 import _ from 'lodash'
 import { findDefined, randomId, tryJson, wait } from '../src/cross'
@@ -18,9 +18,11 @@ const appStarted = new Promise(resolve =>
 const username = 'rejetto'
 const password = 'password'
 const API = '/~/api/'
+const ROOT = 'tests/'
 const BASE_URL = 'http://localhost:81'
 const UPLOAD_ROOT = '/for-admins/upload/'
-const UPLOAD_DEST = UPLOAD_ROOT + 'temp/gpl.png'
+const UPLOAD_RELATIVE = 'temp/gpl.png'
+const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to saturate buffers
 const throttle = BIG_CONTENT.length /1000 /0.5 // KB, finish in 0.5s, quick but still overlapping downloads
 
@@ -44,7 +46,7 @@ describe('basics', () => {
     it('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
     it('name encoding', req('/x%25%23x', 200))
 
-    it('missing perm', req('/for-admins/', 401))
+    it('missing perm', reqList('/for-admins/', 401))
     it('missing perm.file', req('/for-admins/alfa.txt', 401))
 
     it('forbidden list', req('/cantListPage/page/', 403))
@@ -108,9 +110,10 @@ describe('basics', () => {
 
     it('upload.need account', reqUpload( UPLOAD_DEST, 401))
     it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
-    it('delete.no perm', reqApi('delete', { uri: '/for-admins' }, 403))
-    it('delete.need account', reqApi('delete', { uri: '/for-admins/upload' }, 401))
-    it('rename.no perm', reqApi('delete', { uri: '/for-admins', dest: 'any' }, 403))
+    it('delete.no perm', reqApi('delete', { uri: '/for-admins/' }, 405))
+    it('delete.need account', reqApi('delete', { uri: UPLOAD_ROOT }, 401))
+    it('delete.need account.method', req(UPLOAD_ROOT, 401, { method: 'DELETE' }))
+    it('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
     it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
 })
 
@@ -121,7 +124,7 @@ describe('accounts', () => {
 })
 
 describe('limits', () => {
-    const fn = 'tests/big'
+    const fn = ROOT + 'big'
     before(() => writeFile(fn, BIG_CONTENT))
     it('max_dl', () => testMaxDl('/' + fn, 1, 2))
     after(() => rm(fn))
@@ -135,11 +138,36 @@ describe('after-login', () => {
     it('upload.never', reqUpload('/random', 403))
     it('upload.ok', reqUpload(UPLOAD_DEST, 200))
     it('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 418))
+    it('upload.overlap', async () => {
+        const seconds = .3
+        const throttled = Readable.from(BIG_CONTENT).pipe(new ThrottledStream(new ThrottleGroup(BIG_CONTENT.length / 1000 / seconds)))
+        const first = reqUpload(UPLOAD_DEST, 200, throttled, BIG_CONTENT.length)()
+        await wait(100)
+        await reqUpload(UPLOAD_DEST, 409)() // should conflict
+        await first
+    })
     const renameTo = 'z'
     it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
     it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
     it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_DEST) + '/' + renameTo }, 200))
+    it('reupload', reqUpload(UPLOAD_DEST, 200))
+    it('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
     it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
+    it('upload.size', async () => {
+        const fn = 'temp/size'
+        await reqUpload(UPLOAD_ROOT + fn, 200, BIG_CONTENT)()
+        const { size } = statSync(ROOT + fn)
+        if (size !== BIG_CONTENT.length)
+            throw Error(`wrote ${size}`)
+    })
+    it('upload.too much', async () => {
+        const fn = 'temp/tooMuch'
+        const wrongSize = BIG_CONTENT.length / 2
+        await reqUpload(UPLOAD_ROOT + fn, 200, BIG_CONTENT, wrongSize)()
+        const { size } = statSync(ROOT + fn)
+        if (size !== wrongSize)
+            throw Error(`wrote ${size}`)
+    })
     it('max_dl.account', async () => {
         const uri = UPLOAD_ROOT + 'temp/big'
         await reqUpload(uri, 200, BIG_CONTENT)()
@@ -154,10 +182,12 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function reqUpload(dest: string, tester: Tester, body?: Readable | string) {
+function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number) {
+    const fn = join(__dirname, 'page/gpl.png')
     return req(dest, tester, {
         method: 'PUT',
-        body: body ?? createReadStream(join(__dirname, 'page/gpl.png'))
+        headers: { 'content-length': size ?? (body as any)?.length ?? statSync(fn).size }, // it's ok that Readable.length is undefined
+        body: body ?? createReadStream(fn)
     })
 }
 

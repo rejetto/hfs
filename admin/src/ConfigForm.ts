@@ -4,25 +4,30 @@ import { createElement as h, useEffect, useState, Dispatch } from 'react'
 import _ from 'lodash'
 import { IconBtn, modifiedProps } from './mui'
 import { RestartAlt } from '@mui/icons-material'
-import { Callback } from '../../src/cross'
+import { Callback, onlyTruthy } from '../../src/cross'
 
 type FormRest<T> = Omit<FormProps<T>, 'values' | 'set' | 'save'> & Partial<Pick<FormProps<T>, 'save'>>
 export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }: Partial<FormRest<T>> & {
-    keys: (keyof T)[],
+    keys?: (keyof T)[],
     form: FormRest<T> | ((values: T, optional: { setValues: Dispatch<T> }) => FormRest<T>),
     onSave?: Callback,
     saveOnChange?: boolean
 }) {
-    const config = useApiEx('get_config', { only: keys })
+    const [keys_, setKeys_] = useState(keys)
+    const config = useApiEx(keys_ && 'get_config', { only: keys_ })
     const [values, setValues] = useState<any>(config.data)
     useEffect(() => setValues((v: any) => config.data || v), [config.data])
     const modified = values && !_.isEqual(values, config.data)
     useEffect(() => {
         if (modified && saveOnChange) save()
     }, [modified])
+    const formProps = _.isFunction(form) ? form(values, { setValues }) : form
+    useEffect(() => {
+        if (!keys) // autodetect keys
+            setKeys_(onlyTruthy(formProps.fields.map(x => (x as any)?.k)))
+    }, [keys])
     if (!values)
         return config.element
-    const formProps = _.isFunction(form) ? form(values, { setValues }) : form
     return h(Form, {
         values,
         set(v, k) {
@@ -32,7 +37,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
             onClick: save,
             ...modifiedProps(modified),
         },
-        ...Array.isArray(formProps) ? { fields: formProps } : formProps,
+        ...formProps,
         ...rest,
         barSx: { gap: 1, ...rest.barSx },
         addToBar: [

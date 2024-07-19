@@ -1,7 +1,7 @@
 {
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
-    "version": 2.1,
-    "hfs_version": "0.52.0",
+    "version": 2.2,
+    "hfs_version": "0.53.0",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
@@ -53,7 +53,7 @@
         "Search was interrupted": "Tìm kiếm bị gián đoạn!",
         "Stop list": "DỪNG",
 
-        "upload_starting": "Tải lên bây giờ sẽ bắt đầu",
+        "download_starting": "Tải lên bây giờ sẽ bắt đầu",
         "wrong_account": "Tài khoản {u} ko có quyền, chọn tk khác đi:)",
         "no_upload_here": "Không có quyền tải lên cho thư mục hiện tại",
         "Create folder": "Tạo thư mục",
@@ -141,15 +141,15 @@
         "enter_comment": "Comment của file",
         "Comment": "Comment",
         "upload_dd_hint": "Có thể up file = cách thả lên màn hình",
-        "Upload not available": "Upload còn đang fix",
+        "Upload not available": "Upload không có sẵn",
         "Cut": "Cắt",
         "good_bad": "{good} đã di chuyển, {bad} thất bại",
         "after_cut": "Cái đã chọn đã lưu trong clipboard.\nTới folder khác để dán.",
         "Cancel clipboard": "Bỏ clipboard",
         "to_clipboard_source": "Quay lại thư mục nguồn",
         "Paste": "Dán",
-        "clipboard_list": "Clipboard:",
-        
+        "clipboard_list": "Clipboard: ",
+
         "Close": "Đóng",
         "Folder": "Thư mục",
         "Web page": "Trang web",
@@ -161,12 +161,20 @@
         "go_last": "Tới sau",
         "Shuffle": "Ngẫu nhiên",
         "Repeat": "Lặp",
-        "showHelpListShortcut": "Ở file list, giữ {key} để Hiện nhanh chóng",
+        "showHelpListShortcut": "Ở danh sách file, giữ {key} để hiển thị nhanh chóng",
         "Invalid value": "🤷 what u think something in ur freakin' brain?",
         "upload_skipped": "{n} đã bỏ qua",
         "Overwrite policy": "Chính sách ghi đè",
         "Rename to avoid overwriting": "Đổi tên để tránh ghi đè file có sẳn",
         "Overwrite existing files": "Ghi đè file có sẳn",
-        "Menu": "Menu"
+        "Menu": "Menu",
+
+        "clipboard": "Clipboard: {content} file/folder bên trong",
+        "to_clipboard_source_tooltip": "Trở về thư mục của các file/folder trong clipboard đã thuộc về",
+        "more_items": "Còn thêm {n} file/folder nữa...",
+        "Show details": "Chi tiết",
+        "upload_conflict": "đang tồn tại",
+        "Logged in": "Đã đăng nhập!",
+        "Logged out": "Đã đăng xuất!"
     }
 }

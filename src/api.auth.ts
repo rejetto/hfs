@@ -8,6 +8,7 @@ import { ctxAdminAccess } from './adminApis'
 import { sessionDuration } from './middlewares'
 import { getCurrentUsername, setLoggedIn, srpStep1 } from './auth'
 import { defineConfig } from './config'
+import events from './events'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 const keepSessionAlive = defineConfig('keep_session_alive', true)
@@ -18,6 +19,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     const account = getAccount(username)
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
+    await events.emitAsync('attemptingLogin', ctx)
     if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
         ctx.logExtra({ u: username })
         ctx.state.dontLog = false // log even if log_api is false
@@ -28,7 +30,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
         const sid = Math.random()
         ongoingLogins[sid] = step1
         setTimeout(()=> delete ongoingLogins[sid], 60_000)
-        ctx.session.loggingIn = { username, sid }
+        ctx.session.loggingIn = { username, sid } // temporarily store until process is complete
         return rest
     }
     catch (code: any) {
@@ -42,13 +44,13 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     if (!ctx.session.loggingIn)
         return new ApiError(HTTP_CONFLICT)
     const { username, sid } = ctx.session.loggingIn
+    delete ctx.session.loggingIn
     const step1 = ongoingLogins[sid]
     if (!step1)
         return new ApiError(HTTP_NOT_FOUND)
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
         await setLoggedIn(ctx, username)
-        delete ctx.session.loggingIn
         return {
             proof: String(M2),
             redirect: ctx.state.account?.redirect,
@@ -65,6 +67,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     }
 }
 
+// this api is here for consistency, but frontend is actually using
 export const logout: ApiHandler = async ({}, ctx) => {
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)

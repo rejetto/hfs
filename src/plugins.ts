@@ -7,18 +7,24 @@ import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, IS_WINDO
     PLUGINS_PUB_URI } from './const'
 import * as Const from './const'
 import Koa from 'koa'
-import { adjustStaticPathForGlob, Callback, debounceAsync, Dict, getOrSet, onlyTruthy, onProcessExit,
-    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir } from './misc'
+import {
+    adjustStaticPathForGlob, callable, Callback, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
+    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir
+} from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
-import { mkdir, readFile } from 'fs/promises'
+import { mkdir, readFile, rename } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
 import { watchLoadCustomHtml } from './customHtml'
+import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
+import { onProcessExit } from './first'
+import { notifyClient } from './frontEndApis'
+import { app } from './index'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -53,6 +59,8 @@ export async function stopPlugin(id: string) {
 }
 
 export async function startPlugin(id: string) {
+    if (getPluginInfo(id)?.isTheme)
+        await Promise.all(mapPlugins((pl, id) => pl.isTheme && stopPlugin(id)))
     enablePlugin(id)
     await waitRunning(id)
 }
@@ -67,11 +75,11 @@ async function waitRunning(id: string, state=true) {
 }
 
 // nullish values are equivalent to defaultValues
-export function setPluginConfig(id: string, changes: Dict) {
+export function setPluginConfig(id: string, changes: Dict | null) {
     pluginsConfig.set(allConfigs => {
         const fields = getPluginConfigFields(id)
         const oldConfig = allConfigs[id]
-        const newConfig = _.pickBy({ ...oldConfig, ...changes },
+        const newConfig = changes && _.pickBy({ ...oldConfig, ...changes },
             (v, k) => v != null && !same(v, fields?.[k]?.defaultValue))
         return { ...allConfigs, [id]: _.isEmpty(newConfig) ? undefined : newConfig }
     })
@@ -95,7 +103,7 @@ export function getPluginConfigFields(id: string) {
     return plugins[id]?.getData().config
 }
 
-async function initPlugin<T>(pl: any, more?: T) {
+async function initPlugin<T>(pl: any, morePassedToInit?: T) {
     return Object.assign(pl, await pl.init?.({
         Const,
         require,
@@ -104,8 +112,16 @@ async function initPlugin<T>(pl: any, more?: T) {
         log: console.log,
         getHfsConfig: getConfig,
         customApiCall,
-        ...more
+        notifyClient,
+        ...morePassedToInit
     }))
+}
+
+const already = new Set()
+function warnOnce(msg: string) {
+    if (already.has(msg)) return
+    already.add(msg)
+    console.log('Warning: ' + msg)
 }
 
 export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
@@ -121,7 +137,11 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 lastStatus = ctx.status
                 lastBody = ctx.body
             }
-            if (res === true)
+            if (res === true && !ctx.isStopped) { // legacy pre-0.53
+                ctx.stop()
+                warnOnce(`plugin ${id} is using deprecated API (return true on middleware) and may not work with future versions (check for an update to "${id}")`)
+            }
+            if (ctx.isStopped)
                 console.debug("plugin blocked request", ctx.pluginBlockedRequest = id)
             if (typeof res === 'function')
                 after[id] = res
@@ -136,8 +156,11 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
         if (path.startsWith(PLUGINS_PUB_URI)) {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
             const name = a.shift()!
-            if (plugins.hasOwnProperty(name)) // do it only if the plugin is loaded
+            if (plugins.hasOwnProperty(name)) { // do it only if the plugin is loaded
+                if (ctx.get('referer')?.endsWith('/'))
+                    ctx.state.considerAsGui = true
                 await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), MIME_AUTO)
+            }
             return
         }
         if (ctx.body === undefined && ctx.status === HTTP_NOT_FOUND) // no response was provided by plugins, so we'll do
@@ -153,6 +176,16 @@ function printError(id: string, e: any) {
     console.debug(e)
 }
 
+declare module "koa" {
+    interface BaseContext {
+        stop(): void
+    }
+}
+events.once('app', () => Object.assign(app.context, {
+    isStopped: false,
+    stop() { return this.isStopped = true }
+}))
+
 // return false to ask to exclude this entry from results
 interface OnDirEntryParams { entry:DirEntry, ctx:Koa.Context, node:VfsNode }
 type OnDirEntry = (params:OnDirEntryParams) => void | false
@@ -160,7 +193,7 @@ type OnDirEntry = (params:OnDirEntryParams) => void | false
 export class Plugin implements CommonPluginInterface {
     started: Date | null = new Date()
 
-    constructor(readonly id:string, readonly folder:string, private readonly data:any, private unwatch:()=>void){
+    constructor(readonly id:string, readonly folder:string, private readonly data:any, private onUnload:()=>unknown){
         if (!data) throw 'invalid data'
 
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
@@ -179,6 +212,7 @@ export class Plugin implements CommonPluginInterface {
     get version(): undefined | number { return this.data?.version }
     get description(): undefined | string { return this.data?.description }
     get apiRequired(): undefined | number | [number,number] { return this.data?.apiRequired }
+    get isTheme(): undefined | boolean { return this.data?.isTheme }
     get repo(): undefined | Repo { return this.data?.repo }
     get depend(): undefined | Depend { return this.data?.depend }
 
@@ -203,28 +237,28 @@ export class Plugin implements CommonPluginInterface {
         if (!this.started) return
         this.started = null
         const { id } = this
-        try {
-            await this.data?.unload?.()
-            if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
-                console.log('unloaded plugin', id)
-        }
+        try { await this.data?.unload?.() }
         catch(e) {
             console.log('error unloading plugin', id, String(e))
         }
+        await this.onUnload()
+        if (!reloading && id !== SERVER_CODE_ID) // we already printed 'reloading'
+            console.log('unloaded plugin', id)
         if (this.data)
             this.data.unload = undefined
-        this.unwatch()
     }
 }
 
-const SERVER_CODE_ID = '.'
+export const SERVER_CODE_ID = '.' // a name that will surely be not found among plugin folders
 const serverCode = defineConfig('server_code', '', async (script, { k }) => {
     try { (await serverCode.compiled())?.unload() }
     catch {}
     const res: any = {}
     try {
         new Function('exports', script)(res) // parse
-        return new Plugin(SERVER_CODE_ID, '', await initPlugin(res), _.noop) // '.' is a name that will surely be not found among plugin folders
+        await initPlugin(res)
+        res.getCustomHtml = () => callable(res.customHtml) || {}
+        return new Plugin(SERVER_CODE_ID, '', res, _.noop)
     }
     catch (e: any) {
         return console.error(k + ':', e.message || String(e))
@@ -248,7 +282,7 @@ type PluginMiddleware = (ctx:Koa.Context) => Promisable<void | Stop | CallMeAfte
 type Stop = true
 type CallMeAfter = ()=>any
 
-export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string }
+export type Repo = string | { web?: string, main: string, zip?: string, zipRoot?: string } // string is github, object is custom
 type Depend = { repo: string, version?: number }[]
 export interface CommonPluginInterface {
     id: string
@@ -257,6 +291,8 @@ export interface CommonPluginInterface {
     apiRequired?: number | [number,number]
     repo?: Repo
     depend?: Depend
+    isTheme?: boolean | 'light' | 'dark'
+    preview?: string | string[]
 }
 export interface AvailablePlugin extends CommonPluginInterface {
     branch?: string
@@ -287,7 +323,7 @@ export async function rescan() {
     console.debug('scanning plugins')
     const patterns = [PATH + '/*']
     if (APP_PATH !== process.cwd())
-        patterns.push(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0])
+        patterns.unshift(adjustStaticPathForGlob(APP_PATH) + '/' + patterns[0]) // first search bundled plugins, because otherwise they won't be loaded because of the folders with same name in .hfs/plugins (used for storage)
     const met = []
     for (const { path, dirent } of await glob(patterns, { onlyFiles: false, suppressErrors: true, objectMode: true })) {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue
@@ -375,20 +411,33 @@ function watchPlugin(id: string, path: string) {
             deleteModule(require.resolve(module)) // avoid caching at next import
             calculateBadApi(pluginData)
             if (pluginData.badApi)
-                console.log("plugin", id, pluginData.badApi)
+                throw Error(pluginData.badApi)
 
             await alreadyRunning?.unload(true)
             console.debug("starting plugin", id)
-            const storageDir = resolve(module, '..', STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
+            const storageDir = resolve(PATH, id, STORAGE_FOLDER) + (IS_WINDOWS ? '\\' : '/')
+            if (!module.startsWith(process.cwd())) //legacy pre-0.53.0, bundled plugins' storageDir was not under cwd
+                await rename(resolve(module, '..', STORAGE_FOLDER), storageDir).catch(() => {})
             await mkdir(storageDir, { recursive: true })
+            const dbs: KvStorage[] = []
             await initPlugin(pluginData, {
                 srcDir: __dirname,
                 storageDir,
+                async openDb(filename: string, options?: KvStorageOptions){
+                    if (!filename) throw Error("missing filename")
+                    const db = new KvStorage(options)
+                    await db.open(join(storageDir, filename))
+                    dbs.push(db)
+                    return db
+                },
                 log(...args: any[]) {
                     console.log('plugin', id+':', ...args)
                 },
-                getConfig: (cfgKey: string) =>
-                    pluginsConfig.get()?.[id]?.[cfgKey] ?? pluginData.config?.[cfgKey]?.defaultValue,
+                getConfig(cfgKey?: string) {
+                    const cur = pluginsConfig.get()?.[id]
+                    return cfgKey ? cur?.[cfgKey] ?? pluginData.config?.[cfgKey]?.defaultValue
+                        : _.defaults(cur, objSameKeys(pluginData.config, x => x.defaultValue))
+                },
                 setConfig: (cfgKey: string, value: any) =>
                     setPluginConfig(id, { [cfgKey]: value }),
                 subscribeConfig(cfgKey: string, cb: Callback<any>) {
@@ -404,8 +453,14 @@ function watchPlugin(id: string, path: string) {
             })
             const folder = dirname(module)
             const { state, unwatch } = watchLoadCustomHtml(folder)
-            pluginData.customHtml = state
-            const plugin = new Plugin(id, folder, pluginData, unwatch)
+            pluginData.getCustomHtml = () =>
+                Object.assign(Object.fromEntries(state), callable(pluginData.customHtml) || {})
+
+            const plugin = new Plugin(id, folder, pluginData, async () => {
+                unwatch()
+                await Promise.allSettled(dbs.map(x => x.close()))
+                dbs.length = 0
+            })
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
@@ -417,7 +472,9 @@ function watchPlugin(id: string, path: string) {
             events.emit('pluginStarted:'+id)
         } catch (e: any) {
             await markItAvailable()
-            e = e.message || String(e)
+            const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
+            const where = parsed?.length > 1 ? `\n${parsed[0]}` : ''
+            e = e.message + where || String(e)
             console.log(`plugin error: ${id}:`, e)
             setError(id, e)
         }
@@ -475,7 +532,9 @@ export function parsePluginSource(id: string, source: string) {
     pl.repo = tryJson(/exports.repo *= *(.*);? *$/m.exec(source)?.[1])
     pl.version = Number(/exports.version *= *(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
     pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
-    pl.depend = tryJson(/exports.depend *= *(\[.*\])/m.exec(source)?.[1])?.filter((x: any) =>
+    pl.isTheme = tryJson(/exports.isTheme *= *(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
+    pl.preview = tryJson(/exports.preview *= *(.+)/.exec(source)?.[1]) ?? undefined
+    pl.depend = tryJson(/exports.depend *= *(\[.*])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("plugin dependency discarded", x) )
     if (Array.isArray(pl.apiRequired) && (pl.apiRequired.length !== 2 || !pl.apiRequired.every(_.isFinite))) // validate [from,to] form

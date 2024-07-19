@@ -8,7 +8,9 @@ import { domOn, isPrimitive, objSameKeys, wait } from '.'
 export interface DialogOptions {
     Content: FunctionComponent<any>,
     closable?: boolean,
-    onClose?: (v?:any)=> any,
+    onClose?: (v?: any) => any,
+    closingValue?: any,
+    closed?: Promise<void>
     className?: string,
     icon?: string | ReactNode | FunctionComponent,
     closableProps?: any,
@@ -56,9 +58,11 @@ function tabCycle(target: EventTarget | null, invert=false) {
     return true
 }
 
-function isDescendant(child: Node | null, parent: Node) {
+export function isDescendant(child: Node | null | undefined, parentMatch: Node | null | undefined | ((child: Node) => boolean)) {
+    if (!parentMatch) return false
+    const fun = typeof parentMatch === 'function'
     while (child) {
-        if (child === parent)
+        if (fun ? parentMatch(child) : child === parentMatch)
             return true
         child = child.parentNode
     }
@@ -68,7 +72,12 @@ function isDescendant(child: Node | null, parent: Node) {
 let ignorePopState = false
 function back() {
     ignorePopState = true
+    let was = history.state
     history.back()
+    return new Promise<void>(res => {
+        const h = setInterval(() => was !== history.state && res() , 10)
+        setTimeout(() => clearTimeout(h), 500)
+    })
 }
 
 ;(async () => {
@@ -82,6 +91,7 @@ export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
     useEffect(() => domOn('popstate', () => {
         if (ignorePopState)
             return ignorePopState = false
+        if (!history.state) return
         const { $dialog } = history.state
         if ($dialog && !dialogs.find(x => x.$id === $dialog)) // it happens if the user, after closing a dialog, goes forward in the history
             return back()
@@ -178,8 +188,9 @@ export function newDialog(options: DialogOptions) {
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
     options.$opening = setTimeout(() => { // in case dialogs were just closed, account for window.history delay. This should be harmless as ux is unaffected, and programmatically you already didn't expect this to happen immediately but at state change
         dialogs.push(options)
+        options = dialogs[dialogs.length - 1] // replace with proxy object, to stay in sync with its changes
         if (options.closable !== false)
-            history.pushState({ $dialog: $id, ts, idx: history.state.idx + 1 }, '')
+            history.pushState({ $dialog: $id, ts, idx: 1 + (history.state?.idx || 0) }, '')
     }, 10) // 10 for firefox, chrome125 seems to be ok with 1
     return { close }
 
@@ -187,9 +198,10 @@ export function newDialog(options: DialogOptions) {
         clearTimeout(options.$opening) // in case it was not open yet
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
-        if (history.state.$dialog === $id)
-            back()
-        return closeDialogAt(i, v)
+        if (history.state?.$dialog === $id)
+            options.closed = back()
+        closeDialogAt(i, v)
+        return options
     }
 }
 
@@ -202,7 +214,7 @@ export function closeDialog(v?:any, skipHistory=false) {
             continue
         if (!skipHistory) {
             if (history.state.$dialog !== d.$id) return
-            back()
+            d.closed = back()
         }
         closeDialogAt(i, v)
         return d
@@ -212,7 +224,9 @@ export function closeDialog(v?:any, skipHistory=false) {
 function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
     ;(focusBak.pop() as any)?.focus?.() // if element is not HTMLElement, it doesn't have focus method
-    return d?.onClose?.(value)
+    d.closingValue = value
+    d?.onClose?.(value)
+    return d
 }
 
 export function anyDialogOpen() {

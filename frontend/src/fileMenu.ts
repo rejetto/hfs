@@ -1,17 +1,20 @@
 import { t, useI18N } from './i18n'
-import { dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode } from './misc'
+import {
+    dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
+    pathEncode, closeDialog, anyDialogOpen
+} from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
 import { DirEntry, state } from './state'
 import { deleteFiles } from './menu'
-import { Link } from 'react-router-dom'
+import { Link, LinkProps } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
 import { alertDialog, promptDialog } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
 import { inputComment } from './upload'
 import { cut } from './clip'
+import { loginDialog } from './login'
 
 interface FileMenuEntry {
     id?: string
@@ -27,15 +30,24 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
     const { uri, isFolder, s } = entry
     const canRead = !entry.p?.includes('r')
     const canArchive = entry.p?.includes('A') || state.props?.can_archive && !entry.p?.includes('a')
-    const cantDownload = entry.cantOpen || isFolder && !(canRead && canArchive) // folders needs list+read+archive
+    const canList = !entry.p?.match(/L/i)
+    const forbidden = entry.cantOpen === DirEntry.FORBIDDEN
+    const cantDownload = forbidden || isFolder && !(canRead && canArchive && canList) // folders needs list+read+archive
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
             if (x === 'open') {
-                if (entry.cantOpen) return
-                const open = { id: 'open', icon: 'play', label: t('file_open', "Open"), href: uri, target: isFolder || entry.web ? undefined : '_blank' }
-                return !isFolder ? open : h(Link, { to: uri, onClick: () => close() }, hIcon(open.icon), open.label)
+                if (forbidden) return
+                const open = {
+                    id: 'open',
+                    icon: 'play',
+                    label: t('file_open', "Open"),
+                    href: uri,
+                    target: isFolder || entry.web ? undefined : '_blank',
+                    onClick: makeOnClickOpen(entry)
+                }
+                return !isFolder || open.onClick ? open : h(LinkClosingDialog, { to: uri, reloadDocument: entry.web }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
                 return (state.props?.can_delete || entry.p?.includes('d')) && {
@@ -55,13 +67,22 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         }),
         state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
         state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
-        isFolder && !entry.web && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
+        isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ]
+    const folder = entry.n.slice(0, -entry.name.length - (entry.isFolder ? 2 : 1))
     const props = [
-        [t`Name`, entry.name],
-        typeof s === 'number' && [t`Size`, h(Fragment, {},
-            formatBytes(s), h('small', {}, prefix(' (', s > 1024 && s.toLocaleString(), ')')) ) ],
-        entry.t && [t`Timestamp`, entry.t.toLocaleString()],
+        { id: 'name', label: t`Name`, value: entry.name },
+        typeof s === 'number' && { id: 'size', label: t`Size`,
+            value: h(Fragment, {}, formatBytes(s), h('small', {}, prefix(' (', s > 1024 && s.toLocaleString(), ')')) ) },
+        entry.t && { id: 'timestamp', label: t`Timestamp`, value: entry.t.toLocaleString() },
+        folder && {
+            id: 'folder',
+            label: t`Folder`,
+            value: h(Link, {
+                to: (folder.startsWith('/') ? '' : location.pathname) + folder.split('/').map(encodeURIComponent).join('/') + '/',
+                onClick: () => closeDialog(null, true)
+            }, folder.replaceAll('/', ' / '))
+        },
     ]
     const res = hfsEvent('fileMenu', { entry, menu, props })
     if (res)
@@ -75,37 +96,38 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             : [ev.pageX, ev.pageY - scrollY] as [number, number],
         Content() {
             const {t} = useI18N()
-            const details = useApi('get_file_details', { uris: [entry.uri] }).data
+            const details = useApi('get_file_details', { uris: [entry.uri] }).data?.details?.[0]
             const showProps = [ ...props,
-                with_(details?.[0]?.upload, x => x && [ t`Uploader`, x.ip + prefix(' (', x.username, ')') ])
+                with_(details?.upload, x => x && { id: 'uploader', label: t`Uploader`, value: x.ip + prefix(' (', x.username, ')') })
             ]
             return h(Fragment, {},
                 h('dl', { className: 'file-dialog-properties' },
                     dontBotherWithKeys(showProps.map(prop => isValidElement(prop) ? prop
-                        : Array.isArray(prop) ? h(Fragment, {}, h('dt', {}, prop[0]), h('dd', {}, prop[1]))
+                        : _.isPlainObject(prop) ? h('div', { id: `menu-prop-${prop.id}` }, h('dt', {}, prop.label), h('dd', {}, prop.value))
                             : null
                     ))
                 ),
-                entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em' } }), t(MISSING_PERM)),
+                entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em', marginTop: '.5em' } }), t(MISSING_PERM)),
                 h('div', { className: 'file-menu' },
-                    dontBotherWithKeys(menu.map((e: FileMenuEntry, i) => // render menu entries
-                        isValidElement(e) ? e
-                            : e?.label && h('a', {
+                    dontBotherWithKeys(menu.map((entry: FileMenuEntry, i) => // render menu entries
+                        isValidElement(entry) ? entry
+                            : entry?.label && h('a', {
                                 key: i,
                                 href: '#',
-                                ..._.omit(e, ['label', 'icon', 'toggled']),
-                                className: e.toggled ? 'toggled' : undefined,
-                                async onClick(event: MouseEvent) {
-                                    if (!e.href)
-                                        event.preventDefault()
-                                    if (false !== await e.onClick?.(event))
+                                ..._.omit(entry, ['label', 'icon', 'toggled']),
+                                id: entry.id && `menu-entry-${entry.id}`,
+                                className: entry.toggled ? 'toggled' : undefined,
+                                async onClick(ev: MouseEvent) {
+                                    if (!entry.href)
+                                        ev.preventDefault()
+                                    if (false !== await entry.onClick?.(ev))
                                         close()
                                 }
                             },
-                                hIcon(e.icon || 'file'),
+                                hIcon(entry.icon || 'file'),
                                 h('label', { style: { display: 'flex', flexDirection: 'column' } },
-                                    h('div', {}, e.label),
-                                    h('small', {}, e.subLabel) )
+                                    h('div', {}, entry.label),
+                                    h('small', {}, entry.subLabel) )
                             )
                     ))
                 )
@@ -115,7 +137,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
 }
 
 async function rename(entry: DirEntry) {
-    const dest = await promptDialog(t`Name`, { def: entry.name, title: t`Rename` })
+    const dest = await promptDialog(t`Name`, { value: entry.name, title: t`Rename` })
     if (!dest) return
     try {
         const { n, uri } = entry
@@ -152,4 +174,29 @@ async function editComment(entry: DirEntry) {
 
 function updateEntry(entry: DirEntry, cb: (e: DirEntry) => unknown) {
     cb(_.find(state.list, { n: entry.n })!)
+}
+
+export function LinkClosingDialog(props: LinkProps) {
+    return h(Link, props.reloadDocument ? props : {
+        ...props,
+        to: '', // workaround to get dialogs and browser-history work correctly
+        async onClick(ev) {
+            ev.preventDefault()
+            while (anyDialogOpen())
+                await closeDialog()?.closed
+            getHFS().navigate(props.to)
+        }
+    })
+}
+
+export function makeOnClickOpen(entry: DirEntry) {
+    return !entry.cantOpen ? undefined : async (ev: any) => {
+        ev.preventDefault()
+        if (entry.cantOpen === DirEntry.FORBIDDEN)
+            return alertDialog(t`Forbidden`, 'warning')
+        if (!await loginDialog(true, false)) return
+        if (entry.isFolder && !entry.web) // internal navigation
+            return setTimeout(() => getHFS().navigate(entry.uri)) // couldn't find the reason why navigating sync is reverted back
+        location.href = entry.uri
+    }
 }

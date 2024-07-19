@@ -92,7 +92,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                         !isRoot && !node.source && !node.url && iconTooltip(Cloud, "Virtual (no source)"),
                         isRestricted(node.can_see) && iconTooltip(RemoveRedEye, "Restrictions on who can see"),
                         isRestricted(node.can_read) && iconTooltip(Lock, "Restrictions on who can download"),
-                        node.default && iconTooltip(Web, "Act as website"),
+                        node.default && iconTooltip(Web, "Show as web-page"),
                         node.masks && iconTooltip(TheaterComedy, "Masks"),
                         node.size === -1 && iconTooltip(HighlightOff, "Source not found"),
                         with_(_.findKey(statusApi.data?.roots, root => root === id.slice(1)), host =>
@@ -105,7 +105,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                     const rel = ps && source?.startsWith(ps) ? '.' + source.slice(ps.length) : source
                     return !rel || !source?.endsWith(name) || rel.length > 45 ? name
                         : h('span', {},
-                            h('span', { style: { opacity: .4 } }, rel.slice(0,-name.length)),
+                            h('span', { style: { opacity: .4, fontSize: 'small' } }, rel.slice(0,-name.length)),
                             rel.slice(-name.length),
                         )
                 })()

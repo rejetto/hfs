@@ -2,13 +2,14 @@
 
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Dict, EventEmitter, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait } from '.'
+import { Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait,
+    buildUrlQueryString, } from '.'
+import { BetterEventEmitter } from '../src/events'
 
 export const API_URL = '/~/api/'
 
 const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute
-    update: 600, // download can be lengthy
     get_status: 20, // can be lengthy on slow machines because of the find-process-on-busy-port feature
 }
 
@@ -36,7 +37,8 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         controller.abort(aborted = 'timeout')
         console.debug('API TIMEOUT', cmd, params??'')
     }, ms)
-    return Object.assign(fetch(getPrefixUrl() + API_URL + cmd, {
+    const l = location // rebuilding the whole url makes it resistant to url-with-credentials
+    return Object.assign(fetch(`${l.protocol}//${l.host}${getPrefixUrl()}${API_URL}${cmd}`, {
         method: options.method || 'POST',
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         signal: controller.signal,
@@ -112,9 +114,9 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         setForcer(v => v + 1)
         reloadingRef.current = pendingPromise()
     }, [setForcer])
-    const ee = useMemo(() => new EventEmitter, [])
-    const sub = useCallback((cb: EventListener) => ee.on('data', cb), [])
-    useEffect(() => ee.emit('data'), [data])
+    const ee = useMemo(() => new BetterEventEmitter, [])
+    const sub = useCallback((cb: Callback) => ee.on('data', cb), [])
+    useEffect(() => { ee.emit('data') }, [data])
     return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current,  }
 }
 
@@ -123,7 +125,7 @@ type EventHandler = (type:string, data?:any) => void
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     params = _.omitBy(params, _.isUndefined)
     console.debug('API EVENTS', cmd, params)
-    const source = new EventSource(getPrefixUrl() + API_URL + cmd + '?' + new URLSearchParams(params))
+    const source = new EventSource(getPrefixUrl() + API_URL + cmd + buildUrlQueryString(params))
     source.onopen = () => cb('connected')
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {
@@ -171,7 +173,7 @@ export function useApiEvents<T=any>(cmd: string, params: Dict={}) {
     return { data, loading, error }
 }
 
-export async function getNotification(channel: string, cb: (name: string, data:any) => void): Promise<EventSource> {
+export async function getNotifications(channel: string, cb: (name: string, data:any) => void): Promise<EventSource> {
     return new Promise(resolve => {
         const ret = apiEvents('get_notifications', { channel }, (type, entries) => {
             if (type === 'connected')
