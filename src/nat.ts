@@ -63,13 +63,13 @@ export const getPublicIps = debounceAsync(async () => {
 }, { retain: 10 * MINUTE })
 
 export const getNatInfo = debounceAsync(async () => {
+    const gatewayIpPromise = findGateway().catch(() => undefined)
     const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
     console.debug('mappings found', mappings?.map(x => x.description))
-    const gatewayIp = res && try_(() => new URL(res.gateway.description).hostname, () => console.debug('unexpected upnp gw', res.gateway?.description))
-        || await findGateway().catch(() => undefined)
     const localIps = await getIps(false)
+    const gatewayIp = await gatewayIpPromise
     const localIp = res?.address || gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp!)) : localIps[0]
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
