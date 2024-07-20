@@ -87,42 +87,37 @@ export default function HomePage() {
         !updates && with_(status.autoCheckUpdateResult, x => x?.isNewer && h(Update, { info: x, bodyCollapsed: true, title: "An update has been found" })),
         pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
         h(ConfigForm, {
-            gridProps: { sx: { columns: '13em 2', gap: 0, display: 'block', mt: 0, '&>div.MuiGrid-item': { pt: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
+            gridProps: { sx: { columns: '13em 3', gap: 0, display: 'block', mt: 0, '&>div.MuiGrid-item': { pt: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
             saveOnChange: true,
             form: { fields: [
-                    { k: 'auto_check_update', comp: CheckboxField, label: "Check updates daily" },
+                    status.updatePossible === 'local' ? h(Btn, { icon: UpdateIcon, onClick: () => update() }, "Update from local file")
+                        : !updates && h(Btn, {
+                            variant: 'outlined',
+                            icon: UpdateIcon,
+                            onClick() {
+                                apiCall('wait_project_info').then(reloadStatus)
+                                setCheckPlugins(true) // this only happens once, actually (until you change page)
+                                return apiCall<typeof adminApis.check_update>('check_update').then(x => setUpdates(x.options), alertDialog)
+                            },
+                            async onContextMenu(ev) {
+                                ev.preventDefault()
+                                if (!status.updatePossible)
+                                    return alertDialog("Automatic update is only for binary versions", 'warning')
+                                const res = await promptDialog("Enter a link to the zip to install")
+                                if (res)
+                                    await update(res)
+                            },
+                            title: status.updatePossible && "Right-click if you want to install a zip",
+                        }, "Check for updates"),
+                    { k: 'auto_check_update', comp: CheckboxField, label: "Auto check updates daily" },
                     { k: 'update_to_beta', comp: CheckboxField, label: "Include beta versions" },
                 ] }
         }),
-        status.updatePossible === 'local' ? h(Btn, {
-                icon: UpdateIcon,
-                onClick: () => update()
-            }, "Update from local file")
-            : !updates ? h(Flex, { flexWrap: 'wrap' },
-                h(Btn, {
-                    variant: 'outlined',
-                    icon: UpdateIcon,
-                    onClick() {
-                        apiCall('wait_project_info').then(reloadStatus)
-                        setCheckPlugins(true) // this only happens once, actually (until you change page)
-                        return apiCall<typeof adminApis.check_update>('check_update').then(x => setUpdates(x.options), alertDialog)
-                    },
-                    async onContextMenu(ev) {
-                        ev.preventDefault()
-                        if (!status.updatePossible)
-                            return alertDialog("Automatic update is only for binary versions", 'warning')
-                        const res = await promptDialog("Enter a link to the zip to install")
-                        if (res)
-                            await update(res)
-                    },
-                    title: status.updatePossible && "Right-click if you want to install a zip",
-                }, "Check for updates"),
-            )
-            : with_(_.find(updates, 'isNewer'), newer =>
-                !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
-                    : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
-                        : h(Flex, { vert: true },
-                            updates.map((x: any) => h(Update, { info: x })) )),
+        updates && with_(_.find(updates, 'isNewer'), newer =>
+            !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
+                : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
+                    : h(Flex, { vert: true },
+                        updates.map((x: any) => h(Update, { info: x })) )),
         h(SwitchThemeBtn, { variant: 'outlined' }),
     )
 }
