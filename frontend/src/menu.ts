@@ -18,7 +18,7 @@ import { apiCall } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { t, useI18N } from './i18n'
 import { cut } from './clip'
-import { Btn, BtnProps, CustomCode, iconBtn } from './components'
+import { Btn, BtnProps, CustomCode } from './components'
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props, searchOptions } = useSnapState()

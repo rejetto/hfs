@@ -6,7 +6,7 @@ import { SRPServerSessionStep1 } from 'tssrp6a'
 import { ADMIN_URI, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { ctxAdminAccess } from './adminApis'
 import { sessionDuration } from './middlewares'
-import { getCurrentUsername, setLoggedIn, srpStep1 } from './auth'
+import { getCurrentUsername, setLoggedIn, srpServerStep1 } from './auth'
 import { defineConfig } from './config'
 import events from './events'
 
@@ -26,9 +26,9 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
         return new ApiError(HTTP_UNAUTHORIZED)
     }
     try {
-        const { step1, ...rest } = await srpStep1(account)
+        const { srpServer, ...rest } = await srpServerStep1(account)
         const sid = Math.random()
-        ongoingLogins[sid] = step1
+        ongoingLogins[sid] = srpServer
         setTimeout(()=> delete ongoingLogins[sid], 60_000)
         ctx.session.loggingIn = { username, sid } // temporarily store until process is complete
         return rest

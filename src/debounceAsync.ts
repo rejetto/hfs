@@ -15,7 +15,7 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
         retain?: number,
         // for how long do you want to cache last failure value, and return that at next invocation?
         retainFailure?: number,
-        // should we offer a cancel method to the returned function?
+        // should we offer a cancel method to the returned function? if we do, the awaited-type will include undefined
         cancelable?: Cancelable
     } = {}
 ) {

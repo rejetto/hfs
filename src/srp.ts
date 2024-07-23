@@ -13,7 +13,7 @@ export async function srpClientSequence(username:string, password:string, apiCal
 
 export async function srpClientPart(username: string, password: string, salt: string, pubKey: string) {
     const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-    const srp = new SRPClientSession(srp6aNimbusRoutines);
-    const res = await srp.step1(username, password)
+    const srpClient = new SRPClientSession(srp6aNimbusRoutines);
+    const res = await srpClient.step1(username, password)
     return await res.step2(BigInt(salt), BigInt(pubKey))
 }
