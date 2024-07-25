@@ -35,7 +35,7 @@
         "filter_none": "Ko có gì để lọc",
 
         "Admin-panel": "Admin-panel",
-        "Login": "Đăng nhập nàh",
+        "Login": "Đăng nhập",
         "Username": "Username",
         "Password": "Password",
         "login_untrusted": "Đăng nhập bị hủy bỏ: danh tính máy chủ không tin cậy",
@@ -47,7 +47,7 @@
         "enter_pass2": "NHẬP LẠI pass mới (giống nha)",
         "pass2_mismatch": "Mật khẩu ghi lại SAI, tiến trình bị hủy bỏ.",
         "password_changed": "Đã đổi pass thành công",
-        "Logout": "Đăng xuất nàh",
+        "Logout": "Đăng xuất",
         "connection error": "Lỗi kết nối",
         "Full timestamp:": "Dấu thời gian đầy đủ:",
         "Search was interrupted": "Tìm kiếm bị gián đoạn!",
@@ -79,8 +79,8 @@
         "Numeric names": "Tên số",
         "theme:": "Màu:",
         "auto": "Auto",
-        "light": "SÁNG NHƯ CỦA ĐẢNG",
-        "dark": "Dark bủh lmao",
+        "light": "Trắng Như Ngọc Trinh",
+        "dark": "Đen Như Bao Công",
         "parent folder": "Trở về thư mục trước",
         "home": "Trang chủ",
 
@@ -122,7 +122,7 @@
         "off": "Tắt",
         "Operation successful": "Thành công",
         "Uploader": "Người upload",
-        "Switch zoom mode": "Chuyển qua mode zoom",
+        "Switch zoom mode": "Chuyển qua mode Zoom",
         "Full screen": "Full màn",
 
         "File Show help": "File Show help",
