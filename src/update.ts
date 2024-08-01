@@ -4,7 +4,7 @@ import { getProjectInfo, getRepoInfo } from './github'
 import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { DAY, MINUTE, exists, debounceAsync, httpStream, unzip, prefix, xlate } from './misc'
+import { DAY, exists, debounceAsync, httpStream, unzip, prefix, xlate, HOUR } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, stat } from 'fs/promises'
@@ -33,11 +33,14 @@ setInterval(debounceAsync(async () => {
     if (!autoCheckUpdate.get()) return
     if (Date.now() < lastCheckUpdate.get() + AUTO_CHECK_EVERY) return
     console.log("checking for updates")
-    const u = (await getUpdates(true))[0]
-    if (u) console.log("new version available", u.name)
-    autoCheckUpdateResult.set(u)
-    lastCheckUpdate.set(Date.now())
-}), MINUTE / 30)
+    try {
+        const u = (await getUpdates(true))[0]
+        if (u) console.log("new version available", u.name)
+        autoCheckUpdateResult.set(u)
+        lastCheckUpdate.set(Date.now())
+    }
+    catch {}
+}), HOUR)
 
 export type Release = { // not using interface, as it will not work with kvstorage.Jsonable
     prerelease: boolean,
