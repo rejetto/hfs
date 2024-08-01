@@ -54,6 +54,9 @@ const apis: ApiHandlers = {
             catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, 'removeMapping failed: ' + String(e) ) }
         if (external) // must use the object form of 'public' to work around a bug of the library
             await upnpClient.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
+                .catch(res => {
+                    throw new ApiError(res.errorCode, res.errorCode === 718 ? "Port not available" : res.errorDescription)
+                })
         return {}
     },
 
