@@ -11,7 +11,7 @@ import { createInterface } from 'readline'
 import { getAvailablePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
-import { formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
+import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
 import apiMonitor from './api.monitor'
 
 if (!argv.updating)
@@ -30,8 +30,11 @@ if (!argv.updating)
 
 function parseCommandLine(line: string) {
     if (!line) return
-    const [name, ...params] = line.trim().split(/ +/)
-    const cmd = (commands as any)[name!]
+    let [name, ...params] = line.trim().split(/ +/)
+    name = aliases[name!] || name
+    let cmd = (commands as any)[name!]
+    if (cmd.alias)
+        cmd = (commands as any)[cmd.alias]
     if (!cmd)
         return console.error("cannot understand entered command, try 'help'")
     if (cmd.cb.length > params.length)
@@ -42,6 +45,10 @@ function parseCommandLine(line: string) {
                 throw err
             console.error("command failed:", err.message || err)
         })
+}
+
+const aliases: Dict<string> = {
+    exit: 'quit',
 }
 
 const commands = {
