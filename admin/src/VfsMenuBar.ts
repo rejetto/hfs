@@ -43,7 +43,7 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
     const isWindows = platform === 'win32'
     const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
     const sm = useBreakpoint('sm')
-    return h(Btn, {
+    return !isWindows ? null : h(Btn, {
         icon: Microsoft,
         variant: 'outlined',
         doneMessage: true,
