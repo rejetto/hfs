@@ -367,7 +367,7 @@ export function isEqualLax(a: any,b: any): boolean {
     return a == b //eslint-disable-line
         || (a && b && typeof a === 'object' && typeof b === 'object'
             && Object.entries(a).every(([k, v]) => isEqualLax(v, b[k]))
-            && Object.entries(b).every(([k, v]) => Object.hasOwn(a, k) || isEqualLax(v, a[k])) )
+            && Object.entries(b).every(([k, v]) => k in a || isEqualLax(v, a[k])) )
 }
 
 export function xlate(input: any, table: Record<string, any>) {
