@@ -17,6 +17,10 @@ export function FilterBar() {
 
     const sel = Object.keys(selected).length
     const fil = filteredList?.length
+    useEffect(() => {
+        if (all && sel < (fil || list.length))
+            setAll(false)
+    }, [sel])
     const tabIndex = showFilter ? undefined : -1
     return h('div', { id: 'filter-bar', style: { display: showFilter ? undefined : 'none' } },
         h(Checkbox, {
