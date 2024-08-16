@@ -1,7 +1,7 @@
 {
     "author": "Pultsari & Win_7",
     "version": 1.2,
-    "hfs_version": "0.53.0b8",
+    "hfs_version": "0.54.0a1",
     "translate": {
         "Select": "Valitse",
         "n_files": "{n,plural,one{# tiedosto} other{# tiedostoa}}",
@@ -152,7 +152,7 @@
 
         "Close": "Sulje",
         "Folder": "Kansio",
-        "Web page": "Verkko sivu",
+        "Web page": "Verkkosivu",
         "Link": "Linkki",
         "Auto-play": "Auto-toisto",
         "autoplay_seconds": "Sekunteja odottaa kuvissa",
@@ -173,6 +173,8 @@
         "to_clipboard_source_tooltip": "Mene kansioon jossa leikepöydän kohteet sijaitsevat",
         "more_items": "{n} lisää kohdetta",
         "Show details": "Näytä yksityiskohdat",
-        "upload_conflict": "on jo olemassa"
+        "upload_conflict": "on jo olemassa",
+        "Logged in": "Kirjauduttu sisään",
+        "Logged out": "Kirjauduttu ulos"
     }
 }
