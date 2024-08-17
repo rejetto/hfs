@@ -94,6 +94,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         icon: () => ico,
         position: Math.min(innerWidth, innerHeight) < 800 ? undefined
             : [ev.pageX, ev.pageY - scrollY] as [number, number],
+        restoreFocus: ev.screenY || ev.screenX ? false : undefined,
         Content() {
             const {t} = useI18N()
             const details = useApi('get_file_details', { uris: [entry.uri] }).data?.details?.[0]
