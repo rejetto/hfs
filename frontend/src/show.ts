@@ -8,7 +8,7 @@ import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { t, useI18N } from './i18n'
-import { alertDialog } from './dialog'
+import { alertDialog, toast } from './dialog'
 import _ from 'lodash'
 import { getId3Tags } from './id3'
 import { subscribeKey } from 'valtio/utils'
@@ -20,9 +20,14 @@ enum ZoomMode {
 }
 
 export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
+    let escOnce = false
+    let onClose: any
     const { close } = newDialog({
         noFrame: true,
         className: 'file-show',
+        onClose() {
+            onClose?.()
+        },
         Content() {
             const [cur, setCur] = useState(entry)
             const moving = useRef(0)
@@ -42,7 +47,14 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                     goTo(shuffle[0])
             }, [Boolean(shuffle)])
             useEventListener('keydown', ({ key }) => {
-                if (key === 'Escape') return close()
+                if (key === 'Escape') {
+                    if (escOnce)
+                        return close()
+                    escOnce = true
+                    onClose = toast(t('esc_again', "Press ESC twice to close")).close
+                    return
+                }
+                escOnce = false
                 if (key === 'ArrowLeft') return goPrev()
                 if (key === 'ArrowRight') return goNext()
                 if (key === 'ArrowDown') return scrollY(1)
