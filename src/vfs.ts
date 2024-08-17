@@ -139,7 +139,6 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
 }
 
 export async function getNodeByName(name: string, parent: VfsNode) {
-    if (!isValidFileName(name)) return
     // does the tree node have a child that goes by this name, otherwise attempt disk
     const child = parent.children?.find(isSameFilenameAs(name)) || childFromDisk()
     return child && applyParentToChild(child, parent, name)
@@ -156,6 +155,7 @@ export async function getNodeByName(name: string, parent: VfsNode) {
                 }
             ret.rename = renameUnderPath(parent.rename, name)
         }
+        if (!isValidFileName(onDisk)) return
         ret.source = join(parent.source, onDisk)
         ret.original = undefined // overwrite in applyParentToChild, so we know this is not part of the vfs
         return ret
