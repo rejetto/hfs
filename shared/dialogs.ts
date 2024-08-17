@@ -23,12 +23,12 @@ export interface DialogOptions {
     $id?: number
     $opening?: NodeJS.Timeout
     ts?: number
+    restoreFocus?: any
 
     Container?: FunctionComponent<DialogOptions>
 }
 
 const dialogs = proxy<DialogOptions[]>([])
-const focusBak: (Element | null)[] = []
 const { history } = window
 
 export const dialogsDefaults: Partial<DialogOptions> = {
@@ -184,7 +184,8 @@ export function newDialog(options: DialogOptions) {
     const ts = performance.now()
     options.$id = $id // object identity is not working because of the proxy. This is a possible workaround
     options.ts = ts
-    focusBak.push(document.activeElement) // saving this inside options object doesn't work (didn't dig enough to say why)
+    if (document.activeElement)
+        options.restoreFocus ??= ref(document.activeElement)
     options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
     options.$opening = setTimeout(() => { // in case dialogs were just closed, account for window.history delay. This should be harmless as ux is unaffected, and programmatically you already didn't expect this to happen immediately but at state change
         dialogs.push(options)
@@ -223,7 +224,7 @@ export function closeDialog(v?:any, skipHistory=false) {
 
 function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
-    ;(focusBak.pop() as any)?.focus?.() // if element is not HTMLElement, it doesn't have focus method
+    d.restoreFocus?.focus?.() // if element is not HTMLElement, it doesn't have focus method
     d.closingValue = value
     d?.onClose?.(value)
     return d
