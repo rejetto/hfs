@@ -120,8 +120,13 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                                 async onClick(ev: MouseEvent) {
                                     if (!entry.href)
                                         ev.preventDefault()
-                                    if (false !== await entry.onClick?.(ev))
-                                        close()
+                                    try {
+                                        if (false !== await entry.onClick?.(ev))
+                                            close()
+                                    }
+                                    catch(e: any) {
+                                        alertDialog(e)
+                                    }
                                 }
                             },
                                 hIcon(entry.icon || 'file'),
@@ -139,29 +144,24 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
 async function rename(entry: DirEntry) {
     const dest = await promptDialog(t`Name`, { value: entry.name, title: t`Rename` })
     if (!dest) return
-    try {
-        const { n, uri } = entry
-        await apiCall('rename', { uri, dest }, { modal: working })
-        const renamingCurrentFolder = uri === location.pathname
-        if (!renamingCurrentFolder) {
-            // update state instead of re-getting the list
-            const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
-            const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping old key, we avoid unmounting the element, that's causing focus lost
-            const i = _.findIndex(state.list, { n })
-            state.list[i] = newEntry
-            // update filteredList too
-            const j = _.findIndex(state.filteredList, { n })
-            if (j >= 0)
-                state.filteredList![j] = newEntry
-        }
-        alertDialog(t`Operation successful`).then(() => {
-            if (renamingCurrentFolder)
-                getHFS().navigate(uri + '../' + pathEncode(dest) + '/')
-        })
+    const { n, uri } = entry
+    await apiCall('rename', { uri, dest }, { modal: working })
+    const renamingCurrentFolder = uri === location.pathname
+    if (!renamingCurrentFolder) {
+        // update state instead of re-getting the list
+        const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
+        const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping old key, we avoid unmounting the element, that's causing focus lost
+        const i = _.findIndex(state.list, { n })
+        state.list[i] = newEntry
+        // update filteredList too
+        const j = _.findIndex(state.filteredList, { n })
+        if (j >= 0)
+            state.filteredList![j] = newEntry
     }
-    catch(e: any) {
-        await alertDialog(e)
-    }
+    alertDialog(t`Operation successful`).then(() => {
+        if (renamingCurrentFolder)
+            getHFS().navigate(uri + '../' + pathEncode(dest) + '/')
+    })
 }
 
 async function editComment(entry: DirEntry) {
