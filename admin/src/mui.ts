@@ -99,7 +99,8 @@ export function reloadBtn(onClick: any, props?: any) {
     return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
 }
 
-export function modifiedProps(modified: boolean | undefined) {
+// modify look to convey that a form has been modified
+export function propsForModifiedValues(modified: boolean | undefined) {
     return modified ? { sx: { outline: '2px solid' } } : undefined
 }
 
@@ -145,7 +146,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(labelFrom || 'xs')
     const ref = useRefPass<HTMLButtonElement>(forwarded)
-    const common = _.merge(modifiedProps(modified), {
+    const common = _.merge(propsForModifiedValues(modified), {
         ref,
         disabled,
         'aria-hidden': disabled,

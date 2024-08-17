@@ -2,7 +2,7 @@ import { Form, FormProps } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { createElement as h, useEffect, useState, Dispatch } from 'react'
 import _ from 'lodash'
-import { IconBtn, modifiedProps } from './mui'
+import { IconBtn, propsForModifiedValues } from './mui'
 import { RestartAlt } from '@mui/icons-material'
 import { Callback, onlyTruthy } from '../../src/cross'
 
@@ -35,7 +35,7 @@ export function ConfigForm<T=any>({ keys, form, saveOnChange, onSave, ...rest }:
         },
         save: saveOnChange ? false : {
             onClick: save,
-            ...modifiedProps(modified),
+            ...propsForModifiedValues(modified),
         },
         ...formProps,
         ...rest,

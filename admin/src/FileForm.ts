@@ -7,11 +7,12 @@ import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, Sel
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi } from './api'
 import {
-    basename, defaultPerms, formatBytes, formatTimestamp, isEqualLax, isWhoObject, newDialog, objSameKeys,
+    basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
     useRequestRender, splitAt, IMAGE_FILEMASK
 } from './misc'
-import { Btn, Flex, IconBtn, LinkBtn, modifiedProps, useBreakpoint, wikiLink } from './mui'
+import { isModifiedConfig } from './AccountForm'
+import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
 import { reloadVfs, VfsNode } from './VfsPage'
 import _ from 'lodash'
 import FileField from './FileField'
@@ -134,7 +135,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
         ],
         onError: alertDialog,
         save: {
-            ...modifiedProps(!isEqualLax(values, rest)),
+            ...propsForModifiedValues(isModifiedConfig(values, rest)),
             async onClick() {
                 const props = _.omit(values, ['ctime','mtime','size','id'])
                 ;(props as any).masks ||= null // undefined cannot be serialized

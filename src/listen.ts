@@ -179,7 +179,7 @@ function renderHost(host: string) {
 interface StartServer { port: number, host?:string }
 export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     return new Promise<number>(async resolve => {
-        if (!srv) return 0
+        if (!srv) return resolve(0)
         try {
             if (port === PORT_DISABLED || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
                 return resolve(0)
