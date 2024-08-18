@@ -1,4 +1,4 @@
-import { getNodeByName, hasPermission, statusCodeForMissingPerm, VfsNode } from './vfs'
+import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR,
     HTTP_BAD_REQUEST } from './const'
@@ -15,7 +15,7 @@ import { getCurrentUsername } from './auth'
 import { setCommentFor } from './comments'
 import _ from 'lodash'
 import events from './events'
-import { rename } from 'fs/promises'
+import { rename, rm } from 'fs/promises'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -86,6 +86,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT, 'exists')
     openFiles.add(fullPath)
+    let overwriteRequestedButForbidden = false
     try {
         // if upload creates a folder, then add meta to it too
         if (fs.mkdirSync(dir, { recursive: true }))
@@ -146,6 +147,10 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 }
                 let dest = fullPath
                 if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
+                    if (overwriteRequestedButForbidden) {
+                        await rm(tempName)
+                        return fail()
+                    }
                     const ext = extname(dest)
                     const base = dest.slice(0, -ext.length || Infinity)
                     let i = 1
@@ -203,9 +208,11 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     }
 
     async function overwriteAnyway() {
-        if (ctx.query.existing !== 'overwrite') return
+        if (ctx.query.existing !== 'overwrite') return false
         const n = await getNodeByName(path, base)
-        return n && hasPermission(n, 'can_delete', ctx)
+        if (n && !statusCodeForMissingPerm(n, 'can_delete', ctx)) return true
+        overwriteRequestedButForbidden = true
+        return false
     }
 
     function delayedDelete(path: string, secs: number, cb?: Callback) {
