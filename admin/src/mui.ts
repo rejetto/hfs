@@ -3,8 +3,10 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import { createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
-    ForwardedRef, useState, useMemo } from 'react'
+import {
+    createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
+    ForwardedRef, useState, useMemo, isValidElement
+} from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_ } from './misc'
@@ -123,7 +125,7 @@ export const IconBtn = forwardRef((props: IconBtnProps, ref: ForwardedRef<HTMLBu
     h(Btn, { ref, ...props }))
 
 export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
-    icon?: SvgIconComponent
+    icon?: SvgIconComponent | ReactElement
     title?: ReactNode
     disabled?: boolean | string
     progress?: boolean | number
@@ -160,9 +162,10 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             }
         },
     } as const, rest)
+    const iconElement = isValidElement(icon) ? icon : (icon && h(icon))
     let ret: ReactElement = children || !icon ? h(LoadingButton, _.merge({
             variant: 'contained',
-            startIcon: icon && h(icon),
+            startIcon: iconElement,
             loading: Boolean(loading || loadingState || progress),
             loadingPosition: icon && 'start',
             loadingIndicator: typeof progress !== 'number' ? undefined
@@ -175,7 +178,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
                 ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
                 style: { position:'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }
             }),
-            h(icon)
+            iconElement,
         )
 
     const aria = rest['aria-label'] ?? with_(_.isString(title) && title, x => x ? `${children || ''} (${x})` : undefined)
