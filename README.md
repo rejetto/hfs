@@ -53,6 +53,8 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 ## Installation
 
+For service installation instructions, [see our wiki](https://github.com/rejetto/hfs/wiki/Service-installation).
+
 NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of Node.js 18)
 
 1. go to https://github.com/rejetto/hfs/releases
@@ -85,41 +87,6 @@ The `@latest` part is optional, and ensures that you are always up to date.
 If this procedure fails, it may be that you are missing one of [these requirements](https://github.com/nodejs/node-gyp#installation).
 
 Configuration and other files will be stored in `%HOME%/.vfs`
-
-### Service
-
-If you want to run HFS at boot (as a service), we suggest the following methods
-
-#### On Linux 
-1. [install node.js](https://nodejs.org)
-2. create a file `/etc/systemd/system/hfs.service` with this content
-  ```
-  [Unit]
-  Description=HFS
-  After=network.target
-  
-  [Service]
-  Type=simple
-  Restart=always
-  ExecStart=/usr/bin/npx -y hfs@latest
-  
-  [Install]
-  WantedBy=multi-user.target
-  ```
-3. run `sudo systemctl daemon-reload && sudo systemctl enable hfs && sudo systemctl start hfs && sudo systemctl status hfs`
-
-NB: update will be attempted at each restart
-
-#### On Windows
-
-1. [install node.js](https://nodejs.org)
-2. run `npm -g i hfs`
-3. run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
-  
-To update 
-- run `npx qckwinsvc2 uninstall name="HFS"`
-- run `npm -g update hfs`
-- run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
 
 ## Console commands
 
