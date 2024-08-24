@@ -99,7 +99,8 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             const {t} = useI18N()
             const details = useApi('get_file_details', { uris: [entry.uri] }).data?.details?.[0]
             const showProps = [ ...props,
-                with_(details?.upload, x => x && { id: 'uploader', label: t`Uploader`, value: x.ip + prefix(' (', x.username, ')') })
+                with_(renderUploaderFromDetails(details), value =>
+                    value && { id: 'uploader', label: t`Uploader`, value })
             ]
             return h(Fragment, {},
                 h('dl', { className: 'file-dialog-properties' },
@@ -200,4 +201,10 @@ export function makeOnClickOpen(entry: DirEntry) {
             return setTimeout(() => getHFS().navigate(entry.uri)) // couldn't find the reason why navigating sync is reverted back
         location.href = entry.uri
     }
+}
+
+function renderUploaderFromDetails(details: any) {
+    if (!details) return
+    const { upload: u } = details
+    return u && `${u.username||''}${prefix('@', u.ip)}`
 }

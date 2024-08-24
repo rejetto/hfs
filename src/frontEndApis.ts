@@ -15,6 +15,8 @@ import { getUploadMeta } from './upload'
 import { apiAssertTypes, deleteNode } from './misc'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
+import { ctxAdminAccess } from './adminApis'
+import _ from 'lodash'
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
@@ -34,6 +36,7 @@ export const frontEndApis: ApiHandlers = {
     async get_file_details({ uris }, ctx) {
         if (typeof uris?.[0] !== 'string')
             return new ApiError(HTTP_BAD_REQUEST, 'bad uris')
+        const isAdmin = ctxAdminAccess(ctx)
         return {
             details: await Promise.all(uris.map(async (uri: any) => {
                 if (typeof uri !== 'string')
@@ -41,8 +44,11 @@ export const frontEndApis: ApiHandlers = {
                 const node = await urlToNode(uri, ctx)
                 if (!node)
                     return false
-                const upload = node.source && await getUploadMeta(node.source).catch(() => undefined)
-                return upload && { upload }
+                let upload = node.source && await getUploadMeta(node.source).catch(() => undefined)
+                if (!upload) return
+                if (!isAdmin)
+                    upload = _.omit(upload, 'ip')
+                return { upload }
             }))
         }
     },
