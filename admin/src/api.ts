@@ -32,7 +32,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
             !args[0] ? null
                 : res.error ? h(Alert, { severity: 'error' }, xlate(String(res.error), ERRORS),
                                     h(IconBtn, { icon: Refresh, title: "Reload", onClick: res.reload, sx: { m:'-10px 0 -8px 16px' } }) )
-                    : res.loading || res.data === undefined ? spinner()
+                    : res.data === undefined ? spinner()
                         : null,
             Object.values(res))
     }

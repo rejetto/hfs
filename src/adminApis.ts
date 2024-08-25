@@ -128,6 +128,7 @@ export const adminApis = {
             autoCheckUpdateResult: autoCheckUpdateResult.get(), // in this form, we get the same type of the serialized json
             alerts: alerts.get(),
             proxyDetected: getProxyDetected(),
+            ram: process.memoryUsage.rss(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
                 && await frpDebounced(),

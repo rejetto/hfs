@@ -89,13 +89,12 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     const dataRef = useRef<any>()
     useEffect(() => {
         loadingRef.current?.abort()
-        setData(undefined)
         setError(undefined)
         let aborted = false
         let req: undefined | ReturnType<typeof apiCall>
         const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
             .then(() => !cmd || aborted ? undefined : req = apiCall<T>(cmd, params, options))
-            .then(res => aborted || setData(dataRef.current = res as any), err => {
+            .then(res => aborted || setData(dataRef.current = res as any) || setError(undefined), err => {
                 if (aborted) return
                 setError(err)
                 setData(dataRef.current = undefined)
