@@ -28,6 +28,7 @@ import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS, MIME_AUTO } from
 import events from './events'
 import { expandUsername } from './perm'
 import { getCurrentUsername } from './auth'
+import { Stats } from 'node:fs'
 
 type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 
@@ -50,6 +51,7 @@ export interface VfsNode extends VfsNodeStored { // include fields that are only
     original?: VfsNode // if this is a temp node but reflecting an existing node
     parent?: VfsNode // available when original is available
     isFolder?: boolean
+    stats?: Stats
 }
 
 export function permsFromParent(parent: VfsNode, child: VfsNode) {
@@ -125,7 +127,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         return urlToNode(rest, ctx, ret, getRest)
     if (ret.source)
         try {
-            const st = await fs.stat(ret.source)  // check existence
+            const st = ret.stats || await fs.stat(ret.source)  // check existence
             ret.isFolder = st.isDirectory()
         }
         catch {
@@ -196,13 +198,13 @@ export function getNodeName(node: VfsNode) {
 export async function nodeIsDirectory(node: VfsNode) {
     if (node.isFolder !== undefined)
         return node.isFolder
-    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (!node.source || await isDirectory(node.source)))
+    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (node.stats?.isDirectory() ?? (!node.source || await isDirectory(node.source))))
     setHidden(node, { isFolder }) // don't make it to the storage (a node.isTemp doesn't need it to be hidden)
     return isFolder
 }
 
 export async function hasDefaultFile(node: VfsNode, ctx: Koa.Context) {
-    return node.default && await urlToNode(node.default, ctx, node) || undefined
+    return node.default && await nodeIsDirectory(node) && await urlToNode(node.default, ctx, node) || undefined
 }
 
 export function nodeIsLink(node: VfsNode) {
