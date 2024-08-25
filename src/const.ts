@@ -36,7 +36,9 @@ console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
 const winExe = IS_WINDOWS && process.execPath.match(/(?<!node)\.exe$/i)
-const dir = argv.cwd || !winExe && join(homedir(), '.hfs') // still considering whether to use this behavior with Windows users, who may be less accustomed to it
+// still considering whether to use ".hfs" with Windows users, who may be less accustomed to it
+const useHomeDir = !winExe || process.execPath.includes(process.env.ProgramFiles||'|') // you can't write in program-files
+const dir = argv.cwd || useHomeDir && join(homedir(), '.hfs')
 if (dir) {
     try { mkdirSync(dir) }
     catch(e: any) {
