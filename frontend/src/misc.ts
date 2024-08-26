@@ -4,7 +4,7 @@ import React, { createElement as h } from 'react'
 import { iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon } from './icons'
-import { Dict, domOn, getHFS, Html, HTTP_MESSAGES, useBatch } from '@hfs/shared'
+import { Callback, Dict, domOn, getHFS, Html, HTTP_MESSAGES, useBatch } from '@hfs/shared'
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
@@ -54,8 +54,11 @@ export function working() {
 
 export function hfsEvent(name: string, params?:Dict) {
     const output: any[] = []
-    document.dispatchEvent(new CustomEvent('hfs.'+name, { detail: { params, output } }))
-    return output
+    const ev = new CustomEvent('hfs.'+name, { cancelable: true, detail: { params, output } })
+    document.dispatchEvent(ev)
+    return Object.assign(output, {
+        isDefaultPrevent: () => ev.defaultPrevented,
+    })
 }
 
 const tools = {
@@ -74,14 +77,14 @@ Object.assign(getHFS(), {
     debounceAsync,
     useSnapState,
     html: (html: string) => h(Html, {}, html),
-    onEvent(name: string, cb: (params:any, tools: any, output:any) => any) {
+    onEvent(name: string, cb: (params:any, extra: { output: any[], preventDefault: Callback }, output: any[]) => any) {
         const key = 'hfs.' + name
         document.addEventListener(key, wrapper)
         return () => document.removeEventListener(key, wrapper)
 
         function wrapper(ev: Event) {
             const { params, output } = (ev as CustomEvent).detail
-            const res = cb(params, tools, output)
+            const res = cb(params, { output, preventDefault: () => ev.preventDefault() }, output) // legacy pre-0.54, third parameter used by file-icons plugin
             if (res !== undefined && Array.isArray(output))
                 output.push(res)
         }
