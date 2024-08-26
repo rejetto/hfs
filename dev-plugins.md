@@ -630,6 +630,7 @@ If you want to override a text regardless of the language, use the special langu
     - frontend event: showPlay
     - api.addBlock 
     - api.misc
+    - frontend event: paste
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
