@@ -4,8 +4,9 @@ import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
 import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
-import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND } from './const'
+import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND, PLUGIN_CUSTOM_REST_PREFIX } from './const'
 import { defineConfig } from './config'
+import { firstPlugin } from './plugins'
 
 export class ApiError extends Error {
     constructor(public status:number, message?:string | Error | object) {
@@ -31,7 +32,9 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
             || apiName.startsWith('get_') // "get_" apis are safe because they make no change
         if (!safe)
             return send(HTTP_FOOL, "missing header x-hfs-anti-csrf=1")
-        const apiFun = apis.hasOwnProperty(apiName) && apis[apiName]!
+        const customApiRest = apiName.startsWith(PLUGIN_CUSTOM_REST_PREFIX) && apiName.slice(PLUGIN_CUSTOM_REST_PREFIX.length)
+        const apiFun = customApiRest && firstPlugin(pl => pl.getData().customRest?.[customApiRest])
+            || apis.hasOwnProperty(apiName) && apis[apiName]!
         if (!apiFun)
             return send(HTTP_NOT_FOUND, 'invalid api')
         // we don't rely on SameSite cookie option because it's https-only

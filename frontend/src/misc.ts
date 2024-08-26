@@ -68,6 +68,9 @@ const tools = {
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
         return subscribeKey(up ? uploadState : state as any, up || k, cb, true)
+    },
+    customRestCall(name: string, ...rest: any[]) {
+        return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)
     }
 }
 Object.assign(getHFS(), {

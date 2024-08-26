@@ -120,6 +120,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
 - `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to front-end.
 - `customHtml: object | () => object` return custom-html sections programmatically.
+- `customRest: { [name]: (parameters: object) => any }` declare backend functions to be called by frontend with `HFS.customRestCall` 
 
 ### FieldDescriptor
 
@@ -267,6 +268,7 @@ The HFS objects contains many properties:
 - `debounceAsync: function` like lodash.debounce, but also avoids async invocations to overlap.
   For details please refer to `src/debounceAsync.ts`.
 - `loadScript(uri: string): Promise` load a js file. If uri is relative, it is based on the plugin's public folder.
+- `customRestCall(name: string, parameters?: object): Promise<any>` call backend functions exported with `customRest`. 
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -631,6 +633,7 @@ If you want to override a text regardless of the language, use the special langu
     - api.addBlock 
     - api.misc
     - frontend event: paste
+    - exports.customRest + HFS.customRestCall
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip

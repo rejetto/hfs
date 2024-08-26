@@ -282,6 +282,20 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> 
     }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
 
+export function firstPlugin<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
+    for (const [plName,pl] of Object.entries(plugins)) {
+        if (!includeServerCode && plName === SERVER_CODE_ID) continue
+        try {
+            const ret = cb(pl,plName)
+            if (ret !== undefined)
+                return ret
+        }
+        catch(e) {
+            console.log('plugin error', plName, String(e))
+        }
+    }
+}
+
 type PluginMiddleware = (ctx:Koa.Context) => Promisable<void | Stop | CallMeAfter>
 type Stop = true
 type CallMeAfter = ()=>any
