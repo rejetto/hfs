@@ -1,7 +1,7 @@
 import { t, useI18N } from './i18n'
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog, anyDialogOpen
+    pathEncode, closeDialog, anyDialogOpen, Falsy
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
@@ -26,7 +26,7 @@ interface FileMenuEntry {
     onClick?: (ev:MouseEvent<Element>) => any
 }
 
-export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
+export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy | FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder, s } = entry
     const canRead = !entry.p?.includes('r')
     const canArchive = entry.p?.includes('A') || state.props?.can_archive && !entry.p?.includes('a')

@@ -7,6 +7,7 @@ import { DirEntry, state, useSnapState } from './state'
 import { usePath, reloadList } from './useFetchList'
 import { useI18N } from './i18n'
 import { openFileMenu } from './fileMenu'
+import { createFolder } from './upload'
 
 export function Breadcrumbs() {
     const base = getPrefixUrl() + '/'
@@ -43,6 +44,12 @@ function Breadcrumb({ path, label, current, title }:{ current?: boolean, path: s
             if (!current) return
             ev.preventDefault()
             openFileMenu(new DirEntry(decodeURIComponent(path), { p }), ev, [
+                props?.can_upload && {
+                    id: 'create-folder',
+                    label: t`Create folder`,
+                    icon: 'folder',
+                    onClick: createFolder,
+                },
                 {
                     id: 'reload',
                     label: t`Reload`,

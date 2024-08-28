@@ -16,7 +16,6 @@ export const selfCheckMiddleware: Middleware = (ctx, next) => {
     ctx.state.skipFilters = true
 }
 
-
 declare module "koa" {
     interface DefaultState {
         skipFilters?: boolean

@@ -476,7 +476,7 @@ export function acceptDropFiles(cb: false | undefined | ((files:File[], to: stri
     }
 }
 
-async function createFolder() {
+export async function createFolder() {
     const name = await promptDialog(t`Enter folder name`)
     if (!name) return
     const uri = location.pathname
