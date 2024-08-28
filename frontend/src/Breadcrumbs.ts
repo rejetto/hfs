@@ -24,7 +24,10 @@ export function Breadcrumbs() {
                 key: path,
                 path,
                 label,
-                current: i === breadcrumbs.length - 1,
+                ...i === breadcrumbs.length - 1 && {
+                    current: true,
+                    label: h(Fragment, {}, label, hIcon('menu', { style: { position: 'relative', top: 1, marginLeft: '.3em' } }))
+                },
             }) )
     )
 }
