@@ -6,7 +6,6 @@ import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
-import { runCmd } from './util-os'
 import { once, Readable } from 'stream'
 import { createDirStream, DirStreamEntry } from './dirStream'
 // @ts-ignore
@@ -72,25 +71,13 @@ export function adjustStaticPathForGlob(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
 }
 
-// wrapper adding a few features: hidden files, onlyFiles and onlyFolders
-export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyFolders = false }={}) {
+export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyFolders = false, hidden=true }={}) {
     if (!await isDirectory(path))
         throw Error('ENOTDIR')
-    const skip = await getItemsToSkip(path)
-    for await (const entry of createDirStream(path, depth)) {
+    for await (const entry of createDirStream(path, { depth, hidden })) {
         const dirent = entry as DirStreamEntry
         if (dirent.isDirectory() ? onlyFiles : (onlyFolders || !dirent.isFile())) continue
-        if (skip?.includes(entry.path)) continue
         yield dirent
-    }
-
-    async function getItemsToSkip(path: string) {
-        if (!IS_WINDOWS) return
-        const winPath = path.replace(/\//g, '\\')
-        const out = await runCmd('dir', ['/ah', '/b', depth ? '/s' : '/c', winPath]) // cannot pass '', so we pass /c as a noop parameter
-            .catch(()=>'') // error in case of no matching file
-        return out.split('\n').map(x =>
-            x.slice(!depth ? 0 : winPath.length + 1).trim().replace(/\\/g, '/'));
     }
 }
 

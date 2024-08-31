@@ -1,5 +1,7 @@
 import { makeQ } from './makeQ'
-import { opendir, stat } from 'fs/promises'
+import { stat, readdir } from 'fs/promises'
+import { runCmd } from './util-os'
+import { IS_WINDOWS } from './const'
 import { join } from 'path'
 import { Readable } from 'stream'
 import { pendingPromise } from './cross'
@@ -12,10 +14,12 @@ export interface DirStreamEntry extends Dirent {
 
 const dirQ = makeQ(3)
 
-export function createDirStream(startPath: string, depth=0) {
+export function createDirStream(startPath: string, { depth=0, hidden=true }) {
     let stopped = false
     let started = false
     const closingQ: string[] = []
+    const hiddenRoot = !hidden && IS_WINDOWS && getWindowsHiddenFiles(startPath) // produce first level faster
+    const hiddenDeep = hiddenRoot && depth && getWindowsHiddenFiles(startPath, true)
     const stream = new Readable({
         objectMode: true,
         read() {
@@ -45,20 +49,19 @@ export function createDirStream(startPath: string, depth=0) {
     async function readDir(path: string, depth: number) {
         if (stopped) return
         const base = join(startPath, path)
-        const dir = await opendir(base)
         const subDirsDone: Promise<any>[] = []
         let last: DirStreamEntry | undefined = undefined
         let n = 0
-        for await (let entry of dir) {
-            if (stopped) {
-                await dir.close().catch(() => {}) // only necessary for early exit
-                break
-            }
+        for await (let entry of await readdir(base, { withFileTypes: true })) {
+            if (stopped) break
             const stats = entry.isSymbolicLink() && await stat(join(base, entry.name)).catch(() => null)
             if (stats === null) continue
             if (stats)
                 entry = new DirentFromStats(entry.name, stats)
             entry.path = (path && path + '/') + entry.name
+            const hiddenFiles = await (path && hiddenDeep || hiddenRoot)
+            if (hiddenFiles && hiddenFiles.includes(entry.path))
+                continue
             if (last && closingQ.length) // pending entries
                 last.closingBranch = Promise.resolve(closingQ.shift()!)
             last = entry
@@ -90,6 +93,13 @@ export function createDirStream(startPath: string, depth=0) {
         // don't return the promise directly, as this job ends here, but communicate to caller the promise for the whole branch
         return { branchDone, n }
     }
+}
+
+async function getWindowsHiddenFiles(path: string, depth=false) {
+    const out = await runCmd('dir', ['/ah', '/b', depth ? '/s' : '/c', path.replaceAll('/', '\\')]) // cannot pass '', so we pass /c as a noop parameter
+        .catch(()=>'') // error in case of no matching file
+    const slice = !depth ? 0 : path.length + (path.at(-1) === '\\' ? 0 : 1)
+    return out.trimEnd().split('\n').map(x => x.slice(slice).replaceAll('\\', '/'))
 }
 
 type DirentStatsKeysIntersection = keyof Dirent & keyof Stats;
