@@ -96,10 +96,6 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
             const isOpen = !isClose
             if (isHead && isOpen)
                 return all + `
-                    ${isFrontend && `
-                        <title>${title.get()}</title>
-                        <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
-                    ` + getSection('htmlHead')}
                     <script>
                     HFS = ${JSON.stringify({
                         VERSION,
@@ -117,6 +113,10 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
                     document.documentElement.setAttribute('ver', HFS.VERSION.split('-')[0])
                     </script>
+                    ${isFrontend && `
+                        <title>${title.get()}</title>
+                        <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
+                    ${getSection('htmlHead')}`}
                 `
             if (isBody && isOpen)
                 return `${all}
