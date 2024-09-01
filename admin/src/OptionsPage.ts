@@ -63,6 +63,7 @@ export default function OptionsPage() {
         sm: 4,
     }
     const httpsEnabled = values.https_port >= 0
+    const isWindows = status?.platform === 'win32'
     return h(Form, {
         sx: { maxWidth: '60em' },
         values,
@@ -194,13 +195,14 @@ export default function OptionsPage() {
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
 
             h(Section, { title: "Others" }),
-            { k: 'keep_session_alive', comp: BoolField, sm: true, helperText: "Keeps you logged in while the page is left open and the computer is on" },
+            { k: 'keep_session_alive', comp: BoolField, sm: 4, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
             { k: 'session_duration', comp: NumberField, sm: 4, md: 3, min: 5, unit: "seconds", required: true },
             { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, label: "Calculate ZIP size for", unit: "seconds",
                 helperText: "If time is not enough, the browser will not show download percentage" },
 
-            { k: 'descript_ion', comp: BoolField, label: "Enable comments", helperText: "In file DESCRIPT.ION" },
-            { k: 'descript_ion_encoding', label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+            { k: 'descript_ion', comp: BoolField, ...isWindows && { sm: 4, md: 3 },  label: "Enable comments", helperText: "In file DESCRIPT.ION" },
+            isWindows && { k: 'show_hidden_files', comp: BoolField, sm: 4, md: 3, helperText: "Showing makes search faster" },
+            { k: 'descript_ion_encoding', sm: 4, md: 6, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
                 options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
 
             { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start",

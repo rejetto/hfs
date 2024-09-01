@@ -3,23 +3,8 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    dirStream,
-    getOrSet,
-    isDirectory,
-    makeMatcher,
-    setHidden,
-    onlyTruthy,
-    isValidFileName,
-    throw_,
-    VfsPerms,
-    Who,
-    isWhoObject,
-    WHO_ANY_ACCOUNT,
-    defaultPerms,
-    PERM_KEYS,
-    removeStarting,
-    HTTP_SERVER_ERROR,
-    try_
+    dirStream, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
+    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -29,6 +14,8 @@ import events from './events'
 import { expandUsername } from './perm'
 import { getCurrentUsername } from './auth'
 import { Stats } from 'node:fs'
+
+const showHiddenFiles = defineConfig('show_hidden_files', false)
 
 type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 
@@ -298,7 +285,7 @@ export async function* walkNode(parent: VfsNode, {
     try {
         let lastDir = prefixPath.slice(0, -1) || '.'
         parentsCache.set(lastDir, parent)
-        for await (const entry of dirStream(source, { depth, onlyFolders, hidden: false })) {
+        for await (const entry of dirStream(source, { depth, onlyFolders, hidden: showHiddenFiles.get() })) {
             if (ctx?.req.aborted)
                 return
             const {path} = entry
