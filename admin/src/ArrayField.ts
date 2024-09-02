@@ -4,12 +4,13 @@ import { createElement as h, Fragment, useMemo, useState } from 'react'
 import { Dict, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
 import { formDialog } from './dialog'
-import { DataGrid, GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
+import { GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
 import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import { DateTimeField } from './DateTimeField'
 import _ from 'lodash'
 import { Center, IconBtn } from './mui'
+import { DataTable } from './DataTable'
 
 type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean, autoRowHeight?: boolean }
 export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight, ...rest }: ArrayFieldProps<T>) {
@@ -19,7 +20,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
     const form = {
-        fields: fields.map(({ $width, $column, $type, ...rest }) => _.defaults(rest, byType[$type]?.field))
+        fields: fields.map(({ $width, $column, $type, $hideUnder, ...rest }) => _.defaults(rest, byType[$type]?.field))
     }
     setApi?.({ isEqual: isOrderedEqual }) // don't rely on stringify, as it wouldn't work with non-json values
     const [undo, setUndo] = useState<typeof value>()
@@ -27,12 +28,14 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
         label && h(FormLabel, { sx: { ml: 1 } }, label),
         helperText && h(FormHelperText, {}, helperText),
         h(Box, { ...rest },
-            h(DataGrid, {
+            h(DataTable, {
                 rows,
                 ...autoRowHeight && { getRowHeight: () => 'auto' as const },
-                sx: { '.MuiDataGrid-virtualScroller': { minHeight: '3em' },
+                sx: {
+                    '.MuiDataGrid-virtualScroller': { minHeight: '3em' },
                     ...autoRowHeight && { '.MuiDataGrid-cell': { minHeight: '52px !important' } }
                 },
+                style: undefined, // override style making it fill the flex
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
                 slots: {
@@ -56,6 +59,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                             },
                             ...def,
                             ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
+                            hideUnder: f.$hideUnder,
                             ...f.$column,
                         }
                     }),
@@ -96,10 +100,11 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     icon: h(Edit),
                                     label: title,
                                     title,
-                                    onClick(event: MouseEvent) {
+                                    onClick(ev: MouseEvent) {
+                                        ev.stopPropagation()
                                         formDialog<T>({ values: row as any, form, title }).then(x => {
                                             if (x)
-                                                set(value!.map((oldRec, i) => i === $idx ? x : oldRec), event)
+                                                set(value!.map((oldRec, i) => i === $idx ? x : oldRec), ev)
                                         })
                                     }
                                 }),
@@ -107,19 +112,28 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     icon: h(Delete),
                                     label: "Delete",
                                     showInMenu: reorder,
-                                    onClick: ev => set(value!.filter((rec, i) => i !== $idx), ev),
+                                    onClick: ev => {
+                                        ev.stopPropagation()
+                                        set(value!.filter((rec, i) => i !== $idx), ev)
+                                    },
                                 }),
                                 reorder && $idx && h(GridActionsCellItem as any, {
                                     icon: h(ArrowUpward),
                                     label: "Move up",
                                     showInMenu: true,
-                                    onClick: ev => set(swap(value!.slice(), $idx, $idx - 1), ev),
+                                    onClick: ev => {
+                                        ev.stopPropagation()
+                                        set(swap(value!.slice(), $idx, $idx - 1), ev)
+                                    },
                                 }),
                                 reorder && $idx < rows.length - 1 && h(GridActionsCellItem as any, {
                                     icon: h(ArrowDownward),
                                     label: "Move down",
                                     showInMenu: true,
-                                    onClick: ev => set(swap(value!.slice(), $idx, $idx + 1), ev),
+                                    onClick: ev => {
+                                        ev.stopPropagation()
+                                        set(swap(value!.slice(), $idx, $idx + 1), ev)
+                                    },
                                 }),
                             ].filter(Boolean)
                         }

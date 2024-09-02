@@ -155,8 +155,11 @@ export default function OptionsPage() {
 
             { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true, autoRowHeight: true,
                 fields: [
-                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, helperText: h(WildcardsSupported) },
-                    { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, helperText: "Leave empty for no expiration" },
+                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2,
+                        $column: { mergeRender: { comment: {}, expire: {} } },
+                        helperText: h(WildcardsSupported) },
+                    { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, $hideUnder: 'sm',
+                        helperText: "Leave empty for no expiration" },
                     {
                         k: 'disabled',
                         $type: 'boolean',
@@ -165,8 +168,9 @@ export default function OptionsPage() {
                         toField: (x: any) => !x,
                         fromField: (x: any) => x ? undefined : true,
                         sm: 6,
+                        $width: 80,
                     },
-                    { k: 'comment' },
+                    { k: 'comment', $hideUnder: 'sm' },
                 ],
             },
 

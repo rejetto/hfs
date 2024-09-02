@@ -34,6 +34,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
+    const [merged, setMerged] = useState(0)
     const manipulatedColumns = useMemo(() => {
         const { localeText } = enUS.components.MuiDataGrid.defaultProps as any
         const ret = columns.map(col => {
@@ -100,6 +101,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             && field))
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
+        // count the hidden columns that are merged into visible columns
+        setMerged(_.sumBy(fields, k => _.find(columns, col => !fields.includes(col.field) && col.mergeRender?.[k]) ? 1 : 0))
         return fields
     }, [manipulatedColumns, width])
     const [vis, setVis] = useState({})
@@ -128,6 +131,9 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             columns: manipulatedColumns,
             apiRef,
             ...rest,
+            sx: {
+                '& .MuiDataGrid-virtualScroller': { minHeight: '3em' } // without this, no-entries gets just 1px
+            },
             slots: {
                 noRowsOverlay: () => initializing ? null : h(Center, {}, noRows || "No entries"),
                 footer: CustomFooter,
@@ -142,10 +148,10 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             onCellClick({ field, row }) {
                 if (field === ACTIONS) return
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
-                const n = apiRef.current.getVisibleColumns().length
-                const showCols = manipulatedColumns.filter(x =>
+                const visibleInList = merged + apiRef.current.getVisibleColumns().length
+                const showInDialog = manipulatedColumns.filter(x =>
                     !x.dialogHidden && (x.renderCell || x.field === ACTIONS || row[x.field] !== undefined))
-                if (showCols.length <= n) return
+                if (showInDialog.length <= visibleInList) return // no need for dialog
                 newDialog({
                     title: "Details",
                     onClose() {
@@ -163,7 +169,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                             gridAutoFlow: 'dense',
                             minWidth: 'max(16em, 40vw)',
                             sx: { opacity: curRow ? undefined : .5 },
-                        }, showCols.map(col =>
+                        }, showInDialog.map(col =>
                             h(Box, { key: col.field, gridColumn: col.flex && '1/-1' },
                                 h(Box, { bgcolor: '#0003', p: 1 }, col.headerName || col.field),
                                 h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word' },
