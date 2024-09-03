@@ -37,8 +37,8 @@ setInterval(() => { // twice a minute, check if any block has expired
 
 export function addBlock(rule: BlockingRule, merge?: Partial<BlockingRule>) {
     block.set(was => {
-        const found = merge && _.findIndex(was, merge)
-        return found ? was.map((x, i) => i === found ? { ...x, ...rule, ip: `${x.ip}|${rule.ip}` } : x)
-            : [...was, { ...merge, ...rule }]
+        const foundIdx = merge ? _.findIndex(was, merge) : -1
+        return foundIdx < 0 ? [...was, { ...merge, ...rule }]
+            : was.map((x, i) => i === foundIdx ? { ...x, ...rule, ip: `${x.ip}|${rule.ip}` } : x)
     })
 }

@@ -150,7 +150,8 @@ export const adminApis = {
             string_undefined: { comment, expire },
             object_undefined: { merge },
         })
-        addBlock({ ip, expire, comment }, merge)
+        const optionals = _.pickBy({ expire, comment }, v => v !== undefined) // passing undefined-s would override values in merge
+        addBlock({ ip, ...optionals }, merge)
         return {}
     }
 
