@@ -127,7 +127,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
 
     async function doLogin(u: string, p: string) {
         if (!u || u === ctx.session?.username) return // providing credentials, but not needed
-        await events.emitAsync('attemptingLogin', ctx)
+        await events.emitAsync('attemptingLogin', { ctx, username: u })
         const a = await srpCheck(u, p)
         if (a) {
             await setLoggedIn(ctx, a.username)
