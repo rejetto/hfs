@@ -7,7 +7,7 @@ import { reloadVfs } from './VfsPage'
 import { state } from './state'
 import { apiCall } from './api'
 import FilePicker from './FilePicker'
-import { focusSelector } from '@hfs/shared'
+import { focusSelector, pathEncode } from '@hfs/shared'
 
 let lastFolder: undefined | string
 export default function addFiles() {
@@ -36,7 +36,7 @@ export default function addFiles() {
                                         h('li', { key: file }, file, ': ', err))
                                 )
                             ), 'error')
-                        const ids = res.filter(x => x.name).map(x => parent.id + encodeURI(x.name) + (x.link.endsWith('/') ? '/' : ''))
+                        const ids = res.filter(x => x.name).map(x => parent.id + pathEncode(x.name) + (x.link.endsWith('/') ? '/' : ''))
                         reloadVfs(ids)
                         close()
                     }
@@ -53,7 +53,7 @@ export async function addVirtual() {
         const { id: parent } = getFolderFromSelected()
         const res = await apiCall('add_vfs', { parent, name })
         await alertDialog(`Folder "${res.name}" created`, 'success')
-        reloadVfs([ parent + encodeURI(res.name) + '/' ])
+        reloadVfs([ parent + pathEncode(res.name) + '/' ])
     }
     catch(e) {
         await alertDialog(e as Error)
@@ -64,7 +64,7 @@ export async function addLink() {
     try {
         const { id: parent } = getFolderFromSelected()
         const res = await apiCall('add_vfs', { parent, name: 'new link', url: 'https://example.com' })
-        reloadVfs([ parent + encodeURI(res.name) ])
+        reloadVfs([ parent + pathEncode(res.name) ])
         toast("Link created", 'success', {
             onClose: () => focusSelector('input[name=url]')
         })

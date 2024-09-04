@@ -398,6 +398,7 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
     return res.filter(x => x.status === 'fulfilled').map((x: any) => x.value as T)
 }
 
+// encode paths leaving / separator unencoded (not like encodeURIComponent), but still encode #
 export function pathEncode(s: string) {
     return encodeURI(s).replace(/#/g, encodeURIComponent)
 }
