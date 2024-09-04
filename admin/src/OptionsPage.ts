@@ -150,7 +150,8 @@ export default function OptionsPage() {
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
-            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer, },
+            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer,
+                helperText: "In case another website is linking your files" },
 
             { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true, autoRowHeight: true,
                 fields: [
