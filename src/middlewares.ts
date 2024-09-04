@@ -16,6 +16,7 @@ import session from 'koa-session'
 import { app } from './index'
 import events from './events'
 
+const allowSessionIpChange = defineConfig<boolean | 'https'>('allow_session_ip_change', false)
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
@@ -48,9 +49,8 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
 let proxyDetected: undefined | Koa.Context
 export const someSecurity: Koa.Middleware = (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
-    // don't allow sessions to change ip
     const ss = ctx.session
-    if (ss?.username)
+    if (ss?.username && (!allowSessionIpChange.get() || !ctx.secure && allowSessionIpChange.get() === 'https'))
         if (!ss.ip)
             ss.ip = ctx.ip
         else if (ss.ip !== ctx.ip) {
