@@ -27,6 +27,7 @@ Object.assign(HFS, {
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
     loadScript: (uri: string) => loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri),
+    userBelongsTo: (groupOrUser: string) => HFS.state.expandedUsername.includes(groupOrUser),
     cpuSpeedIndex,
 })
 
@@ -113,7 +114,7 @@ export function makeSessionRefresher(state: any) {
         if (!response) return
         const { exp } = response
         Object.assign(initial, response) // keep it updated, not necessary, just in case someone is looking at this instead of the state
-        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword', 'accountExp']))
+        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword', 'accountExp', 'expandedUsername']))
         if (!response.username || !exp) return
         const delta = new Date(exp).getTime() - Date.now()
         const t = _.clamp(delta - 30_000, 4_000, 600_000)

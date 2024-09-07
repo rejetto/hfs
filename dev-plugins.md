@@ -268,7 +268,9 @@ The HFS objects contains many properties:
 - `debounceAsync: function` like lodash.debounce, but also avoids async invocations to overlap.
   For details please refer to `src/debounceAsync.ts`.
 - `loadScript(uri: string): Promise` load a js file. If uri is relative, it is based on the plugin's public folder.
-- `customRestCall(name: string, parameters?: object): Promise<any>` call backend functions exported with `customRest`. 
+- `customRestCall(name: string, parameters?: object): Promise<any>` call backend functions exported with `customRest`.
+- `userBelongsTo(groupOrUsername: string): boolean` returns true if logged in account belongs to the specified group name. 
+  Returns true if the specified name is the one of the logged in account.  
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -643,6 +645,7 @@ If you want to override a text regardless of the language, use the special langu
     - exports.customRest + HFS.customRestCall
     - config.type: vfs_path
     - frontend event: sortCompare
+    - HFS.userBelongsTo
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip

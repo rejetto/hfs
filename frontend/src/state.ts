@@ -38,7 +38,9 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     uri: string
     uploadOnExisting: 'skip' | 'overwrite' | 'rename'
     searchOptions: any
+    expandedUsername: string[]
 }>({
+    expandedUsername: [],
     searchOptions: { wild: true },
     uploadOnExisting: getHFS().dontOverwriteUploading ? 'rename' : 'skip',
     uri: '',
