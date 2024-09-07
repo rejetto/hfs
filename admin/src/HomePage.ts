@@ -180,7 +180,7 @@ function entry(color: Color, ...content: ReactNode[]) {
         h(({ success: CheckCircle, info: Info, '': Info, warning: Warning, error: Error })[color], {
             sx: { mr: 1, color: color ? undefined : 'primary.main' }
         }),
-        h('span', { style: ['warning', 'error'].includes(color) ? { animation: '1s blink' } : undefined },
+        h('span', { style: ['warning', 'error'].includes(color) ? { animation: '.5s blink 2' } : undefined },
             ...content)
     )
 }

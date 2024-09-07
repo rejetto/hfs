@@ -114,9 +114,9 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         reloadingRef.current = pendingPromise()
     }, [setForcer])
     const ee = useMemo(() => new BetterEventEmitter, [])
-    const sub = useCallback((cb: Callback) => ee.on('data', cb), [])
+    const sub = useCallback((cb: Callback) => ee.on('data', cb), [ee])
     useEffect(() => { ee.emit('data') }, [data])
-    return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current,  }
+    return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current }
 }
 
 type EventHandler = (type:string, data?:any) => void
