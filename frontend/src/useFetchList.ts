@@ -145,7 +145,8 @@ function sort(list: DirList) {
     const byTime = sort_by === 'time'
     const invert = state.invert_order ? -1 : 1
     return list.sort((a,b) =>
-        folders_first && -compare(a.isFolder, b.isFolder)
+        hfsEvent('sortCompare', { a, b }).find(Boolean)
+        || folders_first && -compare(a.isFolder, b.isFolder)
         || invert * (bySize ? compare(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
                 : byTime ? compare(a.t, b.t)

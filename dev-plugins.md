@@ -295,8 +295,9 @@ Some frontend-events can return Html, which can be expressed in several ways
 - as array of ReactNode
 - null, undefined, false and empty-string will just be discarded
 
-These events will receive a `def` property, with the default content that will be displayed if no callback return
-a valid output. You can decide to embed such default content inside your content.
+These events will receive a `def` property (in addition event's specific properties),
+with the default content that will be displayed if no callback return a valid output.
+You can decide to embed such default content inside your content.
 You can produce output for such events also by adding sections (with same name as the event) to file `custom.html`.
 
 This is a list of available frontend-events, with respective object parameter and output.
@@ -381,6 +382,12 @@ This is a list of available frontend-events, with respective object parameter an
 - `uriChanged`
     - DEPRECATED: use `watchState('uri', callback)` instead.
     - parameter `{ uri: string, previous: string }`
+- `sortCompare`
+    - you can decide the order of entries by comparing two entries.
+      Return a negative value if entry `a` must appear before `b`, or positive if you want the opposite.
+      Return zero or any falsy value if you want to leave the order to what the user decided in his options.
+    - parameter `{ a: Entry, b: Entry }`
+    - output `number | undefined`
 - All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
   - `afterMenuBar` between menu-bar and breadcrumbs
   - `afterList` at the end of the files list
@@ -635,6 +642,7 @@ If you want to override a text regardless of the language, use the special langu
     - frontend event: paste
     - exports.customRest + HFS.customRestCall
     - config.type: vfs_path
+    - frontend event: sortCompare
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
