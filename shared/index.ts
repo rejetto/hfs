@@ -104,15 +104,22 @@ export function getPrefixUrl() {
 }
 
 export function makeSessionRefresher(state: any) {
-    return function sessionRefresher(response: any) {
+    let timeout: any
+    const initial = getHFS().session
+    refreshSession(initial)
+    return refreshSession
+
+    function refreshSession(response: any) {
         if (!response) return
         const { exp } = response
+        Object.assign(initial, response) // keep it updated, not necessary, just in case someone is looking at this instead of the state
         Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword', 'accountExp']))
         if (!response.username || !exp) return
         const delta = new Date(exp).getTime() - Date.now()
         const t = _.clamp(delta - 30_000, 4_000, 600_000)
         console.debug('session refresh in', Math.round(t / 1000))
-        setTimeout(() => apiCall('refresh_session').then(sessionRefresher), t)
+        clearTimeout(timeout)
+        timeout = setTimeout(() => apiCall('refresh_session').then(refreshSession), t)
     }
 }
 

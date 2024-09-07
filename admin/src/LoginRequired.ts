@@ -69,8 +69,7 @@ async function login(username: string, password: string) {
 
     // login was successful, update state
     state.loginRequired = false
-    sessionRefresher(res)
+    refreshSession(res)
 }
 
-const sessionRefresher = makeSessionRefresher(state)
-sessionRefresher(getHFS().session)
+const refreshSession = makeSessionRefresher(state)
