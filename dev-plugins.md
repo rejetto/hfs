@@ -125,7 +125,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 ### FieldDescriptor
 
 Currently, these properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'array' | 'username'ì` . Default is `string`.
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
@@ -628,12 +628,13 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 9 (v0.54.0)
+- 9.1 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 
     - api.misc
     - frontend event: paste
     - exports.customRest + HFS.customRestCall
+    - config.type: vfs_path
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip

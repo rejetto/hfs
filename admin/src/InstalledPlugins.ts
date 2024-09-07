@@ -15,6 +15,7 @@ import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
 import { Btn, hTooltip, IconBtn, iconTooltip } from './mui'
+import VfsPathField from './VfsPathField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, updateEntry, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
@@ -177,6 +178,7 @@ const type2comp = {
     multiselect: MultiSelectField,
     array: ArrayField,
     real_path: FileField,
+    vfs_path: VfsPathField,
     username: UsernameField,
 }
 
