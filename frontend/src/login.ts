@@ -16,7 +16,7 @@ async function login(username:string, password:string) {
     const stopWorking = working()
     return srpClientSequence(username, password, apiCall).then(res => {
         stopWorking()
-        sessionRefresher(res)
+        refreshSession(res)
         state.loginRequired = false
         return res
     }, (err: any) => {
@@ -28,8 +28,7 @@ async function login(username:string, password:string) {
     })
 }
 
-const sessionRefresher = makeSessionRefresher(state)
-sessionRefresher(getHFS().session)
+const refreshSession = makeSessionRefresher(state)
 
 export function logout() {
     return apiCall('logout', {}, { modal: working }).catch(res => {
