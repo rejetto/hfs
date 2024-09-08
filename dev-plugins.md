@@ -270,7 +270,10 @@ The HFS objects contains many properties:
 - `loadScript(uri: string): Promise` load a js file. If uri is relative, it is based on the plugin's public folder.
 - `customRestCall(name: string, parameters?: object): Promise<any>` call backend functions exported with `customRest`.
 - `userBelongsTo(groupOrUsername: string): boolean` returns true if logged in account belongs to the specified group name. 
-  Returns true if the specified name is the one of the logged in account.  
+  Returns true if the specified name is the one of the logged in account.
+- `DirEntry: class_constructor(n :string, otherProps?: DirEntry)` this is the class of the objects inside `HFS.state.list`;
+  in case you need to add to the list, do it by instantiating this class. E.g. `new HFS.DirEntry(name)`
+- `fileShow(entry: DirEntry, options?: { startPlaying: true )` open file-show on the specified entry.
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -306,9 +309,9 @@ This is a list of available frontend-events, with respective object parameter an
 
 - `additionalEntryDetails`
     - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
-    - parameter `{ entry: Entry }`
+    - parameter `{ entry: DirEntry }`
 
-      The `Entry` type is an object with the following properties:
+      The `DirEntry` type is an object with the following properties:
         - `name: string` name of the entry.
         - `ext: string` just the extension part of the name, dot excluded and lowercase.
         - `isFolder: boolean` true if it's a folder.
@@ -320,21 +323,21 @@ This is a list of available frontend-events, with respective object parameter an
         - `m?: Date` modified-time.
         - `p?: string` permissions missing
         - `cantOpen: boolean` true if current user has no permission to open this entry
-        - `getNext/getPrevious: ()=>Entry` return next/previous Entry in list
-        - `getNextFiltered/getPreviousFiltered: ()=>Entry` as above, but considers the filtered-list instead
+        - `getNext/getPrevious: ()=>DirEntry` return next/previous DirEntry in list
+        - `getNextFiltered/getPreviousFiltered: ()=>DirEntry` as above, but considers the filtered-list instead
         - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
     - output `Html`
 - `entry`
     - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
     - output `Html | null` return null if you want to hide this entry
 - `afterEntryName`
     - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
     - output `Html`
 - `entryIcon`
     - you receive an entry of the list and optionally produce HTML that will be used in place of the standard icon.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
     - output `Html`
 - `beforeHeader` & `afterHeader`
     - use this to produce content that should go right before/after the `header` part
@@ -345,7 +348,7 @@ This is a list of available frontend-events, with respective object parameter an
 - `fileMenu`
     - add or manipulate entries of the menu. If you return something, that will be added to the menu.
       You can also delete or replace the content of the `menu` array.
-    - parameter `{ entry: Entry, menu: FileMenuEntry[], props: FileMenuProp[] }`
+    - parameter `{ entry: DirEntry, menu: FileMenuEntry[], props: FileMenuProp[] }`
     - output `undefined | FileMenuEntry | FileMenuEntry[]`
       ```typescript
       interface FileMenuEntry {
@@ -370,11 +373,11 @@ This is a list of available frontend-events, with respective object parameter an
       or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
 - `fileShow`
     - you receive an entry of the list, and optionally produce React Component for visualization.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
+    - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
     - output `ReactComponent`
 - `showPlay`
     - emitted on each file played inside file-show. Use setCover if you want to customize the background picture.
-    - parameter `{ entry: Entry, setCover(uri: string), meta: { title, album, artist, year } }`
+    - parameter `{ entry: DirEntry, setCover(uri: string), meta: { title, album, artist, year } }`
 - `menuZip`
     - parameter `{ def: ReactNode }`
     - output `Html`
@@ -388,7 +391,7 @@ This is a list of available frontend-events, with respective object parameter an
     - you can decide the order of entries by comparing two entries.
       Return a negative value if entry `a` must appear before `b`, or positive if you want the opposite.
       Return zero or any falsy value if you want to leave the order to what the user decided in his options.
-    - parameter `{ a: Entry, b: Entry }`
+    - parameter `{ a: DirEntry, b: DirEntry }`
     - output `number | undefined`
 - All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
   - `afterMenuBar` between menu-bar and breadcrumbs
@@ -646,6 +649,7 @@ If you want to override a text regardless of the language, use the special langu
     - config.type: vfs_path
     - frontend event: sortCompare
     - HFS.userBelongsTo
+    - HFS.DirEntry
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip

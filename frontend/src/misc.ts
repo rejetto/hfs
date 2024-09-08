@@ -8,7 +8,7 @@ import { Callback, Dict, domOn, getHFS, Html, HTTP_MESSAGES, useBatch } from '@h
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
-import { state, useSnapState } from './state'
+import { DirEntry, state, useSnapState } from './state'
 import { t } from './i18n'
 import * as dialogLib from './dialog'
 import _ from 'lodash'
@@ -61,24 +61,18 @@ export function hfsEvent(name: string, params?:Dict) {
     })
 }
 
-const tools = {
+Object.assign(getHFS(), {
     h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
-    toast, domOn,
+    toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry,
     misc: { ...cross, ...shared },
+    emit: hfsEvent,
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
         return subscribeKey(up ? uploadState : state as any, up || k, cb, true)
     },
     customRestCall(name: string, ...rest: any[]) {
         return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)
-    }
-}
-Object.assign(getHFS(), {
-    ...tools,
-    emit: hfsEvent,
-    getNotifications,
-    debounceAsync,
-    useSnapState,
+    },
     html: (html: string) => h(Html, {}, html),
     onEvent(name: string, cb: (params:any, extra: { output: any[], preventDefault: Callback }, output: any[]) => any) {
         const key = 'hfs.' + name
