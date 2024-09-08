@@ -104,7 +104,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                             addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
                         }),
                         values: lastSaved,
-                        dialogProps: _.merge({ sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
+                        dialogProps: _.merge({ maxWidth: 'md', sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
+                            with_(row.configDialog?.maxWidth, x => x?.length === 2 ? { maxWidth: x } : x ? { sx: { maxWidth: x } } : null), // this makes maxWidth support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
                             row.configDialog),
                     })
                     if (values && !_.isEqual(lastSaved, values))
