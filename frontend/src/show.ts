@@ -22,6 +22,7 @@ enum ZoomMode {
 export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
     let escOnce = false
     let onClose: any
+    let firstUri: string
     const { close } = newDialog({
         noFrame: true,
         className: 'file-show',
@@ -29,6 +30,13 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             onClose?.()
         },
         Content() {
+            const { uri } = useSnapState()
+            useEffect(() => {
+                if (uri === firstUri) return
+                firstUri ??= uri // init
+                if (firstUri !== uri) // user must have clicked the folder link inside file-menu (which happens only for search results)
+                    close()
+            }, [uri])
             const [cur, setCur] = useState(entry)
             const moving = useRef(0)
             const lastGood = useRef(entry)
