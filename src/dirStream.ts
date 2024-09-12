@@ -4,7 +4,7 @@ import { runCmd } from './util-os'
 import { IS_WINDOWS } from './const'
 import { join } from 'path'
 import { Readable } from 'stream'
-import { pendingPromise } from './cross'
+import { DAY, pendingPromise } from './cross'
 import { Stats, Dirent } from 'node:fs'
 
 export interface DirStreamEntry extends Dirent {
@@ -95,9 +95,16 @@ export function createDirStream(startPath: string, { depth=0, hidden=true }) {
     }
 }
 
+let lastNotice = 0
 async function getWindowsHiddenFiles(path: string, depth=false) {
+    const t = Date.now()
     const out = await runCmd('dir', ['/ah', '/b', depth ? '/s' : '/c', path.replaceAll('/', '\\')]) // cannot pass '', so we pass /c as a noop parameter
         .catch(()=>'') // error in case of no matching file
+    const now = Date.now()
+    if ((now - t) > 10_000 && (now - lastNotice) > DAY) {
+        lastNotice = now
+        console.log("A file list was heavily delayed. You can avoid this by enabling the option to show hidden files.")
+    }
     const slice = !depth ? 0 : path.length + (path.at(-1) === '\\' ? 0 : 1)
     return out.trimEnd().split('\n').map(x => x.slice(slice).replaceAll('\\', '/'))
 }
