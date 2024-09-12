@@ -183,7 +183,7 @@ export function Form<Values extends Dict>({
             sx: Object.assign({},
                 stickyBar && {
                     width: 'fit-content', zIndex: 2, backgroundColor: 'background.paper', borderRadius: 1,
-                    position: 'sticky', bottom: 0, p: 1, m: -1, boxShadow: '0px 0px 30px #000',
+                    position: 'sticky', bottom: 0, p: 1, m: -1, boxShadow: '0px 0px 15px #000',
                 },
                 barSx)
         },
