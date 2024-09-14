@@ -64,12 +64,15 @@ function FilesList() {
     const total = theList.length
     const nPages = Math.ceil(total / pageSize)
 
-    useEffect(() => setPage(0), [theList[0]])
+    useEffect(() => setPage(0), [theList[0]]) // reset page if the list changes
+    // reset scrolling if the page changes
     useEffect(() => {
         document.scrollingElement?.scrollTo(0, 0)
         setExtraPages(0)
         setScrolledPages(0)
     }, [page])
+
+    // infinite scrolling
     const calcScrolledPages = useMemo(() =>
         _.throttle(() => {
             const i = _.findLastIndex(document.querySelectorAll('.' + PAGE_SEPARATOR_CLASS), el =>
@@ -94,7 +97,7 @@ function FilesList() {
         setGoBottom(false)
         window.scrollTo(0, document.body.scrollHeight)
     }, [goBottom])
-    const pageChange = useCallback((i: number, pleaseGoBottom?: boolean) => {
+    const changePage = useCallback((i: number, pleaseGoBottom?: boolean) => {
         if (pleaseGoBottom)
             setGoBottom(true)
         if (i < page || i > page + extraPages)
@@ -127,7 +130,7 @@ function FilesList() {
             current: page + scrolledPages,
             atBottom,
             pageSize,
-            pageChange,
+            changePage,
         })
     )
 }
@@ -137,9 +140,9 @@ interface PagingProps {
     current: number
     atBottom: boolean
     pageSize: number
-    pageChange:(newPage:number, goBottom?:boolean) => void
+    changePage: (newPage:number, goBottom?:boolean) => void
 }
-const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: PagingProps) => {
+const Paging = memo(({ nPages, current, pageSize, changePage, atBottom }: PagingProps) => {
     useEffect(() => {
         document.body.style.overflowY = 'scroll'
         return () => { document.body.style.overflowY = '' }
@@ -153,7 +156,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
         h('button', {
             title: t('go_first', "Go to first item"),
             className: !current ? 'toggled' : undefined,
-            onClick() { pageChange(0) },
+            onClick() { changePage(0) },
         }, hIcon('to_start')),
         h('div', { id: 'paging-middle' },  // using sticky first/last would prevent scrollIntoView from working
             _.range(1, nPages).map(i =>
@@ -161,13 +164,13 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
                     && h('button', {
                         key: i,
                         ...i === current && { className: 'toggled', ref },
-                        onClick: () => pageChange(i),
+                        onClick: () => changePage(i),
                     }, shrink && !(i%10) ? (i/10) + 'K' : i * pageSize) )
         ),
         h('button', {
             title: t('go_last', "Go to last item"),
             className: atBottom ? 'toggled' : undefined,
-            onClick(){ pageChange(nPages-1, true) }
+            onClick(){ changePage(nPages-1, true) }
         }, hIcon('to_end')),
     )
 })
