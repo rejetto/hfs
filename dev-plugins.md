@@ -394,6 +394,7 @@ This is a list of available frontend-events, with respective object parameter an
     - parameter `{ a: DirEntry, b: DirEntry }`
     - output `number | undefined`
 - All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
+-   `appendMenuBar` inside menu-bar, at the end
   - `afterMenuBar` between menu-bar and breadcrumbs
   - `afterList` at the end of the files list
   - `footer` at the bottom of the screen, even after the clipboard-bar (when visible)
@@ -650,6 +651,7 @@ If you want to override a text regardless of the language, use the special langu
     - frontend event: sortCompare
     - HFS.userBelongsTo
     - HFS.DirEntry
+    - frontend event: appendMenuBar
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip

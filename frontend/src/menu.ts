@@ -118,6 +118,7 @@ export function MenuPanel() {
                     }
                 }
             })),
+            h(CustomCode, { name: 'appendMenuBar' }),
         ),
         remoteSearch && h('div', { id: 'searched' },
             (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', searchManuallyInterrupted && t`interrupted`, ')')),
