@@ -69,7 +69,7 @@
     ]
   },
   "dependencies": {
-    "@koa/router": "^12.0.1",
+    "@koa/router": "^13.0.1",
     "@node-rs/crc32": "^1.6.0",
     "@rejetto/kvstorage": "^0.12.2",
     "acme-client": "^5.3.1",
