@@ -19,6 +19,7 @@ import events from './events'
 const allowSessionIpChange = defineConfig<boolean | 'https'>('allow_session_ip_change', false)
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
+const allowAuthorizationHeader = defineConfig('authorization_header', true)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
 
@@ -116,7 +117,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     }
 
     function getHttpAccount() {
-        const b64 = ctx.get('authorization')?.split(' ')[1]
+        const b64 = allowAuthorizationHeader.get() && ctx.get('authorization')?.split(' ')[1]
         if (!b64) return
         try {
             const [u, p] = atob(b64).split(':')

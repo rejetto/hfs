@@ -120,8 +120,9 @@ Configuration can be done in several ways
 - `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address.
      Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
      Multiple URLs are supported and you can specify one for each line.   
-- `auto_basic` automatically detect (based on user-agent) when the basic web inteface should be served, to support legacy browsers. Default true.
+- `auto_basic` automatically detect (based on user-agent) when the basic web inteface should be served, to support legacy browsers. Default is true.
 - `allow_session_ip_change` should requests of the same login session be allowed from different IP addresses. Default is false, to prevent cookie stealing. You can set it `true` to always allow it, or `https` to allow only on https, where stealing the cookie is harder.   
+- `authorization_header` support Authentication HTTP header. Default is true. 
 - `create-admin` special entry to quickly create an admin account. The value will be set as password. As soon as the account is created, this entry is removed. 
 
 #### Virtual File System (VFS)
