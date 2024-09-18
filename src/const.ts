@@ -47,7 +47,7 @@ if (dir) {
     }
     process.chdir(dir)
 }
-console.log('cwd', process.cwd())
+console.log('working directory', process.cwd())
 if (APP_PATH !== process.cwd())
     console.log('app', APP_PATH)
 console.log('node', process.version)
