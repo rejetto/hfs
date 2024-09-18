@@ -418,7 +418,10 @@ This section is still partially documented, and you may need to have a look at t
   - called just before trying to delete a file or folder (which still may not exist and fail)
   - async supported
   - stoppable
+- `login`
 - `logout`
+- `attemptingLogin`
+- `failedLogin`
 - `config ready`
 - `config.KEY` where KEY is the key of a config that has changed
 - `connectionClosed`
@@ -628,6 +631,7 @@ If you want to override a text regardless of the language, use the special langu
     - exports.customHtml
     - more functions in HFS.misc
     - frontend event 'entry' can now ask to skip an entry
+    - backend events: login attemptingLogin failedLogin
 - 8.72 (v0.52.0)
     - HFS.toast
     - HFS.misc functions
