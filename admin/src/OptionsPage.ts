@@ -192,11 +192,13 @@ export default function OptionsPage() {
                 helperText: "The icon associated to your website" },
 
             h(Section, { title: "Uploads" }),
-            { k: 'dont_overwrite_uploading', comp: BoolField, sm: 4, md: 6, label: "Don't overwrite uploading",
+            { k: 'dont_overwrite_uploading', comp: BoolField, md: 4, label: "Uploads don't overwrite",
                 helperText: "Files will be numbered to avoid overwriting" },
-            { k: 'delete_unfinished_uploads_after', comp: NumberField, sm: 4, md: 3, min : 0, unit: "seconds", placeholder: "Never",
+            { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null, min: 0, step: .1,
+                placeholder: "disabled", label: "Split uploads in chunks", helperText: "Overcome proxy limits" },
+            { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",
                 helperText: "Leave empty to never delete" },
-            { k: 'min_available_mb', comp: NumberField, sm: 4, md: 3, min : 0, unit: "MBytes", placeholder: "None",
+            { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
 
             h(Section, { title: "Others" }),

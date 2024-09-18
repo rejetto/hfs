@@ -18,6 +18,7 @@ import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
 import { dontOverwriteUploading } from './upload'
 
+const splitUploads = defineConfig(CFG.split_uploads, 0)
 export const logGui = defineConfig(CFG.log_gui, false)
 _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
 
@@ -106,6 +107,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),
                         prefixUrl: ctx.state.revProxyPath,
                         dontOverwriteUploading: dontOverwriteUploading.get(),
+                        splitUploads: splitUploads.get(),
                         forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
                         customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),

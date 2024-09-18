@@ -145,6 +145,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
                 }
+                if (ctx.query.partial) return // this upload is partial, and we are supposed to leave the upload as unfinished, with the temp name
                 let dest = fullPath
                 if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
                     if (overwriteRequestedButForbidden) {

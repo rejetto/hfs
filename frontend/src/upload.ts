@@ -5,7 +5,7 @@ import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, closeDialog, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, prefix, selectFiles, working,
     HTTP_CONFLICT, HTTP_PAYLOAD_TOO_LARGE, formatSpeed, dirname, getHFS, onlyTruthy, with_, cpuSpeedIndex,
-    buildUrlQueryString, randomId, HTTP_MESSAGES, pathEncode,
+    buildUrlQueryString, randomId, HTTP_MESSAGES, pathEncode, pendingPromise,
 } from './misc'
 import _ from 'lodash'
 import { INTERNAL_Snapshot, proxy, ref, snapshot, subscribe, useSnapshot } from 'valtio'
@@ -310,38 +310,54 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     overrideStatus = 0
     uploadState.uploading = toUpload
     await subscribeNotifications()
-    req = new XMLHttpRequest()
-    req.onloadend = () => {
-        if (req?.readyState !== 4) return
-        const status = overrideStatus || req.status
-        closeLast?.()
-        if (!status || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
-            uploadState.skipped.push(toUpload)
-        else if (status >= 400)
-            error(status)
-        else
-            done()
-        if (!resuming)
-            next()
-    }
-    req.onerror = () => error(0)
-    let lastProgress = 0
-    req.upload.onprogress = (e:any) => {
-        uploadState.partial = e.loaded + resume
-        uploadState.progress = uploadState.partial / (e.total + resume)
-        bytesSent += e.loaded - lastProgress
-        lastProgress = e.loaded
-    }
-    let uploadPath = path(toUpload.file)
-    if (toUpload.name)
-        uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
-    req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
-        notificationChannel,
-        ...resume && { resume: String(resume) },
-        ...toUpload.comment && { comment: toUpload.comment },
-        ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default
-    }), true)
-    req.send(toUpload.file.slice(resume))
+    const splitSize = getHFS().splitUploads || Infinity
+    const fullSize = toUpload.file.size
+    let offset = resume
+    do { // at least one iteration, even for empty files
+        req = new XMLHttpRequest()
+        const finished = pendingPromise()
+        req.onloadend = () => {
+            finished.resolve()
+            if (req?.readyState !== 4) return
+            const status = overrideStatus || req.status
+            closeLast?.()
+            if (!status || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
+                uploadState.skipped.push(toUpload)
+            else if (status >= 400)
+                error(status)
+            else {
+                offset += splitSize
+                if (offset < fullSize) return // continue looping
+                done()
+            }
+            if (!resuming)
+                next()
+            offset = fullSize // stop looping
+        }
+        req.onerror = () => {
+            error(0)
+            finished.resolve()
+        }
+        let lastProgress = 0
+        req.upload.onprogress = (e:any) => {
+            uploadState.partial = e.loaded + offset
+            uploadState.progress = uploadState.partial / fullSize
+            bytesSent += e.loaded - lastProgress
+            lastProgress = e.loaded
+        }
+        let uploadPath = path(toUpload.file)
+        if (toUpload.name)
+            uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
+        req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
+            notificationChannel,
+            ...offset + splitSize < fullSize && { partial: 'y' },
+            ...offset && { resume: String(offset) },
+            ...toUpload.comment && { comment: toUpload.comment },
+            ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default
+        }), true)
+        req.send(toUpload.file.slice(offset, offset + splitSize))
+        await finished
+    } while (offset < fullSize)
 
     async function subscribeNotifications() {
         if (notificationChannel) return
