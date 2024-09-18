@@ -112,7 +112,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         if (!login) return
         const [u, p] = splitAt(':', String(login))
         ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
-        return doLogin(u, p)
+        return doLogin(u, p, 'url')
     }
 
     function getHttpAccount() {
@@ -120,14 +120,14 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         if (!b64) return
         try {
             const [u, p] = atob(b64).split(':')
-            return doLogin(u!, p||'')
+            return doLogin(u!, p||'', 'header')
         }
         catch {}
     }
 
-    async function doLogin(u: string, p: string) {
+    async function doLogin(u: string, p: string, via: string) {
         if (!u || u === ctx.session?.username) return // providing credentials, but not needed
-        await events.emitAsync('attemptingLogin', { ctx, username: u })
+        await events.emitAsync('attemptingLogin', { ctx, username: u, via })
         const a = await srpCheck(u, p)
         if (a) {
             await setLoggedIn(ctx, a.username)
