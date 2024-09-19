@@ -4,7 +4,7 @@ import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
 import { dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL, md,
-    replaceStringToReact, wait, with_ } from './misc'
+    replaceStringToReact, wait, with_, DAY } from './misc'
 import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
 import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInNew, Warning } from '@mui/icons-material'
 import { state, useSnapState } from './state'
@@ -54,15 +54,17 @@ export default function HomePage() {
         dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
             : entry('success', "Server is working"),
-        !vfs ? h(LinearProgress)
-            : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
-                : entry('', md("This is the Admin-panel, where you manage your server. Access your files on "),
-                    h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
         !href && entry('warning', "Frontend unreachable: ",
             _.map(serverErrors, (v,k) => k + " " + (v ? "is in error" : "is off")).join(', '),
             !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
         ),
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
+        !cfg.data?.split_uploads && (Date.now() - Number(status.cloudflareDetected || 0)) < DAY
+            && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
+        !vfs ? h(LinearProgress)
+            : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
+                : entry('', md("This is the Admin-panel, where you manage your server. Access your files on "),
+                    h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
         !account?.adminActualAccess && entry('', md("On <u>localhost</u> you don't need to login"),
             SOLUTION_SEP, "to access Admin-panel from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
         with_(proxyWarning(cfg, status), x => x && entry('warning', x,

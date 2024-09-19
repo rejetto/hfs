@@ -48,6 +48,7 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
 }
 
 let proxyDetected: undefined | Koa.Context
+export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
     const ss = ctx.session
@@ -71,6 +72,8 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
             proxyDetected = ctx
             ctx.state.whenProxyDetected = new Date()
         }
+        if (ctx.get('cf-ray'))
+            cloudflareDetected = new Date()
     }
     catch {
         return ctx.status = HTTP_FOOL

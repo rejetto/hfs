@@ -23,7 +23,7 @@ import { getConnections } from './connections'
 import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, typedEntries, waitFor } from './misc'
 import { accountCanLoginAdmin, accountsConfig } from './perm'
 import Koa from 'koa'
-import { getProxyDetected } from './middlewares'
+import { cloudflareDetected, getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
@@ -128,6 +128,7 @@ export const adminApis = {
             autoCheckUpdateResult: autoCheckUpdateResult.get(), // in this form, we get the same type of the serialized json
             alerts: alerts.get(),
             proxyDetected: getProxyDetected(),
+            cloudflareDetected,
             ram: process.memoryUsage.rss(),
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
