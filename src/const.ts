@@ -23,8 +23,8 @@ export const RUNNING_BETA = VERSION.includes('-')
 export const HFS_REPO_BRANCH = RUNNING_BETA ? VERSION.split('.')[1] : 'main'
 export const IS_WINDOWS = process.platform === 'win32'
 export const IS_MAC = process.platform === 'darwin'
-export const IS_BINARY = !basename(process.execPath).includes('node') // this won't be node if pkg was used
-export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname)
+export const IS_BINARY = !/node|bun/.test(basename(process.execPath)) // this won't be node if pkg was used
+export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname) // __dirname's parent can be compared with cwd
 export const MIME_AUTO = 'auto'
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
@@ -51,5 +51,7 @@ console.log('working directory', process.cwd())
 if (APP_PATH !== process.cwd())
     console.log('app', APP_PATH)
 console.log('node', process.version)
-console.log('platform', process.platform)
+const bun = (globalThis as any).Bun
+if (bun) console.log('bun', bun.version)
+console.log('platform', process.platform, IS_BINARY ? 'binary' : basename(process.execPath))
 console.log('pid', process.pid)
