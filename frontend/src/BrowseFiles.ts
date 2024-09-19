@@ -198,7 +198,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerName = n.slice(0, -name.length)
+    const containerName = n.slice(0, -name.length - (isFolder ? 1 : 0))
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
@@ -228,7 +228,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
             // we treat webpages as folders, with menu to comment
             isFolder ? h(Fragment, {}, // internal navigation, use Link component
                 h(Link, { to: uri, reloadDocument: entry.web, onClick, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
-                    ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
+                    ico, h('span', { className: 'container-folder' }, containerName), name), // don't use name, as we want to include whole path in case of search
                 // popup button is here to be able to detect link-wrapper:hover
                 file_menu_on_link && !showingButton && h('button', {
                     className: 'popup-menu-button',
