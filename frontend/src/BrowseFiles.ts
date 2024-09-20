@@ -198,7 +198,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerName = n.slice(0, -name.length - (isFolder ? 1 : 0))
+    const containerName = n.slice(0, -name.length - (isFolder ? 1 : 0)).replaceAll('/', '/ ')
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
