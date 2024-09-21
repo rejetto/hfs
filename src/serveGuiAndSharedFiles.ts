@@ -96,8 +96,12 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return
     }
     const { get } = ctx.query
-    if (node.default && path.endsWith('/') && !get) // final/ needed on browser to make resource urls correctly with html pages
-        node = await urlToNode(node.default, ctx, node) ?? node
+    if (node.default && path.endsWith('/') && !get) { // final/ needed on browser to make resource urls correctly with html pages
+        const found = await urlToNode(node.default, ctx, node)
+        if (found && /\.html?/i.test(node.default))
+            ctx.state.considerAsGui = true
+        node = found ?? node
+    }
     if (get === 'icon')
         return serveFile(ctx, node.icon || '|') // pipe to cause not-found
     if (!await nodeIsDirectory(node))

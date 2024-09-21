@@ -151,6 +151,7 @@ declare module "koa" {
         logExtra?: object
         completed?: Promise<unknown>
         spam?: boolean // this request was marked as spam
+        considerAsGui?: boolean
     }
 }
 

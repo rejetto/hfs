@@ -17,9 +17,9 @@ import { sendErrorPage } from './errorPages'
 import { Readable } from 'stream'
 
 const allowedReferer = defineConfig('allowed_referer', '')
-const limitDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
-const limitDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
-const limitDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
+const maxDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
+const maxDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
+const maxDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
 
 export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const { source, mime } = node
@@ -28,7 +28,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
         : _.find(mime, (val,mask) => matches(name, mask))
     if (allowedReferer.get()) {
         const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
-        if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
+        if (ref && ref !== host() // automatically accept if referer is basically the hosting domain
         && !matches(ref, allowedReferer.get()))
             return ctx.status = HTTP_FORBIDDEN
     }
@@ -41,8 +41,8 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
         ctx.state.considerAsGui = true
     await serveFile(ctx, source||'', mimeString)
 
-    if (await limitDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
-        await limitDownloads(ctx) || await limitDownloadsPerIp(ctx)
+    if (await maxDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
+        await maxDownloads(ctx) || await maxDownloadsPerIp(ctx)
 
     function host() {
         const s = ctx.get('host')
@@ -150,7 +150,7 @@ declare module "koa" {
 function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey: (ctx: Koa.Context) => T | undefined) {
     const map = new Map<T, number>()
     return (ctx: Koa.Context) => {
-        if (!ctx.body || ctx.state.considerAsGui) return // no file sent, cache hit
+        if (!ctx.body || ctx.state.considerAsGui) return // !body = no file sent, cache hit
         const k = cbKey(ctx)
         if (k === undefined) return // undefined = skip limit
         const max = configMax.get()
