@@ -465,10 +465,11 @@ export function acceptDropFiles(cb: false | undefined | ((files:File[], to: stri
                 if (entry)
                     (function recur(entry: FileSystemEntry, to = '') {
                         if (entry.isFile)
-                            (entry as FileSystemFileEntry).file(x => cb([x], to))
+                            (entry as FileSystemFileEntry).file(x => cb([x], x.webkitRelativePath ? '' : to)) // ff130 fills webkitRelativePath when dropping a folder, while chrome128 doesn't and we pass 'to' to preserve the structure
                         else (entry as FileSystemDirectoryEntry).createReader?.().readEntries(entries => {
+                            const newTo = to + entry.name + '/'
                             for (const e of entries)
-                                recur(e, to + entry.name + '/')
+                                recur(e, newTo)
                         })
                     })(entry)
             }
