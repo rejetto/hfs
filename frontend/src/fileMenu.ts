@@ -10,7 +10,7 @@ import { DirEntry, state } from './state'
 import { deleteFiles } from './menu'
 import { Link, LinkProps } from 'react-router-dom'
 import { fileShow, getShowType } from './show'
-import { alertDialog, promptDialog } from './dialog'
+import { alertDialog, promptDialog, toast } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
 import { inputComment } from './upload'
 import { cut } from './clip'
@@ -170,7 +170,7 @@ async function editComment(entry: DirEntry) {
     if (res === null) return
     await apiCall('comment', { uri: entry.uri, comment: res }, { modal: working })
     updateEntry(entry, e => e.comment = res)
-    alertDialog(t`Operation successful`)
+    toast(t`Operation successful`, 'success')
 }
 
 function updateEntry(entry: DirEntry, cb: (e: DirEntry) => unknown) {
