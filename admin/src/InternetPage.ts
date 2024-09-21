@@ -366,7 +366,13 @@ export default function InternetPage() {
                 h('li', {}, "There could be a firewall, try configuring or disabling it."),
                 (data.externalPort || data.internalPort!) <= 1024 && h('li', {},
                     "Your Internet Provider may be blocking ports under 1024. ",
-                    data.upnp && h(Button, { size: 'small', onClick() { close(); mapPort(HIGHER_PORT).then(verifyAgain) } }, "Try " + HIGHER_PORT) ),
+                    data.upnp && h(Button, {
+                        size: 'small',
+                        onClick() {
+                            close();
+                            mapPort(HIGHER_PORT).then(verifyAgain)
+                        }
+                    }, "Try " + HIGHER_PORT)),
                 data.mapped && h('li', {}, "A bug in your modem/router, try rebooting it."),
                 h('li', {}, MSG_ISP),
             )), 'warning')

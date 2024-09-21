@@ -117,7 +117,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     going = true
                     try {
                         const res = await login(usr, pwd)
-                        close(true)
+                        await close(true)
                         toast(t`Logged in`, 'success')
                         if (res?.redirect)
                             setTimeout(() => // workaround: the history.back() issued by closing the dialog is messing with our navigation

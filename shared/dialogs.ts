@@ -203,7 +203,7 @@ export function newDialog(options: DialogOptions) {
         if (history.state?.$dialog === $id)
             options.closed = back()
         closeDialogAt(i, v)
-        return options
+        return options.closed
     }
 }
 
@@ -227,7 +227,8 @@ function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
     d.restoreFocus?.focus?.() // if element is not HTMLElement, it doesn't have focus method
     d.closingValue = value
-    d?.onClose?.(value)
+    Promise.resolve(d.closed).then(() =>
+        d?.onClose?.(value))
     return d
 }
 
