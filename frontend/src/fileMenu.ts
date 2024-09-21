@@ -150,7 +150,8 @@ async function rename(entry: DirEntry) {
     const MSG = t`Operation successful`
     if (uri === location.pathname) //current folder
         return alertDialog(MSG).then(() =>
-            getHFS().navigate(uri + '../' + pathEncode(dest) + '/') )
+            setTimeout(() => // after history.back() issued by closing the dialog
+                getHFS().navigate(uri + '../' + pathEncode(dest) + '/') ))
     // update state instead of re-getting the list
     const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
     const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping old key, we avoid unmounting the element, that's causing focus lost
