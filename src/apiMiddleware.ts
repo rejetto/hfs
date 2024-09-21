@@ -14,7 +14,8 @@ export class ApiError extends Error {
     }
 }
 type ApiHandlerResult = Record<string,any> | ApiError | Readable | AsyncGenerator<any> | null
-export type ApiHandler = (params:any, ctx:Koa.Context) => Promisable<ApiHandlerResult>
+// allow defining extra parameters that can be used when an api to invoke another (like copy_files)
+export type ApiHandler = (params:any, ctx:Koa.Context, ...ignore: unknown[]) => Promisable<ApiHandlerResult>
 export type ApiHandlers = Record<string, ApiHandler>
 
 const logApi = defineConfig(CFG.log_api, true)

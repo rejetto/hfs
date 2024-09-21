@@ -120,7 +120,8 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
 - `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to front-end.
 - `customHtml: object | () => object` return custom-html sections programmatically.
-- `customRest: { [name]: (parameters: object) => any }` declare backend functions to be called by frontend with `HFS.customRestCall` 
+- `customRest: { [name]: (parameters: object) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
+- `customApi: { [name]: (parameters) => any }` declare functions to be called by other plugins (only backend, not frontend) using `api.customApiCall` (documented below) 
 
 ### FieldDescriptor
 
@@ -644,7 +645,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 9.1 (v0.54.0)
+- 9.2 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 
     - api.misc
