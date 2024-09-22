@@ -146,7 +146,7 @@ export default function OptionsPage() {
                 helperText: "Access Admin-panel without entering credentials"
             },
 
-            { k: 'proxies', comp: NumberField, min: 0, max: 9, label: "Number of HTTP proxies",
+            { k: 'proxies', comp: NumberField, min: 0, max: 9, label: "Number of HTTP proxies", placeholder: "none",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
@@ -180,8 +180,10 @@ export default function OptionsPage() {
             },
             { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
 
-            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
-            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
+            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, required: true,
+                label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
+            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, required: true,
+                label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
             { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
             { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
 
@@ -204,8 +206,8 @@ export default function OptionsPage() {
             h(Section, { title: "Others" }),
             { k: 'keep_session_alive', comp: BoolField, sm: 4, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
             { k: 'session_duration', comp: NumberField, sm: 4, md: 3, min: 5, unit: "seconds", required: true },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, label: "Calculate ZIP size for", unit: "seconds",
-                helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, unit: "seconds", required: true, min: 0,
+                label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
 
             { k: 'descript_ion', comp: BoolField, ...isWindows && { sm: 4, md: 3 },  label: "Enable comments", helperText: "In file DESCRIPT.ION" },
             isWindows && { k: 'show_hidden_files', comp: BoolField, sm: 4, md: 3, helperText: "Showing makes search faster" },
