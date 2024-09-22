@@ -30,7 +30,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
         apiCall('resolve_path', { path: from, closestFolder: true }).then(res => {
             if (typeof res.path === 'string') {
                 setCwd(res.path)
-                isWindows.current = res.path[1] === ':'
+                isWindows.current = res.path[1] === ':' || res.path.startsWith('\\\\') // drive or unc
             }
         }).finally(() => setReady(true))
     }, [from])
@@ -83,7 +83,9 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                     icon: ArrowUpward,
                     onClick() {
                         const cwdND = /[\\/]$/.test(cwd) ? cwd.slice(0,-1) : cwd // exclude final delimiter, if any
-                        const parent = isWindowsDrive(cwdND) ? root : cwdND.slice(0, cwdND.lastIndexOf(pathDelimiter) || 1)
+                        const last = cwdND.lastIndexOf(pathDelimiter)
+                        const isUNCroot = last === 1 // whe cwd is '\\host'
+                        const parent = isWindowsDrive(cwdND) || isUNCroot ? root : cwdND.slice(0, last || 1)
                         setCwd(parent)
                     }
                 }),
