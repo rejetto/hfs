@@ -6,7 +6,7 @@ import { Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addA
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidateSessionBefore } from './auth'
-import { apiAssertTypes } from './misc'
+import { apiAssertTypes, onlyTruthy } from './misc'
 
 export type AccountAdminSend = NonNullable<ReturnType<typeof prepareAccount>>
 function prepareAccount(ac: Account | undefined) {
@@ -31,7 +31,7 @@ export default  {
     },
 
     get_accounts() {
-        return { list: Object.values(accountsConfig.get()).map(prepareAccount) }
+        return { list: onlyTruthy(Object.values(accountsConfig.get()).map(prepareAccount)) }
     },
 
     get_admins() {
