@@ -45,7 +45,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
         await maxDownloads(ctx) || await maxDownloadsPerIp(ctx)
 
     function host() {
-        const s = ctx.get('host')
+        const s = ctx.host
         return s[0] === '[' ? s.slice(1, s.indexOf(']')) : s?.split(':')[0]
     }
 }

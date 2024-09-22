@@ -42,7 +42,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
     stream.push(`<title>${title.get()}</title><body>`)
     stream.push(getSection('basicHeader'))
     const u = getCurrentUsername(ctx)
-    const links: Dict<string> = u ? { [`//LOGOUT%00:@${ctx.get('host')}/?get=logout`]: `Logout (${u})` } : { '/?get=login': "Login" }
+    const links: Dict<string> = u ? { [`//LOGOUT%00:@${ctx.host}/?get=logout`]: `Logout (${u})` } : { '/?get=login': "Login" }
     stream.push(_.map(links, (v,k) => a(k, v)).join(' ') + '\n<ul>\n')
     if (ctx.state.originalPath.length > 1)
         stream.push('<li>' + a('..' + force, '..') + '\n')
