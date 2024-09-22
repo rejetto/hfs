@@ -3,8 +3,10 @@
 import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
-import { dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL, md,
-    replaceStringToReact, wait, with_, DAY } from './misc'
+import {
+    dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL, md,
+    replaceStringToReact, wait, with_, DAY, HOUR
+} from './misc'
 import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
 import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInNew, Warning } from '@mui/icons-material'
 import { state, useSnapState } from './state'
@@ -121,6 +123,12 @@ export default function HomePage() {
                     : h(Flex, { vert: true },
                         updates.map((x: any) => h(Update, { info: x })) )),
         h(SwitchThemeBtn, { variant: 'outlined' }),
+        Date.now() - Number(new Date(status.started)) > HOUR && h(Link, {
+            title: "Donate",
+            target: 'donate',
+            style: { textDecoration: 'none', position: 'fixed', bottom: 0, right: 4, fontSize: 'large' },
+            href: 'https://www.paypal.com/donate/?hosted_button_id=HC8MB4GRVU5T2'
+        }, '❤️')
     )
 }
 
