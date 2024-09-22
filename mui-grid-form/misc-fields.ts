@@ -4,16 +4,10 @@ import { createElement as h, useEffect, useState } from 'react'
 import { StringField } from './StringField'
 import { FieldProps } from '.'
 import {
-    Box,
-    Checkbox,
-    FormControl,
-    FormControlLabel,
-    FormGroup,
-    FormHelperText,
-    FormLabel,
-    InputAdornment,
-    Switch
+    Box, Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, FormLabel, IconButton,
+    InputAdornment, Switch
 } from '@mui/material'
+import { Cancel } from '@mui/icons-material'
 import _ from 'lodash'
 
 export function DisplayField({ value, empty='-', ...props }: any) {
@@ -22,7 +16,7 @@ export function DisplayField({ value, empty='-', ...props }: any) {
     return h(StringField, {  ...props, value, disabled: true })
 }
 
-export function NumberField({ value, onChange, setApi, required, min, max, step, unit, ...props }: FieldProps<number | null>) {
+export function NumberField({ value, onChange, setApi, required, min=0, max, step, unit, clearable, ...props }: FieldProps<number | null>) {
     setApi?.({
         getError() {
             return value == null ? (required ? "required" : false)
@@ -40,7 +34,16 @@ export function NumberField({ value, onChange, setApi, required, min, max, step,
         },
         inputProps: { min, max, step, },
         InputProps: _.merge({
-            sx: { '& input': { appearance: 'textfield' } }
+            sx: { '& input': { appearance: 'textfield' } },
+            startAdornment: (clearable ?? props.placeholder) && (value || value === 0) && h(InputAdornment, {
+                position: 'start',
+            }, h(IconButton, {
+                size: 'small',
+                edge: 'start',
+                sx: { ml: -1, opacity: .5 },
+                'aria-label': "clear",
+                onClick(event){ onChange(null, { was: value, event }) }
+            }, h(Cancel))),
         }, unit && {
             sx: { pr: '6px', '& input': { pl: '.2em', textAlign: 'right' } },
             endAdornment: h(InputAdornment, {

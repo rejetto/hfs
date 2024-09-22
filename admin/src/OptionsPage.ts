@@ -57,7 +57,6 @@ export default function OptionsPage() {
     }
     const maxDownloadsDefaults = {
         comp: NumberField,
-        min: 0,
         placeholder: "no limit",
         toField: (x: any) => x || '',
         sm: 4,
@@ -146,7 +145,7 @@ export default function OptionsPage() {
                 helperText: "Access Admin-panel without entering credentials"
             },
 
-            { k: 'proxies', comp: NumberField, min: 0, max: 9, label: "Number of HTTP proxies", placeholder: "none",
+            { k: 'proxies', comp: NumberField, max: 9, label: "Number of HTTP proxies", placeholder: "none",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
@@ -182,7 +181,7 @@ export default function OptionsPage() {
 
             { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, required: true,
                 label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
-            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, required: true,
+            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, max: MAX_TILE_SIZE, required: true,
                 label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
             { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
             { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
@@ -196,7 +195,8 @@ export default function OptionsPage() {
             h(Section, { title: "Uploads" }),
             { k: 'dont_overwrite_uploading', comp: BoolField, md: 4, label: "Uploads don't overwrite",
                 helperText: "Files will be numbered to avoid overwriting" },
-            { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null, min: 0, step: .1,
+            { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, step: .1,
+                fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null,
                 placeholder: "disabled", label: "Split uploads in chunks", helperText: "Overcome proxy limits" },
             { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",
                 helperText: "Leave empty to never delete" },
@@ -206,7 +206,7 @@ export default function OptionsPage() {
             h(Section, { title: "Others" }),
             { k: 'keep_session_alive', comp: BoolField, sm: 4, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
             { k: 'session_duration', comp: NumberField, sm: 4, md: 3, min: 5, unit: "seconds", required: true },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, unit: "seconds", required: true, min: 0,
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, unit: "seconds", required: true,
                 label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
 
             { k: 'descript_ion', comp: BoolField, ...isWindows && { sm: 4, md: 3 },  label: "Enable comments", helperText: "In file DESCRIPT.ION" },

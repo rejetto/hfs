@@ -37,7 +37,7 @@ export async function importAccountsCsv(cb?: () => void) {
                     save: { startIcon: h(Upload), children: 'Go' },
                     fields: [
                         h(Box, { p: 1 }, "Total lines:", rows.length),
-                        { k: 'skipFirstLines', comp: NumberField, min: 0, max: rows.length-1, typing: true, md: 6,
+                        { k: 'skipFirstLines', comp: NumberField, max: rows.length-1, typing: true, md: 6,
                             helperText: h(Fragment, {}, "First line: ", h('code', {}, row.join(', ')) ),
                         },
                         { k: 'overwriteExistingAccounts', comp: BoolField, md: 6 },
