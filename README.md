@@ -148,12 +148,13 @@ Some actions you can take for improved security:
 
 - Appending `#LOGIN` to address will bring up the login dialog
 - Appending ?lang=CODE to address will force a specific language
-- right/ctrl/command click on toggle-all checkbox will invert each checkbox state
+- Right/ctrl/command click on toggle-all checkbox will invert each checkbox state
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
 - Appending `?overwrite` on uploads, will override the dont_overwrite_uploading configuration, provided you also have delete permission
 - Appending `?search=PATTERN` will trigger search at start 
 - Right-click on "check for updates" will let you input a URL of a version to install
-- shift+click on a file will show & play
+- Shift+click on a file will show & play
+- Type the name of a file/folder to focus it, and ctrl+backspace to go to parent folder
 
 ## Contribute
 

@@ -544,6 +544,20 @@ form label+input { margin-top: .2em; }
     li:first-of-type { margin-top: .5em }
 }
 
+#focus-typing {
+    position: fixed;
+    top: 0;
+    right: 0;
+    background: var(--bg);
+    z-index: 3;
+    padding: .1em .5em;
+    border: 1px solid currentColor;
+    margin: -1px;
+}
+.focus-typing-mismatch {
+    color: var(--error);
+}
+
 .tiles-mode {
     max-width: none;
     @media (min-width: 42em) {
