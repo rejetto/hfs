@@ -7,7 +7,7 @@ import { spawn, spawnSync } from 'child_process'
 import { DAY, exists, debounceAsync, httpStream, unzip, prefix, xlate, HOUR } from './misc'
 import { createReadStream, renameSync, unlinkSync } from 'fs'
 import { pluginsWatcher } from './plugins'
-import { chmod, stat } from 'fs/promises'
+import { chmod, rename, stat } from 'fs/promises'
 import { Readable } from 'stream'
 import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
@@ -104,8 +104,9 @@ export async function updateSupported() {
 
 export async function update(tagOrUrl: string='') {
     if (!await updateSupported()) throw "only binary versions supports automatic update for now"
+    let doingLocal = ''
     let updateSource: Readable | false = tagOrUrl.includes('://') ? await httpStream(tagOrUrl)
-        : await localUpdateAvailable() && createReadStream(LOCAL_UPDATE)
+        : await localUpdateAvailable() && createReadStream(doingLocal=LOCAL_UPDATE)
     if (!updateSource) {
         if (/^\d/.test(tagOrUrl)) // work even if the tag is passed without the initial 'v' (useful for console commands)
             tagOrUrl = 'v' + tagOrUrl
@@ -149,6 +150,9 @@ export async function update(tagOrUrl: string='') {
             catch {}
             renameSync(bin, oldBin)
             console.log("launching new version in background", newBinFile)
+            if (doingLocal)
+                try { renameSync(doingLocal, 'old-' + doingLocal) }
+                catch(e) { console.warn(e) }
             launch(newBin, ['--updating', binFile], { sync: true }) // sync necessary to work on Mac by double-click
         })
         console.log("quitting")
