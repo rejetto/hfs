@@ -158,6 +158,9 @@ Based on `type`, other properties are supported:
     - `defaultPath: string` what path to start from if no value is set. E.g. __dirname if you want to start with your plugin's folder.
     - `fileMask: string` restrict files that are displayed. E.g. `*.jpg|*.png`
 - `username`
+    - `groups: undefined | boolean` true if you want only groups, false if you want only users. Default is undefined.
+    - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
+      and the resulting value will be array of strings, instead of a string. Default is false.
 
 ## api object
 
