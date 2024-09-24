@@ -7,7 +7,7 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, waitFor, xlate } from './misc'
+import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { closeLoginDialog } from './login'
@@ -152,9 +152,21 @@ function sort(list: DirList) {
                 : byTime ? compare(a.t, b.t)
                     : 0
         )
-        || sort_numerics && (invert * compare(parseFloat(a.n), parseFloat(b.n)))
+        || sort_numerics && (invert * compareNumerics(a.n, b.n))
         || invert * localCompare(a.n, b.n) // fallback to name/path
     )
+
+    function compareNumerics(a: string, b: string) {
+        const re = /\d/g
+        if (!re.exec(a)) return 0
+        const i = re.lastIndex
+        if (i) { // doesn't start with a number
+            if (!b.startsWith(a.slice(0, i -1))) return 0 // b is comparable only if it has same leading part
+            a = a.slice(i-1)
+            b = b.slice(i-1)
+        }
+        return compare(parseFloat(a), parseFloat(b))
+    }
 }
 
 // generic comparison
