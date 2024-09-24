@@ -174,10 +174,9 @@ export function componentOrNode(x: ReactNode | FunctionComponent) {
 }
 
 function onKeyDown(ev:any) {
-    if (ev.key === 'Escape') {
+    if (ev.key === 'Escape')
         closeDialog()
-        ev.stopPropagation()
-    }
+    ev.stopPropagation()
 }
 
 export function newDialog(options: DialogOptions) {
