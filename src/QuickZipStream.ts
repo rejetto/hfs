@@ -8,7 +8,7 @@ import assert from 'assert'
 const ZIP64_SIZE_LIMIT = 0xffffffff
 const ZIP64_NUMBER_LIMIT = 0xffff
 
-let crc32function: (input: string | Buffer, initialState?: number | undefined | null) => number
+let crc32function: (input: string | Buffer, initialState?: number | undefined) => number
 import('@node-rs/crc32').then(lib => crc32function = lib.crc32, () => {
     console.log('using generic lib for crc32')
     crc32function = unsigned
