@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
     dirStream, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
-    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
+    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, _log
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -14,7 +14,7 @@ import events from './events'
 import { expandUsername } from './perm'
 import { getCurrentUsername } from './auth'
 import { Stats } from 'node:fs'
-import { isHiddenFile } from 'is-hidden-file'
+import fswin from 'fswin'
 
 const showHiddenFiles = defineConfig('show_hidden_files', false)
 
@@ -115,7 +115,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         return urlToNode(rest, ctx, ret, getRest)
     if (ret.source)
         try {
-            if (!showHiddenFiles.get() && isHiddenFile(ret.source))
+            if (!showHiddenFiles.get() && await isHiddenFile(ret.source))
                 throw 'hiddenFile'
             const st = ret.stats || await fs.stat(ret.source)  // check existence
             ret.isFolder = st.isDirectory()
@@ -128,6 +128,11 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
             return parent
     }
     return ret
+}
+
+async function isHiddenFile(path: string) {
+    return IS_WINDOWS ? new Promise(res => fswin.getAttributes(path, x => res(x?.IS_HIDDEN)))
+        : path[0] === '.'
 }
 
 export async function getNodeByName(name: string, parent: VfsNode) {
