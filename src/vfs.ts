@@ -115,7 +115,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         return urlToNode(rest, ctx, ret, getRest)
     if (ret.source)
         try {
-            if (IS_WINDOWS && !showHiddenFiles.get() && isHiddenFile(ret.source))
+            if (!showHiddenFiles.get() && isHiddenFile(ret.source))
                 throw 'hiddenFile'
             const st = ret.stats || await fs.stat(ret.source)  // check existence
             ret.isFolder = st.isDirectory()

@@ -54,6 +54,8 @@ export function createDirStream(startPath: string, { depth=0, hidden=true }) {
         let n = 0
         for await (let entry of await readdir(base, { withFileTypes: true })) {
             if (stopped) break
+            if (!IS_WINDOWS && !hidden && entry.name[0] === '.')
+                continue
             const stats = entry.isSymbolicLink() && await stat(join(base, entry.name)).catch(() => null)
             if (stats === null) continue
             if (stats)
