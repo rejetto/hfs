@@ -310,7 +310,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     overrideStatus = 0
     uploadState.uploading = toUpload
     await subscribeNotifications()
-    const splitSize = getHFS().splitUploads || Infinity
+    const splitSize = getHFS().splitUploads
     const fullSize = toUpload.file.size
     let offset = resume
     do { // at least one iteration, even for empty files
@@ -321,22 +321,28 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             if (req?.readyState !== 4) return
             const status = overrideStatus || req.status
             closeLast?.()
+            if (resuming) { // resuming requested
+                resuming = false // this behavior is only for once, for cancellation of the upload that is in the background while resume is confirmed
+                stopLooping()
+                return
+            }
             if (!status || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
                 uploadState.skipped.push(toUpload)
             else if (status >= 400)
                 error(status)
             else {
-                offset += splitSize
-                if (offset < fullSize) return // continue looping
+                if (splitSize) {
+                    offset += splitSize
+                    if (offset < fullSize) return // continue looping
+                }
                 done()
             }
-            if (!resuming)
-                next()
-            offset = fullSize // stop looping
+            next()
         }
         req.onerror = () => {
             error(0)
             finished.resolve()
+            stopLooping()
         }
         let lastProgress = 0
         req.upload.onprogress = (e:any) => {
@@ -350,14 +356,16 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
             notificationChannel,
-            ...offset + splitSize < fullSize && { partial: 'y' },
+            ...splitSize && offset + splitSize < fullSize && { partial: 'y' },
             ...offset && { resume: String(offset) },
             ...toUpload.comment && { comment: toUpload.comment },
             ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default
         }), true)
-        req.send(toUpload.file.slice(offset, offset + splitSize))
+        req.send(toUpload.file.slice(offset, splitSize ? offset + splitSize : undefined))
         await finished
     } while (offset < fullSize)
+
+    function stopLooping() { offset = fullSize }
 
     async function subscribeNotifications() {
         if (notificationChannel) return
@@ -414,6 +422,7 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     }
 
     function next() {
+        stopLooping()
         uploadState.uploading = undefined
         uploadState.partial = 0
         const { qs } = uploadState
