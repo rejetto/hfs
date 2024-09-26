@@ -43,5 +43,6 @@ export const SYS_ICONS: Record<string, [string] | [string, string | false]> = { 
     audio: ['🎧'],
     video: ['🎥'],
     image: ['📸'],
+    cancel: ['❌','cancel'],
 }
 

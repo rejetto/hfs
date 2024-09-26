@@ -156,7 +156,7 @@ export function showUpload() {
             h(FilesList, {
                 entries: uploadState.adding,
                 actions: {
-                    delete: rec => _.remove(uploadState.adding, rec),
+                    cancel: rec => _.remove(uploadState.adding, rec),
                     async comment(rec){
                         if (!props?.can_comment) return
                         const s = await inputComment(basename(rec.file.name), rec.comment)
@@ -192,7 +192,7 @@ export function showUpload() {
                         h(FilesList, {
                             entries: uploadState.qs[idx].entries,
                             actions: {
-                                delete: f => {
+                                cancel: f => {
                                     if (f === uploadState.uploading)
                                         return abortCurrentUpload()
                                     const q = uploadState.qs[idx]

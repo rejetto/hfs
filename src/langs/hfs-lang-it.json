@@ -163,6 +163,8 @@
         "Show details": "Mostra dettagli",
         "upload_conflict": "esiste già",
         "Logged in": "Benvenuto",
-        "Logged out": "Arrivederci"
+        "Logged out": "Arrivederci",
+
+        "Cancel": "Annulla"
     }
 }

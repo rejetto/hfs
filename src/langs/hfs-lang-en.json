@@ -171,6 +171,8 @@
         "Show details": "Show details",
         "upload_conflict": "already exists",
         "Logged in": "Logged in",
-        "Logged out": "Logged out"
+        "Logged out": "Logged out",
+
+        "Cancel": "Cancel"
     }
 }
