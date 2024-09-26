@@ -14,7 +14,7 @@
             return !x ? ''
                 : display === 'user' ? x.username
                 : display === 'ip' || !x.username && shouldShowIpWithUser ? x.ip
-                : shouldShowIpWithUser ? x.ip + ' (' + x.username + ')' : x.username
+                : shouldShowIpWithUser ? x.ip + ' (' + x.username + ')' : (x.username || ' ')
         }, [data])
         const iconOnly = display === 'tooltip'
         return text && HFS.h('span', { className: 'uploader', title: HFS.t`Uploader` + (iconOnly ? ' ' + text : '') },
