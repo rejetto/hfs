@@ -55,6 +55,8 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 For service installation instructions, [see our wiki](https://github.com/rejetto/hfs/wiki/Service-installation).
 
+For Docker installation, [see dedicated repo](https://github.com/damienzonly/hfs-docker).
+
 NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of Node.js 18)
 
 1. go to https://github.com/rejetto/hfs/releases
