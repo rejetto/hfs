@@ -320,7 +320,8 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             finished.resolve()
             if (req?.readyState !== 4) return
             const status = overrideStatus || req.status
-            closeLast?.()
+            if (!partial) // if the upload ends here, the offer for resuming must stop
+                closeLast?.()
             if (resuming) { // resuming requested
                 resuming = false // this behavior is only for once, for cancellation of the upload that is in the background while resume is confirmed
                 stopLooping()
@@ -354,9 +355,10 @@ async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         let uploadPath = path(toUpload.file)
         if (toUpload.name)
             uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
+        const partial = splitSize && offset + splitSize < fullSize
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
             notificationChannel,
-            ...splitSize && offset + splitSize < fullSize && { partial: 'y' },
+            ...partial && { partial: 'y' },
             ...offset && { resume: String(offset) },
             ...toUpload.comment && { comment: toUpload.comment },
             ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default
