@@ -141,7 +141,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         writeStream.once('close', async () => {
             try {
                 if (ctx.req.aborted) {
-                    if (resumable) // we don't want to be left with 2 temp files
+                    if (resumable && !resuming) // we don't want to be left with 2 temp files
                         return delayedDelete(tempName, 0)
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
