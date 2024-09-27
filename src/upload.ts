@@ -97,7 +97,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         // use temporary name while uploading
         const keepName = basename(fullPath).slice(-200)
         let tempName = join(dir, 'hfs$upload-' + keepName)
-        const resumable = fs.existsSync(tempName) && !openFiles.has(tempName) && tempName
+        const resumable = fs.existsSync(tempName) && !openFiles.has(tempName) && tempName // resumable is temp-file-1
         if (resumable)
             tempName = join(dir, 'hfs$upload2-' + keepName)
         // checks for resume feature
@@ -108,13 +108,15 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         if (resume > size)
             return fail(HTTP_RANGE_NOT_SATISFIABLE)
         // warn frontend about resume possibility
+        let resumableLost = false
         if (!resume && resumable) {
             const timeout = 30
             notifyClient(ctx, 'upload.resumable', { [path]: size, expires: Date.now() + timeout * 1000 })
-            delayedDelete(resumable, timeout, () =>
-                fs.rename(tempName, resumable, err => {
-                    if (!err)
-                        tempName = resumable
+            delayedDelete(resumable, timeout, () => // if user resumes, this upload is interrupted, and next upload will cancel this delayedDelete
+                fs.rename(tempName, resumable, err => { // try to rename upload2 to upload, overwriting
+                    if (err) return
+                    tempName = resumable
+                    resumableLost = true
                 }) )
         }
         // append if resuming
@@ -143,7 +145,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         writeStream.once('close', async () => {
             try {
                 if (ctx.req.aborted) {
-                    if (resumable && !resuming) // we don't want to be left with 2 temp files
+                    if (resumable && !resumableLost && !resuming) // we don't want to be left with 2 temp files
                         return delayedDelete(tempName, 0)
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
@@ -163,6 +165,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                 }
                 try {
                     await rename(tempName, dest)
+                    cancelDeletion(tempName) // not necessary, as deletion's failure is silent, but still
                     ctx.state.uploadDestinationPath = dest
                     setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
