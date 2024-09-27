@@ -4,8 +4,10 @@ import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISF
     HTTP_BAD_REQUEST } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_,
-    createStreamLimiter, } from './misc'
+import {
+    Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_,
+    createStreamLimiter, isWindowsDrive,
+} from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -89,7 +91,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     openFiles.add(fullPath)
     try {
         // if upload creates a folder, then add meta to it too
-        if (fs.mkdirSync(dir, { recursive: true }))
+        if (!dir.endsWith(':\\') && fs.mkdirSync(dir, { recursive: true }))
             setUploadMeta(dir, ctx)
         // use temporary name while uploading
         const keepName = basename(fullPath).slice(-200)
