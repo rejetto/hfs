@@ -140,12 +140,12 @@ export function renderName({ row, value }: any) {
     return h(Fragment, {},
         errorIcon(row.error || row.badApi, !row.error),
         repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
-            : !repo ? value
-                : with_(repo?.split('/'), arr => h(Fragment, {},
+            : with_(repo?.split('/'), arr => arr?.length !== 2 ? value
+                : h(Fragment, {},
                     h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, arr[1].replace(/hfs-/, '')),
                     '\xa0by ', arr[0]
                 ))
-    )
+)
 
     function errorIcon(msg: string, warning=false) {
         return msg && hTooltip(msg, msg, h(ErrorIcon, { fontSize: 'small', color: warning ? 'warning' : 'error', sx: { ml: -.5, mr: .5 } }))
