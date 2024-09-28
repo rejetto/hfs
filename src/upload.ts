@@ -6,7 +6,7 @@ import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import {
     Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_,
-    createStreamLimiter, isWindowsDrive,
+    createStreamLimiter, isWindowsDrive, _log,
 } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
@@ -105,7 +105,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         const size = resumable && try_(() => fs.statSync(resumable).size)
         if (size === undefined) // stat failed
             return fail(HTTP_SERVER_ERROR)
-        if (resume > size)
+        if (_.isNumber(size) && resume > size)
             return fail(HTTP_RANGE_NOT_SATISFIABLE)
         // warn frontend about resume possibility
         let resumableLost = false
@@ -144,9 +144,10 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         const lockMiddleware = pendingPromise() // outside we need to know when all operations stopped
         writeStream.once('close', async () => {
             try {
+                await new Promise(res => fileStream.close(res)) // this only seem to be necessary on Windows
                 if (ctx.req.aborted) {
                     if (resumable && !resumableLost && !resuming) // we don't want to be left with 2 temp files
-                        return delayedDelete(tempName, 0)
+                        return rm(tempName)
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
                 }
@@ -170,8 +171,8 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                     setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
                         void setCommentFor(dest, String(ctx.query.comment))
-                    if (resumable)
-                        delayedDelete(resumable, 0)
+                    if (resumable && !resuming) // this happens if user decided to not resume and the new upload finished before delayedDelete
+                        rm(resumable).catch(console.warn)
                     events.emit('uploadFinished', obj)
                     if (resEvent) for (const cb of resEvent)
                         if (_.isFunction(cb))
