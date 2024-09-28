@@ -225,7 +225,7 @@ export function closeDialog(v?:any, skipHistory=false) {
 function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
     d.restoreFocus?.focus?.() // if element is not HTMLElement, it doesn't have focus method
-    d.closingValue = value
+    d.closingValue = value && typeof value === 'object' ? ref(value) : value // since this is being assigned to a valtio proxy, ref is necessary to avoid crashing with unusual (and possibly accidental) objects like React's SynteticEvents
     Promise.resolve(d.closed).then(() =>
         d?.onClose?.(value))
     return d
