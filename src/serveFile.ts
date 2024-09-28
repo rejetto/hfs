@@ -15,6 +15,7 @@ import { getConnection, updateConnection } from './connections'
 import { getCurrentUsername } from './auth'
 import { sendErrorPage } from './errorPages'
 import { Readable } from 'stream'
+import { createHash } from 'crypto'
 
 const allowedReferer = defineConfig('allowed_referer', '')
 const maxDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
@@ -56,6 +57,9 @@ const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>
     return (name: string) => values[matchers.findIndex(matcher => matcher(name))]
 })
 
+// after this number of seconds, the browser should check the server to see if there's a newer version of the file
+const cacheControlDiskFiles = defineConfig('cache_control_disk_files', 5)
+
 export async function serveFile(ctx: Koa.Context, source:string, mime?:string, content?: string | Buffer) {
     if (!source)
         return
@@ -76,7 +80,9 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
         if (!stats.isFile())
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
-        ctx.set('Last-Modified', stats.mtime.toUTCString())
+        const t = stats.mtime.toUTCString()
+        ctx.set('Last-Modified', t)
+        ctx.set('Etag', createHash('md5').update(source).update(t).digest('hex'))
         ctx.state.fileSource = source
         ctx.state.fileStats = stats
         ctx.status = HTTP_OK
@@ -84,6 +90,9 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
             return ctx.status = HTTP_NOT_MODIFIED
         if (content !== undefined)
             return ctx.body = content
+        const cc = cacheControlDiskFiles.get()
+        if (_.isNumber(cc))
+            ctx.set('Cache-Control', `max-age=${cc}`)
         const { size } = stats
         const range = applyRange(ctx, size)
         ctx.body = createReadStream(source, range)
