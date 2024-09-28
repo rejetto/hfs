@@ -1,13 +1,11 @@
 import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
-import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR,
-    HTTP_BAD_REQUEST } from './const'
+import {
+    HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR, HTTP_BAD_REQUEST
+} from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import {
-    Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_,
-    createStreamLimiter, isWindowsDrive, _log,
-} from './misc'
+import { Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
