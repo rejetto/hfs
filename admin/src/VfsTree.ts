@@ -65,7 +65,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                 onDragOver(ev) {
                     if (!folder) return
                     const src = dragging.current
-                    if (src?.startsWith(id) && !src.slice(id.length + 1).includes('/')) return // src must be not me or my parent
+                    if (src?.startsWith(id) && !src.slice(id.length + 1, -1).includes('/')) return // dragging node (src) must not be direct child of destination (id)
                     ev.preventDefault()
                 },
                 async onDrop() {
