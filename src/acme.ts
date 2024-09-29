@@ -125,6 +125,6 @@ const renewCert = debounceAsync(async () => {
     if (now > new Date(cert.validFrom) && now < validTo && validTo.getTime() - now.getTime() >= 30 * DAY)
         return console.log("certificate still good")
     await makeCert(domain, acmeEmail.get(), altNames)
-        .catch(e => console.log("error renewing certificate: ", String(e.message || e)))
+        .catch(e => console.log(`error renewing certificate, expiring ${validTo.toLocaleString()}: `, String(e.message || e)))
 }, { retain: DAY, retainFailure: HOUR })
 
