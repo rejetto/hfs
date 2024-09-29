@@ -30,7 +30,7 @@ const originalMethod = upnpClient.getGateway
 // other client methods call getGateway too, so this will ensure they reuse this same result
 upnpClient.getGateway = debounceAsync(() => originalMethod.apply(upnpClient), { retain: HOUR, retainFailure: 30_000 })
 upnpClient.getGateway().then(res => {
-    console.debug('upnp', res.gateway.description)
+    console.log('upnp', res.gateway.description)
 }, e => console.debug('upnp failed:', e.message || String(e)))
 
 // poll external ip
