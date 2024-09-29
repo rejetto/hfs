@@ -95,7 +95,9 @@ function findGateway(): Promise<string | undefined> {
     return new Promise((resolve, reject) =>
         exec(IS_WINDOWS || IS_MAC ? 'netstat -rn' : 'route -n', (err, out) => {
             if (err) return reject(err)
-            const re = IS_WINDOWS ? /(?:0\.0\.0\.0 +){2}([\d.]+)/ : IS_MAC ? /default +([\d.]+)/ : /^0\.0\.0\.0 +([\d.]+)/
-            resolve(re.exec(out)?.[1])
+            if (!IS_WINDOWS)
+                return resolve(out.match(IS_MAC ? /default +([\d.]+)/ : /^0\.0\.0\.0 +([\d.]+)/)?.[1])
+            const sortedByMetric = _.sortBy([...out.matchAll(/(?:0\.0\.0\.0 +){2}([\d.]+)\s+[\d.]+\s+(\d+)/g)], x => Number(x[2]))
+            resolve(sortedByMetric[0]?.[1]) // take ip with lowest metric
         }) )
 }
