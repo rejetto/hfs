@@ -32,7 +32,13 @@ function downloadProgress(repo: string, status: DownloadStatus) {
 
 // determine default branch, possibly without consuming api quota
 async function getGithubDefaultBranch(repo: string) {
-    const test = await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' }).then(() => 1, () => 0)
+    if (!repo.includes('/'))
+        throw 'malformed repo'
+    const test = await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' }).then(() => 1, (err) => {
+        if (err?.cause?.statusCode === 404)
+            throw err
+        return 0
+    })
     return test ? 'main' : (await getRepoInfo(repo))?.default_branch as string
 }
 
