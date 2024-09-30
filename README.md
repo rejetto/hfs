@@ -119,33 +119,6 @@ In the Languages section of the Admin-panel you can install additional language 
 
 If your language is missing, please consider [translating yourself](https://github.com/rejetto/hfs/wiki/Translation). 
 
-## Why you should upgrade from HFS 2.x
-
-HFS 2.x is vulnerable to important attacks, and there is no known solution at the moment.
-
-As you can see from the list of features, we already have some goods that you cannot find in HFS 2.
-Other than that, you can also consider: 
-
-- it's more robust: it was designed to be an always-running server, while HFS 1-2 was designed for occasional usage (transfer and quit) 
-- passwords are never really stored, just a non-reversible hash is
-- faster search
-- more flexible permissions
-
-## Security
-
-While this project focuses on ease of use, we care about security.
-- HTTPS support
-- Passwords are not saved, and not disclosed even without https thanks to [SRP](https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol)
-- Automated tests ran on every release, including libraries audit
-- No default admin password
-
-Some actions you can take for improved security:
-- use https, better if using a proper certificate, even free with [Letsencrypt](https://letsencrypt.org/).
-- have a domain (ddns is ok too), configure it in "Internet" page, and enable "Accept requests only using domain"
-- install "antidos" plugin
-- ensure "antibrute" plugin is running
-- disable "unprotected admin on localhost"
-
 ## Hidden features
 
 - Appending `#LOGIN` to address will bring up the login dialog
