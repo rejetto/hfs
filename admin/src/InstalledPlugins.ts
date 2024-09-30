@@ -56,15 +56,15 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         actions: ({ row, id }) => updates ? [
             h(IconBtn, {
                 icon: Upgrade,
-                title: row.updated ? "Already updated" : "Update",
+                title: row.downloading ? "Downloading" : row.updated ? "Already updated" : "Update",
                 disabled: row.updated,
+                progress: row.downloading,
                 size,
                 async onClick() {
                     await apiCall('update_plugin', { id, branch: row.branch }, { timeout: false }).catch(e => {
                         throw e.code !== HTTP_FAILED_DEPENDENCY ? e
                             : Error("Failed dependencies: " + e.cause?.map((x: any) => prefix(`plugin "`, x.id || x.repo, `" `) + x.error).join('; '))
                     })
-                    updateEntry({ id }, { updated: true })
                     toast("Plugin updated")
                 }
             })

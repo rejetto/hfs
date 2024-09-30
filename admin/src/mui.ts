@@ -143,7 +143,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     const [loadingState, setLoadingState] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
-    disabled = loadingState || Boolean(progress) || disabled === undefined ? undefined : Boolean(disabled)
+    disabled = loadingState || progress || disabled ? true : undefined
     if (link)
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(labelFrom || 'xs')

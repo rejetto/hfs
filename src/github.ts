@@ -20,14 +20,14 @@ import { storedMap } from './persistence'
 const DIST_ROOT = 'dist'
 
 type DownloadStatus = true | undefined
-const downloading: Record<string, DownloadStatus> = {}
+export const downloading: { [repo:string]: DownloadStatus } = {}
 
-function downloadProgress(id: string, status: DownloadStatus) {
+function downloadProgress(repo: string, status: DownloadStatus) {
     if (status === undefined)
-        delete downloading[id]
+        delete downloading[repo]
     else
-        downloading[id] = status
-    events.emit('pluginDownload', { id, status })
+        downloading[repo] = status
+    events.emit('pluginDownload', { repo, status })
 }
 
 // determine default branch, possibly without consuming api quota
@@ -47,8 +47,8 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
     console.log('downloading plugin', repo)
     downloadProgress(repo, true)
     try {
+        const pl = findPluginByRepo(repo)
         if (repo.includes('//')) { // custom repo
-            const pl = findPluginByRepo(repo)
             if (!pl)
                 throw new ApiError(HTTP_BAD_REQUEST, "bad repo")
             const customRepo = ((pl as any).getData?.() || pl).repo
@@ -63,9 +63,9 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
         const short = repo.split('/')[1] // second part, repo without the owner
         if (!short)
             throw new ApiError(HTTP_BAD_REQUEST, "bad repo")
-        const folder = overwrite ? _.findKey(getFolder2repo(), x => x===repo)! // use existing folder
-            : getFolder2repo().hasOwnProperty(short) ? repo.replace('/','-') // longer form only if another plugin is using short form, to avoid overwriting
-                : short
+        const folder = overwrite && pl?.id // use existing folder
+            || (getFolder2repo().hasOwnProperty(short) ? repo.replace('/','-') // longer form only if another plugin is using short form, to avoid overwriting
+                : short)
         const GITHUB_ZIP_ROOT = short + '-' + branch // GitHub puts everything within this folder
         return await go(`https://github.com/${repo}/archive/refs/heads/${branch}.zip`, folder, GITHUB_ZIP_ROOT + '/' + DIST_ROOT)
 
@@ -105,6 +105,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
             if (wasEnabled)
                 void startPlugin(folder) // don't wait, in case it fails to start
+            events.emit('pluginDownloaded', { id: folder, repo })
             return folder
         }
     }
