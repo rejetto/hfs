@@ -165,6 +165,7 @@
         "Logged in": "Benvenuto",
         "Logged out": "Arrivederci",
 
-        "Cancel": "Annulla"
+        "Cancel": "Annulla",
+        "allow_session_ip_change": "Permetti cambio IP in questa sessione"
     }
 }

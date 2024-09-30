@@ -3,7 +3,7 @@ import { HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
 import { SRPParameters, SRPRoutines, SRPServerSession } from 'tssrp6a'
 import { Context } from 'koa'
 import { srpClientPart } from './srp'
-import { DAY, getOrSet } from './cross'
+import { CFG, DAY, getOrSet } from './cross'
 import { createHash } from 'node:crypto'
 import events from './events'
 
@@ -52,6 +52,8 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     if (!a) return
     s.username = normalizeUsername(username)
     s.ts = Date.now()
+    const k = CFG.allow_session_ip_change
+    s[k] = Boolean(ctx.state.params[k])
     if (!a.expire && a.days_to_live)
         updateAccount(a, { expire: new Date(Date.now() + a.days_to_live! * DAY) })
     await events.emitAsync('login', ctx)

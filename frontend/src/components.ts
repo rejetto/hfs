@@ -1,9 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix } from './misc'
-import { ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
+import {
+    ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
-    useMemo, useState, ComponentPropsWithoutRef } from 'react'
+    useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes
+} from 'react'
 import _ from 'lodash'
 import { t } from './i18n'
 
@@ -38,19 +40,22 @@ export const FlexV = forwardRef((props: FlexProps, ref) => h(Flex, { ref, vert: 
 
 interface CheckboxProps extends Omit<Partial<InputHTMLAttributes<any>>, 'onChange'> {
     children?: ReactNode,
-    value: any,
+    value?: any,
     onChange?: (v: boolean, ev: ChangeEvent) => void
+    labelProps?: LabelHTMLAttributes<any>
 }
-export function Checkbox({ onChange, value, children, ...props }: CheckboxProps) {
+
+export const Checkbox = forwardRef(({ onChange, value, children, labelProps, ...props }: CheckboxProps, ref) => {
     const ret = h('input', {
+        ref,
         type: 'checkbox',
-        onChange: ev => onChange?.(Boolean(ev.target.checked), ev),
-        checked: Boolean(value),
+        onChange: (ev:  ChangeEvent<HTMLInputElement>) => onChange?.(Boolean(ev.target.checked), ev),
+        ...value !== undefined && { checked: Boolean(value) },
         value: 1,
         ...props
     })
-    return !children ? ret : h('label', {}, ret, children)
-}
+    return !children ? ret : h('label', labelProps || {}, ret, children)
+})
 
 interface SelectProps<T> extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
     value: T, // just string for the time being

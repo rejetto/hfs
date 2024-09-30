@@ -258,6 +258,12 @@ kbd {
     input[type=checkbox] { margin-top: .3em; }
     span:empty { display:none } /* avoid flex-gap */
 }
+#login-options {
+    font-size: smaller;
+    input[type=checkbox] {
+        transform: scale(1.5);
+    }
+}
 
 ul.dir {
     padding: 0;

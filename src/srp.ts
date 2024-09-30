@@ -2,11 +2,11 @@
 
 import { SRPClientSession, SRPParameters, SRPRoutines } from 'tssrp6a'
 
-export async function srpClientSequence(username:string, password:string, apiCall: (cmd:string, params:any) => any) {
+export async function srpClientSequence(username:string, password:string, apiCall: (cmd:string, params:any) => any, extra?: object) {
     const { pubKey, salt } = await apiCall('loginSrp1', { username })
     if (!salt) throw Error('salt')
     const client = await srpClientPart(username, password, salt, pubKey)
-    const res = await apiCall('loginSrp2', { pubKey: String(client.A), proof: String(client.M1) }) // bigint-s must be cast to string to be json-ed
+    const res = await apiCall('loginSrp2', { pubKey: String(client.A), proof: String(client.M1), ...extra }) // bigint-s must be cast to string to be json-ed
     await client.step3(BigInt(res.proof)).catch(() => Promise.reject('trust'))
     return res
 }
