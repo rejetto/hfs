@@ -26,6 +26,7 @@ export const IS_MAC = process.platform === 'darwin'
 export const IS_BINARY = !/node|bun/.test(basename(process.execPath)) // this won't be node if pkg was used
 export const APP_PATH = dirname(IS_BINARY ? process.execPath : __dirname) // __dirname's parent can be compared with cwd
 export const MIME_AUTO = 'auto'
+export const CONFIG_FILE = 'config.yaml'
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()
@@ -37,8 +38,7 @@ console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
 const winExe = IS_WINDOWS && process.execPath.match(/(?<!node)\.exe$/i)
 // still considering whether to use ".hfs" with Windows users, who may be less accustomed to it
-const useHomeDir = !winExe || process.execPath.includes(process.env.ProgramFiles||'|') // you can't write in program-files
-const dir = argv.cwd || useHomeDir && join(homedir(), '.hfs')
+const dir = argv.cwd || useHomeDir() && join(homedir(), '.hfs')
 if (dir) {
     try { mkdirSync(dir) }
     catch(e: any) {
@@ -55,3 +55,9 @@ const bun = (globalThis as any).Bun
 if (bun) console.log('bun', bun.version)
 console.log('platform', process.platform, IS_BINARY ? 'binary' : basename(process.execPath))
 console.log('pid', process.pid)
+
+function useHomeDir() {
+    if (!winExe) return true
+    try { fs.accessSync(join(process.cwd(), CONFIG_FILE), fs.constants.W_OK) }
+    catch { return true }
+}
