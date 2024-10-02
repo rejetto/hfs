@@ -4,7 +4,7 @@ import { useDebounce } from 'usehooks-ts'
 import { Checkbox } from './components'
 import { useI18N } from './i18n'
 import { usePath } from './useFetchList'
-import { with_ } from './misc'
+import { getHFS, with_ } from './misc'
 
 export function FilterBar() {
     const { list, filteredList, selected, patternFilter, showFilter } = useSnapState()
@@ -14,13 +14,8 @@ export function FilterBar() {
     const {t} = useI18N()
 
     state.patternFilter = useDebounce(showFilter ? filter : '', 300)
+    useEffect(() => getHFS().onEvent('entryToggleSelection', () => setAll(false)), [])
 
-    const sel = Object.keys(selected).length
-    const fil = filteredList?.length
-    useEffect(() => {
-        if (all && sel < (fil || list.length))
-            setAll(false)
-    }, [sel])
     const tabIndex = showFilter ? undefined : -1
     return h('div', { id: 'filter-bar', style: { display: showFilter ? undefined : 'none' } },
         h(Checkbox, {
@@ -49,19 +44,20 @@ export function FilterBar() {
             }
         }),
         h('span', {}, [
-            sel && t('select_count', { n:sel }, "{n} selected"),
-            fil !== undefined && fil < list.length && t('filter_count', {n:fil}, "{n} filtered"),
+            with_(Object.keys(selected).length, n => n && t('select_count', { n }, "{n} selected")),
+            with_(filteredList?.length, n => n !== undefined && n < list.length && t('filter_count', {n}, "{n} filtered")),
         ].filter(Boolean).join(', ') ),
     )
 
-    function select(will: boolean | undefined) {
+    function select(will: boolean | undefined) { // undefined will cause toggle of each element
         const sel = state.selected
-        for (const { uri } of state.filteredList || state.list) {
+        for (const e of state.filteredList || state.list) {
+            const { uri } = e
             const was = sel[uri] || false
             if (was === will) continue
             if (was)
                 delete sel[uri]
-            else
+            else if (e.canSelect())
                 sel[uri] = true
         }
         if (will !== undefined)

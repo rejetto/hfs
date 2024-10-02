@@ -312,91 +312,101 @@ You can produce output for such events also by adding sections (with same name a
 This is a list of available frontend-events, with respective object parameter and output.
 
 - `additionalEntryDetails`
-    - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
-    - parameter `{ entry: DirEntry }`
+  - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
+  - parameter `{ entry: DirEntry }`
 
-      The `DirEntry` type is an object with the following properties:
-        - `name: string` name of the entry.
-        - `ext: string` just the extension part of the name, dot excluded and lowercase.
-        - `isFolder: boolean` true if it's a folder.
-        - `n: string` name of the entry, including relative path when searched in sub-folders.
-        - `uri: string` relative url of the entry.
-        - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
-        - `t?: Date` generic timestamp, combination of creation-time and modified-time.
-        - `c?: Date` creation-time.
-        - `m?: Date` modified-time.
-        - `p?: string` permissions missing
-        - `cantOpen: boolean` true if current user has no permission to open this entry
-        - `getNext/getPrevious: ()=>DirEntry` return next/previous DirEntry in list
-        - `getNextFiltered/getPreviousFiltered: ()=>DirEntry` as above, but considers the filtered-list instead
-        - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
-    - output `Html`
+    The `DirEntry` type is an object with the following properties:
+    - `name: string` name of the entry.
+    - `ext: string` just the extension part of the name, dot excluded and lowercase.
+    - `isFolder: boolean` true if it's a folder.
+    - `n: string` name of the entry, including relative path when searched in sub-folders.
+    - `uri: string` relative url of the entry.
+    - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
+    - `t?: Date` generic timestamp, combination of creation-time and modified-time.
+    - `c?: Date` creation-time.
+    - `m?: Date` modified-time.
+    - `p?: string` permissions missing
+    - `cantOpen: boolean` true if current user has no permission to open this entry
+    - `getNext/getPrevious: ()=>DirEntry` return next/previous DirEntry in list
+    - `getNextFiltered/getPreviousFiltered: ()=>DirEntry` as above, but considers the filtered-list instead
+    - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
+  - output `Html`
 - `entry`
-    - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
-    - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
-    - output `Html | null` return null if you want to hide this entry
+  - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
+  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
+  - output `Html | null` return null if you want to hide this entry
 - `afterEntryName`
-    - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
-    - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
-    - output `Html`
+  - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
+  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
+  - output `Html`
 - `entryIcon`
-    - you receive an entry of the list and optionally produce HTML that will be used in place of the standard icon.
-    - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
-    - output `Html`
+  - you receive an entry of the list and optionally produce HTML that will be used in place of the standard icon.
+  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
+  - output `Html`
 - `beforeHeader` & `afterHeader`
-    - use this to produce content that should go right before/after the `header` part
-    - output `Html`
+  - use this to produce content that should go right before/after the `header` part
+  - output `Html`
 - `beforeLogin`
-    - no parameter
-    - output `Html`
+  - no parameter
+  - output `Html`
 - `fileMenu`
-    - add or manipulate entries of the menu. If you return something, that will be added to the menu.
-      You can also delete or replace the content of the `menu` array.
-    - parameter `{ entry: DirEntry, menu: FileMenuEntry[], props: FileMenuProp[] }`
-    - output `undefined | FileMenuEntry | FileMenuEntry[]`
-      ```typescript
-      interface FileMenuEntry {
-          id?: string, 
-          label: ReactNode,
-          subLabel: ReactNode,
-          href?: string, // use this if you want your entry to be a link
-          icon?: string, // supports: emoji, name from a limited set
-          onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
-          //...rest is transfered to <a> element, for example 'target', or 'title' 
-      }
-      type FileMenuProp = { id?: string, label: ReactNode, value: ReactNode } | ReactElement
-      ```
-      Example, if you want to remove the 'show' item of the menu:
-      ```typescript
-      HFS.onEvent('fileMenu', ({ entry, menu }) => {
-        const index = menu.findIndex(x => x.id === 'show')
-        if (index >= 0)
-            menu.splice(index, 1)
-      })
-      ```
-      or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
+  - add or manipulate entries of the menu. If you return something, that will be added to the menu.
+    You can also delete or replace the content of the `menu` array.
+  - parameter `{ entry: DirEntry, menu: FileMenuEntry[], props: FileMenuProp[] }`
+  - output `undefined | FileMenuEntry | FileMenuEntry[]`
+    ```typescript
+    interface FileMenuEntry {
+      id?: string, 
+      label: ReactNode,
+      subLabel: ReactNode,
+      href?: string, // use this if you want your entry to be a link
+      icon?: string, // supports: emoji, name from a limited set
+      onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
+      //...rest is transfered to <a> element, for example 'target', or 'title' 
+    }
+    type FileMenuProp = { id?: string, label: ReactNode, value: ReactNode } | ReactElement
+    ```
+    Example, if you want to remove the 'show' item of the menu:
+    ```typescript
+    HFS.onEvent('fileMenu', ({ entry, menu }) => {
+    const index = menu.findIndex(x => x.id === 'show')
+    if (index >= 0)
+      menu.splice(index, 1)
+    })
+    ```
+    or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
 - `fileShow`
-    - you receive an entry of the list, and optionally produce React Component for visualization.
-    - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
-    - output `ReactComponent`
+  - you receive an entry of the list, and optionally produce React Component for visualization.
+  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
+  - output `ReactComponent`
 - `showPlay`
-    - emitted on each file played inside file-show. Use setCover if you want to customize the background picture.
-    - parameter `{ entry: DirEntry, setCover(uri: string), meta: { title, album, artist, year } }`
+  - emitted on each file played inside file-show. Use setCover if you want to customize the background picture.
+  - parameter `{ entry: DirEntry, setCover(uri: string), meta: { title, album, artist, year } }`
 - `menuZip`
-    - parameter `{ def: ReactNode }`
-    - output `Html`
+  - parameter `{ def: ReactNode }`
+  - output `Html`
 - `userPanelAfterInfo`
-    - no parameter
-    - output `Html`
+  - no parameter
+  - output `Html`
 - `uriChanged`
-    - DEPRECATED: use `watchState('uri', callback)` instead.
-    - parameter `{ uri: string, previous: string }`
+  - DEPRECATED: use `watchState('uri', callback)` instead.
+  - parameter `{ uri: string, previous: string }`
 - `sortCompare`
-    - you can decide the order of entries by comparing two entries.
-      Return a negative value if entry `a` must appear before `b`, or positive if you want the opposite.
-      Return zero or any falsy value if you want to leave the order to what the user decided in his options.
-    - parameter `{ a: DirEntry, b: DirEntry }`
-    - output `number | undefined`
+  - you can decide the order of entries by comparing two entries.
+    Return a negative value if entry `a` must appear before `b`, or positive if you want the opposite.
+    Return zero or any falsy value if you want to leave the order to what the user decided in his options.
+  - parameter `{ a: DirEntry, b: DirEntry }`
+  - output `number | undefined`
+- `enableEntrySelection`
+  - selection of multiple entries is used for some standard actions like deletion or zip. 
+    When none of such standard actions is permitted on an entry, its selection control (checkbox) is disabled. 
+    If you want to override this behavior, because you have a custom action that makes use of the selection, return `true`.
+  - parameter `{ entry: DirEntry }`
+  - output `boolean`
+- `entryToggleSelection`
+  - an entry is being un/selected
+  - parameter `{ entry: DirEntry }`
+  - can be prevented
 - All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
 -   `appendMenuBar` inside menu-bar, at the end
   - `afterMenuBar` between menu-bar and breadcrumbs

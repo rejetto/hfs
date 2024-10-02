@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
     dirStream, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
-    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, _log
+    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'

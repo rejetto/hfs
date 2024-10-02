@@ -29,10 +29,9 @@ interface FileMenuEntry {
 export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy | FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder, s } = entry
     const canRead = !entry.p?.includes('r')
-    const canArchive = entry.p?.includes('A') || state.props?.can_archive && !entry.p?.includes('a')
     const canList = !entry.p?.match(/L/i)
     const forbidden = entry.cantOpen === DirEntry.FORBIDDEN
-    const cantDownload = forbidden || isFolder && !(canRead && canArchive && canList) // folders needs list+read+archive
+    const cantDownload = forbidden || isFolder && !(canRead && entry.canArchive() && canList) // folders needs list+read+archive
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
@@ -50,7 +49,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
                 return !isFolder || open.onClick ? open : h(LinkClosingDialog, { to: uri, reloadDocument: entry.web }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
-                return (state.props?.can_delete || entry.p?.includes('d')) && {
+                return entry.canDelete() && {
                     id: 'delete',
                     label: t`Delete`,
                     icon: 'delete',

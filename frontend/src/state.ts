@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { FRONTEND_OPTIONS, getHFS, hIcon, objSameKeys, pathEncode, StringifyProps, typedKeys } from './misc'
+import { FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, objSameKeys, pathEncode, StringifyProps, typedKeys } from './misc'
 import { DirEntry as ServerDirEntry } from '../../src/api.get_file_list'
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
@@ -150,6 +150,18 @@ export class DirEntry implements StringifyProps<ServerDirEntry> {
 
     getDefaultIcon() {
         return hIcon(this.icon === true ? `${this.n}?get=icon` : (this.icon ?? (this.isFolder || this.web ? 'folder' : this.url ? 'link' : ext2type(this.ext) || 'file')))
+    }
+
+    canArchive() {
+        return this.p?.includes('A') || state.props?.can_archive && !this.p?.includes('a')
+    }
+    canDelete() {
+        return state.props?.can_delete || this.p?.includes('d')
+    }
+    canSelect() {
+        if (this.url) return false
+        return this.canArchive() || this.canDelete() // selection is used only by zip and delete, but consider custom logic from plugins
+            || hfsEvent('enableEntrySelection', { entry: this }).some(Boolean)
     }
 }
 export type DirList = DirEntry[]

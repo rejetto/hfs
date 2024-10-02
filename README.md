@@ -123,7 +123,7 @@ If your language is missing, please consider [translating yourself](https://gith
 
 - Appending `#LOGIN` to address will bring up the login dialog
 - Appending ?lang=CODE to address will force a specific language
-- Right/ctrl/command click on toggle-all checkbox will invert each checkbox state
+- Right-click on toggle-all checkbox will invert each checkbox state
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
 - Appending `?overwrite` on uploads, will override the dont_overwrite_uploading configuration, provided you also have delete permission
 - Appending `?search=PATTERN` will trigger search at start 

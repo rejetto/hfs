@@ -40,7 +40,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
     const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, depth: search ? Infinity : 0 })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
-    const fakeChild = await applyParentToChild({ source: 'x' }, node) // can we delete children
+    const fakeChild = await applyParentToChild({ source: 'dummy-file' }, node) // used to check permission; simple but but can produce false results
     const can_delete = admin || hasPermission(fakeChild, 'can_delete', ctx)
     const can_archive = admin || hasPermission(fakeChild, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
@@ -123,7 +123,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
                 : !hasPermission(node, 'can_read', ctx) ? 'R'
                 : ''
             const pd = !can_delete && hasPermission(node, 'can_delete', ctx) ? 'd' : ''
-            const pa = isFolder && Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
+            const pa = Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
             return {
                 n: name + (isFolder ? '/' : ''),
                 c: st?.ctime,

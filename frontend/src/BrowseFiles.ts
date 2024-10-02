@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
 import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, isCtrlKey } from './misc'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, isCtrlKey, hfsEvent } from './misc'
 import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -257,10 +257,11 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         entry,
         render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null
     }, showFilter && h(Checkbox, {
-            disabled: isLink,
+            disabled: !entry.canSelect(),
             'aria-labelledby': ariaId,
             value: selected[uri] || false,
             onChange(v) {
+                if (hfsEvent('entryToggleSelection', { entry }).isDefaultPrevent()) return
                 if (v)
                     return state.selected[uri] = true
                 delete state.selected[uri]
