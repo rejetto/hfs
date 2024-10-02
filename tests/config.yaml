@@ -119,6 +119,7 @@ vfs:
       can_see: false
       masks:
         "*":
+          maskOnly: folders
           can_see: true
       children:
         - name: hi
