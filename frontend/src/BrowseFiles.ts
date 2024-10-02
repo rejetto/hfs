@@ -259,7 +259,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     }, showFilter && h(Checkbox, {
             disabled: isLink,
             'aria-labelledby': ariaId,
-            value: selected[uri],
+            value: selected[uri] || false,
             onChange(v) {
                 if (v)
                     return state.selected[uri] = true
