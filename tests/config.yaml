@@ -119,6 +119,7 @@ vfs:
       can_see: false
       masks:
         "*":
+          maskOnly: folders
           can_see: true
       children:
         - name: hi
@@ -137,7 +138,7 @@ accounts:
     disabled: true
   admins:
     admin: true
-version: 0.54.0-alpha4
+version: 0.54.0-alpha4.1
 max_downloads_per_account: 2
 max_downloads: 1
 roots:

@@ -271,7 +271,7 @@ export async function* walkNode(parent: VfsNode, {
             const name = prefixPath + nodeName
             took?.add(normalizeFilename(name))
             const item = { ...child, name }
-            if (!canSee(item)) continue
+            if (!await canSee(item)) continue
             if (item.source) // real items must be accessible
                 try { await fs.access(item.source) }
                 catch { continue }
@@ -314,7 +314,7 @@ export async function* walkNode(parent: VfsNode, {
             }
             if (isFolder) // store it even if we can't see it (masks), as its children can be produced by dirStream
                 parentsCache.set(name, item)
-            if (canSee(item))
+            if (await canSee(item))
                 yield item
             entry.closingBranch?.then(p =>
                 parentsCache.delete(p || '.'))
@@ -326,9 +326,9 @@ export async function* walkNode(parent: VfsNode, {
     parentsCache.clear() // hoping for faster GC
 
     // item will be changed, so be sure to pass a temp node
-     function canSee(item: VfsNode) {
+     async function canSee(item: VfsNode) {
          // we basename for depth>0 where we already have the rest of the path in the parent's url, and would be duplicated
-        maskApplier(item, basename(getNodeName(item)))
+        await maskApplier(item, basename(getNodeName(item)))
         inheritFromParent(parent, item)
         if (ctx && !hasPermission(item, 'can_see', ctx)) return
         item.isTemp = true
