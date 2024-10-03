@@ -1,11 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { getProjectInfo, getRepoInfo } from './github'
-import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
+import { ARGS_FILE, argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import { DAY, exists, debounceAsync, httpStream, unzip, prefix, xlate, HOUR } from './misc'
-import { createReadStream, renameSync, unlinkSync } from 'fs'
+import { createReadStream, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
@@ -153,7 +153,7 @@ export async function update(tagOrUrl: string='') {
             if (doingLocal)
                 try { renameSync(doingLocal, 'old-' + doingLocal) }
                 catch(e) { console.warn(e) }
-            launch(newBin, ['--updating', binFile], { sync: true }) // sync necessary to work on Mac by double-click
+            launch(newBin, ['--updating', binFile, '--cwd .'], { sync: true }) // sync necessary to work on Mac by double-click
         })
         console.log("quitting")
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
@@ -177,9 +177,15 @@ if (argv.updating) { // we were launched with a temporary name, restore original
     // be sure to test launching both double-clicking and in a terminal
     if (IS_WINDOWS) // this method on Mac works only once, and without console
         onProcessExit(() =>
-            launch(dest, ['--updated']) ) // launch+sync here would cause old process to stay open, locking ports
-    else
+            launch(dest, ['--updated', '--cwd .']) ) // launch+sync here would cause old process to stay open, locking ports
+    else {
+        /* open() is the only consistent way that i could find working on Mac that preserved console input/output over relaunching,
+         * but I couldn't find a way to pass parameters, at least on Linux. The workaround I'm using is to write them to a temp file, that's read and deleted at restart.
+         * For the record, on mac you can: write "./hfs arg1 arg2" to /tmp/tmp.sh with 0o700, and then spawn "open -a Terminal /tmp/tmp.sh"
+         */
+        try { writeFileSync(ARGS_FILE, JSON.stringify(['--updated', '--cwd', process.cwd().replaceAll(' ', '\\ ')])) }
+        catch {}
         void open(dest)
-
+    }
     process.exit()
 }

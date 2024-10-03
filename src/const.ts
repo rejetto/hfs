@@ -3,7 +3,7 @@
 import minimist from 'minimist'
 import * as fs from 'fs'
 import { homedir } from 'os'
-import { mkdirSync } from 'fs'
+import _ from 'lodash'
 import { basename, dirname, join } from 'path'
 export * from './cross-const'
 
@@ -12,6 +12,16 @@ export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not brea
 export const HFS_REPO = 'rejetto/hfs'
 
 export const argv = minimist(process.argv.slice(2))
+// you can add arguments with this file, currently used for the update process on mac/linux
+export const ARGS_FILE = join(homedir(), 'hfs-args')
+try {
+    const s = fs.readFileSync(ARGS_FILE, 'utf-8')
+    console.log('additional arguments', s)
+    _.defaults(argv, minimist(JSON.parse(s)))
+    fs.unlinkSync(ARGS_FILE)
+}
+catch {}
+
 export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
 export const ORIGINAL_CWD = process.cwd()
 export const HFS_STARTED = new Date()
@@ -40,14 +50,14 @@ const winExe = IS_WINDOWS && process.execPath.match(/(?<!node)\.exe$/i)
 // still considering whether to use ".hfs" with Windows users, who may be less accustomed to it
 const dir = argv.cwd || useHomeDir() && join(homedir(), '.hfs')
 if (dir) {
-    try { mkdirSync(dir) }
+    try { fs.mkdirSync(dir) }
     catch(e: any) {
         if (e.code !== 'EEXIST')
             console.error(e)
     }
     process.chdir(dir)
 }
-console.log('working directory', process.cwd())
+console.log('working directory (cwd)', process.cwd())
 if (APP_PATH !== process.cwd())
     console.log('app', APP_PATH)
 console.log('node', process.version)
