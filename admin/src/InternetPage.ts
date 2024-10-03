@@ -214,9 +214,7 @@ export default function InternetPage() {
                         if (fresh && !await confirmDialog("Your certificate is still good", { trueText: "Make a new one anyway" }))
                             return
                         if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
-                        const res = await apiCall('check_domain', { domain }).catch(e =>
-                            confirmDialog(String(e), { trueText: "Continue anyway" }) )
-                        if (res === false) return
+                        if (await stopOnCheckDomain(domain)) return
                         await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
                             .then(async () => {
                                 await alertDialog("Certificate created", 'success')
@@ -314,6 +312,11 @@ export default function InternetPage() {
         )
     }
 
+    async function stopOnCheckDomain(domain: string) {
+        return domain && false === await apiCall('check_domain', { domain }).catch(e =>
+            confirmDialog(String(e), { trueText: "Continue anyway", falseText: "Stop" }))
+    }
+
     async function verify(again=false): Promise<any> {
         await nat.loading
         const data = nat.getData() // fresh data
@@ -326,8 +329,7 @@ export default function InternetPage() {
             {
                 const hostname = url && new URL(url).hostname
                 const domain = !isIP(hostname) && hostname
-                if (domain && false === await apiCall('check_domain', { domain }).catch(e =>
-                    confirmDialog(String(e), { trueText: "Continue anyway" }) )) return
+                if (await stopOnCheckDomain(domain)) return
             }
             const urlResult = url && await apiCall('self_check', { url }).catch(() =>
                 alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
