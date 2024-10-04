@@ -97,6 +97,7 @@ function FilesList() {
     const navigate = useNavigate()
     const timeout = useRef()
     useEventListener('keydown', ev => {
+        if (ev.srcElement !== document.body) return
         if (isCtrlKey(ev as any) === 'Backspace' && location.pathname > '/')
             return navigate(location.pathname + '..')
         const { key } = ev
