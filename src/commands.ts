@@ -33,7 +33,7 @@ function parseCommandLine(line: string) {
     let [name, ...params] = line.trim().split(/ +/)
     name = aliases[name!] || name
     let cmd = (commands as any)[name!]
-    if (cmd.alias)
+    if (cmd?.alias)
         cmd = (commands as any)[cmd.alias]
     if (!cmd)
         return console.error("cannot understand entered command, try 'help'")
