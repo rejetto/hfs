@@ -9,8 +9,7 @@ import { HTTP_FAILED_DEPENDENCY, newObj, prefix, with_, xlate } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { Account } from './AccountsPage'
-import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField
-} from '@hfs/mui-grid-form'
+import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
@@ -18,11 +17,11 @@ import { Btn, hTooltip, IconBtn, iconTooltip } from './mui'
 import VfsPathField from './VfsPathField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
-    const { list, updateEntry, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
+    const { list, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     useEffect(() => {
         if (!initializing)
             updateList(list =>
-                _.sortBy(list, x => (x.started ? '0' : '1') + x.id))
+                _.sortBy(list, x => (x.started ? '0' : '1') + treatPluginName(x.id)))
     }, [initializing]);
     const size = 'small'
     return h(DataTable, {
@@ -137,6 +136,11 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     })
 }
 
+// hide the hfs- prefix, as one may want to use it for its repository, because github is the context, but in the hfs context the prefix it's not only redundant, but also ruins the sorting
+function treatPluginName(name: string) {
+    return name.replace(/hfs-/, '')
+}
+
 export function renderName({ row, value }: any) {
     const { repo } = row
     return h(Fragment, {},
@@ -145,7 +149,7 @@ export function renderName({ row, value }: any) {
         repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
             : with_(repo?.split('/'), arr => arr?.length !== 2 ? value
                 : h(Fragment, {},
-                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, arr[1].replace(/hfs-/, '')),
+                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, treatPluginName(arr[1])),
                     '\xa0by ', arr[0]
                 ))
 )
