@@ -95,6 +95,8 @@ export default function LogsPage() {
     }
 }
 
+const LOGS_ON_FILE: string[] = [CFG.log, CFG.error_log]
+
 function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string, addToFooter?: ReactNode }) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
@@ -111,7 +113,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const invert = true
     const [firstSight, setFirstSight] = useState(!hidden)
     useEffect(() => setFirstSight(x => x || !hidden), [hidden])
-    useApi(firstSight && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
+    useApi(firstSight && LOGS_ON_FILE.includes(file) && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
             const lines = body.split('\n')
