@@ -217,6 +217,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             function goNext() { go(+1) }
 
             function curFailed() {
+                const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only presenti in video/audio elements
+                if (mediaError === 2) return // happens when chrome fails to fetch cover for videos. We don't skip the file for this reason. Tested on chrome129/windows
                 if (cur !== lastGood.current)
                     return go()
                 setLoading(false)
