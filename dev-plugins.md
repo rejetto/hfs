@@ -658,7 +658,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 9.2 (v0.54.0)
+- 9.3 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 
     - api.misc
@@ -669,6 +669,7 @@ If you want to override a text regardless of the language, use the special langu
     - HFS.userBelongsTo
     - HFS.DirEntry
     - frontend event: appendMenuBar
+    - config.helperText: basic md formatting
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip

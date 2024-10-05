@@ -5,7 +5,7 @@ import { createElement as h, Fragment, useEffect } from 'react'
 import { Box, Link } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import { Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { HTTP_FAILED_DEPENDENCY, newObj, prefix, with_, xlate } from './misc'
+import { HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { Account } from './AccountsPage'
@@ -163,7 +163,9 @@ function makeFields(config: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
         if (!_.isPlainObject(o))
             return o
-        let { type, defaultValue, fields, frontend, ...rest } = o
+        let { type, defaultValue, fields, frontend, helperText, ...rest } = o
+        if (helperText)
+            helperText = md(helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
         if (comp === ArrayField) {
             rest.valuesForAdd = newObj(fields, x => x.defaultValue)
@@ -171,7 +173,7 @@ function makeFields(config: any) {
         }
         if (defaultValue !== undefined && type === 'boolean')
             rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`
-        return { k, comp, fields, ...rest }
+        return { k, comp, fields, helperText, ...rest }
     })
 }
 
