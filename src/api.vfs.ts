@@ -10,7 +10,10 @@ import {
     dirStream, enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
     VfsNodeAdminSend
 } from './misc'
-import { IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE } from './const'
+import {
+    IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
+    IS_BINARY, APP_PATH
+} from './const'
 import { getDiskSpace, getDiskSpaces, getDrives } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { promisify } from 'util'
@@ -233,6 +236,7 @@ const apis: ApiHandlers = {
         const url = h.srv!.name + '://localhost:' + h.port
         for (const k of ['*', 'Directory']) {
             await reg('add', WINDOWS_REG_KEY.replace('*', k), '/ve', '/f', '/d', 'Add to HFS (new)')
+            await reg('add', WINDOWS_REG_KEY.replace('*', k), '/v', 'icon', '/f', '/d', IS_BINARY ? process.execPath : APP_PATH + '\\hfs.ico')
             await reg('add', WINDOWS_REG_KEY.replace('*', k) + '\\command', '/ve', '/f', '/d', `powershell -WindowStyle Hidden -Command "
             $wsh = New-Object -ComObject Wscript.Shell;
             $j = @{parent=@'\n${parent}\n'@; source=@'\n%1\n'@} | ConvertTo-Json -Compress
