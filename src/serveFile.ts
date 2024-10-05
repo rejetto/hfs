@@ -51,7 +51,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     }
 }
 
-const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>('mime', { '*': MIME_AUTO }, obj => {
+const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>('mime', {}, obj => {
     const matchers = Object.keys(obj).map(k => makeMatcher(k))
     const values = Object.values(obj)
     return (name: string) => values[matchers.findIndex(matcher => matcher(name))]
@@ -65,7 +65,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         return
     const fn = basename(source)
     mime = mime ?? mimeCfg.compiled()(fn)
-    if (!mime || mime === MIME_AUTO)
+    if (mime === undefined || mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''
     if (mime)
         ctx.type = mime
