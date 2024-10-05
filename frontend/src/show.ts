@@ -84,7 +84,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 }
             })
             const [showNav, setShowNav] = useState(false)
-            const isAudio = getShowType(cur) === Audio
+            const component = getShowComponent(cur)
+            const isAudio = component === Audio
             useEffect(() => setShowNav(isAudio), [isAudio])
             const timerRef = useRef(0)
             const navClass = 'nav' + (showNav ? '' : ' nav-hidden')
@@ -169,7 +170,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                         t`Loading failed`
                     ) : h('div', { className: 'showing-container', ref: containerRef },
                         h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: cover && `url("${cover}")` } }),
-                        h(getShowType(cur) || Fragment, {
+                        h(component || Fragment, {
                             src: cur.uri,
                             className: 'showing',
                             onLoad() {
@@ -245,7 +246,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 goTo(e)
 
                 function anyGood() {
-                    return e && !e.isFolder && getShowType(e)
+                    return e && !e.isFolder && getShowComponent(e)
                 }
             }
 
@@ -307,7 +308,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
     })
 }
 
-export function getShowType(entry: DirEntry) {
+export function getShowComponent(entry: DirEntry) {
     const res = hfsEvent('fileShow', { entry }).find(Boolean)
     if (res)
         return res

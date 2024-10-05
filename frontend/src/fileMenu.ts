@@ -9,7 +9,7 @@ import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
 import { DirEntry, state } from './state'
 import { deleteFiles } from './menu'
 import { Link, LinkProps } from 'react-router-dom'
-import { fileShow, getShowType } from './show'
+import { fileShow, getShowComponent } from './show'
 import { alertDialog, promptDialog, toast } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
 import { inputComment } from './upload'
@@ -56,7 +56,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
                     onClick: () => deleteFiles([entry.uri])
                 }
             if (x === 'show')
-                return !entry.cantOpen && getShowType(entry) && {
+                return !entry.cantOpen && getShowComponent(entry) && {
                     id: 'show',
                     label: t`Show`,
                     icon: 'image',
