@@ -97,7 +97,7 @@ export default function LogsPage() {
 
 const LOGS_ON_FILE: string[] = [CFG.log, CFG.error_log]
 
-function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string, addToFooter?: ReactNode }) {
+export function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string, addToFooter?: ReactNode }) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
     const { pause, pauseButton } = usePauseButton()

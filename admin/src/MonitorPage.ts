@@ -15,7 +15,7 @@ import {
 } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
-import { agentIcons } from './LogsPage'
+import { agentIcons, LogFile } from './LogsPage'
 import { state, useSnapState } from './state'
 import { useBlockIp } from './useBlockIp'
 import { alertDialog, confirmDialog } from './dialog'
@@ -254,5 +254,5 @@ function formatSpeedK(value: number | undefined) {
 }
 
 function Log() {
-    return h('div', {}, "Asd")
+    return h(LogFile, { file: CFG.log })
 }
