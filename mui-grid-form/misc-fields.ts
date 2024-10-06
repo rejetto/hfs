@@ -70,7 +70,7 @@ export function BoolField({ label='', value, onChange, setApi, helperText, error
         }
     })
     return h(Box, { ml: 1, sx: error ? { color: 'error.main', outlineOffset: 6, outline: '1px solid' } : undefined },
-        h(FormControlLabel, { label, control, labelPlacement: 'end', ...props.size==='small' && { sx: { '& .MuiFormControlLabel-label': { fontSize: '.9rem' } } } }),
+        h(FormControlLabel, { label, control, labelPlacement: 'end', sx: { mr: 0, ...props.size==='small' && { '& .MuiFormControlLabel-label': { fontSize: '.9rem' } } } }),
         helperText && h(FormHelperText, { sx: { mt: 0 }, error }, helperText)
     )
 }
