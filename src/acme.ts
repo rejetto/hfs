@@ -106,8 +106,10 @@ export const makeCert = debounceAsync(async (domain: string, email?: string, alt
     await fs.writeFile(KEY_FILE, res.key)
     cert.set(CERT_FILE) // update config
     privateKey.set(KEY_FILE)
+    acmeRenewError = ''
 })
 
+export let acmeRenewError = ''
 const acmeDomain = defineConfig('acme_domain', '')
 const acmeEmail = defineConfig('acme_email', '')
 const acmeRenew = defineConfig('acme_renew', false) // handle config changes
@@ -125,6 +127,6 @@ const renewCert = debounceAsync(async () => {
     if (now > new Date(cert.validFrom) && now < validTo && validTo.getTime() - now.getTime() >= 30 * DAY)
         return console.log("certificate still good")
     await makeCert(domain, acmeEmail.get(), altNames)
-        .catch(e => console.log(`error renewing certificate, expiring ${validTo.toLocaleDateString()}:`, String(e.message || e)))
+        .catch(e => console.log(acmeRenewError = `Error renewing certificate, expiring ${validTo.toLocaleDateString()}: ${String(e.message || e)}`))
 }, { retain: DAY, retainFailure: HOUR })
 

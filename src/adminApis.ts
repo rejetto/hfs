@@ -38,6 +38,7 @@ import { SendListReadable } from './SendList'
 import { get_dynamic_dns_error } from './ddns'
 import { addBlock, BlockingRule } from './block'
 import { alerts, getProjectInfo } from './github'
+import { acmeRenewError } from './acme'
 
 export const adminApis = {
 
@@ -130,6 +131,7 @@ export const adminApis = {
             proxyDetected: getProxyDetected(),
             cloudflareDetected,
             ram: process.memoryUsage.rss(),
+            acmeRenewError,
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
                 && await frpDebounced(),
