@@ -132,7 +132,7 @@ export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|
     progress?: boolean | number
     link?: string
     confirm?: boolean | ReactNode
-    labelFrom?: Breakpoint | false
+    labelIf?: Breakpoint | boolean
     doneMessage?: boolean | string // displayed only if the result of onClick !== false
     tooltipProps?: Partial<TooltipProps>
     modified?: boolean
@@ -140,14 +140,14 @@ export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|
     onClick?: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
 
-export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelFrom, children, modified, loading, ...rest }: BtnProps, forwarded: ForwardedRef<HTMLButtonElement>) => {
+export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelIf, children, modified, loading, ...rest }: BtnProps, forwarded: ForwardedRef<HTMLButtonElement>) => {
     const [loadingState, setLoadingState] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
     disabled = loadingState || progress || disabled ? true : undefined
     if (link)
         onClick = () => window.open(link)
-    const showLabel = useBreakpoint(labelFrom || 'xs')
+    const showLabel = useBreakpoint(_.isString(labelIf) ? labelIf : 'xs') && (_.isBoolean(labelIf) ? labelIf : true)
     const ref = useRefPass<HTMLButtonElement>(forwarded)
     const common = _.merge(propsForModifiedValues(modified), {
         ref,
@@ -172,7 +172,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             loadingIndicator: typeof progress !== 'number' ? undefined
                 : h(CircularProgress, { size: '1rem', value: progress*100, variant: 'determinate' }),
             children: showLabel && children,
-        } as const, common, !showLabel && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }))
+        } as const, common, (!showLabel || !children) && { sx: { minWidth: 'auto', px: 1, py: '7px', '& span': { mx:0 }, } }))
         : h(IconButton, _.merge(common, { sx: { height: 'fit-content' }, TouchRippleProps: { 'aria-hidden': true } }),
             (progress || loadingState) && progress !== false  // false is also useful to inhibit behavior with loading
             && h(CircularProgress, {

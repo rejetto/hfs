@@ -36,6 +36,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     return h(DataTable, {
         error: xlate(error, PLUGIN_ERRORS),
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
+        fillFlex: true,
         initializing,
         disableColumnSelector: true,
         noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,

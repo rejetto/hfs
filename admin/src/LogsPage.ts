@@ -3,10 +3,11 @@
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, apiCall, useApi, useApiList } from './api'
-import { DataTable } from './DataTable'
+import { DataTable, DataTableProps } from './DataTable'
 import {
     CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
-    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent, stringAfter
+    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent
+, stringAfter
 } from '@hfs/shared'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
@@ -54,7 +55,7 @@ export default function LogsPage() {
             h(IconBtn, { icon: Settings, title: "Options", onClick: showLogOptions })
         ),
         files.map(f =>
-            h(LogFile, { hidden: file !== f, file: f, key: f }) ),
+            h(LogFile, { hidden: file !== f, file: f, key: f, fillFlex: true }) ),
     )
 
     function showLogOptions() {
@@ -99,7 +100,7 @@ export default function LogsPage() {
 
 const LOGS_ON_FILE: string[] = [CFG.log, CFG.error_log]
 
-function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string, addToFooter?: ReactNode }) {
+export function LogFile({ file, footerSide, hidden, limit, ...rest }: { limit?: number, hidden?: boolean, file: string, footerSide?: ReactNode } & Partial<DataTableProps>) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
     const { pause, pauseButton } = usePauseButton()
@@ -111,7 +112,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const [totalSize, setTotalSize] = useState(NaN)
     const [limited, setLimited] = useState(true)
     const [skipped, setSkipped] = useState(0)
-    const MAX = 2**20
+    const MAX = 2**20 // 1MB
     const invert = true
     const [firstSight, setFirstSight] = useState(!hidden)
     useEffect(() => setFirstSight(x => x || !hidden), [hidden])
@@ -136,7 +137,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
             setList(x => [...x, ...treated])
         }
     })
-    const { list, setList, error, connecting, reload } = useApiList(firstSight && 'get_log', { file }, { invert, pause, map: enhanceLogLine })
+    const { list, setList, error, connecting, reload } = useApiList(firstSight && 'get_log', { file }, { limit, invert, pause, map: enhanceLogLine })
     if (file === 'ips')
         reloadIps = reload
     const tsColumn: GridColDef = {
@@ -157,19 +158,20 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
         compact: true,
         actionsProps: { hideUnder: 'md' },
         actions: ({ row }) => [ !isConsole && blockIp.iconBtn(row.ip, "From log") ],
-        addToFooter: h(Box, {}, // 4 icons don't fit the tabs row on mobile
+        ...rest,
+        footerSide: width => h(Box, {}, // 4 icons don't fit the tabs row on mobile
             pauseButton,
             showApiButton,
             !connecting && skipped > 0 && h(Btn, {
                 icon: ClearAll,
                 variant: 'outlined',
                 sx: { ml: { sm: 1 } },
-                labelFrom: 'md',
+                labelIf: width > 700,
                 title: `Only ${formatBytes(MAX)} was loaded, for speed. Total size is ${formatBytes(totalSize)}`,
                 loading: !limited,
                 onClick: () => setLimited(false)
             }, "Load whole log"),
-            addToFooter,
+            footerSide,
         ),
         columns: isConsole ? [
             tsColumn,

@@ -38,7 +38,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     }
 }
 
-export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause }: { pause?: boolean, invert?: boolean, map?: (rec: S) => T }={}) {
+export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause, limit }: { limit?: number, pause?: boolean, invert?: boolean, map?: (rec: S) => T }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)
@@ -55,8 +55,17 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
         const apply = _.debounce(() => {
             const chunk = bufferAdd.splice(0, Infinity)
             if (!chunk.length) return
-            if (invert) chunk.reverse() // setList callback can be called twice (and will, in dev)
-            setList(list => invert ? [ ...chunk, ...list ] : [ ...list, ...chunk ])
+            if (invert) chunk.reverse() // don't move this inside setList, as its callback can be called twice (and will, in dev)
+            setList(list => {
+                if (invert) {
+                    const ret = [...chunk, ...list]
+                    ret.splice(limit ?? Infinity, Infinity)
+                    return ret
+                }
+                const ret = [...list, ...chunk]
+                ret.splice(0, length - (limit ?? Infinity))
+                return ret
+            })
         }, 1000, { maxWait: 1000 })
         setError(undefined)
         setLoading(true)

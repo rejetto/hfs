@@ -1,11 +1,10 @@
 import { DataGrid, DataGridProps, enUS, getGridStringOperators, GridColDef, GridFooter, GridFooterContainer,
-    GridValidRowModel, useGridApiRef } from '@mui/x-data-grid'
+    GridValidRowModel, useGridApiRef, GridRenderCellParams } from '@mui/x-data-grid'
 import { Alert, Box, BoxProps, Breakpoint, LinearProgress, useTheme } from '@mui/material'
-import { useWindowSize } from 'usehooks-ts'
-import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { newDialog, onlyTruthy } from '@hfs/shared'
+import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { callable, Callback, newDialog, onlyTruthy, useGetSize } from '@hfs/shared'
 import _ from 'lodash'
-import { Center, Flex, useBreakpoint } from './mui'
+import { Center, Flex } from './mui'
 import { SxProps } from '@mui/system'
 
 const ACTIONS = 'Actions'
@@ -14,23 +13,22 @@ export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
     hidden?: boolean
     hideUnder?: Breakpoint | number
     dialogHidden?: boolean
-    sx?: SxProps
+    sx?: SxProps | Callback<GridRenderCellParams, SxProps>
     mergeRender?: { [other: string]: false | { override?: Partial<GridColDef<R>> } & BoxProps }
     mergeRenderSx?: SxProps
 }
-interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
+export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
     columns: Array<DataTableColumn<R>>
     actions?: ({ row, id }: any) => ReactNode[]
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
     initializing?: boolean
     noRows?: ReactNode
     error?: ReactNode
-    compact?: true
-    addToFooter?: ReactNode
+    compact?: boolean
+    footerSide?: (width: number) => ReactNode
+    fillFlex?: boolean
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, addToFooter, ...rest }: DataTableProps) {
-    let { width } = useWindowSize()
-    width = Math.min(width, screen.availWidth) // workaround: width returned by useWindowSize is not good when toggling mobile-mode in chrome
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, ...rest }: DataTableProps) {
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
@@ -63,7 +61,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 originalRenderCell: col.renderCell || true,
                 renderCell(params: any) {
                     const { columns } = params.api.store.getSnapshot()
-                    return h(Box, { maxHeight: '100%', sx: { textWrap: 'wrap', ...sx } }, // wrap if necessary, but stay within the row
+                    return h(Box, { maxHeight: '100%', sx: { textWrap: 'wrap', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
                         col.renderCell ? col.renderCell(params) : params.formattedValue,
                         h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '2px', ...col.mergeRenderSx }, // wrap, normally causing overflow/hiding, if it doesn't fit
                             ...onlyTruthy(_.map(col.mergeRender, (props, other) => {
@@ -94,8 +92,9 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             })
         return ret
     }, [columns, actions, actionsLength])
+    const sizeGrid = useGetSize()
+    const width = sizeGrid.w || 0
     const hideCols = useMemo(() => {
-        if (!width) return
         const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder, hidden }) =>
             (hidden || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
             && field))
@@ -112,10 +111,14 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         const { current: { id, setCurRow } } = displayingDetails
         setCurRow?.(_.find(rest.rows, { id }))
     })
-    const sm = useBreakpoint('sm')
-
-    if (!hideCols) // only first time we render, initialState is considered, so wait
-        return null
+    const sizeFooterSide = useGetSize()
+    const wrappedFooterSide = h(Box, { ...sizeFooterSide.props, className: 'footerSide', sx: { whiteSpace: 'nowrap' } }, footerSide?.(width))
+    const [causingScrolling, setCausingScrolling] = useState(false)
+    useEffect(useCallback(_.debounce(() => {
+        const el = sizeGrid.ref.current?.querySelector('.MuiTablePagination-root')
+        setCausingScrolling(el && (el.scrollWidth > el.clientWidth) || false)
+    }, 500), [sizeGrid]),
+        [sizeGrid, width, sizeFooterSide.w]) // recalculate in case the footerSide changes
 
     return h(Fragment, {},
         error && h(Alert, { severity: 'error' }, error),
@@ -126,23 +129,29 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         h(DataGrid, {
             key: width,
             initialState,
-            style: { height: 0, flex: 'auto' }, // limit table to available screen space
             density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
             apiRef,
+            ...sizeGrid.props,
             ...rest,
             sx: {
-                '& .MuiDataGrid-virtualScroller': { minHeight: '3em' } // without this, no-entries gets just 1px
+                ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex
+                '& .MuiDataGrid-virtualScroller': { minHeight: '3em' }, // without this, no-entries gets just 1px
+                '& .MuiTablePagination-root': { scrollbarWidth: 'none'},
+                ...rest.sx,
             },
             slots: {
                 noRowsOverlay: () => initializing ? null : h(Center, {}, noRows || "No entries"),
                 footer: CustomFooter,
             },
             slotProps: {
-                footer: { add: addToFooter } as any,
-                pagination: !sm && addToFooter ? undefined : {
-                    showFirstButton: true,
-                    showLastButton: true,
+                footer: { add: wrappedFooterSide } as any, // 'add' is introduced by CustomFooter
+                pagination: {
+                    labelRowsPerPage: "Rows",
+                    ...!causingScrolling && {
+                        showFirstButton: true,
+                        showLastButton: true,
+                    }
                 },
             },
             onCellClick({ field, row }) {

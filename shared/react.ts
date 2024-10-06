@@ -1,9 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, KeyboardEvent, ReactElement, ReactNode,
-    useCallback, useEffect, useRef, useState } from 'react'
+import {
+    createElement as h, Fragment, KeyboardEvent, MutableRefObject, ReactElement, ReactNode, Ref,
+    useCallback, useEffect, useMemo, useRef, useState
+} from 'react'
 import { useIsMounted, useWindowSize, useMediaQuery } from 'usehooks-ts'
-import { Falsy } from '.'
+import { Callback, Falsy } from '.'
+import _ from 'lodash'
 
 export function useStateMounted<T>(init: T) {
     const isMounted = useIsMounted()
@@ -101,6 +104,46 @@ export function KeepInScreen({ margin, ...props }: any) {
 
 export function useIsMobile() {
     return useMediaQuery('(pointer:coarse)')
+}
+
+// calls back with [width, height]
+export function useOnResize(cb: Callback<[number, number]>) {
+    const observer = useMemo(() =>
+        new ResizeObserver(_.debounce(([{contentRect: r}]) => cb([r.width, r.height]), 10)),
+        [])
+
+    return useMemo(() => ({
+        ref(el: any) {
+            observer.disconnect()
+            if (el)
+                observer.observe(el)
+        }
+    }), [observer])
+}
+
+export function useGetSize() {
+    const [size, setSize] = useState<[number,number]>()
+    const ref = useRef<HTMLElement>()
+    const props = useOnResize(setSize)
+    const propsRef = useCallback((el: any) => passRef(el, ref, props.ref), [props])
+    return useMemo(() => ({
+        w: size?.[0],
+        h: size?.[1],
+        ref,
+        props: {
+            ...props,
+            ref: propsRef
+        }
+    }), [size, ref, propsRef])
+}
+
+type FunctionRef<T=HTMLElement> = (instance: (T | null)) => void
+export function passRef<T=any>(el: T, ...refs: (MutableRefObject<T> | FunctionRef<T>)[]) {
+    for (const ref of refs)
+        if (_.isFunction(ref))
+            ref(el)
+        else if (ref)
+            ref.current = el
 }
 
 export function AriaOnly({ children }: { children?: ReactNode }) {

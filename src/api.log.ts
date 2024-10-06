@@ -25,6 +25,7 @@ export default {
     },
 
     get_log({ file = 'log' }, ctx) {
+        const files = file.split('|') // potentially more then one
         return new SendListReadable({
             bufferTime: 10,
             async doAtStart(list) {
@@ -45,11 +46,11 @@ export default {
                     return
                 }
                 // for other logs we only provide updates. Use get_log_file to download past content
-                if (!_.find(loggers, { name: file }))
+                if (_.some(files, x => !_.find(loggers, { name: x })) )
                     return list.error(HTTP_NOT_FOUND, true)
                 list.ready()
                 // unsubscribe when connection is interrupted
-                ctx.res.once('close', events.on(file, x => list.add(x)))
+                ctx.res.once('close', events.on(files, x => list.add(x)))
             }
         })
 
