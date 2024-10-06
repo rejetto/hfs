@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Box, Button, Divider, FormHelperText } from '@mui/material';
-import { createElement as h, useEffect, useRef } from 'react';
+import { createElement as h, useEffect, useId, useRef, useState } from 'react'
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
@@ -253,6 +253,14 @@ export default function OptionsPage() {
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
             },
 
+            { k: CFG.force_webdav_login, comp: WebdavAgentAuthField, sm: true, label: "WebDAV force login",
+                fallbackRE: 'Microsoft-WebDAV', // ms-webdav won't send credentials even with the initial_auth – it must be forced, so we offer it as preset regex if you don't like the *always* value
+                helperText: "Force login for clients that mishandle mixed anonymous/protected access",
+            },
+            values[CFG.force_webdav_login] !== true && { k: CFG.webdav_initial_auth, comp: WebdavAgentAuthField, sm: 6, label: "WebDAV initial auth",
+                helperText: "Force login only once. Used only when previous option does not match",
+            },
+
             { k: 'server_code', comp: TextEditorField, lang: 'js', xs: 12,
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
@@ -394,6 +402,25 @@ function AllowedReferer({ label, value, onChange, error }: FieldProps<string>) {
             error,
             helperText: h(WildcardsSupported)
         })
+    )
+}
+
+function WebdavAgentAuthField({ label, value, onChange, error, helperText, fallbackRE='.*' }: FieldProps<boolean | string>) {
+    const [lastRegex, setLastRegex] = useState('')
+    const isRE = typeof value === 'string'
+    useEffect(() => setLastRegex(isRE ? value : fallbackRE), [value])
+    const helperId = useId()
+    return h(Box, {},
+        h(Box, { display: 'flex' },
+            h(SelectField as Field<boolean | string>, {
+                label, value, onChange, error,
+                'aria-describedby': helperId,
+                options: { "Off": false, "Always": true, "RegEx": lastRegex },
+                sx: isRE ? { maxWidth: '9em' } : undefined,
+            }),
+            isRE && h(StringField, { label: "User-Agent regex", value, onChange, error }),
+        ),
+        h(FormHelperText, { id: helperId }, helperText),
     )
 }
 

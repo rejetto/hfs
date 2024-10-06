@@ -60,7 +60,7 @@ const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000)
 const uploadingFiles = new Map<string, { ctx: Koa.Context, size: number, got: number }>()
 // initially sync for formidable; still sync to avoid async races and PUT piping gaps
 export function uploadWriter(base: VfsNode, baseUri: string, filename: string, ctx: Koa.Context) {
-    if (!filename || !isValidFileName(filename))
+    if (!filename || !isValidFileName(filename) || !filename)
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx))
         return fail()
@@ -284,7 +284,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, filename: string, c
         if (msg)
             ctx.body = msg
         if (status >= 400 // with other codes Chrome will report ERR_CONNECTION_RESET
-        && !ctx.get('x-hfs-wait')) // you can disable the following behavior
+        && !ctx.get('x-hfs-wait') // you can disable the following behavior
+        && !ctx.req.complete) // if request body is already complete, forcing a disconnect can interfere with follow-up requests on reused sockets.
             setTimeout(() => disconnect(ctx), 200) // don't wait, if the upload is still in progress
     }
 }

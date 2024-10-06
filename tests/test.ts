@@ -39,6 +39,15 @@ const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 300_000) // 3MB, big enough to saturate buffers
 const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
+const WEBDAV_UA = 'Microsoft-WebDAV-MiniRedir/10.0.22000'
+const WEBDAV_PROPPATCH_BODY = `<?xml version="1.0" encoding="utf-8"?>
+<propertyupdate xmlns="DAV:">
+  <set>
+    <prop>
+      <displayname>patched</displayname>
+    </prop>
+  </set>
+</propertyupdate>`
 let defaultBaseUrl = BASE_URL
 
 const execP = (cmd: string) => promisify(exec)(cmd).then(x => x.stdout)
@@ -225,6 +234,112 @@ describe('basics', () => {
     })
 })
 
+describe('webdav', () => {
+    const jar = {}
+    after(() => rmAny(resolve(__dirname, UPLOAD_DIR)))
+    test('webdav force login.scope propfind', req('/f1/', 401, { method: 'PROPFIND', headers: { depth: '0' }, jar }))
+    test('webdav.put detects client after propfind', async () => {
+        const name = `wd-detected-${randomId(6)}.txt`
+        const ua = `hfs-test-detected-${randomId(6)}`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        let destPath = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'dest', ua)()
+            await req(uri, 207, { method: 'PROPFIND', auth, jar, headers: { depth: '0', 'user-agent': ua } })()
+            const secondPath = await webdavUpload(uri, x => x?.uri === uri, 'source', ua)()
+            if (secondPath !== destPath)
+                throw "destination changed unexpectedly"
+            if (readFileSync(destPath, 'utf8') !== 'source')
+                throw "destination wasn't overwritten"
+        }
+        finally {
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.put default-overwrite with can_delete', async () => {
+        const name = `wd-overwrite-${randomId(6)}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        let destPath = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'dest')()
+            const secondPath = await webdavUpload(uri, x => x?.uri === uri, 'source')()
+            if (secondPath !== destPath)
+                throw "destination changed unexpectedly"
+            if (readFileSync(destPath, 'utf8') !== 'source')
+                throw "destination wasn't overwritten"
+        }
+        finally {
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.put overwrite forbidden without can_delete', async () => {
+        const name = `wd-nodelete-${randomId(6)}.txt`
+        const uri = `${CANT_OVERWRITE_URI}${name}`
+        const dir = await ensureCantOverwriteDir()
+        const destPath = resolve(dir, name)
+        await writeFile(destPath, 'dest')
+        try {
+            await webdavUpload(uri, 403, 'source')()
+            if (readFileSync(destPath, 'utf8') !== 'dest')
+                throw "destination changed"
+        }
+        finally {
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.proppatch file', async () => {
+        const name = `wd-proppatch-${randomId(6)}.txt`
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/${name}`
+        let destPath = ''
+        try {
+            destPath = await webdavUpload(uri, x => x?.uri === uri, 'test')()
+            await webdavProppatch(uri)()
+        }
+        finally {
+            await rmAny(destPath)
+        }
+    })
+    test('webdav.proppatch folder', async () => {
+        const folder = `wd-proppatch-dir-${randomId(6)}`
+        const uri = `${UPLOAD_ROOT}${folder}/`
+        try {
+            await reqApi('create_folder', { uri: UPLOAD_ROOT, name: folder }, 200, { auth, jar })()
+            await webdavProppatch(uri)()
+        }
+        finally {
+            await req(uri, 200, { method: 'delete', auth, jar })().catch(() => {})
+        }
+    })
+
+    function webdavUpload(uri: string, tester: Tester, body: string, userAgent=WEBDAV_UA) {
+        return () => req(uri, tester, {
+            method: 'PUT',
+            auth,
+            jar,
+            headers: {
+                'content-length': Buffer.byteLength(body),
+                'user-agent': userAgent,
+            },
+            body,
+        })().then(res => uploadUriToPath(res?.uri || uri))
+    }
+
+    function webdavProppatch(uri: string, tester: Tester=207, body=WEBDAV_PROPPATCH_BODY, userAgent=WEBDAV_UA) {
+        return req(uri, tester, {
+            method: 'PROPPATCH',
+            auth,
+            jar,
+            headers: {
+                'content-type': 'text/xml',
+                'content-length': Buffer.byteLength(body),
+                'user-agent': userAgent,
+            },
+            body,
+        })
+    }
+
+})
+
 // do this before login, or max_dl_accounts config will override max_dl
 describe('limits', () => {
     const fn = ROOT + 'big'
@@ -281,7 +396,7 @@ describe('after-login', () => {
     before(() => login(username))
     const trickyChars = '%strange#'
     test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: UPLOAD_DIR }, 200))
-    test('create_folder.empty name', reqApi('create_folder', { uri: UPLOAD_ROOT, name: '' }, 409))
+    test('create_folder.empty name', reqApi('create_folder', { uri: UPLOAD_ROOT, name: '' }, 400))
     test('create_folder.tricky chars', async () => {
         await reqApi('create_folder', { uri: UPLOAD_ROOT, name: trickyChars }, 200)()
         const dest = resolve(__dirname, trickyChars)
@@ -316,6 +431,18 @@ describe('after-login', () => {
         await req(`${UPLOAD_ROOT}${rel}?get=${UPLOAD_TEMP_HASH}`, 401, { jar: {} })()
     })
     test('upload.temp hash missing', req(`${UPLOAD_ROOT}${UPLOAD_DIR}/missing.png?get=${UPLOAD_TEMP_HASH}`, 404))
+    test('upload.numbered', async () => {
+        const uri = `${UPLOAD_ROOT}${UPLOAD_DIR}/put-plain-${randomId(6)}.txt`
+        const res: any = {}
+        try {
+            res.first = await reqUpload(uri, x => x?.uri === uri, 'some')()
+            res.second = await reqUpload(uri, x => x?.uri !== uri, 'more')() // this will be numbered to not overwrite
+        }
+        finally {
+            await rmAny(uploadUriToPath(res.first?.uri))
+            await rmAny(uploadUriToPath(res.second?.uri))
+        }
+    })
     test('file_details.admin', reqApi('get_file_details', { uris: [UPLOAD_DEST] }, res => {
         const u = res?.details?.[0]?.upload
         throwIf(!u?.ip ? 'ip' : u?.username !== username ? 'username' : '')
@@ -643,7 +770,7 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
         tester = {
             status,
             cb(data) {
-                const fn = ROOT + decodeURI(data.uri).replace(UPLOAD_ROOT, '')
+                const fn = uploadUriToPath(data.uri)
                 const stats = try_(() => statSync(fn))
                 if (!stats)
                     throw "uploaded file not found: " + fn
@@ -657,6 +784,10 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
         headers: { connection: 'close', 'content-length': size === undefined ? size : size - resume },
         body: body ?? createReadStream(SAMPLE_FILE_PATH)
     })
+}
+
+function uploadUriToPath(uri: string) {
+    return ROOT + decodeURI(uri).replace(UPLOAD_ROOT, '')
 }
 
 async function testMaxDl(uri: string, good: number, bad: number) {
@@ -800,7 +931,7 @@ function isInList(res:any, name:string) {
 }
 
 function rmAny(path: string) {
-    return rm(path, { recursive: true, force: true }).catch(() => {})
+    return path && rm(path, { recursive: true, force: true }).catch(() => {})
 }
 
 function throwIf(msg: any) {
