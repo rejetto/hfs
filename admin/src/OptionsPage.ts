@@ -218,9 +218,10 @@ export default function OptionsPage() {
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
 
             h(Section, { title: "Others" }),
-            { k: 'keep_session_alive', comp: BoolField, sm: 6, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
-            { k: 'session_duration', comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
-            { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 3, options: { 1000: false, 1024: true } },
+            { k: 'keep_session_alive', comp: BoolField, sm: 4, helperText: "Keeps you logged in while the page is left open and the computer is on" },
+            { k: CFG.force_webdav_login, comp: BoolField, sm: 3, helperText: "Enable this if you have problems with permissions" },
+            { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 2, options: { 1000: false, 1024: true } },
+            { k: 'session_duration', comp: NumberField, sm: 3, min: 5, unit: "seconds", required: true },
 
             { k: 'show_hidden_files', comp: BoolField, sm: 3 },
             { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, md: 5, options: {

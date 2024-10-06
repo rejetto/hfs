@@ -137,7 +137,7 @@ export async function safeWriteStream(path: string, options?: Parameters<typeof 
 }
 
 export function isValidFileName(name: string) {
-    return !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !dirTraversal(name)
+    return !name || !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !dirTraversal(name)
 }
 
 export function exists(path: string) {
