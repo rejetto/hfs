@@ -191,7 +191,8 @@ export function getNodeName(node: VfsNode) {
 export async function nodeIsDirectory(node: VfsNode) {
     if (node.isFolder !== undefined)
         return node.isFolder
-    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (node.stats?.isDirectory() ?? (!node.source || await isDirectory(node.source))))
+    const isFolder = Boolean(node.children?.length
+        || !nodeIsLink(node) && (node.stats?.isDirectory() ?? (!node.source || await isDirectory(node.source))) )
     setHidden(node, { isFolder }) // don't make it to the storage (a node.isTemp doesn't need it to be hidden)
     return isFolder
 }

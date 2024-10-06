@@ -7,7 +7,7 @@ import { ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_
 import { uploadWriter } from './upload'
 import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
-import { Writable } from 'stream'
+import { PassThrough, Writable } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
 import { BUILD_TIMESTAMP, DEV, VERSION } from './const'
 import { zipStreamFromFolder } from './zip'
@@ -15,8 +15,10 @@ import { allowAdmin, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, deleteNode, filterMapGenerator, pathEncode, try_ } from './misc'
+import { asyncGeneratorToReadable, deleteNode, escapeHTML, filterMapGenerator, pathEncode, prefix, try_ } from './misc'
+import { stat } from 'fs/promises'
 import { basicWeb, detectBasicAgent } from './basicWeb'
+import { stream2string } from './util-http'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -95,6 +97,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             return ctx.status = HTTP_OK
         return
     }
+    if (await webdav(ctx, node)) return
     const { get } = ctx.query
     if (node.default && path.endsWith('/') && !get) { // final/ needed on browser to make resource urls correctly with html pages
         const found = await urlToNode(node.default, ctx, node)
@@ -154,4 +157,67 @@ declare module "koa" {
         uploadPath?: string // current one
         uploads?: string[] // in case of request with potentially multiple uploads (POST), we register all filenames (no full path)
     }
+}
+
+async function webdav(ctx: Koa.Context, node: VfsNode) {
+    ctx.set('DAV', '1,2')
+    ctx.set('Allow', 'PROPPATCH,PROPFIND,OPTIONS,DELETE,UNLOCK,COPY,LOCK,MOVE')
+    ctx.set('WWW-Authenticate', 'Basic realm="Default realm"')
+    ctx.set('MS-Author-Via', 'DAV')
+    ctx.set('Access-Control-Allow-Origin','*')
+    ctx.set('Access-Control-Allow-Credentials','true')
+    ctx.set('Access-Control-Expose-Headers','DAV, content-length, Allow')
+    isWebDav(Boolean(ctx.get('user-agent').match(/webdav/i)))
+    if (ctx.method === 'OPTIONS') {
+        isWebDav()
+        ctx.body = ''
+        return true
+    }
+    if (ctx.method === 'PROPFIND') {
+        isWebDav()
+        //if (!await nodeIsDirectory(node))
+        console.log(ctx.req.headers, await stream2string(ctx.req))
+        const d = ctx.get('depth')
+        ctx.type = 'xml'
+        ctx.status = 207
+        const res = ctx.body = new PassThrough({ encoding: 'utf8' })
+        res.write(`<?xml version="1.0" encoding="utf-8" ?><D:multistatus xmlns:D="DAV:">`)
+        await sendEntry(node, true)
+        if (d !== '0') {
+            for await (const n of walkNode(node, { ctx, depth: 0 }))
+                await sendEntry(n)
+        }
+        res.write(`</D:multistatus>`)
+        res.end()
+        return true
+
+        async function sendEntry(node: VfsNode, append=true) {
+            const name = getNodeName(node)
+            const isDir = await nodeIsDirectory(node)
+            node.stats ??= node.source ? await stat(node.source) : undefined
+            console.log({ name })
+            res.write(`<D:response>
+              <D:href>${ctx.path + (append ? pathEncode(name) + (isDir ? '/' : '') : '')}</D:href>
+              <D:propstat>
+                <D:status>HTTP/1.1 200 OK</D:status>
+                <D:prop>
+                    <D:displayname>${escapeHTML(name)}</D:displayname>
+                    ${prefix('<D:getlastmodified>', (node.stats?.mtime as any)?.toGMTString(), '</D:getlastmodified>')}
+                    ${prefix('<D:creationdate>', (node.stats?.ctime as any)?.toGMTString(), '</D:creationdate>')}
+                    ${isDir ? '<D:resourcetype><D:collection/></D:resourcetype>' 
+                        : `<D:resourcetype/><D:getcontentlength>${node.stats?.size}</D:getcontentlength>`}
+                </D:prop>
+              </D:propstat>
+              </D:response>
+            `)
+        }
+    }
+
+    function isWebDav(x=true) {
+        if (ctx.session)
+            ctx.session.webdav ||= x
+        if (x && !ctx.headerSent)
+            ctx.set('WWW-Authenticate', 'Basic')
+    }
+
 }
