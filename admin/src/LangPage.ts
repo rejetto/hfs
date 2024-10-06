@@ -28,7 +28,7 @@ export default function LangPage() {
                 loading: connecting,
                 rows: list as any,
                 hideFooter: true,
-                sx: { flex: 1 },
+                fillFlex: true,
                 columns: [
                     {
                         field: 'code',

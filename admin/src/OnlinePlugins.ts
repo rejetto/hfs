@@ -31,6 +31,7 @@ export default function OnlinePlugins() {
             error: xlate(error, PLUGIN_ERRORS),
             rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
             noRows: "No compatible plugins have been found",
+            fillFlex: true,
             initializing,
             columnVisibilityModel: snap.onlinePluginsColumns,
             onColumnVisibilityModelChange: newModel => Object.assign(state.onlinePluginsColumns, newModel),

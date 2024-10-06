@@ -18,7 +18,7 @@ export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
     mergeRender?: { [other: string]: false | { override?: Partial<GridColDef<R>> } & BoxProps }
     mergeRenderSx?: SxProps
 }
-interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
+export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridProps<R>, 'columns'> {
     columns: Array<DataTableColumn<R>>
     actions?: ({ row, id }: any) => ReactNode[]
     actionsProps?: Partial<GridColDef<R>> & { hideUnder?: Breakpoint | number }
@@ -27,8 +27,9 @@ interface DataTableProps<R extends GridValidRowModel=any> extends Omit<DataGridP
     error?: ReactNode
     compact?: true
     addToFooter?: ReactNode
+    fillFlex?: boolean
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, addToFooter, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, addToFooter, fillFlex, ...rest }: DataTableProps) {
     let { width } = useWindowSize()
     width = Math.min(width, screen.availWidth) // workaround: width returned by useWindowSize is not good when toggling mobile-mode in chrome
     const theme = useTheme()
@@ -126,12 +127,12 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         h(DataGrid, {
             key: width,
             initialState,
-            style: { height: 0, flex: 'auto' }, // limit table to available screen space
             density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
             apiRef,
             ...rest,
             sx: {
+                ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex
                 '& .MuiDataGrid-virtualScroller': { minHeight: '3em' } // without this, no-entries gets just 1px
             },
             slots: {

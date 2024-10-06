@@ -35,7 +35,6 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                     '.MuiDataGrid-virtualScroller': { minHeight: '3em' },
                     ...autoRowHeight && { '.MuiDataGrid-cell': { minHeight: '52px !important' } }
                 },
-                style: undefined, // override style making it fill the flex
                 hideFooterSelectedRowCount: true,
                 hideFooter: true,
                 slots: {

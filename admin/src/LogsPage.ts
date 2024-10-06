@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, apiCall, useApi, useApiList } from './api'
-import { DataTable } from './DataTable'
+import { DataTable, DataTableProps } from './DataTable'
 import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
     typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent } from '@hfs/shared'
 import {
@@ -52,7 +52,7 @@ export default function LogsPage() {
             h(IconBtn, { icon: Settings, title: "Options", onClick: showLogOptions })
         ),
         files.map(f =>
-            h(LogFile, { hidden: file !== f, file: f, key: f }) ),
+            h(LogFile, { hidden: file !== f, file: f, key: f, fillFlex: true }) ),
     )
 
     function showLogOptions() {
@@ -97,7 +97,7 @@ export default function LogsPage() {
 
 const LOGS_ON_FILE: string[] = [CFG.log, CFG.error_log]
 
-function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string, addToFooter?: ReactNode }) {
+export function LogFile({ file, addToFooter, hidden, ...rest }: { hidden?: boolean, file: string, addToFooter?: ReactNode } & Partial<DataTableProps>) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
     const { pause, pauseButton } = usePauseButton()
@@ -155,6 +155,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
         compact: true,
         actionsProps: { hideUnder: 'md' },
         actions: ({ row }) => [ !isConsole && blockIp.iconBtn(row.ip, "From log") ],
+        ...rest,
         addToFooter: h(Box, {}, // 4 icons don't fit the tabs row on mobile
             pauseButton,
             showApiButton,
