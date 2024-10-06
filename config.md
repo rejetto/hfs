@@ -89,6 +89,8 @@ Configuration can be done in several ways
   Default is true. Affects the frontend only, but you can get the same effect using the `?existing=rename` in the url. 
 - `keep_session_alive` keeps you logged in while the page is left open and the computer is on. Default is true.
 - `session_duration` after how many seconds should the login session expire. Default is a day.
+- `force_webdav_login` force WebDAV clients to authenticate. Accepts: `false` (disabled), `true` (all user-agents), or a case-insensitive regex string (only matching user-agents). Default is true.
+- `webdav_initial_auth` one-time login prompt for matching WebDAV user-agents (used only when `force_webdav_login` does not match). Accepts: `false` (disabled), `true` (all user-agents), or a case-insensitive regex string. Default is `WebDAVFS`.
 - `acme_domain` domain used for ACME certificate generation. Default is none. 
 - `acme_renew` automatically renew acme certificate close to expiration. Default is false.
 - `listen_interface` network interface to listen on, by specifying IP address. Default is any.

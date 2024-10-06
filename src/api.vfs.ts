@@ -112,7 +112,7 @@ export default {
     async add_vfs({ parent, source, name, ...rest }) {
         if (!source && !name)
             return new ApiError(HTTP_BAD_REQUEST, 'name or source required')
-        if (!isValidFileName(name))
+        if (name && !isValidFileName(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
         const parentNode = parent ? await urlToNodeOriginal(parent) : vfs
         if (!parentNode)

@@ -156,7 +156,7 @@ export async function createSafeWriteStream(path: string, options?: Parameters<t
 }
 
 export function isValidFileName(name: string, acceptUnreadable=false) {
-    return name !== '.' && !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !hasDirTraversal(name)
+    return name && name !== '.' && !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !hasDirTraversal(name)
         && (acceptUnreadable || !/[\u0000-\u001F\u007F]/.test(name))
 }
 

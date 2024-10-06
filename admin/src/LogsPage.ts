@@ -363,6 +363,9 @@ const BROWSER_ICONS = {
     Safari: UW + '5/52/Safari_browser_logo.svg',
     Edge: UW + '9/98/Microsoft_Edge_logo_%282019%29.svg',
     Opera: UW + '4/49/Opera_2015_icon.svg',
+    Finder: UW + 'thumb/b/b9/Finder_Icon_macOS_Tahoe.png/100px-Finder_Icon_macOS_Tahoe.png',
+    Cyberduck: UW + 'archive/4/48/20091115091336%21Cyberduck_icon.png',
+    ForkLift: UW + '../en/9/96/ForkLift_3_File_Manager_and_File_Transfer_Client_Logo.png',
 }
 const OS_ICONS = {
     android: UW + 'd/d7/Android_robot.svg',
@@ -371,7 +374,7 @@ const OS_ICONS = {
     apple: UW + '7/74/Apple_logo_dark_grey.svg', // grey works for both themes
 }
 const OSS = {
-    apple: /Mac OS|iPhone OS/,
+    apple: /Mac OS|iPhone OS|Darwin/,
     win: /Windows NT/,
     android: /Android/,
     linux: /Linux/,

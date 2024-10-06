@@ -16,6 +16,7 @@ export const HIDE_IN_TESTS = 'hideInTests' // elements that have variable size, 
 export const EMBEDDED_LANGUAGE = 'en' // frontend includes this language in the code, and not need to import the translation json
 
 export const HTTP_OK = 200
+export const HTTP_CREATED = 201
 export const HTTP_NO_CONTENT = 204
 export const HTTP_PARTIAL_CONTENT = 206
 export const HTTP_MOVED_PERMANENTLY = 301
@@ -32,6 +33,7 @@ export const HTTP_PRECONDITION_FAILED = 412
 export const HTTP_PAYLOAD_TOO_LARGE = 413
 export const HTTP_RANGE_NOT_SATISFIABLE = 416
 export const HTTP_FOOL = 418
+export const HTTP_LOCKED = 423
 export const HTTP_FAILED_DEPENDENCY = 424
 export const HTTP_TOO_MANY_REQUESTS = 429
 export const HTTP_SERVER_ERROR = 500

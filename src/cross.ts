@@ -33,7 +33,7 @@ export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_u
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
     'force_lang', 'suspend_plugins', 'base_url', 'size_1024', 'disable_custom_html', 'comments_storage',
-    'outbound_proxy'])
+    'force_webdav_login', 'webdav_initial_auth', 'outbound_proxy'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -307,7 +307,10 @@ export async function waitFor<T>(cb: ()=> Promisable<T>, { interval=200, timeout
     }
 }
 
-export function getOrSet<T>(o: Record<string,T>, k:string, creator:()=>T): T {
+export function getOrSet<T>(o: Record<string,T> | Map<string, T>, k:string, creator:()=>T): T {
+    if (o instanceof Map)
+        return o.get(k)
+            || with_(creator(), x => o.set(k, x) && x)
     return k in o ? o[k]!
         : (o[k] = creator())
 }
@@ -458,8 +461,8 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
 }
 
 // encode paths leaving / separator unencoded (not like encodeURIComponent), but still encode #
-export function pathEncode(s: string) {
-    return s.replace(/[:&#'"% ?\\]/g, escape) // escape() is not utf8, but we are encoding only ascii chars
+export function pathEncode(s: string, all=false) {
+    return all ? encodeURI(s).replace(/#/g, escape) : s.replace(/[:&#'"% ?\\]/g, escape) // escape() is not utf8, but we are encoding only ascii chars
 }
 export function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
 
@@ -589,4 +592,7 @@ const BROWSERS = {
     PS: /playstation/i,
     Xbox: /xbox/i,
     UC: /UCBrowser/i,
+    Finder: /WebDAVFS.+Darwin|WebDAVLib/,
+    Cyberduck: /^Cyberduck/,
+    ForkLift: /^ForkLift/,
 }

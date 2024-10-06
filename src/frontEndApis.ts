@@ -64,7 +64,7 @@ export const frontEndApis: ApiHandlers = {
         apiAssertTypes({ string: { uri, name } })
         try { ctx.logExtra(null, { name, target: pathDecode(uri) }) }
         catch { return new ApiError(HTTP_BAD_REQUEST) }
-        if (!isValidFileName(name))
+        if (!name || !isValidFileName(name))
             return new ApiError(HTTP_BAD_REQUEST, 'bad name')
         const parentNode = await urlToNode(uri, ctx)
         if (!parentNode)
@@ -88,71 +88,22 @@ export const frontEndApis: ApiHandlers = {
         catch { return new ApiError(HTTP_BAD_REQUEST) }
         const node = await urlToNode(uri, ctx)
         if (!node)
-            return new ApiError(HTTP_NOT_FOUND)
+            throw new ApiError(HTTP_NOT_FOUND)
         if (isRoot(node) || !isValidFileName(dest))
             return new ApiError(HTTP_FORBIDDEN)
-        if (statusCodeForMissingPerm(node, 'can_delete', ctx))
-            return new ApiError(ctx.status)
-        if (!node.source)
-            return new ApiError(HTTP_FAILED_DEPENDENCY)
-        const destNode = await urlToNode(pathEncode(dest), ctx, node.parent)
-        if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
-            return new ApiError(ctx.status)
-        try {
-            const destSource = join(dirname(node.source), dest)
-            await rename(node.source, destSource)
-            getCommentFor(node.source).then(c => {
-                if (!c) return
-                void setCommentFor(node.source!, '')
-                void setCommentFor(destSource, c)
-            })
-            return {}
-        }
-        catch (e: any) {
-            return new ApiError(HTTP_SERVER_ERROR, e)
-        }
+        await requestedRename(node, dest, ctx)
+        return {}
     },
 
-    async move_files({ uri_from, uri_to }, ctx, override) {
-        apiAssertTypes({ array: { uri_from }, string: { uri_to } })
-        try { ctx.logExtra(null, { target: uri_from.map(pathDecode), destination: pathDecode(uri_to) }) }
-        catch { return new ApiError(HTTP_BAD_REQUEST) }
-        const destNode = await urlToNode(uri_to, ctx)
-        const err = !destNode ? HTTP_NOT_FOUND
-            : !nodeIsFolder(destNode) ? HTTP_METHOD_NOT_ALLOWED
-            : statusCodeForMissingPerm(destNode, 'can_upload', ctx)
-        if (err)
-            return new ApiError(err)
-        return {
-            errors: await Promise.all(uri_from.map(async (from1: any) => {
-                if (typeof from1 !== 'string') return HTTP_BAD_REQUEST
-                const srcNode = await urlToNode(from1, ctx)
-                const src = srcNode?.source
-                if (!src) return HTTP_NOT_FOUND
-                const destName = basename(src)
-                const destChild = await urlToNode(destName, ctx, destNode!)
-                if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
-                    return ctx.status
-                const dest = join(destNode!.source!, destName)
-                if (_.isFunction(override))
-                    return override?.(srcNode, dest)
-                return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
-                    || rename(src, dest).catch(async e => {
-                        if (e.code !== 'EXDEV') throw e // exdev = different drive
-                        await copyFile(src, dest)
-                        await unlink(src)
-                    }).catch(e => e.code || String(e))
-            }))
-        }
+    async move_files({ uri_from, uri_to }, ctx) {
+        return moveFiles(uri_from, uri_to, ctx)
     },
 
-    async copy_files(params, ctx) {
-        return frontEndApis.move_files!(params, ctx, // same parameters
-            (srcNode: VfsNode, dest: string) => // but override behavior
-                statusCodeForMissingPerm(srcNode, 'can_read', ctx)
-                    // .source is checked by move_files
-                    || copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE)
-                        .catch(e => e.code || String(e))
+    async copy_files({ uri_from, uri_to }, ctx) {
+        return moveFiles(uri_from, uri_to, ctx, (srcNode: VfsNode, dest: string) => // override behavior
+            statusCodeForMissingPerm(srcNode, 'can_read', ctx)
+                || copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE) // .source is checked by moveFiles
+                    .catch(e => e.code || String(e))
         )
     },
 
@@ -203,3 +154,71 @@ export function notifyClient(channel: string | Koa.Context, name: string, data: 
 }
 
 const NOTIFICATION_PREFIX = 'notificationChannel:'
+
+export async function moveFiles(uri_from: any, uri_to: any, ctx: Koa.Context, override?: Function) {
+    apiAssertTypes({ array: { uri_from }, string: { uri_to } })
+    try { ctx.logExtra(null, { target: uri_from.map(pathDecode), destination: pathDecode(uri_to) }) }
+    catch { return new ApiError(HTTP_BAD_REQUEST) }
+    const destNode = await urlToNode(uri_to, ctx)
+    const err = !destNode ? HTTP_NOT_FOUND
+        : !nodeIsFolder(destNode) ? HTTP_METHOD_NOT_ALLOWED
+            : statusCodeForMissingPerm(destNode, 'can_upload', ctx)
+    if (err)
+        return new ApiError(err)
+    return {
+        errors: await Promise.all(uri_from.map(async (from1: any) => {
+            if (typeof from1 !== 'string') return HTTP_BAD_REQUEST
+            const srcNode = await urlToNode(from1, ctx)
+            const src = srcNode?.source
+            if (!src) return HTTP_NOT_FOUND
+            const destName = basename(src)
+            const destChild = await urlToNode(destName, ctx, destNode!)
+            if (destChild && statusCodeForMissingPerm(destChild, 'can_delete', ctx))
+                return ctx.status
+            const dest = join(destNode!.source!, destName)
+            if (_.isFunction(override))
+                return override?.(srcNode, dest)
+            return statusCodeForMissingPerm(srcNode, 'can_delete', ctx)
+                || rename(src, dest).catch(async e => {
+                    if (e.code !== 'EXDEV') throw e // exdev = different drive
+                    await copyFile(src, dest)
+                    await unlink(src)
+                }).catch(e => e.code || String(e))
+        }))
+    }
+}
+
+export async function requestedRename(node: VfsNode | undefined, newName: string, ctx: Koa.Context) {
+    if (!node)
+        throw new ApiError(HTTP_NOT_FOUND)
+    if (statusCodeForMissingPerm(node, 'can_delete', ctx))
+        return new ApiError(ctx.status)
+    try {
+        if (node.name) // virtual name = virtual rename
+            node.name = newName
+        else {
+            if (!node.source)
+                throw new ApiError(HTTP_FAILED_DEPENDENCY)
+            const destNode = await urlToNode(pathEncode(newName), ctx, node.parent)
+            if (destNode && statusCodeForMissingPerm(destNode, 'can_delete', ctx)) // if destination exists, you need delete permission
+                return new ApiError(ctx.status)
+            try {
+                const destSource = join(dirname(node.source), newName)
+                await rename(node.source, destSource)
+                getCommentFor(node.source).then(c => {
+                    if (!c) return
+                    void setCommentFor(node.source!, '')
+                    void setCommentFor(destSource, c)
+                })
+                return {}
+            }
+            catch (e: any) {
+                return new ApiError(HTTP_SERVER_ERROR, e)
+            }
+        }
+        return
+    }
+    catch (e: any) {
+        throw new ApiError(HTTP_SERVER_ERROR, e)
+    }
+}
