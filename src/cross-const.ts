@@ -16,6 +16,7 @@ export const HIDE_IN_TESTS = 'hideInTests' // elements that have variable size, 
 export const EMBEDDED_LANGUAGE = 'en' // frontend includes this language in the code, and not need to import the translation json
 
 export const HTTP_OK = 200
+export const HTTP_CREATED = 201
 export const HTTP_NO_CONTENT = 204
 export const HTTP_PARTIAL_CONTENT = 206
 export const HTTP_MOVED_PERMANENTLY = 301
