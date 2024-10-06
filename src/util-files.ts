@@ -116,7 +116,7 @@ export function createFileWithPath(path: string, options?: Parameters<typeof cre
 }
 
 export function isValidFileName(name: string) {
-    return !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !dirTraversal(name)
+    return !name || !(IS_WINDOWS ? /[/:"*?<>|\\]/ : /\//).test(name) && !dirTraversal(name)
 }
 
 export function exists(path: string) {

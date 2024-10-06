@@ -85,30 +85,8 @@ export const frontEndApis: ApiHandlers = {
         ctx.logExtra(null, { target: decodeURI(uri), destination: decodeURI(dest) })
         if (dest.includes('/') || dirTraversal(dest))
             throw new ApiError(HTTP_FORBIDDEN)
-        const node = await urlToNode(uri, ctx)
-        if (!node)
-            throw new ApiError(HTTP_NOT_FOUND)
-        if (!hasPermission(node, 'can_delete', ctx))
-            throw new ApiError(HTTP_UNAUTHORIZED)
-        try {
-            if (node.name) // virtual name = virtual rename
-                node.name = dest
-            else {
-                if (!node.source)
-                    throw new ApiError(HTTP_FAILED_DEPENDENCY)
-                const destSource = join(dirname(node.source), dest)
-                await rename(node.source, destSource)
-                getCommentFor(node.source).then(c => {
-                    if (!c) return
-                    void setCommentFor(node.source!, '')
-                    void setCommentFor(destSource, c)
-                })
-            }
-            return {}
-        }
-        catch (e: any) {
-            throw new ApiError(HTTP_SERVER_ERROR, e)
-        }
+        await requestedRename(await urlToNode(uri, ctx), dest, ctx)
+        return {}
     },
 
     async move_files({ uri_from, uri_to }, ctx, override) {
@@ -193,3 +171,29 @@ export function notifyClient(channel: string | Koa.Context, name: string, data: 
 }
 
 const NOTIFICATION_PREFIX = 'notificationChannel:'
+
+export async function requestedRename(node: VfsNode | undefined, newName: string, ctx: Koa.Context) {
+    if (!node)
+        throw new ApiError(HTTP_NOT_FOUND)
+    if (!hasPermission(node, 'can_delete', ctx))
+        throw new ApiError(HTTP_UNAUTHORIZED)
+    try {
+        if (node.name) // virtual name = virtual rename
+            node.name = newName
+        else {
+            if (!node.source)
+                throw new ApiError(HTTP_FAILED_DEPENDENCY)
+            const destSource = join(dirname(node.source), newName)
+            await rename(node.source, destSource)
+            getCommentFor(node.source).then(c => {
+                if (!c) return
+                void setCommentFor(node.source!, '')
+                void setCommentFor(destSource, c)
+            })
+        }
+        return
+    }
+    catch (e: any) {
+        throw new ApiError(HTTP_SERVER_ERROR, e)
+    }
+}
