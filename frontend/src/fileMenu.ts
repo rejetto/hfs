@@ -68,7 +68,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
         state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
         state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
         isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
-    ]
+    ].filter(Boolean)
     const folder = entry.n.slice(0, -entry.name.length - (entry.isFolder ? 2 : 1))
     const props = [
         { id: 'name', label: t`Name`, value: entry.name },
@@ -83,7 +83,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 onClick: () => closeDialog(null, true)
             }, folder.replaceAll('/', ' / '))
         },
-    ]
+    ].filter(Boolean)
     const res = hfsEvent('fileMenu', { entry, menu, props })
     if (res)
         menu.push(...res.flat())
