@@ -3,7 +3,7 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    dirStream, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
+    dirStream, getOrSet, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
 } from './misc'
 import Koa from 'koa'
@@ -115,8 +115,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         try {
             if (!showHiddenFiles.get() && await isHiddenFile(ret.source))
                 throw 'hiddenFile'
-            const st = ret.stats || await fs.stat(ret.source)  // check existence
-            ret.isFolder = st.isDirectory()
+            ret.isFolder = (await nodeStats(ret))!.isDirectory() // throws if doesn't exist on disk
         }
         catch {
             if (!getRest)
@@ -126,6 +125,10 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
             return parent
     }
     return ret
+}
+
+async function nodeStats(ret: VfsNode) {
+    return ret.stats ||= ret.source ? await fs.stat(ret.source) : undefined
 }
 
 async function isHiddenFile(path: string) {
@@ -191,7 +194,11 @@ export function getNodeName(node: VfsNode) {
 export async function nodeIsDirectory(node: VfsNode) {
     if (node.isFolder !== undefined)
         return node.isFolder
-    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (node.stats?.isDirectory() ?? (!node.source || await isDirectory(node.source))))
+    if (node.children?.length)
+        return true
+    if (nodeIsLink(node) || !node.source)
+        return false
+    const isFolder = await nodeStats(node).then(x => x!.isDirectory(), () => false)
     setHidden(node, { isFolder }) // don't make it to the storage (a node.isTemp doesn't need it to be hidden)
     return isFolder
 }
