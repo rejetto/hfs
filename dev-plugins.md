@@ -500,6 +500,11 @@ This section is still partially documented, and you may need to have a look at t
 - `newSocket`
   - parameters: { socket,ip }
   - preventable
+- `getList`
+    - parameters: { node, ctx }
+    - called when get=list on legit requests to ?get=list
+    - async supported
+    - stoppable
 
 # Notifications (backend-to-frontend events)
 

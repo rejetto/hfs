@@ -2,6 +2,7 @@ import Koa from 'koa'
 import { basename, dirname } from 'path'
 import { getNodeName, nodeIsDirectory, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
+import events from './events'
 import { ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
     HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK } from './cross-const'
 import { uploadWriter } from './upload'
@@ -131,6 +132,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
 }
 
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
+    if ((await events.emitAsync('getList', { node, ctx }))?.isDefaultPrevented())
+        return
     let { depth=0, folders, prepend } = ctx.query
     ctx.type = 'text'
     if (prepend === undefined || prepend === '*') { // * = force auto-detection even if we have baseUrl set

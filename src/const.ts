@@ -7,7 +7,7 @@ import _ from 'lodash'
 import { basename, dirname, join } from 'path'
 export * from './cross-const'
 
-export const API_VERSION = 9.6
+export const API_VERSION = 10
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
 export const HFS_REPO = 'rejetto/hfs'
 
