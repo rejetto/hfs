@@ -634,8 +634,9 @@ form label+input { margin-top: .2em; }
             .entry-details {
                 font-size: 80%;
             }
-            &.page-separator::before {
-                content: '';
+            &.page-separator {
+                margin-top: 0;
+                &::before { content: ''; }
             }
             input[type=checkbox] {
                 margin: 0;
