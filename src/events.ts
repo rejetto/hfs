@@ -50,9 +50,10 @@ export class BetterEventEmitter {
     emit(event: string, ...args: any[]) {
         let cbs = this.listeners.get(event)
         if (!cbs?.size) return
-        const ret: any[] = []
+        const output: any[] = []
         let prevented = false
         const extra = {
+            output,
             preventDefault() { prevented = true }
         }
         for (const cb of cbs) {
@@ -60,9 +61,9 @@ export class BetterEventEmitter {
             if (res === this.preventDefault)
                 extra.preventDefault()
             else if (res !== undefined)
-                ret.push(res)
+                output.push(res)
         }
-        return Object.assign(ret, {
+        return Object.assign(output, {
             isDefaultPrevented: () => prevented,
         })
     }

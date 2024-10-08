@@ -54,9 +54,11 @@ export function working() {
 
 export function hfsEvent(name: string, params?:Dict) {
     const output: any[] = []
-    const ev = new CustomEvent('hfs.'+name, { cancelable: true, detail: { params, output } })
+    const order: number[] = []
+    const ev = new CustomEvent('hfs.'+name, { cancelable: true, detail: { params, output, order } })
     document.dispatchEvent(ev)
-    return Object.assign(output, {
+    const sortedOutput = order.length && _.sortBy(output.map((x, i) => [order[i] || 0, x]), '0').map(x => x[1])
+    return Object.assign(sortedOutput || output, {
         isDefaultPrevent: () => ev.defaultPrevented,
     })
 }
@@ -74,16 +76,24 @@ Object.assign(getHFS(), {
         return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)
     },
     html: (html: string) => h(Html, {}, html),
-    onEvent(name: string, cb: (params:any, extra: { output: any[], preventDefault: Callback }, output: any[]) => any) {
+    onEvent(name: string, cb: (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }, output: any[]) => any) {
         const key = 'hfs.' + name
         document.addEventListener(key, wrapper)
         return () => document.removeEventListener(key, wrapper)
 
         function wrapper(ev: Event) {
-            const { params, output } = (ev as CustomEvent).detail
-            const res = cb(params, { output, preventDefault: () => ev.preventDefault() }, output) // legacy pre-0.54, third parameter used by file-icons plugin
-            if (res !== undefined && Array.isArray(output))
+            const { params, output, order } = (ev as CustomEvent).detail
+            let thisOrder
+            const res = cb(params, {
+                output,
+                setOrder(x) { thisOrder = x },
+                preventDefault: () => ev.preventDefault()
+            }, output) // legacy pre-0.54, third parameter used by file-icons plugin
+            if (res !== undefined && Array.isArray(output)) {
                 output.push(res)
+                if (thisOrder)
+                    order[output.length - 1] = thisOrder
+            }
         }
     }
 })
