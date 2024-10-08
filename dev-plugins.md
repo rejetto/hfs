@@ -493,6 +493,11 @@ This section is still partially documented, and you may need to have a look at t
 - `uploadFinished`
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
+- `getList`
+  - parameters: { node, ctx }
+  - called when get=list on legit requests to ?get=list
+  - async supported
+  - stoppable
 
 # Notifications (backend-to-frontend events)
 
@@ -658,7 +663,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 9.4 (v0.54.0)
+- 9.3 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 
     - api.misc
@@ -670,7 +675,6 @@ If you want to override a text regardless of the language, use the special langu
     - HFS.DirEntry
     - frontend event: appendMenuBar
     - config.helperText: basic md formatting
-    - HFS.onEvent.setOrder
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip
