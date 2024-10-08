@@ -3,13 +3,13 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    dirStream, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
+    dirStream, getOrSet, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
-import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS, MIME_AUTO } from './const'
+import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS } from './const'
 import events from './events'
 import { expandUsername } from './perm'
 import { getCurrentUsername } from './auth'
@@ -115,8 +115,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
         try {
             if (!showHiddenFiles.get() && await isHiddenFile(ret.source))
                 throw 'hiddenFile'
-            const st = ret.stats || await fs.stat(ret.source)  // check existence
-            ret.isFolder = st.isDirectory()
+            ret.isFolder = (await nodeStats(ret))!.isDirectory() // throws if doesn't exist on disk
         }
         catch {
             if (!getRest)
@@ -126,6 +125,15 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
             return parent
     }
     return ret
+}
+
+async function nodeStats(ret: VfsNode) {
+    if (ret.stats)
+        if (_.isPlainObject(ret.stats)) delete ret.stats // legacy pre-55-alpha1
+        else return ret.stats
+    const stats = ret.source ? await fs.stat(ret.source) : undefined
+    setHidden(ret, { stats })
+    return stats
 }
 
 async function isHiddenFile(path: string) {
@@ -191,7 +199,11 @@ export function getNodeName(node: VfsNode) {
 export async function nodeIsDirectory(node: VfsNode) {
     if (node.isFolder !== undefined)
         return node.isFolder
-    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (node.stats?.isDirectory() ?? (!node.source || await isDirectory(node.source))))
+    if (node.children?.length || !node.source)
+        return true
+    if (nodeIsLink(node))
+        return false
+    const isFolder = await nodeStats(node).then(x => x!.isDirectory(), () => false)
     setHidden(node, { isFolder }) // don't make it to the storage (a node.isTemp doesn't need it to be hidden)
     return isFolder
 }
