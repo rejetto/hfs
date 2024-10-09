@@ -52,7 +52,7 @@ export default function HomePage() {
                 ), " or ", SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
     return h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
-        username && entry('', "Welcome "+username),
+        username && entry('', "Welcome, "+username),
         dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
             : entry('success', "Server is working"),
