@@ -31,6 +31,8 @@ export function I18Nprovider({ embedded='en', ...props }) {
 
 // If one of the keys is an "id", that should be the first. If one of the keys should work as a fallback, that should be the last. Use 'fallback' parameter if you don't want the fallback to work as a key.
 export function t(keyOrTpl: string | string[] | TemplateStringsArray, params?: any, fallback?: string) {
+    if (!keyOrTpl)
+        return ''
     // memoize?
     const keys = isTemplateStringsArray(keyOrTpl) ? [(fallback ??= keyOrTpl[0] as string)]
         : Array.isArray(keyOrTpl) ? keyOrTpl : [keyOrTpl]
