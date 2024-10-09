@@ -1,6 +1,15 @@
 import Koa from 'koa'
 import { basename, dirname } from 'path'
-import { getNodeName, nodeIsDirectory, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
+import {
+    getNodeName,
+    nodeIsDirectory,
+    nodeIsLink,
+    statusCodeForMissingPerm,
+    urlToNode,
+    vfs,
+    VfsNode,
+    walkNode
+} from './vfs'
 import { sendErrorPage } from './errorPages'
 import { ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
     HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK } from './cross-const'
@@ -163,10 +172,6 @@ async function webdav(ctx: Koa.Context, node: VfsNode) {
     ctx.set('DAV', '1,2')
     ctx.set('Allow', 'PROPPATCH,PROPFIND,OPTIONS,DELETE,UNLOCK,COPY,LOCK,MOVE')
     ctx.set('WWW-Authenticate', 'Basic realm="Default realm"')
-    ctx.set('MS-Author-Via', 'DAV')
-    ctx.set('Access-Control-Allow-Origin','*')
-    ctx.set('Access-Control-Allow-Credentials','true')
-    ctx.set('Access-Control-Expose-Headers','DAV, content-length, Allow')
     isWebDav(Boolean(ctx.get('user-agent').match(/webdav/i)))
     if (ctx.method === 'OPTIONS') {
         isWebDav()
@@ -175,33 +180,32 @@ async function webdav(ctx: Koa.Context, node: VfsNode) {
     }
     if (ctx.method === 'PROPFIND') {
         isWebDav()
-        //if (!await nodeIsDirectory(node))
-        console.log(ctx.req.headers, await stream2string(ctx.req))
+        //console.debug(ctx.req.headers, await stream2string(ctx.req))
         const d = ctx.get('depth')
         ctx.type = 'xml'
         ctx.status = 207
         const res = ctx.body = new PassThrough({ encoding: 'utf8' })
         res.write(`<?xml version="1.0" encoding="utf-8" ?><D:multistatus xmlns:D="DAV:">`)
-        await sendEntry(node, true)
+        await sendEntry(node)
         if (d !== '0') {
             for await (const n of walkNode(node, { ctx, depth: 0 }))
-                await sendEntry(n)
+                await sendEntry(n, true)
         }
         res.write(`</D:multistatus>`)
         res.end()
         return true
 
-        async function sendEntry(node: VfsNode, append=true) {
+        async function sendEntry(node: VfsNode, append=false) {
+            if (nodeIsLink(node)) return
             const name = getNodeName(node)
             const isDir = await nodeIsDirectory(node)
             node.stats ??= node.source ? await stat(node.source) : undefined
-            console.log({ name })
+            //<D:displayname>${escapeHTML(name)}</D:displayname>
             res.write(`<D:response>
-              <D:href>${ctx.path + (append ? pathEncode(name) + (isDir ? '/' : '') : '')}</D:href>
+              <D:href>${ctx.path + (append ? name + (isDir ? '/' : '') : '')}</D:href>
               <D:propstat>
                 <D:status>HTTP/1.1 200 OK</D:status>
                 <D:prop>
-                    <D:displayname>${escapeHTML(name)}</D:displayname>
                     ${prefix('<D:getlastmodified>', (node.stats?.mtime as any)?.toGMTString(), '</D:getlastmodified>')}
                     ${prefix('<D:creationdate>', (node.stats?.ctime as any)?.toGMTString(), '</D:creationdate>')}
                     ${isDir ? '<D:resourcetype><D:collection/></D:resourcetype>' 
