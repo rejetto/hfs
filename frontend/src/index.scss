@@ -6,6 +6,7 @@
     --bg: #fff;
     --text: #555;
     --text-high-contrast: #111;
+    --link: var(--button-bg);
     --ghost-contrast: #8882;
     --ghost-contrast-alt: #eee;
     --faint-contrast: #ddd;
@@ -26,6 +27,7 @@
         --bg: #000;
         --text: #999;
         --text-high-contrast: #eee;
+        --link: #8ac;
         --ghost-contrast-alt: #181818;
         --faint-contrast: #2d2d2d;
         --good-contrast: #aaa;
@@ -37,7 +39,6 @@
 
         color-scheme: dark;
         .highlightedText { color: #fff; text-shadow: 0 0 3px #fff; }
-        a { color:#8ac; }
         .dialog-closer { background: #633 }
         .dialog-icon {
             color: #ccc;
@@ -110,7 +111,7 @@ img.file-icon { height: 1em; }
 .icon.mirror:before { transform: scaleX(-1); }
 a {
     text-decoration: none;
-    color: var(--button-bg);
+    color: var(--link);
 }
 button {
     background-color: var(--button-bg);
