@@ -24,7 +24,7 @@ async function login(username:string, password:string) {
         throw Error(err.message === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
             : err.code === HTTP_UNAUTHORIZED ? t('login_bad_credentials', "Invalid credentials")
                 : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")
-                    : t(err.message))
+                    : t(err.message || String(err)))
     })
 }
 
