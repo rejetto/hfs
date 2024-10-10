@@ -4,7 +4,16 @@ import { apiCall, useApiEx, useApiList } from './api'
 import { createElement as h, Fragment, useEffect } from 'react'
 import { Box, Link } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
-import { Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
+import {
+    Clear,
+    Delete,
+    Error as ErrorIcon,
+    FormatPaint as ThemeIcon,
+    PlayCircle,
+    Settings,
+    StopCircle,
+    Upgrade
+} from '@mui/icons-material'
 import { HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -187,6 +196,7 @@ const type2comp = {
     real_path: FileField,
     vfs_path: VfsPathField,
     username: UsernameField,
+    color: ColorField,
 }
 
 export async function startPlugin(id: string) {
@@ -205,6 +215,33 @@ function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProp
     return !loading && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
         value, onChange,
         options: data?.list.filter(x => groups === undefined || groups === !x.hasPassword).map(x => x.username),
+        ...rest,
+    })
+}
+
+function ColorField(rest: FieldProps<string>) {
+    return h(StringField, {
+        inputProps: { type: 'color', style: { marginRight: 24 }, ...!rest.value && { value: '#888888', style: { zIndex: 1, opacity: .1  } } },
+        InputProps: { endAdornment: rest.value ? h(Btn, {
+            icon: Clear,
+            size: 'small',
+            sx: { position: 'absolute', right: 4 },
+            title: "Clear",
+            onClick(event) {
+                rest.onChange(undefined as any, { was: rest.value, event: event })
+            }
+        }) : h(Box, {
+                sx: {
+                    position: 'absolute',
+                    width: '100%',
+                    bottom: 2,
+                    pt: '3px',
+                    textAlign: 'center',
+                    color: '#fff',
+                    background: 'repeating-linear-gradient(45deg, #333, #333 10px, #444 10px, #444 20px)',
+                }
+            }, "default") },
+        typing: true,
         ...rest,
     })
 }
