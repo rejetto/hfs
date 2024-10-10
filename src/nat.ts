@@ -70,7 +70,7 @@ export const getNatInfo = debounceAsync(async () => {
     console.debug('mappings found', mappings?.map(x => x.description))
     const localIps = await getIps(false)
     const gatewayIp = await gatewayIpPromise
-    const localIp = res?.address || gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp!)) : localIps[0]
+    const localIp = res?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
     const externalPort = mapped?.public.port
