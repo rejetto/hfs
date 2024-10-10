@@ -8,6 +8,6 @@
 
     HFS.onEvent('fileMenu', ({ entry, props }) => {
         if (!entry.isFolder)
-            props.push([label, entry.hits || 0])
+            props.push({ id: 'download-counter', label, value: entry.hits || 0 })
     })
 }
