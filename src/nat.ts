@@ -70,7 +70,7 @@ export const getNatInfo = debounceAsync(async () => {
     const gatewayIp = res && try_(() => new URL(res.gateway.description).hostname, () => console.debug('unexpected upnp gw', res.gateway?.description))
         || await findGateway().catch(() => undefined)
     const localIps = await getIps(false)
-    const localIp = res?.address || gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp!)) : localIps[0]
+    const localIp = res?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])
     const internalPort = status?.https?.listening && status.https.port || status?.http?.listening && status.http.port || undefined
     const mapped = _.find(mappings, x => x.private.host === localIp && x.private.port === internalPort)
     const externalPort = mapped?.public.port
