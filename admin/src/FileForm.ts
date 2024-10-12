@@ -246,7 +246,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
         hideValues, isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = who2desc(byMasks ?? inherit)
         + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "inherited" : "default", ')')
-    const objectMode =  isWhoObject(value)
+    const objectMode = isWhoObject(value)
     const thisValue = objectMode ? value.this : value
 
     const options = useMemo(() =>
@@ -259,7 +259,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
             { value: [], label: "Select accounts" },
         ].map(x => !hideValues?.includes(x.value)
             && { label: who2desc(x.value), ...x })), // default label
-        [inherit, parent, thisValue])
+        [inherit, parent, thisValue, ...wantArray(hideValues)])
 
     const timeout = 500
     const arrayMode = Array.isArray(thisValue)
@@ -293,7 +293,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
             h(WhoField, {
                 label: "Permission for " + contentText,
                 parent, inherit, accounts, otherPerms, isDir,
-                value: objectMode && value?.children,
+                value: objectMode ? value?.children : undefined,
                 isChildren: true,
                 hideValues: [thisValue ?? inherit, thisValue],
                 onChange(v, { event }) {
