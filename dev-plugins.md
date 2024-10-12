@@ -445,8 +445,8 @@ api.events.on('deleting', async () => your-code-here)
 
 ### Stop, the way you prevent default behavior
 
-Some events allow you to stop their default behavior, by returning `api.events.stop`.
-This is reported in the list below with the word "stoppable".
+Some events allow you to stop their default behavior, by returning `api.events.preventDefault`.
+This is reported in the list below with the word "preventable".
 
 ```js
 api.events.on('deleting', ({ node }) => node.source.endsWith('.jpg'))
@@ -462,7 +462,7 @@ This section is still partially documented, and you may need to have a look at t
   - parameters: { node, ctx }
   - called just before trying to delete a file or folder (which still may not exist and fail)
   - async supported
-  - stoppable
+  - preventable
 - `login`
 - `logout`
 - `attemptingLogin`
@@ -488,11 +488,14 @@ This section is still partially documented, and you may need to have a look at t
 - `pluginStarted`
 - `uploadStart`
   - parameters: { ctx, writeStream } 
-  - stoppable
+  - preventable
   - return: callback to call when upload is finished
 - `uploadFinished`
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
+- `newSocket`
+  - parameters: { socket,ip }
+  - preventable
 
 # Notifications (backend-to-frontend events)
 
@@ -658,7 +661,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 9.4 (v0.54.0)
+- 9.5 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 
     - api.misc
@@ -671,6 +674,7 @@ If you want to override a text regardless of the language, use the special langu
     - frontend event: appendMenuBar
     - config.helperText: basic md formatting
     - HFS.onEvent.setOrder
+    - backend event: newSocket
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip

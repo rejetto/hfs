@@ -7,6 +7,7 @@ const LISTENERS_SUFFIX = '\0listeners'
 export class BetterEventEmitter {
     protected listeners = new Map<string, Listeners>()
     preventDefault = Symbol()
+    stop = this.preventDefault // legacy pre-0.54 (introduced in 0.53)
     on(event: string | string[], listener: Listener, { warnAfter=10 }={}) {
         if (typeof event === 'string')
             event = [event]
