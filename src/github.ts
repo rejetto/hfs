@@ -110,7 +110,8 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             await rename(tempInstallPath, installPath)
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
             if (wasEnabled)
-                void startPlugin(folder) // don't wait, in case it fails to start
+                void startPlugin(folder) // don't wait, in case it fails to start. We still use startPlugin instead of enablePlugin, as it will take care of disabling other themes.
+                    .catch(() => {}) // it will possibly fail (with 'miss') because the plugin has probably not been loaded yet.
             events.emit('pluginDownloaded', { id: folder, repo })
             return folder
         }
