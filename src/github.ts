@@ -102,6 +102,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
             if (wasEnabled)
                 void startPlugin(folder) // don't wait, in case it fails to start
+                    .catch(() => {}) // it will possibly fail (with 'miss') because the plugin has probably not been loaded yet.
             return folder
         }
     }
