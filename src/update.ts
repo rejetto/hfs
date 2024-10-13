@@ -48,26 +48,24 @@ export type Release = { // not using interface, as it will not work with kvstora
     name: string,
     body: string,
     assets: { name: string, browser_download_url: string }[],
-    isNewer: boolean // introduced by us
+    // fields introduced by us
+    isNewer: boolean
+    versionScalar: number
 }
-const ReleaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer'] satisfies (keyof Release)[]
+const ReleaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer', 'versionScalar'] satisfies (keyof Release)[]
 const ReleaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
 
 export async function getUpdates(strict=false) {
     getProjectInfo() // check for alerts
     const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
-    const verStable = ver(stable)
-    const ret = await getBetas()
     stable.isNewer = currentVersion.olderThan(stable.tag_name)
+    stable.versionScalar = versionToScalar(stable.name)
+    const ret = await getBetas()
     if (stable.isNewer || RUNNING_BETA)
         ret.push(stable)
     // prune a bit, as it will be serialized, but it has a lot of unused data
-    return ret.filter(x => !strict || x.isNewer).map(x =>
+    return _.sortBy(ret, x => -x.versionScalar).filter(x => !strict || x.isNewer).map(x =>
         Object.assign(_.pick(x, ReleaseKeys), { assets: x.assets.map(a => _.pick(a, ReleaseAssetKeys)) }))
-
-    function ver(x: any) {
-        return versionToScalar(x.name)
-    }
 
     async function getBetas() {
         if (!updateToBeta.get() && !RUNNING_BETA) return []
@@ -80,8 +78,8 @@ export async function getUpdates(strict=false) {
             const curV = currentVersion.getScalar()
             for (const x of res) {
                 if (!x.prerelease || x.name.endsWith('-ignore')) continue
-                const v = ver(x)
-                if (v < verStable) // we don't consider betas before stable
+                const v = x.versionScalar = versionToScalar(x.name)
+                if (v < stable.versionScalar) // we don't consider betas before stable
                     return ret
                 if (v === curV) continue // skip current
                 x.isNewer = v > curV // make easy to know what's newer
