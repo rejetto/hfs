@@ -1,7 +1,7 @@
 import { proxy } from 'valtio'
 import { Client } from 'nat-upnp-rejetto'
 import { debounceAsync } from './debounceAsync'
-import { haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, try_, wantArray } from './cross'
+import { haveTimeout, HOUR, inCommon, ipForUrl, MINUTE, promiseBestEffort, repeat, wantArray } from './cross'
 import { getProjectInfo } from './github'
 import _ from 'lodash'
 import { httpString } from './util-http'

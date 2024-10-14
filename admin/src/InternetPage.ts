@@ -401,7 +401,7 @@ export default function InternetPage() {
             dialogProps: { sx: { maxWidth: '20em' } },
         })
         if (res)
-            await mapPort(Number(res), "Port forwarded")
+            await mapPort(Number(res), "Port forwarded").catch(() => {})
 
         function remove() {
             closeDialog()
