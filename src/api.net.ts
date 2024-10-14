@@ -1,8 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { HTTP_FAILED_DEPENDENCY, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE, HTTP_PRECONDITION_FAILED, HTTP_NOT_FOUND
-} from './const'
+import { HTTP_FAILED_DEPENDENCY, HTTP_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE, HTTP_PRECONDITION_FAILED } from './const'
 import _ from 'lodash'
 import { getCertObject } from './listen'
 import { getProjectInfo } from './github'
@@ -46,16 +45,16 @@ const apis: ApiHandlers = {
     async map_port({ external, internal }) {
         const { upnp, externalPort, internalPort } = await getNatInfo()
         if (!upnp)
-            return new ApiError(HTTP_SERVICE_UNAVAILABLE, 'upnp failed')
+            return new ApiError(HTTP_SERVICE_UNAVAILABLE, "upnp failed")
         if (!internalPort)
-            return new ApiError(HTTP_FAILED_DEPENDENCY, 'no internal port')
+            return new ApiError(HTTP_FAILED_DEPENDENCY, "no internal port")
         if (externalPort)
             try { await upnpClient.removeMapping({ public: { host: '', port: externalPort } }) }
-            catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, 'removeMapping failed: ' + String(e) ) }
+            catch (e: any) { return new ApiError(HTTP_SERVER_ERROR, "removeMapping failed: " + String(e) ) }
         if (external) // must use the object form of 'public' to work around a bug of the library
             await upnpClient.createMapping({ private: internal || internalPort, public: { host: '', port: external }, description: 'hfs', ttl: 0 })
                 .catch(res => {
-                    throw new ApiError(res.errorCode, res.errorCode === 718 ? "Port not available" : res.errorDescription)
+                    throw new ApiError(res.errorCode || res.statusCode, res.errorCode === 718 ? "Port not available" : res.errorDescription || "unknown error")
                 })
         return {}
     },
