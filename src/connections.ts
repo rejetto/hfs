@@ -81,6 +81,6 @@ export function disconnect(what: Context | Socket, debugLog='') {
     if ('socket' in what)
         what = what.socket
     if (debugLog)
-        console.debug("disconnection:", debugLog, what.remoteAddress)
+        console.debug("disconnection:", debugLog, normalizeIp(what.remoteAddress || ''))
     return what.destroy()
 }

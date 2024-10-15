@@ -68,7 +68,7 @@ const dontLogNet = defineConfig(CFG.dont_log_net, '127.0.0.1|::1', v => makeNetM
 const logUA = defineConfig(CFG.log_ua, false)
 const logSpam = defineConfig(CFG.log_spam, false)
 
-const debounce = _.debounce(cb => cb(), 1000)
+const debounce = _.debounce(cb => cb(), 1000) // with this technique, i'll be able to debounce some code respecting the references in its closure
 
 export const logMw: Koa.Middleware = async (ctx, next) => {
     const now = new Date()
