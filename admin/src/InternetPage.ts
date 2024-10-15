@@ -422,10 +422,10 @@ export default function InternetPage() {
             if (msg) toast(msg, 'success')
             setCheckResult(undefined) // things have changed, invalidate check result
         }
-        catch(e) {
+        catch(e: any) {
             if (errMsg) {
                 const low = external && Math.min(external, data!.internalPort!) < 1024
-                const msg = errMsg + (low ? ". Some routers refuse to work with ports under 1024." : '')
+                const msg = errMsg + prefix(': ', e?.message) + (low ? ". Some routers refuse to work with ports under 1024." : '')
                 await alertDialog(msg, 'error')
             }
             throw e
