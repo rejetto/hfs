@@ -66,7 +66,7 @@ export const getNatInfo = debounceAsync(async () => {
     const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
-    console.debug('mappings found', mappings?.map(x => x.description))
+    console.debug("mappings found", mappings?.map(x => x.description) || "none")
     const gatewayIp = res && try_(() => new URL(res.gateway.description).hostname, () => console.debug('unexpected upnp gw', res.gateway?.description))
         || await findGateway().catch(() => undefined)
     const localIps = await getIps(false)

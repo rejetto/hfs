@@ -156,9 +156,9 @@ for (const cfg of httpsNeeds) {
             return considerHttps()
         // v is a path
         httpsOptions[k] = ''
-        unwatch = watchLoad(v, data => {
+        unwatch = watchLoad(v, async data => {
             httpsOptions[k] = data
-            considerHttps()
+            await considerHttps()
         }, { immediateFirst: true }).unwatch
         await considerHttps()
     })
@@ -269,7 +269,8 @@ export async function getServerStatus(includeSrv=true) {
 
 const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|anpi\d)$/i // avoid giving too much information
 
-const isLinkLocal = makeNetMatcher('169.254.0.0/16|FE80::/16')
+// AKA auto-ip https://en.wikipedia.org/wiki/Link-local_address
+const isLinkLocal = makeNetMatcher('169.254.0.0/16|FE80::/10')
 
 export async function getIps(external=true) {
     const ips = onlyTruthy(Object.entries(networkInterfaces()).flatMap(([name, nets]) =>
