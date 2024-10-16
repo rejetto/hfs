@@ -230,6 +230,7 @@ export async function searchPlugins(text='', { skipRepos=[''] }={}) {
 
 export const alerts = storedMap.singleSync<string[]>('alerts', [])
 const cachedCentralInfo = storedMap.singleSync('cachedCentralInfo', '')
+export let blacklistedInstalledPlugins: string[] = []
 // centralized hosted information, to be used as little as possible
 const FN = 'central.json'
 let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
@@ -258,6 +259,7 @@ export const getProjectInfo = debounceAsync(
                 return allAlerts
             })
             const black = onlyTruthy(Object.keys(o.repo_blacklist || {}).map(findPluginByRepo))
+            blacklistedInstalledPlugins = onlyTruthy(black.map(x => _.isString(x.repo) && x.repo))
             if (black.length) {
                 console.log("blacklisted plugins found:", black.join(', '))
                 for (const p of black)
