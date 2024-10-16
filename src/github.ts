@@ -35,7 +35,7 @@ async function getGithubDefaultBranch(repo: string) {
     if (!repo.includes('/'))
         throw 'malformed repo'
     const test = await httpString(`https://github.com/${repo}/archive/refs/heads/main.zip`, { method: 'HEAD' }).then(() => 1, (err) => {
-        if (err?.cause?.statusCode === 404)
+        if (err?.cause?.statusCode !== 404)
             throw err
         return 0
     })
