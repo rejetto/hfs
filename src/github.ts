@@ -3,7 +3,7 @@
 import events from './events'
 import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey } from './misc'
 import {
-    DISABLING_SUFFIX, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginEnabled, mapPlugins,
+    DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginEnabled, mapPlugins,
     parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER
 } from './plugins'
 import { ApiError } from './apiMiddleware'
@@ -47,9 +47,9 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
         repo = repo.main
     if (downloading[repo])
         throw new ApiError(HTTP_CONFLICT, "already downloading")
-    const projectInfo = await getProjectInfo()
-    if (projectInfo?.plugins_blacklist?.includes(repo))
-        throw new ApiError(HTTP_FORBIDDEN, "blacklisted")
+    const msg = await isPluginBlacklisted(repo)
+    if (msg)
+        throw new ApiError(HTTP_FORBIDDEN, "blacklisted: " + msg)
     console.log('downloading plugin', repo)
     downloadProgress(repo, true)
     try {
@@ -205,14 +205,17 @@ async function *apiGithubPaginated<T=any>(uri: string) {
     }
 }
 
+async function isPluginBlacklisted(repo: string) {
+    return getProjectInfo().then(x => x?.repo_blacklist?.[repo]?.message as string || '', () => undefined)
+}
+
 export async function searchPlugins(text='', { skipRepos=[''] }={}) {
-    const projectInfo = await getProjectInfo()
     const searches = [encodeURI(text), ...text.split(' ').filter(Boolean).slice(0, 2).map(x => 'user:' + encodeURI(x))] // first 2 words can be the author
     const list = await Promise.all(searches.map(x => asyncGeneratorToArray(apiGithubPaginated(`search/repositories?q=topic:hfs-plugin+${x}`))))
         .then(all => all.flat()) // make it a single array
     return new AsapStream(list.map(async it => { // using AsapStream we parallelize these promises and produce each result as it's ready
         const repo = it.full_name as string
-        if (projectInfo?.plugins_blacklist?.includes(repo) || skipRepos.includes(repo)) return
+        if (skipRepos.includes(repo) || await isPluginBlacklisted(repo)) return
         const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
         if (!pl) return
         Object.assign(pl, { // inject some extra useful fields
@@ -227,11 +230,12 @@ export const alerts = storedMap.singleSync<string[]>('alerts', [])
 // centralized hosted information, to be used as little as possible
 const FN = 'central.json'
 let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
+let lastResult: any
 export const getProjectInfo = debounceAsync(
     () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .then(JSON.parse, () => null)
         .then(o => {
-            o = Object.assign({ ...builtIn }, DEV ? null : o) // fall back to built-in
+            o = lastResult = Object.assign({ ...builtIn, ...lastResult }, DEV ? null : o) // fall back to built-in
             // merge byVersions info in the main object, but collect alerts separately, to preserve multiple instances
             const allAlerts: string[] = [o.alert]
             for (const [ver, more] of Object.entries(popKey(o, 'byVersion') || {}))
@@ -246,6 +250,11 @@ export const getProjectInfo = debounceAsync(
                         console.log("ALERT:", a)
                 return allAlerts
             })
+            for (const k of Object.keys(o.repo_blacklist || {})) {
+                const p = findPluginByRepo(k)
+                if (p)
+                    enablePlugin(p.id, false)
+            }
             return o
         }),
     { retain: DAY, retainFailure: 60_000 })
