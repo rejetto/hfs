@@ -30,7 +30,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     useEffect(() => {
         if (!initializing)
             updateList(list =>
-                _.sortBy(list, x => (x.started ? '0' : '1') + treatPluginName(x.id)))
+                _.sortBy(list, x => (x.started || x.error ? '0' : '1') + treatPluginName(x.id)))
     }, [initializing]);
     const size = 'small'
     return h(DataTable, {
