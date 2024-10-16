@@ -90,7 +90,7 @@
     "lodash": "^4.17.21",
     "minimist": "^1.2.6",
     "nat-upnp-rejetto": "^2.1.0",
-    "open": "^8.4.0",
+    "open": "^10.1.0",
     "qr-creator": "^1.0.0",
     "picomatch": "^3.0.1",
     "tssrp6a": "^3.0.0",
