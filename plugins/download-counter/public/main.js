@@ -4,7 +4,7 @@
     const label = HFS.t(["download counter", "Download counter"])
     const inMenu = config.where === 'menu'
     HFS.onEvent('additionalEntryDetails', ({ entry: { hits } }) =>
-        hits && !inMenu && `<span class="download-counter" title="${label}">${hits}</span>`)
+        hits && !inMenu && HFS.h('span', { className: "download-counter", title: label }, hits))
 
     HFS.onEvent('fileMenu', ({ entry, props }) => {
         if (!entry.isFolder)
