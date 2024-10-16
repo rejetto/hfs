@@ -425,7 +425,7 @@ function watchPlugin(id: string, path: string) {
                 setError(id, '')
             const alreadyRunning = plugins[id]
             console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
-            const pluginData = await import(module)
+            const pluginData = require(module)
             deleteModule(require.resolve(module)) // avoid caching at next import
             calculateBadApi(pluginData)
             if (pluginData.badApi)
