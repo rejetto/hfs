@@ -7,8 +7,7 @@ import * as https from 'https'
 import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
-import open from 'open'
-import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate } from './misc'
+import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, open, prefix, runAt, wait, xlate } from './misc'
 import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -63,7 +62,7 @@ export function openAdmin() {
         const a = srv?.address()
         if (!a || typeof a === 'string') continue
         const baseUrl = srv!.name + '://localhost:' + a.port
-        open(baseUrl + ADMIN_URI, { wait: true}).catch(async e => {
+        open(baseUrl + ADMIN_URI).catch(async e => {
             console.debug(String(e))
             console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
                 ...Object.values(await getUrls()).flat().map(x => '\n - ' + x + ADMIN_URI))

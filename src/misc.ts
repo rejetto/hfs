@@ -155,3 +155,8 @@ export async function deleteNode(ctx: Koa.Context, node: VfsNode, uri: string) {
         return e
     }
 }
+
+export function open(cmd: string) {
+    return import('open').then((lib: any) =>
+        lib.default(cmd, { wait: true}), console.warn)
+}
