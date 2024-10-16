@@ -61,6 +61,7 @@ export default function HomePage() {
             !errors.length && [ SOLUTION_SEP, cfgLink("switch http or https on") ]
         ),
         with_(status.acmeRenewError, x => x && entry('warning', x)),
+        with_(status.blacklistedInstalledPlugins, x => x?.length > 0 && entry('warning', "Found blacklisted plugin(s): ", x.join(', ')) ),
         plugins.find(x => x.badApi) && entry('warning', "Some plugins may be incompatible"),
         !cfg.data?.split_uploads && (Date.now() - Number(status.cloudflareDetected || 0)) < DAY
             && entry('', wikiLink('Reverse-proxy#cloudflare', "Cloudflare detected, read our guide")),
