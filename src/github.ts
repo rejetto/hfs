@@ -1,7 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import events from './events'
-import { DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey } from './misc'
+import {
+    DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey, onlyTruthy
+} from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginEnabled, mapPlugins,
     parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER
@@ -227,15 +229,20 @@ export async function searchPlugins(text='', { skipRepos=[''] }={}) {
 }
 
 export const alerts = storedMap.singleSync<string[]>('alerts', [])
+const cachedCentralInfo = storedMap.singleSync('cachedCentralInfo', '')
 // centralized hosted information, to be used as little as possible
 const FN = 'central.json'
 let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
-let lastResult: any
 export const getProjectInfo = debounceAsync(
     () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .then(JSON.parse, () => null)
         .then(o => {
-            o = lastResult = Object.assign({ ...builtIn, ...lastResult }, DEV ? null : o) // fall back to built-in
+            if (o)
+                cachedCentralInfo.set(o)
+            if (DEV)
+                o = builtIn
+            else
+                o ||= { ...cachedCentralInfo.get() || builtIn } // fall back to built-in
             // merge byVersions info in the main object, but collect alerts separately, to preserve multiple instances
             const allAlerts: string[] = [o.alert]
             for (const [ver, more] of Object.entries(popKey(o, 'byVersion') || {}))
@@ -250,9 +257,10 @@ export const getProjectInfo = debounceAsync(
                         console.log("ALERT:", a)
                 return allAlerts
             })
-            for (const k of Object.keys(o.repo_blacklist || {})) {
-                const p = findPluginByRepo(k)
-                if (p)
+            const black = onlyTruthy(Object.keys(o.repo_blacklist || {}).map(findPluginByRepo))
+            if (black.length) {
+                console.log("blacklisted plugins found:", black.join(', '))
+                for (const p of black)
                     enablePlugin(p.id, false)
             }
             return o
