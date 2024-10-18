@@ -163,7 +163,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         },
     } as const, rest)
     const iconElement = isValidElement(icon) ? icon : (icon && h(icon))
-    let ret: ReactElement = children || !icon ? h(LoadingButton, _.merge({
+    let ret: ReactElement = children && showLabel ? h(LoadingButton, _.merge({
             variant: 'contained',
             startIcon: iconElement,
             loading: Boolean(loading || loadingState || progress),
