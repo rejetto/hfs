@@ -5,7 +5,7 @@ import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
 import { focusSelector, isCtrlKey, KeepInScreen } from './misc';
 import { Btn, Flex, IconBtn, reloadBtn } from './mui';
-import { Save, ContentCopy, EditNote } from '@mui/icons-material'
+import { Save, ContentCopy, Edit } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
 import { state } from './state';
 import { DisplayField } from '@hfs/mui-grid-form'
@@ -21,7 +21,7 @@ export default function ConfigFilePage() {
     useEffect(() => { saved !== undefined && setText(saved || '') }, [saved])
     return h(Fragment, {},
         h(Flex, { flexWrap: 'wrap', justifyContent: 'space-between' },
-            h(Btn, { icon: ContentCopy, onClick: copy }, "Copy excluding passwords"),
+            h(Btn, { icon: ContentCopy, onClick: copy }, "Copy without passwords"),
             edit ? h(Fragment, {},
                 reloadBtn(reload),
                 h(IconBtn, {
@@ -32,9 +32,8 @@ export default function ConfigFilePage() {
                 }),
                 h(Alert, { severity: 'warning', sx: { flex: 1, minWidth: '10em' } }, "Be careful, you can easily break things here"),
             ) : h(Btn, {
-                icon: EditNote,
+                icon: Edit,
                 variant: 'outlined',
-                labelFrom: 'sm',
                 onClick() {
                     setEdit(true)
                     setTimeout(() => focusSelector('main textarea'), 500)
