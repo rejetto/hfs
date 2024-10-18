@@ -102,7 +102,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                 isRoot ? "Home" : (() => { // special rendering if the whole source is not too long, and the name was not customized
                     const ps = node.parent?.source
                     const { source } = node
-                    const rel = ps && source?.startsWith(ps) ? '.' + source.slice(ps.length) : source
+                    const rel = ps && source?.startsWith(ps) && source > ps ? '.' + source.slice(ps.length) : source
                     return !rel || !source?.endsWith(name) || rel.length > 45 ? name
                         : h('span', {},
                             h('span', { style: { opacity: .4, fontSize: 'small' } }, rel.slice(0,-name.length)),
