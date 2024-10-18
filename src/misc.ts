@@ -35,6 +35,7 @@ export function isLocalHost(c: Connection | Koa.Context | string) {
 export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
     if (!mask)
         return () => emptyMaskReturns
+    mask = mask.replaceAll(' ','')
     if (!mask.includes('/'))
         return makeMatcher(mask)
     const all = mask.split('|')
