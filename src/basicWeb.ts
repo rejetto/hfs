@@ -39,6 +39,8 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
         return `<li>${a(pathEncode(name) + (isFolder && !await hasDefaultFile(el, ctx) ? force : ''), name)}\n`
     }))
     ctx.body = stream
+    stream.push(`<meta name="viewport" content="width=device-width" />`)
+    stream.push(`<style>body { font-size: 16pt; }</style>`)
     stream.push(`<title>${title.get()}</title><body>`)
     stream.push(getSection('basicHeader'))
     const u = getCurrentUsername(ctx)
