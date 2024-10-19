@@ -19,6 +19,7 @@ import { SvgIconProps } from '@mui/material/SvgIcon/SvgIcon'
 import _ from 'lodash'
 import { ALL as COUNTRIES } from './countries'
 import { apiCall } from '@hfs/shared/api'
+import { StringFieldProps } from '@hfs/mui-grid-form/StringField'
 
 export function spinner() {
     return h(CircularProgress)
@@ -257,7 +258,19 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
     return [state, el] as const
 }
 
-export const NetmaskField = StringField
+export function NetmaskField(props: StringFieldProps) {
+    const warned = useRef(false)
+    return h(StringField, {
+        ...props,
+        onTyping(v) {
+            if (!warned.current && v?.includes('127.0.0.1') && !v.includes('::1')) {
+                warned.current = true
+                alertDialog(`Hostname "localhost" is normally translated as ::1 instead of 127.0.0.1`, 'warning')
+            }
+            return props.onTyping?.(v) ?? v
+        },
+    })
+}
 
 export function Country({ code, ip, def, long, short }: { code: string, ip?: string, def?: ReactNode, long?: boolean, short?: boolean }) {
     const good = ip && !isIpLocalHost(ip) && !isIpLan(ip)
