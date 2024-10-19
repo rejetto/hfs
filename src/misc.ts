@@ -36,6 +36,7 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
     if (!mask)
         return () => emptyMaskReturns
     mask = mask.replaceAll(' ','')
+    mask = mask.replace('localhost', '::1|127.0.0.1')
     if (!mask.includes('/'))
         return makeMatcher(mask)
     const all = mask.split('|')
