@@ -5,7 +5,7 @@ import { FieldProps } from '.'
 import { Autocomplete, InputAdornment, TextField } from '@mui/material'
 import { StandardTextFieldProps } from '@mui/material/TextField/TextField'
 
-interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
+export interface StringFieldProps extends FieldProps<string>, Partial<Omit<StandardTextFieldProps, 'label' | 'onChange' | 'value'>> {
     typing?: boolean // change state as the user is typing
     onTyping?: (v: string) => string | false
     min?: number
