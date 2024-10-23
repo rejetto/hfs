@@ -398,7 +398,7 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
 }
 
 export function pathEncode(s: string) {
-    return encodeURI(s).replace(/#/g, encodeURIComponent)
+    return encodeURI(s).replace(/#/g, escape)
 }
 //unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
 
