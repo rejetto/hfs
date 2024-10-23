@@ -8,11 +8,10 @@ import {
 } from 'react'
 import { Check, Close, Error as ErrorIcon, Forward, Info, Warning } from '@mui/icons-material'
 import { newDialog, closeDialog, dialogsDefaults, DialogOptions, componentOrNode, pendingPromise,
-    focusSelector, md, focusableSelector } from '@hfs/shared'
+    focusSelector, md, focusableSelector, useIsMobile } from '@hfs/shared'
 import { Form, FormProps } from '@hfs/mui-grid-form'
 import { IconBtn, Flex, Center } from './mui'
 import { useDark } from './theme'
-import { useWindowSize } from 'usehooks-ts'
 import _ from 'lodash'
 import { err2msg } from './misc'
 import { useSnapState } from './state'
@@ -20,8 +19,7 @@ export * from '@hfs/shared/dialogs'
 
 dialogsDefaults.Container = function Container(d: DialogOptions) {
     const ref = useRef<HTMLElement>()
-    const { width, height } = useWindowSize()
-    const mobile = width > 0 && Math.min(width, height) < 500
+    const mobile = useIsMobile()
     useEffect(()=> {
         const h = setTimeout(() => {
             const el = ref.current
