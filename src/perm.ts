@@ -188,7 +188,8 @@ export function accountCanLogin(account: Account) {
 function allDisabled(account: Account): boolean {
     return Boolean(account.disabled
         || account.expire as any < Date.now()
-        || account.belongs?.length && account.belongs.map(u => getAccount(u, false)).every(a => a && allDisabled(a))) // every() returns true on empty arrays
+        || account.belongs?.length // don't every() on empty array, as it returns true
+        && account.belongs.map(u => getAccount(u, false)).every(a => a && allDisabled(a)) )
 }
 
 export function accountCanLoginAdmin(account: Account) {
