@@ -88,7 +88,7 @@ export default function OptionsPage() {
                 component: RouterLink,
                 to: "/edit",
                 startIcon: h(EditNote),
-            }, sm ? "Edit config file" : "File"),
+            }, sm ? "Config file" : "File"),
         ],
         defaults() {
             return { sm: 6 }

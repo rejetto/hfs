@@ -63,7 +63,7 @@ export default function ConfigFilePage() {
 
     function copy() {
         if (!text) return
-        navigator.clipboard.writeText(text.replace(/^\s*(\w*password|srp):.+\n/gm, ''))
+        navigator.clipboard.writeText(text.replace(/^(\s*(\w*password\w*|srp):\s*).+\n/gm, '$1: removed\n'))
         toast("copied")
     }
 }
