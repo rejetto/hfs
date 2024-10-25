@@ -353,6 +353,10 @@ export function formatTimestamp(x: number | string | Date) {
     return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString()
 }
 
+export function isNumeric(x: unknown) {
+    return _.isNumber(x) || _.isString(x) && !isNaN(Number(x))
+}
+
 export function isPrimitive(x: unknown): x is boolean | string | number | undefined | null {
     return !x || Object(x) !== x
 }

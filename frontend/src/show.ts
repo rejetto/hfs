@@ -2,6 +2,7 @@ import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
+    isNumeric,
 } from './misc'
 import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
@@ -189,7 +190,12 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                                 }
                                 const m = window.MediaMetadata && (navigator.mediaSession.metadata = new MediaMetadata(meta))
                                 if (cur.ext === 'mp3') {
-                                    setTags(Object.assign(meta, await getId3Tags(location.pathname + cur.n).catch(() => {})))
+                                    const arr = cur.name.split(' - ') // "artist - title" is quite common for mp3s
+                                    setTags(Object.assign(meta, {
+                                        title: arr.at(-1)?.slice(0, -4), // last part, without extension
+                                        artist: arr.filter(x => !isNumeric(x)).at(-2), // previous part, if any and not numeric
+                                        ...await getId3Tags(location.pathname + cur.n).catch(() => {})
+                                    }))
                                     if (m) Object.assign(m, meta)
                                 }
                                 hfsEvent('showPlay', {

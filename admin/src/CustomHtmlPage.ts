@@ -4,7 +4,7 @@ import { createElement as h, Fragment, useEffect, useMemo, useState } from 'reac
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { Dict, HTTP_MESSAGES, isCtrlKey, prefix, md } from './misc';
+import { Dict, HTTP_MESSAGES, isCtrlKey, prefix, md, isNumeric } from './misc';
 import { IconBtn, reloadBtn, wikiLink } from './mui';
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
@@ -25,7 +25,7 @@ export default function CustomHtmlPage() {
     useEffect(() => data && setSaved(data?.sections), [data])
     useEffect(() => setAll(saved), [saved])
     const options = useMemo(() => {
-        const keys = _.sortBy(Object.keys(all), x => !isNaN(+x)) // http codes at the bottom
+        const keys = _.sortBy(Object.keys(all), isNumeric) // http codes at the bottom
         if (keys.length && !keys.includes(section))
             state.customHtmlSection = _.findKey(all, Boolean) || keys?.[0] || '' // prefer any key with content
         return keys.map(x => ({
