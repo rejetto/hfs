@@ -70,7 +70,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
             { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: 6, xl: 8,
                 helperText: "To access THIS interface you are using right now",
-                ...!account.admin && account.adminActualAccess && { value: true, helperText: "This permission is inherited" },
+                ...!account.admin && account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited. To disable it, act on the groups." },
             },
             { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: 'auto' },
             group && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
