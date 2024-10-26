@@ -142,7 +142,11 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
 }
 
 async function rename(entry: DirEntry) {
-    const dest = await promptDialog(t`Name`, { value: entry.name, title: t`Rename` })
+    const dest = await promptDialog(t`Name`, {
+        value: entry.name,
+        title: t`Rename`,
+        onField: el => el.setSelectionRange(0, entry.name.lastIndexOf('.'))
+    })
     if (!dest) return
     const { n, uri } = entry
     await apiCall('rename', { uri, dest }, { modal: working })

@@ -20,8 +20,9 @@ interface PromptOptions extends Partial<DialogOptions> {
     helperText?: ReactNode,
     inputProps?: Partial<InputHTMLAttributes<string>>
     onSubmit?: (v: string) => Promisable<string>
+    onField?: (el: HTMLInputElement | HTMLTextAreaElement) => void
 }
-export async function promptDialog(msg: string, { value, type, helperText, trim=true, inputProps, onSubmit, ...rest }:PromptOptions={}) : Promise<string | undefined> {
+export async function promptDialog(msg: string, { value, type, helperText, trim=true, inputProps, onSubmit, onField, ...rest }:PromptOptions={}) : Promise<string | undefined> {
     const textarea = type === 'textarea' && type
     return new Promise(resolve => newDialog({
         className: 'dialog-prompt',
@@ -40,6 +41,7 @@ export async function promptDialog(msg: string, { value, type, helperText, trim=
             setTimeout(()=> inp.focus(),100)
             if (value)
                 inp.value = value
+            onField?.(inp)
             if (textarea) {
                 function resize() {
                     inp.style.height = 'auto'

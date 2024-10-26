@@ -164,7 +164,11 @@ export function showUpload() {
                         rec.comment = s || undefined
                     },
                     async edit(rec) {
-                        const s = await promptDialog(t('upload_name', "Upload with new name"), { value: rec.file.name })
+                        const value = rec.file.name
+                        const s = await promptDialog(t('upload_name', "Upload with new name"), {
+                            value,
+                            onField: el => el.setSelectionRange(0, value.lastIndexOf('.')),
+                        })
                         if (!s) return
                         rec.name = s
                     },
