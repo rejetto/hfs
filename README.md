@@ -127,6 +127,7 @@ If your language is missing, please consider [translating yourself](https://gith
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
 - Appending `?overwrite` on uploads, will override the dont_overwrite_uploading configuration, provided you also have delete permission
 - Appending `?search=PATTERN` will trigger search at start 
+- Appending `?autoplay=shuffle` will trigger show & play; `?autoplay` will not shuffle, but also will not start until the list is complete 
 - Right-click on "check for updates" will let you input a URL of a version to install
 - Shift+click on a file will show & play
 - Type the name of a file/folder to focus it, and ctrl+backspace to go to parent folder
