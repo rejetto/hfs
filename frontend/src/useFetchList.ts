@@ -11,6 +11,7 @@ import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LI
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { closeLoginDialog } from './login'
+import { fileShow, getShowComponent } from './show'
 
 export function usePath() {
     return useLocation().pathname
@@ -19,6 +20,7 @@ export function usePath() {
 // allow links with ?search
 setTimeout(() => // wait, urlParams is defined at top level
     state.remoteSearch = urlParams.search || '')
+let autoPlayOnce: string | undefined = urlParams.autoplay
 
 export default function useFetchList() {
     const snap = useSnapState()
@@ -55,17 +57,32 @@ export default function useFetchList() {
         state.loading = true
         state.error = undefined
         state.props = undefined
+        let play = false
+        let playShuffle = false
         // buffering entries is necessary against burst of events that will hang the browser
         const buffer: DirList = []
         const flush = () => {
             const chunk = buffer.splice(0, Infinity)
-            if (chunk.length)
-                state.list = sort([...state.list, ...chunk])
+            if (!chunk.length) return
+            state.list = sort([...state.list, ...chunk])
+            if (playShuffle)
+                for (const x of chunk)
+                    if (getShowComponent(x)) {
+                        fileShow(x, { startPlaying: true, startShuffle: true })
+                        playShuffle = false
+                        break
+                    }
         }
         const timer = setInterval(flush, 1000)
         const src = apiEvents('get_file_list', params, (type, data) => {
             if (!isMounted()) return
             switch (type) {
+                case 'connected':
+                    // while 'play' needs to wait for the whole list to be available (and sorted) to proceed in order, shuffle can start right away, and it's important it does because a ?search may take long
+                    if (autoPlayOnce === '') play = true
+                    if (autoPlayOnce === 'shuffle') playShuffle = true
+                    autoPlayOnce = undefined
+                    return
                 case 'error':
                     state.stopSearch?.()
                     state.error = t`connection error`
@@ -75,6 +92,13 @@ export default function useFetchList() {
                     flush()
                     state.stopSearch?.()
                     state.loading = false
+                    if (play)
+                        for (const x of state.list)
+                            if (getShowComponent(x)) {
+                                fileShow(x, { startPlaying: true })
+                                play = false
+                                break
+                            }
                     return
                 case 'msg':
                     const showLogin = location.hash === '#LOGIN'

@@ -20,7 +20,7 @@ enum ZoomMode {
     contain, // leave this as last
 }
 
-export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
+export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=false } = {}) {
     let escOnce = false
     let onClose: any
     let firstUri: string
@@ -42,7 +42,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             const moving = useRef(0)
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
-            const [shuffle, setShuffle] = useState<undefined|DirList>()
+            const [shuffle, setShuffle] = useState<undefined | DirList>()
+            useEffect(() => toggleShuffle(startShuffle), [])
             // shuffle the rest of the list as we continue getting entries, leaving intact the part we've already played/being through
             const shuffleIdx = useMemo(() => shuffle?.findIndex(x => x.n === cur.n), [cur])
             useEffect(() => subscribeKey(state, 'list', list => {
@@ -120,6 +121,12 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             const {t} = useI18N()
             const autoPlaySecondsLabel = t('autoplay_seconds', "Seconds to wait on images")
             const folder = dirname(cur.n)
+            const failOnce = useRef<typeof cur>()
+            useEffect(() => {
+                if (component || failOnce.current === cur) return
+                curFailed()
+                failOnce.current = cur
+            }, [cur, component])
             return h(FlexV, {
                 gap: 0,
                 alignItems: 'stretch',
@@ -157,7 +164,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                             'open','delete',
                             { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
                             { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
-                            { id: 'shuffle', icon: 'shuffle', label: t`Shuffle`, toggled: Boolean(shuffle), onClick: toggleShuffle },
+                            { id: 'shuffle', icon: 'shuffle', label: t`Shuffle`, toggled: Boolean(shuffle), onClick: () => toggleShuffle() },
                             { id: 'repeat', icon: 'repeat', label: t`Repeat`, toggled: repeat, onClick: toggleRepeat },
                         ])),
                         iconBtn('close', close),
@@ -170,8 +177,11 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                         h('div', {}, cur.name),
                         t`Loading failed`
                     ) : h('div', { className: 'showing-container', ref: containerRef },
-                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: cover && `url("${cover}")` } }),
-                        h(component || Fragment, {
+                        h('div', {
+                            className: 'cover ' + (cover ? '' : 'none'),
+                            style: { backgroundImage: cover && `url("${cover}")` }
+                        }),
+                        component && h(component, {
                             src: cur.uri,
                             className: 'showing',
                             onLoad() {
@@ -231,7 +241,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 setFailed(cur.n)
             }
 
-            function go(dir?: number, from=cur) {
+            function go(dir=1, from=cur) {
                 if (dir)
                     moving.current = dir
                 let e = from
@@ -277,8 +287,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 setMode(x => x ? x - 1 : ZoomMode.contain)
             }
 
-            function toggleShuffle() {
-                setShuffle(x => x ? undefined : _.shuffle(state.list))
+            function toggleShuffle(force?: boolean) {
+                setShuffle(x => (force ?? !x) ? _.shuffle(state.list) : undefined)
             }
 
             function toggleRepeat() {
