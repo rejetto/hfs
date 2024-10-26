@@ -88,6 +88,8 @@ export async function updateAccount(account: Account, change: Partial<Account> |
             console.error(`account ${username} belongs to non-existing ${b}`)
             return true
         })
+        if (!account.belongs.length)
+            delete account.belongs
     }
     account.expire &&= new Date(account.expire)
     if (username !== usernameWas)
