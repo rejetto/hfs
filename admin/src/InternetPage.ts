@@ -5,7 +5,7 @@ import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTon
 import { apiCall, useApiEvents, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
     useRequestRender, replace, restartAnimation, prefix } from './misc'
-import { Flex, LinkBtn, Btn, Country } from './mui'
+import { Flex, LinkBtn, Btn, Country, wikiLink } from './mui'
 import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import { suggestMakingCert } from './OptionsPage'
@@ -23,7 +23,7 @@ const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
-const MSG_ISP = `It's possible that don't have a public IP, so that HFS won't be reachable on the Internet. Ask your Internet Provider if they sell "public IP" as an extra service.`
+const MSG_ISP = h('div', {}, "HFS will probably not be reachable on the Internet. ", wikiLink('Work-on-the-internet#double-nat', "Read more"))
 
 export default function InternetPage() {
     const [checkResult, setCheckResult] = useState<boolean | undefined>()
