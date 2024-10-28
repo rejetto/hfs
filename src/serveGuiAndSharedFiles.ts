@@ -125,10 +125,9 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return serveFrontendFiles(ctx, next)
     }
     ctx.set({ server: `HFS ${VERSION} ${BUILD_TIMESTAMP}` })
-    if (basicWeb(ctx, node)) return
     return get === 'zip' ? zipStreamFromFolder(node, ctx)
         : get === 'list' ? sendFolderList(node, ctx)
-        : serveFrontendFiles(ctx, next)
+        : (basicWeb(ctx, node) || serveFrontendFiles(ctx, next))
 }
 
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
