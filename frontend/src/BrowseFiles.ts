@@ -11,7 +11,8 @@ import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
 import useFetchList from './useFetchList'
 import { useAuthorized } from './login'
-import { acceptDropFiles, enqueue } from './upload'
+import { acceptDropFiles } from './upload'
+import { enqueueUpload } from './uploadQueue'
 import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { makeOnClickOpen, openFileMenu } from './fileMenu'
@@ -27,7 +28,7 @@ export function BrowseFiles() {
     const propsDropFiles = useMemo(() => ({
         id: 'files-dropper',
         ...acceptDropFiles((files, to) =>
-            props?.can_upload ? enqueue(files.map(file => ({ file })), location.pathname + to)
+            props?.can_upload ? enqueueUpload(files.map(file => ({ file })), location.pathname + to)
                 : alertDialog(t("Upload not available"), 'warning')
         ),
     }), [props])
