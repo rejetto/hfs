@@ -82,7 +82,7 @@
     "fswin": "^3.24.829",
     "iconv-lite": "^0.6.3",
     "ip2location-nodejs": "^9.6.0",
-    "koa": "^2.13.4",
+    "koa": "^2.15.3",
     "koa-compress": "^5.1.0",
     "koa-mount": "^4.0.0",
     "koa-session": "^6.2.0",
