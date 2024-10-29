@@ -67,7 +67,7 @@ export const getNatInfo = debounceAsync(async () => {
     const res = await haveTimeout(10_000, upnpClient.getGateway()).catch(() => null)
     const status = await getServerStatus()
     const mappings = res && await haveTimeout(5_000, upnpClient.getMappings()).catch(() => null)
-    console.debug("mappings found", mappings?.map(x => x.description) || "none")
+    console.debug("mappings found", mappings?.map(x => x.description).join(', ') || "none")
     const localIps = await getIps(false)
     const gatewayIp = await gatewayIpPromise
     const localIp = res?.address || (gatewayIp ? _.maxBy(localIps, x => inCommon(x, gatewayIp)) : localIps[0])

@@ -11,6 +11,10 @@ Each plug-in has access to the same set of features.
 Normally you'll have a plug-in that's a theme, and another that's a firewall,
 but nothing is preventing a single plug-in from doing both tasks.
 
+## Backend / Frontend
+
+Plugins can run both in backend (the server) and frontend (the browser). Frontend files reside in the "public" folder, while all the rest is backend.
+
 ## Exported object
 `plugin.js` is a javascript module (executed by Node.js), and its main way to communicate with HFS is by exporting things.
 For example, it can define its description like this 
