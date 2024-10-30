@@ -12,7 +12,7 @@ export function getErrorSections() {
 // to be used with errors whose recipient is possibly human
 export async function sendErrorPage(ctx: Koa.Context, code=ctx.status) {
     ctx.type = 'text'
-    ctx.set('content-disposition', '') // reset ctx.attachment
+    ctx.set('content-disposition', '') // reset ctx.attachment (or forceDownload)
     ctx.status = code
     const msg = HTTP_MESSAGES[ctx.status]
     if (!msg) return

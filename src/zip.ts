@@ -8,7 +8,7 @@ import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { basename, dirname } from 'path'
-import { applyRange, monitorAsDownload } from './serveFile'
+import { applyRange, forceDownload, monitorAsDownload } from './serveFile'
 import { HTTP_OK } from './const'
 
 // expects 'node' to have had permissions checked by caller
@@ -19,7 +19,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     ctx.mime = 'zip'
     // ctx.query.list is undefined | string | string[]
     const name = list?.length === 1 ? safeDecodeURIComponent(basename(list[0]!)) : getNodeName(node)
-    ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
+    forceDownload(ctx, (isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
     const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
         : (async function*(): AsyncIterableIterator<VfsNode> {

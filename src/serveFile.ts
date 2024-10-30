@@ -16,11 +16,22 @@ import { getCurrentUsername } from './auth'
 import { sendErrorPage } from './errorPages'
 import { Readable } from 'stream'
 import { createHash } from 'crypto'
+import iconv from 'iconv-lite'
 
 const allowedReferer = defineConfig('allowed_referer', '')
 const maxDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
 const maxDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
 const maxDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
+
+function toAsciiEquivalent(s: string) {
+    return iconv.encode(iconv.decode(Buffer.from(s), 'utf-8'), 'ascii').toString().replaceAll('?', '')
+}
+
+export function forceDownload(ctx: Koa.Context, name='') {
+    // ctx.attachment is not working well on Windows. Eg: for file "èÖ.txt" it is producing `Content-Disposition: attachment; filename="??.txt"`. Koa uses module content-disposition, that actually produces a better result anyway: ``
+    ctx.set('Content-Disposition', 'attachment'
+        + (name && `; filename="${toAsciiEquivalent(name)}"; filename*=UTF-8''${encodeURI(name).replace(/#/g, '%23')}`))
+}
 
 export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const { source, mime } = node
@@ -37,7 +48,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     ctx.vfsNode = // legacy pre-0.51 (download-quota)
     ctx.state.vfsNode = node // useful to tell service files from files shared by the user
     if ('dl' in ctx.query) // please, download
-        ctx.attachment(name)
+        forceDownload(ctx, name)
     else if (ctx.get('referer')?.endsWith('/') && with_(ctx.get('accept'), x => x && !x.includes('text')))
         ctx.state.considerAsGui = true
     await serveFile(ctx, source||'', mimeString)
@@ -63,8 +74,7 @@ const cacheControlDiskFiles = defineConfig('cache_control_disk_files', 5)
 export async function serveFile(ctx: Koa.Context, source:string, mime?:string, content?: string | Buffer) {
     if (!source)
         return
-    const fn = basename(source)
-    mime = mime ?? mimeCfg.compiled()(fn)
+    mime ??= mimeCfg.compiled()(basename(source))
     if (mime === undefined || mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''
     if (mime)

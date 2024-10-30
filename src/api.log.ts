@@ -5,7 +5,7 @@ import { HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
 import events from './events'
 import { loggers } from './log'
 import { SendListReadable } from './SendList'
-import { serveFile } from './serveFile'
+import { forceDownload, serveFile } from './serveFile'
 import { ips } from './ips'
 
 export default {
@@ -15,7 +15,7 @@ export default {
             throw HTTP_NOT_FOUND
         if (!log.path)
             throw HTTP_NOT_ACCEPTABLE
-        ctx.attachment(log.path)
+        forceDownload(ctx, log.path)
         if (range)
             ctx.request.header.range = `bytes=${range}`
         if (ctx.method === 'POST') // this would cause method_not_allowed
