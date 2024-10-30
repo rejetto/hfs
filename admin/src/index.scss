@@ -71,3 +71,8 @@ h2.MuiDialogTitle-root { /* less padding */
   50% { transform: scale(1.5); color: var(--success); }
   100% { transform: inherit; color: inherit; }
 }
+
+// (try) avoid hidden scrollbars
+::-webkit-scrollbar { width: 4px }
+::-webkit-scrollbar-thumb { background: #8888 }
+::-webkit-scrollbar-track { background: #8882 }

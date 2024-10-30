@@ -18,7 +18,7 @@ export const FileIcon = InsertDriveFileOutlined
 
 export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
     const { vfs, selectedFiles } = useSnapState()
-    const [expanded, setExpanded] = useState(id2node.size < 20 ? Array.from(id2node.keys()) : ['/'])
+    const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
     const dragging = useRef<string>()
     const ref = useRef<HTMLUListElement>()
     if (!vfs)
