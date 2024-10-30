@@ -137,19 +137,20 @@ export default function VfsPage() {
             reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href)))
         ]
     }
+    const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
     return h(Fragment, {},
         h(Box, { mb: 2 },
             h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
             alert && h(Alert, alert),
         ),
-        h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0 },
-            h(Grid, { item: true, xs: 12, [sideBreakpoint]: 6, lg: 6, xl: 5 },
+        h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
+            h(Grid, { item: true, xs: 12, [sideBreakpoint]: 6, lg: 6, xl: 5, ...scrollProps  },
                 h(Flex, { mb: 1, flexWrap: 'wrap', gap: [0, 2] },
                     h(Typography, { variant: 'h6' }, "Virtual File System"),
                     h(VfsMenuBar, { statusApi }),
                 ),
                 vfs && h(VfsTree, { id2node, statusApi }) ),
-            isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%' },
+            isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
                 h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                     h(CardContent, {}, sideContent)) )
         )
