@@ -116,7 +116,7 @@ function FilesList() {
     })
     const focusIndex = useMemo(() => {
         if (!focus) return -1
-        const match = (x: typeof theList[0]) => x.name.toLocaleLowerCase().startsWith(focus)
+        const match = (x: typeof theList[0]) => x.name.toLocaleLowerCase().normalize().startsWith(focus)
         const inThisPage = thisPage.findIndex(match) // first attempt within this page
         if (inThisPage >= 0)
             return inThisPage + offset
