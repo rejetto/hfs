@@ -4,7 +4,6 @@ import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } fr
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
-import VfsMenuBar from './VfsMenuBar'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
 import { newDialog, onlyTruthy, prefix, VfsNodeAdminSend } from './misc'
 import { Flex, useBreakpoint } from './mui'
@@ -145,11 +144,7 @@ export default function VfsPage() {
         ),
         h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
             h(Grid, { item: true, xs: 12, [sideBreakpoint]: 6, lg: 6, xl: 5, ...scrollProps  },
-                h(Flex, { mb: 1, flexWrap: 'wrap', gap: [0, 2] },
-                    h(Typography, { variant: 'h6' }, "Virtual File System"),
-                    h(VfsMenuBar, { statusApi }),
-                ),
-                vfs && h(VfsTree, { id2node, statusApi }) ),
+                h(VfsTree, { id2node, statusApi }) ),
             isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
                 h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                     h(CardContent, {}, sideContent)) )

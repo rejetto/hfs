@@ -1,14 +1,17 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, ReactElement, useEffect, useRef, useState } from 'react'
+import { createElement as h, ReactElement, useCallback, useEffect, useRef, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
-import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
-    RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff } from '@mui/icons-material'
-import { Box } from '@mui/material'
+import {
+    ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
+    RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff, UnfoldMore, UnfoldLess
+} from '@mui/icons-material'
+import { Box, Typography } from '@mui/material'
 import { reloadVfs, VfsNode } from './VfsPage'
-import { onlyTruthy, Who, with_ } from './misc'
-import { iconTooltip } from './mui'
+import { onlyTruthy, useEffectOnce, Who, with_ } from './misc'
+import { Flex, iconTooltip, useToggleButton } from './mui'
+import VfsMenuBar from './VfsMenuBar'
 import { apiCall, ApiObject } from './api'
 import { alertDialog, confirmDialog } from './dialog'
 import _ from 'lodash'
@@ -18,39 +21,9 @@ export const FileIcon = InsertDriveFileOutlined
 
 export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, VfsNode>, statusApi: ApiObject }) {
     const { vfs, selectedFiles } = useSnapState()
-    const [expanded, setExpanded] = useState(Array.from(id2node.keys()))
+    const [expanded, setExpanded] = useState<string[]>([])
     const dragging = useRef<string>()
-    const ref = useRef<HTMLUListElement>()
-    if (!vfs)
-        return null
-    // be sure selected element is visible
-    const treeId = 'vfs'
-    const first = selectedFiles[0]
-    useEffect(() => document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'center', behavior: 'instant' as any }),
-        [first])
-    return h(TreeView, {
-        // @ts-ignore the type declared on the lib doesn't seem to be compatible with useRef()
-        ref,
-        expanded,
-        selected: selectedFiles.map(x => x.id),
-        multiSelect: true,
-        id: treeId,
-        sx: {
-            overflowX: 'auto',
-            maxWidth: ref.current && `calc(100vw - ${16 + ref.current.offsetLeft}px)`, // limit possible horizontal scrolling to this element
-            '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px', paddingLeft: '15px' },
-        },
-        onNodeSelect(ev, ids) {
-            if (typeof ids === 'string') return // shut up ts
-            state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
-        }
-    }, recur(vfs as Readonly<VfsNode>))
-
-    function isRestricted(who: Who | undefined) {
-        return who !== undefined && who !== true
-    }
-
-    function recur(node: Readonly<VfsNode>): ReactElement {
+    const Branch = useCallback(function({ node }: { node: Readonly<VfsNode> }): ReactElement {
         let { id, name, isRoot } = node
         const folder = node.type === 'folder'
         const ref = useRef<HTMLLIElement | null>()
@@ -61,36 +34,37 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                 el?.addEventListener('focusin', (e: any) => e.stopImmediatePropagation())
                 ref.current = el
             },
-            label: h(Box, {
-                draggable: !isRoot,
-                onDragStart() {
-                    dragging.current = id
+            label:
+                h(Box, {
+                    draggable: !isRoot,
+                    onDragStart() {
+                        dragging.current = id
+                    },
+                    onDragOver(ev) {
+                        if (!folder) return
+                        const src = dragging.current
+                        if (src?.startsWith(id) && !src.slice(id.length + 1, -1).includes('/')) return // dragging node (src) must not be direct child of destination (id)
+                        ev.preventDefault()
+                    },
+                    async onDrop() {
+                        const from = dragging.current
+                        if (!from) return
+                        if (await confirmDialog(`Moving ${from} under ${id}`))
+                            moveVfs(from, id)
+                    },
+                    sx: {
+                        display: 'flex',
+                        gap: '.5em',
+                        minHeight: '1.8em', pt: '.2em', // comfy, make single-line ones taller
+                    }
                 },
-                onDragOver(ev) {
-                    if (!folder) return
-                    const src = dragging.current
-                    if (src?.startsWith(id) && !src.slice(id.length + 1, -1).includes('/')) return // dragging node (src) must not be direct child of destination (id)
-                    ev.preventDefault()
-                },
-                async onDrop() {
-                    const from = dragging.current
-                    if (!from) return
-                    if (await confirmDialog(`Moving ${from} under ${id}`))
-                        moveVfs(from, id)
-                },
-                sx: {
-                    display: 'flex',
-                    gap: '.5em',
-                    minHeight: '1.8em', pt: '.2em', // comfy, make single-line ones taller
-                }
-            },
                 h(Box, { display: 'flex', flex: 0, },
                     vfsNodeIcon(node),
                     // attributes
                     h(Box, { sx: {
-                        flex: 0, ml: '2px', my: '2px', '&>*': { fontSize: '87%', opacity: .6, mt: '-2px' },
-                        display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto', height: '1em',
-                    } },
+                                flex: 0, ml: '2px', my: '2px', '&>*': { fontSize: '87%', opacity: .6, mt: '-2px' },
+                                display: 'grid', gridAutoFlow: 'column', gridTemplateRows: 'auto auto', height: '1em',
+                            } },
                         node.can_delete !== undefined && iconTooltip(Delete, "Delete permission"),
                         node.can_upload !== undefined && iconTooltip(Upload, "Upload permission"),
                         !isRoot && !node.source && !node.url && iconTooltip(Cloud, "Virtual (no source)"),
@@ -117,23 +91,57 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
             key: name,
             collapseIcon: h(ExpandMore, {
                 onClick(ev) {
-                    setExpanded( expanded.filter(x => x !== id) )
+                    setExpanded(was => was?.filter(x => x !== id) )
                     ev.preventDefault()
                     ev.stopPropagation()
                 }
             }),
             expandIcon: h(ChevronRight, {
                 onClick(ev) {
-                    setExpanded( [...expanded, id] )
+                    setExpanded(was => [...was!, id] )
                     ev.preventDefault()
                     ev.stopPropagation()
                 }
             }),
             nodeId: id
         }, isRoot && !node.children?.length ? h(TreeItem, { nodeId: '?', label: h('i', {}, "nothing here") })
-            : node.children?.map(recur))
-    }
+            : node.children?.map(x => h(Branch, { node: x})) )
 
+        function isRestricted(who: Who | undefined) {
+            return who !== undefined && who !== true
+        }
+    }, [setExpanded])
+    const ref = useRef<HTMLUListElement>()
+    const [expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({ icon: exp ? UnfoldLess : UnfoldMore, sx: {} }))
+    useEffectOnce(() => setExpanded(expandAll ? Array.from(id2node.keys()) : ['/']), [expandAll])
+    // be sure selected element is visible
+    const treeId = 'vfs'
+    const first = selectedFiles[0]
+    useEffect(() => document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'center', behavior: 'instant' as any }),
+        [first])
+    return h(Flex, { flexDirection: 'column', alignItems: 'stretch' },
+        h(Flex, { mb: 1, flexWrap: 'wrap', gap: [0, 2] },
+            h(Typography, { variant: 'h6' }, "Virtual File System"),
+            h(VfsMenuBar, { statusApi, add: toggleBtn }),
+        ),
+        vfs && h(TreeView, {
+            // @ts-ignore the type declared on the lib doesn't seem to be compatible with useRef()
+            ref,
+            expanded,
+            selected: selectedFiles.map(x => x.id),
+            multiSelect: true,
+            id: treeId,
+            sx: {
+                overflowX: 'auto',
+                maxWidth: ref.current && `calc(100vw - ${16 + ref.current.offsetLeft}px)`, // limit possible horizontal scrolling to this element
+                '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px', paddingLeft: '15px' },
+            },
+            onNodeSelect(ev, ids) {
+                if (typeof ids === 'string') return // shut up ts
+                state.selectedFiles = onlyTruthy(ids.map(id => id2node.get(id)))
+            }
+        }, h(Branch, { node: vfs as Readonly<VfsNode> }))
+    )
 }
 
 export function moveVfs(from: string, to: string) {
