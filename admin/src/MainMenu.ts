@@ -22,13 +22,14 @@ import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
 import { useWindowSize } from 'usehooks-ts'
 import { hTooltip } from './mui'
+import { PageProps } from './App'
 
 interface MenuEntry {
     path: string
     icon: SvgIconComponent
     label?: string
     title?: string
-    comp: FC
+    comp: FC<PageProps>
     noPaddingOnMobile?: true
 }
 

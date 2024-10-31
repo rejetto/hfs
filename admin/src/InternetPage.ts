@@ -18,6 +18,7 @@ import { ConfigForm } from './ConfigForm'
 import { DynamicDnsResult } from '../../src/ddns'
 import { ArrayField } from './ArrayField'
 import VfsPathField from './VfsPathField'
+import { PageProps } from './App'
 
 const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
@@ -25,7 +26,7 @@ const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
 const MSG_ISP = h('div', {}, "HFS will probably not be reachable on the Internet. ", wikiLink('Work-on-the-internet#double-nat', "Read more"))
 
-export default function InternetPage() {
+export default function InternetPage({ setTitleSide }: PageProps) {
     const [checkResult, setCheckResult] = useState<boolean | undefined>()
     const [checking, setChecking] = useState(false)
     const [mapping, setMapping] = useState(false)
@@ -45,8 +46,10 @@ export default function InternetPage() {
         if (verifyAgain.state) // skip first
             void verify(true)
     }, [verifyAgain.state])
+    setTitleSide(useMemo(() =>
+        h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "This page makes sure your site is working correctly on the Internet"),
+        []))
     return h(Flex, { vert: true, gap: '2em', maxWidth: '40em' },
-        h(Alert, { severity: 'info' }, "This page makes sure your site is working correctly on the Internet"),
         networkBox(),
         baseUrlBox(),
         httpsBox(),
