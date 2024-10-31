@@ -6,17 +6,19 @@ import { DataTable } from './DataTable';
 import { Alert, Box } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
 import { readFile, selectFiles } from './misc'
-import { Btn, IconBtn, useBreakpoint } from './mui'
+import { Btn, IconBtn } from './mui'
+import { PageProps } from './App'
 import _ from 'lodash'
 import { alertDialog, toast } from './dialog'
 import { Field, SelectField } from '@hfs/mui-grid-form';
 
-export default function LangPage() {
+export default function LangPage({ setTitleSide }: PageProps) {
     const { list, error, connecting, reload } = useApiList('get_langs')
     const langs = useMemo(() => ['en', ..._.uniq(list.map(x => x.code))], [list])
-    const large = useBreakpoint('md')
+    setTitleSide(useMemo(() =>
+        h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
+        []))
     return h(Fragment, {},
-        large && h(Alert, { severity: 'info' }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
         h(Box, { mt: 1, maxWidth: '40em', flex: 1, display: 'flex', flexDirection: 'column' },
             h(Box, { mb: 1, display: 'flex' },
                 h(Btn, { icon: Upload, onClick: add }, "Add"),

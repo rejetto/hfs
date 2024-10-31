@@ -11,13 +11,14 @@ import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
 import { TextEditor } from './TextEditor';
 import { state, useSnapState } from './state'
+import { PageProps } from './App'
 
 const names: any = {
     top: "Top of HTML Body",
     bottom: "Bottom of HTML Body",
 }
 
-export default function CustomHtmlPage() {
+export default function CustomHtmlPage({ setTitleSide }: PageProps) {
     const { data, reload } = useApiEx<{ sections: Dict<string> }>('get_custom_html')
     const { customHtmlSection: section } = useSnapState()
     const [all, setAll] = useState<Dict<string>>({})
@@ -35,11 +36,11 @@ export default function CustomHtmlPage() {
     }, [useDebounce(all, 500)])
     const anyChange = useMemo(() => !_.isEqualWith(saved, all, (a,b) => !a && !b || undefined),
         [saved, all])
+    setTitleSide(useMemo(() => h(Alert, { severity: 'info', sx: { display: { xs: 'none', md: 'inherit' }  } },
+        md("Add HTML code to some parts of the Front-end. It's saved to file `custom.html`, that you can edit directly with your editor of choice. "),
+        wikiLink('customization', "More help")
+    ), []))
     return h(Fragment, {},
-        h(Alert, { severity: 'info' },
-            md("Add HTML code to some parts of the Front-end. It's saved to file `custom.html`, that you can edit directly with your editor of choice. "),
-            wikiLink('customization', "More help")
-        ),
         h(Box, { display: 'flex', alignItems: 'center', gap: 1, mb: 1 },
             h(SelectField as Field<string>, {
                 label: "Section",

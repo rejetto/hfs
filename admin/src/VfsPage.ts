@@ -13,10 +13,11 @@ import { AlertProps } from '@mui/material/Alert/Alert'
 import FileForm, { Account } from './FileForm'
 import { Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
+import { PageProps } from './App'
 
 let selectOnReload: string[] | undefined
 
-export default function VfsPage() {
+export default function VfsPage({ setTitleSide }: PageProps) {
     const [id2node] = useState(() => new Map<string, VfsNode>())
     const { vfs, selectedFiles, movingFile } = useSnapState()
     const { data, reload, element } = useApiEx('get_vfs')
@@ -30,7 +31,7 @@ export default function VfsPage() {
         const ret = status?.urls.https || status?.urls.http
         return b && !ret.includes(b) ? [b, ...ret] : ret
     }, [status])
-    const single = selectedFiles.length < 2 && (selectedFiles[0] as VfsNode || vfs)
+    const single = selectedFiles?.length < 2 && (selectedFiles[0] as VfsNode || vfs)
     const accountsApi = useApiEx<{ list: Account[] }>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
 
     // this will take care of closing the dialog, for user's convenience, after "cut" button is pressed
@@ -39,6 +40,24 @@ export default function VfsPage() {
         if (movingFile === selectedFiles[0]?.id)
             closeDialogRef.current()
     }, [movingFile])
+
+    const anythingShared = !data?.root?.children?.length && !data?.root?.source
+    const alert: AlertProps | false = useMemo(() => anythingShared ? {
+        severity: 'warning',
+        children: "Add something to your shared files — click Add"
+    } : urls && {
+        severity: 'info',
+        children: [
+            "Your shared files can be browsed from ",
+            reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href)))
+        ]
+    }, [anythingShared, urls])
+
+
+    setTitleSide(useMemo(() => h(Box, { sx: { display: { xs: 'none', md: 'block' }  } },
+        h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
+        alert && h(Alert, alert),
+    ), [alert]))
 
     const sideContent = accountsApi.element || !vfs ? null
         : single ? h(FileForm, {
@@ -104,7 +123,7 @@ export default function VfsPage() {
 
         function consumeSelectOnReload() {
             if (selectOnReload)
-                closeDialogRef.current() // noop when side-paneling
+                closeDialogRef.current() // this is noop when side-paneling
             const ret = selectOnReload && onlyTruthy(selectOnReload.map(id => id2node.get(id)))
             selectOnReload = undefined
             return ret
@@ -125,30 +144,13 @@ export default function VfsPage() {
         id2node.clear()
         return element
     }
-    const anythingShared = !data?.root?.children?.length && !data?.root?.source
-    const alert: AlertProps | false = anythingShared ? {
-        severity: 'warning',
-        children: "Add something to your shared files — click Add"
-    } : urls && {
-        severity: 'info',
-        children: [
-            "Your shared files can be browsed from ",
-            reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href)))
-        ]
-    }
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
-    return h(Fragment, {},
-        h(Box, { mb: 2 },
-            h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
-            alert && h(Alert, alert),
-        ),
-        h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
-            h(Grid, { item: true, xs: 12, [sideBreakpoint]: 6, lg: 6, xl: 5, ...scrollProps  },
-                h(VfsTree, { id2node, statusApi }) ),
-            isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
-                h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
-                    h(CardContent, {}, sideContent)) )
-        )
+    return h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
+        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 6, lg: 6, xl: 5, ...scrollProps  },
+            h(VfsTree, { id2node, statusApi }) ),
+        isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
+            h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
+                h(CardContent, {}, sideContent)) )
     )
 }
 

@@ -1,12 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useState } from 'react'
+import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
 import { AppBar, Box, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
-import { useBreakpoint} from './mui'
+import { Flex, useBreakpoint } from './mui'
 import { LoginRequired } from './LoginRequired'
 import { Menu } from '@mui/icons-material'
 import { LocalizationProvider } from '@mui/x-date-pickers'
@@ -16,6 +16,8 @@ import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, isMac, xlate } from './misc'
 import { getLocale } from './locale'
+
+export interface PageProps { setTitleSide: (content: ReactNode) => void }
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
@@ -42,13 +44,15 @@ function ApplyTheme(props:any) {
     })
 }
 
+let titleSideSet: any
+
 function Routed() {
     const loc = useLocation().pathname.slice(1)
     const current = mainMenu.find(x => x.path === loc)
     let { title } = useSnapState()
     title = current && (current.title || getMenuLabel(current)) || title
     const [open, setOpen] = useState(false)
-    const large = useBreakpoint('lg')
+    const sideMenu = useBreakpoint('lg')
     const xs = current?.noPaddingOnMobile ? 0 : 1
     const navigate = useNavigate()
     useEventListener('keydown', ({ key, ctrlKey, altKey }) => {
@@ -60,16 +64,26 @@ function Routed() {
         if (path === undefined) return
         navigate(path || '/')
     })
+    const [titleSide, setTitleSide] = useState()
+    titleSideSet = null
+    const set = useCallback((x: any) => {
+        titleSideSet = x
+        setTimeout(() => setTitleSide(() => x))
+    }, [])
+    useEffect(() => {
+        if (!titleSideSet)
+            set(null)
+    })
     return h(Fragment, {},
         h(AriaOnly, {}, h('h1', {}, "Admin-panel")),
-        !large && h(StickyBar, { title, openMenu: () => setOpen(true) }),
-        !large && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
+        !sideMenu && h(StickyBar, { title, titleSide, openMenu: () => setOpen(true) }),
+        !sideMenu && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
             h(MainMenu, {
                 onSelect: () => setOpen(false),
                 itemTitle,
             })),
         h(Box, { display: 'flex', flex: 1, }, // horizontal layout for menu-content
-            large && h(MainMenu, { itemTitle, onSelect(){} }),
+            sideMenu && h(MainMenu, { itemTitle, onSelect(){} }),
             h(Box, {
                 component: 'main',
                 sx: {
@@ -85,10 +99,15 @@ function Routed() {
                     overflowX: 'clip', // keep wide things in space
                 }
             },
-                title && large && h(Typography, { variant:'h2', mb:2 }, title),
+                title && sideMenu && h(Flex, { gap: 4, '& .MuiAlert-root': { p: 0, backgroundColor: 'unset' } },
+                    h(Typography, { variant:'h2', mb:2, whiteSpace: 'nowrap' }, title),
+                    // @ts-ignore
+                    titleSide,
+                ),
                 h(Routes, {},
                     mainMenu.map((it,idx) =>
-                        h(Route, { key: idx, path: it.path, element: h(it.comp) })),
+                        // @ts-ignore
+                        h(Route, { key: idx, path: it.path, element: h(it.comp, { setTitleSide: set }) })),
                     h(Route, { path: 'edit', element: h(ConfigFilePage) })
                 )
             ),
@@ -100,8 +119,8 @@ function itemTitle(idx: number) {
     return idx < 10 ? `${isMac ? 'CTRL' : 'ALT'} + ${(idx+1) % 10}` : ''
 }
 
-function StickyBar({ title, openMenu }: { title?: string, openMenu: ()=>void }) {
-    return h(AppBar, { position: 'sticky', sx: { mb: 2 } },
+function StickyBar({ title, titleSide, openMenu }: { titleSide?: ReactNode, title?: string, openMenu: ()=>void }) {
+    return h(AppBar, { position: 'sticky', sx: { mb: 1 } },
         h(Toolbar, {},
             h(IconButton, {
                 size: 'large',
@@ -111,7 +130,18 @@ function StickyBar({ title, openMenu }: { title?: string, openMenu: ()=>void }) 
                 'aria-label': "menu",
                 onClick: openMenu
             }, h(Menu)),
-            h(Box, { component: 'h2', m: 0 }, title),
+            h(Flex, {
+                gap: 4,
+                '& .MuiAlert-root': {
+                    p: 0,
+                    backgroundColor: 'unset',
+                    '& .MuiAlert-icon': { py: 0 },
+                    '& .MuiAlert-message': { py: '1px' }
+                }
+            },
+                h(Box, { component: 'h2', m: 0, whiteSpace: 'nowrap' }, title),
+                titleSide
+            ),
         )
     )
 }
