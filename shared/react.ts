@@ -137,6 +137,15 @@ export function useGetSize() {
     }), [size, ref, propsRef])
 }
 
+export function useEffectOnce(cb: Callback, deps: any[]) {
+    const state = useRef<any>()
+    useEffect(() => {
+        if (_.isEqual(deps, state.current)) return
+        state.current = deps
+        cb(...deps)
+    }, deps)
+}
+
 type FunctionRef<T=HTMLElement> = (instance: (T | null)) => void
 export function passRef<T=any>(el: T, ...refs: (MutableRefObject<T> | FunctionRef<T>)[]) {
     for (const ref of refs)

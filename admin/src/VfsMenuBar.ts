@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h } from 'react'
+import { createElement as h, ReactNode } from 'react'
 import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
 import { Storage } from '@mui/icons-material'
 import { osIcon } from './LogsPage'
@@ -13,7 +13,7 @@ import { alertDialog, promptDialog } from './dialog'
 import { formatDiskSpace } from './FilePicker'
 import { getDiskSpaces } from '../../src/util-os'
 
-export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
+export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusApi: ApiObject }) {
     return h(Flex, {
         zIndex: 2,
         backgroundColor: 'background.paper',
@@ -36,6 +36,7 @@ export default function VfsMenuBar({ statusApi }: { statusApi: ApiObject }) {
                     .then(() => false), // no success-animation for IconBtn
                 alertDialog)
         }),
+        add,
         h(SystemIntegrationButton, statusApi.data)
     )
 }
