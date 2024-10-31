@@ -119,7 +119,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
     const first = selectedFiles[0]
     useEffect(() => document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'center', behavior: 'instant' as any }),
         [first])
-    return h(Flex, { flexDirection: 'column', alignItems: 'stretch' },
+    return h(Flex, { flexDirection: 'column', alignItems: 'stretch', flex: 1 },
         h(Flex, { mb: 1, flexWrap: 'wrap', gap: [0, 2] },
             h(Typography, { variant: 'h6' }, "Virtual File System"),
             h(VfsMenuBar, { statusApi, add: toggleBtn }),
@@ -132,6 +132,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
             multiSelect: true,
             id: treeId,
             sx: {
+                height: 0, flex: '1 1 auto',
                 overflowX: 'auto',
                 maxWidth: ref.current && `calc(100vw - ${16 + ref.current.offsetLeft}px)`, // limit possible horizontal scrolling to this element
                 '& ul': { borderLeft: '1px dashed #444', marginLeft: '15px', paddingLeft: '15px' },
