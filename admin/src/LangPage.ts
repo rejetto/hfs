@@ -26,7 +26,7 @@ export default function LangPage() {
             h(DataTable, {
                 error,
                 loading: connecting,
-                rows: list as any,
+                rows: useMemo(() => _.sortBy(list, x => (x.embedded ? 2 : 1) + x.code), [list.length]), // multi-sorting is only in pro version of DataGrid
                 hideFooter: true,
                 sx: { flex: 1 },
                 columns: [
