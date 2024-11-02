@@ -1,23 +1,19 @@
-import { dirname, resolve } from 'path'
-import { existsSync } from 'fs'
-import { exec, ExecOptions, execSync, spawnSync } from 'child_process'
-import { exists, onlyTruthy, prefix, splitAt } from './misc'
-import _ from 'lodash'
+import { dirname } from 'path'
+import { existsSync, statfsSync } from 'fs'
+import { exec, ExecOptions } from 'child_process'
+import { onlyTruthy } from './misc'
+import Parser from '@gregoranders/csv';
 import { pid } from 'node:process'
 import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
 
 const DF_TIMEOUT = 2000
-const LOGICALDISK_TIMEOUT = DF_TIMEOUT
 
-// not using statfsSync because it's not available in node 18.5.0 (latest version with pkg)
 export function getDiskSpaceSync(path: string) {
-    if (IS_WINDOWS)
-        return parseLogicaldisk(execSync(makeLogicaldisk(path), { timeout: LOGICALDISK_TIMEOUT }).toString())[0]
     while (path && !existsSync(path))
         path = dirname(path)
-    try { return parseDfResult(spawnSync('df', ['-k', path], { timeout: DF_TIMEOUT }).stdout.toString())[0] }
-    catch(e: any) { throw parseDfResult(e) }
+    const res = statfsSync(path)
+    return { free: res.bavail * res.bsize, total: res.blocks * res.bsize, name: path }
 }
 
 export function bashEscape(par: string) {
@@ -29,16 +25,15 @@ export function cmdEscape(par: string) {
 }
 
 export async function getDiskSpace(path: string) {
-    if (IS_WINDOWS)
-        return parseLogicaldisk(await runCmd(makeLogicaldisk(path), [], { timeout: LOGICALDISK_TIMEOUT }))[0]
-    while (path && !await exists(path))
+    while (path && !existsSync(path))
         path = dirname(path)
-    return parseDfResult(await promisify(exec)(`df -k`, { timeout: DF_TIMEOUT }).then(x => x.stdout, e => e))[0]
+    const res = statfsSync(path)
+    return { free: res.bavail * res.bsize, total: res.blocks * res.bsize, name: path }
 }
 
 export async function getDiskSpaces(): Promise<{ name: string, free: number, total: number, description?: string }[]> {
     if (IS_WINDOWS) {
-        const drives = await getDrives() // since network-drives can hang 'wmic' for many seconds checking disk space (issue#648), and a single timeout would make whole operation fail, so we fork the job on each drive
+        const drives = await getDrives()
         return onlyTruthy(await Promise.all(drives.map(getDiskSpace)))
     }
     return parseDfResult(await promisify(exec)(`df -k`, { timeout: DF_TIMEOUT }).then(x => x.stdout, e => e))
@@ -64,8 +59,8 @@ function parseDfResult(result: string | Error) {
 }
 
 export async function getDrives() {
-    const stdout = await runCmd('wmic logicaldisk get name')
-    return stdout.split('\n').slice(1).map(x => x.trim()).filter(Boolean)
+    const res = await runCmd('fsutil fsinfo drives') // example output: `Drives: C:\ D:\ Z:\`
+    return res.trim().replaceAll('\\', '').split(' ').slice(1)
 }
 
 // execute win32 shell commands
@@ -76,8 +71,10 @@ export async function runCmd(cmd: string, args: string[] = [], options: ExecOpti
 }
 
 async function getWindowsServicePids() {
-    const res = await runCmd(`wmic service get ProcessId`)
-    return _.uniq(res.split('\n').slice(1).map(x => Number(x.trim())))
+    const res = await runCmd('tasklist /svc /fo csv')
+    const parsed = new Parser().parse(res)
+    const no = parsed?.[1]?.[2]
+    return parsed.slice(2).filter(x => x[2] !== no).map(x => Number(x[1]))
 }
 
 export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => {
@@ -88,26 +85,3 @@ export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x =
     console.log("couldn't determine if we are running as a service")
     console.debug(e)
 })
-
-function parseKeyValueObjects<T extends string>(all: string, keySep='=', lineSep='\n', objectSep=/\n\n+/) {
-    return all.split(objectSep).map(obj =>
-        Object.fromEntries(obj.split(lineSep).map(kv => splitAt(keySep, kv))) ) as { [k in T]: string }[]
-}
-
-const wmicFields = ['Size','FreeSpace','Name','Description'] as const
-
-function makeLogicaldisk(path='') {
-    const drive = resolve(path).slice(0, 2).toUpperCase()
-    if (!drive.match(/^(|\w:)$/)) throw 'invalid-path'
-    return `wmic logicaldisk ${prefix(`where "DeviceID = '`, drive, `'"`)} get ${wmicFields.join()} /format:list`
-}
-
-function parseLogicaldisk(out: string) {
-    const objs = parseKeyValueObjects<typeof wmicFields[number]>(out.replace(/\r/g, ''))
-    return onlyTruthy(objs.map(x => x.Size && {
-        total: Number(x.Size),
-        free: Number(x.FreeSpace),
-        name: x.Name,
-        description: x.Description
-    }))
-}

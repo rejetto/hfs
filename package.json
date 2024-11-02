@@ -70,6 +70,7 @@
     ]
   },
   "dependencies": {
+    "@gregoranders/csv": "^0.0.13",
     "@koa/router": "^13.0.1",
     "@node-rs/crc32": "^1.10.3",
     "@rejetto/kvstorage": "^0.12.2",
