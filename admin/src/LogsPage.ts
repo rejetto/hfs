@@ -4,8 +4,10 @@ import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState }
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, apiCall, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
-    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent } from '@hfs/shared'
+import {
+    CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
+    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent, stringAfter
+} from '@hfs/shared'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
     hTooltip, Btn, wikiLink
@@ -286,18 +288,21 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
         ]
     })
 
-    function enhanceLogLine(x: any) {
-        if (!x) return
-        const { extra } = x
-        if ((extra?.country || x.country) && !showCountry)
+    function enhanceLogLine(row: any) {
+        if (!row) return
+        const { extra } = row
+        if ((extra?.country || row.country) && !showCountry)
             setShowCountry(true)
         if (extra?.ua && !showAgent)
             setShowAgent(true)
-        x.notes = extra?.dl ? "fully downloaded"
-            : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra?.size, { sep: NBSP })
-                : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
-                    : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (x.notes || '')
-        return x
+        if (row.uri) {
+            const partial = stringAfter('?', row.uri).includes('partial=')
+            row.notes = extra?.dl ? "fully downloaded"
+                : (row.method === 'PUT' || extra?.ul) ? "uploaded " + (partial ? "up to " : "") + formatBytes(extra?.size, { sep: NBSP })
+                    : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
+                        : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (row.notes || '')
+        }
+        return row
     }
 }
 
