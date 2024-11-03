@@ -17,6 +17,7 @@ import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, isMac, xlate } from './misc'
 import { getLocale } from './locale'
 
+// always use useMemo with setTitleSide
 export interface PageProps { setTitleSide: (content: ReactNode) => void }
 
 function App() {

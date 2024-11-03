@@ -4,7 +4,7 @@ import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff, Lock, FolderZip, Upload, Download, ChevronRight, ChevronLeft, History } from '@mui/icons-material'
-import { Box, Chip, ChipProps, Grid } from '@mui/material'
+import { Alert, Box, Chip, ChipProps, Grid } from '@mui/material'
 import { DataTable } from './DataTable'
 import {
     formatBytes, ipForUrl, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp, formatPerc, md, Callback,
@@ -20,8 +20,12 @@ import { state, useSnapState } from './state'
 import { useBlockIp } from './useBlockIp'
 import { alertDialog, confirmDialog } from './dialog'
 import { useInterval } from 'usehooks-ts'
+import { PageProps } from './App'
 
-export default function MonitorPage() {
+export default function MonitorPage({ setTitleSide }: PageProps) {
+    setTitleSide(useMemo(() =>
+            h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "If you are behind a proxy, connections list may not match browsers activity"),
+        []))
     return h(Fragment, {},
         h(MoreInfo),
         h(Connections),
