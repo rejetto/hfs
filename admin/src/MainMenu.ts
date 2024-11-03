@@ -17,7 +17,7 @@ import LogoutPage from './LogoutPage';
 import LangPage from './LangPage'
 import LogsPage from './LogsPage';
 import PluginsPage from './PluginsPage';
-import { getHFS, replaceStringToReact, REPO_URL } from '@hfs/shared'
+import { getHFS, replaceStringToReact, WEBSITE } from '@hfs/shared'
 import CustomHtmlPage from './CustomHtmlPage';
 import InternetPage from './InternetPage'
 import { useWindowSize } from 'usehooks-ts'
@@ -62,7 +62,7 @@ export default function Menu({ onSelect, itemTitle }: { onSelect: ()=>void, item
             }
         },
             h(Box, { id: 'hfs-name', display: 'flex', px: 2, py: .5, gap: 2, alignItems: 'center' },
-                h('a', { href: REPO_URL, target: 'website', style: { textDecoration: 'none' } },
+                h('a', { href: WEBSITE, target: 'website', style: { textDecoration: 'none' } },
                     h(Box, { color: 'primary.contrastText', fontSize: 'min(3rem, max(5vw, 4vh))' }, 'HFS')),
                 h(Box, { fontSize: 'small' }, replaceStringToReact(VERSION||'', /-/, () => h('br'))),
                 short && h('img', { src: logo, style: { height: '2.5em' } }),

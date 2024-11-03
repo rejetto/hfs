@@ -5,6 +5,7 @@ import { VfsNodeStored } from './vfs'
 import picomatch from 'picomatch/lib/picomatch' // point directly to the browser-compatible source
 export * from './cross-const'
 
+export const WEBSITE = 'https://rejetto.com/hfs/'
 export const REPO_URL = 'https://github.com/rejetto/hfs/'
 export const WIKI_URL = REPO_URL + 'wiki/'
 export const MINUTE = 60_000
