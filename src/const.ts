@@ -63,7 +63,7 @@ if (APP_PATH !== process.cwd())
 console.log('node', process.version)
 const bun = (globalThis as any).Bun
 if (bun) console.log('bun', bun.version)
-console.log('platform', process.platform, IS_BINARY ? 'binary' : basename(process.execPath))
+console.log('platform', process.platform, process.arch, IS_BINARY ? 'binary' : basename(process.execPath))
 console.log('pid', process.pid)
 
 function useHomeDir() {
