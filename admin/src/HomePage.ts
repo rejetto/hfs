@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, ReactNode, useState } from 'react'
+import { createElement as h, Fragment, ReactNode, useState } from 'react'
 import { Box, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
 import {
@@ -121,11 +121,13 @@ export default function HomePage() {
                     { k: 'update_to_beta', comp: CheckboxField, label: "Include beta versions" },
                 ] }
         }),
-        updates && with_(_.find(updates, 'isNewer'), newer =>
+        updates && with_(_.find(updates, 'isNewer'), newer => h(Fragment, {},
             !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
                 : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
                     : h(Flex, { vert: true },
-                        updates.map((x: any) => h(Update, { info: x })) )),
+                        updates.map((x: any) => h(Update, { info: x })) ),
+            entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
+        )),
         h(SwitchThemeBtn, { variant: 'outlined' }),
         Date.now() - Number(new Date(status.started)) > HOUR && h(Link, {
             title: "Donate",

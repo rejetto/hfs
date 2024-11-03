@@ -113,7 +113,7 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
             }
         }
         const format = '%s - %s [%s] "%s %s HTTP/%s" %d %s %s\n' // Apache's Common Log Format
-        const a = now.toString().split(' ')
+        const a = now.toString().split(' ') // like nginx, our default log contains the time of log writing
         const date = a[2]+'/'+a[1]+'/'+a[3]+':'+a[4]+' '+a[5]?.slice(3)
         const user = getCurrentUsername(ctx)
         const length = ctx.state.length ?? ctx.length
