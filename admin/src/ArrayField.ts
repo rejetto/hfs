@@ -9,7 +9,7 @@ import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-g
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import { DateTimeField } from './DateTimeField'
 import _ from 'lodash'
-import { Center, IconBtn } from './mui'
+import { Center, IconBtn, useBreakpoint } from './mui'
 import { DataTable } from './DataTable'
 
 type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean, autoRowHeight?: boolean }
@@ -31,6 +31,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
             h(DataTable, {
                 rows,
                 ...autoRowHeight && { getRowHeight: () => 'auto' as const },
+                ...!useBreakpoint('sm') && { compact: true },
                 sx: {
                     '.MuiDataGrid-virtualScroller': { minHeight: '3em' },
                     ...autoRowHeight && { '.MuiDataGrid-cell': { minHeight: '52px !important' } }
