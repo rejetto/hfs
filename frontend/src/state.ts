@@ -156,7 +156,7 @@ export class DirEntry implements StringifyProps<ServerDirEntry> {
         return this.p?.includes('A') || state.props?.can_archive && !this.p?.includes('a')
     }
     canDelete() {
-        return state.props?.can_delete || this.p?.includes('d')
+        return this.p?.includes('D') || state.props?.can_delete && !this.p?.includes('d')
     }
     canSelect() {
         if (this.url) return false

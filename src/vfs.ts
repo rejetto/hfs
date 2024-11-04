@@ -217,7 +217,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
     return ret
 
     function getCode() {
-        if (!node.source && perm === 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
+        if (!node.source && (perm === 'can_upload' || perm === 'can_delete')) // Upload possible only if we know where to store. First check node.source because is supposedly faster.
             return HTTP_FORBIDDEN
         // calculate value of permission resolving references to other permissions, avoiding infinite loop
         let who: Who | undefined

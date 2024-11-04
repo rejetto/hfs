@@ -122,7 +122,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
             const pr = node.can_read === WHO_NO_ONE && !(isFolder && filesInsideCould()) ? 'r'
                 : !hasPermission(node, 'can_read', ctx) ? 'R'
                 : ''
-            const pd = !can_delete && hasPermission(node, 'can_delete', ctx) ? 'd' : ''
+            const pd = Boolean(can_delete) === hasPermission(node, 'can_delete', ctx) ? '' : can_delete ? 'd' : 'D'
             const pa = Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
             return {
                 n: name + (isFolder ? '/' : ''),
