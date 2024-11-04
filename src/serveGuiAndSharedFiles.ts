@@ -6,7 +6,6 @@ import events from './events'
 import { ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
     HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK } from './cross-const'
 import { uploadWriter } from './upload'
-import { pipeline } from 'stream/promises'
 import formidable from 'formidable'
 import { Writable } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
@@ -48,7 +47,10 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         ctx.state.uploadPath = decPath
         const dest = uploadWriter(folder, rest, ctx)
         if (dest) {
-            void pipeline(ctx.req, dest)
+            ctx.req.pipe(dest).on('error', err => {
+                ctx.status = HTTP_SERVER_ERROR
+                ctx.body = err.message || String(err)
+            })
             await dest.lockMiddleware  // we need to wait more than just the stream
             ctx.body = {}
         }

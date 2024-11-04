@@ -135,6 +135,10 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
 
         const fileStream = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
             : fs.createWriteStream(tempName)
+        writeStream.on('error', e => {
+            releaseFile()
+            console.debug(e)
+        })
         writeStream.pipe(fileStream)
         Object.assign(obj, { fileStream })
         trackProgress()
@@ -239,6 +243,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     }
 
     function fail(status?: number, msg?: string) {
+        console.debug('upload failed', status, msg)
         releaseFile()
         if (status)
             ctx.status = status
