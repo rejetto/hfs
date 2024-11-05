@@ -46,7 +46,7 @@
         "enter_pass": "Enter new password",
         "enter_pass2": "RE-enter same new password",
         "pass2_mismatch": "The second password you entered did not match the first. Procedure aborted.",
-        "password_changed": "password_changed",
+        "password_changed": "Password changed",
         "Logout": "Logout",
         "connection error": "connection error",
         "Full timestamp:": "Full timestamp:",
