@@ -156,8 +156,10 @@ function FilesList() {
     const msgInstead = !list.length ? (!loading && (searchManuallyInterrupted ? t('stopped_before', "Stopped before finding anything") : t('empty_list', "Nothing here")))
         : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
 
+    const focusHint = `${t('focus_hint', "By typing on your keyboard, you search and focus elements of the list.")}\n\nESC: ${t`Cancel`}`
     return h(Fragment, {},
-        focus && h('div', { id: 'focus-typing', className: focusIndex < 0 ? 'focus-typing-mismatch' : '' }, focus, hIcon('info', { style: { cursor: 'default' }, title: `ESC: ${t`Cancel`}` })),
+        focus && h('div', { id: 'focus-typing', className: focusIndex < 0 ? 'focus-typing-mismatch' : '' }, focus,
+            hIcon('info', { style: { cursor: 'default' }, title: focusHint, onClick: () => alertDialog(focusHint) }) ),
         h('ul', { ref, className: 'dir' },
             msgInstead ? h('p', {}, msgInstead)
                 : thisPage.map((entry, idx) =>
