@@ -108,7 +108,7 @@ export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
 }
 
 function Dialog(d: DialogOptions) {
-    const ref = useRef<HTMLElement>()
+    const ref = useRef<HTMLElement>(null)
     const [shiftY, setShiftY] = useState(0)
     useEffect(()=>{
         const el = ref.current?.querySelector('.dialog') as HTMLElement | undefined
@@ -124,7 +124,11 @@ function Dialog(d: DialogOptions) {
     return h('div', {
             ref,
             className: 'dialog-backdrop '+(d.className||''),
-            onKeyDown,
+            onKeyDown(ev) {
+                if (ev.key === 'Escape')
+                    closeDialog()
+                ev.stopPropagation()
+            },
             onClick: (ev: any) => d.closable
                 && ev.target === ev.currentTarget // this test will tell us if really the backdrop was clicked
                     && closeDialog()
@@ -171,12 +175,6 @@ function Dialog(d: DialogOptions) {
 
 export function componentOrNode(x: ReactNode | FunctionComponent) {
     return isPrimitive(x) || isValidElement(x) ? x : h(x as any)
-}
-
-function onKeyDown(ev:any) {
-    if (ev.key === 'Escape')
-        closeDialog()
-    ev.stopPropagation()
 }
 
 export function newDialog(options: DialogOptions) {
