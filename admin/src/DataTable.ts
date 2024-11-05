@@ -132,6 +132,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             density: compact ? 'compact' : 'standard',
             columns: manipulatedColumns,
             apiRef,
+            disableRowSelectionOnClick: true,
             ...sizeGrid.props,
             ...rest,
             sx: {
