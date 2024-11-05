@@ -3,7 +3,7 @@
 import _ from "lodash"
 import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
-import { LinkOff, Lock, FolderZip, Upload, Download, ChevronRight, ChevronLeft, History } from '@mui/icons-material'
+import { LinkOff as DisconnectIcon, Lock, FolderZip, Upload, Download, ChevronRight, ChevronLeft, History } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps, Grid } from '@mui/material'
 import { DataTable } from './DataTable'
 import {
@@ -11,14 +11,14 @@ import {
     reactJoin,
 } from "./misc"
 import {
-    IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip, useToggleButton, Flex
+    IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip, useToggleButton, Flex, Btn
 } from './mui'
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { agentIcons, LogFile } from './LogsPage'
 import { state, useSnapState } from './state'
 import { useBlockIp } from './useBlockIp'
-import { alertDialog, confirmDialog } from './dialog'
+import { alertDialog, confirmDialog, toast } from './dialog'
 import { useInterval } from 'usehooks-ts'
 import { PageProps } from './App'
 
@@ -129,7 +129,7 @@ function Connections() {
     const logSize = logAble && wantLog ? 6 : 0
     return h(Fragment, {},
         h(Flex, {},
-            h(Box, { flex: 1 },
+            h(Flex, { flex: 1 },
                 h(SelectField as Field<boolean>, {
                     fullWidth: false,
                     value: monitorOnlyFiles,
@@ -147,7 +147,16 @@ function Connections() {
                     error,
                     rows,
                     noRows: monitorOnlyFiles && "No downloads at the moment",
-                    footerSide: () => pauseButton,
+                    footerSide: () => h(Flex, {},
+                        pauseButton,
+                        h(Btn, {
+                            size: 'small',
+                            icon: DisconnectIcon,
+                            labelIf: 'xl',
+                            confirm: "Disconnecting all connections but localhost. Continue?",
+                            onClick: () => apiCall('disconnect', { allButLocalhost: true }).then(x => toast(`Disconnected: ${x.result}`))
+                        }, "Disconnect all")
+                    ),
                     columns: [
                         {
                             field: 'ip',
@@ -249,7 +258,7 @@ function Connections() {
                     actionsProps: { hideUnder: 'sm' },
                     actions: ({ row }) => [
                         h(IconBtn, {
-                            icon: LinkOff,
+                            icon: DisconnectIcon,
                             title: "Disconnect",
                             doneMessage: true,
                             onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])).then(x => x.result > 0)

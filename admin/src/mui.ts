@@ -148,6 +148,8 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     if (link)
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(_.isString(labelIf) ? labelIf : 'xs') && (_.isBoolean(labelIf) ? labelIf : true)
+    if (!showLabel)
+        title = children
     const ref = useRefPass<HTMLButtonElement>(forwarded)
     const common = _.merge(propsForModifiedValues(modified), {
         ref,

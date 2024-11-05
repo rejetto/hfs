@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { Connection, getConnections } from './connections'
-import { apiAssertTypes, shortenAgent, try_, wait, wantArray } from './misc'
+import { apiAssertTypes, isLocalHost, shortenAgent, try_, wait, wantArray } from './misc'
 import { ApiHandlers } from './apiMiddleware'
 import Koa from 'koa'
 import { totalGot, totalInSpeed, totalOutSpeed, totalSent } from './throttler'
@@ -12,8 +12,9 @@ import { storedMap } from './persistence'
 
 export default {
 
-    async disconnect({ ip, port }) {
-        const match = _.matches({ ip, port })
+    async disconnect({ ip, port, allButLocalhost }) {
+        const match = allButLocalhost ? ((x: any) => !isLocalHost(x.ip))
+            : _.matches({ ip, port })
         const found = getConnections().filter(c => match(getConnAddress(c)))
         for (const c of found)
             c.socket.destroy()
