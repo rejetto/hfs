@@ -174,6 +174,8 @@
         "Logged out": "Logged out",
 
         "Cancel": "Cancel",
-        "allow_session_ip_change": "Allow IP change during this session"
+        "allow_session_ip_change": "Allow IP change during this session",
+
+        "focus_hint": "By typing on your keyboard, you search and focus elements of the list."
     }
 }

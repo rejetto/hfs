@@ -166,6 +166,8 @@
         "Logged out": "Arrivederci",
 
         "Cancel": "Annulla",
-        "allow_session_ip_change": "Permetti cambio IP in questa sessione"
+        "allow_session_ip_change": "Permetti cambio IP in questa sessione",
+
+        "focus_hint": "Scrivendo sulla tastiera cerchi tra gli elementi della lista."
     }
 }
