@@ -131,7 +131,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         return typeof v === 'string' && `\n--${pluginName}-${k}: ${v};`
                     }).filter(Boolean).join('')).join('')}
                     }
-                    ${getSection('style')}
+                    ${isFrontend && getSection('style')}
                     </style>
                     ${isFrontend && mapPlugins((plug,id) =>
                         plug.frontend_css?.map(f =>
