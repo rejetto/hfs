@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, ReactNode, useCallback, useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import MainMenu, { getMenuLabel, mainMenu } from './MainMenu'
-import { AppBar, Box, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
+import { AppBar, Box, BoxProps, Drawer, IconButton, ThemeProvider, Toolbar, Typography } from '@mui/material'
 import { anyDialogOpen, Dialogs } from './dialog'
 import { useMyTheme } from './theme'
 import { Flex, useBreakpoint } from './mui'
@@ -18,7 +18,7 @@ import { AriaOnly, isMac, xlate } from './misc'
 import { getLocale } from './locale'
 
 // always use useMemo with setTitleSide
-export interface PageProps { setTitleSide: (content: ReactNode) => void }
+export interface PageProps { setTitleSide: (content: ReactNode, fullWidth?: boolean) => void }
 
 function App() {
     return h(ThemeProvider, { theme: useMyTheme() },
@@ -66,10 +66,14 @@ function Routed() {
         navigate(path || '/')
     })
     const [titleSide, setTitleSide] = useState()
+    const [titleSideFullWidth, setTitleSideFullWidth] = useState(false)
     titleSideSet = null
-    const set = useCallback((x: any) => {
+    const set = useCallback((x: any, fullWidth=false) => {
         titleSideSet = x
-        setTimeout(() => setTitleSide(() => x))
+        setTimeout(() => {
+            setTitleSide(() => x)
+            setTitleSideFullWidth(() => fullWidth)
+        })
     }, [])
     useEffect(() => {
         if (!titleSideSet)
@@ -77,7 +81,12 @@ function Routed() {
     })
     return h(Fragment, {},
         h(AriaOnly, {}, h('h1', {}, "Admin-panel")),
-        !sideMenu && h(StickyBar, { title, titleSide, openMenu: () => setOpen(true) }),
+        !sideMenu && h(StickyBar, {
+            title,
+            titleSide,
+            openMenu: () => setOpen(true),
+            ...titleSideFullWidth as any && { props: { flex: 1 } }
+        }),
         !sideMenu && h(Drawer, { anchor:'left', open, onClose(){ setOpen(false) } },
             h(MainMenu, {
                 onSelect: () => setOpen(false),
@@ -103,7 +112,7 @@ function Routed() {
                 title && sideMenu && h(Flex, { gap: 4, '& .MuiAlert-root': { p: 0, backgroundColor: 'unset' } },
                     h(Typography, { variant:'h2', mb:2, whiteSpace: 'nowrap' }, title),
                     // @ts-ignore
-                    titleSide,
+                    h(Flex, { ...titleSideFullWidth as any && { width: '100%' } }, titleSide),
                 ),
                 h(Routes, {},
                     mainMenu.map((it,idx) =>
@@ -120,7 +129,7 @@ function itemTitle(idx: number) {
     return idx < 10 ? `${isMac ? 'CTRL' : 'ALT'} + ${(idx+1) % 10}` : ''
 }
 
-function StickyBar({ title, titleSide, openMenu }: { titleSide?: ReactNode, title?: string, openMenu: ()=>void }) {
+function StickyBar({ title, titleSide, openMenu, props }: { props?: BoxProps, titleSide?: ReactNode, title?: string, openMenu: ()=>void }) {
     return h(AppBar, { position: 'sticky', sx: { mb: 1 } },
         h(Toolbar, {},
             h(IconButton, {
@@ -133,6 +142,7 @@ function StickyBar({ title, titleSide, openMenu }: { titleSide?: ReactNode, titl
             }, h(Menu)),
             h(Flex, {
                 gap: 4,
+                props,
                 '& .MuiAlert-root': {
                     p: 0,
                     backgroundColor: 'unset',
