@@ -5,6 +5,7 @@ import http, { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import _ from 'lodash'
 import { text as stream2string, buffer } from 'node:stream/consumers'
+import { stringAfter } from './cross'
 export { stream2string }
 
 export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
@@ -54,8 +55,16 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, ...o
             }
             if (!res.statusCode || (httpThrow ?? true) && res.statusCode >= 400)
                 return reject(new Error(String(res.statusCode), { cause: res }))
-            if (res.headers.location && !noRedirect)
-                return resolve(httpStream(res.headers.location, options))
+            let r = res.headers.location
+            if (r && !noRedirect) {
+                if (r.startsWith('/')) // relative
+                    r = /(.+)\b\/(\b|$)/.exec(url)?.[1] + r
+                const stack = ((options as any)._stack ||= [])
+                if (stack.length > 20 || stack.includes(r))
+                    return reject(new Error('endless http redirection'))
+                stack.push(r)
+                return resolve(httpStream(r, options))
+            }
             resolve(res)
         }).on('error', e => {
             reject((req as any).res || e)
