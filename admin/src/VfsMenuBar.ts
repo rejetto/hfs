@@ -23,7 +23,6 @@ export default function VfsMenuBar({ statusApi, add }: { add: ReactNode, statusA
         h(Btn, {
             icon: Storage,
             title: "Disk spaces",
-            progress: false,
             onClick: () => apiCall<Awaited<ReturnType<typeof getDiskSpaces>>>('get_disk_spaces').then(res =>
                 alertDialog(h(List, { dense: true }, res.map(x => h(ListItem, { key: x.name },
                     h(ListItemIcon, {}, h(Storage)),

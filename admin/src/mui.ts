@@ -144,7 +144,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     const [loadingState, setLoadingState] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
-    disabled = loadingState || progress || disabled ? true : undefined
+    disabled = progress || disabled ? true : undefined
     if (link)
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(_.isString(labelIf) ? labelIf : 'xs') && (_.isBoolean(labelIf) ? labelIf : true)
@@ -156,6 +156,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         disabled,
         'aria-hidden': disabled,
         async onClick(...args: any[]) {
+            if (loadingState) return
             if (confirm && !await confirmDialog(confirm === true ? "Are you sure?" : confirm)) return
             const ret = onClick?.apply(this, args as any)
             if (ret && ret instanceof Promise) {

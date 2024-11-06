@@ -100,7 +100,6 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 size,
                 disabled: !row.started && "Start plugin to access options"
                     || !row.config && "No options available for this plugin",
-                progress: false,
                 async onClick() {
                     const { config: lastSaved } = await apiCall('get_plugin', { id })
                     const values = await formDialog({
