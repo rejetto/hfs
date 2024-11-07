@@ -38,6 +38,7 @@
     "selfCheckServices": [
         {
             "url": "http://hfstest.rejetto.com/v3?url=$URL",
+            "headers": {"User-Agent": "HFS"},
             "regexpFailure": "\"error\"",
             "regexpSuccess": "\"good\""
         }
