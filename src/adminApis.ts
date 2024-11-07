@@ -200,5 +200,5 @@ export function anyAccountCanLoginAdmin() {
 }
 
 export function allowAdmin(ctx: Koa.Context) {
-    return adminNet.compiled()(ctx.ip)
+    return isLocalHost(ctx) || adminNet.compiled()(ctx.ip)
 }
