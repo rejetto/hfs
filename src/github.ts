@@ -11,7 +11,7 @@ import {
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
 import {
-    DEV, HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
+    argv, HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
     HTTP_SERVER_ERROR, VERSION
 } from './const'
 import { rename, rm } from 'fs/promises'
@@ -235,7 +235,7 @@ export let blacklistedInstalledPlugins: string[] = []
 const FN = 'central.json'
 let builtIn = JSON.parse(readFileSync(join(__dirname, '..', FN), 'utf8'))
 export const getProjectInfo = debounceAsync(
-    () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
+    () => argv.central === false ? Promise.resolve(builtIn) : readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .then(JSON.parse, () => null)
         .then(o => {
             if (o)
