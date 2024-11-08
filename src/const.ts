@@ -46,6 +46,7 @@ console.log(`© Massimo Melina <a@rejetto.com> - License https://www.gnu.org/lic
 console.log('started', HFS_STARTED.toLocaleString(), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
+console.debug('arguments', argv)
 const winExe = IS_WINDOWS && process.execPath.match(/(?<!node)\.exe$/i)
 // still considering whether to use ".hfs" with Windows users, who may be less accustomed to it
 const dir = argv.cwd || useHomeDir() && join(homedir(), '.hfs')
