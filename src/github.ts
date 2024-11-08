@@ -231,7 +231,7 @@ export const getProjectInfo = debounceAsync(
     () => readGithubFile(`${HFS_REPO}/${HFS_REPO_BRANCH}/${FN}`)
         .then(JSON.parse, () => null)
         .then(o => {
-            o = Object.assign({ ...builtIn }, DEV ? null : o) // fall back to built-in
+            o = Object.assign({ ...builtIn }, o) // fall back to built-in
             // merge byVersions info in the main object, but collect alerts separately, to preserve multiple instances
             const allAlerts: string[] = [o.alert]
             for (const [ver, more] of Object.entries(popKey(o, 'byVersion') || {}))
