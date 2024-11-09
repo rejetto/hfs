@@ -60,7 +60,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         stop?.()
         if (err?.message?.includes('fetch')) {
             console.error(err.message)
-            throw Error("Network error")
+            throw Error("Server unreachable")
         }
         throw aborted || err
     }).finally(() => clearTimeout(timeout)), {
