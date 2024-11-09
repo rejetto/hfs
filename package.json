@@ -73,7 +73,7 @@
     "@gregoranders/csv": "^0.0.13",
     "@koa/router": "^13.0.1",
     "@node-rs/crc32": "^1.10.3",
-    "@rejetto/kvstorage": "^0.12.2",
+    "@rejetto/kvstorage": "^0.13.0",
     "acme-client": "^5.4.0",
     "buffer-crc32": "^1.0.0",
     "fast-glob": "^3.2.7",
