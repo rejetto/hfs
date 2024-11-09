@@ -92,6 +92,24 @@ export async function promptDialog(msg: string, { value, type, helperText, trim=
     }
 }
 
+export async function formDialog({ ...rest }: DialogOptions): Promise<any> {
+    return new Promise<any>(resolve => {
+        const { close } = newDialog({
+            className: 'dialog-form',
+            ...rest,
+            onClose: resolve,
+            Content() {
+                return h('form', {
+                    onSubmit(ev: any) {
+                        ev.preventDefault()
+                        close(Object.fromEntries(new FormData(ev.target).entries()))
+                    },
+                }, h(rest.Content))
+            }
+        })
+    })
+}
+
 export type AlertType = 'error' | 'warning' | 'info'
 
 export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info') {

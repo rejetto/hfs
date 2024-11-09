@@ -3,23 +3,8 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    dirStream,
-    getOrSet,
-    isDirectory,
-    makeMatcher,
-    setHidden,
-    onlyTruthy,
-    isValidFileName,
-    throw_,
-    VfsPerms,
-    Who,
-    isWhoObject,
-    WHO_ANY_ACCOUNT,
-    defaultPerms,
-    PERM_KEYS,
-    removeStarting,
-    HTTP_SERVER_ERROR,
-    try_
+    dirStream, getOrSet, isDirectory, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
+    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -28,6 +13,10 @@ import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS, MIME_AUTO } from
 import events from './events'
 import { expandUsername } from './perm'
 import { getCurrentUsername } from './auth'
+import { Stats } from 'node:fs'
+import fswin from 'fswin'
+
+const showHiddenFiles = defineConfig('show_hidden_files', false)
 
 type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
 
@@ -42,12 +31,15 @@ export interface VfsNodeStored extends VfsPerms {
     rename?: Record<string, string>
     masks?: Masks // express fields for descendants that are not in the tree
     accept?: string
+    comment?: string
+    icon?: string
 }
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity
     original?: VfsNode // if this is a temp node but reflecting an existing node
     parent?: VfsNode // available when original is available
     isFolder?: boolean
+    stats?: Stats
 }
 
 export function permsFromParent(parent: VfsNode, child: VfsNode) {
@@ -117,13 +109,13 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     const ret = await getNodeByName(name, parent)
     if (!ret)
         return
-    if (parent.default) // web folders have this default setting to ensure a standard behavior
-        inheritFromParent({ mime: { '*': MIME_AUTO } }, ret)
     if (rest || ret?.original)
         return urlToNode(rest, ctx, ret, getRest)
     if (ret.source)
         try {
-            const st = await fs.stat(ret.source)  // check existence
+            if (!showHiddenFiles.get() && await isHiddenFile(ret.source))
+                throw 'hiddenFile'
+            const st = ret.stats || await fs.stat(ret.source)  // check existence
             ret.isFolder = st.isDirectory()
         }
         catch {
@@ -134,6 +126,11 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
             return parent
     }
     return ret
+}
+
+async function isHiddenFile(path: string) {
+    return IS_WINDOWS ? new Promise(res => fswin.getAttributes(path, x => res(x?.IS_HIDDEN)))
+        : path[0] === '.'
 }
 
 export async function getNodeByName(name: string, parent: VfsNode) {
@@ -194,13 +191,13 @@ export function getNodeName(node: VfsNode) {
 export async function nodeIsDirectory(node: VfsNode) {
     if (node.isFolder !== undefined)
         return node.isFolder
-    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (!node.source || await isDirectory(node.source)))
+    const isFolder = Boolean(node.children?.length || !nodeIsLink(node) && (node.stats?.isDirectory() ?? (!node.source || await isDirectory(node.source))))
     setHidden(node, { isFolder }) // don't make it to the storage (a node.isTemp doesn't need it to be hidden)
     return isFolder
 }
 
 export async function hasDefaultFile(node: VfsNode, ctx: Koa.Context) {
-    return node.default && await urlToNode(node.default, ctx, node) || undefined
+    return node.default && await nodeIsDirectory(node) && await urlToNode(node.default, ctx, node) || undefined
 }
 
 export function nodeIsLink(node: VfsNode) {
@@ -220,7 +217,7 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
     return ret
 
     function getCode() {
-        if (!node.source && perm === 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
+        if (!node.source && (perm === 'can_upload' || perm === 'can_delete')) // Upload possible only if we know where to store. First check node.source because is supposedly faster.
             return HTTP_FORBIDDEN
         // calculate value of permission resolving references to other permissions, avoiding infinite loop
         let who: Who | undefined
@@ -290,13 +287,15 @@ export async function* walkNode(parent: VfsNode, {
     && !masksCouldGivePermission(parent.masks, requiredPerm))
         return
 
+    let n = 0
     try {
         let lastDir = prefixPath.slice(0, -1) || '.'
         parentsCache.set(lastDir, parent)
-        // it's important to keep using dirStream in deep-mode, as it is manyfold faster (it parallelizes)
-        for await (const [path, isFolder] of dirStream(source, { depth, onlyFolders })) {
+        for await (const entry of dirStream(source, { depth, onlyFolders, hidden: showHiddenFiles.get() })) {
             if (ctx?.req.aborted)
                 return
+            const {path} = entry
+            const isFolder = entry.isDirectory()
             const name = prefixPath + (parent.rename?.[path] || path)
             if (took?.has(normalizeFilename(name))) continue
             if (depth) {
@@ -315,11 +314,14 @@ export async function* walkNode(parent: VfsNode, {
                 parentsCache.set(name, item)
             if (await canSee(item))
                 yield item
+            entry.closingBranch?.then(p =>
+                parentsCache.delete(p || '.'))
         }
     }
     catch(e) {
-        console.debug('glob', source, e) // ENOTDIR, or lacking permissions
+        console.debug('walkNode', source, e) // ENOTDIR, or lacking permissions
     }
+    parentsCache.clear() // hoping for faster GC
 
     // item will be changed, so be sure to pass a temp node
      async function canSee(item: VfsNode) {

@@ -18,6 +18,7 @@ import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
 import { dontOverwriteUploading } from './upload'
 
+const splitUploads = defineConfig(CFG.split_uploads, 0)
 export const logGui = defineConfig(CFG.log_gui, false)
 _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
 
@@ -65,7 +66,7 @@ function adjustBundlerLinks(ctx: Koa.Context, uri: string, data: string | Buffer
 const getFaviconTimestamp = debounceAsync(async () => {
     const f = favicon.get()
     return !f ? 0 : fs.stat(f).then(x => x?.mtimeMs || 0, () => 0)
-}, 0, { retain: 5_000 })
+}, { retain: 5_000 })
 
 async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const session = await refresh_session({}, ctx)
@@ -96,10 +97,6 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
             const isOpen = !isClose
             if (isHead && isOpen)
                 return all + `
-                    ${isFrontend && `
-                        <title>${title.get()}</title>
-                        <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
-                    ` + getSection('htmlHead')}
                     <script>
                     HFS = ${JSON.stringify({
                         VERSION,
@@ -110,13 +107,18 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         loadScripts: Object.fromEntries(mapPlugins((p, id) =>  [id, p.frontend_js?.map(f => f.includes('//') ? f : pub + id + '/' + f)])),
                         prefixUrl: ctx.state.revProxyPath,
                         dontOverwriteUploading: dontOverwriteUploading.get(),
+                        splitUploads: splitUploads.get(),
                         forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
                         customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
                         lang
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
-                    document.documentElement.setAttribute('ver', '${VERSION.split('-')[0] /*for style selectors*/}')
+                    document.documentElement.setAttribute('ver', HFS.VERSION.split('-')[0])
                     </script>
+                    ${isFrontend && `
+                        <title>${title.get()}</title>
+                        <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
+                    ${getSection('htmlHead')}`}
                 `
             if (isBody && isOpen)
                 return `${all}
@@ -129,7 +131,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         return typeof v === 'string' && `\n--${pluginName}-${k}: ${v};`
                     }).filter(Boolean).join('')).join('')}
                     }
-                    ${getSection('style')}
+                    ${isFrontend && getSection('style')}
                     </style>
                     ${isFrontend && mapPlugins((plug,id) =>
                         plug.frontend_css?.map(f =>

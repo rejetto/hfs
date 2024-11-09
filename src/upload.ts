@@ -1,13 +1,11 @@
-import { getNodeByName, hasPermission, statusCodeForMissingPerm, VfsNode } from './vfs'
+import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
-import { HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR,
-    HTTP_BAD_REQUEST } from './const'
+import {
+    HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR, HTTP_BAD_REQUEST
+} from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import {
-    Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_,
-    createStreamLimiter
-} from './misc'
+import { Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -89,6 +87,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT, 'exists')
     openFiles.add(fullPath)
+    let overwriteRequestedButForbidden = false
     try {
         // if upload creates a folder, then add meta to it too
         if (!dir.endsWith(':\\') && fs.mkdirSync(dir, { recursive: true }))
@@ -150,8 +149,13 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
                 }
+                if (ctx.query.partial) return // this upload is partial, and we are supposed to leave the upload as unfinished, with the temp name
                 let dest = fullPath
                 if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
+                    if (overwriteRequestedButForbidden) {
+                        await rm(tempName)
+                        return fail()
+                    }
                     const ext = extname(dest)
                     const base = dest.slice(0, -ext.length || Infinity)
                     let i = 1
@@ -190,7 +194,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
             let lastGot = 0
             let lastGotTime = 0
             const opTotal = reqSize + resume
-            Object.assign(ctx.state, { op: 'upload', opTotal, opOffset: resume / opTotal, opProgress: 0 })
+            Object.assign(ctx.state, { opTotal, opOffset: resume / opTotal, opProgress: 0 })
             const conn = updateConnectionForCtx(ctx)
             if (!conn) return
             const h = setInterval(() => {
@@ -210,10 +214,11 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
     }
 
     async function overwriteAnyway() {
-        if (ctx.query.overwrite === undefined // legacy pre-0.52
-            && ctx.query.existing !== 'overwrite') return
+        if (ctx.query.existing !== 'overwrite') return false
         const n = await getNodeByName(path, base)
-        return n && hasPermission(n, 'can_delete', ctx)
+        if (n && !statusCodeForMissingPerm(n, 'can_delete', ctx)) return true
+        overwriteRequestedButForbidden = true
+        return false
     }
 
     function delayedDelete(path: string, secs: number, cb?: Callback) {

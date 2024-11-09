@@ -1,7 +1,7 @@
 import { t, useI18N } from './i18n'
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog, anyDialogOpen
+    pathEncode, closeDialog, anyDialogOpen, Falsy
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
@@ -9,8 +9,8 @@ import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
 import { DirEntry, state } from './state'
 import { deleteFiles } from './menu'
 import { Link, LinkProps } from 'react-router-dom'
-import { fileShow, getShowType } from './show'
-import { alertDialog, promptDialog } from './dialog'
+import { fileShow, getShowComponent } from './show'
+import { alertDialog, promptDialog, toast } from './dialog'
 import { apiCall, useApi } from '@hfs/shared/api'
 import { inputComment } from './upload'
 import { cut } from './clip'
@@ -26,13 +26,12 @@ interface FileMenuEntry {
     onClick?: (ev:MouseEvent<Element>) => any
 }
 
-export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMenuEntry | 'open' | 'delete' | 'show')[]) {
+export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy | FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder, s } = entry
     const canRead = !entry.p?.includes('r')
-    const canArchive = entry.p?.includes('A') || state.props?.can_archive && !entry.p?.includes('a')
     const canList = !entry.p?.match(/L/i)
     const forbidden = entry.cantOpen === DirEntry.FORBIDDEN
-    const cantDownload = forbidden || isFolder && !(canRead && canArchive && canList) // folders needs list+read+archive
+    const cantDownload = forbidden || isFolder && !(canRead && entry.canArchive() && canList) // folders needs list+read+archive
     const menu = [
         !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
@@ -50,14 +49,14 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
                 return !isFolder || open.onClick ? open : h(LinkClosingDialog, { to: uri, reloadDocument: entry.web }, hIcon(open.icon), open.label)
             }
             if (x === 'delete')
-                return (state.props?.can_delete || entry.p?.includes('d')) && {
+                return entry.canDelete() && {
                     id: 'delete',
                     label: t`Delete`,
                     icon: 'delete',
                     onClick: () => deleteFiles([entry.uri])
                 }
             if (x === 'show')
-                return !entry.cantOpen && getShowType(entry) && {
+                return !entry.cantOpen && getShowComponent(entry) && {
                     id: 'show',
                     label: t`Show`,
                     icon: 'image',
@@ -79,14 +78,13 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             id: 'folder',
             label: t`Folder`,
             value: h(Link, {
-                to: (folder.startsWith('/') ? '' : location.pathname) + folder.split('/').map(encodeURIComponent).join('/') + '/',
+                to: (folder.startsWith('/') ? '' : location.pathname) + pathEncode(folder) + '/',
                 onClick: () => closeDialog(null, true)
             }, folder.replaceAll('/', ' / '))
         },
     ].filter(Boolean)
     const res = hfsEvent('fileMenu', { entry, menu, props })
-    if (res)
-        menu.push(...res.flat())
+    menu.push(...res.flat()) // flat because each plugin may return an array of entries
     const ico = getEntryIcon(entry)
     const { close } = newDialog({
         title: isFolder ? t`Folder menu` : t`File menu`,
@@ -99,7 +97,8 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (FileMe
             const {t} = useI18N()
             const details = useApi('get_file_details', { uris: [entry.uri] }).data?.details?.[0]
             const showProps = [ ...props,
-                with_(details?.upload, x => x && { id: 'uploader', label: t`Uploader`, value: x.ip + prefix(' (', x.username, ')') })
+                with_(renderUploaderFromDetails(details), value =>
+                    value && { id: 'uploader', label: t`Uploader`, value })
             ]
             return h(Fragment, {},
                 h('dl', { className: 'file-dialog-properties' },
@@ -147,30 +146,28 @@ async function rename(entry: DirEntry) {
     if (!dest) return
     const { n, uri } = entry
     await apiCall('rename', { uri, dest }, { modal: working })
-    const renamingCurrentFolder = uri === location.pathname
-    if (!renamingCurrentFolder) {
-        // update state instead of re-getting the list
-        const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
-        const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping old key, we avoid unmounting the element, that's causing focus lost
-        const i = _.findIndex(state.list, { n })
-        state.list[i] = newEntry
-        // update filteredList too
-        const j = _.findIndex(state.filteredList, { n })
-        if (j >= 0)
-            state.filteredList![j] = newEntry
-    }
-    alertDialog(t`Operation successful`).then(() => {
-        if (renamingCurrentFolder)
-            getHFS().navigate(uri + '../' + pathEncode(dest) + '/')
-    })
+    const MSG = t`Operation successful`
+    if (uri === location.pathname) //current folder
+        return alertDialog(MSG).then(() =>
+            getHFS().navigate(uri + '../' + pathEncode(dest) + '/') )
+    // update state instead of re-getting the list
+    const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
+    const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping old key, we avoid unmounting the element, that's causing focus lost
+    const i = _.findIndex(state.list, { n })
+    state.list[i] = newEntry
+    // update filteredList too
+    const j = _.findIndex(state.filteredList, { n })
+    if (j >= 0)
+        state.filteredList![j] = newEntry
+    toast(MSG, 'success')
 }
 
 async function editComment(entry: DirEntry) {
     const res = await inputComment(entry.name, entry.comment)
-    if (res === null) return
+    if (res === undefined) return
     await apiCall('comment', { uri: entry.uri, comment: res }, { modal: working })
     updateEntry(entry, e => e.comment = res)
-    alertDialog(t`Operation successful`)
+    toast(t`Operation successful`, 'success')
 }
 
 function updateEntry(entry: DirEntry, cb: (e: DirEntry) => unknown) {
@@ -200,4 +197,10 @@ export function makeOnClickOpen(entry: DirEntry) {
             return setTimeout(() => getHFS().navigate(entry.uri)) // couldn't find the reason why navigating sync is reverted back
         location.href = entry.uri
     }
+}
+
+function renderUploaderFromDetails(details: any) {
+    if (!details) return
+    const { upload: u } = details
+    return u && `${u.username||''}${prefix('@', u.ip)}`
 }

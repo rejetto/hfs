@@ -11,6 +11,10 @@ Each plug-in has access to the same set of features.
 Normally you'll have a plug-in that's a theme, and another that's a firewall,
 but nothing is preventing a single plug-in from doing both tasks.
 
+## Backend / Frontend
+
+Plugins can run both in backend (the server) and frontend (the browser). Frontend files reside in the "public" folder, while all the rest is backend.
+
 ## Exported object
 `plugin.js` is a javascript module (executed by Node.js), and its main way to communicate with HFS is by exporting things.
 For example, it can define its description like this 
@@ -120,16 +124,20 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
 - `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to front-end.
 - `customHtml: object | () => object` return custom-html sections programmatically.
+- `customRest: { [name]: (parameters: object) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
+- `customApi: { [name]: (parameters) => any }` declare functions to be called by other plugins (only backend, not frontend) using `api.customApiCall` (documented below) 
 
 ### FieldDescriptor
 
 Currently, these properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'array' | 'username'ì` . Default is `string`.
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set.
 - `helperText: string` extra text printed next to the field.
 - `frontend: boolean` expose this setting on the frontend, so that javascript can access it 
-   using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`
+   using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`.
+   Hint: if you need to use a numeric config in CSS but you need to add a unit (like `em`),
+   the trick is to use something like this `calc(var(--plugin-something) * 1em)`.
 
 Based on `type`, other properties are supported:
 - `string`
@@ -154,6 +162,9 @@ Based on `type`, other properties are supported:
     - `defaultPath: string` what path to start from if no value is set. E.g. __dirname if you want to start with your plugin's folder.
     - `fileMask: string` restrict files that are displayed. E.g. `*.jpg|*.png`
 - `username`
+    - `groups: undefined | boolean` true if you want only groups, false if you want only users. Default is undefined.
+    - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
+      and the resulting value will be array of strings, instead of a string. Default is false.
 
 ## api object
 
@@ -170,6 +181,13 @@ The `api` object you get as parameter of the `init` contains the following:
 - `getHfsConfig(key: string): any` similar to getConfig, but retrieves HFS' config instead.
 
 - `log(...args)` print log in a standard form for plugins.
+
+- `addBlock({ ip, expire?, comment?, disabled? }, merge?)` add a blocking rule on specified IP. You can use merge to
+   append the IP to an existing rule (if any, otherwise is created). Eg: 
+    ```js  
+    // try to append to existing rule, by comment
+    addBlock({ ip: '1.2.3.4' }, { comment: "banned by my plugin" }) 
+    ```
 
 - `Const: object` all constants of the `const.ts` file are exposed here. E.g. BUILD_TIMESTAMP, API_VERSION, etc.
 
@@ -208,6 +226,10 @@ The `api` object you get as parameter of the `init` contains the following:
   DB is automatically closed when the plugin is unloaded. Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
 
 - `notifyClient(channel: string, eventName: string, data?: any)` send a message to those frontends that are on the same channel.
+
+- `misc` many functions and constants available in [misc.ts](https://github.com/rejetto/hfs/blob/main/src/misc.ts).
+  These are not documented, probably never will, and are subject to change without notifications,
+  but you can study the sources if you are interested in using them. It's just a shorter version of `api.require('./misc')`
 
 ## Front-end specific
 
@@ -254,6 +276,12 @@ The HFS objects contains many properties:
 - `debounceAsync: function` like lodash.debounce, but also avoids async invocations to overlap.
   For details please refer to `src/debounceAsync.ts`.
 - `loadScript(uri: string): Promise` load a js file. If uri is relative, it is based on the plugin's public folder.
+- `customRestCall(name: string, parameters?: object): Promise<any>` call backend functions exported with `customRest`.
+- `userBelongsTo(groupOrUsername: string): boolean` returns true if logged in account belongs to the specified group name. 
+  Returns true if the specified name is the one of the logged in account.
+- `DirEntry: class_constructor(n :string, otherProps?: DirEntry)` this is the class of the objects inside `HFS.state.list`;
+  in case you need to add to the list, do it by instantiating this class. E.g. `new HFS.DirEntry(name)`
+- `fileShow(entry: DirEntry, options?: { startPlaying: true )` open file-show on the specified entry.
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -280,90 +308,111 @@ Some frontend-events can return Html, which can be expressed in several ways
 - as array of ReactNode
 - null, undefined, false and empty-string will just be discarded
 
-These events will receive a `def` property, with the default content that will be displayed if no callback return
-a valid output. You can decide to embed such default content inside your content.
+These events will receive a `def` property (in addition event's specific properties),
+with the default content that will be displayed if no callback return a valid output.
+You can decide to embed such default content inside your content.
 You can produce output for such events also by adding sections (with same name as the event) to file `custom.html`.
 
 This is a list of available frontend-events, with respective object parameter and output.
 
 - `additionalEntryDetails`
-    - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
-    - parameter `{ entry: Entry }`
+  - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
+  - parameter `{ entry: DirEntry }`
 
-      The `Entry` type is an object with the following properties:
-        - `name: string` name of the entry.
-        - `ext: string` just the extension part of the name, dot excluded and lowercase.
-        - `isFolder: boolean` true if it's a folder.
-        - `n: string` name of the entry, including relative path when searched in sub-folders.
-        - `uri: string` relative url of the entry.
-        - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
-        - `t?: Date` generic timestamp, combination of creation-time and modified-time.
-        - `c?: Date` creation-time.
-        - `m?: Date` modified-time.
-        - `p?: string` permissions missing
-        - `cantOpen: boolean` true if current user has no permission to open this entry
-        - `getNext/getPrevious: ()=>Entry` return next/previous Entry in list
-        - `getNextFiltered/getPreviousFiltered: ()=>Entry` as above, but considers the filtered-list instead
-        - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
-    - output `Html`
+    The `DirEntry` type is an object with the following properties:
+    - `name: string` name of the entry.
+    - `ext: string` just the extension part of the name, dot excluded and lowercase.
+    - `isFolder: boolean` true if it's a folder.
+    - `n: string` name of the entry, including relative path when searched in sub-folders.
+    - `uri: string` relative url of the entry.
+    - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
+    - `t?: Date` generic timestamp, combination of creation-time and modified-time.
+    - `c?: Date` creation-time.
+    - `m?: Date` modified-time.
+    - `p?: string` permissions missing
+    - `cantOpen: boolean` true if current user has no permission to open this entry
+    - `getNext/getPrevious: ()=>DirEntry` return next/previous DirEntry in list
+    - `getNextFiltered/getPreviousFiltered: ()=>DirEntry` as above, but considers the filtered-list instead
+    - `getDefaultIcon: ()=>ReactElement` produces the default icon for this entry
+  - output `Html`
 - `entry`
-    - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
-    - output `Html | null` return null if you want to hide this entry
+  - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
+  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
+  - output `Html | null` return null if you want to hide this entry
 - `afterEntryName`
-    - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
-    - output `Html`
+  - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
+  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
+  - output `Html`
 - `entryIcon`
-    - you receive an entry of the list and optionally produce HTML that will be used in place of the standard icon.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
-    - output `Html`
+  - you receive an entry of the list and optionally produce HTML that will be used in place of the standard icon.
+  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
+  - output `Html`
 - `beforeHeader` & `afterHeader`
-    - use this to produce content that should go right before/after the `header` part
-    - output `Html`
+  - use this to produce content that should go right before/after the `header` part
+  - output `Html`
 - `beforeLogin`
-    - no parameter
-    - output `Html`
+  - no parameter
+  - output `Html`
 - `fileMenu`
-    - add or manipulate entries of the menu. If you return something, that will be added to the menu.
-      You can also delete or replace the content of the `menu` array.
-    - parameter `{ entry: Entry, menu: FileMenuEntry[], props: FileMenuProp[] }`
-    - output `undefined | FileMenuEntry | FileMenuEntry[]`
-      ```typescript
-      interface FileMenuEntry {
-          id?: string, 
-          label: ReactNode,
-          subLabel: ReactNode,
-          href?: string, // use this if you want your entry to be a link
-          icon?: string, // supports: emoji, name from a limited set
-          onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
-          //...rest is transfered to <a> element, for example 'target', or 'title' 
-      }
-      type FileMenuProp = { id?: string, label: ReactNode, value: ReactNode } | ReactElement
-      ```
-      Example, if you want to remove the 'show' item of the menu:
-      ```typescript
-      HFS.onEvent('fileMenu', ({ entry, menu }) => {
-        const index = menu.findIndex(x => x.id === 'show')
-        if (index >= 0)
-            menu.splice(index, 1)
-      })
-      ```
-      or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
+  - add or manipulate entries of the menu. If you return something, that will be added to the menu.
+    You can also delete or replace the content of the `menu` array.
+  - parameter `{ entry: DirEntry, menu: FileMenuEntry[], props: FileMenuProp[] }`
+  - output `undefined | FileMenuEntry | FileMenuEntry[]`
+    ```typescript
+    interface FileMenuEntry {
+      id?: string, 
+      label: ReactNode,
+      subLabel: ReactNode,
+      href?: string, // use this if you want your entry to be a link
+      icon?: string, // supports: emoji, name from a limited set
+      onClick?: () => (Promisable<boolean>) // return false to not close menu dialog
+      //...rest is transfered to <a> element, for example 'target', or 'title' 
+    }
+    type FileMenuProp = { id?: string, label: ReactNode, value: ReactNode } | ReactElement
+    ```
+    Example, if you want to remove the 'show' item of the menu:
+    ```typescript
+    HFS.onEvent('fileMenu', ({ entry, menu }) => {
+    const index = menu.findIndex(x => x.id === 'show')
+    if (index >= 0)
+      menu.splice(index, 1)
+    })
+    ```
+    or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
 - `fileShow`
-    - you receive an entry of the list, and optionally produce React Component for visualization.
-    - parameter `{ entry: Entry }` (refer above for Entry object)
-    - output `ReactComponent`
+  - you receive an entry of the list, and optionally produce React Component for visualization.
+  - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
+  - output `ReactComponent`
+- `showPlay`
+  - emitted on each file played inside file-show. Use setCover if you want to customize the background picture.
+  - parameter `{ entry: DirEntry, setCover(uri: string), meta: { title, album, artist, year } }`
 - `menuZip`
-    - parameter `{ def: ReactNode }`
-    - output `Html`
+  - parameter `{ def: ReactNode }`
+  - output `Html`
 - `userPanelAfterInfo`
-    - no parameter
-    - output `Html`
+  - no parameter
+  - output `Html`
 - `uriChanged`
-    - DEPRECATED: use `watchState('uri', callback)` instead.
-    - parameter `{ uri: string, previous: string }`
+  - DEPRECATED: use `watchState('uri', callback)` instead.
+  - parameter `{ uri: string, previous: string }`
+- `sortCompare`
+  - you can decide the order of entries by comparing two entries.
+    Return a negative value if entry `a` must appear before `b`, or positive if you want the opposite.
+    Return zero or any falsy value if you want to leave the order to what the user decided in his options.
+  - parameter `{ a: DirEntry, b: DirEntry }`
+  - output `number | undefined`
+- `enableEntrySelection`
+  - selection of multiple entries is used for some standard actions like deletion or zip. 
+    When none of such standard actions is permitted on an entry, its selection control (checkbox) is disabled. 
+    If you want to override this behavior, because you have a custom action that makes use of the selection, return `true`.
+  - parameter `{ entry: DirEntry }`
+  - output `boolean`
+- `entryToggleSelection`
+  - an entry is being un/selected
+  - parameter `{ entry: DirEntry }`
+  - can be prevented
 - All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
+-   `appendMenuBar` inside menu-bar, at the end
   - `afterMenuBar` between menu-bar and breadcrumbs
   - `afterList` at the end of the files list
   - `footer` at the bottom of the screen, even after the clipboard-bar (when visible)
@@ -400,8 +449,8 @@ api.events.on('deleting', async () => your-code-here)
 
 ### Stop, the way you prevent default behavior
 
-Some events allow you to stop their default behavior, by returning `api.events.stop`.
-This is reported in the list below with the word "stoppable".
+Some events allow you to stop their default behavior, by returning `api.events.preventDefault`.
+This is reported in the list below with the word "preventable".
 
 ```js
 api.events.on('deleting', ({ node }) => node.source.endsWith('.jpg'))
@@ -417,7 +466,7 @@ This section is still partially documented, and you may need to have a look at t
   - parameters: { node, ctx }
   - called just before trying to delete a file or folder (which still may not exist and fail)
   - async supported
-  - stoppable
+  - preventable
 - `login`
 - `logout`
 - `attemptingLogin`
@@ -443,11 +492,14 @@ This section is still partially documented, and you may need to have a look at t
 - `pluginStarted`
 - `uploadStart`
   - parameters: { ctx, writeStream } 
-  - stoppable
+  - preventable
   - return: callback to call when upload is finished
 - `uploadFinished`
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
+- `newSocket`
+  - parameters: { socket,ip }
+  - preventable
 
 # Notifications (backend-to-frontend events)
 
@@ -561,6 +613,8 @@ You can refer to these published plugins for reference, like
 
 Published plugins are required to specify the `apiRequired` property.
 
+### Multiple versions
+
 It is possible to publish different versions of the plugin to be compatible with different versions of HFS.
 To do that, just have your other versions in branches with name starting with `api`.
 HFS will scan through them in inverted alphabetical order searching for a compatible one.
@@ -613,6 +667,20 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
+- 9.6 (v0.54.0)
+    - frontend event: showPlay
+    - api.addBlock 
+    - api.misc
+    - frontend event: paste
+    - exports.customRest + HFS.customRestCall
+    - config.type: vfs_path
+    - frontend event: sortCompare
+    - HFS.userBelongsTo
+    - HFS.DirEntry
+    - frontend event: appendMenuBar
+    - config.helperText: basic md formatting
+    - HFS.onEvent.setOrder
+    - backend event: newSocket
 - 8.891 (v0.53.0)
     - api.openDb
     - frontend event: menuZip

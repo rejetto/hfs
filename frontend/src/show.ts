@@ -1,5 +1,5 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
-import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
 } from './misc'
@@ -8,9 +8,10 @@ import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
 import { t, useI18N } from './i18n'
-import { alertDialog } from './dialog'
+import { alertDialog, toast } from './dialog'
 import _ from 'lodash'
 import { getId3Tags } from './id3'
+import { subscribeKey } from 'valtio/utils'
 
 enum ZoomMode {
     fullWidth,
@@ -19,23 +20,49 @@ enum ZoomMode {
 }
 
 export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
+    let escOnce = false
+    let onClose: any
+    let firstUri: string
     const { close } = newDialog({
         noFrame: true,
         className: 'file-show',
+        onClose() {
+            onClose?.()
+        },
         Content() {
+            const { uri } = useSnapState()
+            useEffect(() => {
+                if (uri === firstUri) return
+                firstUri ??= uri // init
+                if (firstUri !== uri) // user must have clicked the folder link inside file-menu (which happens only for search results)
+                    close()
+            }, [uri])
             const [cur, setCur] = useState(entry)
             const moving = useRef(0)
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
             const [shuffle, setShuffle] = useState<undefined|DirList>()
+            // shuffle the rest of the list as we continue getting entries, leaving intact the part we've already played/being through
+            const shuffleIdx = useMemo(() => shuffle?.findIndex(x => x.n === cur.n), [cur])
+            useEffect(() => subscribeKey(state, 'list', list => {
+                const n = 1 + (shuffleIdx ?? Infinity)
+                setShuffle(x => list && x?.slice(0, n).concat(_.shuffle(list.slice(n))))
+            }), [shuffleIdx])
             const [repeat, setRepeat, { get: getRepeat }] = useStateMounted(false)
             const [cover, setCover] = useState('')
             useEffect(() => {
                 if (shuffle)
                     goTo(shuffle[0])
-            }, [shuffle])
+            }, [Boolean(shuffle)])
             useEventListener('keydown', ({ key }) => {
-                if (key === 'Escape') return close()
+                if (key === 'Escape') {
+                    if (escOnce)
+                        return close()
+                    escOnce = true
+                    onClose = toast(t('esc_again', "Press ESC twice to close")).close
+                    return
+                }
+                escOnce = false
                 if (key === 'ArrowLeft') return goPrev()
                 if (key === 'ArrowRight') return goNext()
                 if (key === 'ArrowDown') return scrollY(1)
@@ -57,7 +84,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 }
             })
             const [showNav, setShowNav] = useState(false)
-            const isAudio = getShowType(cur) === Audio
+            const component = getShowComponent(cur)
+            const isAudio = component === Audio
             useEffect(() => setShowNav(isAudio), [isAudio])
             const timerRef = useRef(0)
             const navClass = 'nav' + (showNav ? '' : ' nav-hidden')
@@ -90,6 +118,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
 
             const {t} = useI18N()
             const autoPlaySecondsLabel = t('autoplay_seconds', "Seconds to wait on images")
+            const folder = dirname(cur.n)
             return h(FlexV, {
                 gap: 0,
                 alignItems: 'stretch',
@@ -105,7 +134,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 }
             },
                 h('div', { className: 'bar' },
-                    h('div', { className: 'filename' }, cur.n),
+                    h('div', { className: 'filename' }, h('small', {}, folder), cur.n.slice(folder.length)),
                     h('div', { className: 'controls' }, // keep on same row
                         h(EntryDetails, { entry: cur, midnight: useMidnight() }),
                         useWindowSize().width > 800 && iconBtn('?', showHelp),
@@ -140,8 +169,8 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                         h('div', {}, cur.name),
                         t`Loading failed`
                     ) : h('div', { className: 'showing-container', ref: containerRef },
-                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: `url("${pathEncode(cover)}")`, } }),
-                        h(getShowType(cur) || Fragment, {
+                        h('div', { className: 'cover ' + (cover ? '' : 'none'), style: { backgroundImage: cover && `url("${cover}")` } }),
+                        h(component || Fragment, {
                             src: cur.uri,
                             className: 'showing',
                             onLoad() {
@@ -150,21 +179,28 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                             },
                             onError: curFailed,
                             async onPlay() {
-                                const folder = dirname(cur.n)
                                 const covers = !isAudio ? [] : state.list.filter(x => folder === dirname(x.n) // same folder
-                                    && x.name.match(/(?:folder|cover|albumart.*)\.jpe?g$/i))
-                                setCover(_.maxBy(covers, 's')?.n || '')
+                                    && x.name.match(/(?:folder|cover|front|albumart.*)\.jpe?g$/i))
+                                setCover(pathEncode(_.maxBy(covers, 's')?.n || ''))
                                 const meta = {
                                     title: cur.name,
                                     album: decodeURIComponent(basename(dirname(cur.uri))),
                                     artwork: covers.map(x => ({ src: x.n }))
                                 }
-                                if (window.MediaMetadata)
-                                    navigator.mediaSession.metadata = new MediaMetadata(meta)
+                                const m = window.MediaMetadata && (navigator.mediaSession.metadata = new MediaMetadata(meta))
                                 if (cur.ext === 'mp3') {
                                     setTags(Object.assign(meta, await getId3Tags(location.pathname + cur.n).catch(() => {})))
-                                    Object.assign(navigator.mediaSession?.metadata || {}, meta)
+                                    if (m) Object.assign(m, meta)
                                 }
+                                hfsEvent('showPlay', {
+                                    entry: cur,
+                                    meta,
+                                    setCover(src: any) {
+                                        if (typeof src !== 'string') return
+                                        setCover(src)
+                                        if (m) navigator.mediaSession.metadata = new MediaMetadata(Object.assign(meta, { artwork: [{ src }] }))
+                                    }
+                                })
                             }
                         }),
                         tags && h('div', { className: 'meta-tags' },
@@ -181,7 +217,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
             function goNext() { go(+1) }
 
             function curFailed() {
-                const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only present in video/audio elements
+                const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only presenti in video/audio elements
                 if (mediaError === 2) return // happens when chrome fails to fetch cover for videos. We don't skip the file for this reason. Tested on chrome129/windows
                 if (cur !== lastGood.current)
                     return go()
@@ -212,7 +248,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
                 goTo(e)
 
                 function anyGood() {
-                    return e && !e.isFolder && getShowType(e)
+                    return e && !e.isFolder && getShowComponent(e)
                 }
             }
 
@@ -274,7 +310,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false } = {}) {
     })
 }
 
-export function getShowType(entry: DirEntry) {
+export function getShowComponent(entry: DirEntry) {
     const res = hfsEvent('fileShow', { entry }).find(Boolean)
     if (res)
         return res

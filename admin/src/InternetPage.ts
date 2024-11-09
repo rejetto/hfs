@@ -5,7 +5,7 @@ import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTon
 import { apiCall, useApiEvents, useApiEx } from './api'
 import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
     useRequestRender, replace, restartAnimation, prefix } from './misc'
-import { Flex, LinkBtn, Btn, Country } from './mui'
+import { Flex, LinkBtn, Btn, Country, wikiLink } from './mui'
 import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
 import { suggestMakingCert } from './OptionsPage'
@@ -23,7 +23,7 @@ const COUNTRIES = ALL.filter(x => WITH_IP.includes(x.code))
 
 const PORT_FORWARD_URL = 'https://portforward.com/'
 const HIGHER_PORT = 1080
-const MSG_ISP = `It's possible that don't have a public IP, so that HFS won't be reachable on the Internet. Ask your Internet Provider if they sell "public IP" as an extra service.`
+const MSG_ISP = h('div', {}, "HFS will probably not be reachable on the Internet. ", wikiLink('Work-on-the-internet#double-nat', "Read more"))
 
 export default function InternetPage() {
     const [checkResult, setCheckResult] = useState<boolean | undefined>()
@@ -214,9 +214,7 @@ export default function InternetPage() {
                         if (fresh && !await confirmDialog("Your certificate is still good", { trueText: "Make a new one anyway" }))
                             return
                         if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
-                        const res = await apiCall('check_domain', { domain }).catch(e =>
-                            confirmDialog(String(e), { trueText: "Continue anyway" }) )
-                        if (res === false) return
+                        if (await stopOnCheckDomain(domain)) return
                         await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
                             .then(async () => {
                                 await alertDialog("Certificate created", 'success')
@@ -314,6 +312,11 @@ export default function InternetPage() {
         )
     }
 
+    async function stopOnCheckDomain(domain: string) {
+        return domain && false === await apiCall('check_domain', { domain }).catch(e =>
+            confirmDialog(String(e), { trueText: "Continue anyway", falseText: "Stop" }))
+    }
+
     async function verify(again=false): Promise<any> {
         await nat.loading
         const data = nat.getData() // fresh data
@@ -326,8 +329,7 @@ export default function InternetPage() {
             {
                 const hostname = url && new URL(url).hostname
                 const domain = !isIP(hostname) && hostname
-                if (domain && false === await apiCall('check_domain', { domain }).catch(e =>
-                    confirmDialog(String(e), { trueText: "Continue anyway" }) )) return
+                if (await stopOnCheckDomain(domain)) return
             }
             const urlResult = url && await apiCall('self_check', { url }).catch(() =>
                 alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
@@ -366,7 +368,13 @@ export default function InternetPage() {
                 h('li', {}, "There could be a firewall, try configuring or disabling it."),
                 (data.externalPort || data.internalPort!) <= 1024 && h('li', {},
                     "Your Internet Provider may be blocking ports under 1024. ",
-                    data.upnp && h(Button, { size: 'small', onClick() { close(); mapPort(HIGHER_PORT).then(verifyAgain) } }, "Try " + HIGHER_PORT) ),
+                    data.upnp && h(Button, {
+                        size: 'small',
+                        onClick() {
+                            close();
+                            mapPort(HIGHER_PORT).then(verifyAgain)
+                        }
+                    }, "Try " + HIGHER_PORT)),
                 data.mapped && h('li', {}, "A bug in your modem/router, try rebooting it."),
                 h('li', {}, MSG_ISP),
             )), 'warning')

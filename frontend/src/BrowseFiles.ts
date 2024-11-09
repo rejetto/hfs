@@ -1,10 +1,10 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
-import { useMediaQuery, useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, getHFS } from './misc'
+import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
+import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, isCtrlKey, hfsEvent } from './misc'
 import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -16,7 +16,7 @@ import _ from 'lodash'
 import { t, useI18N } from './i18n'
 import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
-import { fileShow, getShowType } from './show'
+import { fileShow, getShowComponent } from './show'
 
 export const MISSING_PERM = "Missing permission"
 
@@ -63,13 +63,18 @@ function FilesList() {
     const theList = filteredList || list
     const total = theList.length
     const nPages = Math.ceil(total / pageSize)
+    const pageEnd = offset + pageSize * (1+extraPages)
+    const thisPage = theList.slice(offset, pageEnd)
 
-    useEffect(() => setPage(0), [theList[0]])
+    useEffect(() => setPage(0), [theList[0]]) // reset page if the list changes
+    // reset scrolling if the page changes
     useEffect(() => {
         document.scrollingElement?.scrollTo(0, 0)
         setExtraPages(0)
         setScrolledPages(0)
     }, [page])
+
+    // infinite scrolling
     const calcScrolledPages = useMemo(() =>
         _.throttle(() => {
             const i = _.findLastIndex(document.querySelectorAll('.' + PAGE_SEPARATOR_CLASS), el =>
@@ -86,6 +91,45 @@ function FilesList() {
         calcScrolledPages()
     }), [page, extraPages, nPages])
 
+    // type to focus
+    const [focus, setFocus] = useState('')
+    useEffect(() => setFocus(''), [theList]) // reset
+    const navigate = useNavigate()
+    const timeout = useRef()
+    useEventListener('keydown', ev => {
+        if (ev.target !== document.body && !(ev.target && ref.current?.contains(ev.target as any))) return
+        if (isCtrlKey(ev as any) === 'Backspace' && location.pathname > '/')
+            return navigate(location.pathname + '..')
+        const { key } = ev
+        if (ev.metaKey || ev.ctrlKey || ev.altKey) return
+        setFocus(was => {
+            const will = key === 'Backspace' ? was.slice(0, -1)
+                : key === 'Escape' || key === 'Tab' ? ''
+                : key.length === 1 ? was + key.toLocaleLowerCase()
+                : was
+            if (will !== was) {
+                clearTimeout(timeout.current)
+                timeout.current = setTimeout(() => setFocus(''), 5_000) as any
+            }
+            return will
+        })
+    })
+    const focusIndex = useMemo(() => {
+        if (!focus) return -1
+        const match = (x: typeof theList[0]) => x.name.toLocaleLowerCase().normalize().startsWith(focus)
+        const inThisPage = thisPage.findIndex(match) // first attempt within this page
+        if (inThisPage >= 0)
+            return inThisPage + offset
+        const i = theList.findIndex(match) // search again on whole list
+        if (i >= 0)
+            setPage(Math.floor(i / pageSize))
+        return i
+    }, [focus])
+    useEffect(() => { // wait for possible page-change before focusing
+        if (focusIndex >= 0)
+            (document.querySelector(`a[href="${theList[focusIndex]?.uri}"]`) as HTMLElement)?.focus()
+    }, [focusIndex])
+
     const ref = useRef<HTMLElement>()
 
     const [goBottom, setGoBottom] = useState(false)
@@ -94,7 +138,8 @@ function FilesList() {
         setGoBottom(false)
         window.scrollTo(0, document.body.scrollHeight)
     }, [goBottom])
-    const pageChange = useCallback((i: number, pleaseGoBottom?: boolean) => {
+    const changePage = useCallback((i: number, pleaseGoBottom?: boolean) => {
+        setFocus('')
         if (pleaseGoBottom)
             setGoBottom(true)
         if (i < page || i > page + extraPages)
@@ -111,9 +156,10 @@ function FilesList() {
         : filteredList && !filteredList.length && t('filter_none', "No match for this filter")
 
     return h(Fragment, {},
+        focus && h('div', { id: 'focus-typing', className: focusIndex < 0 ? 'focus-typing-mismatch' : '' }, focus, hIcon('info', { style: { cursor: 'default' }, title: `ESC: ${t`Cancel`}` })),
         h('ul', { ref, className: 'dir' },
             msgInstead ? h('p', {}, msgInstead)
-                : theList.slice(offset, offset + pageSize * (1+extraPages)).map((entry, idx) =>
+                : thisPage.map((entry, idx) =>
                     h(Entry, {
                         key: entry.key || entry.n,
                         midnight,
@@ -127,7 +173,7 @@ function FilesList() {
             current: page + scrolledPages,
             atBottom,
             pageSize,
-            pageChange,
+            changePage,
         })
     )
 }
@@ -137,9 +183,9 @@ interface PagingProps {
     current: number
     atBottom: boolean
     pageSize: number
-    pageChange:(newPage:number, goBottom?:boolean) => void
+    changePage: (newPage:number, goBottom?:boolean) => void
 }
-const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: PagingProps) => {
+const Paging = memo(({ nPages, current, pageSize, changePage, atBottom }: PagingProps) => {
     useEffect(() => {
         document.body.style.overflowY = 'scroll'
         return () => { document.body.style.overflowY = '' }
@@ -153,7 +199,7 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
         h('button', {
             title: t('go_first', "Go to first item"),
             className: !current ? 'toggled' : undefined,
-            onClick() { pageChange(0) },
+            onClick() { changePage(0) },
         }, hIcon('to_start')),
         h('div', { id: 'paging-middle' },  // using sticky first/last would prevent scrollIntoView from working
             _.range(1, nPages).map(i =>
@@ -161,13 +207,13 @@ const Paging = memo(({ nPages, current, pageSize, pageChange, atBottom }: Paging
                     && h('button', {
                         key: i,
                         ...i === current && { className: 'toggled', ref },
-                        onClick: () => pageChange(i),
+                        onClick: () => changePage(i),
                     }, shrink && !(i%10) ? (i/10) + 'K' : i * pageSize) )
         ),
         h('button', {
             title: t('go_last', "Go to last item"),
             className: atBottom ? 'toggled' : undefined,
-            onClick(){ pageChange(nPages-1, true) }
+            onClick(){ changePage(nPages-1, true) }
         }, hIcon('to_end')),
     )
 })
@@ -195,7 +241,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerName = n.slice(0, -name.length)
+    const containerName = n.slice(0, -name.length - (isFolder ? 1 : 0)).replaceAll('/', '/ ')
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
@@ -212,10 +258,11 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         entry,
         render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null
     }, showFilter && h(Checkbox, {
-            disabled: isLink,
+            disabled: !entry.canSelect(),
             'aria-labelledby': ariaId,
-            value: selected[uri],
+            value: selected[uri] || false,
             onChange(v) {
+                if (hfsEvent('entryToggleSelection', { entry }).isDefaultPrevent()) return
                 if (v)
                     return state.selected[uri] = true
                 delete state.selected[uri]
@@ -225,7 +272,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
             // we treat webpages as folders, with menu to comment
             isFolder ? h(Fragment, {}, // internal navigation, use Link component
                 h(Link, { to: uri, reloadDocument: entry.web, onClick, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
-                    ico, entry.n.slice(0, -1)), // don't use name, as we want to include whole path in case of search
+                    ico, h('span', { className: 'container-folder' }, containerName), name), // don't use name, as we want to include whole path in case of search
                 // popup button is here to be able to detect link-wrapper:hover
                 file_menu_on_link && !showingButton && h('button', {
                     className: 'popup-menu-button',
@@ -248,7 +295,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         if (ev.altKey || ev.ctrlKey || isMac && ev.metaKey) return
         ev.preventDefault()
         const special = isMac ? ev.shiftKey : ev.metaKey
-        if (special && getShowType(entry))
+        if (special && getShowComponent(entry))
             return fileShow(entry, { startPlaying: true })
         openFileMenu(entry, ev, onlyTruthy([
             file_menu_on_link && 'open',

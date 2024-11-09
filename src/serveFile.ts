@@ -15,11 +15,23 @@ import { getConnection, updateConnection } from './connections'
 import { getCurrentUsername } from './auth'
 import { sendErrorPage } from './errorPages'
 import { Readable } from 'stream'
+import { createHash } from 'crypto'
+import iconv from 'iconv-lite'
 
 const allowedReferer = defineConfig('allowed_referer', '')
-const limitDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
-const limitDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
-const limitDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
+const maxDownloads = downloadLimiter(defineConfig(CFG.max_downloads, 0), () => true)
+const maxDownloadsPerIp = downloadLimiter(defineConfig(CFG.max_downloads_per_ip, 0), ctx => ctx.ip)
+const maxDownloadsPerAccount = downloadLimiter(defineConfig(CFG.max_downloads_per_account, 0), ctx => getCurrentUsername(ctx) || undefined)
+
+function toAsciiEquivalent(s: string) {
+    return iconv.encode(iconv.decode(Buffer.from(s), 'utf-8'), 'ascii').toString().replaceAll('?', '')
+}
+
+export function forceDownload(ctx: Koa.Context, name='') {
+    // ctx.attachment is not working well on Windows. Eg: for file "èÖ.txt" it is producing `Content-Disposition: attachment; filename="??.txt"`. Koa uses module content-disposition, that actually produces a better result anyway: ``
+    ctx.set('Content-Disposition', 'attachment'
+        + (name && `; filename="${toAsciiEquivalent(name)}"; filename*=UTF-8''${encodeURI(name).replace(/#/g, '%23')}`))
+}
 
 export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     const { source, mime } = node
@@ -28,7 +40,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
         : _.find(mime, (val,mask) => matches(name, mask))
     if (allowedReferer.get()) {
         const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
-        if (ref && ref !== host() // automatic accept if referer is basically the hosting domain
+        if (ref && ref !== host() // automatically accept if referer is basically the hosting domain
         && !matches(ref, allowedReferer.get()))
             return ctx.status = HTTP_FORBIDDEN
     }
@@ -36,13 +48,13 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     ctx.vfsNode = // legacy pre-0.51 (download-quota)
     ctx.state.vfsNode = node // useful to tell service files from files shared by the user
     if ('dl' in ctx.query) // please, download
-        ctx.attachment(name)
+        forceDownload(ctx, name)
     else if (ctx.get('referer')?.endsWith('/') && with_(ctx.get('accept'), x => x && !x.includes('text')))
         ctx.state.considerAsGui = true
     await serveFile(ctx, source||'', mimeString)
 
-    if (await limitDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
-        await limitDownloads(ctx) || await limitDownloadsPerIp(ctx)
+    if (await maxDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
+        await maxDownloads(ctx) || await maxDownloadsPerIp(ctx)
 
     function host() {
         const s = ctx.host
@@ -50,18 +62,20 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
     }
 }
 
-const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>('mime', { '*': MIME_AUTO }, obj => {
+const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>('mime', {}, obj => {
     const matchers = Object.keys(obj).map(k => makeMatcher(k))
     const values = Object.values(obj)
     return (name: string) => values[matchers.findIndex(matcher => matcher(name))]
 })
 
+// after this number of seconds, the browser should check the server to see if there's a newer version of the file
+const cacheControlDiskFiles = defineConfig('cache_control_disk_files', 5)
+
 export async function serveFile(ctx: Koa.Context, source:string, mime?:string, content?: string | Buffer) {
     if (!source)
         return
-    const fn = basename(source)
-    mime = mime ?? mimeCfg.compiled()(fn)
-    if (!mime || mime === MIME_AUTO)
+    mime ??= mimeCfg.compiled()(basename(source))
+    if (mime === undefined || mime === MIME_AUTO)
         mime = mimetypes.lookup(source) || ''
     if (mime)
         ctx.type = mime
@@ -76,20 +90,23 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
         const stats = await promisify(stat)(source) // using fs's function instead of fs/promises, because only the former is supported by pkg
         if (!stats.isFile())
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
-        ctx.set('Last-Modified', stats.mtime.toUTCString())
-        ctx.fileSource = // legacy pre-0.51
+        const t = stats.mtime.toUTCString()
+        ctx.set('Last-Modified', t)
+        ctx.set('Etag', createHash('md5').update(source).update(t).digest('hex'))
         ctx.state.fileSource = source
-        ctx.fileStats = // legacy pre-0.51
         ctx.state.fileStats = stats
         ctx.status = HTTP_OK
         if (ctx.fresh)
             return ctx.status = HTTP_NOT_MODIFIED
         if (content !== undefined)
             return ctx.body = content
+        const cc = cacheControlDiskFiles.get()
+        if (_.isNumber(cc))
+            ctx.set('Cache-Control', `max-age=${cc}`)
         const { size } = stats
         const range = applyRange(ctx, size)
         ctx.body = createReadStream(source, range)
-        if (ctx.vfsNode)
+        if (ctx.state.vfsNode)
             monitorAsDownload(ctx, size, range?.start)
     }
     catch (e: any) {
@@ -104,7 +121,6 @@ export function monitorAsDownload(ctx: Koa.Context, size?: number, offset?: numb
     ctx.body.on('end', () =>
         updateConnection(conn, {}, { opProgress: 1 }) )
     updateConnection(conn, {}, {
-        op: 'download',
         opProgress: 0,
         opTotal: size,
         opOffset: size && offset && (offset / size),
@@ -153,7 +169,7 @@ declare module "koa" {
 function downloadLimiter<T>(configMax: { get: () => number | undefined }, cbKey: (ctx: Koa.Context) => T | undefined) {
     const map = new Map<T, number>()
     return (ctx: Koa.Context) => {
-        if (!ctx.body || ctx.state.considerAsGui) return // no file sent, cache hit
+        if (!ctx.body || ctx.state.considerAsGui) return // !body = no file sent, cache hit
         const k = cbKey(ctx)
         if (k === undefined) return // undefined = skip limit
         const max = configMax.get()

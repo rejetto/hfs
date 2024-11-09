@@ -8,7 +8,7 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, } from './misc'
+import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate } from './misc'
 import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -168,10 +168,18 @@ export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
 httpsPortCfg.sub(considerHttps)
 listenInterface.sub(considerHttps)
 
+function renderHost(host: string) {
+    return xlate(host, {
+        '0.0.0.0': "any IPv4",
+        '::': "any IPv6",
+        '': "any network",
+    })
+}
+
 interface StartServer { port: number, host?:string }
 export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     return new Promise<number>(async resolve => {
-        if (!srv) return 0
+        if (!srv) return resolve(0)
         try {
             if (port === PORT_DISABLED || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
                 return resolve(0)
@@ -179,7 +187,7 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
             srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
             port = await listen(host)
             if (port)
-                console.log(srv.name, "serving on", host||"any network", ':', port)
+                console.log(srv.name, "serving on", renderHost(host || ''), ':', port)
             resolve(port)
         }
         catch(e) {
@@ -273,8 +281,9 @@ const ignore = /^(lo|.*loopback.*|virtualbox.*|.*\(wsl\).*|llw\d|awdl\d|utun\d|a
 const isLinkLocal = makeNetMatcher('169.254.0.0/16|FE80::/10')
 
 export async function getIps(external=true) {
+    const only = { '0.0.0.0': 'IPv4', '::' : 'IPv6' }[listenInterface.get()] || ''
     const ips = onlyTruthy(Object.entries(networkInterfaces()).flatMap(([name, nets]) =>
-        nets && !ignore.test(name) && nets.map(net => !net.internal && net.address)
+        nets && !ignore.test(name) && nets.map(net => !net.internal && (!only || only === net.family) && net.address)
     ))
     const e = external && defaultBaseUrl.externalIp
     if (e && !ips.includes(e))
@@ -290,7 +299,7 @@ export async function getIps(external=true) {
 
 export async function getUrls() {
     const on = listenInterface.get()
-    const ips = on ? [on] : await getIps()
+    const ips = on === renderHost(on) ? [on] : await getIps()
     return Object.fromEntries(onlyTruthy([httpSrv, httpsSrv].map(srv => {
         if (!srv?.listening)
             return false

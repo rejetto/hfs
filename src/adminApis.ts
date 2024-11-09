@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { ApiError, ApiHandlers } from './apiMiddleware'
+import { ApiError, ApiHandler, ApiHandlers } from './apiMiddleware'
 import { configFile, defineConfig, getWholeConfig, setConfig } from './config'
 import { getBaseUrlOrDefault, getIps, getServerStatus, getUrls } from './listen'
 import {
@@ -20,24 +20,27 @@ import langApis from './api.lang'
 import netApis from './api.net'
 import logApis from './api.log'
 import { getConnections } from './connections'
-import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, waitFor } from './misc'
+import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, typedEntries, waitFor } from './misc'
 import { accountCanLoginAdmin, accountsConfig } from './perm'
 import Koa from 'koa'
-import { getProxyDetected } from './middlewares'
+import { cloudflareDetected, getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
-import { getUpdates, localUpdateAvailable, update, updateSupported } from './update'
+import { autoCheckUpdateResult, getUpdates, localUpdateAvailable, update, updateSupported } from './update'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
 import { ip2country } from './geo'
 import { roots } from './roots'
 import { SendListReadable } from './SendList'
 import { get_dynamic_dns_error } from './ddns'
+import { addBlock, BlockingRule } from './block'
+import { alerts, getProjectInfo } from './github'
+import { acmeRenewError } from './acme'
 
-export const adminApis: ApiHandlers = {
+export const adminApis = {
 
     ...vfsApis,
     ...accountsApis,
@@ -77,6 +80,10 @@ export const adminApis: ApiHandlers = {
     }),
     async check_update() {
         return { options: await getUpdates() }
+    },
+    async wait_project_info() { // used by admin/home/check-for-updates
+        await getProjectInfo()
+        return {}
     },
 
     async ip_country({ ips }) {
@@ -119,7 +126,12 @@ export const adminApis: ApiHandlers = {
             baseUrl: await getBaseUrlOrDefault(),
             roots: roots.get(),
             updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
+            autoCheckUpdateResult: autoCheckUpdateResult.get(), // in this form, we get the same type of the serialized json
+            alerts: alerts.get(),
             proxyDetected: getProxyDetected(),
+            cloudflareDetected,
+            ram: process.memoryUsage.rss(),
+            acmeRenewError,
             frpDetected: localhostAdmin.get() && !getProxyDetected()
                 && getConnections().every(isLocalHost)
                 && await frpDebounced(),
@@ -135,10 +147,21 @@ export const adminApis: ApiHandlers = {
         return files
     },
 
-}
+    async add_block({ merge, ip, expire, comment }: BlockingRule & { merge?: Partial<BlockingRule> }) {
+        apiAssertTypes({
+            string: { ip },
+            string_undefined: { comment, expire },
+            object_undefined: { merge },
+        })
+        const optionals = _.pickBy({ expire, comment }, v => v !== undefined) // passing undefined-s would override values in merge
+        addBlock({ ip, ...optionals }, merge)
+        return {}
+    }
 
-for (const [k, was] of Object.entries(adminApis))
-    adminApis[k] = (params, ctx) => {
+} satisfies ApiHandlers
+
+for (const [k, was] of typedEntries(adminApis))
+    (adminApis[k] as any) = ((params, ctx) => {
         if (!allowAdmin(ctx))
             return new ApiError(HTTP_FORBIDDEN)
         if (ctxAdminAccess(ctx))
@@ -147,7 +170,7 @@ for (const [k, was] of Object.entries(adminApis))
         return ctx.headers.accept === 'text/event-stream'
             ? new SendListReadable({ doAtStart: x => x.error(HTTP_UNAUTHORIZED, true, props) })
             : new ApiError(HTTP_UNAUTHORIZED, props)
-    }
+    }) satisfies ApiHandler
 
 export const localhostAdmin = defineConfig('localhost_admin', true)
 export const adminNet = defineConfig('admin_net', '', v => makeNetMatcher(v, true) )

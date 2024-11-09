@@ -7,8 +7,8 @@ import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { Dict, MAX_TILE_SIZE, REPO_URL, isIpLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
-    CFG, md } from './misc'
-import { iconTooltip, InLink, LinkBtn, modifiedProps, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
+    CFG, md, IMAGE_FILEMASK } from './misc'
+import { iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -57,12 +57,12 @@ export default function OptionsPage() {
     }
     const maxDownloadsDefaults = {
         comp: NumberField,
-        min: 0,
         placeholder: "no limit",
         toField: (x: any) => x || '',
         sm: 4,
     }
     const httpsEnabled = values.https_port >= 0
+    const isWindows = status?.platform === 'win32'
     return h(Form, {
         sx: { maxWidth: '60em' },
         values,
@@ -73,7 +73,7 @@ export default function OptionsPage() {
         onError: alertDialog,
         save: {
             onClick: save,
-            ...modifiedProps( Object.keys(changes).length>0),
+            ...propsForModifiedValues( Object.keys(changes).length>0),
         },
         barSx: { gap: 2 },
         addToBar: [
@@ -88,7 +88,7 @@ export default function OptionsPage() {
                 component: RouterLink,
                 to: "/edit",
                 startIcon: h(EditNote),
-            }, sm ? "Edit config file" : "File"),
+            }, sm ? "Config file" : "File"),
         ],
         defaults() {
             return { sm: 6 }
@@ -117,7 +117,19 @@ export default function OptionsPage() {
                 helperText: "Not applied to localhost. Doesn't work with proxies."
             },
 
-            { k: 'listen_interface', comp: SelectField, sm: 4, options: [{ label: "any", value: '' }, '127.0.0.1', '::1', ...status?.ips||[]] },
+            {
+                k: 'listen_interface',
+                comp: SelectField,
+                sm: 4,
+                options: [
+                    { label: "any", value: '' },
+                    { label: "any IPv4", value: '0.0.0.0' },
+                    { label: "any IPv6", value: '::' },
+                    '127.0.0.1',
+                    '::1',
+                    ...status?.ips || []
+                ]
+            },
             { k: 'max_kbps',        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, sm: 4, label: "Limit output per-IP" },
 
@@ -133,25 +145,31 @@ export default function OptionsPage() {
                 helperText: "Access Admin-panel without entering credentials"
             },
 
-            { k: 'proxies', comp: NumberField, min: 0, max: 9, label: "Number of HTTP proxies",
+            { k: 'proxies', comp: NumberField, max: 9, label: "Number of HTTP proxies", placeholder: "none",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP address"
             },
-            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer, },
+            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer,
+                helperText: "In case another website is linking your files" },
 
-            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true,
+            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true, autoRowHeight: true,
                 fields: [
-                    { k: 'ip', label: "Blocked IP", sm: 6, required: true, helperText: h(WildcardsSupported) },
-                    { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, helperText: "Leave empty for no expiration" },
+                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2,
+                        $column: { mergeRender: { comment: {}, expire: {} } },
+                        helperText: h(WildcardsSupported) },
+                    { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, $hideUnder: 'sm',
+                        helperText: "Leave empty for no expiration" },
                     {
                         k: 'disabled',
                         $type: 'boolean',
                         label: "Enabled",
+                        helperText: "In case you want to not block without deleting the rule",
                         toField: (x: any) => !x,
                         fromField: (x: any) => x ? undefined : true,
                         sm: 6,
+                        $width: 80,
                     },
-                    { k: 'comment' },
+                    { k: 'comment', $hideUnder: 'sm' },
                 ],
             },
 
@@ -161,33 +179,39 @@ export default function OptionsPage() {
             },
             { k: 'title', md: 8, helperText: "You can see this in the tab of your browser" },
 
-            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
-            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, min: 0, max: MAX_TILE_SIZE, label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
+            { k: 'auto_play_seconds', comp: NumberField, xs: 6, sm: 3, min: 1, max: 10000, required: true,
+                label: "Auto-play seconds delay", helperText: md(`Default value for the [Show interface](${REPO_URL}discussions/270)`) },
+            { k: 'tile_size', comp: NumberField, xs: 6, sm: 3, max: MAX_TILE_SIZE, required: true,
+                label: "Default tiles size", helperText: wikiLink('Tiles', "To enable tiles-mode") },
             { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
             { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
 
             { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, md: 3,  },
             { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, md: 3,  },
             { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, md: true,  label: "Sort numeric names" },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.png|*.ico|*.jpg|*.jpeg|*.gif|*.svg', sm: 12,
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, sm: 12,
                 helperText: "The icon associated to your website" },
 
             h(Section, { title: "Uploads" }),
-            { k: 'dont_overwrite_uploading', comp: BoolField, sm: 4, md: 6, label: "Don't overwrite uploading",
+            { k: 'dont_overwrite_uploading', comp: BoolField, md: 4, label: "Uploads don't overwrite",
                 helperText: "Files will be numbered to avoid overwriting" },
-            { k: 'delete_unfinished_uploads_after', comp: NumberField, sm: 4, md: 3, min : 0, unit: "seconds", placeholder: "Never",
+            { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, step: .1,
+                fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null,
+                placeholder: "disabled", label: "Split uploads in chunks", helperText: "Overcome proxy limits" },
+            { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",
                 helperText: "Leave empty to never delete" },
-            { k: 'min_available_mb', comp: NumberField, sm: 4, md: 3, min : 0, unit: "MBytes", placeholder: "None",
+            { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
 
             h(Section, { title: "Others" }),
-            { k: 'keep_session_alive', comp: BoolField, sm: true, helperText: "Keeps you logged in while the page is left open and the computer is on" },
+            { k: 'keep_session_alive', comp: BoolField, sm: 4, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
             { k: 'session_duration', comp: NumberField, sm: 4, md: 3, min: 5, unit: "seconds", required: true },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, label: "Calculate ZIP size for", unit: "seconds",
-                helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, unit: "seconds", required: true,
+                label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
 
-            { k: 'descript_ion', comp: BoolField, label: "Enable comments", helperText: "In file DESCRIPT.ION" },
-            { k: 'descript_ion_encoding', label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+            { k: 'descript_ion', comp: BoolField, ...isWindows && { sm: 4, md: 3 },  label: "Enable comments", helperText: "In file DESCRIPT.ION" },
+            { k: 'show_hidden_files', comp: BoolField, sm: 4, md: 3 },
+            { k: 'descript_ion_encoding', sm: 4, md: 6, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
                 options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
 
             { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start",

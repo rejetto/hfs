@@ -80,7 +80,11 @@ async function getWindowsServicePids() {
     return _.uniq(res.split('\n').slice(1).map(x => Number(x.trim())))
 }
 
-export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => x.includes(pid), e => {
+export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => {
+    const ret = x.includes(pid)
+    if (ret) console.log("running as service")
+    return ret
+}, e => {
     console.log("couldn't determine if we are running as a service")
     console.debug(e)
 })

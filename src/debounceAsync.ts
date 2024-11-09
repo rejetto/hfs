@@ -4,9 +4,9 @@
 export function debounceAsync<Cancelable extends boolean = false, A extends unknown[] = unknown[], R = unknown>(
     // the function you want to not call too often, too soon
     callback: (...args: A) => Promise<R>,
-    // time to wait after invocation of the debounced function. If you call again while waiting, the timer starts again.
-    wait: number=100,
     options: {
+        // time to wait after invocation of the debounced function. If you call again while waiting, the timer starts again.
+        wait?: number,
         // in a train of invocations, should we execute also the first one, or just the last one?
         leading?: boolean,
         // since the wait-ing is renewed at each invocation, indefinitely, do you want to put a cap to it?
@@ -15,13 +15,13 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
         retain?: number,
         // for how long do you want to cache last failure value, and return that at next invocation?
         retainFailure?: number,
-        // should we offer a cancel method to the returned function?
+        // should we offer a cancel method to the returned function? if we do, the awaited-type will include undefined
         cancelable?: Cancelable
     } = {}
 ) {
     type MaybeUndefined<T> = Cancelable extends true ? undefined | T : T
     type MaybeR = MaybeUndefined<R>
-    const { leading=false, maxWait=Infinity, cancelable=false, retain=0, retainFailure } = options
+    const { wait=0, leading=false, maxWait=Infinity, cancelable=false, retain=0, retainFailure } = options
     let started = 0 // latest callback invocation
     let runningCallback: Promise<R> | undefined // latest callback invocation result
     let latestDebouncer: Promise<MaybeR | R> // latest wrapper invocation
@@ -90,7 +90,7 @@ export function singleWorkerFromBatchWorker<Args extends any[]>(batchWorker: (ba
         const ret = batchWorker(batch)
         batch = [] // this is reset as batchWorker starts, but without waiting
         return ret
-    }, 100, { maxWait })
+    }, { wait: 100, maxWait })
     return (...args: Args) => {
         const idx = batch.push(args) - 1
         return debounced().then((x: any) => x[idx])

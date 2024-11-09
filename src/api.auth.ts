@@ -1,12 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Account, accountCanLogin, changeSrpHelper, getAccount, getFromAccount } from './perm'
+import { Account, accountCanLogin, changeSrpHelper, expandUsername, getAccount, getFromAccount } from './perm'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
 import { ADMIN_URI, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { ctxAdminAccess } from './adminApis'
 import { sessionDuration } from './middlewares'
-import { getCurrentUsername, setLoggedIn, srpStep1 } from './auth'
+import { getCurrentUsername, setLoggedIn, srpServerStep1 } from './auth'
 import { defineConfig } from './config'
 import events from './events'
 
@@ -19,16 +19,16 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     const account = getAccount(username)
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
-    await events.emitAsync('attemptingLogin', ctx)
+    if ((await events.emitAsync('attemptingLogin', { ctx, username }))?.isDefaultPrevented()) return
     if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
         ctx.logExtra({ u: username })
         ctx.state.dontLog = false // log even if log_api is false
         return new ApiError(HTTP_UNAUTHORIZED)
     }
     try {
-        const { step1, ...rest } = await srpStep1(account)
+        const { srpServer, ...rest } = await srpServerStep1(account)
         const sid = Math.random()
-        ongoingLogins[sid] = step1
+        ongoingLogins[sid] = srpServer
         setTimeout(()=> delete ongoingLogins[sid], 60_000)
         ctx.session.loggingIn = { username, sid } // temporarily store until process is complete
         return rest
@@ -77,8 +77,10 @@ export const logout: ApiHandler = async ({}, ctx) => {
 }
 
 export const refresh_session: ApiHandler = async ({}, ctx) => {
+    const username = getCurrentUsername(ctx)
     return !ctx.session ? new ApiError(HTTP_SERVER_ERROR) : {
-        username: getCurrentUsername(ctx),
+        username,
+        expandedUsername: expandUsername(username),
         adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
         canChangePassword: canChangePassword(ctx.state.account),
         exp: keepSessionAlive.get() ? new Date(Date.now() + sessionDuration.compiled()) : undefined,

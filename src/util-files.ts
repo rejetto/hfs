@@ -6,8 +6,8 @@ import { createWriteStream, mkdirSync, watch } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
-import { runCmd } from './util-os'
 import { once, Readable } from 'stream'
+import { createDirStream, DirStreamEntry } from './dirStream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
 
@@ -71,36 +71,13 @@ export function adjustStaticPathForGlob(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
 }
 
-export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyFolders = false }={}) {
+export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyFolders = false, hidden=true }={}) {
     if (!await isDirectory(path))
         throw Error('ENOTDIR')
-    const dirStream = glob.stream(depth ? '**/*' : '*', {
-        cwd: path,
-        dot: true,
-        deep: depth + 1,
-        onlyFiles,
-        onlyDirectories: onlyFolders,
-        suppressErrors: true,
-        objectMode: true,
-        unique: false,
-    })
-    const skip = await getItemsToSkip(path)
-    for await (const entry of dirStream) {
-        let { path, dirent } = entry as any
-        const isDir = dirent.isDirectory()
-        if (!isDir && !dirent.isFile()) continue
-        path = String(path)
-        if (!skip?.includes(path))
-            yield [path, isDir] as const
-    }
-
-    async function getItemsToSkip(path: string) {
-        if (!IS_WINDOWS) return
-        const winPath = path.replace(/\//g, '\\')
-        const out = await runCmd('dir', ['/ah', '/b', depth ? '/s' : '/c', winPath]) // cannot pass '', so we pass /c as a noop parameter
-            .catch(()=>'') // error in case of no matching file
-        return out.split('\n').map(x =>
-            x.slice(!depth ? 0 : winPath.length + 1).trim().replace(/\\/g, '/'));
+    for await (const entry of createDirStream(path, { depth, hidden })) {
+        const dirent = entry as DirStreamEntry
+        if (dirent.isDirectory() ? onlyFiles : (onlyFolders || !dirent.isFile())) continue
+        yield dirent
     }
 }
 

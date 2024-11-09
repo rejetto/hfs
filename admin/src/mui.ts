@@ -3,8 +3,10 @@
 
 import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-material'
 import { SxProps } from '@mui/system'
-import { createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
-    ForwardedRef, useState, useMemo } from 'react'
+import {
+    createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
+    ForwardedRef, useState, useMemo, isValidElement
+} from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
 import { anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_ } from './misc'
@@ -99,7 +101,8 @@ export function reloadBtn(onClick: any, props?: any) {
     return h(IconBtn, { icon: Refresh, title: "Reload", onClick, ...props })
 }
 
-export function modifiedProps(modified: boolean | undefined) {
+// modify look to convey that a form has been modified
+export function propsForModifiedValues(modified: boolean | undefined) {
     return modified ? { sx: { outline: '2px solid' } } : undefined
 }
 
@@ -122,7 +125,7 @@ export const IconBtn = forwardRef((props: IconBtnProps, ref: ForwardedRef<HTMLBu
     h(Btn, { ref, ...props }))
 
 export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
-    icon?: SvgIconComponent
+    icon?: SvgIconComponent | ReactElement
     title?: ReactNode
     disabled?: boolean | string
     progress?: boolean | number
@@ -140,12 +143,12 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     const [loadingState, setLoadingState] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
-    disabled = loadingState || Boolean(progress) || disabled === undefined ? undefined : Boolean(disabled)
+    disabled = loadingState || progress || disabled ? true : undefined
     if (link)
         onClick = () => window.open(link)
     const showLabel = useBreakpoint(labelFrom || 'xs')
     const ref = useRefPass<HTMLButtonElement>(forwarded)
-    const common = _.merge(modifiedProps(modified), {
+    const common = _.merge(propsForModifiedValues(modified), {
         ref,
         disabled,
         'aria-hidden': disabled,
@@ -159,9 +162,10 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             }
         },
     } as const, rest)
+    const iconElement = isValidElement(icon) ? icon : (icon && h(icon))
     let ret: ReactElement = children || !icon ? h(LoadingButton, _.merge({
             variant: 'contained',
-            startIcon: icon && h(icon),
+            startIcon: iconElement,
             loading: Boolean(loading || loadingState || progress),
             loadingPosition: icon && 'start',
             loadingIndicator: typeof progress !== 'number' ? undefined
@@ -174,7 +178,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
                 ...(typeof progress === 'number' ? { value: progress*100, variant: 'determinate' } : null),
                 style: { position:'absolute', top: '10%', left: '10%', width: '80%', height: '80%' }
             }),
-            h(icon)
+            iconElement,
         )
 
     const aria = rest['aria-label'] ?? with_(_.isString(title) && title, x => x ? `${children || ''} (${x})` : undefined)

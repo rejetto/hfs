@@ -12,6 +12,8 @@ export * from '../src/cross'
 
 ;(window as any)._ = _
 
+document.querySelectorAll('.removeAtBoot').forEach(e => e.remove())
+
 // roughly 0.7 on m1 max
 export const cpuSpeedIndex = (() => {
     let ms = performance.now()
@@ -27,8 +29,11 @@ Object.assign(HFS, {
     getPluginPublic: () => getScriptAttr('src')?.match(/^.*\//)?.[0],
     getPluginConfig: () => HFS.plugins[HFS.getPluginKey()] || {},
     loadScript: (uri: string) => loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri),
+    userBelongsTo: (groupOrUser: string) => HFS.state.expandedUsername.includes(groupOrUser),
     cpuSpeedIndex,
 })
+
+export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.gif|*.svg'
 
 //@ts-ignore
 if (import.meta.env.PROD) {
@@ -111,7 +116,7 @@ export function makeSessionRefresher(state: any) {
         if (!response) return
         const { exp } = response
         Object.assign(initial, response) // keep it updated, not necessary, just in case someone is looking at this instead of the state
-        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword', 'accountExp']))
+        Object.assign(state, _.pick(response, ['username', 'adminUrl', 'canChangePassword', 'accountExp', 'expandedUsername']))
         if (!response.username || !exp) return
         const delta = new Date(exp).getTime() - Date.now()
         const t = _.clamp(delta - 30_000, 4_000, 600_000)

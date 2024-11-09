@@ -10,10 +10,11 @@
         const text = React.useMemo(() => {
             if (!data || data === true) return ''
             const { upload: x } = data
+            const shouldShowIpWithUser = display === 'ip+user' && x.ip || display === 'tooltip' && HFS.state.adminUrl
             return !x ? ''
                 : display === 'user' ? x.username
-                : display === 'ip' || !x.username ? x.ip
-                : x.ip + ' (' + x.username + ')'
+                : display === 'ip' || !x.username && shouldShowIpWithUser ? x.ip
+                : shouldShowIpWithUser ? x.ip + ' (' + x.username + ')' : (x.username || ' ')
         }, [data])
         const iconOnly = display === 'tooltip'
         return text && HFS.h('span', { className: 'uploader', title: HFS.t`Uploader` + (iconOnly ? ' ' + text : '') },

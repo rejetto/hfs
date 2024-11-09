@@ -3,3 +3,14 @@
   clip-path: rect(1px 1px 1px 1px);
   clip: rect(1px, 1px, 1px, 1px); // legacy browsers
 }
+.icon { // also used in admin/fs
+  font-size: 1.2em;
+  height: 1.2em; width: 1.4em; // give similar size to <img> icons
+
+  display: inline-block; text-align: center; // same size for font icons
+}
+
+@keyframes blink {
+  0% {opacity: 1}
+  50% {opacity: 0.2}
+}

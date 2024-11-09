@@ -17,7 +17,7 @@ export function code2file(code: string) {
 }
 
 export function file2code(fn: string) {
-    return fn.slice(PREFIX.length, -SUFFIX.length)
+    return fn.replace(PREFIX, '').replace(SUFFIX, '')
 }
 
 export async function getLangData(ctx: Koa.Context) {

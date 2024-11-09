@@ -8,18 +8,18 @@ import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { basename, dirname } from 'path'
-import { applyRange, monitorAsDownload } from './serveFile'
+import { applyRange, forceDownload, monitorAsDownload } from './serveFile'
 import { HTTP_OK } from './const'
 
 // expects 'node' to have had permissions checked by caller
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
-    if (statusCodeForMissingPerm(node, 'can_archive', ctx)) return
+    const list = wantArray(ctx.query.list)[0]?.split('*') // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
+    if (!list && statusCodeForMissingPerm(node, 'can_archive', ctx)) return
     ctx.status = HTTP_OK
     ctx.mime = 'zip'
     // ctx.query.list is undefined | string | string[]
-    const list = wantArray(ctx.query.list)[0]?.split('*') // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
     const name = list?.length === 1 ? safeDecodeURIComponent(basename(list[0]!)) : getNodeName(node)
-    ctx.attachment((isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
+    forceDownload(ctx, (isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
     const filter = pattern2filter(String(ctx.query.search||''))
     const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
         : (async function*(): AsyncIterableIterator<VfsNode> {
@@ -28,7 +28,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
                 if (!subNode)
                     continue
                 if (await nodeIsDirectory(subNode)) { // a directory needs to walked
-                    if (hasPermission(subNode, 'can_list',ctx)) {
+                    if (hasPermission(subNode, 'can_list', ctx) && hasPermission(subNode, 'can_archive', ctx)) {
                         yield subNode // it could be empty
                         yield* walkNode(subNode, { ctx, prefixPath: decodeURI(uri) + '/', requiredPerm: 'can_archive' })
                     }
@@ -50,7 +50,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
             if (el.isFolder)
                 return { path: name + '/' }
             if (!source) return
-            const st = await fs.stat(source)
+            const st = el.stats || await fs.stat(source)
             if (!st || !st.isFile())
                 return
             return {

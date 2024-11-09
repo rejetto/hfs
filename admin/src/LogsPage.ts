@@ -4,8 +4,10 @@ import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState }
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, apiCall, useApi, useApiList } from './api'
 import { DataTable } from './DataTable'
-import { CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
-    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent } from '@hfs/shared'
+import {
+    CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
+    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent, stringAfter
+} from '@hfs/shared'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
     hTooltip, Btn, wikiLink
@@ -95,6 +97,8 @@ export default function LogsPage() {
     }
 }
 
+const LOGS_ON_FILE: string[] = [CFG.log, CFG.error_log]
+
 function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string, addToFooter?: ReactNode }) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
@@ -111,7 +115,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
     const invert = true
     const [firstSight, setFirstSight] = useState(!hidden)
     useEffect(() => setFirstSight(x => x || !hidden), [hidden])
-    useApi(firstSight && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
+    useApi(firstSight && LOGS_ON_FILE.includes(file) && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
             const lines = body.split('\n')
@@ -272,7 +276,7 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
                     const [path, query] = splitAt('?', value).map(safeDecodeURIComponent)
                     const ul = row.extra?.ul
                     if (ul)
-                        return typeof ul === 'string' ? ul // legacy pre-0.51
+                        return typeof ul === 'string' ? ul //legacy pre-0.51
                             : path + ul.join(' + ')
                     if (!path.startsWith(API_URL))
                         return [path, query && h(Box, { key: 0, component: 'span', color: 'text.secondary', fontSize: 'smaller' }, '?', query)]
@@ -284,60 +288,68 @@ function LogFile({ file, addToFooter, hidden }: { hidden?: boolean, file: string
         ]
     })
 
-    function enhanceLogLine(x: any) {
-        if (!x) return
-        const { extra } = x
-        if ((extra?.country || x.country) && !showCountry)
+    function enhanceLogLine(row: any) {
+        if (!row) return
+        const { extra } = row
+        if ((extra?.country || row.country) && !showCountry)
             setShowCountry(true)
         if (extra?.ua && !showAgent)
             setShowAgent(true)
-        x.notes = extra?.dl ? "fully downloaded"
-            : (x.method === 'PUT' || extra?.ul) ? "uploaded " + formatBytes(extra?.size, { sep: NBSP })
-                : x.status === HTTP_UNAUTHORIZED && x.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
-                    : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (x.notes || '')
-        return x
+        if (row.uri) {
+            const partial = stringAfter('?', row.uri).includes('partial=')
+            row.notes = extra?.dl ? "fully downloaded"
+                : (row.method === 'PUT' || extra?.ul) ? "uploaded " + (partial ? "up to " : "") + formatBytes(extra?.size, { sep: NBSP })
+                    : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
+                        : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (row.notes || '')
+        }
+        return row
     }
 }
 
-export function agentIcons(agent: string | undefined) {
-    if (!agent) return
-    const UW = 'https://upload.wikimedia.org/wikipedia/commons/'
-    const short = shortenAgent(agent)
-    const browserIcon = h(AgentIcon, { k: short, altText: true, map: {
-        Chrome: UW + 'e/e1/Google_Chrome_icon_%28February_2022%29.svg',
-        Chromium: UW + 'f/fe/Chromium_Material_Icon.svg',
-        Firefox: UW + 'a/a0/Firefox_logo%2C_2019.svg',
-        Safari: UW + '5/52/Safari_browser_logo.svg',
-        Edge: UW + '9/98/Microsoft_Edge_logo_%282019%29.svg',
-        Opera: UW + '4/49/Opera_2015_icon.svg',
-    } })
-    const os = _.findKey(OSS, re => re.test(agent))
-    const osIcon = os && h(AgentIcon, { k: os, map: {
-        android: UW + 'd/d7/Android_robot.svg',
-        linux: UW + '0/0a/Tux-shaded.svg',
-        win: UW + '0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg',
-        apple: UW + '7/74/Apple_logo_dark_grey.svg', // grey works for both themes
-    } })
-    return hTooltip(agent, undefined, h('span', {}, browserIcon, ' ', osIcon) )
+const UW = 'https://upload.wikimedia.org/wikipedia/commons/'
+const BROWSER_ICONS = {
+    Chrome: UW + 'e/e1/Google_Chrome_icon_%28February_2022%29.svg',
+    Chromium: UW + 'f/fe/Chromium_Material_Icon.svg',
+    Firefox: UW + 'a/a0/Firefox_logo%2C_2019.svg',
+    Safari: UW + '5/52/Safari_browser_logo.svg',
+    Edge: UW + '9/98/Microsoft_Edge_logo_%282019%29.svg',
+    Opera: UW + '4/49/Opera_2015_icon.svg',
 }
-
-const alreadyFailed: any = {}
-
-function AgentIcon({ k, map, altText }: { k: string, map: Dict<string>, altText?: boolean }) {
-    const src = map[k]
-    const [err, setErr] = useState(alreadyFailed[k])
-    return !src || err ? h(Fragment, {}, altText ? k : null) : h('img', {
-        src: err ? `/${k}.svg` : src,
-        style: { height: '1.3em', verticalAlign: 'bottom', marginRight: '.2em' },
-        onError() { setErr(alreadyFailed[k] = true) }
-    })
+const OS_ICONS = {
+    android: UW + 'd/d7/Android_robot.svg',
+    linux: UW + '0/0a/Tux-shaded.svg',
+    win: UW + '0/0a/Unofficial_Windows_logo_variant_-_2002%E2%80%932012_%28Multicolored%29.svg',
+    apple: UW + '7/74/Apple_logo_dark_grey.svg', // grey works for both themes
 }
-
 const OSS = {
     apple: /Mac OS|iPhone OS/,
     win: /Windows NT/,
     android: /Android/,
     linux: /Linux/,
+}
+
+export function agentIcons(agent: string | undefined) {
+    if (!agent) return
+    const short = shortenAgent(agent)
+    const browserIcon = h(AgentIcon, { k: short, altText: true, map: BROWSER_ICONS })
+    const os = _.findKey(OSS, re => re.test(agent))
+    return hTooltip(agent, undefined, h(Box, { fontSize: '110%' }, browserIcon, ' ', os && osIcon(os as any)) )
+}
+
+const alreadyFailed: any = {}
+
+export function osIcon(k: keyof typeof OS_ICONS) {
+    return h(AgentIcon, { k, map: OS_ICONS })
+}
+
+function AgentIcon({ k, map, altText }: { k: string, map: Dict<string>, altText?: boolean }) {
+    const src = map[k]
+    const [err, setErr] = useState(alreadyFailed[k])
+    return !src || err ? h(Fragment, {}, altText ? k : null) : h('img', {
+        src,
+        style: { height: '1.2em', verticalAlign: 'bottom', marginRight: '.2em' },
+        onError() { setErr(alreadyFailed[k] = true) }
+    })
 }
 
 function parseLogLine(line: string, id: number) {

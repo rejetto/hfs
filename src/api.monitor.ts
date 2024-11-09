@@ -69,9 +69,9 @@ export default {
                 agent: shortenAgent(ctx.get('user-agent')),
                 archive: s.archive,
                 ...s.browsing ? { op: 'browsing', path: decodeURIComponent(s.browsing) }
-                    : s.uploadPath ? { op: 'upload',path: decodeURIComponent(s.uploadPath) }
+                    : s.uploadPath ? { op: 'upload', path: decodeURIComponent(s.uploadPath) }
                         : {
-                            op: !s.considerAsGui && s.op || undefined,
+                            op: !s.considerAsGui && (ctx.state.archive || ctx.state.vfsNode) ? 'download' : undefined,
                             path: try_(() => decodeURIComponent(ctx.originalUrl), () => ctx.originalUrl),
                         },
                 opProgress: _.isNumber(s.opProgress) ? _.round(s.opProgress, 3) : undefined,

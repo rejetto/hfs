@@ -163,6 +163,9 @@
         "Show details": "Mostra dettagli",
         "upload_conflict": "esiste già",
         "Logged in": "Benvenuto",
-        "Logged out": "Arrivederci"
+        "Logged out": "Arrivederci",
+
+        "Cancel": "Annulla",
+        "allow_session_ip_change": "Permetti cambio IP in questa sessione"
     }
 }

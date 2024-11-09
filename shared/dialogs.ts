@@ -108,7 +108,7 @@ export function Dialogs(props: HTMLAttributes<HTMLDivElement>) {
 }
 
 function Dialog(d: DialogOptions) {
-    const ref = useRef<HTMLElement>()
+    const ref = useRef<HTMLElement>(null)
     const [shiftY, setShiftY] = useState(0)
     useEffect(()=>{
         const el = ref.current?.querySelector('.dialog') as HTMLElement | undefined
@@ -124,7 +124,11 @@ function Dialog(d: DialogOptions) {
     return h('div', {
             ref,
             className: 'dialog-backdrop '+(d.className||''),
-            onKeyDown,
+            onKeyDown(ev) {
+                if (ev.key === 'Escape')
+                    closeDialog()
+                ev.stopPropagation()
+            },
             onClick: (ev: any) => d.closable
                 && ev.target === ev.currentTarget // this test will tell us if really the backdrop was clicked
                     && closeDialog()
@@ -173,13 +177,6 @@ export function componentOrNode(x: ReactNode | FunctionComponent) {
     return isPrimitive(x) || isValidElement(x) ? x : h(x as any)
 }
 
-function onKeyDown(ev:any) {
-    if (ev.key === 'Escape') {
-        closeDialog()
-        ev.stopPropagation()
-    }
-}
-
 export function newDialog(options: DialogOptions) {
     const $id = Math.random()
     const ts = performance.now()
@@ -203,7 +200,7 @@ export function newDialog(options: DialogOptions) {
         if (history.state?.$dialog === $id)
             options.closed = back()
         closeDialogAt(i, v)
-        return options
+        return options.closed
     }
 }
 
@@ -226,8 +223,9 @@ export function closeDialog(v?:any, skipHistory=false) {
 function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
     d.restoreFocus?.focus?.() // if element is not HTMLElement, it doesn't have focus method
-    d.closingValue = value
-    d?.onClose?.(value)
+    d.closingValue = value && typeof value === 'object' ? ref(value) : value // since this is being assigned to a valtio proxy, ref is necessary to avoid crashing with unusual (and possibly accidental) objects like React's SynteticEvents
+    Promise.resolve(d.closed).then(() =>
+        d?.onClose?.(value))
     return d
 }
 

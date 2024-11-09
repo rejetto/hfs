@@ -19,7 +19,7 @@ exports.init = api => {
     const { block } = api.require('./block')
     return {
         unload: api.events.multi({
-            attemptingLogin: async  ctx => {
+            attemptingLogin: async ({ ctx }) => {
                 const { ip } = ctx
                 const now = new Date
                 const rec = getOrSet(byIp, ip, () => ({ attempts: 0, next: now }))

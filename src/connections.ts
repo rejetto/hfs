@@ -40,6 +40,9 @@ export function normalizeIp(ip: string) {
 const all: Connection[] = []
 
 export function newConnection(socket: Socket) {
+    const ip = normalizeIp(socket.remoteAddress || '')
+    if (events.emit('newSocket', { socket, ip })?.isDefaultPrevented())
+        return socket.destroy()
     new Connection(socket)
 }
 
@@ -78,6 +81,6 @@ export function disconnect(what: Context | Socket, debugLog='') {
     if ('socket' in what)
         what = what.socket
     if (debugLog)
-        console.debug("disconnection:", debugLog, what.remoteAddress)
+        console.debug("disconnection:", debugLog, normalizeIp(what.remoteAddress || ''))
     return what.destroy()
 }

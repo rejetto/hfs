@@ -1,11 +1,11 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getRepoInfo } from './github'
-import { argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
+import { getProjectInfo, getRepoInfo } from './github'
+import { ARGS_FILE, argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
-import { exists, httpStream, prefix, unzip, xlate } from './misc'
-import { createReadStream, renameSync, unlinkSync } from 'fs'
+import { DAY, exists, debounceAsync, httpStream, unzip, prefix, xlate, HOUR } from './misc'
+import { createReadStream, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
@@ -13,29 +13,59 @@ import open from 'open'
 import { currentVersion, defineConfig, versionToScalar } from './config'
 import { cmdEscape, RUNNING_AS_SERVICE } from './util-os'
 import { onProcessExit } from './first'
+import { storedMap } from './persistence'
+import _ from 'lodash'
 
 const updateToBeta = defineConfig('update_to_beta', false)
+const autoCheckUpdate = defineConfig('auto_check_update', true)
+const lastCheckUpdate = storedMap.singleSync<number>('lastCheckUpdate', 0)
+const AUTO_CHECK_EVERY = DAY
 
-interface Release {
+export const autoCheckUpdateResult = storedMap.singleSync<Release | undefined>('autoCheckUpdateResult', undefined)
+autoCheckUpdateResult.ready().then(() => {
+    autoCheckUpdateResult.set(v => {
+        if (!v) return // refresh isNewer, as currentVersion may have changed
+        v.isNewer = currentVersion.olderThan(v.tag_name)
+        return v
+    })
+})
+setInterval(debounceAsync(async () => {
+    if (!autoCheckUpdate.get()) return
+    if (Date.now() < lastCheckUpdate.get() + AUTO_CHECK_EVERY) return
+    console.log("checking for updates")
+    try {
+        const u = (await getUpdates(true))[0]
+        if (u) console.log("new version available", u.name)
+        autoCheckUpdateResult.set(u)
+        lastCheckUpdate.set(Date.now())
+    }
+    catch {}
+}), HOUR)
+
+export type Release = { // not using interface, as it will not work with kvstorage.Jsonable
     prerelease: boolean,
     tag_name: string,
     name: string,
-    assets: any[],
-    isNewer: boolean // introduced by us
+    body: string,
+    assets: { name: string, browser_download_url: string }[],
+    // fields introduced by us
+    isNewer: boolean
+    versionScalar: number
 }
+const ReleaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer', 'versionScalar'] satisfies (keyof Release)[]
+const ReleaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
 
 export async function getUpdates(strict=false) {
+    getProjectInfo() // check for alerts
     const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
-    const verStable = ver(stable)
-    const ret = await getBetas()
     stable.isNewer = currentVersion.olderThan(stable.tag_name)
+    stable.versionScalar = versionToScalar(stable.name)
+    const ret = await getBetas()
     if (stable.isNewer || RUNNING_BETA)
         ret.push(stable)
-    return ret.filter(x => !strict || x.isNewer)
-
-    function ver(x: any) {
-        return versionToScalar(x.name)
-    }
+    // prune a bit, as it will be serialized, but it has a lot of unused data
+    return _.sortBy(ret, x => -x.versionScalar).filter(x => !strict || x.isNewer).map(x =>
+        Object.assign(_.pick(x, ReleaseKeys), { assets: x.assets.map(a => _.pick(a, ReleaseAssetKeys)) }))
 
     async function getBetas() {
         if (!updateToBeta.get() && !RUNNING_BETA) return []
@@ -47,9 +77,9 @@ export async function getUpdates(strict=false) {
             if (!res.length) break
             const curV = currentVersion.getScalar()
             for (const x of res) {
-                if (!x.prerelease) continue // prerelease are all the end
-                const v = ver(x)
-                if (v <= verStable) // prerelease-s are locally ordered, so as soon as we reach verStable we are done
+                if (!x.prerelease || x.name.endsWith('-ignore')) continue
+                const v = x.versionScalar = versionToScalar(x.name)
+                if (v < stable.versionScalar) // we don't consider betas before stable
                     return ret
                 if (v === curV) continue // skip current
                 x.isNewer = v > curV // make easy to know what's newer
@@ -72,8 +102,9 @@ export async function updateSupported() {
 
 export async function update(tagOrUrl: string='') {
     if (!await updateSupported()) throw "only binary versions supports automatic update for now"
+    let doingLocal = ''
     let updateSource: Readable | false = tagOrUrl.includes('://') ? await httpStream(tagOrUrl)
-        : await localUpdateAvailable() && createReadStream(LOCAL_UPDATE)
+        : await localUpdateAvailable() && createReadStream(doingLocal=LOCAL_UPDATE)
     if (!updateSource) {
         if (/^\d/.test(tagOrUrl)) // work even if the tag is passed without the initial 'v' (useful for console commands)
             tagOrUrl = 'v' + tagOrUrl
@@ -117,7 +148,10 @@ export async function update(tagOrUrl: string='') {
             catch {}
             renameSync(bin, oldBin)
             console.log("launching new version in background", newBinFile)
-            launch(newBin, ['--updating', binFile], { sync: true }) // sync necessary to work on mac by double-click
+            if (doingLocal)
+                try { renameSync(doingLocal, 'old-' + doingLocal) }
+                catch(e) { console.warn(e) }
+            launch(newBin, ['--updating', binFile, '--cwd .'], { sync: true }) // sync necessary to work on Mac by double-click
         })
         console.log("quitting")
         setTimeout(() => process.exit()) // give time to return (and caller to complete, eg: rest api to reply)
@@ -141,9 +175,15 @@ if (argv.updating) { // we were launched with a temporary name, restore original
     // be sure to test launching both double-clicking and in a terminal
     if (IS_WINDOWS) // this method on Mac works only once, and without console
         onProcessExit(() =>
-            launch(dest, ['--updated']) ) // launch+sync here would cause old process to stay open, locking ports
-    else
+            launch(dest, ['--updated', '--cwd .']) ) // launch+sync here would cause old process to stay open, locking ports
+    else {
+        /* open() is the only consistent way that i could find working on Mac that preserved console input/output over relaunching,
+         * but I couldn't find a way to pass parameters, at least on Linux. The workaround I'm using is to write them to a temp file, that's read and deleted at restart.
+         * For the record, on mac you can: write "./hfs arg1 arg2" to /tmp/tmp.sh with 0o700, and then spawn "open -a Terminal /tmp/tmp.sh"
+         */
+        try { writeFileSync(ARGS_FILE, JSON.stringify(['--updated', '--cwd', process.cwd().replaceAll(' ', '\\ ')])) }
+        catch {}
         void open(dest)
-
+    }
     process.exit()
 }

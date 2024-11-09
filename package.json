@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.53.2",
+  "version": "0.54.0-rc12",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -16,7 +16,7 @@
     "start-frontend": "npm run start --workspace=frontend",
     "start-admin": "npm run start --workspace=admin",
     "build-all": "npm audit --omit=dev --audit-level=moderate && rm -rf dist && npm i && npm run build-server && npm run build-frontend && npm run build-admin && echo COMPLETED",
-    "build-server": "rm -rf dist/src dist/plugins && tsc --target es2018 && touch package.json && cp -v -r package.json central.json README* LICENSE* plugins dist && find dist -name .DS_Store -o -name storage -exec rm -rf {} + && node afterbuild.js",
+    "build-server": "rm -rf dist/src dist/plugins && tsc --target es2018 && touch package.json && cp -v -r package.json central.json README* LICENSE* hfs.ico plugins dist && find dist -name .DS_Store -o -name storage -exec rm -rf {} + && node afterbuild.js",
     "build-frontend": "npm run build --workspace=frontend",
     "build-admin": "npm run build --workspace=admin",
     "server-for-test": "node dist/src --cwd . --config tests && rm custom.html",
@@ -27,7 +27,7 @@
     "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-mac && npm run dist-bin-mac-arm",
     "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && cd .. && node prune_modules",
     "dist-pre": "cd dist && rm -rf node_modules/@node-rs/crc32-*",
-    "dist-bin-win": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc && pkg . --public -C gzip -t node18-win-x64 && zip hfs-windows-x64-$(jq -r .version ../package.json).zip hfs.exe -r plugins && cd ..",
+    "dist-bin-win": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc && pkg . --public -C gzip -t node18-win-x64 && npx resedit-cli --in hfs.exe --icon 1,../hfs.ico --out hfs.exe && zip hfs-windows-x64-$(jq -r .version ../package.json).zip hfs.exe -r plugins && cd ..",
     "dist-bin-mac-arm": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-arm64 && pkg . --public -C gzip -t node18-macos-arm64 && zip hfs-mac-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-bin-mac": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-x64 && pkg . --public -C gzip -t node18-macos-x64 && zip hfs-mac-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-bin-linux": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-linux-x64-gnu && pkg . --public -C gzip -t node18-linux-x64 && zip hfs-linux-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
@@ -59,6 +59,7 @@
       "central.json",
       "admin/**/*",
       "frontend/**/*",
+      "**/node_modules/fswin/x64/*",
       "**/node_modules/axios/dist/node/*"
     ],
     "targets": [
@@ -70,14 +71,15 @@
   },
   "dependencies": {
     "@koa/router": "^13.0.1",
-    "@node-rs/crc32": "^1.6.0",
+    "@node-rs/crc32": "^1.10.3",
     "@rejetto/kvstorage": "^0.12.2",
-    "acme-client": "^5.3.1",
-    "buffer-crc32": "^0.2.13",
+    "acme-client": "^5.4.0",
+    "buffer-crc32": "^1.0.0",
     "fast-glob": "^3.2.7",
     "find-process": "^1.4.7",
     "formidable": "^3.5.1",
     "fs-x-attributes": "^1.0.2",
+    "fswin": "^3.24.829",
     "iconv-lite": "^0.6.3",
     "ip2location-nodejs": "^9.6.0",
     "koa": "^2.13.4",

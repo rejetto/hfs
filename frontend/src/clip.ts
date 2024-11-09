@@ -8,6 +8,7 @@ import { dirname, HTTP_MESSAGES, xlate } from '../../src/cross'
 import { apiCall } from '@hfs/shared/api'
 import { reloadList, usePath } from './useFetchList'
 import _ from 'lodash'
+import { hfsEvent } from './misc'
 
 export function ClipBar() {
     const { clip, props } = useSnapState()
@@ -43,6 +44,7 @@ export function ClipBar() {
     }
 
     function paste() {
+        if (hfsEvent('paste', { from: state.clip, to: here }).isDefaultPrevent()) return
         return apiCall('move_files', {
             uri_from: clip.map(x => x.uri),
             uri_to: here,
@@ -60,7 +62,6 @@ export function ClipBar() {
         }, alertDialog)
     }
 }
-
 
 export function cut(files: DirList) {
     state.clip = files

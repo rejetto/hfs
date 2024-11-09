@@ -11,6 +11,7 @@ import {
     adjustStaticPathForGlob, callable, Callback, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir
 } from './misc'
+import * as misc from './misc'
 import { defineConfig, getConfig } from './config'
 import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
@@ -25,6 +26,7 @@ import { KvStorage, KvStorageOptions } from '@rejetto/kvstorage'
 import { onProcessExit } from './first'
 import { notifyClient } from './frontEndApis'
 import { app } from './index'
+import { addBlock } from './block'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -113,6 +115,8 @@ async function initPlugin<T>(pl: any, morePassedToInit?: T) {
         getHfsConfig: getConfig,
         customApiCall,
         notifyClient,
+        addBlock,
+        misc,
         ...morePassedToInit
     }))
 }
@@ -137,7 +141,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 lastStatus = ctx.status
                 lastBody = ctx.body
             }
-            if (res === true && !ctx.isStopped) { // legacy pre-0.53
+            if (res === true && !ctx.isStopped) { //legacy pre-0.53
                 ctx.stop()
                 warnOnce(`plugin ${id} is using deprecated API (return true on middleware) and may not work with future versions (check for an update to "${id}")`)
             }
@@ -278,6 +282,20 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> 
     }).filter(x => x !== undefined) as Exclude<T,undefined>[]
 }
 
+export function firstPlugin<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
+    for (const [plName,pl] of Object.entries(plugins)) {
+        if (!includeServerCode && plName === SERVER_CODE_ID) continue
+        try {
+            const ret = cb(pl,plName)
+            if (ret !== undefined)
+                return ret
+        }
+        catch(e) {
+            console.log('plugin error', plName, String(e))
+        }
+    }
+}
+
 type PluginMiddleware = (ctx:Koa.Context) => Promisable<void | Stop | CallMeAfter>
 type Stop = true
 type CallMeAfter = ()=>any
@@ -306,7 +324,7 @@ export function getAvailablePlugins() {
     return Object.values(availablePlugins)
 }
 
-const rescanAsap = debounceAsync(rescan, 1000)
+const rescanAsap = debounceAsync(rescan, { wait: 1000 })
 if (!existsSync(PATH))
     try { mkdirSync(PATH) }
     catch {}

@@ -6,7 +6,7 @@ import { Alert } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
 import { formatTimestamp, isEqualLax, prefix, useIsMobile, wantArray } from './misc'
-import { IconBtn, modifiedProps } from './mui'
+import { IconBtn, propsForModifiedValues } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
@@ -70,7 +70,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
             { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: 6, xl: 8,
                 helperText: "To access THIS interface you are using right now",
-                ...!account.admin && account.adminActualAccess && { value: true, helperText: "This permission is inherited" },
+                ...!account.admin && account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited. To disable it, act on the groups." },
             },
             { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: 'auto' },
             group && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
@@ -88,7 +88,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
         ],
         onError: alertDialog,
         save: {
-            ...modifiedProps( !isEqualLax(values, account)),
+            ...propsForModifiedValues(isModifiedConfig(values, account)),
             async onClick() {
                 const { password='', password2, adminActualAccess, hasPassword, invalidated, ...withoutPassword } = values
                 if (add) {
@@ -114,6 +114,10 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             }
         }
     })
+}
+
+export function isModifiedConfig(a: any, b: any) {
+    return !isEqualLax(a, b, (a,b) => !a && !b || undefined)
 }
 
 // you can set password directly in add/set_account, but using this api instead will add extra security because it is not sent as clear-text, so it's especially good if you are not in localhost and not using https

@@ -4,6 +4,7 @@ import { defineConfig } from './config'
 import { disconnect, getConnections, normalizeIp } from './connections'
 import { makeNetMatcher, MINUTE, onlyTruthy } from './misc'
 import { Socket } from 'net'
+import _ from 'lodash'
 
 export interface BlockingRule { ip: string, comment?: string, expire?: Date, disabled?: boolean }
 
@@ -33,3 +34,11 @@ setInterval(() => { // twice a minute, check if any block has expired
     console.log("blocking rules:", n, "expired")
     block.set(next)
 }, MINUTE/2)
+
+export function addBlock(rule: BlockingRule, merge?: Partial<BlockingRule>) {
+    block.set(was => {
+        const foundIdx = merge ? _.findIndex(was, merge) : -1
+        return foundIdx < 0 ? [...was, { ...merge, ...rule }]
+            : was.map((x, i) => i === foundIdx ? { ...x, ...rule, ip: `${x.ip}|${rule.ip}` } : x)
+    })
+}

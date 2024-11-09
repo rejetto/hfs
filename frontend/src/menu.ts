@@ -2,9 +2,11 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
-import { alertDialog, confirmDialog, ConfirmOptions, promptDialog, toast } from './dialog'
-import { defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, throw_, useStateMounted, VfsPerms, working,
-    buildUrlQueryString} from './misc'
+import { alertDialog, confirmDialog, ConfirmOptions, formDialog, toast } from './dialog'
+import {
+    defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, VfsPerms, working,
+    buildUrlQueryString, hIcon, WIKI_URL
+} from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
 import showUserPanel from './UserPanel'
@@ -19,7 +21,7 @@ import { cut } from './clip'
 import { Btn, BtnProps, CustomCode } from './components'
 
 export function MenuPanel() {
-    const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
+    const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props, searchOptions } = useSnapState()
     const { can_upload, can_delete, can_archive } = props ? { ...defaultPerms, ...props } : {} as VfsPerms
     const { uploading, qs }  = useSnapshot(uploadState)
     useEffect(() => {
@@ -116,6 +118,7 @@ export function MenuPanel() {
                     }
                 }
             })),
+            h(CustomCode, { name: 'appendMenuBar' }),
         ),
         remoteSearch && h('div', { id: 'searched' },
             (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', searchManuallyInterrupted && t`interrupted`, ')')),
@@ -143,11 +146,35 @@ export function MenuPanel() {
             icon: 'search',
             label: t`Search`,
             onClickAnimation: false,
-            async onClick() {
-                state.remoteSearch = await promptDialog(t('search_msg', "Search this folder and sub-folders"),
-                    { title: t`Search`, onSubmit: x => x.includes('/') ? throw_(t`Invalid value`) : x  }) || ''
+            onClick: () => formDialog({
+                title: t`Search`,
+                Content: () => h('div', {},
+                    h('label', { htmlFor: 'text' }, t('search_msg', "Search this folder and sub-folders")),
+                    h('input', {
+                        name: 'text',
+                        style: { width: 0, minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box' },
+                        autoFocus: true,
+                    }),
+                    h('div', { style: { margin: '1em 0' } },
+                        h('input', {
+                            type: 'checkbox',
+                            name: 'wild',
+                            defaultChecked: searchOptions.wild,
+                            style: { marginRight: '1em' },
+                        }),
+                        "Wildcards",
+                        h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info')),
+                    ),
+                    h('div', { style: { textAlign: 'right', marginTop: '.8em' } },
+                        h('button', {}, t`Continue`)),
+                )
+            }).then(res => {
+                if (!res) return
+                const { text='', wild, ...rest } = res
+                state.searchOptions = { ...rest, wild: Boolean(wild) }
+                state.remoteSearch = text
                 state.stopSearch?.()
-            }
+            })
         }
     }
 }

@@ -3,14 +3,16 @@
 import {
     AvailablePlugin, enablePlugins, getAvailablePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
     PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning,
-    stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies,
+    stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo,
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
 import { HTTP_CONFLICT, newObj, waitFor } from './misc'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { rm } from 'fs/promises'
-import { downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, searchPlugins } from './github'
+import {
+    downloadPlugin, getFolder2repo, readOnlineCompatiblePlugin, readOnlinePlugin, searchPlugins, downloading
+} from './github'
 import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 import { SendListReadable } from './SendList'
 
@@ -28,10 +30,18 @@ const apis: ApiHandlers = {
         })
     },
 
-    async get_plugin_updates() {
+    async get_plugin_updates({}, ctx) {
         return new SendListReadable({
             async doAtStart(list) {
                 const errs: string[] = []
+                list.events(ctx, {
+                    pluginDownload({ repo, status }) {
+                        list.update({ id: findPluginByRepo(repo)?.id }, { downloading: status ?? null })
+                    },
+                    pluginDownloaded({ id }) {
+                        list.update({ id }, { updated: true })
+                    }
+                })
                 await Promise.allSettled(_.map(getFolder2repo(), async (repo, folder) => {
                     try {
                         if (!repo) return
@@ -39,11 +49,13 @@ const apis: ApiHandlers = {
                         if (!online) return
                         const disk = getPluginInfo(folder)
                         if (!disk) return // plugin removed in the meantime?
-                        if (online.version !== disk.version) { // not just newer one, in case a version was retired
-                            online.id = disk.id // id is installation-dependant, and online cannot know
-                            online.repo = serialize(disk).repo // show the user the current repo we are getting this update from, not a possibly-changed future one
-                            list.add(online)
-                        }
+                        if (online.version === disk.version) return // different, not just newer ones, in case a version was retired
+                        list.add(Object.assign(online, {
+                            id: disk.id, // id is installation-dependant, and online cannot know
+                            repo: serialize(disk).repo, // show the user the current repo we are getting this update from, not a possibly-changed future one
+                            downgrade: online.version! < disk.version,
+                            downloading: _.isString(online.repo) && downloading[online.repo],
+                        }))
                     } catch (err: any) {
                         if (err.message !== '404') // the plugin is declaring a wrong repo
                             errs.push(err.code || err.message)
@@ -51,7 +63,7 @@ const apis: ApiHandlers = {
                 }))
                 for (const x of _.uniq(errs))
                     list.error(x)
-                list.close()
+                list.ready()
             }
         })
     },
@@ -104,9 +116,9 @@ const apis: ApiHandlers = {
                         if (repos.includes(repo))
                             list.update({ id: repo }, { installed: false })
                     },
-                    pluginDownload({ id, status }) {
-                        if (repos.includes(id))
-                            list.update({ id }, { downloading: status ?? null })
+                    pluginDownload({ repo, status }) {
+                        if (repos.includes(repo))
+                            list.update({ id: repo }, { downloading: status ?? null })
                     }
                 })
                 try {

@@ -25,14 +25,15 @@ export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
-    'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address'])
+    'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
+    'allow_session_ip_change'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
-
+export type StringifyProps<T> = { [P in keyof T]: Exclude<T[P], Date> extends T[P] ? string | Exclude<T[P], Date> : T[P] }
 export interface VfsPerms {
     can_see?: Who
     can_read?: Who
@@ -88,7 +89,7 @@ const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
 export function formatBytes(n: number, { post='B', k=1024, digits=NaN, sep=' ' }={}) {
     if (isNaN(Number(n)) || n < 0)
         return ''
-    const i = n && Math.floor(Math.log2(n) / Math.log2(k))
+    const i = n && Math.min(MULTIPLIERS.length - 1, Math.floor(Math.log2(n) / Math.log2(k)))
     n /= k ** i
     const nAsString = i && !isNaN(digits) ? n.toFixed(digits)
         : _.round(n, isNaN(digits) ? (n >= 100 ? 0 : 1) : digits)
@@ -147,6 +148,11 @@ export function splitAt(sub: string | number, all: string): [string, string] {
         return [all.slice(0, sub), all.slice(sub + 1)]
     const i = all.indexOf(sub)
     return i < 0 ? [all,''] : [all.slice(0, i), all.slice(i + sub.length)]
+}
+
+export function stringAfter(sub: string, all: string) {
+    const i = all.indexOf(sub)
+    return i < 0 ? '' : all.slice(i + sub.length)
 }
 
 export function truthy<T>(value: T): value is Truthy<T> {
@@ -363,11 +369,12 @@ export function isTimestampString(v: unknown) {
     return typeof v === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z*$/.test(v)
 }
 
-export function isEqualLax(a: any,b: any): boolean {
-    return a == b //eslint-disable-line
-        || (a && b && typeof a === 'object' && typeof b === 'object'
-            && Object.entries(a).every(([k, v]) => isEqualLax(v, b[k]))
-            && Object.entries(b).every(([k, v]) => k in a || isEqualLax(v, a[k])) )
+export function isEqualLax(a: any,b: any, overrideRule?: (a: any, b: any) => boolean | undefined): boolean {
+    return overrideRule?.(a, b) ?? (
+        a == b || a && b && typeof a === 'object' && typeof b === 'object'
+            && Object.entries(a).every(([k, v]) => isEqualLax(v, b[k], overrideRule))
+            && Object.entries(b).every(([k, v]) => k in a /*already checked*/ || isEqualLax(v, a[k], overrideRule))
+    )
 }
 
 export function xlate(input: any, table: Record<string, any>) {
@@ -397,11 +404,11 @@ export async function promiseBestEffort<T>(promises: Promise<T>[]) {
     return res.filter(x => x.status === 'fulfilled').map((x: any) => x.value as T)
 }
 
+// encode paths leaving / separator unencoded (not like encodeURIComponent), but still encode #
 export function pathEncode(s: string) {
-    return encodeURI(s).replace(/#/g, escape)
+    return s.replace(/[:&#'"% ?\\]/g, escape) // escape() is not utf8, but we are encoding only ascii chars
 }
 //unused function pathDecode(s: string) { return decodeURI(s).replace(/%23/g, '#') }
-
 
 // run at a specific point in time, also solving the limit of setTimeout, which doesn't work with +32bit delays
 export function runAt(ts: number, cb: Callback) {
@@ -465,6 +472,13 @@ export function callable<T>(x: T | ((...args: unknown[]) => T), ...args: unknown
 export function safeDecodeURIComponent(s: string) {
     try { return decodeURIComponent(s) }
     catch { return s }
+}
+
+export function popKey(o: any, k: string) {
+    if (!o) return
+    const x = o[k]
+    delete o[k]
+    return x
 }
 
 export function shortenAgent(agent: string) {

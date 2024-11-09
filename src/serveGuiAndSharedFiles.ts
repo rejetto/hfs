@@ -96,15 +96,21 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return
     }
     const { get } = ctx.query
-    if (node.default && path.endsWith('/') && !get) // final/ needed on browser to make resource urls correctly with html pages
-        node = await urlToNode(node.default, ctx, node) ?? node
+    if (node.default && path.endsWith('/') && !get) { // final/ needed on browser to make resource urls correctly with html pages
+        const found = await urlToNode(node.default, ctx, node)
+        if (found && /\.html?/i.test(node.default))
+            ctx.state.considerAsGui = true
+        node = found ?? node
+    }
+    if (get === 'icon')
+        return serveFile(ctx, node.icon || '|') // pipe to cause not-found
     if (!await nodeIsDirectory(node))
         return node.url ? ctx.redirect(node.url)
             : !node.source ? sendErrorPage(ctx, HTTP_METHOD_NOT_ALLOWED) // !dir && !source is not supported at this moment
                 : !statusCodeForMissingPerm(node, 'can_read', ctx) ? serveFileNode(ctx, node) // all good
                     : ctx.status !== HTTP_UNAUTHORIZED ? null // all errors don't need extra handling, except unauthorized
                         : detectBasicAgent(ctx) ? (ctx.set('WWW-Authenticate', 'Basic'), sendErrorPage(ctx))
-                            : (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next) // this is necessary to support standard urls with credentials, as chrome125 will send provided credentials only after attempt a GET without them, and after this error
+                            : ctx.query.dl === undefined && (ctx.state.serveApp = true) && serveFrontendFiles(ctx, next)
     if (!path.endsWith('/'))
         return ctx.redirect(ctx.state.revProxyPath + ctx.originalUrl.replace(/(\?|$)/, '/$1')) // keep query-string, if any
     if (statusCodeForMissingPerm(node, 'can_list', ctx)) {
@@ -119,10 +125,9 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return serveFrontendFiles(ctx, next)
     }
     ctx.set({ server: `HFS ${VERSION} ${BUILD_TIMESTAMP}` })
-    if (basicWeb(ctx, node)) return
     return get === 'zip' ? zipStreamFromFolder(node, ctx)
         : get === 'list' ? sendFolderList(node, ctx)
-        : serveFrontendFiles(ctx, next)
+        : (basicWeb(ctx, node) || serveFrontendFiles(ctx, next))
 }
 
 async function sendFolderList(node: VfsNode, ctx: Koa.Context) {

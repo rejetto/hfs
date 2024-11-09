@@ -16,7 +16,8 @@ import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssPr
 import { agentIcons } from './LogsPage'
 import { state, useSnapState } from './state'
 import { useBlockIp } from './useBlockIp'
-import { alertDialog } from './dialog'
+import { alertDialog, confirmDialog } from './dialog'
+import { useInterval } from 'usehooks-ts'
 
 export default function MonitorPage() {
     return h(Fragment, {},
@@ -26,13 +27,13 @@ export default function MonitorPage() {
 }
 
 function MoreInfo() {
-    const { data: status, element } = useApiEx('get_status')
+    const { data: status, element, reload } = useApiEx('get_status')
+    useInterval(reload, 10_000) // status hardly change, but it can
     const { data: connections } = useApiEvents('get_connection_stats')
-    if (status && connections)
-        Object.assign(status, connections)
     const [allInfo, setAllInfo] = useState(false)
     const md = useBreakpoint('md')
     const sm = useBreakpoint('sm')
+    const xl = useBreakpoint('xl')
     const formatDuration = createDurationFormatter({ maxTokens: 2, skipZeroes: true })
     return element || h(Box, { display: 'flex', flexWrap: 'wrap', gap: { xs: .5, md: 1 }, mb: { xs: 1, sm: 2 } },
         (allInfo || md) && pair('started', {
@@ -43,15 +44,17 @@ function MoreInfo() {
         (allInfo || sm) && pair('sent_got', {
             render: x => ({ Sent: formatBytes(x[0]), Got: formatBytes(x[1]) }),
             title: x => "Since: " + formatTimestamp(x[2]),
-            onDelete: () => apiCall('clear_persistent', { k: ['totalSent', 'totalGot'] })
-                .then(() => alertDialog("Done", 'success'), alertDialog)
+            onDelete: () => confirmDialog("Reset stats?")
+                .then(yes => yes && apiCall('clear_persistent', { k: ['totalSent', 'totalGot'] })
+                    .then(() => alertDialog("Done", 'success'), alertDialog) )
         }),
-        (allInfo || sm) && pair('ips', { label: "IPs" }),
         pair('outSpeed', { label: "Output", render: formatSpeedK, minWidth: '8.5em' }),
         pair('inSpeed', { label: "Input", render: formatSpeedK, minWidth: '8.5em' }),
+        (allInfo || sm) && pair('ips', { label: "IPs", title: () => "Currently connected" }),
         (md || allInfo && md || status?.http?.error) && pair('http', { label: "HTTP", render: port }),
         (md || allInfo && md || status?.https?.error) && pair('https', { label: "HTTPS", render: port }),
-        !md && h(IconBtn, {
+        (xl || allInfo) && pair('ram', { label: "RAM", render: formatBytes }),
+        !xl && h(IconBtn, {
             size: 'small',
             icon: allInfo ? ChevronLeft : ChevronRight,
             title: "Show more",
@@ -70,7 +73,7 @@ function MoreInfo() {
     }
 
     function pair(k: string, { label, minWidth, render, title, onDelete }: PairOptions={}) {
-        let v = _.get(status, k)
+        let v = _.get(connections, k) ?? _.get(status, k)
         if (v === undefined)
             return null
         let color: Color = undefined
@@ -116,7 +119,7 @@ function Connections() {
                 fullWidth: false,
                 value: monitorOnlyFiles,
                 onChange: v => state.monitorOnlyFiles = v,
-                options: { "Show only files": true, "Show all connections": false }
+                options: { "Show downloads+uploads": true, "Show all connections": false }
             }),
         ),
         h(DataTable, {

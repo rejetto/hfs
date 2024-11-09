@@ -4,16 +4,10 @@ import { createElement as h, useEffect, useState } from 'react'
 import { StringField } from './StringField'
 import { FieldProps } from '.'
 import {
-    Box,
-    Checkbox,
-    FormControl,
-    FormControlLabel,
-    FormGroup,
-    FormHelperText,
-    FormLabel,
-    InputAdornment,
-    Switch
+    Box, Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, FormLabel, IconButton,
+    InputAdornment, Switch
 } from '@mui/material'
+import { Cancel } from '@mui/icons-material'
 import _ from 'lodash'
 
 export function DisplayField({ value, empty='-', ...props }: any) {
@@ -22,7 +16,7 @@ export function DisplayField({ value, empty='-', ...props }: any) {
     return h(StringField, {  ...props, value, disabled: true })
 }
 
-export function NumberField({ value, onChange, setApi, required, min, max, step, unit, ...props }: FieldProps<number | null>) {
+export function NumberField({ value, onChange, setApi, required, min=0, max, step, unit, clearable, ...props }: FieldProps<number | null>) {
     setApi?.({
         getError() {
             return value == null ? (required ? "required" : false)
@@ -40,7 +34,16 @@ export function NumberField({ value, onChange, setApi, required, min, max, step,
         },
         inputProps: { min, max, step, },
         InputProps: _.merge({
-            sx: { '& input': { appearance: 'textfield' } }
+            sx: { '& input': { appearance: 'textfield' } },
+            startAdornment: (clearable ?? props.placeholder) && (value || value === 0) && h(InputAdornment, {
+                position: 'start',
+            }, h(IconButton, {
+                size: 'small',
+                edge: 'start',
+                sx: { ml: -1, opacity: .5 },
+                'aria-label': "clear",
+                onClick(event){ onChange(null, { was: value, event }) }
+            }, h(Cancel))),
         }, unit && {
             sx: { pr: '6px', '& input': { pl: '.2em', textAlign: 'right' } },
             endAdornment: h(InputAdornment, {
@@ -52,14 +55,14 @@ export function NumberField({ value, onChange, setApi, required, min, max, step,
     })
 }
 
-export function BoolField({ label='', value, onChange, setApi, helperText, error,
+export function BoolField({ label='', value, onChange, setApi, helperText, error, Control=Switch,
                               type, // avoid passing this by accident, as it disrupts the control
                               ...props }: FieldProps<boolean>) {
     const setter = () => value ?? false
     const [state, setState] = useState(setter)
     useEffect(() => setState(setter),
         [value]) //eslint-disable-line
-    const control = h(Switch, {
+    const control = h(Control, {
         checked: state,
         ...props,
         onChange(event) {
@@ -67,9 +70,13 @@ export function BoolField({ label='', value, onChange, setApi, helperText, error
         }
     })
     return h(Box, { ml: 1, sx: error ? { color: 'error.main', outlineOffset: 6, outline: '1px solid' } : undefined },
-        h(FormControlLabel, { label, control, labelPlacement: 'end', ...props.size==='small' && { sx: { '& .MuiFormControlLabel-label': { fontSize: '.9rem' } } } }),
+        h(FormControlLabel, { label, control, labelPlacement: 'end', sx: { mr: 0, ...props.size==='small' && { '& .MuiFormControlLabel-label': { fontSize: '.9rem' } } } }),
         helperText && h(FormHelperText, { sx: { mt: 0 }, error }, helperText)
     )
+}
+
+export function CheckboxField(props: FieldProps<boolean>) {
+    return h(BoolField, { Control: Checkbox, ...props })
 }
 
 export function CheckboxesField({ label, options, value, onChange, columns, columnWidth }: FieldProps<string[]> & { options: string[] }) {

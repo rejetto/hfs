@@ -99,12 +99,6 @@ select { text-align: center; } // it is surely cooler on the options dialog
 [class^="fa-"]:before, [class*=" fa-"]:before { /* don't need extra margin on fontello icons */
     margin: 0;
 }
-.icon {
-    font-size: 1.2em;
-    height: 1.2em; width: 1.4em; // give similar size to <img> icons
-
-    display: inline-block; text-align: center; // same size for font icons
-}
 img.file-icon { height: 1em; }
 .file-icon {
     background-size: contain;
@@ -213,10 +207,6 @@ kbd {
 
 .ani-working { animation:1s blink infinite }
 
-@keyframes blink {
-    0% {opacity: 1}
-    50% {opacity: 0.2}
-}
 @keyframes spin {
     100% { transform: rotate(360deg); }
 }
@@ -267,6 +257,12 @@ kbd {
     height: 1.8em; /* necessary to animate displaying */
     input[type=checkbox] { margin-top: .3em; }
     span:empty { display:none } /* avoid flex-gap */
+}
+#login-options {
+    font-size: smaller;
+    input[type=checkbox] {
+        transform: scale(1.5);
+    }
 }
 
 ul.dir {
@@ -501,6 +497,8 @@ button .icon + .label {
     }
 }
 
+form label+input { margin-top: .2em; }
+
 .miss-perm  { margin: 0 0.3em }
 
 .popup-menu-button {
@@ -550,6 +548,20 @@ button .icon + .label {
 #clipboard-content {
     text-align: left;
     li:first-of-type { margin-top: .5em }
+}
+
+#focus-typing {
+    position: fixed;
+    top: 0;
+    right: 0;
+    background: var(--bg);
+    z-index: 3;
+    padding: .1em .5em;
+    border: 1px solid currentColor;
+    margin: -1px;
+}
+.focus-typing-mismatch {
+    color: var(--error);
 }
 
 .tiles-mode {
@@ -711,12 +723,13 @@ button .icon + .label {
         background-repeat: no-repeat;
         background-size: contain;
         background-position: center;
-        z-index: -1; // otherwise firefox
-        opacity: .3;
+        z-index: -1; // otherwise firefox (forgot to finished this comment)
+        opacity: .4;
         transition: opacity 1s;
         &.none { opacity: 0; }
     }
-    audio.showing { min-width: 60%; }
+    audio.showing { min-width: 60%; transition: opacity 1s; }
+    .cover:not(.none)+audio { opacity: .7; }
     audio.showing, // even on mobile, we need the whole thing to control it decently, and nav-s don't seem to be a problem
     img.showing { max-width: 100% } // we are ok with overlapping for simple images
     .main {

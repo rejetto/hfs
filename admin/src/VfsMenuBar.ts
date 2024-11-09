@@ -2,7 +2,8 @@
 
 import { createElement as h } from 'react'
 import { Alert, Box, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Microsoft, Storage } from '@mui/icons-material'
+import { Storage } from '@mui/icons-material'
+import { osIcon } from './LogsPage'
 import { reloadVfs } from './VfsPage'
 import { prefix } from './misc'
 import { Btn, Flex, reloadBtn, useBreakpoint } from './mui'
@@ -44,7 +45,7 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
     const { data: integrated, reload } = useApi(isWindows && 'windows_integrated')
     const sm = useBreakpoint('sm')
     return !isWindows ? null : h(Btn, {
-        icon: Microsoft,
+        icon: osIcon('win'),
         variant: 'outlined',
         doneMessage: true,
         ...(!integrated?.is ? {

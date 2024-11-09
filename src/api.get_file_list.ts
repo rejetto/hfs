@@ -17,9 +17,9 @@ import { ctxAdminAccess } from './adminApis'
 import { dontOverwriteUploading } from './upload'
 import { SendListReadable } from './SendList'
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string }
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string, icon?: string | true }
 
-export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search, c, onlyFolders, admin }, ctx) => {
+export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search, wild, c, onlyFolders, admin }, ctx) => {
     const node = await urlToNode(uri, ctx)
     const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
     if (!node)
@@ -34,17 +34,19 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         return fail()
     offset = Number(offset)
     limit = Number(limit)
-    const filter = pattern2filter(String(search || ''))
+    search = String(search || '').toLocaleLowerCase()
+    const filter = wild === 'no' ? (s: string) => s.includes(search)
+        : pattern2filter(search)
     const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, depth: search ? Infinity : 0 })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
-    const fakeChild = await applyParentToChild(undefined, node) // can we delete children
+    const fakeChild = await applyParentToChild({ source: 'dummy-file' }, node) // used to check permission; simple but but can produce false results
     const can_delete = admin || hasPermission(fakeChild, 'can_delete', ctx)
-    const can_archive = admin || hasPermission(node, 'can_archive', ctx)
+    const can_archive = admin || hasPermission(fakeChild, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
     const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
-    const comment = await getCommentFor(node.source)
-    const props = { can_archive, can_upload, can_delete, can_overwrite, can_comment, comment, accept: node.accept }
+    const comment = node.comment ?? await getCommentFor(node.source)
+    const props = { can_archive, can_upload, can_delete, can_overwrite, can_comment, comment, accept: node.accept, icon: getNodeIcon(node) }
     ctx.state.browsing = uri.replace(/\/{2,}/g, '/')
     updateConnectionForCtx(ctx)
     if (!list)
@@ -101,6 +103,10 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         }
     }
 
+    function getNodeIcon(node: VfsNode) {
+        return node.icon?.includes('.') || node.icon // true = specific for this file, otherwise is a SYS_ICONS
+    }
+
     async function nodeToDirEntry(ctx: Koa.Context, node: VfsNode): Promise<DirEntry | null> {
         const { source, url } = node
         const name = getNodeName(node)
@@ -108,7 +114,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
             return name ? { n: name, url, target: node.target } : null
         const isFolder = await nodeIsDirectory(node)
         try {
-            const st = source ? await stat(source) : undefined
+            const st = source ? node.stats || await stat(source) : undefined
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'
                 : ''
@@ -116,15 +122,16 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
             const pr = node.can_read === WHO_NO_ONE && !(isFolder && filesInsideCould()) ? 'r'
                 : !hasPermission(node, 'can_read', ctx) ? 'R'
                 : ''
-            const pd = !can_delete && hasPermission(node, 'can_delete', ctx) ? 'd' : ''
-            const pa = isFolder && Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
+            const pd = Boolean(can_delete) === hasPermission(node, 'can_delete', ctx) ? '' : can_delete ? 'd' : 'D'
+            const pa = Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
             return {
                 n: name + (isFolder ? '/' : ''),
                 c: st?.ctime,
                 m: !st || Math.abs(+st.mtime - +st.ctime) < 1000 ? undefined : st.mtime,
                 s: isFolder ? undefined : st?.size,
                 p: (pr + pl + pd + pa) || undefined,
-                comment: await getCommentFor(source),
+                comment: node.comment ?? await getCommentFor(source),
+                icon: getNodeIcon(node),
                 web: await hasDefaultFile(node, ctx) ? true : undefined,
             }
         }

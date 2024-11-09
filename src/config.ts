@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { argv, ORIGINAL_CWD, VERSION } from './const'
+import { argv, ORIGINAL_CWD, VERSION, CONFIG_FILE } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
@@ -10,8 +10,6 @@ import { join, resolve } from 'path'
 import events from './events'
 import { copyFile, stat } from 'fs/promises'
 
-const FILE = 'config.yaml'
-
 // keep definition of config properties
 const configProps: Record<string, { defaultValue?: unknown }> = {}
 
@@ -19,11 +17,11 @@ let started = false // this will tell the difference for subscribeConfig()s that
 let state: Record<string, any> = {} // current state of config properties
 const filePath = with_(argv.config || process.env.HFS_CONFIG, p => {
     if (!p)
-        return FILE
+        return CONFIG_FILE
     p = resolve(ORIGINAL_CWD, p)
     try {
         if (statSync(p).isDirectory()) // try to detect if path points to a folder, in which case we add the standard filename
-            return join(p, FILE)
+            return join(p, CONFIG_FILE)
     }
     catch {}
     return p

@@ -46,7 +46,7 @@
         "enter_pass": "Enter new password",
         "enter_pass2": "RE-enter same new password",
         "pass2_mismatch": "The second password you entered did not match the first. Procedure aborted.",
-        "password_changed": "password_changed",
+        "password_changed": "Password changed",
         "Logout": "Logout",
         "connection error": "connection error",
         "Full timestamp:": "Full timestamp:",
@@ -171,6 +171,9 @@
         "Show details": "Show details",
         "upload_conflict": "already exists",
         "Logged in": "Logged in",
-        "Logged out": "Logged out"
+        "Logged out": "Logged out",
+
+        "Cancel": "Cancel",
+        "allow_session_ip_change": "Allow IP change during this session"
     }
 }

@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, ReactElement, useRef, useState } from 'react'
+import { createElement as h, ReactElement, useEffect, useRef, useState } from 'react'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import { ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
     RemoveRedEye, Web, Upload, Cloud, Delete, HighlightOff } from '@mui/icons-material'
@@ -23,7 +23,11 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
     const ref = useRef<HTMLUListElement>()
     if (!vfs)
         return null
+    // be sure selected element is visible
     const treeId = 'vfs'
+    const first = selectedFiles[0]
+    useEffect(() => document.getElementById(`${treeId}-${first?.id}`)?.scrollIntoView({ block: 'center', behavior: 'instant' as any }),
+        [first])
     return h(TreeView, {
         // @ts-ignore the type declared on the lib doesn't seem to be compatible with useRef()
         ref,

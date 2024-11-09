@@ -7,7 +7,7 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, waitFor, xlate } from './misc'
+import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, xlate } from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { closeLoginDialog } from './login'
@@ -17,10 +17,8 @@ export function usePath() {
 }
 
 // allow links with ?search
-waitFor(() => urlParams).then(x => {
-    if (x)
-        state.remoteSearch = x.search
-})
+setTimeout(() => // wait, urlParams is defined at top level
+    state.remoteSearch = urlParams.search || '')
 
 export default function useFetchList() {
     const snap = useSnapState()
@@ -39,7 +37,6 @@ export default function useFetchList() {
             state.uri = uri // this should be a better way than uriChanged
             state.showFilter = false
             state.stopSearch?.()
-            hfsEvent('uriChanged', { uri, previous }) // legacy pre-0.52, remove in 0.54
         }
         state.searchManuallyInterrupted = false
         if (previous && previous !== uri && search) {
@@ -47,7 +44,8 @@ export default function useFetchList() {
             return
         }
 
-        const params = { uri, search }
+        const params = { uri, search, ...snap.searchOptions }
+        params.wild = params.wild ? undefined : 'no'
         if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
         lastParams.current = params
         lastReloader.current = snap.listReloader
@@ -147,15 +145,28 @@ function sort(list: DirList) {
     const byTime = sort_by === 'time'
     const invert = state.invert_order ? -1 : 1
     return list.sort((a,b) =>
-        folders_first && -compare(a.isFolder, b.isFolder)
+        hfsEvent('sortCompare', { a, b }).find(Boolean)
+        || folders_first && -compare(a.isFolder, b.isFolder)
         || invert * (bySize ? compare(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
                 : byTime ? compare(a.t, b.t)
                     : 0
         )
-        || sort_numerics && (invert * compare(parseFloat(a.n), parseFloat(b.n)))
+        || sort_numerics && (invert * compareNumerics(a.n, b.n))
         || invert * localCompare(a.n, b.n) // fallback to name/path
     )
+
+    function compareNumerics(a: string, b: string) {
+        const re = /\d/g
+        if (!re.exec(a)) return 0
+        const i = re.lastIndex
+        if (i) { // doesn't start with a number
+            if (!b.startsWith(a.slice(0, i -1))) return 0 // b is comparable only if it has same leading part
+            a = a.slice(i-1)
+            b = b.slice(i-1)
+        }
+        return compare(parseFloat(a), parseFloat(b))
+    }
 }
 
 // generic comparison

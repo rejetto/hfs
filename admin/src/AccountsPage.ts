@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useState, useEffect, Fragment } from "react"
+import { createElement as h, useState, useEffect, Fragment, useMemo } from "react"
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { Close, Delete, DoNotDisturb, Group, MilitaryTech, Person, PersonAdd, Schedule } from '@mui/icons-material'
@@ -13,20 +13,20 @@ import _ from 'lodash'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { useSnapState } from './state'
 import { importAccountsCsv } from './importAccountsCsv'
-import { AccountAdminSend } from '../../src/api.accounts'
+import apiAccounts from '../../src/api.accounts'
 
-export type Account = AccountAdminSend
+export type Account = ReturnType<typeof apiAccounts.get_accounts>['list'][0]
 
 export default function AccountsPage() {
     const { username } = useSnapState()
-    const { data, reload, element } = useApiEx('get_accounts')
+    const { data, reload, element } = useApiEx<typeof apiAccounts.get_accounts>('get_accounts')
     const [sel, setSel] = useState<string[] | 'new-group' | 'new-user'>([])
     const selectionMode = Array.isArray(sel)
     useEffect(() => { // if accounts are reloaded, review the selection to remove elements that don't exist anymore
         if (Array.isArray(data?.list) && selectionMode)
-            setSel( sel.filter(u => data.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
+            setSel( sel.filter(u => data!.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
     }, [data]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
-    const list: Account[] | undefined = data?.list
+    const list = useMemo(() => data && _.sortBy(data.list, [x => !x.adminActualAccess, 'username']), [data])
     const selectedAccount = selectionMode && _.find(list, { username: sel[0] })
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
@@ -109,7 +109,7 @@ export default function AccountsPage() {
                     setSel(ids)
                 }
             },
-                list?.map((ac: Account) =>
+                list?.map(ac =>
                     h(TreeItem, {
                         key: ac.username,
                         nodeId: ac.username,
@@ -155,8 +155,8 @@ export default function AccountsPage() {
         if (errors.length)
             return alertDialog("Following elements couldn't be deleted: " + errors.join(', '), 'error')
     }
-}
 
-export function account2icon(ac: Account, props={}) {
-    return h(ac.hasPassword ? Person : Group, props)
+    function account2icon(ac: Account, props={}) {
+        return h(ac.hasPassword ? Person : Group, props)
+    }
 }

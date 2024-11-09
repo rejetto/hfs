@@ -6,7 +6,8 @@ const LISTENERS_SUFFIX = '\0listeners'
 
 export class BetterEventEmitter {
     protected listeners = new Map<string, Listeners>()
-    stop = Symbol()
+    preventDefault = Symbol()
+    stop = this.preventDefault // legacy pre-0.54 (introduced in 0.53)
     on(event: string | string[], listener: Listener, { warnAfter=10 }={}) {
         if (typeof event === 'string')
             event = [event]
@@ -50,20 +51,30 @@ export class BetterEventEmitter {
     emit(event: string, ...args: any[]) {
         let cbs = this.listeners.get(event)
         if (!cbs?.size) return
-        const ret: any[] = []
-        for (const cb of cbs) {
-            const res = cb(...args)
-            if (res !== undefined)
-                ret.push(res)
+        const output: any[] = []
+        let prevented = false
+        const extra = {
+            output,
+            preventDefault() { prevented = true }
         }
-        return Object.assign(ret, {
-            isDefaultPrevented: () => ret.some(r => r === this.stop),
+        for (const cb of cbs) {
+            const res = cb(...args, extra)
+            if (res === this.preventDefault)
+                extra.preventDefault()
+            else if (res !== undefined)
+                output.push(res)
+        }
+        return Object.assign(output, {
+            isDefaultPrevented: () => prevented,
         })
     }
-    emitAsync(event: string, ...args: any[]) {
-        const ret = Promise.all(this.emit(event, ...args) || [])
-        return Object.assign(ret, {
-            isDefaultPrevented: async () => (await ret).some((r: any) => r === this.stop)
+    async emitAsync(event: string, ...args: any[]) {
+        const syncRet = this.emit(event, ...args)
+        if (!syncRet) return
+        const asyncRet = await Promise.all(syncRet)
+        return Object.assign(asyncRet, {
+            isDefaultPrevented: () => syncRet.isDefaultPrevented()
+                || asyncRet.some((r: any) => r === this.preventDefault)
         })
     }
 }

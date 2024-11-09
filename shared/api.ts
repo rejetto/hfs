@@ -55,7 +55,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         await options.onResponse?.(res, result)
         if (!res.ok)
             throw new ApiError(res.status, data === undefined ? body : `Failed API ${cmd}: ${res.statusText}`, data)
-        return result as T
+        return result as Awaited<T extends (...args: any[]) => infer R ? Awaited<R> : T>
     }, err => {
         stop?.()
         if (err?.message?.includes('fetch')) {
@@ -81,21 +81,20 @@ export class ApiError extends Error {
 
 export type UseApi<T=unknown> = ReturnType<typeof useApi<T>>
 export function useApi<T=any>(cmd: string | Falsy, params?: object, options: ApiCallOptions={}) {
-    const [data, setData] = useStateMounted<T | undefined>(undefined)
+    const [data, setData] = useStateMounted<Awaited<ReturnType<typeof apiCall<T>>> | undefined>(undefined)
     const [error, setError] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const loadingRef = useRef<ReturnType<typeof apiCall>>()
     const reloadingRef = useRef<any>()
-    const dataRef = useRef<T>()
+    const dataRef = useRef<any>()
     useEffect(() => {
         loadingRef.current?.abort()
-        setData(undefined)
         setError(undefined)
         let aborted = false
         let req: undefined | ReturnType<typeof apiCall>
         const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
             .then(() => !cmd || aborted ? undefined : req = apiCall<T>(cmd, params, options))
-            .then(res => aborted || setData(dataRef.current = res), err => {
+            .then(res => aborted || setData(dataRef.current = res as any) || setError(undefined), err => {
                 if (aborted) return
                 setError(err)
                 setData(dataRef.current = undefined)
@@ -115,9 +114,9 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
         reloadingRef.current = pendingPromise()
     }, [setForcer])
     const ee = useMemo(() => new BetterEventEmitter, [])
-    const sub = useCallback((cb: Callback) => ee.on('data', cb), [])
+    const sub = useCallback((cb: Callback) => ee.on('data', cb), [ee])
     useEffect(() => { ee.emit('data') }, [data])
-    return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current,  }
+    return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current }
 }
 
 type EventHandler = (type:string, data?:any) => void

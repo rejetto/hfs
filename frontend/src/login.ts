@@ -5,16 +5,16 @@ import { state, useSnapState } from './state'
 import { alertDialog, newDialog, toast } from './dialog'
 import {
     getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth,
-    HTTP_CONFLICT, HTTP_UNAUTHORIZED,
+    HTTP_CONFLICT, HTTP_UNAUTHORIZED, CFG,
 } from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { t, useI18N } from './i18n'
 import { reloadList } from './useFetchList'
-import { CustomCode } from './components'
+import { Checkbox, CustomCode } from './components'
 
-async function login(username:string, password:string) {
+async function login(username:string, password:string, extra?: object) {
     const stopWorking = working()
-    return srpClientSequence(username, password, apiCall).then(res => {
+    return srpClientSequence(username, password, apiCall, extra).then(res => {
         stopWorking()
         refreshSession(res)
         state.loginRequired = false
@@ -63,6 +63,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
             Content() {
                 const usrRef = useRef<HTMLInputElement>()
                 const pwdRef = useRef<HTMLInputElement>()
+                const ipRef = useRef<HTMLInputElement>()
                 useEffect(() => {
                     setTimeout(() => usrRef.current?.focus()) // setTimeout workarounds problem due to double-mount while in dev
                 }, [])
@@ -99,6 +100,10 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     ),
                     h('div', { style: { textAlign: 'right' } },
                         h('button', { type: 'submit' }, t`Continue`)),
+                    h('div', { id: 'login-options' },
+                        h(Checkbox, { ref: ipRef },
+                            t('allow_session_ip_change', "Allow IP change during this session")),
+                    ),
                 )
 
                 function onKeyDown(ev: KeyboardEvent) {
@@ -116,8 +121,10 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     if (going || !usr || !pwd) return
                     going = true
                     try {
-                        const res = await login(usr, pwd)
-                        close(true)
+                        const res = await login(usr, pwd, {
+                            [CFG.allow_session_ip_change]: ipRef.current?.checked
+                        })
+                        await close(true)
                         toast(t`Logged in`, 'success')
                         if (res?.redirect)
                             setTimeout(() => // workaround: the history.back() issued by closing the dialog is messing with our navigation

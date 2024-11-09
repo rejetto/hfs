@@ -3,7 +3,7 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_FOOL } from './const'
-import { DAY, dirTraversal, isLocalHost, splitAt, stream2string, tryJson } from './misc'
+import { CFG, DAY, dirTraversal, isLocalHost, splitAt, stream2string, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount } from './perm'
@@ -16,8 +16,10 @@ import session from 'koa-session'
 import { app } from './index'
 import events from './events'
 
+const allowSessionIpChange = defineConfig<boolean | 'https'>(CFG.allow_session_ip_change, false)
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
+const allowAuthorizationHeader = defineConfig('authorization_header', true)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
 
@@ -46,11 +48,12 @@ export const headRequests: Koa.Middleware = async (ctx, next) => {
 }
 
 let proxyDetected: undefined | Koa.Context
+export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
-    // don't allow sessions to change ip
     const ss = ctx.session
-    if (ss?.username)
+    const allowIpChange = ss?.[allowSessionIpChange.key()] ?? allowSessionIpChange.get() // session can override server setting
+    if (ss?.username && (!allowIpChange || !ctx.secure && allowIpChange === 'https'))
         if (!ss.ip)
             ss.ip = ctx.ip
         else if (ss.ip !== ctx.ip) {
@@ -70,6 +73,8 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
             proxyDetected = ctx
             ctx.state.whenProxyDetected = new Date()
         }
+        if (ctx.get('cf-ray'))
+            cloudflareDetected = new Date()
     }
     catch {
         return ctx.status = HTTP_FOOL
@@ -112,22 +117,22 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         if (!login) return
         const [u, p] = splitAt(':', String(login))
         ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
-        return doLogin(u, p)
+        return doLogin(u, p, 'url')
     }
 
     function getHttpAccount() {
-        const b64 = ctx.get('authorization')?.split(' ')[1]
+        const b64 = allowAuthorizationHeader.get() && ctx.get('authorization')?.split(' ')[1]
         if (!b64) return
         try {
             const [u, p] = atob(b64).split(':')
-            return doLogin(u!, p||'')
+            return doLogin(u!, p||'', 'header')
         }
         catch {}
     }
 
-    async function doLogin(u: string, p: string) {
+    async function doLogin(u: string, p: string, via: string) {
         if (!u || u === ctx.session?.username) return // providing credentials, but not needed
-        await events.emitAsync('attemptingLogin', ctx)
+        if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
         const a = await srpCheck(u, p)
         if (a) {
             await setLoggedIn(ctx, a.username)

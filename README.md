@@ -53,6 +53,10 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 ## Installation
 
+For service installation instructions, [see our wiki](https://github.com/rejetto/hfs/wiki/Service-installation).
+
+For Docker installation, [see dedicated repo](https://github.com/damienzonly/hfs-docker).
+
 NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of Node.js 18)
 
 1. go to https://github.com/rejetto/hfs/releases
@@ -86,41 +90,6 @@ If this procedure fails, it may be that you are missing one of [these requiremen
 
 Configuration and other files will be stored in `%HOME%/.vfs`
 
-### Service
-
-If you want to run HFS at boot (as a service), we suggest the following methods
-
-#### On Linux 
-1. [install node.js](https://nodejs.org)
-2. create a file `/etc/systemd/system/hfs.service` with this content
-  ```
-  [Unit]
-  Description=HFS
-  After=network.target
-  
-  [Service]
-  Type=simple
-  Restart=always
-  ExecStart=/usr/bin/npx -y hfs@latest
-  
-  [Install]
-  WantedBy=multi-user.target
-  ```
-3. run `sudo systemctl daemon-reload && sudo systemctl enable hfs && sudo systemctl start hfs && sudo systemctl status hfs`
-
-NB: update will be attempted at each restart
-
-#### On Windows
-
-1. [install node.js](https://nodejs.org)
-2. run `npm -g i hfs`
-3. run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
-  
-To update 
-- run `npx qckwinsvc2 uninstall name="HFS"`
-- run `npm -g update hfs`
-- run `npx qckwinsvc2 install name="HFS" description="HFS" path="%APPDATA%\npm\node_modules\hfs\src\index.js" args="--cwd %HOMEPATH%\.hfs" now`
-
 ## Console commands
 
 If you have full access to HFS' console, you can enter commands. Start with `help` to have a full list.
@@ -150,43 +119,17 @@ In the Languages section of the Admin-panel you can install additional language 
 
 If your language is missing, please consider [translating yourself](https://github.com/rejetto/hfs/wiki/Translation). 
 
-## Why you should upgrade from HFS 2.x
-
-HFS 2.x is vulnerable to important attacks, and there is no known solution at the moment.
-
-As you can see from the list of features, we already have some goods that you cannot find in HFS 2.
-Other than that, you can also consider: 
-
-- it's more robust: it was designed to be an always-running server, while HFS 1-2 was designed for occasional usage (transfer and quit) 
-- passwords are never really stored, just a non-reversible hash is
-- faster search (up to 12x)
-- more flexible permissions
-
-## Security
-
-While this project focuses on ease of use, we care about security.
-- HTTPS support
-- Passwords are not saved, and not disclosed even without https thanks to [SRP](https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol)
-- Automated tests ran on every release, including libraries audit
-- No default admin password
-
-Some actions you can take for improved security:
-- use https, better if using a proper certificate, even free with [Letsencrypt](https://letsencrypt.org/).
-- have a domain (ddns is ok too), configure it in "Internet" page, and enable "Accept requests only using domain"
-- install "antidos" plugin
-- ensure "antibrute" plugin is running
-- disable "unprotected admin on localhost"
-
 ## Hidden features
 
 - Appending `#LOGIN` to address will bring up the login dialog
 - Appending ?lang=CODE to address will force a specific language
-- right/ctrl/command click on toggle-all checkbox will invert each checkbox state
+- Right-click on toggle-all checkbox will invert each checkbox state
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
 - Appending `?overwrite` on uploads, will override the dont_overwrite_uploading configuration, provided you also have delete permission
 - Appending `?search=PATTERN` will trigger search at start 
 - Right-click on "check for updates" will let you input a URL of a version to install
-- shift+click on a file will show & play
+- Shift+click on a file will show & play
+- Type the name of a file/folder to focus it, and ctrl+backspace to go to parent folder
 
 ## Contribute
 
@@ -226,7 +169,5 @@ There are several ways to contribute
 - [Build yourself](dev.md)
 
 - [License](https://github.com/rejetto/hfs/blob/master/LICENSE.txt)
-
-- [To-do list](todo.md) 
 
 - Flag images are public-domain, downloaded from https://flagpedia.net

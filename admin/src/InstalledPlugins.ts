@@ -5,23 +5,23 @@ import { createElement as h, Fragment, useEffect } from 'react'
 import { Box, Link } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import { Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade } from '@mui/icons-material'
-import { HTTP_FAILED_DEPENDENCY, newObj, prefix, with_, xlate } from './misc'
+import { HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { Account } from './AccountsPage'
-import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField
-} from '@hfs/mui-grid-form'
+import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectField, StringField } from '@hfs/mui-grid-form'
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
 import { Btn, hTooltip, IconBtn, iconTooltip } from './mui'
+import VfsPathField from './VfsPathField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
-    const { list, updateEntry, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
+    const { list, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     useEffect(() => {
         if (!initializing)
             updateList(list =>
-                _.sortBy(list, x => (x.started ? '0' : '1') + x.id))
+                _.sortBy(list, x => (x.started ? '0' : '1') + treatPluginName(x.id)))
     }, [initializing]);
     const size = 'small'
     return h(DataTable, {
@@ -55,15 +55,15 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         actions: ({ row, id }) => updates ? [
             h(IconBtn, {
                 icon: Upgrade,
-                title: row.updated ? "Already updated" : "Update",
+                title: row.downloading ? "Downloading" : row.updated ? "Already updated" : "Update",
                 disabled: row.updated,
+                progress: row.downloading,
                 size,
                 async onClick() {
                     await apiCall('update_plugin', { id, branch: row.branch }, { timeout: false }).catch(e => {
                         throw e.code !== HTTP_FAILED_DEPENDENCY ? e
                             : Error("Failed dependencies: " + e.cause?.map((x: any) => prefix(`plugin "`, x.id || x.repo, `" `) + x.error).join('; '))
                     })
-                    updateEntry({ id }, { updated: true })
                     toast("Plugin updated")
                 }
             })
@@ -103,7 +103,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                             addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
                         }),
                         values: lastSaved,
-                        dialogProps: _.merge({ sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
+                        dialogProps: _.merge({ maxWidth: 'md', sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
+                            with_(row.configDialog?.maxWidth, x => x?.length === 2 ? { maxWidth: x } : x ? { sx: { maxWidth: x } } : null), // this makes maxWidth support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
                             row.configDialog),
                     })
                     if (values && !_.isEqual(lastSaved, values))
@@ -135,14 +136,20 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     })
 }
 
+// hide the hfs- prefix, as one may want to use it for its repository, because github is the context, but in the hfs context the prefix it's not only redundant, but also ruins the sorting
+function treatPluginName(name: string) {
+    return name.replace(/hfs-/, '')
+}
+
 export function renderName({ row, value }: any) {
     const { repo } = row
     return h(Fragment, {},
+        row.downgrade && errorIcon("This version is older than the one you installed. It is possible that the author found a problem with your version and decided to retire it.", true),
         errorIcon(row.error || row.badApi, !row.error),
         repo?.includes('//') ? h(Link, { href: repo, target: 'plugin' }, value)
             : with_(repo?.split('/'), arr => arr?.length !== 2 ? value
                 : h(Fragment, {},
-                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, arr[1].replace(/hfs-/, '')),
+                    h(Link, { href: 'https://github.com/' + repo, target: 'plugin', onClick(ev) { ev.stopPropagation() } }, treatPluginName(arr[1])),
                     '\xa0by ', arr[0]
                 ))
 )
@@ -156,7 +163,9 @@ function makeFields(config: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
         if (!_.isPlainObject(o))
             return o
-        let { type, defaultValue, fields, frontend, ...rest } = o
+        let { type, defaultValue, fields, frontend, helperText, ...rest } = o
+        if (helperText)
+            helperText = md(helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
         if (comp === ArrayField) {
             rest.valuesForAdd = newObj(fields, x => x.defaultValue)
@@ -164,7 +173,7 @@ function makeFields(config: any) {
         }
         if (defaultValue !== undefined && type === 'boolean')
             rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`
-        return { k, comp, fields, ...rest }
+        return { k, comp, fields, helperText, ...rest }
     })
 }
 
@@ -176,6 +185,7 @@ const type2comp = {
     multiselect: MultiSelectField,
     array: ArrayField,
     real_path: FileField,
+    vfs_path: VfsPathField,
     username: UsernameField,
 }
 
@@ -190,12 +200,11 @@ export async function startPlugin(id: string) {
     }
 }
 
-function UsernameField({ value, onChange, multiple, ...rest }: FieldProps<string>) {
+function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProps<string>) {
     const { data, element, loading } = useApiEx<{ list: Account[] }>('get_accounts')
     return !loading && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
         value, onChange,
-        options: data?.list.map(x => x.username),
-        helperText: "Only users, no groups here",
+        options: data?.list.filter(x => groups === undefined || groups === !x.hasPassword).map(x => x.username),
         ...rest,
     })
 }
