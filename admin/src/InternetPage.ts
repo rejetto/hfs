@@ -3,8 +3,10 @@ import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Linea
 import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
     Error as ErrorIcon, SvgIconComponent } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
-import { closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
-    useRequestRender, replace, restartAnimation, prefix } from './misc'
+import {
+    closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
+    useRequestRender, replace, restartAnimation, prefix, isIpLan
+} from './misc'
 import { Flex, LinkBtn, Btn, Country, wikiLink } from './mui'
 import { alertDialog, confirmDialog, formDialog, promptDialog, toast, waitDialog } from './dialog'
 import { BoolField, Form, MultiSelectField, NumberField, SelectField } from '@hfs/mui-grid-form'
@@ -32,6 +34,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     const [mapping, setMapping] = useState(false)
     const status = useApiEx('get_status')
     const config = useApiEx('get_config', { only: ['base_url'] })
+    const base_url = config.data?.base_url
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     type GetNat = Awaited<ReturnType<typeof getNatInfo>>
@@ -243,11 +246,10 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     }
 
     function baseUrlBox() {
-        const url = config.data?.base_url
         return config.element || h(TitleCard, { icon: Public, title: "Address" },
             h(Flex, { flexWrap: 'wrap' },
                 "Main address: ",
-                url ? h('tt', {}, url) : "automatic, not configured",
+                base_url ? h('tt', {}, base_url) : "automatic, not configured",
                 h(Btn, {
                     size: 'small',
                     variant: 'outlined',
@@ -309,7 +311,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    publicIps.length > 0 && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
+                    (base_url > '' || publicIps.length > 0) && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
                 )
             }),
         )
@@ -328,25 +330,24 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         if (!again && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
-            const url = config.data?.base_url
-            {
-                const hostname = url && new URL(url).hostname
-                const domain = !isIP(hostname) && hostname
-                if (await stopOnCheckDomain(domain)) return
-            }
-            const urlResult = url && await apiCall('self_check', { url }).catch(() =>
-                alertDialog(md(`Sorry, we couldn't verify your configured address ${url} 😰\nstill, we are going to test your IP address 🤞`), 'warning'))
+            const hostname = base_url && new URL(base_url).hostname
+            const checkUrl = !isIpLan(hostname) && base_url
+            if (!isIP(hostname) && await stopOnCheckDomain(hostname)) return
+            const urlResult = checkUrl && await apiCall('self_check', { url: checkUrl }).catch(e =>
+                alertDialog(!e.code ? e : "Sorry, this function is not available at the moment. Retry later.", 'error'))
+            if (checkUrl && !urlResult)
+                return
             if (urlResult?.success) {
                 setCheckResult(true)
                 return alertDialog(h(Box, {}, "Your server is responding correctly over the Internet:",
                     h('ul', {}, h('li', {}, urlResult.url))), 'success')
             }
             if (urlResult?.success === false)
-                await alertDialog(md(`Your configured address ${url} doesn't seem to work 😰\nstill, we are going to test your IP address 🤞`), 'warning')
+                await alertDialog(md(`Your configured address ${checkUrl} doesn't seem to work 😰\nstill, we are going to test your IP address 🤞`), 'warning')
             const res = await apiCall('self_check', {})
             if (res.some((x: any) => x.success)) {
                 setCheckResult(true)
-                const mild = urlResult.success === false && md(`Your server is responding over the Internet 👍\nbut not with configured address ${url} 👎\njust on your IP:`)
+                const mild = urlResult.success === false && md(`Your server is responding over the Internet 👍\nbut not with configured address ${checkUrl} 👎\njust on your IP:`)
                 return alertDialog(h(Box, {}, mild || "Your server is responding correctly over the Internet:",
                     h('ul', {}, ...res.map((x: any) => h('li', {}, x.url)))), mild ? 'warning' : 'success')
             }
