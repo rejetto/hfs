@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.54.0-rc12",
+  "version": "0.54.0",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
