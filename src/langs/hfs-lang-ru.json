@@ -1,5 +1,5 @@
 {
-    "author": "Mefistofell, SanokKule",
+    "author": "Mefistofell, SanokKule, ItsNeverLight",
     "version": 2.6,
     "hfs_version": "0.53.0",
     "translate": {
@@ -149,6 +149,7 @@
         "to_clipboard_source": "В папку",
         "Paste": "Вставить",
         "clipboard_list": "Элементы в буфере обмена:",
+        
         "Close": "Закрыть",
         "Folder": "Папка",
         "Web page": "Веб адрес",
@@ -177,6 +178,8 @@
         "Logged out": "Выход выполнен",
 
         "Cancel": "Отмена",
-        "allow_session_ip_change": "Разрешить смену IP в этой сессии"
+        "allow_session_ip_change": "Разрешить смену IP в этой сессии",
+
+        "focus_hint": "Набирая текст на клавиатуре, вы можете выполнять поиск и выбирать элементы из списка."
     }
 }
