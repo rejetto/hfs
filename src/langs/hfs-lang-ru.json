@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule, ItsNeverLight",
     "version": 2.6,
-    "hfs_version": "0.53.0",
+    "hfs_version": "0.54.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{# файл} few{# файла} many{# файлов}}",
