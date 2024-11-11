@@ -6,7 +6,8 @@ import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
-import { Dict, MAX_TILE_SIZE, REPO_URL, isIpLocalHost, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
+import { adminApis } from '../../src/adminApis'
+import { Dict, MAX_TILE_SIZE, REPO_URL, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
     CFG, md, IMAGE_FILEMASK } from './misc'
 import { iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
@@ -34,7 +35,7 @@ export default function OptionsPage() {
     const { data, reload: reloadConfig, element } = useApiEx('get_config', { omit: ['vfs'] })
     const snap = useSnapState()
     const { changes } = useSnapshot(pageState)
-    const statusApi  = useApiEx(data && 'get_status')
+    const statusApi  = useApiEx<typeof adminApis.get_status>(data && 'get_status')
     const status = statusApi.data
     const reloadStatus = exposedReloadStatus = statusApi.reload
     useEffect(() => void reloadStatus(), [data]) //eslint-disable-line
@@ -42,6 +43,17 @@ export default function OptionsPage() {
     const sm = useBreakpoint('sm')
 
     const admins = useApiEx('get_admins').data?.list
+
+    const hn = window.location.hostname
+    const isLH = hn === 'localhost'
+    const isV6 = hn.includes(':')
+    const listenInterfaceOptions = [
+        { label: "any", value: '' },
+        { label: "any IPv4", value: '0.0.0.0', disabled: !isLH && isV6 },
+        { label: "any IPv6", value: '::', disabled: !isLH && !isV6 },
+        ...['127.0.0.1', '::1'].map(x => ({ label: x, value: x, disabled: !isLH && hn !== x })),
+        ...status?.ips?.map(x => ({ value: x, disabled: hn !== x })) || [],
+    ]
 
     if (element)
         return element
@@ -106,7 +118,7 @@ export default function OptionsPage() {
             httpsEnabled && { k: 'cert', comp: FileField, sm: 4, label: "HTTPS certificate file",
                 helperText: wikiLink('HTTPS#certificate', "What is this?"),
                 error: with_(status?.https.error, e => isCertError(e) && (
-                    status.https.listening ? e
+                    status!.https.listening ? e
                         : [e, ' - ', h(LinkBtn, { key: 'fix', onClick: suggestMakingCert }, "make one")] )),
             },
             httpsEnabled && { k: 'private_key', comp: FileField, sm: 4, label: "HTTPS private key file",
@@ -121,14 +133,9 @@ export default function OptionsPage() {
                 k: 'listen_interface',
                 comp: SelectField,
                 sm: 4,
-                options: [
-                    { label: "any", value: '' },
-                    { label: "any IPv4", value: '0.0.0.0' },
-                    { label: "any IPv6", value: '::' },
-                    '127.0.0.1',
-                    '::1',
-                    ...status?.ips || []
-                ]
+                afterList: listenInterfaceOptions.some(x => x.disabled)
+                    && h(Box, { p: '8px 16px 0', borderTop: '1px solid', fontSize: 'small' }, "Disabled addresses depend on the address you used to connect"),
+                options: listenInterfaceOptions,
             },
             { k: 'max_kbps',        ...maxSpeedDefaults, sm: 4, label: "Limit output", helperText: "Doesn't apply to localhost" },
             { k: 'max_kbps_per_ip', ...maxSpeedDefaults, sm: 4, label: "Limit output per-IP" },
@@ -266,12 +273,12 @@ export default function OptionsPage() {
         if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
         await apiCall('set_config', { values: changes })
-        if (newPort !== undefined || changes.listen_interface && !(loc.hostname === 'localhost' && isIpLocalHost(changes.listen_interface))) {
+        if (newPort !== undefined) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
-            const host = ipForUrl(changes.listen_interface || loc.hostname)
+            const x = ipForUrl(loc.hostname)
             // we have to jump protocol also in case of random port, because we want people to know their port while using GUI
-            return window.location.href = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${host}:${otherPort}${loc.pathname}`
-                : `${loc.protocol}//${host}:${newPort || values[keys[0]]}${loc.pathname}`
+            return window.location.href = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${x}:${otherPort}${loc.pathname}`
+                : `${loc.protocol}//${x}:${newPort || values[keys[0]]}${loc.pathname}`
         }
         const portChange = 'port' in changes || 'https_port' in changes
         setTimeout(reloadStatus, portChange || certChange ? 1000 : 0) // give some time to apply news

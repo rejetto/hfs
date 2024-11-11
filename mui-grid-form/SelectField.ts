@@ -7,11 +7,11 @@ import { FormControl, FormControlLabel, FormLabel, MenuItem, Radio, InputLabel, 
 import { SxProps } from '@mui/system'
 
 type SelectOptions<T> = { [label:string]: T } | SelectOption<T>[]
-type SelectOption<T> = SelectPair<T> | (T extends string | number ? T : never)
-interface SelectPair<T> { label: string, value: T }
+type SelectOption<T> = SelectOptionNormalized<T> | (T extends string | number ? T : never)
+interface SelectOptionNormalized<T> { label?: string, value: T, disabled?: boolean }
 
 export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
-    const { value, onChange, setApi, options, sx, disabled, ...rest } = props
+    const { value, onChange, setApi, options, sx, disabled, afterList, ...rest } = props
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
     const jsonValue = JSON.stringify(value)
     const currentOption = normalizedOptions?.find(x => JSON.stringify(x.value) === jsonValue)
@@ -21,11 +21,15 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
         // avoid warning for invalid option. This can easily happen for a split-second when you keep value in a useState (or other async way) and calculate options with a useMemo (or other sync way) causing a temporary misalignment.
         value: currentOption ? jsonValue : '',
         disabled: normalizedOptions?.length === 0 || disabled,
-        children: !normalizedOptions ? h(LinearProgress) : normalizedOptions.map((o, i) => h(MenuItem, {
-            key: i,
-            value: JSON.stringify(o?.value),
-            children: h(Fragment, { key: i }, o?.label) // without this fragment/key, a label as h(span) will produce warnings
-        })),
+        children: !normalizedOptions ? h(LinearProgress) : [
+            ...normalizedOptions.map((o, i) => h(MenuItem, {
+                key: i,
+                value: JSON.stringify(o?.value),
+                disabled: o?.disabled,
+                children: h(Fragment, { key: i }, o?.label ?? String(o?.value)) // without this fragment/key, a label as h(span) will produce warnings
+            })),
+            h('div', { key: -1 }, afterList),
+        ],
         ...commonSelectProps(props),
         ...rest,
         onChange(event) {
@@ -40,11 +44,11 @@ export function SelectField<T>(props: FieldProps<T> & CommonSelectProps<T>) {
 }
 
 type MultiSelectFieldProps<T> = FieldProps<T[]> & CommonSelectProps<T> & {
-    renderOption?: (option: SelectPair<T>) => ReactNode
+    renderOption?: (option: SelectOptionNormalized<T>) => ReactNode
     clearable?: boolean
 }
 export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectFieldProps<T>) {
-    const { value, onChange, setApi, options, placeholder, helperText, label, valueSeparator = ', ', clearable=true, ...rest } = props
+    const { value, onChange, setApi, options, placeholder, helperText, label, valueSeparator = ', ', clearable=true, afterList, ...rest } = props
     const normalizedOptions = useMemo(() => normalizeOptions(options), [options])
     const valueAsOptions = useMemo(() => !Array.isArray(value) ? []
             : value.map(x => normalizedOptions?.find(o => o.value === x) || { value: x, label: String(x) }),
@@ -53,6 +57,7 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
     const labelId = useId()
     const helperId = useId()
     const showClear = valueAsOptions.length > 0
+    renderOption ??= x => x.label ?? String(x.value)
     return h(FormControl, { fullWidth: true, variant: 'filled', hiddenLabel: !label },
         h(InputLabel, {
             id: labelId,
@@ -74,9 +79,9 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
                 'aria-describedby': helperId,
             }),
             renderValue: () => h('div', {
-                'aria-label': label + ': ' + valueAsOptions.map(x => x.label),
+                'aria-label': label + ': ' + valueAsOptions.map(x => x.label ?? String(x.value)),
                 style: { overflow: "hidden", display: "flex", flexWrap: "wrap", gap: ".5em" },
-                children: valueAsOptions.map((x, i) => h('span', { key: i }, renderOption?.(x) ?? x.label, i < valueAsOptions.length - 1 && valueSeparator)),
+                children: valueAsOptions.map((x, i) => h('span', { key: i }, renderOption!(x), i < valueAsOptions.length - 1 && valueSeparator)),
             }),
             ...rest,
         },
@@ -94,8 +99,9 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
             }, showClear ? "Unselect all" : "Select all"),
             ...normalizedOptions?.map(o => h(MenuItem, { value: JSON.stringify(o?.value) }, // encode, as this supports only string|number
                 h(Checkbox, { checked: value?.includes(o.value) || false }),
-                h(ListItemText, { primary: renderOption?.(o) ?? o.label })
+                h(ListItemText, { primary: renderOption!(o) })
             )) || [],
+            afterList,
         ),
         h(FormHelperText, { id: helperId, error: props.error }, helperText),
     )
@@ -107,6 +113,7 @@ interface CommonSelectProps<T> extends HelperCommon<T> {
     disabled?: boolean
     // pass options undefined to display a loading indicator in place of the options
     options?: SelectOptions<T>
+    afterList?: ReactNode
 }
 function commonSelectProps<T>(props: CommonSelectProps<T>) {
     return {
@@ -121,11 +128,11 @@ function commonSelectProps<T>(props: CommonSelectProps<T>) {
 }
 
 function normalizeOptions<T>(options?: SelectOptions<T>) {
-    return !options ? undefined : !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label }))
-        : options.map(o => typeof o === 'string' || typeof o === 'number' ? { value: o, label: String(o) } : o as SelectPair<T>)
+    return !options ? undefined : !Array.isArray(options) ? Object.entries(options).map(([label,value]) => ({ value, label } as SelectOptionNormalized<T>))
+        : options.map(o => typeof o === 'string' || typeof o === 'number' ? { value: o } : o as SelectOptionNormalized<T>)
 }
 
-export function RadioField<T>({ label, options, value, onChange }: FieldProps<T> & { options:SelectPair<T>[] }) {
+export function RadioField<T>({ label, options, value, onChange }: FieldProps<T> & { options:SelectOptionNormalized<T>[] }) {
     return h(FormControl, {},
         label && h(FormLabel, {}, label),
         h(RadioGroup, {
