@@ -95,9 +95,10 @@ export default function HomePage() {
         !updates && with_(status.autoCheckUpdateResult, x => x?.isNewer && h(Update, { info: x, bodyCollapsed: true, title: "An update has been found" })),
         pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
         h(ConfigForm, {
-            gridProps: { sx: { columns: '13em 3', gap: 0, display: 'block', mt: 0, '&>div.MuiGrid-item': { pt: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
+            gridProps: { sx: { columns: '15em 3', gap: 0, display: 'block', mt: 0, '&>div.MuiGrid-item': { pt: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
             saveOnChange: true,
-            form: { fields: [
+            form: {
+                fields: [
                     status.updatePossible === 'local' ? h(Btn, { icon: UpdateIcon, onClick: () => update() }, "Update from local file")
                         : !updates && h(Btn, {
                             variant: 'outlined',
@@ -119,7 +120,8 @@ export default function HomePage() {
                         }, "Check for updates"),
                     { k: 'auto_check_update', comp: CheckboxField, label: "Auto check updates daily" },
                     { k: 'update_to_beta', comp: CheckboxField, label: "Include beta versions" },
-                ] }
+                ]
+            }
         }),
         updates && with_(_.find(updates, 'isNewer'), newer => h(Fragment, {},
             !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
