@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, useEffect, useState } from 'react';
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { focusSelector, isCtrlKey, KeepInScreen } from './misc';
+import { copyTextToClipboard, focusSelector, isCtrlKey, KeepInScreen } from './misc'
 import { Btn, Flex, IconBtn, reloadBtn } from './mui';
 import { Save, ContentCopy, Edit } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
@@ -62,7 +62,7 @@ export default function ConfigFilePage() {
 
     function copy() {
         if (!text) return
-        navigator.clipboard.writeText(text.replace(/^(\s*(\w*password\w*|srp):\s*).+\n/gm, '$1: removed\n'))
+        copyTextToClipboard(text.replace(/^(\s*(\w*password\w*|srp):\s*).+\n/gm, '$1: removed\n'))
         toast("copied")
     }
 }

@@ -31,6 +31,7 @@ Object.assign(HFS, {
     loadScript: (uri: string) => loadScript(uri.includes('//') || uri.startsWith('/') ? uri : HFS.getPluginPublic() + uri),
     userBelongsTo: (groupOrUser: string) => HFS.state.expandedUsername.includes(groupOrUser),
     cpuSpeedIndex,
+    copyTextToClipboard,
 })
 
 export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.gif|*.svg'
@@ -175,6 +176,17 @@ export function createDurationFormatter({ locale=undefined, unitDisplay='narrow'
         }
         return fmtList.format(a)
     }
+}
+
+export function copyTextToClipboard(text: string) {
+    //navigator.clipboard.writeText(text) // this method works only in https and localhost
+    const d = document
+    const ta = d.createElement("textarea")
+    ta.textContent = text
+    d.body.appendChild(ta)
+    ta.select()
+    d.execCommand("copy")
+    d.body.removeChild(ta)
 }
 
 Element.prototype.replaceChildren ||= function(this:Element, addNodes) { // polyfill

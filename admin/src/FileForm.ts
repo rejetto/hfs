@@ -9,7 +9,7 @@ import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
-    useRequestRender, splitAt, IMAGE_FILEMASK
+    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
@@ -356,7 +356,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
                     icon: ContentCopy,
                     title: "Copy",
                     disabled: !link,
-                    onClick: () => navigator.clipboard.writeText(link)
+                    onClick: () => copyTextToClipboard(link)
                 }),
                 h(IconBtn, { icon: QrCode2, title: "QR Code", onClick: showQr, disabled: !link }),
                 h(IconBtn, { icon: Edit, title: "Change", onClick() { changeBaseUrl().then(reload) } }),
