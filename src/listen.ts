@@ -45,8 +45,13 @@ const considerHttp = debounceAsync(async () => {
     await readyToListen
     void stopServer(httpSrv)
     httpSrv = Object.assign(http.createServer(commonServerOptions, app.callback()), { name: 'http' }, commonServerAssign)
-    const port = await startServer(httpSrv, { port: portCfg.get(), host: listenInterface.get() })
-    if (!port) return
+    const host = listenInterface.get()
+    const port = portCfg.get()
+    if (!await startServer(httpSrv, { port, host }))
+        if (port !== 80)
+            return console.log(` >> try specifying a different port, enter this command: config ${portCfg.key()} 1080`)
+        else if (!await startServer(httpSrv, { port: 8080, host }))
+            return
     httpSrv.on('connection', newConnection)
     printUrls(httpSrv.name)
     if (openBrowserAtStart.get() && !argv.updated)
@@ -230,8 +235,6 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
                 }
                 console.error(srv.name, srv.error)
-                const k = (srv === httpSrv? portCfg : httpsPortCfg).key()
-                console.log(` >> try specifying a different port, enter this command: config ${k} 1080`)
                 resolve(0)
             }
         })

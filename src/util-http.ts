@@ -5,7 +5,6 @@ import http, { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import _ from 'lodash'
 import { text as stream2string, buffer } from 'node:stream/consumers'
-import { stringAfter } from './cross'
 export { stream2string }
 
 export async function httpString(url: string, options?: XRequestOptions): Promise<string> {
