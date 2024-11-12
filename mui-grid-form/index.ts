@@ -4,7 +4,7 @@ import {
     createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState, useRef,
     MutableRefObject
 } from 'react'
-import { Box, BoxProps, Button, Grid } from '@mui/material'
+import { Box, BoxProps, Button, Grid, Tooltip } from '@mui/material'
 import { Save } from '@mui/icons-material'
 import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
@@ -186,15 +186,14 @@ export function Form<Values extends Dict>({
                     position: 'sticky', bottom: 0, p: 1, m: -1, boxShadow: '0px 0px 15px #000',
                 },
                 barSx)
-        },
-            h(LoadingButton, {
+        }, h(Tooltip, { title: "ctrl + enter", children: h(LoadingButton, {
                 variant: 'contained',
                 startIcon: h(Save),
                 children: "Save",
                 loading: useDebounce(phase !== Phase.Idle), // debounce fixes click being ignored at state change, and flickering
                 ...saveBtn,
                 onClick: pleaseSubmit,
-            }),
+            }) }),
             ...addToBar,
         )
     )
