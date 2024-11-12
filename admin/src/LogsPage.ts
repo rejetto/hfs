@@ -6,8 +6,7 @@ import { API_URL, apiCall, useApi, useApiList } from './api'
 import { DataTable, DataTableProps } from './DataTable'
 import {
     CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
-    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent
-, stringAfter
+    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent, stringAfter, onlyTruthy, formatTimestamp
 } from '@hfs/shared'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
@@ -15,10 +14,10 @@ import {
 } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
-import { ClearAll, Download, Settings, SmartToy } from '@mui/icons-material'
+import { AutoDelete, ClearAll, Delete, Download, Settings, SmartToy } from '@mui/icons-material'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
-import { toast, useDialogBarColors } from './dialog'
+import { alertDialog, toast, useDialogBarColors } from './dialog'
 import { useBlockIp } from './useBlockIp'
 import { ALL as COUNTRIES } from './countries'
 
@@ -151,13 +150,30 @@ export function LogFile({ file, footerSide, hidden, limit, ...rest }: { limit?: 
     const rows = useMemo(() => showApi || list?.[0]?.uri === undefined ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]) //TODO TypeError: l.uri is undefined
     const blockIp = useBlockIp()
     const isConsole = file === 'console'
+    const isIps = file === 'ips'
     return hidden ? null : h(DataTable, {
         error,
         loading: connecting,
         rows,
         compact: true,
         actionsProps: { hideUnder: 'md' },
-        actions: ({ row }) => [ !isConsole && blockIp.iconBtn(row.ip, "From log") ],
+        actions: isConsole ? undefined : (({ row }) => onlyTruthy([
+            blockIp.iconBtn(row.ip, "From log"),
+            isIps && h(Btn, {
+                icon: Delete,
+                confirm: true,
+                title: `Delete ${row.ip}`,
+                doneMessage: true,
+                onClick: () => apiCall('delete_ips', { ip: row.ip }).then(() => setList(was => was.filter(x => x.ip !== row.ip)))
+            }),
+            isIps && h(Btn, {
+                icon: AutoDelete,
+                confirm: true,
+                title: `Delete all records up to ${formatTimestamp(row.ts)}`,
+                onClick: () => apiCall('delete_ips', { ts: row.ts }).then(res => toast(`${res.n} deleted`)).then(reload)
+            }),
+        ])),
+        initialState: isIps ? { sorting: { sortModel: [{ field: 'ts', sort: 'desc' }] } } : undefined,
         ...rest,
         footerSide: width => h(Box, {}, // 4 icons don't fit the tabs row on mobile
             pauseButton,

@@ -1,7 +1,8 @@
 import { ApiHandlers } from './apiMiddleware'
 import _ from 'lodash'
 import { consoleLog } from './consoleLog'
-import { HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
+import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
+import { apiAssertTypes } from './misc'
 import events from './events'
 import { loggers } from './log'
 import { SendListReadable } from './SendList'
@@ -54,6 +55,27 @@ export default {
             }
         })
 
+    },
+
+    async delete_ips({ ip, ts }) {
+        apiAssertTypes({ string_undefined: { ip, ts } })
+        if (ip) {
+            if (!ips.has(ip))
+                throw HTTP_NOT_FOUND
+            ips.del(ip)
+            return {}
+        }
+        if (ts) {
+            ts = new Date(ts)
+            let n = 0
+            for await (const [k, rec] of ips.iterator())
+                if (rec.ts <= ts) {
+                    ips.del(k)
+                    ++n
+                }
+            return { n }
+        }
+        throw HTTP_BAD_REQUEST
     },
 
     reset_ips() {
