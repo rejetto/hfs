@@ -562,6 +562,8 @@ Where information is too little, you'll have to consult the source code, sorry.
         originalStream?: typeof ctx.body
         uploadDestinationPath?: string // this value is the temporary file in uploadStart and the final one in uploadFinished
         archive?: string
+        fileSource?: string // set when serving a file
+        fileStats?: Stat // file attributes
 
 ## Other files
 
