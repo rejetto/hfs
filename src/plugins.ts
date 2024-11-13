@@ -32,10 +32,10 @@ export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
 export const STORAGE_FOLDER = 'storage'
 
-const plugins: Record<string, Plugin> = {}
+const plugins = new Map<string, Plugin>() // now that we care about the order, a simple object wouldn't do, because numbers are always at the beginning
 
 export function isPluginRunning(id: string) {
-    return Boolean(plugins[id]?.started)
+    return Boolean(plugins.get(id)?.started)
 }
 
 export function isPluginEnabled(id: string) {
@@ -88,13 +88,15 @@ export function setPluginConfig(id: string, changes: Dict | null) {
 }
 
 export function getPluginInfo(id: string) {
-    const running = plugins[id]?.getData()
+    const running = plugins.get(id)?.getData()
     return running && Object.assign(running, {id}) || availablePlugins[id]
 }
 
 export function findPluginByRepo<T>(repo: string) {
-    return _.find(plugins, pl => match(pl.getData()))
-        || _.find(availablePlugins, match)
+    for (const pl of plugins.values())
+        if (match(pl.getData()))
+            return pl
+    return _.find(availablePlugins, match)
 
     function match(rec: any) {
         return repo === (rec?.repo?.main ?? rec?.repo)
@@ -102,7 +104,7 @@ export function findPluginByRepo<T>(repo: string) {
 }
 
 export function getPluginConfigFields(id: string) {
-    return plugins[id]?.getData().config
+    return plugins.get(id)?.getData().config
 }
 
 async function initPlugin<T>(pl: any, morePassedToInit?: T) {
@@ -160,10 +162,10 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
         if (path.startsWith(PLUGINS_PUB_URI)) {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
             const name = a.shift()!
-            if (plugins.hasOwnProperty(name)) { // do it only if the plugin is loaded
+            if (plugins.has(name)) { // do it only if the plugin is loaded
                 if (ctx.get('referer')?.endsWith('/'))
                     ctx.state.considerAsGui = true
-                await serveFile(ctx, plugins[name]!.folder + '/public/' + a.join('/'), MIME_AUTO)
+                await serveFile(ctx, plugins.get(name)!.folder + '/public/' + a.join('/'), MIME_AUTO)
             }
             return
         }
@@ -211,7 +213,22 @@ export class Plugin implements CommonPluginInterface {
                 console.warn('invalid', k)
             }
         }
-        plugins[id] = this
+        plugins.set(id, this)
+
+        const keys = Array.from(plugins.keys())
+        const idx = keys.indexOf(id)
+        const moveDown = onlyTruthy(mapPlugins(((pl, plId, plIdx) => pl.afterPlugin === id && plIdx < idx && plId)))
+        const {beforePlugin, afterPlugin} = data // or this plugin that wants to be considered before another
+        if (afterPlugin &&  keys.indexOf(afterPlugin) > idx)
+            moveDown.push(id)
+        if (beforePlugin && keys.indexOf(beforePlugin) < idx)
+            moveDown.push(beforePlugin)
+        for (const k of moveDown) {
+            const temp = plugins.get(k)
+            if (!temp) continue
+            plugins.delete(k)
+            plugins.set(k, temp)
+        }
     }
     get version(): undefined | number { return this.data?.version }
     get description(): undefined | string { return this.data?.description }
@@ -219,6 +236,8 @@ export class Plugin implements CommonPluginInterface {
     get isTheme(): undefined | boolean { return this.data?.isTheme }
     get repo(): undefined | Repo { return this.data?.repo }
     get depend(): undefined | Depend { return this.data?.depend }
+    get afterPlugin(): undefined | string { return this.data?.afterPlugin }
+    get beforePlugin(): undefined | string { return this.data?.beforePlugin }
 
     get middleware(): undefined | PluginMiddleware {
         return this.data?.middleware
@@ -269,13 +288,11 @@ const serverCode = defineConfig('server_code', '', async (script, { k }) => {
     }
 })
 
-let serverCodePlugin: void | Plugin
-serverCode.sub(() => serverCode.compiled()?.then(x => serverCodePlugin = x))
-export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
-    const entries = Object.entries(plugins)
-    return entries.map(([plName,pl]) => {
+export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string, idx:number)=> T, includeServerCode=true) {
+    let i = 0
+    return Array.from(plugins).map(([plName,pl]) => {
         if (!includeServerCode && plName === SERVER_CODE_ID) return
-        try { return cb(pl,plName) }
+        try { return cb(pl,plName,i++) }
         catch(e) {
             console.log('plugin error', plName, String(e))
         }
@@ -283,7 +300,7 @@ export function mapPlugins<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> 
 }
 
 export function firstPlugin<T>(cb:(plugin:Readonly<Plugin>, pluginName:string)=> T, includeServerCode=true) {
-    for (const [plName,pl] of Object.entries(plugins)) {
+    for (const [plName, pl] of plugins.entries()) {
         if (!includeServerCode && plName === SERVER_CODE_ID) continue
         try {
             const ret = cb(pl,plName)
@@ -367,10 +384,11 @@ function watchPlugin(id: string, path: string) {
     const unsub = enablePlugins.sub(() => { // we take care of enabled-state after it was loaded
         if (!getPluginInfo(id)) return // not loaded yet
         const enabled = isPluginEnabled(id)
-        if (enabled !== isPluginRunning(id))
-            return enabled ? start() : stop()
+        if (enabled === isPluginRunning(id)) return
+        if (enabled) start()
+        else stop()
     })
-    const { unwatch } = watchLoad(module, async (source) => {
+    const { unwatch } = watchLoad(module, async source => {
         const notRunning = availablePlugins[id]
         if (!source)
             return onUninstalled()
@@ -396,7 +414,7 @@ function watchPlugin(id: string, path: string) {
     }
 
     async function markItAvailable() {
-        delete plugins[id]
+        plugins.delete(id)
         availablePlugins[id] = await parsePlugin()
     }
 
@@ -406,7 +424,7 @@ function watchPlugin(id: string, path: string) {
 
     async function stop() {
         await starting
-        const p = plugins[id]
+        const p = plugins.get(id)
         if (!p) return
         await p.unload()
         await markItAvailable()
@@ -423,7 +441,7 @@ function watchPlugin(id: string, path: string) {
                 throw Error("plugin missing dependencies: " + _.map(getMissingDependencies(info), x => x.repo).join(', '))
             if (getPluginInfo(id))
                 setError(id, '')
-            const alreadyRunning = plugins[id]
+            const alreadyRunning = plugins.get(id)
             console.log(alreadyRunning ? "reloading plugin" : "loading plugin", id)
             const pluginData = require(module)
             deleteModule(require.resolve(module)) // avoid caching at next import
@@ -479,6 +497,7 @@ function watchPlugin(id: string, path: string) {
                 await Promise.allSettled(dbs.map(x => x.close()))
                 dbs.length = 0
             })
+
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
