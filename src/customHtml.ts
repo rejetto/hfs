@@ -11,15 +11,13 @@ const FILE = 'custom.html'
 export const customHtmlSections: ReadonlyArray<string> = ['style', 'beforeHeader', 'afterHeader', 'afterMenuBar', 'afterList',
     'footer', 'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo']
 
-export const customHtmlState = proxy({
-    sections: watchLoadCustomHtml().state
-})
+export const customHtml = watchLoadCustomHtml()
 
 export function watchLoadCustomHtml(folder='') {
-    const state = new Map<string, string>()
+    const sections = new Map<string, string>()
     const res = watchLoad(prefix('', folder, '/') + FILE, data => {
         const re = /^\[([^\]]+)] *$/gm
-        state.clear()
+        sections.clear()
         if (!data) return
         let name: string | undefined = 'top'
         do {
@@ -27,21 +25,21 @@ export function watchLoadCustomHtml(folder='') {
             const match = re.exec(data)
             const content = data.slice(last, !match ? undefined : re.lastIndex - (match?.[0]?.length || 0)).trim()
             if (content)
-                state.set(name, content)
+                sections.set(name, content)
             name = match?.[1]
         } while (name)
     })
-    return Object.assign(res, { state })
+    return Object.assign(res, { sections })
 }
 
 export function getSection(name: string) {
-    return (customHtmlState.sections.get(name) || '')
+    return (customHtml.sections.get(name) || '')
         + mapPlugins(pl => pl.getData().getCustomHtml()[name]).join('\n')
 }
 
 export function getAllSections() {
     const keys = mapPlugins(pl => Object.keys(pl.getData().getCustomHtml()))
-    keys.push(Array.from(customHtmlState.sections.keys()))
+    keys.push(Array.from(customHtml.sections.keys()))
     const all = _.uniq(keys.flat())
     return Object.fromEntries(all.map(x => [x, getSection(x)]))
 }
@@ -49,8 +47,8 @@ export function getAllSections() {
 export async function saveCustomHtml(sections: Dict<string>) {
     const text = Object.entries(sections).filter(([k,v]) => v?.trim()).map(([k,v]) => `[${k}]\n${v}\n\n`).join('')
     await writeFile(FILE, text)
-    customHtmlState.sections.clear()
+    customHtml.sections.clear()
     for (const [k,v] of Object.entries(sections))
         if (v)
-            customHtmlState.sections.set(k, v)
+            customHtml.sections.set(k, v)
 }

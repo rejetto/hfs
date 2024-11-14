@@ -11,8 +11,7 @@ import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
 import { CFG, debounceAsync, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile } from './misc'
 import { favicon, title } from './adminApis'
-import { subscribe } from 'valtio/vanilla'
-import { customHtmlState, getAllSections, getSection } from './customHtml'
+import { customHtml, getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
@@ -28,8 +27,8 @@ const DEV_STATIC = process.env.DEV ? 'dist/' : ''
 function serveStatic(uri: string): Koa.Middleware {
     const folder = uri.slice(2,-1) // we know folder is very similar to uri
     let cache: Record<string, Promise<string>> = {}
-    subscribe(customHtmlState, () => cache = {}) // reset cache at every change
-    return async (ctx) => {
+    customHtml.emitter.on('change', () => cache = {}) // reset cache at every change
+    return async ctx => {
         if (!logGui.get())
             ctx.state.dontLog = true
         if(ctx.method === 'OPTIONS') {

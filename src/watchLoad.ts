@@ -3,27 +3,30 @@
 import { FSWatcher, watch } from 'fs'
 import fs from 'fs/promises'
 import { debounceAsync, readFileBusy } from './misc'
+import { BetterEventEmitter } from './events'
 
 export type WatchLoadCanceller = () => void
 
 interface Options { failedOnFirstAttempt?: ()=>void, immediateFirst?: boolean }
 
 type WriteFile = (data: string, options?: { reparse: boolean }) => Promise<void>
-interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile, getText: () => string | undefined, getPath: () => string }
+interface WatchLoadReturn { unwatch:WatchLoadCanceller, save: WriteFile, emitter: BetterEventEmitter, getText: () => string | undefined, getPath: () => string }
 export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { failedOnFirstAttempt, immediateFirst }:Options={}): WatchLoadReturn {
     let doing = false
     let watcher: FSWatcher | undefined
     const debounced = debounceAsync(load, { wait: 500, maxWait: 1000 })
     let retry: NodeJS.Timeout
     let last: string | undefined
+    const emitter = new BetterEventEmitter()
     install(true)
     const save = debounceAsync(async (data: string, { reparse=false }={}) => {
         await fs.writeFile(path, data, 'utf8')
         last = data
         if (reparse)
             await parser(data)
+        emitter.emit('change', last)
     })
-    return { unwatch, save, getText: () => last, getPath: () => path }
+    return { unwatch, save, emitter, getText: () => last, getPath: () => path }
 
     function install(first=false) {
         try {
@@ -60,6 +63,7 @@ export function watchLoad(path:string, parser:(data:any)=>void|Promise<void>, { 
             if (text === last)
                 return
             last = text
+            emitter.emit('change', last)
             console.debug('loaded', path)
             unwatch(); install() // reinstall, as the original file could have been renamed. We watch by the name.
             await parser(text)

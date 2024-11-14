@@ -27,7 +27,7 @@ import { cloudflareDetected, getProxyDetected } from './middlewares'
 import { writeFile } from 'fs/promises'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { customHtmlSections, customHtmlState, saveCustomHtml } from './customHtml'
+import { customHtmlSections, customHtml, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
 import { autoCheckUpdateResult, getUpdates, localUpdateAvailable, update, updateSupported } from './update'
 import { resolve } from 'path'
@@ -72,6 +72,7 @@ export const adminApis = {
             path: configFile.getPath(),
             fullPath: resolve(configFile.getPath()),
             text: configFile.getText(),
+            customHtml: customHtml.getText(),
         }
     },
     set_config_text: ({ text }) => configFile.save(text, { reparse: true }),
@@ -96,9 +97,9 @@ export const adminApis = {
     get_custom_html() {
         return {
             sections: Object.fromEntries([
-                ...customHtmlSections.concat(getErrorSections()).map(k => [k,'']),
-                ...customHtmlState.sections
-            ])
+                ...customHtmlSections.concat(getErrorSections()).map(k => [k,'']), // be sure to output all sections
+                ...customHtml.sections // override entries above
+            ]),
         }
     },
 

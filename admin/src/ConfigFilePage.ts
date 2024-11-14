@@ -3,7 +3,7 @@
 import { createElement as h, Fragment, useEffect, useState } from 'react';
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { copyTextToClipboard, focusSelector, isCtrlKey, KeepInScreen } from './misc'
+import { copyTextToClipboard, focusSelector, isCtrlKey, KeepInScreen, md } from './misc'
 import { Btn, Flex, IconBtn, reloadBtn } from './mui';
 import { Save, ContentCopy, Edit } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
@@ -61,8 +61,10 @@ export default function ConfigFilePage() {
     }
 
     function copy() {
-        if (!text) return
-        copyTextToClipboard(text.replace(/^(\s*(\w*password(?!_change)\w*|srp):\s*).+\n/gm, '$1removed\n'))
-        toast("copied")
+        const s = (text || '').replace(/^(\s*(\w*password(?!_change)\w*|srp):\s*).+\n/gm, '$1removed\n')
+            + 'custom_html: | # this is currently ignored by hfs, just here for reference\n' + data.customHtml.replace(/^/gm, '  ')
+        if (!s) return
+        copyTextToClipboard(s)
+        toast(md`Copied!\ncustom.html included`)
     }
 }
