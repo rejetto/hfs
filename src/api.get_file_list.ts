@@ -29,7 +29,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         return fail(HTTP_FOOL)
     if (await hasDefaultFile(node, ctx) || !await nodeIsDirectory(node)) // in case of files without permission, we are provided with the frontend, and the location is the file itself
         // so, we first check if you have a permission problem, to tell frontend to show login, otherwise we fall back to method_not_allowed, as it's proper for files.
-        return fail(statusCodeForMissingPerm(node, 'can_read', ctx) ? undefined : HTTP_METHOD_NOT_ALLOWED)
+        return fail(!admin && statusCodeForMissingPerm(node, 'can_read', ctx) ? undefined : HTTP_METHOD_NOT_ALLOWED)
     if (!admin && statusCodeForMissingPerm(node, 'can_list', ctx))
         return fail()
     offset = Number(offset)
