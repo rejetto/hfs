@@ -62,7 +62,7 @@ export default function ConfigFilePage() {
 
     function copy() {
         if (!text) return
-        copyTextToClipboard(text.replace(/^(\s*(\w*password\w*|srp):\s*).+\n/gm, '$1: removed\n'))
+        copyTextToClipboard(text.replace(/^(\s*(\w*password(?!_change)\w*|srp):\s*).+\n/gm, '$1removed\n'))
         toast("copied")
     }
 }
