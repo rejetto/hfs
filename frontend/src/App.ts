@@ -20,6 +20,7 @@ function App() {
         return h('h1', { style: { textAlign: 'center'} }, messageOnly)
     if (!ready)
         return h(Spinner, { style: { margin: 'auto' } })
+    installScript()
     return h(I18Nprovider, {},
         h(BrowserRouter, {},
             h(NavigationExtractor, {},
@@ -32,6 +33,20 @@ function App() {
             ),
         )
     )
+}
+
+let scriptAdded = false
+function installScript() {
+    if (scriptAdded) return
+    scriptAdded = true
+    const s = getHFS().customHtml?.script // we don't need frontend-event-generated code, i guess
+    if (!s) return
+    // it's important that this rendered only once, so we don't even render it, but manipulate dom
+    const el = document.createElement('script')
+    el.type = 'text/javascript'
+    el.text = s
+    el.id = 'customHtmlScript'
+    document.head.appendChild(el)
 }
 
 function NavigationExtractor(props: any) {
