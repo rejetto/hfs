@@ -85,6 +85,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
     ].filter(Boolean)
     const res = hfsEvent('fileMenu', { entry, menu, props })
     menu.push(...res.flat()) // flat because each plugin may return an array of entries
+    _.remove(menu, (x, i) => _.find(menu, y => x.id ? x.id === y.id : (!y.id && x.label === y.label), i + 1)) // avoid duplicates, keeping later ones
     const ico = getEntryIcon(entry)
     const { close } = newDialog({
         title: isFolder ? t`Folder menu` : t`File menu`,
