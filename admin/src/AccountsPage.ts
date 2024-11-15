@@ -26,7 +26,7 @@ export default function AccountsPage() {
         if (Array.isArray(data?.list) && selectionMode)
             setSel( sel.filter(u => data!.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
     }, [data]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
-    const list = useMemo(() => data && _.sortBy(data.list, [x => !x.adminActualAccess, 'username']), [data])
+    const list = useMemo(() => data && _.sortBy(data.list, ['hasPassword', x => !x.adminActualAccess, 'username']), [data])
     const selectedAccount = selectionMode && _.find(list, { username: sel[0] })
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
