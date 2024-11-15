@@ -72,21 +72,23 @@ export default function AccountsPage() {
         return () => void close()
     }, [isSideBreakpoint, sel, selectedAccount])
 
-    return element || h(Grid, { container: true, maxWidth: '80em' },
-        h(Grid, { item: true, xs: 12 },
+    const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
+    return element || h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
+        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 5, xl: 5, ...scrollProps  },
             h(Box, {
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 2,
-                mb: 2,
-                sx: {
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 2,
-                    backgroundColor: 'background.paper',
-                    width: 'fit-content',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 2,
+                    mb: 2,
+                    boxShadow: '0px -8px 4px 10px #111',
+                    sx: {
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 2,
+                        backgroundColor: 'background.paper',
+                        width: 'fit-content',
+                    },
                 },
-            },
                 h(MenuButton, {
                     variant: 'contained',
                     startIcon: h(PersonAdd),
@@ -98,30 +100,29 @@ export default function AccountsPage() {
                 }, "Add"),
                 reloadBtn(reload),
                 list?.length! > 0 && h(Typography, { p: 1 }, `${list!.length} account(s)`),
-            ) ),
-        h(Grid, { item: true, md: 5 },
+            ),
             !list?.length && h(Alert, { severity: 'info' }, md`To access administration <u>remotely</u> you will need to create a user account with admin permission`),
             h(TreeView<true>, { // true because it's not detecting multiSelect correctly (ts495)
-                multiSelect: true,
-                sx: { pr: 4, pb: 2, minWidth: '15em' },
-                selected: selectionMode ? sel : [],
-                onNodeSelect(ev, ids) {
-                    setSel(ids)
-                }
-            },
+                    multiSelect: true,
+                    sx: { pr: 4, pb: 2, minWidth: '15em' },
+                    selected: selectionMode ? sel : [],
+                    onNodeSelect(ev, ids) {
+                        setSel(ids)
+                    }
+                },
                 list?.map(ac =>
                     h(TreeItem, {
                         key: ac.username,
                         nodeId: ac.username,
                         label: h(Box, {
-                            sx: {
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                padding: '.2em 0',
-                                gap: '.5em',
-                                alignItems: 'center',
-                            }
-                        },
+                                sx: {
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    padding: '.2em 0',
+                                    gap: '.5em',
+                                    alignItems: 'center',
+                                }
+                            },
                             account2icon(ac),
                             ac.disabled && h(DoNotDisturb),
                             (ac.expire || ac.days_to_live) && h(Schedule),
@@ -134,8 +135,9 @@ export default function AccountsPage() {
                 )
             )
         ),
-        isSideBreakpoint && sideContent && h(Grid, { item: true, md: 7 },
-            h(Card, {}, h(CardContent, {}, sideContent) )),
+        isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
+            h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
+                h(CardContent, {}, sideContent)) )
     )
 
     function selectNone() {
