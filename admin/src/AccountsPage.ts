@@ -74,7 +74,7 @@ export default function AccountsPage() {
 
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
     return element || h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
-        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 5, xl: 5, ...scrollProps  },
+        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5, ...scrollProps  },
             h(Box, {
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -119,7 +119,7 @@ export default function AccountsPage() {
                                     display: 'flex',
                                     flexWrap: 'wrap',
                                     padding: '.2em 0',
-                                    gap: '.5em',
+                                    columnGap: '.5em',
                                     alignItems: 'center',
                                 }
                             },
