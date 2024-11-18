@@ -176,5 +176,8 @@
         "upload_conflict": "đang tồn tại",
         "Logged in": "Đã đăng nhập!",
         "Logged out": "Đã đăng xuất!"
+
+        "Cancel": "Huỷ bỏ",
+        "allow_session_ip_change": "Cho phép đổi IP trong phiên này"
     }
 }
