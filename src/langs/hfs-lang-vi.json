@@ -1,7 +1,7 @@
 {
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
-    "version": 2.2,
-    "hfs_version": "0.53.0",
+    "version": 2.5,
+    "hfs_version": "0.54.0",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
