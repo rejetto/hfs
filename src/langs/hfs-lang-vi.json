@@ -1,7 +1,7 @@
 {
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
-    "version": 2.2,
-    "hfs_version": "0.53.0",
+    "version": 2.5,
+    "hfs_version": "0.54.0",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
@@ -175,6 +175,9 @@
         "Show details": "Chi tiết",
         "upload_conflict": "đang tồn tại",
         "Logged in": "Đã đăng nhập!",
-        "Logged out": "Đã đăng xuất!"
+        "Logged out": "Đã đăng xuất!",
+
+        "Cancel": "Huỷ bỏ",
+        "allow_session_ip_change": "Cho phép đổi IP trong phiên này"
     }
 }
