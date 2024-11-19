@@ -138,7 +138,7 @@ function Connections() {
                 }),
             ),
             logAble && h(Flex, { flex: 1, justifyContent: 'space-between' },
-                wantLog ? "Latest requests" : h(Box),
+                wantLog ? "Live log" : h(Box),
                 wantLogButton),
         ),
         h(Grid, { container: true, flex: 1, columnSpacing: 1 },
