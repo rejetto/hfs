@@ -4,12 +4,12 @@ import React, { createElement as h } from 'react'
 import { iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon } from './icons'
-import { Callback, Dict, domOn, getHFS, Html, HTTP_MESSAGES, useBatch } from '@hfs/shared'
+import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, urlParams, useBatch } from '@hfs/shared'
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
 import { DirEntry, state, useSnapState } from './state'
-import { t } from './i18n'
+import { getLangs, t } from './i18n'
 import * as dialogLib from './dialog'
 import _ from 'lodash'
 import { reloadList } from './useFetchList'
@@ -61,6 +61,15 @@ export function hfsEvent(name: string, params?:Dict) {
     return Object.assign(sortedOutput || output, {
         isDefaultPrevent: () => ev.defaultPrevented,
     })
+}
+
+export function formatTimestamp(x: number | string | Date, options?: Intl.DateTimeFormatOptions) {
+    const cached = getOrSet(formatTimestamp as any, 'langs', () => {
+        const ret = getLangs()
+        const def = urlParams.lang || navigator.language
+        return !ret.length || def.startsWith(ret[0]) ? def : ret // eg: if i'm ar-EG, and first translation is ar, keep ar-EG
+    })
+    return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString(cached, options)
 }
 
 Object.assign(getHFS(), {

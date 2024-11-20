@@ -8,7 +8,7 @@ import { watch } from 'valtio/utils'
 const translations = getHFS().lang || {} // all dictionaries
 const state = proxy({
     embedded: '',
-    langs: Object.keys(translations)
+    langs: getLangs()
 })
 const searchLangs: string[] = []
 watch(get => {
@@ -17,6 +17,10 @@ watch(get => {
 })
 
 const warns = new Set() // avoid duplicates
+
+export function getLangs() {
+    return Object.keys(translations)
+}
 
 // the hook ensures translation is refreshed when language changes
 export function useI18N() {

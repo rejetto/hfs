@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
 import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
-import { domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, isCtrlKey, hfsEvent } from './misc'
+import {
+    domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp
+} from './misc'
 import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
@@ -328,9 +330,9 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
             'aria-hidden': true,
             onClick() { // mobile has no hover
                 if (shortTs)
-                    void alertDialog(t`Full timestamp:` + "\n" + time.toLocaleString())
+                    void alertDialog(t`Full timestamp:` + "\n" + formatTimestamp(time))
             }
-        }, time.toLocaleString(navigator.language, {
+        }, formatTimestamp(time, {
             ...!shortTs || !today ? { year: shortTs ? dd : 'numeric', month: dd, day: dd } : null,
             ...!shortTs || today ? { hour: dd, minute: dd } : null,
         })),

@@ -5,7 +5,7 @@ import { apiCall, useApiEx, useApiList } from './api'
 import { DataTable } from './DataTable';
 import { Alert, Box } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
-import { readFile, selectFiles } from './misc'
+import { CFG, readFile, selectFiles } from './misc'
 import { Btn, IconBtn } from './mui'
 import { PageProps } from './App'
 import _ from 'lodash'
@@ -89,7 +89,7 @@ export default function LangPage({ setTitleSide }: PageProps) {
 }
 
 function ForceLang({ langs }: { langs: string[] }) {
-    const K = 'force_lang'
+    const K = CFG.force_lang
     const { data, reload, loading } = useApiEx('get_config', { only: [K] })
     const [lang, setLang] = useState()
     useEffect(() => setLang(data?.[K] ?? lang), [data])

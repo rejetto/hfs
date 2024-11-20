@@ -1,5 +1,5 @@
 import Koa from 'koa'
-import { hasProp, onlyTruthy, tryJson, wantArray } from './misc'
+import { CFG, hasProp, onlyTruthy, tryJson, wantArray } from './misc'
 import { readFile } from 'fs/promises'
 import { defineConfig } from './config'
 import { watchLoad } from './watchLoad'
@@ -57,7 +57,7 @@ export async function getLangData(ctx: Koa.Context) {
 
 let forceLangData: any
 let undo: any
-defineConfig('force_lang', '', v => {
+defineConfig(CFG.force_lang, '', v => {
     undo?.()
     if (!v)
         return forceLangData = undefined
