@@ -7,8 +7,10 @@ import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
-import { Dict, MAX_TILE_SIZE, REPO_URL, wait, with_, try_, ipForUrl, SORT_BY_OPTIONS, THEME_OPTIONS,
-    CFG, md, IMAGE_FILEMASK } from './misc'
+import {
+    MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, PORT_DISABLED, CFG, IMAGE_FILEMASK,
+    Dict, md, wait, with_, try_, ipForUrl,
+} from './misc'
 import { iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
@@ -273,12 +275,15 @@ export default function OptionsPage() {
         if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
         await apiCall('set_config', { values: changes })
-        if (newPort !== undefined) {
+        const ip = ipForUrl(loc.hostname)
+        const path = loc.pathname + loc.hash
+        const redirect = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${ip}:${otherPort}${path}` // jump protocol also in case of random port, because people must know their port while using GUI
+            : newPort ? `${loc.protocol}//${ip}:${newPort || values[keys[0]]}${path}`
+                : await with_(`https://${ip}:${loc.port}${path}`, httpsUrl => // could we be kicked out because of force_https?
+                    !onHttps && (changes.force_https ?? data.force_https) && fetch(httpsUrl).then(() => httpsUrl, () => 0)) // only happens if https is working
+        if (redirect) {
             await alertDialog("You are being redirected but in some cases this may fail. Hold on tight!", 'warning')
-            const x = ipForUrl(loc.hostname)
-            // we have to jump protocol also in case of random port, because we want people to know their port while using GUI
-            return window.location.href = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${x}:${otherPort}${loc.pathname}`
-                : `${loc.protocol}//${x}:${newPort || values[keys[0]]}${loc.pathname}`
+            return window.location.href = redirect
         }
         const portChange = 'port' in changes || 'https_port' in changes
         setTimeout(reloadStatus, portChange || certChange ? 1000 : 0) // give some time to apply news

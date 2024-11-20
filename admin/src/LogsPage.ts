@@ -17,7 +17,7 @@ import _ from 'lodash'
 import { AutoDelete, ClearAll, Delete, Download, Settings, SmartToy } from '@mui/icons-material'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
-import { alertDialog, toast, useDialogBarColors } from './dialog'
+import { toast, useDialogBarColors } from './dialog'
 import { useBlockIp } from './useBlockIp'
 import { ALL as COUNTRIES } from './countries'
 
