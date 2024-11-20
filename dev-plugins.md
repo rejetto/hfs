@@ -271,7 +271,7 @@ The HFS objects contains many properties:
 - `iconBtn(icon: string, onClick: function, props?: any)` render a React Icon Button. For icons, refer to `Icon` component.
 - `domOn(eventName: string, cb: function, { target }?): function` convenient alternative to addEventListener/removeEventListener.
   The default target is window. Returns a callback to remove the listener. 
-- `useBatch(worker, job): any`
+- `useBatch(worker, job): { data }` this is a bit complicated, please refer to source `shared/react.ts`. 
 - `getNotifications(channel: string, cb: (eventName: string, data:any) => void)`
   receive messages when the backend uses `notifyClient` on the same channel. 
 - `html(html: string): ReactNode` convert html code to React
@@ -284,7 +284,8 @@ The HFS objects contains many properties:
 - `DirEntry: class_constructor(n :string, otherProps?: DirEntry)` this is the class of the objects inside `HFS.state.list`;
   in case you need to add to the list, do it by instantiating this class. E.g. `new HFS.DirEntry(name)`
 - `fileShow(entry: DirEntry, options?: { startPlaying: true )` open file-show on the specified entry.
-- `copyTextToClipboard(text: string)` self-explanatory
+- `copyTextToClipboard(text: string)` self-explanatory.
+- `urlParams: object` you'll find each parameter in the URL mapped in this object as string. 
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -677,8 +678,9 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 10 (v0.55.0)
+- 10.1 (v0.55.0)
     - HFS.copyTextToClipboard
+    - HFS.urlParams
     - exports.beforePlugin + afterPlugin
     - config.type: color
 - 9.6 (v0.54.0)

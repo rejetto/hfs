@@ -22,6 +22,7 @@ export const cpuSpeedIndex = (() => {
     return 1 / ms
 })()
 
+export const urlParams = Object.fromEntries(new URLSearchParams(window.location.search).entries())
 
 const HFS = getHFS()
 Object.assign(HFS, {
@@ -32,6 +33,7 @@ Object.assign(HFS, {
     userBelongsTo: (groupOrUser: string) => HFS.state.expandedUsername.includes(groupOrUser),
     cpuSpeedIndex,
     copyTextToClipboard,
+    urlParams,
 })
 
 export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.gif|*.svg'
@@ -46,8 +48,6 @@ function getScriptAttr(k: string) {
     return document.currentScript?.getAttribute(k)
         || console.error("this function must be called at the very top of your file")
 }
-
-export const urlParams = Object.fromEntries(new URLSearchParams(window.location.search).entries())
 
 export function buildUrlQueryString(params: Dict) { // not using URLSearchParams.toString as it doesn't work on firefox50
     return '?' + Object.entries(params).map(pair => pair.map(encodeURIComponent).join('=') ).join('&')
