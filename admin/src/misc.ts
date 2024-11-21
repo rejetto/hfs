@@ -22,3 +22,7 @@ export function err2msg(code: string) {
         ENOTDIR: "Not a folder",
     }[code] || HTTP_MESSAGES[code as any] || code
 }
+
+export function formatTimestamp(x: number | string | Date) {
+    return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString()
+}

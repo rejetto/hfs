@@ -60,7 +60,7 @@ function errorHandler(err:Error & { code:string, path:string }) {
         || code === 'ERR_STREAM_PREMATURE_CLOSE' // happens when many files are sent (not locally), but I checked that the files are written completely. Introduced after node18.5.0 and is thrown by pipeline() used by PUT method handler.
         || code === 'HPE_INVALID_METHOD' // cannot serve you like that
         || code === 'HPE_INVALID_EOF_STATE') return // someone interrupted, don't care
-    console.error(new Date().toLocaleString('en-uk'), 'server error', err)
+    console.error('server error', err)
 }
 
 process.on('uncaughtException', (err: any) => {

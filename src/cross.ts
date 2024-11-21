@@ -351,7 +351,18 @@ export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
 }
 
 export function formatTimestamp(x: number | string | Date) {
-    return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString()
+    if (!x) return ''
+    if (!(x instanceof Date))
+        x = new Date(x)
+    return formatDate(x) + ' ' + formatTime(x)
+}
+
+export function formatTime(d: Date) {
+    return [d.getHours(), d.getMinutes(), d.getSeconds()].map(x => x.toString().padStart(2, '0')).join(':') // bundled nodejs doesn't have locales
+}
+
+export function formatDate(d: Date) {
+    return [d.getFullYear(), d.getMonth() + 1, d.getDate()].map(x => x.toString().padStart(2, '0')).join('-')
 }
 
 export function isNumeric(x: unknown) {

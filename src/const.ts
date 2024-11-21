@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import { homedir } from 'os'
 import _ from 'lodash'
 import { basename, dirname, join } from 'path'
+import { formatTimestamp } from './cross'
 export * from './cross-const'
 
 export const API_VERSION = 10.1
@@ -43,7 +44,7 @@ if (DEV) console.clear()
 else console.debug = ()=>{}
 console.log(`HFS ~ HTTP File Server`)
 console.log(`© Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt`)
-console.log('started', HFS_STARTED.toLocaleString(), DEV)
+console.log('started', formatTimestamp(HFS_STARTED), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
 console.debug('arguments', argv)

@@ -9,7 +9,7 @@ import { stat } from 'fs/promises'
 import _ from 'lodash'
 import { createFileWithPath, prepareFolder } from './util-files'
 import { getCurrentUsername } from './auth'
-import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat, HTTP_NOT_FOUND } from './misc'
+import { DAY, makeNetMatcher, tryJson, Dict, Falsy, CFG, strinsert, repeat, formatTimestamp, HTTP_NOT_FOUND } from './misc'
 import { extname } from 'path'
 import events from './events'
 import { getConnection } from './connections'
@@ -172,7 +172,7 @@ debugLogFile.once('open', () => {
     console.error = function(...args: any[]) {
         was.apply(this, args)
         args = args.map(x => typeof x === 'string' ? x : (tryJson(x) ?? String(x)))
-        debugLogFile.write(new Date().toLocaleString() + ': ' + args.join(' ') + '\n')
+        debugLogFile.write(formatTimestamp(new Date) + ' - ' + args.join(' ') + '\n')
     }
     // limit log size
     const LIMIT = 1_000_000
