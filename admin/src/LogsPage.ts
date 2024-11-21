@@ -99,7 +99,8 @@ export default function LogsPage() {
 
 const LOGS_ON_FILE: string[] = [CFG.log, CFG.error_log]
 
-export function LogFile({ file, footerSide, hidden, limit, ...rest }: { limit?: number, hidden?: boolean, file: string, footerSide?: ReactNode } & Partial<DataTableProps>) {
+type LogFileProps = { filter?: (row:any) => boolean, limit?: number, hidden?: boolean, file: string, footerSide?: ReactNode } & Partial<DataTableProps>
+export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: LogFileProps) {
     const [showCountry, setShowCountry] = useState(false)
     const [showAgent, setShowAgent] = useState(false)
     const { pause, pauseButton } = usePauseButton()
@@ -147,7 +148,11 @@ export function LogFile({ file, footerSide, hidden, limit, ...rest }: { limit?: 
         valueGetter: ({ value }) => new Date(value as string),
         renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
     }
-    const rows = useMemo(() => showApi || list?.[0]?.uri === undefined ? list : list.filter(x => !x.uri.startsWith(API_URL)), [list, showApi]) //TODO TypeError: l.uri is undefined
+    const rows = useMemo(() =>
+        filter ? list.filter(filter)
+            : showApi || list?.[0]?.uri === undefined ? list
+                : list.filter(x => !x.uri.startsWith(API_URL)),
+        [list, showApi, filter])
     const blockIp = useBlockIp()
     const isConsole = file === 'console'
     const isIps = file === 'ips'
@@ -315,7 +320,7 @@ export function LogFile({ file, footerSide, hidden, limit, ...rest }: { limit?: 
             setShowAgent(true)
         if (row.uri) {
             const partial = stringAfter('?', row.uri).includes('partial=')
-            row.notes = extra?.dl ? "fully downloaded"
+            row.notes = extra?.dl ? "fully downloaded" // 'dl' here is not the '?dl' of the url, and has a different meaning
                 : (row.method === 'PUT' || extra?.ul) ? "uploaded " + (partial ? "up to " : "") + formatBytes(extra?.size, { sep: NBSP })
                     : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
                         : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (row.notes || '')

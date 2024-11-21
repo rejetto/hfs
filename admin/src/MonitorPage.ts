@@ -8,7 +8,7 @@ import { Alert, Box, Chip, ChipProps, Grid } from '@mui/material'
 import { DataTable } from './DataTable'
 import {
     formatBytes, ipForUrl, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp, formatPerc, md, Callback,
-    reactJoin,
+    reactJoin, SPECIAL_URI,
 } from "./misc"
 import {
     IconBtn, IconProgress, iconTooltip, usePauseButton, useBreakpoint, Country, hTooltip, useToggleButton, Flex, Btn
@@ -270,6 +270,7 @@ function Connections() {
             logAble && wantLog && h(Grid, { item: true, xs: logSize, display: 'flex', flexDirection: 'column' },
                 h(LogFile, {
                     file: `${CFG.log}|${CFG.error_log}`,
+                    filter: monitorOnlyFiles ? (row => !row.uri.startsWith(SPECIAL_URI)) : undefined,
                     fillFlex: true,
                     compact: false,
                     limit: 1000,
