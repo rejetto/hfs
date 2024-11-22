@@ -63,7 +63,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                     const { columns } = params.api.store.getSnapshot()
                     return h(Box, { maxHeight: '100%', sx: { textWrap: 'wrap', ...callable(sx as any, params) } }, // wrap if necessary, but stay within the row
                         col.renderCell ? col.renderCell(params) : params.formattedValue,
-                        col.mergeRender && h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '2px', ...col.mergeRenderSx }, // wrap, normally causing overflow/hiding, if it doesn't fit
+                        col.mergeRender && h(Flex, { fontSize: 'smaller', flexWrap: 'wrap', mt: '2px', rowGap: 0, ...col.mergeRenderSx }, // wrap, normally causing overflow/hiding, if it doesn't fit
                             ...onlyTruthy(_.map(col.mergeRender, (props, other) => {
                                 if (!props || columns.columnVisibilityModel[other] !== false) return null
                                 const rendered = renderCell({ ...columns.lookup[other], ...props.override }, params.row)
