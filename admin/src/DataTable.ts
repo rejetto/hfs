@@ -6,6 +6,7 @@ import { callable, Callback, newDialog, onlyTruthy, useGetSize } from '@hfs/shar
 import _ from 'lodash'
 import { Center, Flex } from './mui'
 import { SxProps } from '@mui/system'
+import { state, updateStateObject } from './state'
 
 const ACTIONS = 'Actions'
 
@@ -27,8 +28,9 @@ export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<Da
     compact?: boolean
     footerSide?: (width: number) => ReactNode
     fillFlex?: boolean
+    persist?: string
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, persist, ...rest }: DataTableProps) {
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
@@ -104,7 +106,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         setMerged(_.sumBy(fields, k => _.find(columns, col => !fields.includes(col.field) && col.mergeRender?.[k]) ? 1 : 0))
         return fields
     }, [manipulatedColumns, width])
-    const [vis, setVis] = useState({})
+    const [vis, setVis] = useState(persist && state.dataTablePersistence[persist]?.columnVisibility || {})
 
     const displayingDetails = useRef<any>({})
     useEffect(() => {
@@ -188,7 +190,15 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                     }
                 })
             },
-            onColumnVisibilityModelChange: x => setVis(x),
+            onColumnVisibilityModelChange: vis => {
+                setVis(vis)
+                if (!persist) return
+                updateStateObject(state, 'dataTablePersistence', x => {
+                    x[persist] = {
+                        columnVisibility: _.omitBy(vis, (v, k) => hideCols.includes(k) === (v === false))
+                    }
+                })
+            },
             columnVisibilityModel: {
                 ...Object.fromEntries(hideCols.map(x => [x, false])),
                 ...rest.columnVisibilityModel,

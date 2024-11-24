@@ -144,6 +144,7 @@ function Connections() {
         h(Grid, { container: true, flex: 1, columnSpacing: 1 },
             h(Grid, { item: true, xs: 12 - logSize },
                 h(DataTable, {
+                    persist: 'connections',
                     error,
                     rows,
                     noRows: monitorOnlyFiles && "No downloads at the moment",

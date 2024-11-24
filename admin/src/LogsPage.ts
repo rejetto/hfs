@@ -157,6 +157,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const isConsole = file === 'console'
     const isIps = file === 'ips'
     return hidden ? null : h(DataTable, {
+        persist: 'log_' + file,
         error,
         loading: connecting,
         rows,

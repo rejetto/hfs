@@ -5,6 +5,7 @@ import { Dict } from './misc'
 import { VfsNode } from './VfsPage'
 import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
+import produce from 'immer'
 
 const STORAGE_KEY = 'admin_state'
 const INIT = {
@@ -19,6 +20,7 @@ const INIT = {
     monitorWithLog: true,
     customHtmlSection: '',
     darkTheme: undefined as undefined | boolean,
+    dataTablePersistence: {} as any,
     onlinePluginsColumns: {
         version: false,
         pushed_at: false,
@@ -28,7 +30,7 @@ const INIT = {
 Object.assign(INIT, JSON.parse(localStorage[STORAGE_KEY]||null))
 export const state = proxy(INIT)
 
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'monitorWithLog', 'customHtmlSection', 'darkTheme']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'monitorWithLog', 'customHtmlSection', 'darkTheme', 'dataTablePersistence']
 const storeSettings = _.debounce(() =>
     localStorage[STORAGE_KEY] = JSON.stringify(_.pick(state, SETTINGS_TO_STORE)), 500, { maxWait: 1000 })
 for (const k of SETTINGS_TO_STORE)
@@ -36,4 +38,9 @@ for (const k of SETTINGS_TO_STORE)
 
 export function useSnapState() {
     return useSnapshot(state)
+}
+
+// use this to reflect a deep change in an object to its root, so that valtio is triggered
+export function updateStateObject(obj: any, k: string, cb: (x: any) => void) {
+    obj[k] = produce(obj[k], cb)
 }
