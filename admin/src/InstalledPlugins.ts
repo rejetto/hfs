@@ -5,14 +5,7 @@ import { createElement as h, Fragment, useEffect } from 'react'
 import { Box, Link } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
-    Clear,
-    Delete,
-    Error as ErrorIcon,
-    FormatPaint as ThemeIcon,
-    PlayCircle,
-    Settings,
-    StopCircle,
-    Upgrade
+    Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
 import { HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
@@ -26,12 +19,11 @@ import { Btn, hTooltip, IconBtn, iconTooltip } from './mui'
 import VfsPathField from './VfsPathField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
-    const { list, error, updateList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
+    const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     useEffect(() => {
-        if (!initializing)
-            updateList(list =>
-                _.sortBy(list, x => (x.started || x.error ? '0' : '1') + treatPluginName(x.id)))
-    }, [initializing]);
+        setList(list =>
+            _.sortBy(list, x => (x.started || x.error ? '0' : '1') + treatPluginName(x.id)))
+    }, [list.length]);
     const size = 'small'
     return h(DataTable, {
         error: xlate(error, PLUGIN_ERRORS),

@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement as h, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Dict, err2msg, Falsy, LIST, useStateMounted, wantArray, xlate, objSameKeys,
     HTTP_FORBIDDEN, HTTP_UNAUTHORIZED } from './misc'
 import { IconBtn, spinner } from './mui'
@@ -161,21 +161,18 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
             apply.flush()
         }
     }, [reloader, cmd, JSON.stringify(params)]) //eslint-disable-line
-    return { list: pausedList ?? list, props, loading, error, initializing, connecting, setList, updateList, updateEntry, reload }
-
-    function reload() {
-        setReloader(x => x + 1)
-    }
-
-    function updateList(cb: (toModify: Draft<typeof list>) => void) {
-        setList(produce(list, cb))
-    }
-
-    function updateEntry(search: T, change: T) {
+    const updateList = useCallback((cb: (toModify: Draft<typeof list>) => void) => setList(list => produce(list, cb)),
+        [setList])
+    const updateEntry = useCallback((search: T, change: T) => {
         updateList(list => {
             const res = _.find(list, search as any)
             if (res)
                 Object.assign(res, change)
         })
+    }, [updateList])
+    return { list: pausedList ?? list, props, loading, error, initializing, connecting, setList, updateList, updateEntry, reload }
+
+    function reload() {
+        setReloader(x => x + 1)
     }
 }
