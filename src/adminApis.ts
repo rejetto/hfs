@@ -4,13 +4,8 @@ import { ApiError, ApiHandler, ApiHandlers } from './apiMiddleware'
 import { configFile, defineConfig, getWholeConfig, setConfig } from './config'
 import { getBaseUrlOrDefault, getIps, getServerStatus, getUrls } from './listen'
 import {
-    API_VERSION,
-    BUILD_TIMESTAMP,
-    COMPATIBLE_API_VERSION,
-    HFS_STARTED,
-    IS_WINDOWS,
-    VERSION,
-    HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_FORBIDDEN
+    API_VERSION, BUILD_TIMESTAMP, COMPATIBLE_API_VERSION, HFS_STARTED, IS_WINDOWS, VERSION,
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_FORBIDDEN
 } from './const'
 import vfsApis from './api.vfs'
 import accountsApis from './api.accounts'
@@ -19,12 +14,12 @@ import monitorApis from './api.monitor'
 import langApis from './api.lang'
 import netApis from './api.net'
 import logApis from './api.log'
+import certApis from './api.cert'
 import { getConnections } from './connections'
 import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, typedEntries, waitFor } from './misc'
 import { accountCanLoginAdmin, accountsConfig } from './perm'
 import Koa from 'koa'
 import { cloudflareDetected, getProxyDetected } from './middlewares'
-import { writeFile } from 'fs/promises'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtml, saveCustomHtml } from './customHtml'
@@ -49,6 +44,7 @@ export const adminApis = {
     ...langApis,
     ...netApis,
     ...logApis,
+    ...certApis,
     get_dynamic_dns_error,
 
     async set_config({ values }) {
@@ -138,15 +134,6 @@ export const adminApis = {
                 && getConnections().every(isLocalHost)
                 && await frpDebounced(),
         }
-    },
-
-    async save_pem({ cert, private_key, name='self' }) {
-        if (!cert || !private_key)
-            return new ApiError(HTTP_BAD_REQUEST)
-        const files = { cert: name + '.cer', private_key: name + '.key' }
-        await writeFile(files.private_key, private_key)
-        await writeFile(files.cert, cert)
-        return files
     },
 
     async add_block({ merge, ip, expire, comment }: BlockingRule & { merge?: Partial<BlockingRule> }) {

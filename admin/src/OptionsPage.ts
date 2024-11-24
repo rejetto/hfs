@@ -8,7 +8,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
-    MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, PORT_DISABLED, CFG, IMAGE_FILEMASK,
+    MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK,
     Dict, md, wait, with_, try_, ipForUrl,
 } from './misc'
 import { iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
@@ -401,9 +401,8 @@ export async function suggestMakingCert() {
             const stop = waitDialog()
             try {
                 await wait(50) // give time to start animation before cpu intensive task
-                const saved = await apiCall('save_pem', await makeCert({}))
+                const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
                 stop()
-                await apiCall('set_config', { values: saved })
                 if (loaded) // when undefined we are not in this page
                     Object.assign(loaded, saved)
                 setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
@@ -414,26 +413,4 @@ export async function suggestMakingCert() {
             finally { stop() }
         }
     })
-}
-
-async function makeCert(attributes: Record<string, string>) {
-    // this relies on having loaded node-forge/dist/forge.min.js
-    const { pki } = (window as any).forge
-    const keys = pki.rsa.generateKeyPair(2048);
-    const cert = pki.createCertificate();
-    cert.publicKey = keys.publicKey
-    cert.serialNumber = '01'
-    cert.validity.notBefore = new Date()
-    cert.validity.notAfter = new Date()
-    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1)
-
-    const attrs = Object.entries(attributes).map(x => ({ name: x[0], value: x[1] }))
-    cert.setSubject(attrs)
-    cert.setIssuer(attrs)
-    cert.sign(keys.privateKey)
-
-    return {
-        cert: pki.certificateToPem(cert),
-        private_key: pki.privateKeyToPem(keys.privateKey),
-    }
 }
