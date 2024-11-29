@@ -135,6 +135,16 @@ button.toggled {
     color: #fff;
     text-shadow: 0 0 3px #fff;
 }
+button.success {
+    transition:  all .3s;
+    background-color: var(--success);
+    @extend .highlightedText;
+}
+a[role=button].success {
+    transition:  all .3s;
+    color: var(--success);
+    text-shadow: 0 0 3px var(--text-high-contrast);
+}
 a.toggled {
     color: #223;
     text-shadow: 0 0 5px #223;

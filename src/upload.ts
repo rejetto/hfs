@@ -5,7 +5,10 @@ import {
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
-import { Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter } from './misc'
+import {
+    Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
+    enforceFinal
+} from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
 import { getDiskSpaceSync } from './util-os'
@@ -39,7 +42,7 @@ function setUploadMeta(path: string, ctx: Koa.Context) {
 // stay sync because we use this function with formidable()
 const diskSpaceCache: any = {}
 const openFiles = new Set()
-export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
+export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
     let fullPath = ''
     if (dirTraversal(path))
         return fail(HTTP_FOOL)
@@ -129,7 +132,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         cancelDeletion(tempName)
         ctx.state.uploadDestinationPath = tempName
         // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
-        const obj = { ctx, writeStream }
+        const obj = { ctx, writeStream, uri: '' }
         const resEvent = events.emit('uploadStart', obj)
         if (resEvent?.isDefaultPrevented()) return
 
@@ -143,7 +146,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
         Object.assign(obj, { fileStream })
         trackProgress()
 
-        const lockMiddleware = pendingPromise() // outside we need to know when all operations stopped
+        const lockMiddleware = pendingPromise<string>() // outside we need to know when all operations stopped
         writeStream.once('close', async () => {
             try {
                 await new Promise(res => fileStream.close(res)) // this only seem to be necessary on Windows
@@ -175,6 +178,7 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
                         void setCommentFor(dest, String(ctx.query.comment))
                     if (resumable && !resuming) // this happens if user decided to not resume and the new upload finished before delayedDelete
                         rm(resumable).catch(console.warn)
+                    obj.uri = enforceFinal('/', baseUri) + pathEncode(basename(dest))
                     events.emit('uploadFinished', obj)
                     if (resEvent) for (const cb of resEvent)
                         if (_.isFunction(cb))
@@ -187,12 +191,10 @@ export function uploadWriter(base: VfsNode, path: string, ctx: Koa.Context) {
             }
             finally {
                 releaseFile()
-                lockMiddleware.resolve()
+                lockMiddleware.resolve(obj.uri)
             }
         })
-        return Object.assign(obj.writeStream, {
-            lockMiddleware
-        })
+        return Object.assign(obj.writeStream, { lockMiddleware })
 
         function trackProgress() {
             let lastGot = 0

@@ -106,3 +106,7 @@ Object.assign(getHFS(), {
         }
     }
 })
+
+export function operationSuccessful() {
+    return toast(t`Operation successful`, 'success')
+}

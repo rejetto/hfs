@@ -1,7 +1,7 @@
 import {
     buildUrlQueryString, dirname, formatBytes, formatPerc, getHFS,
     HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE,
-    pathEncode, pendingPromise, prefix, randomId, with_
+    pathEncode, pendingPromise, prefix, randomId, tryJson, with_
 } from '@hfs/shared'
 import { state } from './state'
 import { getNotifications } from '@hfs/shared/api'
@@ -16,7 +16,7 @@ import { UploadStatus } from './upload'
 
 export interface ToUpload { file: File, comment?: string, name?: string, to?: string, error?: string }
 export const uploadState = proxy<{
-    done: ToUpload[]
+    done: (ToUpload & { res?: any })[]
     doneByte: number
     errors: ToUpload[]
     skipped: ToUpload[]
@@ -111,7 +111,9 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                     offset += splitSize
                     if (offset < fullSize) return // continue looping
                 }
-                done()
+                uploadState.done.push({ ...toUpload, res: tryJson(req.responseText) })
+                uploadState.doneByte += toUpload!.file.size
+                reloadOnClose = true
             }
             next()
         }
@@ -190,12 +192,6 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
         closeLast?.()
         closeLast = alertDialog(msg, 'error').close
-    }
-
-    function done() {
-        uploadState.done.push(toUpload)
-        uploadState.doneByte += toUpload!.file.size
-        reloadOnClose = true
     }
 
     function next() {

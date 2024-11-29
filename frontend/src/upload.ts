@@ -3,8 +3,8 @@
 import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, CSSProperties } from 'react'
 import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
-    basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working,
-    HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, cpuSpeedIndex, closeDialog, prefix,
+    basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, copyTextToClipboard,
+    HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, cpuSpeedIndex, closeDialog, prefix, operationSuccessful,
 } from './misc'
 import _ from 'lodash'
 import { INTERNAL_Snapshot, ref, useSnapshot } from 'valtio'
@@ -209,7 +209,17 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
     const s = [msgDone, msgSkipped, msgErrors].filter(Boolean).join(' – ')
     if (!s) return null
     return h('div', { style: { ...props } },
-        s, ' – ', h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }) )
+        s, ' – ', h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }),
+        ' – ', h(Btn, {
+            label: t('copy_links', "Copy links"),
+            asText: true,
+            successFeedback: true,
+            onClick() {
+                copyTextToClipboard(done.map(x => location.origin + x.res.uri).join('\n'))
+                operationSuccessful()
+            }
+        }),
+    )
 
     function showDetails() {
         if (!uploadState.uploadDialogIsOpen)

@@ -4,7 +4,7 @@ import { Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefi
 import {
     ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
-    useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes
+    useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes, useRef
 } from 'react'
 import _ from 'lodash'
 import { t } from './i18n'
@@ -116,10 +116,13 @@ export interface BtnProps extends ComponentPropsWithoutRef<"button"> {
     onClick?: () => unknown
     onClickAnimation?: boolean
     asText?: boolean
+    successFeedback?: boolean
 }
 
-export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, asText, ...rest }: BtnProps) {
+export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, asText, successFeedback, ...rest }: BtnProps) {
     const [working, setWorking] = useState(false)
+    const [success, setSuccess] = useState(false)
+    const t = useRef<any>()
     return h(asText ? 'a' : 'button', {
         title: label + prefix(' - ', tooltip),
         'aria-label': label,
@@ -131,9 +134,15 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
             if (onClickAnimation !== false)
                 setWorking(true)
             Promise.resolve(onClick()).finally(() => setWorking(false))
+                .then(() => {
+                    if (!successFeedback) return
+                    setSuccess(true)
+                    clearTimeout(t.current)
+                    t.current = setTimeout(() => setSuccess(false), 1000)
+                })
         },
         ...rest,
         ...asText ? { role: 'button', style: { cursor: 'pointer', ...rest.style } } : undefined,
-        className: [rest.className, toggled && 'toggled', working && 'ani-working'].filter(Boolean).join(' '),
+        className: [rest.className, toggled && 'toggled', working && 'ani-working', success && 'success'].filter(Boolean).join(' '),
     }, icon && hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
 }

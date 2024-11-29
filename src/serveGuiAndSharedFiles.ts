@@ -41,18 +41,19 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (ctx.method === 'PUT') { // curl -T file url/
         const decPath = decodeURIComponent(path)
         let rest = basename(decPath)
-        const folder = await urlToNode(dirname(path), ctx, vfs, v => rest = v+'/'+rest)
+        const folderUri = dirname(path)
+        const folder = await urlToNode(folderUri, ctx, vfs, v => rest = v+'/'+rest)
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
         ctx.state.uploadPath = decPath
-        const dest = uploadWriter(folder, rest, ctx)
+        const dest = uploadWriter(folder, folderUri, rest, ctx)
         if (dest) {
             ctx.req.pipe(dest).on('error', err => {
                 ctx.status = HTTP_SERVER_ERROR
                 ctx.body = err.message || String(err)
             })
-            await dest.lockMiddleware  // we need to wait more than just the stream
-            ctx.body = {}
+            const uri = await dest.lockMiddleware  // we need to wait more than just the stream
+            ctx.body = { uri }
         }
         return
     }
@@ -64,9 +65,8 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (ctx.method === 'POST') { // curl -F upload=@file url/
         if (ctx.request.type !== 'multipart/form-data')
             return ctx.status = HTTP_BAD_REQUEST
-        ctx.body = {}
         ctx.state.uploads = []
-        let locks: Promise<any>[] = []
+        let locks: Promise<string>[] = []
         const form = formidable({
             maxFileSize: Infinity,
             allowEmptyFiles: true,
@@ -74,17 +74,19 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
                 const fn = (f as any).originalFilename
                 ctx.state.uploadPath = decodeURI(ctx.path) + fn
                 ctx.state.uploads!.push(fn)
-                const ret = uploadWriter(node!, fn, ctx)
+                const ret = uploadWriter(node!, path, fn, ctx)
                 if (!ret)
                     return new Writable({ write(data,enc,cb) { cb() } }) // just discard data
                 locks.push(ret.lockMiddleware)
                 return ret
             }
         })
-        return new Promise<any>(res => form.parse(ctx.req, err => {
+        const uris = await new Promise<string[]>(res => form.parse(ctx.req, async err => {
             if (err) console.error(String(err))
             res(Promise.all(locks))
         }))
+        ctx.body = { uris }
+        return
     }
     if (ctx.method === 'DELETE') {
         const res = await deleteNode(ctx, node, ctx.path)

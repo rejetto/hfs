@@ -1,7 +1,7 @@
 import { t, useI18N } from './i18n'
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog, anyDialogOpen, Falsy
+    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
 import _ from 'lodash'
@@ -172,7 +172,7 @@ async function editComment(entry: DirEntry) {
     if (res === undefined) return
     await apiCall('comment', { uri: entry.uri, comment: res }, { modal: working })
     updateEntry(entry, e => e.comment = res)
-    toast(t`Operation successful`, 'success')
+    operationSuccessful()
 }
 
 function updateEntry(entry: DirEntry, cb: (e: DirEntry) => unknown) {
