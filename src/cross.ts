@@ -128,6 +128,10 @@ export function objSameKeys<S extends object,VR=any>(src: S, newValue:(value:Tru
     return Object.fromEntries(Object.entries(src).map(([k,v]) => [k, newValue(v,k as keyof S)])) as { [K in keyof S]:VR }
 }
 
+export function objFromKeys<K extends string, VR=unknown>(src: K[], getValue: (value: K)=> VR) {
+    return Object.fromEntries(src.map(k => [k, getValue(k)]))
+}
+
 export function enforceFinal(sub:string, s:string, evenEmpty=false) {
     return (s ? !s.endsWith(sub) : evenEmpty) ? s + sub : s
 }

@@ -7,7 +7,10 @@ import _ from 'lodash'
 import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
-import { hfsEvent, HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED, LIST, urlParams, xlate } from './misc'
+import {
+    hfsEvent, LIST, urlParams, xlate, objFromKeys,
+    HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED,
+} from './misc'
 import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { closeLoginDialog } from './login'
@@ -18,8 +21,11 @@ export function usePath() {
 }
 
 // allow links with ?search
-setTimeout(() => // wait, urlParams is defined at top level
-    state.remoteSearch = urlParams.search || '')
+let firstListRequest: any
+setTimeout(() => {// wait, urlParams is defined at top level
+    state.remoteSearch = urlParams.search || ''
+    firstListRequest = objFromKeys(['onlyFiles', 'onlyFolders'], x => x in urlParams || undefined)
+})
 
 let autoPlayOnce: string | undefined = urlParams.autoplay // this will be consumed, so to only act once
 
@@ -47,7 +53,7 @@ export default function useFetchList() {
             return
         }
 
-        const params = { uri, search, ...snap.searchOptions }
+        const params = { uri, search, ...firstListRequest, ...snap.searchOptions }
         params.wild = params.wild ? undefined : 'no'
         if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
         lastParams.current = params
@@ -83,6 +89,7 @@ export default function useFetchList() {
                     if (autoPlayOnce === '') play = true
                     if (autoPlayOnce === 'shuffle') playShuffle = true
                     autoPlayOnce = undefined
+                    firstListRequest = undefined
                     return
                 case 'error':
                     state.stopSearch?.()

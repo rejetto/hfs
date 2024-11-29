@@ -126,7 +126,8 @@ If your language is missing, please consider [translating yourself](https://gith
 - Right-click on toggle-all checkbox will invert each checkbox state
 - Appending `?login=USER:PASSWORD` will automatically log in the browser
 - Appending `?overwrite` on uploads, will override the dont_overwrite_uploading configuration, provided you also have delete permission
-- Appending `?search=PATTERN` will trigger search at start 
+- Appending `?search=PATTERN` will trigger search at start
+- Appending `?onlyFiles` or `?onlyFolders` will limit type of results
 - Appending `?autoplay=shuffle` will trigger show & play; `?autoplay` will not shuffle, but also will not start until the list is complete 
 - Right-click on "check for updates" will let you input a URL of a version to install
 - Shift+click on a file will show & play

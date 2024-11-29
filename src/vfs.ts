@@ -268,15 +268,16 @@ export async function* walkNode(parent: VfsNode, {
     depth = Infinity,
     prefixPath = '',
     requiredPerm,
-    onlyFolders = false
-}: { ctx?: Koa.Context,depth?: number, prefixPath?: string, requiredPerm?: undefined | keyof VfsPerms, onlyFolders?: boolean } = {}): AsyncIterableIterator<VfsNode> {
+    onlyFolders = false,
+    onlyFiles = false,
+}: { ctx?: Koa.Context,depth?: number, prefixPath?: string, requiredPerm?: undefined | keyof VfsPerms, onlyFolders?: boolean, onlyFiles?: boolean } = {}): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
     const took = prefixPath ? undefined : new Set()
     const maskApplier = parentMaskApplier(parent)
     const parentsCache = new Map() // we use this only if depth > 0
     if (children)
         for (const child of children) {
-            if (onlyFolders && !await nodeIsDirectory(child)) continue
+            if (await nodeIsDirectory(child) ? onlyFiles : onlyFolders) continue
             const nodeName = getNodeName(child)
             const name = prefixPath + nodeName
             took?.add(normalizeFilename(name))
@@ -302,7 +303,7 @@ export async function* walkNode(parent: VfsNode, {
     try {
         let lastDir = prefixPath.slice(0, -1) || '.'
         parentsCache.set(lastDir, parent)
-        for await (const entry of dirStream(source, { depth, onlyFolders, hidden: showHiddenFiles.get() })) {
+        for await (const entry of dirStream(source, { depth, onlyFolders, onlyFiles, hidden: showHiddenFiles.get() })) {
             if (ctx?.req.aborted)
                 return
             const {path} = entry
