@@ -79,7 +79,7 @@ export function isSameFilenameAs(name: string) {
 }
 
 function normalizeFilename(x: string) {
-    return IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x
+    return (IS_WINDOWS || IS_MAC ? x.toLocaleLowerCase() : x).normalize()
 }
 
 export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
@@ -299,7 +299,6 @@ export async function* walkNode(parent: VfsNode, {
     && !masksCouldGivePermission(parent.masks, requiredPerm))
         return
 
-    let n = 0
     try {
         let lastDir = prefixPath.slice(0, -1) || '.'
         parentsCache.set(lastDir, parent)
