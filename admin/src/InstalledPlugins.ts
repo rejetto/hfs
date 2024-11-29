@@ -76,10 +76,8 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 'aria-label': `Stop ${id}`,
                 size,
                 color: 'success',
-                async onClick() {
-                    await apiCall('stop_plugin', { id })
-                    toast("Plugin stopped", h(StopCircle, { color: 'warning' }))
-                }
+                doneAnimation: true,
+                onClick: () => apiCall('stop_plugin', { id }),
             } : {
                 icon: PlayCircle,
                 title: `Start ${id}`,

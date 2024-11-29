@@ -68,7 +68,7 @@ h2.MuiDialogTitle-root { /* less padding */
 @keyframes animate-dash { to { background-position: 20px 0; } }
 
 @keyframes success {
-  50% { transform: scale(1.5); color: var(--success); }
+  50% { transform: scale(1.3); color: var(--success); }
   100% { transform: inherit; color: inherit; }
 }
 

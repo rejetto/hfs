@@ -107,6 +107,7 @@ export function propsForModifiedValues(modified: boolean | undefined) {
     return modified ? { sx: { outline: '2px solid' } } : undefined
 }
 
+// use ref.pass as prop
 function useRefPass<T=unknown>(forwarded: ForwardedRef<any>) {
     const ref = useRef<T | null>(null)
     return Object.assign(ref, {
@@ -117,7 +118,6 @@ function useRefPass<T=unknown>(forwarded: ForwardedRef<any>) {
             else if (forwarded)
                 forwarded.current = el
         },
-
     })
 }
 
@@ -134,13 +134,15 @@ export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|
     confirm?: boolean | ReactNode
     labelIf?: Breakpoint | boolean
     doneMessage?: boolean | string // displayed only if the result of onClick !== false
+    doneAnimation?: boolean
     tooltipProps?: Partial<TooltipProps>
     modified?: boolean
     loading?: boolean
     onClick?: (...args: Parameters<NonNullable<ButtonProps['onClick']>>) => Promisable<any>
 }
 
-export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage, labelIf, children, modified, loading, ...rest }: BtnProps, forwarded: ForwardedRef<HTMLButtonElement>) => {
+export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link, tooltipProps, confirm, doneMessage,
+   doneAnimation, labelIf, children, modified, loading, ...rest }: BtnProps, forwarded: ForwardedRef<HTMLButtonElement>) => {
     const [loadingState, setLoadingState] = useStateMounted(false)
     if (typeof disabled === 'string')
         title = disabled
@@ -152,7 +154,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
         title = children
     const ref = useRefPass<HTMLButtonElement>(forwarded)
     const common = _.merge(propsForModifiedValues(modified), {
-        ref,
+        ref: ref.pass,
         disabled,
         'aria-hidden': disabled,
         async onClick(...args: any[]) {
@@ -161,7 +163,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
             const ret = onClick?.apply(this, args as any)
             if (ret && ret instanceof Promise) {
                 setLoadingState(true)
-                ret.then(x => x !== false && execDoneMessage(doneMessage), alertDialog)
+                ret.then(x => x !== false && execDoneMessage(doneMessage, doneAnimation && ref.current), alertDialog)
                     .finally(()=> setLoadingState(false))
             }
         },
@@ -194,7 +196,7 @@ export const Btn = forwardRef(({ icon, title, onClick, disabled, progress, link,
     return ret
 })
 
-function execDoneMessage(msg: boolean | string | undefined, el?: HTMLElement | null) {
+function execDoneMessage(msg: boolean | string | undefined, el?: HTMLElement | null | false) {
     if (el)
         restartAnimation(el, 'success .5s')
     if (msg)
