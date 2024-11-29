@@ -163,6 +163,7 @@ for (const cfg of httpsNeeds) {
         httpsOptions[k] = ''
         unwatch = watchLoad(v, async data => {
             httpsOptions[k] = data
+            await wait(500) // when a file is written, give some time for the other to be ready
             await considerHttps()
         }, { immediateFirst: true }).unwatch
         await considerHttps()
