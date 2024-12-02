@@ -19,5 +19,6 @@ import ja from './hfs-lang-ja.json'
 import tr from './hfs-lang-tr.json'
 import th from './hfs-lang-th.json'
 import uk from './hfs-lang-uk.json'
+import ar from './hfs-lang-ar.json'
 
-export default { it, zh, ru, sr, ko, ms, 'zh-tw': zh_tw, fr, 'pt-br': pt_br, vi, es, nl, el, de, fi, hu, ja, ro, tr, th, uk }
+export default { it, zh, ru, sr, ko, ms, 'zh-tw': zh_tw, fr, 'pt-br': pt_br, vi, es, nl, el, de, fi, hu, ja, ro, tr, th, uk, ar }
