@@ -50,7 +50,6 @@ Configuration can be done in several ways
 - `log_ua` include user-agent in the logs. Default is false.
 - `track_ips` keep track of all IP addresses seen. Default is true.
 - `error_log` path of the log file for errors. Default is `error.log`.
-- `errors_in_main_log` if you want to use a single file for both kind of entries. Default is false.
 - `dont_log_net` don't include in log entries if IP matches this network mask. Default is `127.0.0.1|::1`.
 - `accounts` list of accounts. For details see the dedicated following section.
 - `mime` command what mime-type to be returned with some files.
