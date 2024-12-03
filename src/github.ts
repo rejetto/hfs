@@ -5,7 +5,7 @@ import {
     DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey, onlyTruthy
 } from './misc'
 import {
-    DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginEnabled, mapPlugins,
+    DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginRunning, mapPlugins,
     parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER
 } from './plugins'
 import { ApiError } from './apiMiddleware'
@@ -95,8 +95,8 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
                 return rm(dest, { force: true }).then(() => dest, () => false)
             })
             // ready to replace
-            const wasEnabled = isPluginEnabled(folder)
-            if (wasEnabled)
+            const wasRunning = isPluginRunning(folder)
+            if (wasRunning)
                 await stopPlugin(folder) // stop old
             let retry = 3
             while (retry--) { // move data, and consider late release of the resource, up to a few seconds
@@ -111,7 +111,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             // final replace
             await rename(tempInstallPath, installPath)
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })
-            if (wasEnabled)
+            if (wasRunning)
                 void startPlugin(folder) // don't wait, in case it fails to start. We still use startPlugin instead of enablePlugin, as it will take care of disabling other themes.
                     .catch(() => {}) // it will possibly fail (with 'miss') because the plugin has probably not been loaded yet.
             events.emit('pluginDownloaded', { id: folder, repo })

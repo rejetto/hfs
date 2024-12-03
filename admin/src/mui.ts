@@ -9,7 +9,9 @@ import {
 } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
-import { anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_ } from './misc'
+import {
+    anyDialogOpen, closeDialog, formatPerc, isIpLan, isIpLocalHost, prefix, WIKI_URL, with_, Functionable, callable
+} from './misc'
 import { dontBotherWithKeys, restartAnimation, useBatch, useStateMounted } from '@hfs/shared'
 import { Promisable, StringField } from '@hfs/mui-grid-form'
 import { alertDialog, confirmDialog, toast } from './dialog'
@@ -237,17 +239,25 @@ export function LinkBtn({ ...rest }: LinkProps) {
     })
 }
 
-export function usePauseButton(props?: Partial<IconBtnProps>) {
-    const [going, btn] = useToggleButton("Pause", "Play", v => ({
+export function usePauseButton(name='', def: ToggleButtonDefault=true, props?: Partial<IconBtnProps>) {
+    const [going, btn] = useToggleButton(`Pause ${name}`, `Resume ${name}`, v => ({
         icon: v ? PauseCircle : PlayCircle,
         sx: { rotate: v ? '180deg' : '0deg' },
         ...props,
-    }), true)
+    }), def)
     return { pause: !going, pauseButton: btn }
 }
 
-export function useToggleButton(onTitle: string, offTitle: undefined | string, iconBtn: (state:boolean) => Omit<IconBtnProps, 'onClick'>, def=false) {
-    const [state, setState] = useState(def)
+type ToggleButtonDefault = Functionable<Promisable<boolean>>
+export function useToggleButton(onTitle: string, offTitle: undefined | string, iconBtn: (state:boolean) => IconBtnProps, init: ToggleButtonDefault=false) {
+    const [state, setState] = useState<boolean>(init instanceof Promise || init instanceof Function ? (() => {
+        const x = callable(init)
+        if (!(x instanceof Promise))
+            return x
+        x.then(v => setState(v))
+        return false
+    }) : init)
+
     const toggle = useCallback(() => setState(x => !x), [])
     const props = iconBtn(state)
     const el = useMemo(() => h(IconBtn, {
@@ -258,9 +268,12 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
         'aria-pressed': state,
         ...props,
         sx: { transition: 'all .5s', ...props.sx },
-        onClick: toggle,
+        onClick(ev) {
+            props.onClick?.(ev)
+            toggle()
+        },
     }), [state]) // memoize or tooltip flickers on mouse-over
-    return [state, el] as const
+    return [state, el, setState] as const
 }
 
 export function NetmaskField(props: StringFieldProps) {

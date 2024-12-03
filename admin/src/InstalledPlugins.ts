@@ -7,7 +7,7 @@ import { DataTable, DataTableColumn } from './DataTable'
 import {
     Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
-import { HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
+import { CFG, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { Account } from './AccountsPage'
@@ -15,7 +15,7 @@ import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectFiel
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
-import { Btn, hTooltip, IconBtn, iconTooltip } from './mui'
+import { Btn, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
 import VfsPathField from './VfsPathField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
@@ -25,6 +25,9 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             _.sortBy(list, x => (x.started || x.error ? '0' : '1') + treatPluginName(x.id)))
     }, [list.length]);
     const size = 'small'
+    const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
+        onClick: () => apiCall('set_config', { values: { [CFG.suspend_plugins]: !pause } })
+    })
     return h(DataTable, {
         error: xlate(error, PLUGIN_ERRORS),
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
@@ -54,6 +57,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 hideUnder: 'sm',
             },
         ],
+        footerSide: () => !updates && pauseButton,
         actions: ({ row, id }) => updates ? [
             h(IconBtn, {
                 icon: Upgrade,
@@ -81,6 +85,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             } : {
                 icon: PlayCircle,
                 title: `Start ${id}`,
+                disabled: pause,
                 size,
                 onClick: () => startPlugin(id),
             }),
@@ -133,6 +138,10 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             }),
         ]
     })
+}
+
+function getSingleConfig(k: string) {
+    return apiCall('get_config', { only: [k] }).then(x => x[k])
 }
 
 // hide the hfs- prefix, as one may want to use it for its repository, because github is the context, but in the hfs context the prefix it's not only redundant, but also ruins the sorting

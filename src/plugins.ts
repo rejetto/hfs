@@ -8,7 +8,7 @@ import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, IS_WINDO
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    adjustStaticPathForGlob, callable, Callback, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
+    adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir
 } from './misc'
 import * as misc from './misc'
@@ -38,8 +38,8 @@ export function isPluginRunning(id: string) {
     return Boolean(plugins.get(id)?.started)
 }
 
-export function isPluginEnabled(id: string) {
-    return enablePlugins.get().includes(id)
+export function isPluginEnabled(id: string, considerSuspension=false) {
+    return (!considerSuspension || !suspendPlugins.get()) && enablePlugins.get().includes(id)
 }
 
 export function enablePlugin(id: string, state=true) {
@@ -350,6 +350,8 @@ export const pluginsWatcher = watchDir(PATH, rescanAsap)
 export const enablePlugins = defineConfig('enable_plugins', ['antibrute'])
 enablePlugins.sub(rescanAsap)
 
+export const suspendPlugins = defineConfig(CFG.suspend_plugins, false)
+
 export const pluginsConfig = defineConfig('plugins_config', {} as Record<string,any>)
 
 const pluginWatchers = new Map<string, ReturnType<typeof watchPlugin>>()
@@ -364,35 +366,37 @@ export async function rescan() {
         if (!dirent.isDirectory() || path.endsWith(DISABLING_SUFFIX)) continue
         const id = path.split('/').slice(-1)[0]!
         met.push(id)
-        const w = pluginWatchers.get(id)
-        if (w) continue
-        console.debug('plugin watch', id)
-        pluginWatchers.set(id, watchPlugin(id, join(path, 'plugin.js')))
+        if (!pluginWatchers.has(id))
+            pluginWatchers.set(id, watchPlugin(id, join(path, 'plugin.js')))
     }
     for (const [id, cancelWatcher] of pluginWatchers.entries())
         if (!met.includes(id)) {
             enablePlugin(id, false)
-            console.debug('plugin unwatch', id)
             cancelWatcher()
             pluginWatchers.delete(id)
         }
 }
 
 function watchPlugin(id: string, path: string) {
+    console.debug('plugin watch', id)
     const module = resolve(path)
     let starting: PendingPromise | undefined
-    const unsub = enablePlugins.sub(() => { // we take care of enabled-state after it was loaded
-        if (!getPluginInfo(id)) return // not loaded yet
-        const enabled = isPluginEnabled(id)
-        if (enabled === isPluginRunning(id)) return
-        if (enabled) start()
-        else stop()
-    })
+    const unsub = enablePlugins.sub(() => getPluginInfo(id) && considerStart()) // only after it has been loaded
+    const unsub2 = suspendPlugins.sub(() => getPluginInfo(id) && considerStart())
+    function considerStart() {
+        const should = isPluginEnabled(id, true)
+        if (should === isPluginRunning(id)) return
+        if (should) {
+            start()
+            return true
+        }
+        stop()
+    }
     const { unwatch } = watchLoad(module, async source => {
         const notRunning = availablePlugins[id]
         if (!source)
             return onUninstalled()
-        if (isPluginEnabled(id))
+        if (isPluginEnabled(id, true))
             return start()
         const p = parsePluginSource(id, source)
         if (same(notRunning, p)) return
@@ -400,7 +404,9 @@ function watchPlugin(id: string, path: string) {
         events.emit(notRunning ? 'pluginUpdated' : 'pluginInstalled', p)
     })
     return () => {
+        console.debug('plugin unwatch', id)
         unsub()
+        unsub2()
         unwatch()
         return onUninstalled()
     }

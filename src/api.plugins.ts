@@ -3,11 +3,11 @@
 import {
     AvailablePlugin, enablePlugins, getAvailablePlugins, getPluginConfigFields, mapPlugins, Plugin, pluginsConfig,
     PATH as PLUGINS_PATH, enablePlugin, getPluginInfo, setPluginConfig, isPluginRunning,
-    stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo,
+    stopPlugin, startPlugin, CommonPluginInterface, getMissingDependencies, findPluginByRepo, suspendPlugins,
 } from './plugins'
 import _ from 'lodash'
 import assert from 'assert'
-import { HTTP_CONFLICT, newObj, waitFor } from './misc'
+import { HTTP_CONFLICT, HTTP_PRECONDITION_FAILED, newObj, waitFor } from './misc'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { rm } from 'fs/promises'
 import {
@@ -71,8 +71,10 @@ const apis: ApiHandlers = {
     async start_plugin({ id }) {
         if (isPluginRunning(id))
             return { msg: 'already running' }
+        if (suspendPlugins.get())
+            return new ApiError(HTTP_PRECONDITION_FAILED, 'all plugins suspended')
         await stopPlugin(id)
-        return startPlugin(id).then(() => 0, e => new ApiError(HTTP_SERVER_ERROR, e.message))
+        return startPlugin(id).then(() => ({}), e => new ApiError(HTTP_SERVER_ERROR, e.message))
     },
 
     async stop_plugin({ id }) {
@@ -165,7 +167,7 @@ const apis: ApiHandlers = {
         if (deleteConfig)
             setPluginConfig(id, null)
         return {}
-    }
+    },
 
 }
 

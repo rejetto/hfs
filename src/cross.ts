@@ -27,13 +27,14 @@ export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
-    'allow_session_ip_change', 'force_lang'])
+    'allow_session_ip_change', 'force_lang', 'suspend_plugins'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
+export type Functionable<T> = T | ((...args: any[]) => T)
 export type StringifyProps<T> = { [P in keyof T]: Exclude<T[P], Date> extends T[P] ? string | Exclude<T[P], Date> : T[P] }
 export interface VfsPerms {
     can_see?: Who
@@ -485,7 +486,7 @@ export function mapFilter<T=unknown, R=T>(arr: T[], map: (x:T, idx: number) => R
     }, [] as R[])
 }
 
-export function callable<T>(x: T | ((...args: unknown[]) => T), ...args: unknown[]) {
+export function callable<T>(x: Functionable<T>, ...args: unknown[]) {
     return _.isFunction(x) ? x(...args) : x
 }
 
