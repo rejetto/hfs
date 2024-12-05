@@ -11,7 +11,7 @@ import { formatTimestamp, hIcon, fallbackToBasicAuth, working } from './misc'
 import { t } from './i18n'
 
 export default function showUserPanel() {
-    newDialog({
+    const { close } = newDialog({
         title: t`User panel`,
         className: 'user-dialog',
         icon: () => hIcon('user'),
@@ -51,7 +51,7 @@ export default function showUserPanel() {
                     onClick() {
                         if (fallbackToBasicAuth()) // this is effective on ff52, but not on chrome125
                             return location.href = `//LOGOUT%00:@${location.host}/?get=logout` // redirect, to execute the body content
-                        logout().then(closeDialog, alertDialog)
+                        logout().then(close, alertDialog)
                     }
                 })
             )

@@ -69,12 +69,13 @@ export function isDescendant(child: Node | null | undefined, parentMatch: Node |
     return false
 }
 
+let waitClosing = Promise.resolve()
 let ignorePopState = false
 function back() {
     ignorePopState = true
     let was = history.state
     history.back()
-    return new Promise<void>(res => {
+    return waitClosing = new Promise<void>(res => {
         const h = setInterval(() => was !== history.state && res() , 10)
         setTimeout(() => clearTimeout(h), 500)
     })
@@ -184,17 +185,19 @@ export function newDialog(options: DialogOptions) {
     options.ts = ts
     if (document.activeElement)
         options.restoreFocus ??= ref(document.activeElement)
-    options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as react will try to write, but valtio makes them readonly
-    options.$opening = setTimeout(() => { // in case dialogs were just closed, account for window.history delay. This should be harmless as ux is unaffected, and programmatically you already didn't expect this to happen immediately but at state change
+    options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as React will try to write, but valtio makes them readonly
+    let cancelOpening = false
+    waitClosing.then(() => { // in case dialogs were just closed, account for window.history delay. You already didn't expect dialog to open immediately, but at state change
+        if (cancelOpening) return
         dialogs.push(options)
         options = dialogs[dialogs.length - 1] // replace with proxy object, to stay in sync with its changes
         if (options.closable !== false)
             history.pushState({ $dialog: $id, ts, idx: 1 + (history.state?.idx || 0) }, '')
-    }, 10) // 10 for firefox, chrome125 seems to be ok with 1
+    })
     return { close }
 
     function close(v?:any) {
-        clearTimeout(options.$opening) // in case it was not open yet
+        cancelOpening = true // in case it was not open yet
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
         if (history.state?.$dialog === $id)
