@@ -20,7 +20,7 @@
     "@mui/x-tree-view": "^6.17.0",
     "@gregoranders/csv": "^0.0.13",
     "dayjs": "^1.11.10",
-    "react": "^18.2.0",
+    "react": "^18.3.1",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.23.1",
     "react-simple-code-editor": "^0.13.1",
@@ -33,8 +33,8 @@
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
-    "@types/react": "^18.2.48",
-    "@types/react-dom": "^18.2.18",
+    "@types/react": "^18.3.14",
+    "@types/react-dom": "^18.3.2",
     "@types/react-window": "^1.8.8",
     "@types/react-virtualized-auto-sizer": "^1.0.4",
     "vite": "^5.4.8"
