@@ -33,7 +33,7 @@ export const SYS_ICONS: Record<string, [string] | [string, string | false]> = { 
     delete: ['🗑️', 'trash'],
     comment: ['💬'],
     link: ['↗'],
-    info: ['ⓘ', false],
+    info: ['ⓘ'],
     cut: ['✄'],
     paste: ['📋'],
     shuffle: ['🔀'],

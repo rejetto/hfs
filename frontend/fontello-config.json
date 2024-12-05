@@ -257,6 +257,12 @@
       "css": "shuffle",
       "code": 59418,
       "src": "fontawesome"
+    },
+    {
+      "uid": "2355991b4045d64b08fb82988109c0ee",
+      "css": "info",
+      "code": 59419,
+      "src": "elusive"
     }
   ]
 }
