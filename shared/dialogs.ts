@@ -20,15 +20,19 @@ export interface DialogOptions {
     padding?: boolean
     position?: [number, number]
     dialogProps?: Record<string, any>
-    $id?: number
-    $opening?: NodeJS.Timeout
-    ts?: number
-    restoreFocus?: any
-
+    restoreFocus?: boolean
     Container?: FunctionComponent<DialogOptions>
 }
 
-const dialogs = proxy<DialogOptions[]>([])
+interface Dialog extends DialogOptions {
+    $id?: number
+    $opening?: NodeJS.Timeout
+    ts?: number
+    close: (v?: any) => void
+    restoreFocus?: any
+}
+
+const dialogs = proxy<Dialog[]>([])
 const { history } = window
 
 export const dialogsDefaults: Partial<DialogOptions> = {
@@ -181,27 +185,24 @@ export function componentOrNode(x: ReactNode | FunctionComponent) {
 export function newDialog(options: DialogOptions) {
     const $id = Math.random()
     const ts = performance.now()
-    options.$id = $id // object identity is not working because of the proxy. This is a possible workaround
-    options.ts = ts
-    if (document.activeElement)
-        options.restoreFocus ??= ref(document.activeElement)
-    options = objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options // encapsulate elements as React will try to write, but valtio makes them readonly
+    const d: Dialog = Object.assign(objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options, { // encapsulate elements as React will try to write, but valtio makes them readonly
+        close, ts, $id, // object identity is not working because it's proxied (valtio). This is a possible workaroundu
+        restoreFocus: options.restoreFocus ?? ref(document.activeElement || {}),
+    })
     let cancelOpening = false
     waitClosing.then(() => { // in case dialogs were just closed, account for window.history delay. You already didn't expect dialog to open immediately, but at state change
         if (cancelOpening) return
-        dialogs.push(options)
-        options = dialogs[dialogs.length - 1] // replace with proxy object, to stay in sync with its changes
-        if (options.closable !== false)
+        dialogs.push(d)
+        if (dialogs.at(-1)!.closable !== false) // use proxy object, to stay in sync with its changes
             history.pushState({ $dialog: $id, ts, idx: 1 + (history.state?.idx || 0) }, '')
     })
-    return { close }
+    return d
 
     function close(v?:any) {
-        cancelOpening = true // in case it was not open yet
+        cancelOpening = true
         const i = dialogs.findIndex(x => (x as any).$id === $id)
         if (i < 0) return
-        if (history.state?.$dialog === $id)
-            options.closed = back()
+        d.closed = history.state?.$dialog === $id ? back() : Promise.resolve()
         closeDialogAt(i, v)
         return options.closed
     }
@@ -227,7 +228,8 @@ function closeDialogAt(i: number, value?: any) {
     const [d] = dialogs.splice(i,1)
     d.restoreFocus?.focus?.() // if element is not HTMLElement, it doesn't have focus method
     d.closingValue = value && typeof value === 'object' ? ref(value) : value // since this is being assigned to a valtio proxy, ref is necessary to avoid crashing with unusual (and possibly accidental) objects like React's SynteticEvents
-    Promise.resolve(d.closed).then(() =>
+    d.closed ??= Promise.resolve()
+    d.closed.then(() =>
         d?.onClose?.(value))
     return d
 }
