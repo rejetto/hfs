@@ -187,8 +187,10 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
     return new Promise<number>(async resolve => {
         if (!srv) return resolve(0)
         try {
-            if (port === PORT_DISABLED || !host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
+            if (port === PORT_DISABLED)
                 return resolve(0)
+            if (!host && !await testIpV4()) // !host means ipV4+6, and if v4 port alone is busy we won't be notified of the failure, so we'll first test it on its own
+                throw srv.error
             // from a few tests, this seems enough to support the expect-100 http/1.1 mechanism, at least with curl -T, not used by chrome|firefox anyway
             srv.on('checkContinue', (req, res) => srv.emit('request', req, res))
             port = await listen(host)
@@ -198,18 +200,18 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
         }
         catch(e) {
             srv.error = String(e)
-            console.error(srv.name, "couldn't listen on port", port, srv.error)
+            console.error(srv.name, `couldn't listen on port ${port}:`, srv.error)
             resolve(0)
         }
     })
 
     async function testIpV4() {
-        const res = await listen('0.0.0.0')
-        await new Promise(res => srv?.close(res))
+        const res = await listen('0.0.0.0', true)
+        await new Promise(res => srv?.close(res)) // close, if any, and wait
         return res > 0
     }
 
-    function listen(host?: string) {
+    function listen(host?: string, silence=false) {
         return new Promise<number>(async (resolve, reject) => {
             srv?.on('error', onError).listen({ port, host }, () => {
                 const ad = srv.address()
@@ -235,7 +237,8 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                         res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '), () => '')
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
                 }
-                console.error(srv.name, srv.error)
+                if (!silence)
+                    console.error(srv.name, srv.error)
                 resolve(0)
             }
         })
