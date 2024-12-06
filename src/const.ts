@@ -10,7 +10,6 @@ export * from './cross-const'
 
 export const API_VERSION = 10.1
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
-export const HFS_REPO = 'rejetto/hfs'
 
 export const argv = minimist(process.argv.slice(2))
 // you can add arguments with this file, currently used for the update process on mac/linux

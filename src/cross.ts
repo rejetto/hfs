@@ -2,11 +2,12 @@
 // all content here is shared between client and server
 import _ from 'lodash'
 import { VfsNodeStored } from './vfs'
-import picomatch from 'picomatch/lib/picomatch' // point directly to the browser-compatible source
+import picomatch from 'picomatch/lib/picomatch'
+import { HFS_REPO } from './cross-const' // point directly to the browser-compatible source
 export * from './cross-const'
 
 export const WEBSITE = 'https://rejetto.com/hfs/'
-export const REPO_URL = 'https://github.com/rejetto/hfs/'
+export const REPO_URL = `https://github.com/${HFS_REPO}/`
 export const WIKI_URL = REPO_URL + 'wiki/'
 export const MINUTE = 60_000
 export const HOUR = 60 * MINUTE

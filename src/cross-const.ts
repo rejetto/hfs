@@ -6,6 +6,7 @@ export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
 export const PORT_DISABLED = -1
 export const NBSP = '\xA0'
 export const PLUGIN_CUSTOM_REST_PREFIX = '_'
+export const HFS_REPO = 'rejetto/hfs'
 
 export const HTTP_OK = 200
 export const HTTP_NO_CONTENT = 204

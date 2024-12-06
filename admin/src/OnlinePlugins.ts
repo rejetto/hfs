@@ -3,7 +3,7 @@
 import { apiCall, useApiList } from './api'
 import { Fragment, createElement as h, useState } from 'react'
 import { DataTable } from './DataTable'
-import { HTTP_FAILED_DEPENDENCY, newDialog, wantArray, xlate } from './misc'
+import { HFS_REPO, HTTP_FAILED_DEPENDENCY, newDialog, wantArray, xlate } from './misc'
 import { ArrowBack, ArrowForward, Download, RemoveRedEye, Search, Warning } from '@mui/icons-material'
 import { StringField } from '@hfs/mui-grid-form'
 import { useDebounce } from 'usehooks-ts'
@@ -14,6 +14,8 @@ import _ from 'lodash'
 import { PLUGIN_ERRORS } from './PluginsPage'
 import { Flex, IconBtn } from './mui'
 import { Box } from '@mui/material'
+
+const HFS_GITHUB_ACCOUNT = HFS_REPO.replace(/\/.+/, `/`)
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -78,7 +80,7 @@ export default function OnlinePlugins() {
                     progress: row.downloading,
                     disabled: row.installed && "Already installed",
                     tooltipProps: { placement:'bottom-end' }, // workaround problem with horizontal scrolling by moving the tooltip leftward
-                    confirm: h(Flex, { vert: true, alignItems: 'center' },
+                    confirm: !id.startsWith(HFS_GITHUB_ACCOUNT) && h(Flex, { vert: true, alignItems: 'center' },
                         h(Warning, { color: 'warning', fontSize: 'large' }),
                         "Proceed only if you trust this plugin",
                         h(Box, { fontSize: '60%' }, "A plugin has the same power of any other software"),
