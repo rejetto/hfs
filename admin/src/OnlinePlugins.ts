@@ -13,6 +13,7 @@ import { alertDialog, confirmDialog, toast } from './dialog'
 import _ from 'lodash'
 import { PLUGIN_ERRORS } from './PluginsPage'
 import { Flex, IconBtn } from './mui'
+import { Box } from '@mui/material'
 
 export default function OnlinePlugins() {
     const [search, setSearch] = useState('')
@@ -80,11 +81,12 @@ export default function OnlinePlugins() {
                     confirm: h(Flex, { vert: true, alignItems: 'center' },
                         h(Warning, { color: 'warning', fontSize: 'large' }),
                         "Proceed only if you trust this plugin",
+                        h(Box, { fontSize: '60%' }, "A plugin has the same power of any other software"),
                     ),
                     async onClick() {
                         if (row.missing && !await confirmDialog("This will also install: " + _.map(row.missing, 'repo').join(', '))) return
                         const branch = row.branch || row.default_branch
-                        installPlugin(id, branch).catch((e: any) => {
+                        return installPlugin(id, branch).catch((e: any) => {
                             if (e.code !== HTTP_FAILED_DEPENDENCY)
                                 return alertDialog(e)
                             const msg = h(Fragment, {}, "This plugin has some dependencies unmet:",
