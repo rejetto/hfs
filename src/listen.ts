@@ -143,7 +143,7 @@ const considerHttps = debounceAsync(async () => {
     events.emit('httpsReady')
     defaultBaseUrl.proto = 'https'
     defaultBaseUrl.port = getCurrentPort(httpsSrv) ?? 0
-})
+}, { wait: 200 }) // give time to have key and cert ready
 
 
 export const cert = defineConfig('cert', '')
@@ -163,7 +163,6 @@ for (const cfg of httpsNeeds) {
         httpsOptions[k] = ''
         unwatch = watchLoad(v, async data => {
             httpsOptions[k] = data
-            await wait(500) // when a file is written, give some time for the other to be ready
             await considerHttps()
         }, { immediateFirst: true }).unwatch
         await considerHttps()
