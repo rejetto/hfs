@@ -8,7 +8,9 @@ import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
 import { newConnection } from './connections'
 import open from 'open'
-import { debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate } from './misc'
+import {
+    CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate
+} from './misc'
 import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
@@ -25,7 +27,7 @@ let httpsSrv: undefined | http.Server & ServerExtra
 
 const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
 
-export const baseUrl = defineConfig('base_url', '',
+export const baseUrl = defineConfig(CFG.base_url, '',
     x => /(?<=\/\/)[^\/]+/.exec(x)?.[0]) // compiled is host only
 
 export async function getBaseUrlOrDefault() {

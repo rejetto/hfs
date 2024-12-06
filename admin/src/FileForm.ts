@@ -9,7 +9,7 @@ import { apiCall, UseApi } from './api'
 import {
     basename, defaultPerms, formatBytes, formatTimestamp, isWhoObject, newDialog, objSameKeys,
     onlyTruthy, prefix, VfsPerms, wantArray, Who, WhoObject, matches, HTTP_MESSAGES, xlate, md, Callback,
-    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard
+    useRequestRender, splitAt, IMAGE_FILEMASK, copyTextToClipboard, normalizeHost, CFG
 } from './misc'
 import { isModifiedConfig } from './AccountForm'
 import { Btn, Flex, IconBtn, LinkBtn, propsForModifiedValues, useBreakpoint, wikiLink } from './mui'
@@ -329,7 +329,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
     const data = statusApi.getData()
 
     const urls: string[] = data?.urls.https || data?.urls.http
-    const baseHost = data?.baseUrl && new URL(data.baseUrl).host
+    const baseHost = data?.baseUrl && normalizeHost(new URL(data.baseUrl).host)
     const root = useMemo(() => baseHost && _.find(data.roots, (root, host) => matches(baseHost, host)),
         [data])
     if (root)
@@ -397,7 +397,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
 export async function changeBaseUrl() {
     return new Promise(async resolve => {
         const res = await apiCall('get_status')
-        const { base_url, roots } = await apiCall('get_config', { only: ['base_url', 'roots'] })
+        const { base_url, roots } = await apiCall('get_config', { only: [CFG.base_url, CFG.roots] })
         const urls: string[] = res.urls.https || res.urls.http
         const domainsFromRoots = Object.keys(roots).map(x => x.split('|')).flat().filter(x => !/[*?]/.test(x))
         const proto = splitAt('//', urls[0])[0] + '//'
@@ -443,7 +443,7 @@ export async function changeBaseUrl() {
                             children: "Save",
                             async onClick() {
                                 if (v !== base_url)
-                                    await apiCall('set_config', { values: { base_url: v.replace(/\/$/, '') } })
+                                    await apiCall('set_config', { values: { [CFG.base_url]: v.replace(/\/$/, '') } })
                                 resolve(v)
                                 close()
                             },

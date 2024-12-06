@@ -7,7 +7,7 @@ import { HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONT
 import { getNodeName, VfsNode } from './vfs'
 import mimetypes from 'mime-types'
 import { defineConfig } from './config'
-import { CFG, Dict, makeMatcher, matches, with_ } from './misc'
+import { CFG, Dict, makeMatcher, matches, normalizeHost, with_ } from './misc'
 import _ from 'lodash'
 import { basename } from 'path'
 import { promisify } from 'util'
@@ -40,7 +40,7 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
         : _.find(mime, (val,mask) => matches(name, mask))
     if (allowedReferer.get()) {
         const ref = /\/\/([^:/]+)/.exec(ctx.get('referer'))?.[1] // extract host from url
-        if (ref && ref !== host() // automatically accept if referer is basically the hosting domain
+        if (ref && ref !== normalizeHost(ctx.host) // automatically accept if referer is basically the hosting domain
         && !matches(ref, allowedReferer.get()))
             return ctx.status = HTTP_FORBIDDEN
     }
@@ -55,11 +55,6 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
 
     if (await maxDownloadsPerAccount(ctx) === undefined) // returning false will not execute other limits
         await maxDownloads(ctx) || await maxDownloadsPerIp(ctx)
-
-    function host() {
-        const s = ctx.host
-        return s[0] === '[' ? s.slice(1, s.indexOf(']')) : s?.split(':')[0]
-    }
 }
 
 const mimeCfg = defineConfig<Dict<string>, (name: string) => string | undefined>('mime', {}, obj => {

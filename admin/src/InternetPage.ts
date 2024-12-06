@@ -33,8 +33,8 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     const [checking, setChecking] = useState(false)
     const [mapping, setMapping] = useState(false)
     const status = useApiEx('get_status')
-    const config = useApiEx('get_config', { only: ['base_url'] })
-    const base_url = config.data?.base_url
+    const config = useApiEx('get_config', { only: [CFG.base_url] })
+    const baseUrl = config.data?.[CFG.base_url]
     const localColor = with_([status.data?.http?.error, status.data?.https?.error], ([h, s]) =>
         h && s ? 'error' : h || s ? 'warning' : 'success')
     type GetNat = Awaited<ReturnType<typeof getNatInfo>>
@@ -249,7 +249,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         return config.element || h(TitleCard, { icon: Public, title: "Address" },
             h(Flex, { flexWrap: 'wrap' },
                 "Main address: ",
-                base_url ? h('tt', {}, base_url) : "automatic, not configured",
+                baseUrl ? h('tt', {}, baseUrl) : "automatic, not configured",
                 h(Btn, {
                     size: 'small',
                     variant: 'outlined',
@@ -311,7 +311,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     doubleNat && h(LinkBtn, { display: 'block', onClick: () => alertDialog(MSG_ISP, 'warning') }, "Double NAT"),
                     checkResult ? "Working!" : checkResult === false ? "Failed!" : '',
                     ' ',
-                    (base_url > '' || publicIps.length > 0) && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
+                    (baseUrl > '' || publicIps.length > 0) && data.internalPort && h(LinkBtn, { onClick: () => verify() }, "Verify")
                 )
             }),
         )
@@ -330,8 +330,8 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         if (!again && !await confirmDialog("This test will check if your server is working properly on the Internet")) return
         setChecking(true)
         try {
-            const hostname = base_url && new URL(base_url).hostname
-            const checkUrl = !isIpLan(hostname) && base_url
+            const hostname = baseUrl && new URL(baseUrl).hostname
+            const checkUrl = !isIpLan(hostname) && baseUrl
             if (!isIP(hostname) && await stopOnCheckDomain(hostname)) return
             const urlResult = checkUrl && await apiCall('self_check', { url: checkUrl }).catch(e =>
                 alertDialog(!e.code ? e : "Sorry, this function is not available at the moment. Retry later.", 'error'))

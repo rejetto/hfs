@@ -5,7 +5,7 @@ import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
-import { newDialog, onlyTruthy, prefix, VfsNodeAdminSend } from './misc'
+import { CFG, matches, newDialog, normalizeHost, onlyTruthy, prefix, VfsNodeAdminSend } from './misc'
 import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
@@ -22,15 +22,23 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     const { vfs, selectedFiles, movingFile } = useSnapState()
     const { data, reload, element } = useApiEx('get_vfs')
     useMemo(() => vfs || reload(), [vfs, reload])
+    const { data: config } = useApiEx('get_config', { only: [CFG.force_address, CFG.base_url] })
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
     const statusApi = useApiEx('get_status')
     const { data: status } = statusApi
     const urls = useMemo<string[]>(() => {
-        const b = status?.baseUrl
-        const ret = status?.urls.https || status?.urls.http
-        return b && !ret.includes(b) ? [b, ...ret] : ret
-    }, [status])
+        const force = config?.[CFG.force_address] // when force_address, we'll only suggest urls that will be accepted
+        const ret = (status?.urls.https || status?.urls.http)?.filter((url: string) => {
+            if (!force) return true
+            const host = normalizeHost(new URL(url).host)
+            return Object.keys(status.roots).some(mask => matches(host, mask))
+        })
+        const b = force ? config?.[CFG.base_url] : status?.baseUrl // when force_address, we should only consider user-inputted urls, otherwise 'automatic' is also good
+        if (b && ret && !ret.includes(b))
+            ret.unshift(b)
+        return ret
+    }, [status, config])
     const single = selectedFiles?.length < 2 && (selectedFiles[0] as VfsNode || vfs)
     const accountsApi = useApiEx<{ list: Account[] }>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
 
@@ -45,14 +53,13 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     const alert: AlertProps | false = useMemo(() => anythingShared ? {
         severity: 'warning',
         children: "Add something to your shared files — click Add"
-    } : urls && {
+    } : urls?.length > 0 && {
         severity: 'info',
         children: [
             "Your shared files can be browsed from ",
             reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href)))
         ]
     }, [anythingShared, urls])
-
 
     setTitleSide(useMemo(() => h(Box, { sx: { display: { xs: 'none', md: 'block' }  } },
         h(Alert, { severity: 'info' }, "If you rename or delete here, it's virtual, and only affects what is presented to the users"),
