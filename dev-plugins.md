@@ -25,9 +25,9 @@ exports.description = "I'm a nice plugin"
 The set of things exported goes by the name "exported object".
 A plugin can define an `init` function like this:
 ```js
-exports.init = api => ({
-    frontend_css: 'mystyle.css'
-})
+exports.init = function(api) {
+  return { frontend_css: 'mystyle.css' }  
+}
 ```
 
 The init function is called by HFS when the module is loaded and should return an object with more things to
@@ -37,9 +37,8 @@ Since it's a basic example, you could have simply defined it like this:
 exports.frontend_css = 'mystyle.css'
 ```
 but in more complex cases you'll need go through the `init`.
-Thus, you can decide to return things in the `init` function, or directly in the `exports`.
 If you need to access the api you must use `init`, since that's the only place where it is found, otherwise you
-can go directly with `exports`. The parameter `api` of the init is an object containing useful things [we'll see later](#api-object).
+can just use `exports`. The parameter `api` of the init is an object containing useful things [we'll see later](#api-object).
 
 Let's first look at the things you can export:
 
@@ -81,7 +80,8 @@ All the following properties are optional unless otherwise specified.
 WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
 
-- `init` described in the previous section. 
+- `init: (api: object) => void | object` described in the previous section. If an object is returned, 
+  it will be merged with other "exported" properties described in this section, so you can return `{ unload }` for example.   
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL. Multiple files can be specified as `['file1.css', 'file2.css']`.  
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
