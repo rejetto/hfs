@@ -220,6 +220,7 @@ export default function OptionsPage() {
 
             { k: 'descript_ion', comp: BoolField, ...isWindows && { sm: 4, md: 3 },  label: "Enable comments", helperText: "In file DESCRIPT.ION" },
             { k: 'show_hidden_files', comp: BoolField, sm: 4, md: 3 },
+            { k: CFG.size_1024, label: "KB size", comp: SelectField, md: 3, options: { 1000: false, 1024: true } },
             { k: 'descript_ion_encoding', sm: 4, md: 6, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
                 options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
 

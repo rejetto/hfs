@@ -28,7 +28,7 @@ export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
-    'allow_session_ip_change', 'force_lang', 'suspend_plugins', 'base_url'])
+    'allow_session_ip_change', 'force_lang', 'suspend_plugins', 'base_url', 'size_1024'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
@@ -89,9 +89,11 @@ export function isWhoObject(v: undefined | Who): v is WhoObject {
 }
 
 const MULTIPLIERS = ['', 'K', 'M', 'G', 'T']
-export function formatBytes(n: number, { post='B', k=1024, digits=NaN, sep=' ' }={}) {
+export declare namespace formatBytes { let k: number }
+export function formatBytes(n: number, { post='B', k=0, digits=NaN, sep=' ' }={}) {
     if (isNaN(Number(n)) || n < 0)
         return ''
+    k ||= formatBytes.k ?? 1024 // default value
     const i = n && Math.min(MULTIPLIERS.length - 1, Math.floor(Math.log2(n) / Math.log2(k)))
     n /= k ** i
     const nAsString = i && !isNaN(digits) ? n.toFixed(digits)
@@ -100,9 +102,7 @@ export function formatBytes(n: number, { post='B', k=1024, digits=NaN, sep=' ' }
 } // formatBytes
 
 export function formatSpeed(n: number, options: { digits?: number }={}) {
-    return formatBytes(n, { post: 'B/s', k: 1000, ...options })
-        .replace('K', 'k') // ref https://en.wikipedia.org/wiki/Data-rate_units
-
+    return formatBytes(n, { post: 'B/s', ...options })
 }
 
 export function prefix(pre: Falsy | string, v: string | number | undefined | null | false, post: Falsy | string='') {

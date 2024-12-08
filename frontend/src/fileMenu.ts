@@ -72,7 +72,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
     const props = [
         { id: 'name', label: t`Name`, value: entry.name },
         typeof s === 'number' && { id: 'size', label: t`Size`,
-            value: h(Fragment, {}, formatBytes(s), h('small', {}, prefix(' (', s > 1024 && s.toLocaleString(), ')')) ) },
+            value: h(Fragment, {}, formatBytes(s), h('small', {}, prefix(' (', s > getHFS().kb && s.toLocaleString(), ')')) ) },
         entry.t && { id: 'timestamp', label: t`Timestamp`, value: entry.t.toLocaleString() },
         folder && {
             id: 'folder',

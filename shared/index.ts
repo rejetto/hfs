@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { apiCall } from './api'
-import { DAY, Dict, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
+import { DAY, Dict, formatBytes, HOUR, MINUTE, objSameKeys, typedEntries } from '../src/cross'
 export * from './react'
 export * from './dialogs'
 export * from './md'
@@ -35,6 +35,7 @@ Object.assign(HFS, {
     copyTextToClipboard,
     urlParams,
 })
+formatBytes.k = HFS.kb
 
 export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.gif|*.svg'
 

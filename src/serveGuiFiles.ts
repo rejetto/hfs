@@ -9,7 +9,7 @@ import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from 
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { CFG, debounceAsync, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile } from './misc'
+import { CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile } from './misc'
 import { favicon, title } from './adminApis'
 import { customHtml, getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
@@ -17,6 +17,7 @@ import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
 import { dontOverwriteUploading } from './upload'
 
+const size1024 = defineConfig(CFG.size_1024, false, x => formatBytes.k = x ? 1024 : 1000) // we both configure formatBytes, and also provide a compiled version (number instead of boolean)
 const splitUploads = defineConfig(CFG.split_uploads, 0)
 export const logGui = defineConfig(CFG.log_gui, false)
 _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
@@ -107,6 +108,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         prefixUrl: ctx.state.revProxyPath,
                         dontOverwriteUploading: dontOverwriteUploading.get(),
                         splitUploads: splitUploads.get(),
+                        kb: size1024.compiled(),
                         forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
                         customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
