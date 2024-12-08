@@ -16,6 +16,7 @@ but nothing is preventing a single plug-in from doing both tasks.
 Plugins can run both in backend (the server) and frontend (the browser). Frontend files reside in the "public" folder, while all the rest is backend.
 
 ## Exported object
+
 `plugin.js` is a javascript module (executed by Node.js), and its main way to communicate with HFS is by exporting things.
 For example, it can define its description like this 
 ```js
@@ -23,6 +24,9 @@ exports.description = "I'm a nice plugin"
 ```
 
 The set of things exported goes by the name "exported object".
+
+### init
+
 A plugin can define an `init` function like this:
 ```js
 exports.init = function(api) {
@@ -80,8 +84,9 @@ All the following properties are optional unless otherwise specified.
 WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
 
-- `init: (api: object) => void | object` described in the previous section. If an object is returned, 
-  it will be merged with other "exported" properties described in this section, so you can return `{ unload }` for example.   
+- `init: (api: object) => void | object | function` described in the previous section. If an object is returned, 
+  it will be merged with other "exported" properties described in this section, so you can return `{ unload }` for example.
+  If you return a function, this is just a shorter way to return the `unload`.
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
   You can also include external files, by entering a full URL. Multiple files can be specified as `['file1.css', 'file2.css']`.  
 - `frontend_js: string | string[]` path to one or more js files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
@@ -678,11 +683,12 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 10.1 (v0.55.0)
+ - 10.2 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams
     - exports.beforePlugin + afterPlugin
     - config.type: color
+    - init can now return directly the unload function 
 - 9.6 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 

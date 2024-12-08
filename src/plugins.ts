@@ -108,7 +108,7 @@ export function getPluginConfigFields(id: string) {
 }
 
 async function initPlugin<T>(pl: any, morePassedToInit?: T) {
-    return Object.assign(pl, await pl.init?.({
+    const res = await pl.init?.({
         Const,
         require,
         getConnections,
@@ -120,7 +120,8 @@ async function initPlugin<T>(pl: any, morePassedToInit?: T) {
         addBlock,
         misc,
         ...morePassedToInit
-    }))
+    })
+    return Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
 }
 
 const already = new Set()
