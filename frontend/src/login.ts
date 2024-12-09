@@ -8,9 +8,10 @@ import {
     HTTP_CONFLICT, HTTP_UNAUTHORIZED, CFG,
 } from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
-import { t, useI18N } from './i18n'
 import { reloadList } from './useFetchList'
 import { Checkbox, CustomCode } from './components'
+import i18n from './i18n'
+const { t, useI18N } = i18n
 
 async function login(username:string, password:string, extra?: object) {
     const stopWorking = working()

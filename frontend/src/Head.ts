@@ -7,7 +7,8 @@ import { useSnapState } from './state'
 import { MenuPanel } from './menu'
 import { Breadcrumbs } from './Breadcrumbs'
 import { FilterBar } from './FilterBar'
-import { useI18N } from './i18n'
+import i18n from './i18n'
+const { useI18N } = i18n
 
 export function Head() {
     return h('header', {},

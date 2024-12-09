@@ -6,10 +6,11 @@ import './dialog.css'
 import { newDialog, closeDialog, DialogOptions, dialogsDefaults } from '@hfs/shared/dialogs'
 import _ from 'lodash'
 import { useInterval } from 'usehooks-ts'
-import { t } from './i18n'
 import { err2msg, isCtrlKey, pendingPromise, Promisable } from './misc'
 export * from '@hfs/shared/dialogs'
 export { toast } from './toasts'
+import i18n from './i18n'
+const { t } = i18n
 
 _.merge(dialogsDefaults, { closableProps: { 'aria-label': t`Close` } })
 

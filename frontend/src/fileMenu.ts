@@ -1,4 +1,3 @@
-import { t, useI18N } from './i18n'
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
     pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful
@@ -15,6 +14,8 @@ import { apiCall, useApi } from '@hfs/shared/api'
 import { inputComment } from './upload'
 import { cut } from './clip'
 import { loginDialog } from './login'
+import i18n from './i18n'
+const { t, useI18N } = i18n
 
 interface FileMenuEntry {
     id?: string

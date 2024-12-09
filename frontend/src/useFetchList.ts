@@ -11,10 +11,11 @@ import {
     hfsEvent, LIST, urlParams, xlate, objFromKeys,
     HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED,
 } from './misc'
-import { t } from './i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { closeLoginDialog } from './login'
 import { fileShow, getShowComponent } from './show'
+import i18n from './i18n'
+const { t } = i18n
 
 export function usePath() {
     return useLocation().pathname

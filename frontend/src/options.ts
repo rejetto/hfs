@@ -6,8 +6,9 @@ import { createElement as h } from 'react'
 import { Checkbox, FlexV, Select } from './components'
 import { getHFS, hIcon, MAX_TILE_SIZE, SORT_BY_OPTIONS, THEME_OPTIONS } from './misc'
 import { MenuLink } from './menu'
-import { t } from './i18n'
 import _ from 'lodash'
+import i18n from './i18n'
+const { t } = i18n
 
 export function showOptions (){
     newDialog({

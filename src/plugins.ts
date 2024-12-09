@@ -27,6 +27,8 @@ import { onProcessExit } from './first'
 import { notifyClient } from './frontEndApis'
 import { app } from './index'
 import { addBlock } from './block'
+import { getLangData } from './lang'
+import { i18nFromTranslations } from './i18n'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -492,6 +494,9 @@ function watchPlugin(id: string, path: string) {
                         try { cb(last = now) }
                         catch(e){ this.log(String(e)) }
                     })
+                },
+                async i18n(ctx: any) {
+                    return i18nFromTranslations(await getLangData(ctx))
                 },
             })
             const folder = dirname(module)

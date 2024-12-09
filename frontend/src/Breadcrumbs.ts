@@ -5,9 +5,10 @@ import { createElement as h, Fragment, ReactElement } from 'react'
 import { getPrefixUrl, hIcon } from './misc'
 import { DirEntry, state, useSnapState } from './state'
 import { usePath, reloadList } from './useFetchList'
-import { useI18N } from './i18n'
 import { openFileMenu } from './fileMenu'
 import { createFolder } from './upload'
+import i18n from './i18n'
+const { useI18N } = i18n
 
 export function Breadcrumbs() {
     const base = getPrefixUrl() + '/'

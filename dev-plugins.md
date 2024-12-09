@@ -228,12 +228,15 @@ The `api` object you get as parameter of the `init` contains the following:
 - `customApiCall(method: string, ...params): any[]` this will invoke other plugins if they define `method`
   exported inside `customApi: object`
 
-- `openDb(filename, options): Promise<{ get, put, del, close, unlink, sublevel }>` LevelDB-like class for storage.
+- `openDb(filename: string, options): Promise<{ get, put, del, close, unlink, sublevel }>` LevelDB-like class for storage.
   The specified file name will be stored in the "storage" folder of the plugin, by default.
   DB is automatically closed when the plugin is unloaded. Refer to [dedicated documentation](https://www.npmjs.com/package/@rejetto/kvstorage) for details.
 
 - `notifyClient(channel: string, eventName: string, data?: any)` send a message to those frontends that are on the same channel.
 
+- `i18n(ctx: Context): Promise<{ t }>` if you need to translate messages inside http body, without the GUI, use this function  
+  to instantiate translation for the language of the browser. You can then use the `t` function as documented in [dedicated section](Internationalization-i18n).  
+  
 - `misc` many functions and constants available in [misc.ts](https://github.com/rejetto/hfs/blob/main/src/misc.ts).
   These are not documented, probably never will, and are subject to change without notifications,
   but you can study the sources if you are interested in using them. It's just a shorter version of `api.require('./misc')`
@@ -655,14 +658,19 @@ Where `h` is just `import { createElement as h } from 'react'`.
 
 ## Internationalization (i18n)
 
-To make your plugin multi-language you can use `HFS.t` function in javascript, like this: `HFS.t('myPlugin_greeting', "Hello!")`.
-Now, to add translations, you'll add files like `hfs-lang-XX.json` to your plugin (same folder as plugin.js),
+To make your plugin multi-language you can use `t` function in javascript, like this: `t('myPlugin_greeting', "Hello!")`.
+
+In frontend you get `t` from `HFS`, like this `const { t } = HFS`, while in backend you need to do 
+`const { t } = await api.i18n(ctx)` inside an `async init` ([see example](https://github.com/rejetto/download-quota/blob/main/dist/plugin.js)).
+When possible, we suggest to do translation in the frontend. 
+
+Now that your code is ready, to translate in some language you'll add files like `hfs-lang-XX.json` to your plugin (same folder as plugin.js),
 where XX is the language code. The system is basically the same used to translate the rest of HFS,
 and you can [read details here](https://github.com/rejetto/hfs/wiki/Translation).
 
 In the previous example `myPlugin_greeting` is the name of the translation, while `Hello!` is the default text.
 Instead of `myPlugin` use some text that you feel unique and no one else will use, to be sure that the same name
-is not used by another plugin, or even HFS in the future.
+is not used by another plugin, or even HFS in the future. We suggest to use your plugin's name in camelCase. 
 
 If you need to pass variables in the text, introduce a third parameter in the middle.
 Eg: `HFS.t('myPlugin_filter_count', {n:filteredVariable}, "{n} filtered")`
@@ -688,7 +696,8 @@ If you want to override a text regardless of the language, use the special langu
     - HFS.urlParams
     - exports.beforePlugin + afterPlugin
     - config.type: color
-    - init can now return directly the unload function 
+    - init can now return directly the unload function
+    - api.i18n
 - 9.6 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 

@@ -13,12 +13,13 @@ import { reloadList } from './useFetchList'
 import { apiCall } from '@hfs/shared/api'
 import { state, useSnapState } from './state'
 import { Link } from 'react-router-dom'
-import { t } from './i18n'
 import { LinkClosingDialog } from './fileMenu'
 import {
     abortCurrentUpload, enqueueUpload, getFilePath, normalizeAccept, resetCounters, resetReloadOnClose,
     simulateBrowserAccept, ToUpload, uploadState
 } from './uploadQueue'
+import i18n from './i18n'
+const { t } = i18n
 
 const renameEnabled = getHFS().dontOverwriteUploading
 
