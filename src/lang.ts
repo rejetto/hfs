@@ -1,5 +1,6 @@
 import Koa from 'koa'
-import { CFG, hasProp, onlyTruthy, tryJson, wantArray } from './misc'
+import { CFG, hasProp, onlyTruthy, tryJson } from './misc'
+import { expiringCache } from './expiringCache'
 import { readFile } from 'fs/promises'
 import { defineConfig } from './config'
 import { watchLoad } from './watchLoad'
@@ -20,39 +21,46 @@ export function file2code(fn: string) {
     return fn.replace(PREFIX, '').replace(SUFFIX, '')
 }
 
-export async function getLangData(ctx: Koa.Context) {
-    const param = String(ctx.query.lang || '')
-    if (!param && forceLangData)
-        return forceLangData
-    const ret: any = {}
-    const csv = param || ctx.get('Accept-Language') || ''
-    const langs = wantArray(csv.split(',').map(x => x.toLowerCase()))
-    let i = 0
-    while (i < langs.length) {
-        let k = langs[i] || '' // shut up ts
-        if (!k || k === EMBEDDED_LANGUAGE) break
-        const fn = code2file(k)
-        try { ret[k] = JSON.parse(await readFile(fn, 'utf8')) }
-        catch {
-            if (hasProp(EMBEDDED_TRANSLATIONS, k))
-                ret[k] = EMBEDDED_TRANSLATIONS[k]
-            else {
-                do { k = k.substring(0, k.lastIndexOf('-'))
-                } while (k && langs.includes(k))
-                if (k) {
-                    langs[i] = k // overwrite and retry
-                    continue
+const cache = expiringCache(3_000) // 3 seconds for both a good dx and acceptable performance
+export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
+    if (typeof ctxOrLangCsv !== 'string') {
+        const ctx = ctxOrLangCsv
+        const param = String(ctx.query.lang || '')
+        if (!param && forceLangData)
+            return forceLangData
+        ctxOrLangCsv = param || ctx.get('Accept-Language') || ''
+    }
+    const csv = ctxOrLangCsv.toLowerCase()
+    return cache.try(csv, async () => {
+        const langs = csv.split(',')
+        const ret: any = {}
+        let i = 0
+        while (i < langs.length) {
+            let k = langs[i] || '' // shut up ts
+            if (!k || k === EMBEDDED_LANGUAGE) break
+            const fn = code2file(k)
+            try { ret[k] = JSON.parse(await readFile(fn, 'utf8')) } // allow external files to override embedded translations
+            catch {
+                if (hasProp(EMBEDDED_TRANSLATIONS, k))
+                    ret[k] = EMBEDDED_TRANSLATIONS[k]
+                else {
+                    do { k = k.substring(0, k.lastIndexOf('-'))
+                    } while (k && langs.includes(k))
+                    if (k) {
+                        langs[i] = k // overwrite and retry
+                        continue
+                    }
                 }
             }
-        }
-        const fromPlugins = onlyTruthy(await Promise.all(mapPlugins(async pl =>
-            tryJson(await readFile(join(pl.folder, fn), 'utf8').catch(() => ''))?.translate )))
-        if (fromPlugins.length)
-            _.defaults((ret[k] ||= {}).translate ||= {}, ...fromPlugins) // be sure we have an entry for k
+            const fromPlugins = onlyTruthy(await Promise.all(mapPlugins(async pl =>
+                tryJson(await readFile(join(pl.folder, fn), 'utf8').catch(() => ''))?.translate )))
+            if (fromPlugins.length)
+                _.defaults((ret[k] ||= {}).translate ||= {}, ...fromPlugins) // be sure we have an entry for k
 
-        i++
-    }
-    return ret
+            i++
+        }
+        return ret
+    })
 }
 
 let forceLangData: any
