@@ -9,7 +9,6 @@ import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
 import { apiCall, getNotifications, useApi } from '@hfs/shared/api'
 import { DirEntry, state, useSnapState } from './state'
-import { getLangs, t } from './i18n'
 import * as dialogLib from './dialog'
 import _ from 'lodash'
 import { reloadList } from './useFetchList'
@@ -19,6 +18,8 @@ import { uploadState } from './uploadQueue'
 import { fileShow } from './show'
 import { debounceAsync } from '../../src/debounceAsync'
 export * from '@hfs/shared'
+import i18n from './i18n'
+const { t, getLangs } = i18n
 
 export function err2msg(err: number | Error) {
     return typeof err === 'number' ? HTTP_MESSAGES[err]

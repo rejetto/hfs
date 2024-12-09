@@ -16,10 +16,11 @@ import { useAuthorized } from './login'
 import { acceptDropFiles } from './upload'
 import { enqueueUpload } from './uploadQueue'
 import _ from 'lodash'
-import { t, useI18N } from './i18n'
 import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
 import { fileShow, getShowComponent } from './show'
+import i18n from './i18n'
+const { t, useI18N } = i18n
 
 export const MISSING_PERM = "Missing permission"
 

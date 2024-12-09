@@ -17,9 +17,10 @@ import { uploadState } from './uploadQueue'
 import { useSnapshot } from 'valtio'
 import { apiCall } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
-import { t, useI18N } from './i18n'
 import { cut } from './clip'
 import { Btn, BtnProps, CustomCode } from './components'
+import i18n from './i18n'
+const { t, useI18N } = i18n
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props, searchOptions } = useSnapState()

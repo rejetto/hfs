@@ -8,7 +8,8 @@ import { apiCall } from '@hfs/shared/api'
 import { logout } from './login'
 import { Btn, CustomCode } from './components'
 import { formatTimestamp, hIcon, fallbackToBasicAuth, working } from './misc'
-import { t } from './i18n'
+import i18n from './i18n'
+const { t } = i18n
 
 export default function showUserPanel() {
     const { close } = newDialog({

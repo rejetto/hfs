@@ -6,13 +6,14 @@ import {
 import { state } from './state'
 import { getNotifications } from '@hfs/shared/api'
 import { subscribeKey } from 'valtio/utils'
-import { t } from './i18n'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
 import { proxy, ref, snapshot, subscribe } from 'valtio'
 import { createElement as h } from 'react'
 import _ from 'lodash'
 import { UploadStatus } from './upload'
+import i18n from './i18n'
+const { t } = i18n
 
 export interface ToUpload { file: File, comment?: string, name?: string, to?: string, error?: string }
 export const uploadState = proxy<{

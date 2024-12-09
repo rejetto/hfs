@@ -8,11 +8,12 @@ import { useEventListener, useWindowSize } from 'usehooks-ts'
 import { EntryDetails, useMidnight } from './BrowseFiles'
 import { Btn, FlexV, iconBtn, Spinner } from './components'
 import { openFileMenu } from './fileMenu'
-import { t, useI18N } from './i18n'
 import { alertDialog, toast } from './dialog'
 import _ from 'lodash'
 import { getId3Tags } from './id3'
 import { subscribeKey } from 'valtio/utils'
+import i18n from './i18n'
+const { t, useI18N } = i18n
 
 enum ZoomMode {
     fullWidth,

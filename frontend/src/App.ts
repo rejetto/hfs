@@ -6,11 +6,13 @@ import { BrowseFiles } from "./BrowseFiles"
 import { Dialogs } from './dialog'
 import useTheme from "./useTheme"
 import { useSnapState } from './state'
-import { I18Nprovider } from './i18n'
+import i18n from './i18n'
 import { proxy, useSnapshot } from "valtio"
 import { Spinner } from "./components"
 import { enforceStarting, getHFS, getPrefixUrl, loadScript } from '@hfs/shared'
 import { Toasts } from './toasts'
+
+const { i18nWrapperProps } = i18n
 
 function App() {
     useTheme()
@@ -21,7 +23,7 @@ function App() {
     if (!ready)
         return h(Spinner, { style: { margin: 'auto' } })
     installScript()
-    return h(I18Nprovider, {},
+    return h('div', i18nWrapperProps(),
         h(BrowserRouter, {},
             h(NavigationExtractor, {},
                 h(Toasts),

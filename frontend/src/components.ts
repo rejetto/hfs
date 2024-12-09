@@ -7,7 +7,8 @@ import {
     useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes, useRef
 } from 'react'
 import _ from 'lodash'
-import { t } from './i18n'
+import i18n from './i18n'
+const { t } = i18n
 
 export function Spinner(props: any) {
     return hIcon('spinner', { className:'spinner', ...props })
