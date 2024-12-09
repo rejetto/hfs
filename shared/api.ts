@@ -123,9 +123,11 @@ type EventHandler = (type:string, data?:any) => void
 
 export function apiEvents(cmd: string, params: Dict, cb:EventHandler) {
     params = _.omitBy(params, _.isUndefined)
-    console.debug('API EVENTS', cmd, params)
     const source = new EventSource(getPrefixUrl() + API_URL + cmd + buildUrlQueryString(params))
-    source.onopen = () => cb('connected')
+    source.onopen = () => {
+        console.debug('API EVENTS', cmd, params)
+        cb('connected')
+    }
     source.onerror = err => cb('error', err)
     source.onmessage = ({ data }) => {
         if (!data) {

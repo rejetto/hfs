@@ -6,8 +6,8 @@ export function expiringCache<T, K=string>(ttl: number) {
             if (ret === undefined) {
                 ret = creator()
                 o.set(k, ret)
-                Promise.resolve(ret).then(() =>
-                    setTimeout(() => o.delete(k), ttl))
+                Promise.resolve(ret).then(() => // in case of async, wait for it to be done before starting the timer
+                    setTimeout(() => o.delete(k), ttl) )
             }
             return ret
         },

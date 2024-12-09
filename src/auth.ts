@@ -3,7 +3,8 @@ import { HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
 import { SRPParameters, SRPRoutines, SRPServerSession } from 'tssrp6a'
 import { Context } from 'koa'
 import { srpClientPart } from './srp'
-import { CFG, DAY, getOrSet } from './cross'
+import { CFG, DAY } from './cross'
+import { expiringCache } from './expiringCache'
 import { createHash } from 'node:crypto'
 import events from './events'
 
@@ -20,16 +21,15 @@ export async function srpServerStep1(account: Account) {
     return { srpServer, salt, pubKey: String(srpServer.B) } // cast to string cause bigint can't be jsonized
 }
 
-const cache: any = {}
+const cache = expiringCache<Promise<boolean>>(60_000)
 export async function srpCheck(username: string, password: string) {
     const account = getAccount(username)
     if (!account?.srp || !password) return
     const k = createHash('sha256').update(username + password + account.srp).digest("hex")
-    const good = await getOrSet(cache, k, async () => {
+    const good = await cache.try(k, async () => {
         const { srpServer, salt, pubKey } = await srpServerStep1(account)
         const client = await srpClientPart(username, password, salt, pubKey)
-        setTimeout(() => delete cache[k], 60_000)
-        return srpServer.step2(client.A, client.M1).then(() => 1, () => 0)
+        return srpServer.step2(client.A, client.M1).then(() => true, () => false)
     })
     return good ? account : undefined
 }

@@ -19,6 +19,7 @@ import { setCommentFor } from './comments'
 import _ from 'lodash'
 import events from './events'
 import { rename, rm } from 'fs/promises'
+import { expiringCache } from './expiringCache'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -40,7 +41,7 @@ function setUploadMeta(path: string, ctx: Koa.Context) {
 }
 
 // stay sync because we use this function with formidable()
-const diskSpaceCache: any = {}
+const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
 const openFiles = new Set()
 export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
     let fullPath = ''
@@ -70,12 +71,9 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             while (closestVfsNode?.parent && !closestVfsNode.original)
                 closestVfsNode = closestVfsNode.parent! // if it's not original, it surely has a parent
             const statDir = closestVfsNode!.source!
-            if (!Object.hasOwn(diskSpaceCache, statDir)) {
-                const c = diskSpaceCache[statDir] = getDiskSpaceSync(statDir)
-                if (!c) throw 'miss'
-                setTimeout(() => delete diskSpaceCache[statDir], 3_000) // invalidate shortly
-            }
-            const { free } = diskSpaceCache[statDir]
+            const res = diskSpaceCache.try(statDir, () => getDiskSpaceSync(statDir))
+            if (!res) throw 'miss'
+            const { free } = res
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
             if (reqSize > free - (min || 0))
