@@ -42,7 +42,7 @@ export async function getLangData(ctxOrLangCsv: Koa.Context | string) {
             try { ret[k] = JSON.parse(await readFile(fn, 'utf8')) } // allow external files to override embedded translations
             catch {
                 if (hasProp(EMBEDDED_TRANSLATIONS, k))
-                    ret[k] = EMBEDDED_TRANSLATIONS[k]
+                    ret[k] = _.cloneDeep(EMBEDDED_TRANSLATIONS[k])
                 else {
                     do { k = k.substring(0, k.lastIndexOf('-'))
                     } while (k && langs.includes(k))
