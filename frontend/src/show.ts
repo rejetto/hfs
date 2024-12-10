@@ -1,5 +1,5 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
-import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
     isNumeric,
@@ -11,7 +11,6 @@ import { openFileMenu } from './fileMenu'
 import { alertDialog, toast } from './dialog'
 import _ from 'lodash'
 import { getId3Tags } from './id3'
-import { subscribeKey } from 'valtio/utils'
 import i18n from './i18n'
 const { t, useI18N } = i18n
 
@@ -40,19 +39,15 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 if (firstUri !== uri) // user must have clicked the folder link inside file-menu (which happens only for search results)
                     close()
             }, [uri])
-            const [cur, setCur] = useState(entry)
+            const [cur, setCur, getCur] = useStateMounted(entry)
             const moving = useRef(0)
             const lastGood = useRef(entry)
             const [mode, setMode] = useState(ZoomMode.contain)
             const [shuffle, setShuffle] = useState<undefined | DirList>()
             useEffect(() => toggleShuffle(startShuffle), [])
-            // shuffle the rest of the list as we continue getting entries, leaving intact the part we've already played/being through
-            const shuffleIdx = useMemo(() => shuffle?.findIndex(x => x.n === cur.n), [cur])
-            useEffect(() => subscribeKey(state, 'list', list => {
-                const n = 1 + (shuffleIdx ?? Infinity)
-                setShuffle(x => list && x?.slice(0, n).concat(_.shuffle(list.slice(n))))
-            }), [shuffleIdx])
-            const [repeat, setRepeat, { get: getRepeat }] = useStateMounted(false)
+            const shufflePlayed = useRef(0) // keep track of how many entries of the shuffle list we played
+            if (!shuffle) shufflePlayed.current = 0
+            const [repeat, setRepeat, getRepeat] = useStateMounted(false)
             const [cover, setCover] = useState('')
             useEffect(() => {
                 if (shuffle)
@@ -266,18 +261,32 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 setFailed(cur.n)
             }
 
-            function go(dir=1, from=cur) {
+            function go(dir=1) {
+                if (getCur() !== cur) return // this was fired with a stale state (closure), cancel. To reproduce: hold right-arrow on the keyboard
+                const { list } = state
+                /* this is a lazy approach to shuffling: since list is not fully available from the start, it's best to wait,
+                   or the shuffle will be limited to a few entries. Benchmark: _.shuffle of 1M entries takes 10ms on a M1 pro. */
+                let workingShuffle = shuffle // in case we setShuffle, we need to do the rest of job with fresh data
+                // if playing shuffle, and going forward, where never played before, and got new entries since last time, then shuffle again
+                if (shuffle && dir > 0 && shuffle.length < list.length) {
+                    const shuffleIdx = _.findIndex(shuffle, { n: cur.n })
+                    if (shuffleIdx >= shufflePlayed.current) {
+                        const ofs = 1 + shuffleIdx
+                        const played = shuffle.slice(0, ofs) // keep the part already played, shuffle the rest
+                        setShuffle(workingShuffle = played.concat(_.shuffle(_.difference(list, played))))  // list has unstable order (when searching), so we use difference
+                    }
+                }
                 if (dir)
                     moving.current = dir
-                let e = from
+                let e = cur
                 while (1) {
-                    e = e.getSibling(moving.current, shuffle)
+                    e = e.getSibling(moving.current, workingShuffle)
                     if (anyGood()) break
                     if (e) continue // try next
                     // reached last/first
                     if (dir! > 0) {
                         if (getRepeat()) {
-                            e = shuffle?.[0] || state.list[0]
+                            e = workingShuffle?.[0] || list[0]
                             if (anyGood()) break
                             continue
                         }
@@ -287,6 +296,10 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                     return restartAnimation(document.body, '.2s blink')
                 }
                 goTo(e)
+                if (shuffle) {
+                    const playingIdx = _.findIndex(workingShuffle, { n: e.n })
+                    shufflePlayed.current = Math.max(shufflePlayed.current, playingIdx)
+                }
 
                 function anyGood() {
                     return e && !e.isFolder && getShowComponent(e)

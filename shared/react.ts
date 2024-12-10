@@ -17,7 +17,7 @@ export function useStateMounted<T>(init: T) {
         if (isMounted())
             set(newValue)
     }, [isMounted, set])
-    return [v, setIfMounted, { isMounted, get: () => ref.current }] as const
+    return [v, setIfMounted, () => ref.current] as const
 }
 
 export function reactFilter(elements: any[]) {
