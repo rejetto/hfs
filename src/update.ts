@@ -5,7 +5,7 @@ import { ARGS_FILE, argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from '
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import { DAY, exists, debounceAsync, httpStream, unzip, prefix, xlate, HOUR } from './misc'
-import { createReadStream, renameSync, unlinkSync, writeFileSync } from 'fs'
+import { createReadStream, existsSync, renameSync, unlinkSync, writeFileSync } from 'fs'
 import { pluginsWatcher } from './plugins'
 import { chmod, stat } from 'fs/promises'
 import { Readable } from 'stream'
@@ -130,7 +130,9 @@ export async function update(tagOrUrl: string='') {
     const bin = process.execPath
     const binPath = dirname(bin)
     const binFile = 'hfs' + (IS_WINDOWS ? '.exe' : '') // currently running bin could have been renamed
-    const newBinFile = 'new-' + binFile
+    let newBinFile = binFile
+    do { newBinFile = 'new-' + newBinFile }
+    while (existsSync(join(binPath, newBinFile)))
     pluginsWatcher.pause()
     try {
         await unzip(updateSource, path =>
