@@ -423,6 +423,9 @@ This is a list of available frontend-events, with respective object parameter an
   - an entry is being un/selected
   - parameter `{ entry: DirEntry }`
   - can be prevented
+- `newListEntries`
+  - new entries for the list have being fetched from the server
+  - parameter `{ entries: DirEntry[] }`
 - All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
 -   `appendMenuBar` inside menu-bar, at the end
   - `afterMenuBar` between menu-bar and breadcrumbs
@@ -698,6 +701,7 @@ If you want to override a text regardless of the language, use the special langu
     - config.type: color
     - init can now return directly the unload function
     - api.i18n
+    - frontend event: newListEntries
 - 9.6 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 

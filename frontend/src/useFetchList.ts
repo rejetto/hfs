@@ -73,6 +73,7 @@ export default function useFetchList() {
         const flush = () => {
             const chunk = buffer.splice(0, Infinity)
             if (!chunk.length) return
+            hfsEvent('newListEntries', { entries: chunk })
             state.list = sort([...state.list, ...chunk])
             if (playShuffle) // find first proper file, and play it
                 for (const x of chunk)
