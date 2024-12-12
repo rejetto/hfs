@@ -3,7 +3,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
-import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
+import { useDocumentTitle, useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
 import {
     domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp
 } from './misc'
@@ -11,7 +11,7 @@ import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
-import useFetchList from './useFetchList'
+import useFetchList, { usePath } from './useFetchList'
 import { useAuthorized } from './login'
 import { acceptDropFiles } from './upload'
 import { enqueueUpload } from './uploadQueue'
@@ -24,8 +24,10 @@ const { t, useI18N } = i18n
 
 export const MISSING_PERM = "Missing permission"
 
+const originalTitle = document.title
 export function BrowseFiles() {
     useFetchList()
+    useDocumentTitle(originalTitle + ' ' + decodeURIComponent(usePath()).slice(1, -1))
     const { error } = useSnapState()
     const { props, tile_size=0 } = useSnapState()
     const propsDropFiles = useMemo(() => ({
