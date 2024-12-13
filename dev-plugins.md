@@ -136,11 +136,12 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 
 ### FieldDescriptor
 
-Currently, these properties are supported:
+A FieldDescriptor is an object and can be empty. Currently, these optional properties are supported:
 - `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
-- `defaultValue: any` value to be used when nothing is set.
+- `defaultValue: any` value to be used when nothing is set. Default is undefined.
 - `helperText: string` extra text printed next to the field.
+- `showIf: (values: object) => boolean` only show this field if the function returns truthy. Must not reference variables of the outer scope.
 - `frontend: boolean` expose this setting on the frontend, so that javascript can access it 
    using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`.
    Hint: if you need to use a numeric config in CSS but you need to add a unit (like `em`),
@@ -699,6 +700,7 @@ If you want to override a text regardless of the language, use the special langu
     - HFS.urlParams
     - exports.beforePlugin + afterPlugin
     - config.type: color
+    - config.showIf
     - init can now return directly the unload function
     - api.i18n
     - frontend event: newListEntries

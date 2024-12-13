@@ -101,7 +101,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                         title: `Options for ${id}`,
                         form: values => ({
                             before: h(Box, { mx: 2, mb: 3 }, row.description),
-                            fields: makeFields(row.config),
+                            fields: makeFields(row.config, values),
                             save: { children: "Save and close" },
                             barSx: { gap: 1 },
                             addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
@@ -167,17 +167,24 @@ export function renderName({ row, value }: any) {
     }
 }
 
-function makeFields(config: any) {
+function makeFields(config: any, values: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
         if (!_.isPlainObject(o))
             return o
-        let { type, defaultValue, fields, frontend, helperText, ...rest } = o
+        let { type, defaultValue, fields, frontend, helperText, showIf, ...rest } = o
+        try {
+            if (typeof showIf === 'string') // compile once
+                o.showIf = showIf = eval(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
+            if (showIf && !showIf(values))
+                return
+        }
+        catch {}
         if (helperText)
             helperText = md(helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
         if (comp === ArrayField) {
             rest.valuesForAdd = newObj(fields, x => x.defaultValue)
-            fields = makeFields(fields)
+            fields = makeFields(fields, values)
         }
         if (defaultValue !== undefined && type === 'boolean')
             rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`

@@ -15,6 +15,7 @@ import {
 } from './github'
 import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 import { SendListReadable } from './SendList'
+import produce from 'immer'
 
 const apis: ApiHandlers = {
 
@@ -174,10 +175,13 @@ const apis: ApiHandlers = {
 export default apis
 
 function serialize(p: Readonly<Plugin> | AvailablePlugin) {
-    const o = 'getData' in p ? Object.assign(_.pick(p, ['id','started']), p.getData())
+    let o = 'getData' in p ? Object.assign(_.pick(p, ['id','started']), p.getData())
         : { ...p } // _.defaults mutates object, and we don't want that
     if (typeof o.repo === 'object') // custom repo
         o.repo = o.repo.web
+    o = produce(o, (o: any) => {
+        _.each(o.config, x => x.showIf &&= String(x.showIf))
+    })
     return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
 }
 
