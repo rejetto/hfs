@@ -8,7 +8,7 @@ import { getHFS, hIcon, MAX_TILE_SIZE, SORT_BY_OPTIONS, THEME_OPTIONS } from './
 import { MenuLink } from './menu'
 import _ from 'lodash'
 import i18n from './i18n'
-const { t } = i18n
+const { t, useI18N } = i18n
 
 export function showOptions (){
     newDialog({
@@ -20,6 +20,7 @@ export function showOptions (){
 
     function Content(){
         const snap = useSnapState()
+        const {t} = useI18N()
         return h(FlexV, { gap: '1.5em' },
             snap.adminUrl && h(MenuLink, {
                 icon: 'admin',
@@ -74,7 +75,14 @@ export function showOptions (){
                 onChange(v) {
                     state.theme = v
                 }
-            })
+            }),
+
+            h(Checkbox, {
+                value: snap.disableTranslation,
+                onChange(v) {
+                    i18n.state.disabled = state.disableTranslation = v
+                }
+            }, "English"),
         )
     }
 }

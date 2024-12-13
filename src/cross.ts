@@ -22,6 +22,7 @@ export const FRONTEND_OPTIONS = {
     sort_numerics: false,
     theme: '',
     auto_play_seconds: 5,
+    disableTranslation: false,
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }

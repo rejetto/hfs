@@ -3,9 +3,10 @@
 import { proxy, useSnapshot } from 'valtio'
 import { watch } from 'valtio/utils'
 
-export function i18nFromTranslations(translations: Record<string, any>) {
+export function i18nFromTranslations(translations: Record<string, any>, embedded='en') {
     const state = proxy({
-        embedded: '',
+        embedded,
+        disabled: false,
         translations, // all dictionaries
     })
     const searchLangs: string[] = []
@@ -35,7 +36,7 @@ export function i18nFromTranslations(translations: Record<string, any>) {
         let selectedLang = '' // keep track of where we find the translation
         const { embedded } = state
         const langs = Object.keys(state.translations)
-        for (const key of keys) {
+        if (!state.disabled) for (const key of keys) {
             for (const lang of searchLangs)
                 if (found = state.translations[selectedLang=lang]?.translate?.[key]) break
             if (!warns.has(key) && langs.length && langs[0] !== embedded) {
@@ -113,10 +114,9 @@ export function i18nFromTranslations(translations: Record<string, any>) {
 
     return {
         t,
+        state,
         getLangs,
-        i18nWrapperProps(embedded='en') {
-            return { lang: getLangs()[0] || (state.embedded = embedded) }
-        },
+        i18nWrapperProps: () => ({ lang: getLangs()[0] || state.embedded }),
         useI18N() { // the hook ensures translation is refreshed when language changes
             useSnapshot(state)
             return { t }
