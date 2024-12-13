@@ -50,7 +50,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
         }
         return Array.from(tokenizer(found)).map(([s,inside]) => {
             if (!inside) return s
-            const [k,cmd,rest] = s.split(',')
+            const [k,cmd,rest] = s.split(',').map(x => x.trim())
             if (!params) throw "missing params on " + keys[0]
             const v = k && params[k]
             if (cmd === 'plural' && rest)
