@@ -9,6 +9,9 @@ import { statSync } from 'fs'
 import { join, resolve } from 'path'
 import events from './events'
 import { copyFile, stat } from 'fs/promises'
+import produce, { setAutoFreeze } from 'immer'
+
+setAutoFreeze(false) // we still want to mess with objects later (eg: account.belongs)
 
 // keep definition of config properties
 const configProps: Record<string, { defaultValue?: unknown }> = {}
@@ -74,7 +77,7 @@ export function defineConfig<T, CT=unknown>(k: string, defaultValue: T, compiler
         },
         set(v: T | Updater) {
             if (typeof v === 'function')
-                this.set((v as Updater)(this.get()))
+                this.set(produce(this.get(), v as Updater))
             else
                 setConfig1(k, v)
         },
