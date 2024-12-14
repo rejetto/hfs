@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.55.0-alpha2",
+  "version": "0.55.0-beta3",
   "description": "HTTP File Server",
   "keywords": [
     "file server",
@@ -72,7 +72,7 @@
   "dependencies": {
     "@gregoranders/csv": "^0.0.13",
     "@koa/router": "^13.0.1",
-    "@node-rs/crc32": "^1.10.3",
+    "@node-rs/crc32": "^1.10.6",
     "@rejetto/kvstorage": "^0.13.0",
     "acme-client": "^5.4.0",
     "buffer-crc32": "^1.0.0",
