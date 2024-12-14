@@ -8,7 +8,7 @@ import {
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidateSessionBefore } from './auth'
-import { apiAssertTypes, onlyTruthy } from './misc'
+import { apiAssertTypes, onlyTruthy, with_ } from './misc'
 
 function prepareAccount(ac: Account | undefined) {
     return ac && {
@@ -18,6 +18,15 @@ function prepareAccount(ac: Account | undefined) {
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
         invalidated: invalidateSessionBefore.get(ac.username),
+        members: with_(Object.values(accountsConfig.get()), accounts => {
+            const ret = []
+            let news = [ac.username]
+            while (news.length) {
+                news = accounts.filter(a => a.belongs?.some(x => news.includes(x))).map(x => x.username)
+                ret.push(...news)
+            }
+            return ret.sort()
+        })
     }
 }
 

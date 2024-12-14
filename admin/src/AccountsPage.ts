@@ -147,7 +147,8 @@ export default function AccountsPage() {
             hasPassword: sel === 'new-user',
             adminActualAccess: false,
             invalidated: undefined,
-            canLogin: true
+            canLogin: true,
+            members: [],
         } satisfies Account
     }
 

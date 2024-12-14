@@ -5,7 +5,7 @@ import { BoolField, Form, MultiSelectField, NumberField } from '@hfs/mui-grid-fo
 import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
-import { formatTimestamp, isEqualLax, prefix, useIsMobile, wantArray } from './misc'
+import { formatTimestamp, isEqualLax, prefix, reactJoin, useIsMobile, wantArray } from './misc'
 import { IconBtn, propsForModifiedValues } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
@@ -30,6 +30,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     const group = !values.hasPassword
     const ref = useRef<HTMLFormElement>()
     const expired = Boolean(values.expire)
+    const { members } = account
     return h(Form, {
         formRef: ref,
         values,
@@ -74,6 +75,10 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 ...!account.admin && account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited. To disable it, act on the groups." },
             },
             { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: true },
+            !members ? null
+                : group && !members.length ? h(Box, {}, "No members")
+                    : members.length > 0 && h(Box, {}, `${members.length} members: `,
+                        reactJoin(', ', account.members?.map((u: string) => h(groups.includes(u) ? 'i' : 'span', {}, u))) ),
             group && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
             { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions,
                 helperText: "Specify groups to inherit permissions from"
@@ -91,7 +96,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
         save: {
             ...propsForModifiedValues(isModifiedConfig(values, account)),
             async onClick() {
-                const { password='', password2, adminActualAccess, hasPassword, invalidated, ...withoutPassword } = values
+                const { password='', password2, adminActualAccess, hasPassword, invalidated, canLogin, members, ...withoutPassword } = values
                 if (add) {
                     const got = await apiCall('add_account', withoutPassword)
                     if (password)
