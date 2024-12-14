@@ -1,20 +1,22 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
-import { Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addAccount, delAccount, getAccount,
-    changeSrpHelper, updateAccount } from './perm'
+import {
+    Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addAccount, delAccount, getAccount,
+    changeSrpHelper, updateAccount, accountCanLogin
+} from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidateSessionBefore } from './auth'
 import { apiAssertTypes, onlyTruthy } from './misc'
 
-export type AccountAdminSend = NonNullable<ReturnType<typeof prepareAccount>>
 function prepareAccount(ac: Account | undefined) {
     return ac && {
         ..._.omit(ac, ['password','hashed_password','srp']),
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
+        canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
         invalidated: invalidateSessionBefore.get(ac.username),
     }
 }

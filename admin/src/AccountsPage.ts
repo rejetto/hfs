@@ -42,7 +42,7 @@ export default function AccountsPage() {
                         h(ListItem, { key: username },
                             h(ListItemText, {}, username))))
             )
-            : with_(selectedAccount || { username: '', hasPassword: sel === 'new-user', adminActualAccess: false, invalidated: undefined }, a =>
+            : with_(selectedAccount || newAccount(), a =>
                 h(AccountForm, {
                     account: a,
                     groups: list.filter(x => !x.hasPassword).map( x => x.username ),
@@ -74,7 +74,7 @@ export default function AccountsPage() {
 
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
     return element || h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
-        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5, ...scrollProps  },
+        h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5, ...scrollProps },
             h(Box, {
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -124,7 +124,8 @@ export default function AccountsPage() {
                                 }
                             },
                             account2icon(ac),
-                            ac.disabled && h(DoNotDisturb),
+                            (ac.disabled || ac.canLogin === false)
+                                && iconTooltip(DoNotDisturb, ac.disabled ? "Disabled" : "Disabled by its groups", ac.disabled ? undefined : { color: 'text.secondary' }),
                             (ac.expire || ac.days_to_live) && h(Schedule),
                             ac.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin"),
                             ac.username,
@@ -139,6 +140,16 @@ export default function AccountsPage() {
             h(Card, { sx: { overflow: 'initial' } }, // overflow is incompatible with stickyBar
                 h(CardContent, {}, sideContent)) )
     )
+
+    function newAccount() {
+        return {
+            username: '',
+            hasPassword: sel === 'new-user',
+            adminActualAccess: false,
+            invalidated: undefined,
+            canLogin: true
+        } satisfies Account
+    }
 
     function selectNone() {
         setSel([])

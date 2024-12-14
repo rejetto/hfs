@@ -2,7 +2,7 @@
 
 import { createElement as h, ReactNode, useEffect, useRef, useState } from 'react'
 import { BoolField, Form, MultiSelectField, NumberField } from '@hfs/mui-grid-form'
-import { Alert } from '@mui/material'
+import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
 import { formatTimestamp, isEqualLax, prefix, useIsMobile, wantArray } from './misc'
@@ -65,7 +65,8 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             !group && { k: 'password2', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 getError: (x, { values }) => (x||'') !== (values.password||'') && "Enter same password" },
             { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 8,
-                helperText: "Login is prevented if account is disabled, or if all its groups are disabled"},
+                helperText: !values.disabled && values.canLogin === false ? h(Box, { color: 'warning.main', component: 'span' }, "Login is prevented because all of its groups are disabled")
+                    : "Login is prevented if account is disabled, or all its groups are disabled" },
             { k: 'ignore_limits', comp: BoolField, xs: true,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
             { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: 6, lg: 8,
