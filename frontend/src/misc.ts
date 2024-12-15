@@ -15,7 +15,7 @@ import { reloadList } from './useFetchList'
 import { logout } from './login'
 import { subscribeKey } from 'valtio/utils'
 import { uploadState } from './uploadQueue'
-import { fileShow } from './show'
+import { fileShow, Video, Audio } from './show'
 import { debounceAsync } from '../../src/debounceAsync'
 export * from '@hfs/shared'
 import i18n from './i18n'
@@ -76,6 +76,7 @@ export function formatTimestamp(x: number | string | Date, options?: Intl.DateTi
 Object.assign(getHFS(), {
     h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
     toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry,
+    fileShowComponents: { Video, Audio },
     misc: { ...cross, ...shared },
     emit: hfsEvent,
     watchState(k: string, cb: (v: any) => void) {

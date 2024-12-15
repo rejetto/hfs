@@ -234,13 +234,13 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
 
             function curFailed(err?: Error) {
                 console.debug(err)
-                if (err?.name === 'NotAllowedError') { // browser won't allow automatic audio playing without user interaction
+                if (err?.name === 'NotAllowedError') { // browser won't allow automatic audio playing without user interaction...
                     if (!playMsgOnce) return
                     playMsgOnce = false
                     const el = getShowElement()
                     if (!(el instanceof HTMLMediaElement)) return
                     const mel = el as HTMLMediaElement
-                    const dlg =  newDialog({ // so we offer
+                    const dlg =  newDialog({ // ...so we offer a simple dialog with a button
                         onClose: () => playMsgOnce = true,
                         Content: () => h(Btn, {
                             autoFocus: true,
@@ -254,7 +254,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                     })
                     return
                 }
-                const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only presenti in video/audio elements
+                const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only present in video/audio elements
                 if (mediaError === 2) return // happens when chrome fails to fetch cover for videos. We don't skip the file for this reason. Tested on chrome129/windows
                 if (cur !== lastGood.current)
                     return go()
@@ -376,11 +376,11 @@ export function getShowComponent(entry: DirEntry) {
         : ''
 }
 
-function Audio({ onLoad, ...rest }: any) {
+export function Audio({ onLoad, ...rest }: any) {
     return h('audio', { onLoadedData: onLoad, controls: true, ...rest })
 }
 
-function Video({ onLoad, ...rest }: any) {
+export function Video({ onLoad, ...rest }: any) {
     return h('video', { onLoadedData: onLoad, controls: true, ...rest })
 }
 

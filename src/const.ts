@@ -8,7 +8,7 @@ import { basename, dirname, join } from 'path'
 import { formatTimestamp } from './cross'
 export * from './cross-const'
 
-export const API_VERSION = 10.2
+export const API_VERSION = 10.3
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
 
 export const argv = minimist(process.argv.slice(2))

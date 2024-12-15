@@ -294,7 +294,8 @@ The HFS objects contains many properties:
   in case you need to add to the list, do it by instantiating this class. E.g. `new HFS.DirEntry(name)`
 - `fileShow(entry: DirEntry, options?: { startPlaying: true )` open file-show on the specified entry.
 - `copyTextToClipboard(text: string)` self-explanatory.
-- `urlParams: object` you'll find each parameter in the URL mapped in this object as string. 
+- `urlParams: object` you'll find each parameter in the URL mapped in this object as string.
+- `fileShowComponents: { Video, Audio }` expose standard components used by file-show. Can be useful if you need extend them, inside `fileShow` event.  
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -695,7 +696,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
- - 10.2 (v0.55.0)
+ - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams
     - exports.beforePlugin + afterPlugin
@@ -704,6 +705,7 @@ If you want to override a text regardless of the language, use the special langu
     - init can now return directly the unload function
     - api.i18n
     - frontend event: newListEntries
+    - HFS.fileShowComponents
 - 9.6 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 
