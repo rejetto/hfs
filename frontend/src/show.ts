@@ -1,5 +1,5 @@
 import { DirEntry, DirList, ext2type, state, useSnapState } from './state'
-import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
     basename, dirname, domOn, hfsEvent, hIcon, isMac, newDialog, pathEncode, restartAnimation, useStateMounted,
     isNumeric,
@@ -83,7 +83,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 }
             })
             const [showNav, setShowNav] = useState(false)
-            const component = getShowComponent(cur)
+            const component = useMemo(() => getShowComponent(cur), [cur])
             const isAudio = component === Audio
             useEffect(() => setShowNav(isAudio), [isAudio])
             const timerRef = useRef(0)
@@ -239,6 +239,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                     playMsgOnce = false
                     const el = getShowElement()
                     if (!(el instanceof HTMLMediaElement)) return
+                    const mel = el as HTMLMediaElement
                     const dlg =  newDialog({ // so we offer
                         onClose: () => playMsgOnce = true,
                         Content: () => h(Btn, {
@@ -246,7 +247,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                             icon: 'play',
                             label: "Click here to play",
                             onClick: () => {
-                                el.play().catch(curFailed)
+                                mel.play().catch(curFailed)
                                 dlg.close()
                             }
                         })
