@@ -195,9 +195,10 @@ export default function OptionsPage() {
             { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
             { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
 
-            { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, md: 3,  },
-            { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, md: 3,  },
-            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, md: true,  label: "Sort numeric names" },
+            { k: 'invert_order', comp: BoolField, xs: 6, sm: 4, md: 3 },
+            { k: 'folders_first', comp: BoolField, xs: 6, sm: 4, md: 3 },
+            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 4, md: 3, label: "Sort numeric names" },
+            { k: 'title_with_path', comp: BoolField, xs: 6, sm: 4, md: 3 },
             { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, sm: 12,
                 helperText: "The icon associated to your website" },
 

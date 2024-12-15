@@ -34,27 +34,19 @@ export function showOptions (){
                     label: t("Sort by:", { by: t(x) }, t`Sort by` + ': ' + t(x))
                 })),
                 value: snap.sort_by,
-                onChange(v) {
-                    state.sort_by = v
-                }
+                onChange(v) { state.sort_by = v }
             }),
             h(Checkbox, {
                 value: snap.invert_order,
-                onChange(v) {
-                    state.invert_order = v
-                }
+                onChange(v) { state.invert_order = v }
             }, t`Invert order`),
             h(Checkbox, {
                 value: snap.folders_first,
-                onChange(v) {
-                    state.folders_first = v
-                }
+                onChange(v) { state.folders_first = v }
             }, t`Folders first`),
             h(Checkbox, {
                 value: snap.sort_numerics,
-                onChange(v) {
-                    state.sort_numerics = v
-                }
+                onChange(v) { state.sort_numerics = v }
             }, t`Numeric names`),
 
             h('div', {},
