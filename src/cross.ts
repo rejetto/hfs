@@ -20,6 +20,7 @@ export const FRONTEND_OPTIONS = {
     invert_order: false,
     folders_first: true,
     sort_numerics: false,
+    title_with_path: true,
     theme: '',
     auto_play_seconds: 5,
     disableTranslation: false,

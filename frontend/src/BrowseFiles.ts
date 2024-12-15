@@ -27,9 +27,16 @@ export const MISSING_PERM = "Missing permission"
 const originalTitle = document.title
 export function BrowseFiles() {
     useFetchList()
-    useDocumentTitle(originalTitle + ' ' + decodeURIComponent(usePath()).slice(1, -1))
-    const { error } = useSnapState()
-    const { props, tile_size=0 } = useSnapState()
+    const { props, tile_size=0, error, title_with_path } = useSnapState()
+
+    const path = usePath()
+    const title = originalTitle + (title_with_path ? ' ' + decodeURIComponent(path).slice(1, -1) : '')
+    useEffect(() => { document.title = title }, [title])
+    useEffect(() => domOn('popstate', () => {
+        document.title = '+' // workaround to title not changing after a dialog is closed
+        document.title = title
+    }), [title])
+
     const propsDropFiles = useMemo(() => ({
         id: 'files-dropper',
         ...acceptDropFiles((files, to) =>
