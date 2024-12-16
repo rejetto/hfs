@@ -203,6 +203,8 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `getConnections(): Connections[]` retrieve current list of active connections.
 
+- `getCurrentUsername(ctx: Context): string` an empty string if no user is logged in in the specified session, or its username otherwise.
+
 - `storageDir: string` folder where a plugin is supposed to store run-time data. This folder is preserved during
   an update of the plugin, while the rest could be deleted.
 
@@ -711,6 +713,7 @@ If you want to override a text regardless of the language, use the special langu
     - frontend event: newListEntries
     - HFS.fileShowComponents
     - api.ctxBelongsTo
+    - api.getCurrentUsername
 - 9.6 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 
