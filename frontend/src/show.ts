@@ -107,7 +107,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                 const showElement = getShowElement()
                 if (!autoPlaying || !showElement) return
                 if (showElement instanceof HTMLMediaElement) {
-                    showElement.play().catch(curFailed)
+                    showElement.play().catch(playFailed)
                     return domOn('ended', goNext, { target: showElement as any })
                 }
                 // we are supposedly showing an image
@@ -124,7 +124,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             const failOnce = useRef<typeof cur>()
             useEffect(() => {
                 if (component || failOnce.current === cur) return
-                curFailed()
+                onError()
                 failOnce.current = cur
             }, [cur, component])
             return h(FlexV, {
@@ -188,7 +188,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                                 lastGood.current = cur
                                 setLoading(false)
                             },
-                            onError: curFailed,
+                            onError,
                             async onPlay() {
                                 const covers = !isAudio ? [] : state.list.filter(x => folder === dirname(x.n) // same folder
                                     && x.name.match(/(?:folder|cover|front|albumart.*)\.jpe?g$/i))
@@ -232,34 +232,35 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
 
             function goNext() { go(+1) }
 
-            function curFailed(err?: Error) {
-                console.debug(err)
-                if (err?.name === 'NotAllowedError') { // browser won't allow automatic audio playing without user interaction...
-                    if (!playMsgOnce) return
-                    playMsgOnce = false
-                    const el = getShowElement()
-                    if (!(el instanceof HTMLMediaElement)) return
-                    const mel = el as HTMLMediaElement
-                    const dlg =  newDialog({ // ...so we offer a simple dialog with a button
-                        onClose: () => playMsgOnce = true,
-                        Content: () => h(Btn, {
-                            autoFocus: true,
-                            icon: 'play',
-                            label: "Click here to play",
-                            onClick: () => {
-                                mel.play().catch(curFailed)
-                                dlg.close()
-                            }
-                        })
-                    })
-                    return
-                }
+            function onError() {
                 const mediaError = (document.querySelector('.showing-container .showing') as any)?.error?.code // only present in video/audio elements
                 if (mediaError === 2) return // happens when chrome fails to fetch cover for videos. We don't skip the file for this reason. Tested on chrome129/windows
                 if (cur !== lastGood.current)
                     return go()
                 setLoading(false)
                 setFailed(cur.n)
+            }
+
+            function playFailed(err?: Error) {
+                console.debug(err)
+                if (err?.name !== 'NotAllowedError') return // browser won't allow automatic audio playing without user interaction...
+                if (!playMsgOnce) return
+                playMsgOnce = false
+                const el = getShowElement()
+                if (!(el instanceof HTMLMediaElement)) return
+                const mel = el as HTMLMediaElement
+                const dlg =  newDialog({ // ...so we offer a simple dialog with a button
+                    onClose: () => playMsgOnce = true,
+                    Content: () => h(Btn, {
+                        autoFocus: true,
+                        icon: 'play',
+                        label: "Click here to play",
+                        onClick: () => {
+                            mel.play().catch(playFailed)
+                            dlg.close()
+                        }
+                    })
+                })
             }
 
             function go(dir=1) {

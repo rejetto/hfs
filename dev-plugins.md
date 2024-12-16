@@ -119,17 +119,19 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   ```js
   exports.config = { message: {} }
   ``` 
-
-  Once the admin has chosen a value for it, the value will be saved in the main config file, under the `plugins_config` property.
+  This will produce a configuration form in the admin-panel.
+  Once the admin has customized the value, the latter will be saved in the main config file, under the `plugins_config` property.
     ```yaml
     plugins_config:
       name_of_the_plugin:
         message: Hi there!
     ```
-  When necessary your plugin will read its value using `api.getConfig('message')`.
 
+  When necessary your plugin will read its value using `api.getConfig('message')` in the backend, 
+  or `HFS.getPluginConfig('message')` in the frontend, but the latter must be enabled using the `frontend` flag in the config.
+  
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
-- `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to front-end.
+- `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to frontend.
 - `customHtml: object | () => object` return custom-html sections programmatically.
 - `customRest: { [name]: (parameters: object) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
 - `customApi: { [name]: (parameters) => any }` declare functions to be called by other plugins (only backend, not frontend) using `api.customApiCall` (documented below) 
@@ -242,9 +244,9 @@ The `api` object you get as parameter of the `init` contains the following:
   These are not documented, probably never will, and are subject to change without notifications,
   but you can study the sources if you are interested in using them. It's just a shorter version of `api.require('./misc')`
 
-## Front-end specific
+## Frontend specific
 
-The following information applies to the default front-end, and may not apply to a custom one.
+The following information applies to the default frontend, and may not apply to a custom one.
 
 Once your script is loaded into the frontend (via `frontend_js`), you will have access to the `HFS` object in the global scope.
 
@@ -301,7 +303,7 @@ The following properties are accessible only immediately at top-level; don't cal
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
 - `getPluginPublic()` returns plugin's public folder, with final slash. Useful to point to public files.
 
-### Front-end API events
+### Frontend API events
 
 API at this level is done with frontend-events, that you can handle by calling
 
@@ -436,7 +438,7 @@ This is a list of available frontend-events, with respective object parameter an
   - `unauthorized` displayed behind the login dialog accessing a protected folder
   - `userPanelAfterInfo` visible to logged-in users, after the click on the button with their username, between user-info and buttons
 
-## Back-end events
+## Backend events
 
 These events happen in the server, and not in the browser.
 You can listen to these events accessing `api.events` in the `init` function of the plugin.
