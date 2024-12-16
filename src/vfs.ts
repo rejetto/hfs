@@ -3,7 +3,7 @@
 import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
-    dirStream, getOrSet, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
+    dirStream, makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
     isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
 } from './misc'
 import Koa from 'koa'
@@ -11,7 +11,7 @@ import _ from 'lodash'
 import { defineConfig, setConfig } from './config'
 import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, IS_MAC, IS_WINDOWS } from './const'
 import events from './events'
-import { expandUsername } from './perm'
+import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
 import { Stats } from 'node:fs'
 import fswin from 'fswin'
@@ -249,13 +249,8 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
             cur = who
         } while (1)
 
-        if (Array.isArray(who)) {
-            const arr = who // shut up ts
-            // check if I or any ancestor match `who`, but cache ancestors' usernames inside context state
-            const some = getOrSet(ctx.state, 'usernames', () => expandUsername(getCurrentUsername(ctx)))
-                .some((u: string) => arr.includes(u))
-            return some ? 0 : HTTP_UNAUTHORIZED
-        }
+        if (Array.isArray(who))
+            return ctxBelongsTo(ctx, who) ? 0 : HTTP_UNAUTHORIZED
         return typeof who === 'boolean' ? (who ? 0 : HTTP_FORBIDDEN)
             : who === WHO_ANY_ACCOUNT ? (getCurrentUsername(ctx) ? 0 : HTTP_UNAUTHORIZED)
                 : throw_(Error(`invalid permission: ${perm}=${try_(() => JSON.stringify(who))}`))
