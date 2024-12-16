@@ -239,7 +239,9 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `i18n(ctx: Context): Promise<{ t }>` if you need to translate messages inside http body, without the GUI, use this function  
   to instantiate translation for the language of the browser. You can then use the `t` function as documented in [dedicated section](Internationalization-i18n).  
-  
+
+- `ctxBelongsTo(ctx: Context, accounts: strings[]): boolean` check if the current username, or any group it belongs to, matches the provided accounts list.  
+
 - `misc` many functions and constants available in [misc.ts](https://github.com/rejetto/hfs/blob/main/src/misc.ts).
   These are not documented, probably never will, and are subject to change without notifications,
   but you can study the sources if you are interested in using them. It's just a shorter version of `api.require('./misc')`
@@ -708,6 +710,7 @@ If you want to override a text regardless of the language, use the special langu
     - api.i18n
     - frontend event: newListEntries
     - HFS.fileShowComponents
+    - api.ctxBelongsTo
 - 9.6 (v0.54.0)
     - frontend event: showPlay
     - api.addBlock 

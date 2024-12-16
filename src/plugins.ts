@@ -29,6 +29,7 @@ import { app } from './index'
 import { addBlock } from './block'
 import { getLangData } from './lang'
 import { i18nFromTranslations } from './i18n'
+import { ctxBelongsTo } from './perm'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -121,6 +122,7 @@ async function initPlugin<T>(pl: any, morePassedToInit?: T) {
         notifyClient,
         addBlock,
         misc,
+        ctxBelongsTo,
         ...morePassedToInit
     })
     return Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
