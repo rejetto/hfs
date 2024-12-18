@@ -3,7 +3,7 @@ import { existsSync, statfsSync } from 'fs'
 import { exec, ExecOptions } from 'child_process'
 import { isWindowsDrive, onlyTruthy, promiseBestEffort } from './misc'
 import Parser from '@gregoranders/csv';
-import { pid } from 'node:process'
+import { pid, ppid } from 'node:process'
 import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
 
@@ -78,7 +78,7 @@ async function getWindowsServicePids() {
 }
 
 export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => {
-    const ret = x.includes(pid)
+    const ret = x.includes(pid) || x.includes(ppid)
     if (ret) console.log("running as service")
     return ret
 }, e => {
