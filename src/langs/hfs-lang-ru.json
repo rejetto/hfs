@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule, ItsNeverLight",
     "version": 2.6,
-    "hfs_version": "0.54.0",
+    "hfs_version": "0.55.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{# файл} few{# файла} many{# файлов}}",
@@ -180,6 +180,7 @@
         "Cancel": "Отмена",
         "allow_session_ip_change": "Разрешить смену IP в этой сессии",
 
-        "focus_hint": "Набирая текст на клавиатуре, вы можете выполнять поиск и выбирать элементы из списка."
+        "focus_hint": "Набирая текст на клавиатуре, вы можете выполнять поиск и выбирать элементы из списка.",
+        "copy_links": "Копировать ссылки"
     }
 }
