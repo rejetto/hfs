@@ -1,7 +1,7 @@
 {
     "author": "Pultsari & Win_7",
-    "version": 1.21,
-    "hfs_version": "0.54.0",
+    "version": 1.3,
+    "hfs_version": "0.55.0",
     "translate": {
         "Select": "Valitse",
         "n_files": "{n,plural,one{# tiedosto} other{# tiedostoa}}",
@@ -179,5 +179,8 @@
 
         "Cancel": "Peruuta",
         "allow_session_ip_change": "Salli IP vaihto tämän istunnon aikana"
+        
+        "focus_hint": "Kirjoittamalla näppäimistölläsi, voit etsiä ja korostaa elementtejä listalta",
+        "copy_links": "Kopioi linkit"
     }
 }
