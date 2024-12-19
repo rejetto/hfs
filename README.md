@@ -132,6 +132,7 @@ If your language is missing, please consider [translating yourself](https://gith
 - Right-click on "check for updates" will let you input a URL of a version to install
 - Shift+click on a file will show & play
 - Type the name of a file/folder to focus it, and ctrl+backspace to go to parent folder
+- `--consoleFile PATH` will output all stdout and stderr also to a file 
 
 ## Contribute
 
