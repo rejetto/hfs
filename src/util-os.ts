@@ -70,16 +70,18 @@ export async function runCmd(cmd: string, args: string[] = [], options: ExecOpti
     return (stderr || stdout).replace(/\r/g, '')
 }
 
+// returns pid-to-name object
 async function getWindowsServicePids() {
     const res = await runCmd('tasklist /svc /fo csv')
     const parsed = new Parser().parse(res)
     const no = parsed?.[1]?.[2]
-    return parsed.slice(2).filter(x => x[2] !== no).map(x => Number(x[1]))
+    return Object.fromEntries(parsed.slice(2).filter(x => x[2] !== no).map(x => [x[1], x[2]]))
 }
 
 export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x => {
-    const ret = x.includes(pid) || x.includes(ppid)
-    if (ret) console.log("running as service")
+    const ret = x[pid] || x[ppid]
+    if (ret)
+        console.log("running as service", ret)
     return ret
 }, e => {
     console.log("couldn't determine if we are running as a service")
