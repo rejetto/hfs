@@ -2,10 +2,10 @@
 
 If the information you are searching for is not in this document, [please ask](https://github.com/rejetto/hfs/discussions). 
 
-A plug-in is a folder with a `plugin.js` file in it. To install a plugin you just copy the folder into `plugins` folder.
-You will find `plugins` folder near `config.yaml`, and then in `USER_FOLDER/.hfs` for Linux and Mac, or near `hfs.exe` on Windows. 
+A plug-in is a folder with a `plugin.js` file in it. To install a plugin you just copy the folder into the `plugins` folder.
+You will find `plugins` folder near `config.yaml`, and then in `USER_FOLDER/.hfs` for Linux and MacOS, or near `hfs.exe` on Windows. 
 
-Plug-ins can be hot-swapped, and at some extent can be edited without restarting the server.
+Plug-ins can be hot-swapped, and to some extent can be edited without restarting the server.
 
 Each plug-in has access to the same set of features.
 Normally you'll have a plug-in that's a theme, and another that's a firewall,
@@ -40,8 +40,8 @@ Since it's a basic example, you could have simply defined it like this:
 ```js
 exports.frontend_css = 'mystyle.css'
 ```
-but in more complex cases you'll need go through the `init`.
-If you need to access the api you must use `init`, since that's the only place where it is found, otherwise you
+but in more complex cases you'll need to go through the `init`.
+If you need to access the API you must use `init`, since that's the only place where it is found, otherwise you
 can just use `exports`. The parameter `api` of the init is an object containing useful things [we'll see later](#api-object).
 
 Let's first look at the things you can export:
@@ -52,10 +52,10 @@ All the following properties are optional unless otherwise specified.
 
 - `description: string` try to explain what this plugin is for. (JSON syntax)
 - `version: number` use progressive numbers to distinguish each release
-- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed for. Mandatory. [Refer to API version history](#api-version-history)   
+- `apiRequired: number | [min:number,max:number]` declare version(s) for which the plugin is designed. Mandatory. [Refer to API version history](#api-version-history)   
 - `isTheme: boolean | "light" | "dark"` set true if this is a theme that's not supposed to work together with other themes. 
   Running a theme will cause other themes to be stopped. Missing this, HFS will check if the name of the plugin ends with `-theme`.
-  Special values "light" and "dark" to declare the theme is (for example) dark and forces HFS to use dark-theme as a base.   
+  Special values "light" and "dark" to declare whether the theme is (for example) dark and forces HFS to use dark-theme as a base.   
 - `preview: string | string[]` one or more URLs to images you want to show before your plugin is downloaded. (JSON syntax) 
 - `depend: { repo: string, version: number }[]` declare what other plugins this depends on. (JSON syntax)
 - `beforePlugin: string` control the order this plugin is executed relative to another
@@ -73,7 +73,7 @@ All the following properties are optional unless otherwise specified.
       { 
         "web": "https://github.com/rejetto/file-icons", 
         "zip": "/archive/refs/heads/main.zip",
-        "zipRoot: "file-icons-main/dist", 
+        "zipRoot": "file-icons-main/dist", 
         "main": "https://raw.githubusercontent.com/rejetto/file-icons/main/dist/plugin.js" 
       }
       ```
@@ -254,7 +254,7 @@ The following information applies to the default frontend, and may not apply to 
 
 Once your script is loaded into the frontend (via `frontend_js`), you will have access to the `HFS` object in the global scope.
 
-The HFS objects contains many properties:
+The HFS object contains many properties:
 - `onEvent` this is the main API function inside the frontend. Refer to dedicated section below.
 - `apiCall`
 - `useApi`
@@ -301,7 +301,7 @@ The HFS objects contains many properties:
 - `fileShow(entry: DirEntry, options?: { startPlaying: true )` open file-show on the specified entry.
 - `copyTextToClipboard(text: string)` self-explanatory.
 - `urlParams: object` you'll find each parameter in the URL mapped in this object as string.
-- `fileShowComponents: { Video, Audio }` expose standard components used by file-show. Can be useful if you need extend them, inside `fileShow` event.  
+- `fileShowComponents: { Video, Audio }` exposes standard components used by file-show. Can be useful if you need extend them, inside `fileShow` event.  
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -312,21 +312,19 @@ The following properties are accessible only immediately at top-level; don't cal
 API at this level is done with frontend-events, that you can handle by calling
 
 ```typescript
-HFS.onEvent(eventName, callback)
-
-//type callback = (parameters: object) => any
+HFS.onEvent(eventName: string, callback: (parameters: object) => any)
 ``` 
 
 Parameters of your callback and meaning of returned value varies with the event name.
 Refer to the specific event for further information.
 HFS object is the same you access globally. Here just for legacy, consider it deprecated.
 
-Some frontend-events can return Html, which can be expressed in several ways
-- as string, containing markup
-- as DOM Nodes, as for document.createElement()
-- as ReactElement
-- as array of ReactNode
-- null, undefined, false and empty-string will just be discarded
+Some frontend events can return HTML, which can be expressed in several ways:
+- as a string containing markup
+- as DOM Nodes, using methods like `document.createElement()`
+- as a ReactElement
+- as an array of ReactNode
+- `null`, `undefined`, `false`, and empty strings will be discarded
 
 These events will receive a `def` property (in addition event's specific properties),
 with the default content that will be displayed if no callback return a valid output.
@@ -560,7 +558,7 @@ The most prominent is the `ctx` object, short for "context".
 To know what the Context object contains please refer to [Koa documentation](https://github.com/koajs/koa/blob/master/docs/api/context.md).
 
 HFS adds a few useful properties in the `ctx.state` object. Some of it may turn to be useful,
-so we prepared this list as a quick reference, but beware that it may become out of date and needs double check.
+so we prepared this list as a quick reference, but beware that it may become out of date and needs a double check.
 If so, please report, and we'll do our best to update it asap.
 Where information is too little, you'll have to consult the source code, sorry.
 
@@ -627,8 +625,8 @@ Hint: if you go in your .hfs/plugins folder on linux and mac, and enter
 
     ln -s /PATH_TO_YOUR_REPO/dist MY_PLUGIN_NAME
 
-you'll install your repo, so that you can edit the sources and see effects in real-time, and still be editing your repo,
-ready to commit.
+You'll install your repo so that you can edit the sources and see effects in real-time. 
+This allows you to continue editing your repo and be ready to commit changes.
 
 If you have platform-dependent files, you can put those files in `dist-PLATFORM` or `dist-PLATFORM-ARCHITECTURE`.
 For example, if you want some files to be installed only on Windows with Intel CPUs, put them in `dist-win32-x64`.
