@@ -1,11 +1,8 @@
 {
   "name": "hfs",
-  "version": "0.55.0-beta4",
+  "version": "0.55.0-rc5",
   "description": "HTTP File Server",
-  "keywords": [
-    "file server",
-    "http server"
-  ],
+  "keywords": ["file server", "http server"],
   "homepage": "https://rejetto.com/hfs",
   "license": "GPL-3.0",
   "author": "Massimo Melina <a@rejetto.com>",
@@ -38,7 +35,7 @@
     "dist-node": "npm run dist-modules && cd dist && zip hfs-node-$(jq -r .version ../package.json).zip -r * -x *.zip *.exe hfs-* *.log logs"
   },
   "engines": {
-    "node": ">=18.5.0"
+    "node": ">=18.15.0"
   },
   "files": [
     "central.json",
