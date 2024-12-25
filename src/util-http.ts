@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import https, { RequestOptions } from 'node:https'
+import { parse } from 'node:url'
+import https from 'node:https'
 import http, { IncomingMessage } from 'node:http'
 import { Readable } from 'node:stream'
 import _ from 'lodash'
@@ -19,8 +20,9 @@ export async function httpWithBody(url: string, options?: XRequestOptions): Prom
     })
 }
 
-export interface XRequestOptions extends RequestOptions {
+export interface XRequestOptions extends https.RequestOptions {
     body?: string | Buffer | Readable
+    proxy?: string // url format
     // basic cookie store
     jar?: Record<string, string>
     noRedirect?: boolean
@@ -28,8 +30,10 @@ export interface XRequestOptions extends RequestOptions {
     httpThrow?: boolean
 }
 
-export function httpStream(url: string, { body, jar, noRedirect, httpThrow, ...options }: XRequestOptions ={}): Promise<IncomingMessage> {
+export declare namespace httpStream { let defaultProxy: string | undefined }
+export function httpStream(url: string, { body, jar, noRedirect, httpThrow, proxy, ...options }: XRequestOptions ={}): Promise<IncomingMessage> {
     return new Promise((resolve, reject) => {
+        proxy ??= httpStream.defaultProxy
         options.headers ??= {}
         if (body) {
             options.method ||= 'POST'
@@ -43,8 +47,13 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, ...o
         if (jar)
             options.headers.cookie = _.map(jar, (v,k) => `${k}=${v}; `).join('')
                 + (options.headers.cookie || '') // preserve parameter
-        const proto = url.startsWith('https:') ? https : http
-        const req = proto.request(url, options, res => {
+        Object.assign(options, _.pick(parse(proxy || url), ['hostname', 'port', 'path', 'protocol']))
+        if (proxy) {
+            options.path = url
+            options.headers.host ??= parse(url).host || undefined
+        }
+        const proto = options.protocol === 'https:' ? https : http
+        const req = proto.request(options, res => {
             console.debug("http responded", res.statusCode, "to", url)
             if (jar) for (const entry of res.headers['set-cookie'] || []) {
                 const [, k, v] = /(.+?)=([^;]+)/.exec(entry) || []

@@ -118,7 +118,8 @@ Configuration can be done in several ways
 - `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
 - `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address.
      Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
-     Multiple URLs are supported and you can specify one for each line.   
+     Multiple URLs are supported and you can specify one for each line.
+- `outbound_proxy` if you need outgoing http(s) requests to pass through an http proxy. Default is none. 
 - `auto_basic` automatically detect (based on user-agent) when the basic web inteface should be served, to support legacy browsers. Default is true. No UI.
 - `allow_session_ip_change` should requests of the same login session be allowed from different IP addresses. Default is false, to prevent cookie stealing. You can set it `true` to always allow it, or `https` to allow only on https, where stealing the cookie is harder. No UI.   
 - `authorization_header` support Authentication HTTP header. Default is true. No UI.
