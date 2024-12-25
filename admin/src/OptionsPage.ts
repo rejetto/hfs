@@ -154,11 +154,13 @@ export default function OptionsPage() {
                 helperText: "Access Admin-panel without entering credentials"
             },
 
-            { k: 'proxies', comp: NumberField, max: 9, label: "Number of HTTP proxies", placeholder: "none",
+            { k: 'proxies', comp: NumberField, sm: 4, md: 4, max: 9, label: "Number of HTTP proxies", placeholder: "none",
                 error: proxyWarning(values, status),
-                helperText: "Wrong number will prevent detection of users' IP address"
+                helperText: "Wrong number will prevent detection of users' IP"
             },
-            { k: 'allowed_referer', placeholder: "any", label: "Links from other websites", comp: AllowedReferer,
+            { k: 'outbound_proxy', sm: 5, md: 4, placeholder: "none", helperText: "URL form",
+                getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
+            { k: 'allowed_referer', comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
                 helperText: "In case another website is linking your files" },
 
             { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true, autoRowHeight: true,

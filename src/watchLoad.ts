@@ -2,7 +2,8 @@
 
 import { FSWatcher, watch } from 'fs'
 import fs from 'fs/promises'
-import { debounceAsync, readFileBusy } from './misc'
+import { readFileBusy } from './misc'
+import { debounceAsync } from './debounceAsync'
 import { BetterEventEmitter } from './events'
 
 export type WatchLoadCanceller = () => void
