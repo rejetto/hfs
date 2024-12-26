@@ -7,6 +7,10 @@ import { parse } from 'node:url'
 import _ from 'lodash'
 import { defineConfig } from './config'
 import { text as stream2string, buffer } from 'node:stream/consumers'
+import { reg } from './util-os'
+import events from './events'
+import { IS_WINDOWS } from './const'
+import { prefix } from './cross'
 export { stream2string }
 
 const outboundProxy = defineConfig('outbound_proxy', '', v => {
@@ -18,6 +22,22 @@ const outboundProxy = defineConfig('outbound_proxy', '', v => {
         console.warn("invalid URL", v)
         return ''
     }
+})
+
+events.once('configReady', async startedWithoutConfig => {
+    if (!IS_WINDOWS || !startedWithoutConfig) return
+    // try to read Windows system setting for proxy
+    const out = await reg('query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings')
+    if (!/ProxyEnable.+(\d)/.exec(out)?.[1]) return
+    const read = /ProxyServer.+?([\d:.]+)/.exec(out)?.[1]
+    if (!read) return
+    // it can be like "IP:PORT" or "http=IP:PORT;https=IP:PORT;ftp=IP:PORT"
+    const url = prefix('https://', /https=([\d:.]+)/.exec(out)?.[1]) // prefer https
+        || prefix('http://', /http=([\d:.]+)/.exec(out)?.[1])
+        || !read.includes('=') && 'http://' + read // simpler form
+    if (!url) return
+    outboundProxy.set(url)
+    console.log("detected proxy", read)
 })
 
 export async function httpString(url: string, options?: XRequestOptions): Promise<string> {

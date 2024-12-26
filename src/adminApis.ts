@@ -181,7 +181,7 @@ const frpDebounced = debounceAsync(async () => {
     catch {
         return false
     }
-})
+}, { retain: 10_000 })
 
 export function anyAccountCanLoginAdmin() {
     return Boolean(_.find(accountsConfig.get(), accountCanLoginAdmin))

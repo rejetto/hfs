@@ -88,7 +88,7 @@ export const getNatInfo = debounceAsync(async () => {
         externalPort,
         proto: status?.https?.listening ? 'https' : status?.http?.listening ? 'http' : '',
     }
-})
+}, { reuseRunning: true })
 getNatInfo()
 
 function findGateway(): Promise<string | undefined> {

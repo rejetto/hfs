@@ -14,10 +14,8 @@ import {
     IS_WINDOWS, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_ACCEPTABLE,
     IS_BINARY, APP_PATH
 } from './const'
-import { getDiskSpace, getDiskSpaces, getDrives } from './util-os'
+import { getDiskSpace, getDiskSpaces, getDrives, reg } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
-import { promisify } from 'util'
-import { execFile } from 'child_process'
 import { SendListReadable } from './SendList'
 
 // to manipulate the tree we need the original node
@@ -253,7 +251,7 @@ const apis: ApiHandlers = {
     async windows_integrated() {
         return {
             is: await reg('query', WINDOWS_REG_KEY)
-                .then(x => x.stdout.includes('REG_SZ'), () => false)
+                .then(x => x.includes('REG_SZ'), () => false)
         }
     },
 
@@ -284,7 +282,3 @@ function simplifyName(node: VfsNode) {
 }
 
 const WINDOWS_REG_KEY = 'HKCU\\Software\\Classes\\*\\shell\\AddToHFS3'
-
-function reg(...pars: string[]) {
-    return promisify(execFile)('reg', pars)
-}
