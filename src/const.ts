@@ -47,7 +47,6 @@ console.log('started', formatTimestamp(HFS_STARTED), DEV)
 console.log('version', VERSION||'-')
 console.log('build', BUILD_TIMESTAMP||'-')
 console.debug('arguments', argv)
-const winExe = IS_WINDOWS && process.execPath.match(/(?<!node)\.exe$/i)
 // still considering whether to use ".hfs" with Windows users, who may be less accustomed to it
 const dir = argv.cwd || useHomeDir() && join(homedir(), '.hfs')
 if (dir) {
@@ -68,7 +67,15 @@ console.log('platform', process.platform, process.arch, IS_BINARY ? 'binary' : b
 console.log('pid', process.pid)
 
 function useHomeDir() {
-    if (!winExe) return true
-    try { fs.accessSync(join(process.cwd(), CONFIG_FILE), fs.constants.W_OK) }
-    catch { return true }
+    if (!IS_WINDOWS || !IS_BINARY) return true
+    try { fs.accessSync(CONFIG_FILE, fs.constants.W_OK) }
+    catch(e: any) {
+        if (e.code !== 'ENOENT')
+            return true
+        try {
+            fs.writeFileSync(CONFIG_FILE, '')  // not found, try to create
+            fs.unlinkSync(CONFIG_FILE)
+        }
+        catch { return true }
+    }
 }
