@@ -67,6 +67,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
         }),
         state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
         state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
+        isFolder && { id: 'folderSize', label: t`Folder size`, icon: 'total', onClick: () => folderSize() },
         isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ].filter(Boolean)
     const folder = entry.n.slice(0, -entry.name.length - (entry.isFolder ? 2 : 1))
@@ -141,6 +142,11 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
             )
         }
     })
+
+    async function folderSize() {
+        const { bytes } = await apiCall('get_folder_size', { uri: entry.uri }, { modal: working, timeout: false })
+        await alertDialog(formatBytes(bytes), 'info', t`Folder size`)
+    }
 }
 
 async function rename(entry: DirEntry) {

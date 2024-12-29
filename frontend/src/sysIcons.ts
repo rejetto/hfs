@@ -44,5 +44,6 @@ export const SYS_ICONS: Record<string, [string] | [string, string | false]> = { 
     video: ['🎥'],
     image: ['📸'],
     cancel: ['❌','cancel'],
+    total: ['➕', 'spin6'],
 }
 
