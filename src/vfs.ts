@@ -18,7 +18,7 @@ import fswin from 'fswin'
 
 const showHiddenFiles = defineConfig('show_hidden_files', false)
 
-type Masks = Record<string, VfsNode & { maskOnly?: 'files' | 'folders' }>
+type Masks = Record<string, VfsNode>
 
 export interface VfsNodeStored extends VfsPerms {
     name?: string
@@ -168,6 +168,14 @@ export async function getNodeByName(name: string, parent: VfsNode) {
 export let vfs: VfsNode = {}
 defineConfig<VfsNode>('vfs', {}).sub(data =>
     vfs = (function recur(node) {
+        const {masks} = node
+        _.each(masks, (v: any, mask) => { // legacy pre-0.56: convert from property to key suffix
+            if (v.maskOnly) {
+                masks![`${mask}|${v.maskOnly}|`] = v = _.omit(v, 'maskOnly')
+                delete masks![mask]
+            }
+            recur(v)
+        })
         if (node.children)
             for (const c of node.children)
                 recur(c)
@@ -346,11 +354,18 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
 }
 
 export function parentMaskApplier(parent: VfsNode) {
-    const matchers = onlyTruthy(_.map(parent.masks, (v, k) => {
+    const matchers = onlyTruthy(_.map(parent.masks, (mods, k) => {
+        if (!mods) return
+        const mustBeFolder = (() => { // undefined if no restriction is requested
+            if (k.at(-1) !== '|') return // parse special flag syntax as suffix |FLAG| inside the key. This allows specifying different flags with the same mask using separate keys. To avoid syntax conflicts with the rest of the file-mask, we look for an ending pipe, as it has no practical use. Ending-pipe was preferred over starting-pipe to leave the rest of the logic (inheritMasks) untouched.
+            const i = k.lastIndexOf('|', k.length - 2)
+            if (i < 0) return
+            const type = k.slice(i + 1, -1)
+            k = k.slice(0, i) // remove
+            return type === 'folders'
+        })()
         k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : '' // ** globstar matches also zero subfolders, so this mask must be applied here too
-        const { maskOnly, ...mods } = v || {}
-        // k is stored into the object for debugging purposes
-        return k && { k, mods, matcher: makeMatcher(k), mustBeFolder: maskOnly && (maskOnly === 'folders') }
+        return k && { mods, matcher: makeMatcher(k), mustBeFolder }
     }))
     return async (item: VfsNode, virtualBasename=getNodeName(item)) => {
         let isFolder: boolean | undefined = undefined
