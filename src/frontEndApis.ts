@@ -6,9 +6,13 @@ import * as api_auth from './api.auth'
 import events from './events'
 import Koa from 'koa'
 import { dirTraversal, isValidFileName } from './util-files'
-import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN,
-    HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED } from './const'
-import { hasPermission, statusCodeForMissingPerm, urlToNode, VfsNode } from './vfs'
+import {
+    HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FAILED_DEPENDENCY, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED,
+    HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
+} from './const'
+import {
+    hasPermission, nodeIsDirectory, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+} from './vfs'
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
@@ -165,6 +169,19 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(HTTP_FAILED_DEPENDENCY)
         await setCommentFor(node.source, comment)
         return {}
+    },
+
+    async get_folder_size({ uri }, ctx) {
+        apiAssertTypes({ string: { uri } })
+        const folder = await urlToNode(uri, ctx)
+        if (!folder)
+            throw new ApiError(HTTP_NOT_FOUND)
+        if (!await nodeIsDirectory(folder))
+            throw new ApiError(HTTP_METHOD_NOT_ALLOWED)
+        let bytes = 0
+        for await (const n of walkNode(folder, { ctx, onlyFiles: true, depth: Infinity }))
+            bytes += await nodeStats(n).then(x => x?.size || 0, () => 0)
+        return { bytes }
     },
 }
 

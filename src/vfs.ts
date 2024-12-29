@@ -127,7 +127,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
     return ret
 }
 
-async function nodeStats(ret: VfsNode) {
+export async function nodeStats(ret: VfsNode) {
     if (ret.stats)
         if (_.isPlainObject(ret.stats)) delete ret.stats // legacy pre-55-alpha1
         else return ret.stats
@@ -298,7 +298,7 @@ export async function* walkNode(parent: VfsNode, {
     try {
         let lastDir = prefixPath.slice(0, -1) || '.'
         parentsCache.set(lastDir, parent)
-        for await (const entry of dirStream(source, { depth, onlyFolders, onlyFiles, hidden: showHiddenFiles.get() })) {
+        for await (const entry of dirStream(source, { depth, onlyFolders, hidden: showHiddenFiles.get() })) {
             if (ctx?.req.aborted)
                 return
             const {path} = entry
@@ -319,7 +319,7 @@ export async function* walkNode(parent: VfsNode, {
             }
             if (isFolder) // store it even if we can't see it (masks), as its children can be produced by dirStream
                 parentsCache.set(name, item)
-            if (await canSee(item))
+            if (!(onlyFiles && isFolder) && await canSee(item))
                 yield item
             entry.closingBranch?.then(p =>
                 parentsCache.delete(p || '.'))

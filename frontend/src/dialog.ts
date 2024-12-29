@@ -115,13 +115,13 @@ export async function formDialog({ ...rest }: DialogOptions): Promise<any> {
 
 export type AlertType = 'error' | 'warning' | 'info'
 
-export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info') {
+export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', title='') {
     if (msg instanceof Error)
         type = 'error'
     const ret = pendingPromise()
     return Object.assign(ret, newDialog({
         className: 'dialog-alert dialog-alert-'+type,
-        title: t(_.capitalize(type)),
+        title: title || t(_.capitalize(type)),
         icon: '!',
         onClose: ret.resolve,
         dialogProps: { role: 'alertdialog' },
