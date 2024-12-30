@@ -43,7 +43,7 @@ export class SendListReadable<T> extends Readable {
             this.push(this.buffer)
             this.buffer = []
         }, bufferTime, { maxWait: bufferTime })
-        this.on('end', () => {
+        this.on('close', () => {
             onEnd?.(this)
             this.destroy()
         })

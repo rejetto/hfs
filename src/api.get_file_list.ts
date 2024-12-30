@@ -68,7 +68,6 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
 
     async function* produceEntries() {
         for await (const sub of walker) {
-            if (ctx.aborted) break
             let name = getNodeName(sub)
             name = basename(name) || name // on windows, basename('C:') === ''
             if (descriptIon.get() && name === DESCRIPT_ION)

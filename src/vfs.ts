@@ -299,8 +299,7 @@ export async function* walkNode(parent: VfsNode, {
         let lastDir = prefixPath.slice(0, -1) || '.'
         parentsCache.set(lastDir, parent)
         for await (const entry of dirStream(source, { depth, onlyFolders, onlyFiles, hidden: showHiddenFiles.get() })) {
-            if (ctx?.req.aborted)
-                return
+            if (ctx?.req.destroyed) break
             const {path} = entry
             const isFolder = entry.isDirectory()
             const name = prefixPath + (parent.rename?.[path] || path)
