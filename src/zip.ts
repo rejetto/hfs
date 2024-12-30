@@ -24,6 +24,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const uri of list) {
+                if (ctx.req.destroyed) return
                 const subNode = await urlToNode(uri, ctx, node)
                 if (!subNode)
                     continue
@@ -44,7 +45,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         if (!hasPermission(el, 'can_archive', ctx)) return // the fact you see it doesn't mean you can get it
         const { source } = el
         const name = getNodeName(el)
-        if (ctx.req.aborted || !filter(name))
+        if (!filter(name))
             return
         try {
             if (el.isFolder)

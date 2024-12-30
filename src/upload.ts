@@ -161,7 +161,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         writeStream.once('close', async () => {
             try {
                 await new Promise(res => fileStream.close(res)) // this only seem to be necessary on Windows
-                if (ctx.req.aborted) {
+                if (ctx.req.aborted) { // doc says .aborted is deprecated, replaced by .destroyed, but in my tests the latter is true even for completed uploads, while .aborted is only for interrupted ones
                     if (resumableTempName && !resumableLost && !resuming) // we don't want to be left with 2 temp files
                         return rm(tempName)
                     const sec = deleteUnfinishedUploadsAfter.get()
