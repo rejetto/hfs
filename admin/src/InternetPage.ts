@@ -164,6 +164,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const [values, setValues] = useState<any>()
         const cert = useApiEx('get_cert')
         useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email', 'acme_renew'] }).then(setValues) } , [])
+        const [saving, setSaving] = useState(false)
         if (!status || !values) return h(CircularProgress)
         const { https } = status.data ||{}
         const disabled = https?.port === PORT_DISABLED
@@ -187,7 +188,8 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 set(v, k) {
                     setValues((was: any) => {
                         const values = { ...was, [k]: v }
-                        apiCall('set_config', { values })
+                        setSaving(true)
+                        apiCall('set_config', { values }).finally(() => setSaving(false))
                         return values
                     })
                 },
@@ -214,6 +216,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                 save: {
                     children: "Request",
                     startIcon: h(Send),
+                    ...saving && { loading: true },
                     async onClick() {
                         const [domain, ...altNames] = values.acme_domain.split(',')
                         const fresh = domain === cert.data.subject?.CN && Number(new Date(cert.data.validTo)) - Date.now() >= 30 * DAY
