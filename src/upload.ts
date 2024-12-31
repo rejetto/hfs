@@ -21,12 +21,20 @@ import _ from 'lodash'
 import events from './events'
 import { rename, rm } from 'fs/promises'
 import { expiringCache } from './expiringCache'
+import { onProcessExit } from './first'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
 export const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', true)
 
 const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
+onProcessExit(() => {
+    if (!Object.keys(waitingToBeDeleted).length) return
+    console.log("removing unfinished uploads")
+    for (const path in waitingToBeDeleted)
+        try { fs.rmSync(path, { force: true }) }
+        catch {}
+})
 
 const ATTR_UPLOADER = 'uploader'
 
