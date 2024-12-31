@@ -52,6 +52,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
                 ctx.status = HTTP_SERVER_ERROR
                 ctx.body = err.message || String(err)
             })
+            ctx.req.on('close', () => dest.end())
             const uri = await dest.lockMiddleware  // we need to wait more than just the stream
             ctx.body = { uri }
         }
