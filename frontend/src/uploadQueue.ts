@@ -1,6 +1,6 @@
 import {
     buildUrlQueryString, dirname, formatBytes, formatPerc, getHFS,
-    HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE,
+    HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, UPLOAD_RESUMABLE, UPLOAD_STATUS,
     pathEncode, pendingPromise, prefix, randomId, tryJson, with_
 } from '@hfs/shared'
 import { state } from './state'
@@ -78,7 +78,7 @@ let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource | undefined
-let closeLast: undefined | (() => void)
+let closeLastDialog: undefined | (() => void)
 
 let reloadOnClose = false
 export function resetReloadOnClose() {
@@ -110,7 +110,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             }
             const status = overrideStatus || req.status
             if (!partial) // if the upload ends here, the offer for resuming must stop
-                closeLast?.()
+                closeLastDialog?.()
             if (resuming) { // resuming requested
                 resuming = false // this behavior is only for once, for cancellation of the upload that is in the background while resume is confirmed
                 stopLooping = true
@@ -166,18 +166,18 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         notificationSource = await getNotifications(notificationChannel, async (name, data) => {
             const {uploading} = uploadState
             if (!uploading) return
-            if (name === 'upload.resumable') {
+            if (name === UPLOAD_RESUMABLE) {
                 const size = data?.[getFilePath(uploading.file)] //TODO use toUpload?
                 if (!size || size > toUpload.file.size) return
                 const {expires} = data
                 const timeout = typeof expires !== 'number' ? 0
                     : (Number(new Date(expires)) - Date.now()) / 1000
-                closeLast?.()
+                closeLastDialog?.()
                 const cancelSub = subscribeKey(uploadState, 'partial', v =>
-                    v >= size && closeLast?.() )  // dismiss dialog as soon as we pass the threshold
+                    v >= size && closeLastDialog?.() )  // dismiss dialog as soon as we pass the threshold
                 const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/toUpload.file.size)} = ${formatBytes(size)})`
                 const dialog = confirmDialog(msg, { timeout })
-                closeLast = dialog.close
+                closeLastDialog = dialog.close
                 const confirmed = await dialog
                 cancelSub()
                 if (!confirmed) return
@@ -186,7 +186,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                 abortCurrentUpload()
                 return startUpload(toUpload, to, size)
             }
-            if (name === 'upload.status') {
+            if (name === UPLOAD_STATUS) {
                 overrideStatus = data?.[getFilePath(uploading.file)]
                 if (overrideStatus >= 400)
                     abortCurrentUpload()
@@ -204,8 +204,8 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         toUpload.error = specifier
         if (uploadState.errors.push(toUpload)) return
         const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
-        closeLast?.()
-        closeLast = alertDialog(msg, 'error').close
+        closeLastDialog?.()
+        closeLastDialog = alertDialog(msg, 'error').close
     }
 
     function next() {

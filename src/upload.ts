@@ -1,7 +1,8 @@
 import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
-    HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_SERVER_ERROR, HTTP_BAD_REQUEST
+    HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_BAD_REQUEST,
+    UPLOAD_RESUMABLE, UPLOAD_STATUS,
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
@@ -42,7 +43,7 @@ function setUploadMeta(path: string, ctx: Koa.Context) {
 
 // stay sync because we use this function with formidable()
 const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
-const openFiles = new Set()
+const uploadingFiles = new Set()
 export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
     let fullPath = ''
     if (dirTraversal(path))
@@ -82,12 +83,12 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         catch(e: any) { // warn, but let it through
             console.warn("can't check disk size:", e.message || String(e))
         }
-    if (openFiles.has(fullPath))
-        return fail(HTTP_CONFLICT, 'uploading')
     // optionally 'skip'
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT, 'exists')
-    openFiles.add(fullPath)
+    if (uploadingFiles.has(fullPath))
+        return fail(HTTP_CONFLICT, 'uploading')
+    uploadingFiles.add(fullPath)
     let overwriteRequestedButForbidden = false
     try {
         // if upload creates a folder, then add meta to it too
@@ -96,36 +97,34 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         // use temporary name while uploading
         const keepName = basename(fullPath).slice(-200)
         let tempName = join(dir, 'hfs$upload-' + keepName)
-        const resumable = fs.existsSync(tempName) && !openFiles.has(tempName) && tempName // resumable is temp-file-1
-        if (resumable)
+        const resumableSize = try_(() => fs.statSync(tempName).size) || 0 // we use size to even when user has not required resume, yet, to notify frontend of the possibility
+        const resumableTempName = resumableSize > 0 && tempName // resumableTempName is temp-file-1
+        if (resumableTempName)
             tempName = join(dir, 'hfs$upload2-' + keepName)
         // checks for resume feature
         let resume = Number(ctx.query.resume)
-        const size = resumable && try_(() => fs.statSync(resumable).size)
-        if (size === undefined) // stat failed
-            return fail(HTTP_SERVER_ERROR)
-        if (_.isNumber(size) && resume > size)
+        if (resume > resumableSize)
             return fail(HTTP_RANGE_NOT_SATISFIABLE)
         // warn frontend about resume possibility
         let resumableLost = false
-        if (!resume && resumable) {
+        if (!resume && resumableTempName) {
             const timeout = 30
-            notifyClient(ctx, 'upload.resumable', { [path]: size, expires: Date.now() + timeout * 1000 })
-            delayedDelete(resumable, timeout, () => // if user resumes, this upload is interrupted, and next upload will cancel this delayedDelete
-                fs.rename(tempName, resumable, err => { // try to rename upload2 to upload, overwriting
+            notifyClient(ctx, UPLOAD_RESUMABLE, { [path]: resumableSize, expires: Date.now() + timeout * 1000 })
+            delayedDelete(resumableTempName, timeout, () => // if user resumes, this upload is interrupted, and next upload will cancel this delayedDelete
+                fs.rename(tempName, resumableTempName, err => { // try to rename $upload2 to $upload, overwriting
                     if (err) return
-                    tempName = resumable
+                    tempName = resumableTempName
                     resumableLost = true
                 }) )
         }
         // append if resuming
-        const resuming = resume && resumable
+        const resuming = resume && resumableTempName
         if (!resuming)
             resume = 0
         const writeStream = createStreamLimiter(reqSize ?? Infinity)
         if (resuming) {
             fs.rm(tempName, () => {})
-            tempName = resumable
+            tempName = resumableTempName
         }
         cancelDeletion(tempName)
         ctx.state.uploadDestinationPath = tempName
@@ -134,7 +133,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         const resEvent = events.emit('uploadStart', obj)
         if (resEvent?.isDefaultPrevented()) return
 
-        const fileStream = resuming ? fs.createWriteStream(resumable, { flags: 'r+', start: resume })
+        const fileStream = resuming ? fs.createWriteStream(resumableTempName, { flags: 'r+', start: resume })
             : fs.createWriteStream(tempName)
         writeStream.on('error', e => {
             releaseFile()
@@ -149,7 +148,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             try {
                 await new Promise(res => fileStream.close(res)) // this only seem to be necessary on Windows
                 if (ctx.req.aborted) {
-                    if (resumable && !resumableLost && !resuming) // we don't want to be left with 2 temp files
+                    if (resumableTempName && !resumableLost && !resuming) // we don't want to be left with 2 temp files
                         return rm(tempName)
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
@@ -174,8 +173,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                     setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
                         void setCommentFor(dest, String(ctx.query.comment))
-                    if (resumable && !resuming) // this happens if user decided to not resume and the new upload finished before delayedDelete
-                        rm(resumable).catch(console.warn)
+                    if (resumableTempName && !resuming) // this happens if user decided to not resume and the new upload finished before delayedDelete
+                        rm(resumableTempName).catch(console.warn)
                     obj.uri = enforceFinal('/', baseUri) + pathEncode(basename(dest))
                     events.emit('uploadFinished', obj)
                     if (resEvent) for (const cb of resEvent)
@@ -239,7 +238,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     }
 
     function releaseFile() {
-        openFiles.delete(fullPath)
+        uploadingFiles.delete(fullPath)
     }
 
     function fail(status?: number, msg?: string) {
@@ -249,7 +248,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             ctx.status = status
         if (msg)
             ctx.body = msg
-        notifyClient(ctx, 'upload.status', { [path]: ctx.status }) // allow browsers to detect failure while still sending body
+        notifyClient(ctx, UPLOAD_STATUS, { [path]: ctx.status }) // allow browsers to detect failure while still sending body
     }
 }
 

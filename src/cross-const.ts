@@ -7,6 +7,8 @@ export const PORT_DISABLED = -1
 export const NBSP = '\xA0'
 export const PLUGIN_CUSTOM_REST_PREFIX = '_'
 export const HFS_REPO = 'rejetto/hfs'
+export const UPLOAD_RESUMABLE = 'upload.resumable'
+export const UPLOAD_STATUS = 'upload.status'
 
 export const HTTP_OK = 200
 export const HTTP_NO_CONTENT = 204
