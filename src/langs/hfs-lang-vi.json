@@ -1,7 +1,7 @@
 {
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
-    "version": 2.5,
-    "hfs_version": "0.54.0",
+    "version": 2.6,
+    "hfs_version": "0.55.0",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
@@ -153,7 +153,7 @@
         "Close": "Đóng",
         "Folder": "Thư mục",
         "Web page": "Trang web",
-        "Link": "Link",
+        "Link": "Đường dẫn",
         "Auto-play": "Tự động phát",
         "autoplay_seconds": "Số giây chờ ảnh",
         "Select all": "Chọn hết",
@@ -178,6 +178,9 @@
         "Logged out": "Đã đăng xuất!",
 
         "Cancel": "Huỷ bỏ",
-        "allow_session_ip_change": "Cho phép đổi IP trong phiên này"
+        "allow_session_ip_change": "Cho phép đổi IP trong phiên này",
+
+        "focus_hint": "Bằng cách nhập nhanh lên bàn phím, có thể tìm và xem các phần trong danh sách",
+        "copy_links": "Copy đường dẫn"
     }
 }
