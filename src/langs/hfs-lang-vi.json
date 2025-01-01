@@ -180,7 +180,7 @@
         "Cancel": "Huỷ bỏ",
         "allow_session_ip_change": "Cho phép đổi IP trong phiên này",
 
-        "focus_hint": "Bằng cách nhập nhanh lên bàn phím, có thể tìm và xem các phần trong danh sách",
+        "focus_hint": "Bằng cách nhập nhanh lên bàn phím, có thể tìm và xem các phần tử trong danh sách",
         "copy_links": "Copy đường dẫn"
     }
 }
