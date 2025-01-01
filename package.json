@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.55.0",
+  "version": "0.55.1",
   "description": "HTTP File Server",
   "keywords": ["file server", "http server"],
   "homepage": "https://rejetto.com/hfs",
@@ -79,6 +79,7 @@
     "fs-x-attributes": "^1.0.2",
     "fswin": "^3.24.829",
     "iconv-lite": "^0.6.3",
+    "immer": "^9.0.21",
     "ip2location-nodejs": "^9.6.0",
     "koa": "^2.15.3",
     "koa-compress": "^5.1.0",
