@@ -57,6 +57,8 @@ if (dir) {
     }
     process.chdir(dir)
 }
+else if (process.cwd().startsWith(process.env.windir + '\\')) // this happens if you run hfs from task scheduler
+    process.chdir(APP_PATH)
 console.log('working directory (cwd)', process.cwd())
 if (APP_PATH !== process.cwd())
     console.log('app', APP_PATH)
