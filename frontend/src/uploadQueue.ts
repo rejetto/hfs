@@ -1,7 +1,7 @@
 import {
     buildUrlQueryString, dirname, formatBytes, formatPerc, getHFS,
     HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, UPLOAD_RESUMABLE, UPLOAD_STATUS,
-    pathEncode, pendingPromise, prefix, randomId, tryJson, with_
+    pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait
 } from '@hfs/shared'
 import { state } from './state'
 import { getNotifications } from '@hfs/shared/api'
@@ -89,9 +89,11 @@ export function resetReloadOnClose() {
 
 export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     let resuming = false
+    let preserveTempFile = undefined
     overrideStatus = 0
     uploadState.uploading = toUpload
     await subscribeNotifications()
+    const waitSecondChunk = pendingPromise() // this will avoid race condition, in case the notification arrives after the first chunk is finished
     const splitSize = getHFS().splitUploads
     const fullSize = toUpload.file.size
     let offset = resume
@@ -152,12 +154,14 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
             notificationChannel,
             ...partial && { partial: 'y' },
-            ...offset && { resume: String(offset) },
+            ...offset && { resume: offset, preserveTempFile },
             ...toUpload.comment && { comment: toUpload.comment },
             ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default
         }), true)
         req.send(toUpload.file.slice(offset, splitSize ? offset + splitSize : undefined))
         await finished
+        if (!resume)
+            await waitSecondChunk
     } while (!stopLooping && offset < fullSize)
 
     async function subscribeNotifications() {
@@ -167,8 +171,11 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             const {uploading} = uploadState
             if (!uploading) return
             if (name === UPLOAD_RESUMABLE) {
+                waitSecondChunk.resolve()
                 const size = data?.[getFilePath(uploading.file)] //TODO use toUpload?
-                if (!size || size > toUpload.file.size) return
+                if (!size) return
+                preserveTempFile = true // this is affecting only split-uploads, because is undefined on first chunk (or no chunking)
+                if (size > toUpload.file.size) return
                 const {expires} = data
                 const timeout = typeof expires !== 'number' ? 0
                     : (Number(new Date(expires)) - Date.now()) / 1000
@@ -183,7 +190,9 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                 if (!confirmed) return
                 if (uploading !== uploadState.uploading) return // too late
                 resuming = true
+                preserveTempFile = undefined
                 abortCurrentUpload()
+                await wait(500) // be sure the server had the time to react to the abort() and unlocked the file, or our next request will fail
                 return startUpload(toUpload, to, size)
             }
             if (name === UPLOAD_STATUS) {

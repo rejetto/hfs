@@ -96,17 +96,23 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             setUploadMeta(dir, ctx)
         // use temporary name while uploading
         const keepName = basename(fullPath).slice(-200)
-        let tempName = join(dir, 'hfs$upload-' + keepName)
-        const resumableSize = try_(() => fs.statSync(tempName).size) || 0 // we use size to even when user has not required resume, yet, to notify frontend of the possibility
-        const resumableTempName = resumableSize > 0 && tempName // resumableTempName is temp-file-1
+        const firstTempName = join(dir, 'hfs$upload-' + keepName)
+        const altTempName = join(dir, 'hfs$upload2-' + keepName)
+        const splitAndPreserving = ctx.query.preserveTempFile // frontend knows about existing temp that can be resumed, but it is not resuming that, but instead it is continuing split-uploading on alternative temp file
+        let tempName = splitAndPreserving ? altTempName : firstTempName
+        const stats = try_(() => fs.statSync(tempName))
+        const resumableSize = stats?.size || 0 // we use size to even when user has not required resume, yet, to notify frontend of the possibility
+        const resumableTempName = resumableSize > 0 && tempName
         if (resumableTempName)
-            tempName = join(dir, 'hfs$upload2-' + keepName)
+            tempName = altTempName
         // checks for resume feature
         let resume = Number(ctx.query.resume)
         if (resume > resumableSize)
             return fail(HTTP_RANGE_NOT_SATISFIABLE)
         // warn frontend about resume possibility
         let resumableLost = false
+        if (!resume && !resumableTempName)
+            notifyClient(ctx, UPLOAD_RESUMABLE, { [path]: 0 })
         if (!resume && resumableTempName) {
             const timeout = 30
             notifyClient(ctx, UPLOAD_RESUMABLE, { [path]: resumableSize, expires: Date.now() + timeout * 1000 })
@@ -122,7 +128,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         if (!resuming)
             resume = 0
         const writeStream = createStreamLimiter(reqSize ?? Infinity)
-        if (resuming) {
+        if (resuming && !splitAndPreserving) {
             fs.rm(tempName, () => {})
             tempName = resumableTempName
         }
@@ -169,6 +175,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                 try {
                     await rename(tempName, dest)
                     cancelDeletion(tempName) // not necessary, as deletion's failure is silent, but still
+                    if (splitAndPreserving) // we've been using altTempName, but now we're done, so we can delete firstTempName
+                        delayedDelete(firstTempName, 0)
                     ctx.state.uploadDestinationPath = dest
                     setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
