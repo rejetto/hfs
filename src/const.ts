@@ -50,7 +50,7 @@ console.debug('arguments', argv)
 // still considering whether to use ".hfs" with Windows users, who may be less accustomed to it
 const dir = argv.cwd || useHomeDir() && join(homedir(), '.hfs')
 if (dir) {
-    try { fs.mkdirSync(dir) }
+    try { fs.mkdirSync(dir, { recursive: true }) }
     catch(e: any) {
         if (e.code !== 'EEXIST')
             console.error(e)
