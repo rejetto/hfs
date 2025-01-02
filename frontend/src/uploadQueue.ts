@@ -51,6 +51,8 @@ window.onbeforeunload = ev => {
     return ev.returnValue = t("Uploading") // modern browsers ignore this message
 }
 
+const RETRY_UPLOAD = -1
+let stuckSince = Infinity
 // keep track of speed
 let bytesSentTimestamp = Date.now()
 let bytesSent = 0
@@ -59,6 +61,10 @@ setInterval(() => {
     const passed = (now - bytesSentTimestamp) / 1000
     if (passed < 3 && uploadState.speed) return
     uploadState.speed = bytesSent / passed
+    if (now - stuckSince >= 10_000) { // this will normally cause the upload to be retried after 10+10 seconds of no progress
+        overrideStatus = RETRY_UPLOAD // try again
+        abortCurrentUpload()
+    }
     bytesSent = 0 // reset counter
     bytesSentTimestamp = now
 
@@ -89,18 +95,25 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     const splitSize = getHFS().splitUploads
     const fullSize = toUpload.file.size
     let offset = resume
+    let stopLooping = false
     do { // at least one iteration, even for empty files
         req = new XMLHttpRequest()
         const finished = pendingPromise()
         req.onloadend = () => {
             finished.resolve()
             if (req?.readyState !== 4) return
+            if (overrideStatus === RETRY_UPLOAD) {
+                overrideStatus = 0
+                stopLooping = true
+                startUpload(toUpload, to, offset)
+                return
+            }
             const status = overrideStatus || req.status
             if (!partial) // if the upload ends here, the offer for resuming must stop
                 closeLast?.()
             if (resuming) { // resuming requested
                 resuming = false // this behavior is only for once, for cancellation of the upload that is in the background while resume is confirmed
-                stopLooping()
+                stopLooping = true
                 return
             }
             if (!status || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
@@ -121,13 +134,15 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         req.onerror = () => {
             error(0)
             finished.resolve()
-            stopLooping()
+            stopLooping = true
         }
         let lastProgress = 0
         req.upload.onprogress = (e:any) => {
             uploadState.partial = e.loaded + offset
             uploadState.progress = uploadState.partial / fullSize
             bytesSent += e.loaded - lastProgress
+            if (e.loaded > lastProgress)
+                stuckSince = Date.now()
             lastProgress = e.loaded
         }
         let uploadPath = getFilePath(toUpload.file)
@@ -143,9 +158,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         }), true)
         req.send(toUpload.file.slice(offset, splitSize ? offset + splitSize : undefined))
         await finished
-    } while (offset < fullSize)
-
-    function stopLooping() { offset = fullSize }
+    } while (!stopLooping && offset < fullSize)
 
     async function subscribeNotifications() {
         if (notificationChannel) return
@@ -196,7 +209,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     }
 
     function next() {
-        stopLooping()
+        stopLooping = true
         uploadState.uploading = undefined
         uploadState.partial = 0
         const { qs } = uploadState
