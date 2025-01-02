@@ -39,6 +39,7 @@ export function i18nFromTranslations(translations: Record<string, any>, embedded
         if (!state.disabled) for (const key of keys) {
             for (const lang of searchLangs)
                 if (found = state.translations[selectedLang=lang]?.translate?.[key]) break
+            if (found) break
             if (!warns.has(key) && langs.length && langs[0] !== embedded) {
                 warns.add(key)
                 console.debug("miss i18n:", key)
