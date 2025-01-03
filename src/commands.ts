@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createAdmin, getAccount, updateAccount } from './perm'
-import { configKeyExists, setConfig, getWholeConfig } from './config'
+import { configKeyExists, setConfig, getWholeConfig, showHelp } from './config'
 import _ from 'lodash'
 import { getUpdates, update } from './update'
 import { openAdmin } from './listen'
@@ -15,7 +15,7 @@ import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './
 import apiMonitor from './api.monitor'
 import { argv } from './argv'
 
-if (!argv.updating)
+if (!argv.updating && !showHelp)
     try {
         /*
         is this try-block useful in case the stdin is unavailable?

@@ -196,3 +196,20 @@ export const configFile = watchLoad(filePath, text => {
             setConfig({}, false))
     }
 })
+
+export const showHelp = argv.help
+events.on('configReady', () => {
+    if (!showHelp) return
+    console.log(`HELP
+You can pass any configuration in the form: --name value
+Most common configurations:
+    --create-admin <password>
+    --port <port>
+    --cert <path>
+    --private_key <path>    
+    --consoleFile <path>
+
+For a description of each configuration, please refer to https://rejetto.com/hfs-config
+    `)
+    process.exit(0)
+})
