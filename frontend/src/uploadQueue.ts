@@ -262,9 +262,10 @@ export async function enqueueUpload(entries: ToUpload[], to=location.pathname) {
 
     entries = _.uniqBy(entries, x => getFilePath(x.file))
     if (!entries.length) return
+    entries = entries.map(x => ({ ...x, file: ref(x.file) })) // avoid valtio to mess with File object
     const q = _.find(uploadState.qs, { to })
     if (!q)
-        return uploadState.qs.push({ to, entries: entries.map(ref) })
+        return uploadState.qs.push({ to, entries })
     const missing = _.differenceBy(entries, q.entries, x => getFilePath(x.file))
     q.entries.push(...missing.map(ref))
 }
