@@ -10,17 +10,16 @@ Many things are stored in the CWD, like the plugins you install.
 You can decide a different CWD passing `--cwd SOME_FOLDER` parameter at command line.
 
 If you are not sure what your `cwd` is, look in the console, and you'll see that it is printed in one of the first lines.
-Here is an example, look at the 7th line:
+Here is an example, look at the 6th line:
 ```
-HFS ~ HTTP File Server - Copyright 2021-2023, Massimo Melina <a@rejetto.com>
-License https://www.gnu.org/licenses/gpl-3.0.txt
-started 10/5/2023, 10:03:23 AM
-version 0.49.0
-build 2023-10-04T19:46:22.610Z
-pid 27302
-cwd /Users/rejetto/.hfs
-node v18.17.1
-config config.yaml
+HFS ~ HTTP File Server
+© Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
+started 2025-01-03 10:10:00
+version 0.55.2
+build 2025-01-03T14:14:31.396Z
+working directory (cwd) /Users/rejetto/.hfs
+node v18.20.4
+platform darwin arm64 node
 ```
 
 ### How to modify configuration
