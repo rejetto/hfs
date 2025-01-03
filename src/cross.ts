@@ -378,7 +378,7 @@ export function isNumeric(x: unknown) {
 }
 
 export function isPrimitive(x: unknown): x is boolean | string | number | undefined | null {
-    return !x || Object(x) !== x
+    return x === null || typeof x !== 'object' && typeof x !== 'function' // from node's documentation
 }
 
 export function isIP(address: string) {
