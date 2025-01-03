@@ -4,7 +4,7 @@ import { ORIGINAL_CWD, VERSION, CONFIG_FILE } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
-import { DAY, newObj, throw_, tryJson, wait, with_ } from './cross'
+import { DAY, newObj, throw_, tryJson, wait, with_, isPrimitive, onlyTruthy } from './cross'
 import { debounceAsync } from './debounceAsync'
 import { statSync } from 'fs'
 import { join, resolve } from 'path'
@@ -16,7 +16,7 @@ import { argv } from './argv'
 setAutoFreeze(false) // we still want to mess with objects later (eg: account.belongs)
 
 // keep definition of config properties
-const configProps: Record<string, { defaultValue?: unknown }> = {}
+export const configProps: Record<string, { defaultValue?: unknown }> = {}
 
 let started = false // this will tell the difference for subscribeConfig()s that are called before or after config is loaded
 let state: Record<string, any> = {} // current state of config properties
@@ -199,4 +199,22 @@ export const configFile = watchLoad(filePath, text => {
         setTimeout(() => // this is called synchronously, but we need to call setConfig after first tick, when all configs are defined
             setConfig({}, false))
     }
+})
+
+export const showHelp = argv.help
+events.on('configReady', () => {
+    if (!showHelp) return
+    const mark = '°'
+    console.log(`HELP
+You can pass any configuration in the form: --config_name <value>
+Here's a list of available configurations:
+${_.difference(onlyTruthy(_.map(configProps, (v,k) => k + (isPrimitive(v.defaultValue) ? '' : mark))), ['version', 'create-admin']).sort().join(' ')} .
+
+For a description of each configuration, please refer to https://github.com/rejetto/hfs/blob/main/config.md#configuration-properties .
+Those marked with ${mark} are not simple text values, but you can set them by passing a JSON.
+In addition to the above, you can also set the following configurations:
+--consoleFile <path>
+    logs console output to a file 
+    `)
+    process.exit(0)
 })
