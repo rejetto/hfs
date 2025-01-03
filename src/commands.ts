@@ -6,13 +6,14 @@ import _ from 'lodash'
 import { getUpdates, update } from './update'
 import { openAdmin } from './listen'
 import yaml from 'yaml'
-import { argv, BUILD_TIMESTAMP, VERSION } from './const'
+import { BUILD_TIMESTAMP, VERSION } from './const'
 import { createInterface } from 'readline'
 import { getAvailablePlugins, mapPlugins, startPlugin, stopPlugin } from './plugins'
 import { purgeFileAttr } from './fileAttr'
 import { downloadPlugin } from './github'
 import { Dict, formatBytes, formatSpeed, formatTimestamp, makeMatcher } from './cross'
 import apiMonitor from './api.monitor'
+import { argv } from './argv'
 
 if (!argv.updating)
     try {

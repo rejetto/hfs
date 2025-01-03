@@ -6,12 +6,12 @@ import { homedir } from 'os'
 import _ from 'lodash'
 import { basename, dirname, join } from 'path'
 import { formatTimestamp } from './cross'
+import { argv } from './argv'
 export * from './cross-const'
 
 export const API_VERSION = 10.3
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
 
-export const argv = minimist(process.argv.slice(2))
 // you can add arguments with this file, currently used for the update process on mac/linux
 export const ARGS_FILE = join(homedir(), 'hfs-args')
 try {

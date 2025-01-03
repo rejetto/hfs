@@ -11,7 +11,7 @@ import open from 'open'
 import {
     CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate
 } from './misc'
-import { PORT_DISABLED, ADMIN_URI, argv, DEV, IS_WINDOWS } from './const'
+import { PORT_DISABLED, ADMIN_URI, DEV, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
@@ -20,6 +20,7 @@ import events from './events'
 import { isIPv6 } from 'net'
 import { defaultBaseUrl } from './nat'
 import { storedMap } from './persistence'
+import { argv } from './argv'
 
 interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra

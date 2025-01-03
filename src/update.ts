@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { getProjectInfo, getRepoInfo } from './github'
-import { ARGS_FILE, argv, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
+import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
 import { DAY, exists, debounceAsync, httpStream, unzip, prefix, xlate, HOUR } from './misc'
@@ -15,6 +15,7 @@ import { cmdEscape, RUNNING_AS_SERVICE } from './util-os'
 import { onProcessExit } from './first'
 import { storedMap } from './persistence'
 import _ from 'lodash'
+import { argv } from './argv'
 
 const updateToBeta = defineConfig('update_to_beta', false)
 const autoCheckUpdate = defineConfig('auto_check_update', true)

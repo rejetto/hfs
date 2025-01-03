@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { argv, ORIGINAL_CWD, VERSION, CONFIG_FILE } from './const'
+import { ORIGINAL_CWD, VERSION, CONFIG_FILE } from './const'
 import { watchLoad } from './watchLoad'
 import yaml from 'yaml'
 import _ from 'lodash'
@@ -10,6 +10,7 @@ import { join, resolve } from 'path'
 import events from './events'
 import { copyFile, stat } from 'fs/promises'
 import produce, { setAutoFreeze } from 'immer'
+import { argv } from './argv'
 
 setAutoFreeze(false) // we still want to mess with objects later (eg: account.belongs)
 
