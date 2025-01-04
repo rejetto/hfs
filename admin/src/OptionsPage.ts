@@ -243,7 +243,7 @@ export default function OptionsPage() {
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
             },
-            { k: 'server_code', comp: TextEditorField, sm: 12, getError: v => try_(() => new Function(v) && null, e => e.message),
+            { k: 'server_code', comp: TextEditorField, lang: 'js', sm: 12,
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
 

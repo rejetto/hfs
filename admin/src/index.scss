@@ -76,3 +76,6 @@ h2.MuiDialogTitle-root { /* less padding */
 ::-webkit-scrollbar { width: 4px }
 ::-webkit-scrollbar-thumb { background: #8888 }
 ::-webkit-scrollbar-track { background: #8882 }
+
+// adjust prism black theme
+.token.operator { background: unset !important; }

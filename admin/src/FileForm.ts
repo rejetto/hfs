@@ -25,6 +25,7 @@ import MenuButton from './MenuButton'
 import addFiles, { addLink, addVirtual } from './addFiles'
 import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
 import { hIcon } from '@hfs/frontend/src/misc'
+import { TextEditorField } from './TextEditor'
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
 
@@ -203,7 +204,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             { k: 'comment', multiline: true, xl: true },
             isDir && { k: 'masks', multiline: true, xl: 6,
                 toField: yaml.stringify, fromField: v => v ? yaml.parse(v) : undefined,
-                sx: { '& textarea': { fontFamily: 'monospace' } },
+                comp: TextEditorField, lang: 'yaml',
                 helperText: ["Special field, leave empty unless you know what you are doing. YAML syntax. ", wikiLink('Masks-field', "(examples)")]
             },
         ]

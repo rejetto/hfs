@@ -20,6 +20,7 @@
     "@mui/x-tree-view": "^6.17.0",
     "@gregoranders/csv": "^0.0.13",
     "dayjs": "^1.11.10",
+    "prismjs": "^1.29.0",
     "react": "^18.3.1",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.23.1",
@@ -33,6 +34,7 @@
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
+    "@types/prismjs": "^1.26.5",
     "@types/react": "^18.3.14",
     "@types/react-dom": "^18.3.2",
     "@types/react-window": "^1.8.8",

@@ -57,6 +57,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
             }),
         ),
         h(TextEditor, {
+            lang: section === 'style' ? 'css' : section === 'script' ? 'js' : 'html',
             value: all?.[section] || '',
             style: { background: '#8881' },
             onValueChange(v: string) {
