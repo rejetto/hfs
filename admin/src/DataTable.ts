@@ -7,6 +7,7 @@ import _ from 'lodash'
 import { Center, Flex } from './mui'
 import { SxProps } from '@mui/system'
 import { state, updateStateObject } from './state'
+import { useDebounce } from 'usehooks-ts'
 
 const ACTIONS = 'Actions'
 
@@ -95,7 +96,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         return ret
     }, [columns, actions, actionsLength])
     const sizeGrid = useGetSize()
-    const width = sizeGrid.w || 0
+    const width = useDebounce(sizeGrid.w || 0, 500) // stabilize width
     const hideCols = useMemo(() => {
         const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder, hidden }) =>
             (hidden || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
