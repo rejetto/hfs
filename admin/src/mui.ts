@@ -106,7 +106,7 @@ export function reloadBtn(onClick: any, props?: any) {
 
 // modify look to convey that a form has been modified
 export function propsForModifiedValues(modified: boolean | undefined) {
-    return modified ? { sx: { outline: '2px solid' } } : undefined
+    return modified ? { sx: { outline: '2px solid', animation: '.5s blink 2' } } : undefined
 }
 
 // use ref.pass as prop
