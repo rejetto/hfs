@@ -92,8 +92,8 @@ export function setPluginConfig(id: string, changes: Dict | null) {
 }
 
 export function getPluginInfo(id: string) {
-    const running = plugins.get(id)?.getData()
-    return running && Object.assign(running, {id}) || availablePlugins[id]
+    const running = plugins.get(id)
+    return running && { ...running.getData(), ...running } || availablePlugins[id]
 }
 
 export function findPluginByRepo<T>(repo: string) {
@@ -111,13 +111,14 @@ export function getPluginConfigFields(id: string) {
     return plugins.get(id)?.getData().config
 }
 
-async function initPlugin<T>(pl: any, morePassedToInit?: T) {
+async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>) {
     const res = await pl.init?.({
         Const,
         require,
         getConnections,
         events,
         log: console.log,
+        setError(msg: string) { setError(morePassedToInit?.id || 'server_code', msg) },
         getHfsConfig: getConfig,
         customApiCall,
         notifyClient,
@@ -182,11 +183,11 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
     for (const [id,f] of Object.entries(after))
         try { await f() }
         catch (e) { printError(id, e) }
-}
 
-function printError(id: string, e: any) {
-    console.log(`error middleware plugin ${id}: ${e?.message || e}`)
-    console.debug(e)
+    function printError(id: string, e: any) {
+        console.log(`error middleware plugin ${id}: ${e?.message || e}`)
+        console.debug(e)
+    }
 }
 
 declare module "koa" {
@@ -260,7 +261,7 @@ export class Plugin implements CommonPluginInterface {
     }
 
     getData(): any {
-        return { ...this.data }
+        return this.data
     }
 
     async unload(reloading=false) {
@@ -420,8 +421,7 @@ function watchPlugin(id: string, path: string) {
 
     async function onUninstalled() {
         await stop()
-        const was = getPluginInfo(id)
-        if (!was) return
+        if (!getPluginInfo(id)) return // already missing
         delete availablePlugins[id]
         events.emit('pluginUninstalled', id)
     }
@@ -470,6 +470,7 @@ function watchPlugin(id: string, path: string) {
             await mkdir(storageDir, { recursive: true })
             const dbs: KvStorage[] = []
             await initPlugin(pluginData, {
+                id,
                 srcDir: __dirname,
                 storageDir,
                 async openDb(filename: string, options?: KvStorageOptions){
@@ -528,7 +529,6 @@ function watchPlugin(id: string, path: string) {
             const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
             const where = parsed?.length > 1 ? `\n${parsed[0]}` : ''
             e = e.message + where || String(e)
-            console.log(`plugin error: ${id}:`, e)
             setError(id, e)
         }
         finally {
@@ -547,11 +547,16 @@ function getError(id: string) {
     return getPluginInfo(id)?.error as undefined | string
 }
 
+// returns true if there's an error, and it has changed
 function setError(id: string, error: string) {
     const info = getPluginInfo(id)
     if (!info) return
+    if (info.error === error) return
     info.error = error
-    events.emit('pluginUpdated', { id, error })
+    events.emit('pluginUpdated', info)
+    if (!error) return
+    console.log(`plugin error: ${id}:`, error)
+    return true
 }
 
 function deleteModule(id: string) {

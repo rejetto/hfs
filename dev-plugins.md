@@ -244,6 +244,8 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `ctxBelongsTo(ctx: Context, accounts: strings[]): boolean` check if the current username, or any group it belongs to, matches the provided accounts list.  
 
+- `setError(error: string)` set an error message that will be displayed in the admin-panel. Use an empty string to clear it.
+
 - `misc` many functions and constants available in [misc.ts](https://github.com/rejetto/hfs/blob/main/src/misc.ts).
   These are not documented, probably never will, and are subject to change without notifications,
   but you can study the sources if you are interested in using them. It's just a shorter version of `api.require('./misc')`
@@ -700,7 +702,9 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
- - 10.3 (v0.55.0)
+- 11 (v0.56.0)
+    - api.setError 
+- 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams
     - exports.beforePlugin + afterPlugin
