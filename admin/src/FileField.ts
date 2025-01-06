@@ -4,7 +4,7 @@ import { FieldProps, StringField } from '@hfs/mui-grid-form'
 import { createElement as h } from 'react'
 import { Eject } from '@mui/icons-material'
 import { IconBtn, useBreakpoint } from './mui'
-import { newDialog } from '@hfs/shared'
+import { newDialog, prefix } from '@hfs/shared'
 import FilePicker from './FilePicker'
 import { apiCall } from './api'
 
@@ -22,7 +22,7 @@ export default function FileField({ value, onChange, files=true, folders=false, 
             sx: { mb: .5 },
             onClick() {
                 const { close } = newDialog({
-                    title: title ?? (files ? "Pick a file" : "Pick a folder"),
+                    title: title ?? ((files ? "Pick a file" : "Pick a folder") + prefix(': ', fileMask)),
                     dialogProps: {
                         fullScreen: !large,
                         sx: { minWidth: 'min(90vw, 40em)', minHeight: 'calc(100vh - 9em)' }
