@@ -755,14 +755,14 @@ form label+input { margin-top: .2em; }
     .fullWidth {
         .showing-container, .showing { width: 100%; }
     }
-    --nav-size: 25vh;
+    --nav-size: 25vh; // big
     @supports (width: min(1px,2px)) {
-        --nav-size: min(25vh, 25vw);
+        --nav-size: min(25vh, 25vw, 13em);
     }
     .nav {
         position: absolute;
         width: .5em; // closer to the edge
-        font-size: var(--nav-size); // big
+        font-size: var(--nav-size);
         cursor: pointer;
         opacity: .3;
         -webkit-text-stroke: 2px black;
