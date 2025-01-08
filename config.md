@@ -4,7 +4,7 @@ This file contains details about the configuration files.
 
 Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
 
-These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`.
+These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
 if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
 Many things are stored in the CWD, like the plugins you install.
 You can decide a different CWD passing `--cwd SOME_FOLDER` parameter at command line.
@@ -35,6 +35,7 @@ Configuration can be done in several ways
     `echo "port: 1080" >> config.yaml` 
 - after HFS has started you can enter console command in the form `config NAME VALUE`
 - setting special env `HFS_ENV_BOOTSTRAP=true` will disable other envs when file config.yaml already exists. 
+- env `DISABLE_UPDATE` (designed for containers) will disable updating, but check-for-update will still be possible.  
 
 `NAME` stands for the property name that you want to change. See the complete list below.
 

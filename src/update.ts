@@ -98,7 +98,7 @@ export function localUpdateAvailable() {
 }
 
 export async function updateSupported() {
-    return argv.forceupdate || IS_BINARY && !await RUNNING_AS_SERVICE
+    return process.env.DISABLE_UPDATE ? false : (argv.forceupdate || IS_BINARY && !await RUNNING_AS_SERVICE)
 }
 
 export async function update(tagOrUrl: string='') {
