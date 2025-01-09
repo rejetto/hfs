@@ -10,84 +10,118 @@ import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidateSessionBefore } from './auth'
 import { apiAssertTypes, onlyTruthy, with_ } from './misc'
 
+// Utility function to validate parameters' types
+function validateParams(params) {
+    apiAssertTypes(params)
+}
+
+// Function to prepare account data by excluding sensitive information
 function prepareAccount(ac: Account | undefined) {
-    return ac && {
-        ..._.omit(ac, ['password','hashed_password','srp']),
-        username: ac.username, // omit won't copy it because it's a hidden prop
+    if (!ac) return undefined
+
+    // Fetch and sort all members associated with the account
+    const members = with_(Object.values(accountsConfig.get()), accounts => {
+        const ret = []
+        let news = [ac.username]
+        while (news.length) {
+            news = accounts.filter(a => a.belongs?.some(x => news.includes(x))).map(x => x.username)
+            ret.push(...news)
+        }
+        return ret.sort()
+    })
+
+    return {
+        ..._.omit(ac, ['password', 'hashed_password', 'srp']),
+        username: ac.username, // Ensure username is included even though it's omitted by default
         hasPassword: accountHasPassword(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
         invalidated: invalidateSessionBefore.get(ac.username),
-        members: with_(Object.values(accountsConfig.get()), accounts => {
-            const ret = []
-            let news = [ac.username]
-            while (news.length) {
-                news = accounts.filter(a => a.belongs?.some(x => news.includes(x))).map(x => x.username)
-                ret.push(...news)
-            }
-            return ret.sort()
-        })
+        members
     }
 }
 
 export default  {
 
+    // Return the list of all usernames
     get_usernames() {
         return { list: Object.keys(accountsConfig.get()) }
     },
 
+    // Return account details for a specific username or the current username
     get_account({ username }, ctx) {
-        return prepareAccount(getAccount(username || getCurrentUsername(ctx)))
-            || new ApiError(HTTP_NOT_FOUND)
+        validateParams({ string: { username } })
+        const account = getAccount(username || getCurrentUsername(ctx))
+        return prepareAccount(account) || new ApiError(HTTP_NOT_FOUND, 'Account not found')
     },
 
+    // Return the list of all accounts
     get_accounts() {
         return { list: onlyTruthy(Object.values(accountsConfig.get()).map(prepareAccount)) }
     },
 
+    // Return the list of all admin accounts
     get_admins() {
-        return { list: _.filter(accountsConfig.get(), accountCanLoginAdmin).map(ac => ac.username) }
+        const admins = _.filter(accountsConfig.get(), accountCanLoginAdmin)
+        return { list: admins.map(ac => ac.username) }
     },
 
+    // Set (update) account details, ensuring account exists
     async set_account({ username, changes }, ctx) {
-        apiAssertTypes({ string: { username } })
+        validateParams({ string: { username } })
         const acc = getAccount(username)
-        if (!acc)
-            return new ApiError(HTTP_BAD_REQUEST)
+        if (!acc) return new ApiError(HTTP_NOT_FOUND, 'Account not found')
+
         await updateAccount(acc, changes)
-        if (changes.username && ctx.session?.username === username)
+
+        // If the username is changed and it's the current session user, update session
+        if (changes.username && ctx.session?.username === username) {
             ctx.session!.username = changes.username
+        }
+
         return _.pick(acc, 'username')
     },
 
+    // Add a new account or overwrite an existing one if specified
     async add_account({ overwrite, username, ...rest }) {
-        apiAssertTypes({ string: { username } })
+        validateParams({ string: { username } })
         const existing = getAccount(username)
+
         if (existing) {
-            if (!overwrite) return new ApiError(HTTP_CONFLICT)
+            if (!overwrite) {
+                return new ApiError(HTTP_CONFLICT, `Account ${username} already exists`)
+            }
             await updateAccount(existing, rest)
             return _.pick(existing, 'username')
         }
-        const acc = await addAccount(username, rest)
-        return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST) // return username because it is normalized
+
+        try {
+            const acc = await addAccount(username, rest)
+            return acc ? _.pick(acc, 'username') : new ApiError(HTTP_BAD_REQUEST, 'Failed to add account')
+        } catch (err) {
+            return new ApiError(HTTP_BAD_REQUEST, 'Failed to add account')
+        }
     },
 
+    // Delete an account by username
     del_account({ username }) {
-        apiAssertTypes({ string: { username } })
-        return delAccount(username) ? {} : new ApiError(HTTP_BAD_REQUEST)
+        validateParams({ string: { username } })
+        const result = delAccount(username)
+        return result ? {} : new ApiError(HTTP_BAD_REQUEST, 'Failed to delete account')
     },
 
+    // Invalidate a session for a specific username
     invalidate_sessions({ username }) {
-        apiAssertTypes({ string: { username } })
+        validateParams({ string: { username } })
         invalidateSessionBefore.set(username, Date.now())
         return {}
     },
 
+    // Change SRP (Secure Remote Password) parameters for a given account
     async change_srp({ username, salt, verifier }) {
-        apiAssertTypes({ string: { username, salt, verifier } })
-        const a = getAccount(username)
-        return a ? changeSrpHelper(a, salt, verifier)
-            : new ApiError(HTTP_NOT_FOUND)
+        validateParams({ string: { username, salt, verifier } })
+        const account = getAccount(username)
+        return account ? changeSrpHelper(account, salt, verifier)
+            : new ApiError(HTTP_NOT_FOUND, `Account ${username} not found`)
     }
-
 } satisfies ApiHandlers
