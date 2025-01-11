@@ -48,9 +48,7 @@ function parseCommandLine(line: string) {
         })
 }
 
-const aliases: Dict<string> = {
-    exit: 'quit',
-}
+const aliases: Dict<string> = { ver: 'version', exit: 'quit' }
 
 const commands = {
     help: {
@@ -121,8 +119,7 @@ const commands = {
     version: {
         params: '',
         cb() {
-            console.log(VERSION)
-            console.log(BUILD_TIMESTAMP)
+            console.log(VERSION, 'build', BUILD_TIMESTAMP)
         }
     },
     'start-plugin': {
