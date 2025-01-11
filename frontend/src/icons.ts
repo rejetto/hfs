@@ -16,6 +16,7 @@ Promise.race([documentComplete, document.fonts?.ready]).then(async () => {
 })
 
 interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
+// name = null ? none : unicode ? unicode : "?" ? file_url : font_icon_class
 export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
     if (!name) return null
     const [emoji, clazz=name] = SYS_ICONS[name] || []
@@ -23,14 +24,14 @@ export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
     className += ' icon'
     const nameIsTheIcon = name.length === 1 ||
         name.match(/^[\uD800-\uDFFF\u2600-\u27BF\u2B00-\u2BFF\u3030-\u303F\u3297\u3299\u00A9\u00AE\u200D\u20E3\uFE0F\u2190-\u21FF\u2300-\u23FF\u2400-\u243F\u25A0-\u25FF\u2600-\u26FF\u2700-\u27BF]*$/)
-    const nameIsFile = !nameIsTheIcon && /[.?]/.test(name)
+    const nameIsUrl = !nameIsTheIcon && /[/?]/.test(name)
     const isFontIcon = iconsReady && clazz
-    className += nameIsFile ? ' file-icon' : isFontIcon ? ` fa-${clazz}` : ' emoji-icon'
+    className += nameIsUrl ? ' file-icon' : isFontIcon ? ` fa-${clazz}` : ' emoji-icon'
     return h('span',{
         ...alt ? { 'aria-label': alt } : { 'aria-hidden': true },
         role: 'img',
         ...props,
-        ...nameIsFile ? { style: { backgroundImage: `url(${JSON.stringify(name)})`, ...props?.style } } : undefined,
+        ...nameIsUrl ? { style: { backgroundImage: `url(${JSON.stringify(name)})`, ...props?.style } } : undefined,
         className,
     }, nameIsTheIcon ? name : isFontIcon ? null : (emoji||'#'))
 })

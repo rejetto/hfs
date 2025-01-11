@@ -1,4 +1,4 @@
-export const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // false means we don't have the icon, only unicode
+export const SYS_ICONS: Record<string, [string] | [string, string | false]> = { // undefined = font-icon name same as key ; false = no font-icon, only unicode
     login: ['👤','user'],
     user: ['👤','user'],
     filter: ['✂'],

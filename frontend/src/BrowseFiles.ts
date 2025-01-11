@@ -3,7 +3,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState,
     useId} from 'react'
-import { useDocumentTitle, useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
+import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
 import {
     domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp
 } from './misc'

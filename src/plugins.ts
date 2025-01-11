@@ -128,7 +128,9 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
         getCurrentUsername,
         ...morePassedToInit
     })
-    return Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
+    Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
+    events.emit('pluginInitialized', pl)
+    return pl
 }
 
 const already = new Set()
