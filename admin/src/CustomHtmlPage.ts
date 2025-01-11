@@ -36,9 +36,12 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
     }, [useDebounce(all, 500)])
     const anyChange = useMemo(() => !_.isEqualWith(saved, all, (a,b) => !a && !b || undefined),
         [saved, all])
-    setTitleSide(useMemo(() => h(Alert, { severity: 'info', sx: { display: { xs: 'none', md: 'inherit' }  } },
-        md("Add HTML code to some parts of the Front-end. It's saved to file `custom.html`, that you can edit directly with your editor of choice. "),
-        wikiLink('customization', "More help")
+    setTitleSide(useMemo(() => h(Box, { sx: { display: { xs: 'none', md: 'block' }  } },
+        h(Alert, { severity: 'info' },
+            md("Add HTML code to some parts of the Front-end. It's saved to file `custom.html`, that you can edit directly with your editor of choice. "),
+            wikiLink('customization', "More help")
+        ),
+        h(Alert, { severity: 'info' }, md("To customize icons "), wikiLink('customization#icons', "read documentation") ),
     ), []))
     return h(Fragment, {},
         h(Box, { display: 'flex', alignItems: 'center', gap: 1, mb: 1 },

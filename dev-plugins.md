@@ -15,6 +15,19 @@ but nothing is preventing a single plug-in from doing both tasks.
 
 Plugins can run both in backend (the server) and frontend (the browser). Frontend files reside in the "public" folder, while all the rest is backend.
 
+## System icons
+
+HFS defines "system icons" that will be used in the frontend, like the icon for the login.
+A plugin can customize such icons by creating a folder called "icons" and putting an image file with
+its name (excluding extension) matching one of the list: 
+*login, user, filter, search, search_off, close, error, stop, options, archive, logout, home, parent, folder, file, 
+spinner, password, download, upload, reload, lock, admin, check, to_start, to_end, menu, list, play, pause, edit, zoom, 
+delete, comment, link, info, cut, paste, shuffle, repeat, success, warning, audio, video, image, cancel, total*.
+
+The list above may become outdated, but you can always find an updated version at https://github.com/rejetto/hfs/blob/main/frontend/src/sysIcons.ts.
+
+For example, put a file "login.png" into "icons" to customize that icon.
+
 ## Exported object
 
 `plugin.js` is a javascript module (executed by Node.js), and its main way to communicate with HFS is by exporting things.

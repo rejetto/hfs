@@ -14,7 +14,7 @@ export function showOptions (){
     newDialog({
         title: t`Options`,
         className: 'options-dialog',
-        icon: () => hIcon('settings'),
+        icon: () => hIcon('options'),
         Content
     })
 

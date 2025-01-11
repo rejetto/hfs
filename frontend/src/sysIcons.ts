@@ -7,7 +7,7 @@ export const SYS_ICONS: Record<string, [string] | [string, string | false]> = { 
     close: ['❌','cancel'],
     error: ['❌','cancel'],
     stop: ['⏹️'],
-    settings: ['⚙','cog'],
+    options: ['⚙','cog'],
     archive: ['📦'],
     logout: ['🚪'],
     home: ['🏠'],
@@ -46,4 +46,3 @@ export const SYS_ICONS: Record<string, [string] | [string, string | false]> = { 
     cancel: ['❌','cancel'],
     total: ['➕', 'spin6'],
 }
-

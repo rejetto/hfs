@@ -117,9 +117,11 @@ button {
     background-color: var(--button-bg);
     color: var(--button-text);
     padding: .5em;
+    display: inline-flex; align-items: center; justify-content: center; // get closer results between chrome and safari
     &:not(.before-sliding) { min-width: min-content; }
     &.small { padding: 0 0.4em; height: 30px; }
-    .icon { position: relative; top: .05em; margin: -.2em 0; }
+    .icon { margin: -.2em 0; }
+    .font-icon { vertical-align: middle; }
     border: transparent;
     text-decoration: none;
     border-radius: 0.3em;
@@ -242,6 +244,7 @@ kbd {
     margin-right: -0.1em;
     &:nth-child(-n+3) .icon {
         padding: 0 0.2em;
+        height: 1em; // effective only on file-icon
     }
 }
 #folder-stats, #filter-bar>span {
@@ -515,6 +518,7 @@ form label+input { margin-top: .2em; }
 .popup-menu-button {
     font-size: .8em; padding: .2em .3em; position: absolute; opacity: .8; white-space: nowrap;
     &:hover,&:focus { opacity: 1 }
+    .icon { margin-right: 0.1em; }
 }
 
 .file-dialog .dialog { min-width: 13em; } /* more room for title */

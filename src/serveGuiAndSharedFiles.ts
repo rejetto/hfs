@@ -1,15 +1,17 @@
 import Koa from 'koa'
-import { basename, dirname } from 'path'
+import { basename, dirname, join } from 'path'
 import { getNodeName, nodeIsDirectory, statusCodeForMissingPerm, urlToNode, vfs, VfsNode, walkNode } from './vfs'
 import { sendErrorPage } from './errorPages'
 import events from './events'
-import { ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
-    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK } from './cross-const'
+import {
+    ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI
+} from './cross-const'
 import { uploadWriter } from './upload'
 import formidable from 'formidable'
 import { Writable } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
-import { BUILD_TIMESTAMP, DEV, VERSION } from './const'
+import { BUILD_TIMESTAMP, DEV, MIME_AUTO, VERSION } from './const'
 import { zipStreamFromFolder } from './zip'
 import { allowAdmin, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
@@ -17,6 +19,8 @@ import mount from 'koa-mount'
 import { baseUrl } from './listen'
 import { asyncGeneratorToReadable, deleteNode, filterMapGenerator, pathEncode, try_ } from './misc'
 import { basicWeb, detectBasicAgent } from './basicWeb'
+import { customizedIcons, ICONS_FOLDER } from './icons'
+import { getPluginInfo } from './plugins'
 
 const serveFrontendFiles = serveGuiFiles(process.env.FRONTEND_PROXY, FRONTEND_URI)
 const serveFrontendPrefixed = mount(FRONTEND_URI.slice(0,-1), serveFrontendFiles)
@@ -38,6 +42,16 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (path.startsWith(ADMIN_URI))
         return allowAdmin(ctx) ? serveAdminPrefixed(ctx,next)
             : sendErrorPage(ctx, HTTP_FORBIDDEN)
+    if (path.startsWith(ICONS_URI)) {
+        const a = path.substring(ICONS_URI.length).split('/')
+        const iconName = a.at(-1)
+        if (!iconName) return
+        const plugin = a.length > 1 && getPluginInfo(a[0]!) // an extra level in the path indicates a plugin
+        const file = plugin ? plugin.icons?.[iconName] : customizedIcons?.[iconName]
+        if (!file) return
+        ctx.state.considerAsGui = true
+        return serveFile(ctx, join(plugin?.folder || '', ICONS_FOLDER, file), MIME_AUTO)
+    }
     if (ctx.method === 'PUT') { // curl -T file url/
         const decPath = decodeURIComponent(path)
         let rest = basename(decPath)

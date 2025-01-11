@@ -25,7 +25,7 @@ export async function readFileBusy(path: string): Promise<string> {
     })
 }
 
-export function watchDir(dir: string, cb: ()=>void) {
+export function watchDir(dir: string, cb: ()=>void, atStart=false) {
     let watcher: ReturnType<typeof watch>
     let paused = false
     try {
@@ -49,6 +49,8 @@ export function watchDir(dir: string, cb: ()=>void) {
             console.debug(String(e))
         }
     }
+    if (atStart)
+        controlledCb()
     return {
         working() { return Boolean(watcher) },
         stop() { watcher?.close() },

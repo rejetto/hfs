@@ -3,6 +3,7 @@ export const FRONTEND_URI = SPECIAL_URI + 'frontend/'
 export const ADMIN_URI = SPECIAL_URI + 'admin/'
 export const API_URI = SPECIAL_URI + 'api/'
 export const PLUGINS_PUB_URI = SPECIAL_URI + 'plugins/'
+export const ICONS_URI = SPECIAL_URI + 'icons/'
 export const PORT_DISABLED = -1
 export const NBSP = '\xA0'
 export const PLUGIN_CUSTOM_REST_PREFIX = '_'

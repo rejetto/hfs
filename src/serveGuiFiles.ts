@@ -2,20 +2,25 @@
 
 import Koa from 'koa'
 import fs from 'fs/promises'
-import { API_VERSION, MIME_AUTO, FRONTEND_URI, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
-    PLUGINS_PUB_URI, VERSION, SPECIAL_URI } from './const'
+import {
+    API_VERSION, MIME_AUTO, FRONTEND_URI, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
+    PLUGINS_PUB_URI, VERSION, SPECIAL_URI, ICONS_URI
+} from './const'
 import { serveFile } from './serveFile'
 import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
 import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
-import { CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, onlyTruthy, parseFile } from './misc'
+import {
+    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFile
+} from './misc'
 import { favicon, title } from './adminApis'
 import { customHtml, getAllSections, getSection } from './customHtml'
 import _ from 'lodash'
 import { defineConfig, getConfig } from './config'
 import { getLangData } from './lang'
 import { dontOverwriteUploading } from './upload'
+import { customizedIcons, CustomizedIcons } from './icons'
 
 const size1024 = defineConfig(CFG.size_1024, false, x => formatBytes.k = x ? 1024 : 1000) // we both configure formatBytes, and also provide a compiled version (number instead of boolean)
 const splitUploads = defineConfig(CFG.split_uploads, 0)
@@ -112,6 +117,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         forceTheme: mapPlugins(p => _.isString(p.isTheme) ? p.isTheme : undefined).find(Boolean),
                         customHtml: _.omit(getAllSections(), ['top', 'bottom', 'htmlHead', 'style']), // exclude the sections we already apply in this phase
                         ...newObj(FRONTEND_OPTIONS, (v, k) => getConfig(k)),
+                        icons: Object.assign({}, ...mapPlugins(p => iconsToObj(p.icons, p.id + '/')), iconsToObj(customizedIcons)), // name-to-uri 
                         lang
                     }, null, 4).replace(/<(\/script)/g, '<"+"$1') /*avoid breaking our script container*/}
                     document.documentElement.setAttribute('ver', HFS.VERSION.split('-')[0])
@@ -121,6 +127,10 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                         <link rel="shortcut icon" href="/favicon.ico?${timestamp}" />
                     ${getSection('htmlHead')}`}
                 `
+            function iconsToObj(icons: CustomizedIcons, pre='') {
+                return icons && objSameKeys(icons, (v, k) => ICONS_URI + pre + k)
+            }
+
             if (isBody && isOpen)
                 return `${all}
                     ${isFrontend && getSection('top')}

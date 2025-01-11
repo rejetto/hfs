@@ -90,7 +90,7 @@ export function MenuPanel() {
             } : getSearchProps()),
             h(Btn, {
                 id: 'options-button',
-                icon: 'settings',
+                icon: 'options',
                 label: t`Options`,
                 onClick: showOptions
             }),

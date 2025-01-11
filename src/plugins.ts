@@ -3,8 +3,9 @@
 import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
-import { API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, IS_WINDOWS, MIME_AUTO,
-    PLUGINS_PUB_URI } from './const'
+import {
+    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, ICONS_URI, IS_WINDOWS, MIME_AUTO, PLUGINS_PUB_URI
+} from './const'
 import * as Const from './const'
 import Koa from 'koa'
 import {
@@ -31,6 +32,7 @@ import { getLangData } from './lang'
 import { i18nFromTranslations } from './i18n'
 import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
+import { CustomizedIcons, ICONS_FOLDER, watchIconsFolder } from './icons'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
@@ -208,6 +210,7 @@ type OnDirEntry = (params:OnDirEntryParams) => void | false
 
 export class Plugin implements CommonPluginInterface {
     started: Date | null = new Date()
+    icons: CustomizedIcons
 
     constructor(readonly id:string, readonly folder:string, private readonly data:any, private onUnload:()=>unknown){
         if (!data) throw 'invalid data'
@@ -511,12 +514,13 @@ function watchPlugin(id: string, path: string) {
             pluginData.getCustomHtml = () =>
                 Object.assign(Object.fromEntries(sections), callable(pluginData.customHtml) || {})
 
+            const unwatchIcons = watchIconsFolder(folder, v => plugin.icons = v)
             const plugin = new Plugin(id, folder, pluginData, async () => {
+                unwatchIcons()
                 unwatch()
                 await Promise.allSettled(dbs.map(x => x.close()))
                 dbs.length = 0
             })
-
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
