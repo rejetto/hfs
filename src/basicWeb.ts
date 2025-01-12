@@ -61,7 +61,7 @@ export function basicWeb(ctx: Koa.Context, node: VfsNode) {
 export function detectBasicAgent(ctx: Koa.Context) {
     const ua = ctx.get('user-agent')
     const v = autoBasic.get()
-    return v && (/Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|curl|Firefox\/(\d|[1234]\d)\./.test(ua)
+    return v && (/^$|Mozilla\/4|WebKit\/([234]\d\d|5[012]\d|53[0123456])[. ]|Trident|Lynx|curl|Firefox\/(\d|[1234]\d)\./.test(ua)
         || _.isString(v) && ua.includes(v))
 }
 
