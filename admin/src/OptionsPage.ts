@@ -271,7 +271,8 @@ export default function OptionsPage() {
             return alertDialog("You cannot switch off this port unless you have a working fixed port for " + otherProtocol, 'warning')
         if (newPort === 0 && !otherIsReliable)
             return alertDialog("You cannot randomize this port unless you have a working fixed port for " + otherProtocol, 'warning')
-        if (newPort > 0 && !await confirmDialog("You are changing the port and you may be disconnected"))
+        const goingNewPort = newPort > 0 && newPort != loc.port // == loc.port can happen when listening on a temporary port, and the user just set the same port as new config
+        if (goingNewPort && !await confirmDialog("You are changing the port and you may be disconnected"))
             return
         const certChange = 'cert' in changes || 'private_key' in changes
         if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
@@ -280,7 +281,7 @@ export default function OptionsPage() {
         const ip = ipForUrl(loc.hostname)
         const path = loc.pathname + loc.hash
         const redirect = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${ip}:${otherPort}${path}` // jump protocol also in case of random port, because people must know their port while using GUI
-            : newPort ? `${loc.protocol}//${ip}:${newPort || values[keys[0]]}${path}`
+            : goingNewPort ? `${loc.protocol}//${ip}:${newPort || values[keys[0]]}${path}`
                 : await with_(`https://${ip}:${loc.port}${path}`, httpsUrl => // could we be kicked out because of force_https?
                     !onHttps && (changes.force_https ?? data.force_https) && fetch(httpsUrl).then(() => httpsUrl, () => 0)) // only happens if https is working
         if (redirect) {
