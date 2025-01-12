@@ -1,6 +1,6 @@
 import { dirname } from 'path'
 import { existsSync, statfsSync } from 'fs'
-import { exec, ExecOptions } from 'child_process'
+import { exec, execFile, ExecOptions } from 'child_process'
 import { isWindowsDrive, onlyTruthy, promiseBestEffort } from './misc'
 import Parser from '@gregoranders/csv';
 import { pid, ppid } from 'node:process'
@@ -87,3 +87,7 @@ export const RUNNING_AS_SERVICE = IS_WINDOWS && getWindowsServicePids().then(x =
     console.log("couldn't determine if we are running as a service")
     console.debug(e)
 })
+
+export function reg(...pars: string[]) {
+    return promisify(execFile)('reg', pars).then(x => x.stdout)
+}

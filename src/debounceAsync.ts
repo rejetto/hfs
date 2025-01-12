@@ -7,21 +7,23 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
     options: {
         // time to wait after invocation of the debounced function. If you call again while waiting, the timer starts again.
         wait?: number,
-        // in a train of invocations, should we execute also the first one, or just the last one?
-        leading?: boolean,
         // since the wait-ing is renewed at each invocation, indefinitely, do you want to put a cap to it?
         maxWait?: number,
+        // in a train of invocations, should we execute also the first one, or just the last one?
+        leading?: boolean,
         // for how long do you want to cache last success value, and return that at next invocation?
         retain?: number,
         // for how long do you want to cache last failure value, and return that at next invocation?
         retainFailure?: number,
+        // if a call is overlapping another, return the same promise, instead of queuing
+        reuseRunning?: boolean,
         // should we offer a cancel method to the returned function? if we do, the awaited-type will include undefined
         cancelable?: Cancelable
     } = {}
 ) {
     type MaybeUndefined<T> = Cancelable extends true ? undefined | T : T
     type MaybeR = MaybeUndefined<R>
-    const { wait=0, leading=false, maxWait=Infinity, cancelable=false, retain=0, retainFailure } = options
+    const { wait=0, leading=false, maxWait=Infinity, cancelable=false, retain=0, retainFailure, reuseRunning } = options
     let started = 0 // latest callback invocation
     let runningCallback: Promise<R> | undefined // latest callback invocation result
     let latestDebouncer: Promise<MaybeR | R> // latest wrapper invocation
@@ -44,7 +46,7 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
     })
 
     async function debouncer(...args: A) {
-        if (runningCallback)
+        if (reuseRunning && runningCallback)
             return runningCallback as MaybeR
         const now = Date.now()
         if (latestCallback && now - latestTimestamp < (latestHasFailed ? retainFailure ?? retain : retain))
@@ -61,6 +63,7 @@ export function debounceAsync<Cancelable extends boolean = false, A extends unkn
         }
         if (whoIsWaiting !== args) // another fresher call is waiting
             return latestDebouncer
+        await runningCallback // in case we don't reuseRunning
         return exec()
     }
 

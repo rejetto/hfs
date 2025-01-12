@@ -141,7 +141,7 @@ export function setConfig(newCfg: Record<string,unknown>, save?: boolean) {
         if (!newCfg.hasOwnProperty(k))
             apply(k, newCfg[k], true)
     started = true
-    events.emit('configReady')
+    events.emit('configReady', startedWithoutConfig)
     if (version !== VERSION) // be sure to save version
         saveConfigAsap()
 
@@ -186,12 +186,15 @@ function stringify(obj: any) {
     return yaml.stringify(obj, { lineWidth:1000 })
 }
 
+let startedWithoutConfig = false
 console.log("config", filePath)
 export const configFile = watchLoad(filePath, text => {
+    startedWithoutConfig = !text
     try { setConfig(yaml.parse(text, { uniqueKeys: false }) || {}, false) }
     catch(e: any) { console.error("Error in", filePath, ':', e.message || String(e)) }
 }, {
     failedOnFirstAttempt(){
+        startedWithoutConfig = true
         console.log("No config file, using defaults")
         setTimeout(() => // this is called synchronously, but we need to call setConfig after first tick, when all configs are defined
             setConfig({}, false))
