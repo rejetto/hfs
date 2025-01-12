@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { state, useSnapState } from './state'
-import { createElement as h, ReactElement, useCallback, useEffect, useRef, useState } from 'react'
+import { createElement as h, ReactElement, useCallback, useEffect, useRef, useState, MouseEvent } from 'react'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import {
     ChevronRight, ExpandMore, TheaterComedy, Folder, Home, Link, InsertDriveFileOutlined, Lock,
@@ -34,6 +34,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                 el?.addEventListener('focusin', (e: any) => e.stopImmediatePropagation())
                 ref.current = el
             },
+            onDoubleClick: toggle,
             label:
                 h(Box, {
                     draggable: !isRoot,
@@ -88,26 +89,20 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                         )
                 })()
             ),
-            collapseIcon: h(ExpandMore, {
-                onClick(ev) {
-                    setExpanded(was => was?.filter(x => x !== id) )
-                    ev.preventDefault()
-                    ev.stopPropagation()
-                }
-            }),
-            expandIcon: h(ChevronRight, {
-                onClick(ev) {
-                    setExpanded(was => [...was!, id] )
-                    ev.preventDefault()
-                    ev.stopPropagation()
-                }
-            }),
+            collapseIcon: h(ExpandMore, { onClick: toggle }),
+            expandIcon: h(ChevronRight, { onClick: toggle }),
             nodeId: id
         }, isRoot && !node.children?.length ? h(TreeItem, { nodeId: '?', label: h('i', {}, "nothing here") })
             : node.children?.map(x => h(Branch, { key: x.id, node: x })) )
 
         function isRestricted(who: Who | undefined) {
             return who !== undefined && who !== true
+        }
+
+        function toggle(ev: MouseEvent<any>){
+            setExpanded(was => was?.includes(id) ? was.filter(x => x !== id) : [...was!, id])
+            ev.preventDefault()
+            ev.stopPropagation()
         }
     }, [setExpanded])
     const ref = useRef<HTMLUListElement>(null)
