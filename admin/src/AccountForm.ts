@@ -6,7 +6,7 @@ import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
 import { formatTimestamp, isEqualLax, prefix, reactJoin, useIsMobile, wantArray } from './misc'
-import { IconBtn, propsForModifiedValues } from './mui'
+import { IconBtn, NetmaskField, propsForModifiedValues, WildcardsSupported } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
@@ -80,11 +80,13 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     : members.length > 0 && h(Box, {}, `${members.length} members: `,
                         reactJoin(', ', account.members?.map((u: string) => h(groups.includes(u) ? 'i' : 'span', {}, u))) ),
             group && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
-            { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions,
+            { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions, sm: 6,
                 helperText: "Specify groups to inherit permissions from"
                     + (!group ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
+            { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", helperText: h(WildcardsSupported), sm: 6,
+                placeholder: "Allow from any address" },
             { k: 'expire', label: "Expiration", xs: true, comp: DateTimeField, toField: x => x && new Date(x),
                 helperText: "When expired, login won't be allowed" },
             { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, disabled: expired, step: 'any', min: 1/1000, // 10 minutes

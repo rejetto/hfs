@@ -46,6 +46,7 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     if (username === false) {
         events.emit('logout', ctx)
         delete s.username
+        delete s.allowNet
         return
     }
     const a = ctx.state.account = getAccount(username)

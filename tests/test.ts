@@ -25,6 +25,7 @@ const UPLOAD_RELATIVE = 'temp/gpl.png'
 const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to saturate buffers
 const throttle = BIG_CONTENT.length /1000 /0.5 // KB, finish in 0.5s, quick but still overlapping downloads
+let defaultBaseUrl = BASE_URL
 
 describe('basics', () => {
     //before(async () => appStarted)
@@ -115,6 +116,12 @@ describe('basics', () => {
     it('delete.need account.method', req(UPLOAD_ROOT, 401, { method: 'DELETE' }))
     it('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
     it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
+    it('allow_net.canLogin', () => login('rejetto')) // localhost is normally resolved as ::1
+    it('allow_net.cantLogin', () => {
+        defaultBaseUrl = BASE_URL.replace('localhost', '127.0.0.1')
+        return login('rejetto').then(() => { throw Error('logged in') }, () => 0)
+            .finally(() => defaultBaseUrl = BASE_URL)
+    })
 })
 
 describe('accounts', () => {
@@ -222,7 +229,7 @@ const jar = {}
 
 function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }: XRequestOptions & { throttle?: number, baseUrl?: string }={}) {
     // passing 'path' keeps it as it is, avoiding internal resolving
-    return () => httpStream((baseUrl || BASE_URL) + url, { path: url, jar, ...requestOptions }).catch(e => {
+    return () => httpStream((baseUrl || defaultBaseUrl) + url, { path: url, jar, ...requestOptions }).catch(e => {
         if (e.code === 'ECONNREFUSED')
             throw e
         return e.cause

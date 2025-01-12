@@ -21,7 +21,8 @@ export interface Account {
     redirect?: string
     disabled?: boolean
     expire?: Date
-    days_to_live?: number
+    days_to_live?: number // this is not inherited, but it will affect sub-accounts via 'expire'
+    allow_net?: string
 }
 interface Accounts { [username:string]: Account }
 

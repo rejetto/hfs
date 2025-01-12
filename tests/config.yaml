@@ -137,8 +137,9 @@ accounts:
   disabled_account:
     disabled: true
   admins:
+    allow_net: ::1
     admin: true
-version: 0.55.3
+version: 0.56.0-alpha0.1
 max_downloads_per_account: 2
 max_downloads: 1
 roots:

@@ -19,6 +19,7 @@ import { statusCodeForMissingPerm, VfsNode } from './vfs'
 import events from './events'
 import { rm } from 'fs/promises'
 import { setCommentFor } from './comments'
+import _ from 'lodash'
 
 export function pattern2filter(pattern: string){
     const matcher = makeMatcher(pattern.includes('*') ? pattern  // if you specify *, we'll respect its position
@@ -32,6 +33,10 @@ export function isLocalHost(c: Connection | Koa.Context | string) {
     return ip && isIpLocalHost(ip)
 }
 
+// this will memory-leak over mask, so be careful with what you use this
+export function netMatches(ip: string, mask: string, emptyMaskReturns=false) {
+    return _.memoize(makeNetMatcher, (a,b) => `${a}\t${b ? 1 : 0}`)(mask, emptyMaskReturns)(ip) // cache the matcher
+}
 export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
     if (!mask)
         return () => emptyMaskReturns

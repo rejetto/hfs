@@ -5,7 +5,7 @@ import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
 import { ADMIN_URI, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { ctxAdminAccess } from './adminApis'
-import { sessionDuration } from './middlewares'
+import { failAllowNet, sessionDuration } from './middlewares'
 import { getCurrentUsername, setLoggedIn, srpServerStep1 } from './auth'
 import { defineConfig } from './config'
 import events from './events'
@@ -25,6 +25,8 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
         ctx.state.dontLog = false // log even if log_api is false
         return new ApiError(HTTP_UNAUTHORIZED)
     }
+    if (failAllowNet(ctx, account))
+        return new ApiError(HTTP_UNAUTHORIZED)
     try {
         const { srpServer, ...rest } = await srpServerStep1(account)
         const sid = Math.random()

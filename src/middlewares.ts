@@ -3,10 +3,10 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_FOOL } from './const'
-import { CFG, DAY, dirTraversal, isLocalHost, splitAt, stream2string, tryJson } from './misc'
+import { CFG, DAY, dirTraversal, isLocalHost, netMatches, splitAt, stream2string, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
-import { Account, accountCanLogin, getAccount } from './perm'
+import { Account, accountCanLogin, getAccount, getFromAccount } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
 import { invalidateSessionBefore, setLoggedIn, srpCheck } from './auth'
 import { constants } from 'zlib'
@@ -106,7 +106,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     // calculate these once and for all
     ctx.state.connection = socket2connection(ctx.socket)!
     const a = ctx.state.account = await urlLogin() || await getHttpAccount() || getAccount(ctx.session?.username, false)
-    if (a && !accountCanLogin(a))
+    if (a && (!accountCanLogin(a) || failAllowNet(ctx, a))) // enforce allow_net also after login
         ctx.state.account = undefined
     ctx.state.revProxyPath = ctx.get('x-forwarded-prefix')
     updateConnectionForCtx(ctx)
@@ -142,6 +142,14 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
             events.emit('failedLogin', ctx, { username: u })
         return a
     }
+}
+
+export function failAllowNet(ctx: Koa.Context, a: Account | undefined) {
+    const cached = ctx.session?.allowNet // won't reflect changes until session is terminated
+    const mask = cached ?? getFromAccount(a || '', a => a.allow_net)
+    if (!cached && mask && ctx.session?.username)
+        ctx.session.allowNet = mask // must be deleted on logout by setLoggedIn
+    return mask && !netMatches(ctx.ip, mask, true)
 }
 
 declare module "koa" {
