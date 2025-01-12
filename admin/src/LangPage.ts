@@ -19,7 +19,7 @@ export default function LangPage({ setTitleSide }: PageProps) {
         h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
         []))
     return h(Fragment, {},
-        h(Box, { mt: 1, maxWidth: '40em', flex: 1, display: 'flex', flexDirection: 'column' },
+        h(Box, { mt: 1, maxWidth: '50em', flex: 1, display: 'flex', flexDirection: 'column' },
             h(Box, { mb: 1, display: 'flex' },
                 h(Btn, { icon: Upload, onClick: add }, "Add"),
                 h(Box, { flex: 1 }),
