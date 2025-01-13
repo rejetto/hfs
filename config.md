@@ -208,6 +208,11 @@ For each account entries, this is the list of properties you can have:
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
 - `admin` set `true` if you want to let this account log in to the Admin-panel. Default is `false`.
 - `belongs` an array of usernames of other accounts from which to inherit their permissions. Default is none.
+- `srp` encrypted password
+- `password` a temporary unencrypted password, transformed into `srp` ASAP
+- `disabled` prevents using this account. Default is false.
+- `expire` account won't work once the time has passed this timestamp. Use JSON timestamp syntax. Default is none.
+- `days_to_live` used to set `expire` on first login. Default is none.
 - `disable_password_change` set `true` if you want to forbid password change for users. Default is `false`.
 - `allow_net` a mask of addresses to restrict the access of the account
 

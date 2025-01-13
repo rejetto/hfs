@@ -38,8 +38,8 @@ Alternatively you can run a development server, just be sure to load config from
 
 The project is roughly divided in Server + Frontend + Admin, where Frontend is a web interface intended to access
 shared files, while Admin is the web interface for configuration/administration.  
-Server lies in the root of the project, with its "src" folder, while Frontend and Admin are inside folders "frontend"
-and "admin" respectively, with their "src" folder within. 
+Server resides in the project's root, with its "src" folder, while Frontend and Admin are inside folders "frontend"
+and "admin" respectively, each with its own "src" folder within. 
 
 Additionally, you have the following folders:
 - mui-grid-form: a lib used by Admin to easily build forms  
@@ -53,7 +53,7 @@ Additionally, you have the following folders:
 # Guidelines
 
 - For strings, I'm using double-quotes for text that's read by the user, and single-quotes elsewhere. Backticks can be any. 
-- All objects that go in yaml should use snake_case.
+- All keys that go in yaml should use snake_case.
   - Reason: we want something that is both easy for the user and maps directly in our code.
     Spaces and kebab-case don't play well with javascript and camel is less readable for the user.
 - API names should start with get_ if and only if they provide information without making changes.
