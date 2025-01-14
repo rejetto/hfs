@@ -36,6 +36,7 @@ export const SYS_ICONS: Record<string, [string] | [string, string | false]> = { 
     info: ['ⓘ'],
     cut: ['✄'],
     paste: ['📋'],
+    copy: ['⧉'],
     shuffle: ['🔀'],
     repeat: ['🔁', 'reload'],
     success: ['👍', 'check'],

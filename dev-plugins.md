@@ -22,7 +22,7 @@ A plugin can customize such icons by creating a folder called "icons" and puttin
 its name (excluding extension) matching one of the list: 
 *login, user, filter, search, search_off, close, error, stop, options, archive, logout, home, parent, folder, file, 
 spinner, password, download, upload, reload, lock, admin, check, to_start, to_end, menu, list, play, pause, edit, zoom, 
-delete, comment, link, info, cut, paste, shuffle, repeat, success, warning, audio, video, image, cancel, total*.
+delete, comment, link, info, cut, paste, copy, shuffle, repeat, success, warning, audio, video, image, cancel, total*.
 
 The list above may become outdated, but you can always find an updated version at https://github.com/rejetto/hfs/blob/main/frontend/src/sysIcons.ts.
 
