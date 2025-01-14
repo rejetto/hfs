@@ -178,6 +178,8 @@ export const frontEndApis: ApiHandlers = {
             throw new ApiError(HTTP_NOT_FOUND)
         if (!await nodeIsDirectory(folder))
             throw new ApiError(HTTP_METHOD_NOT_ALLOWED)
+        if (statusCodeForMissingPerm(folder, 'can_list', ctx))
+            return new ApiError(ctx.status)
         let bytes = 0
         for await (const n of walkNode(folder, { ctx, onlyFiles: true, depth: Infinity }))
             bytes += await nodeStats(n).then(x => x?.size || 0, () => 0)

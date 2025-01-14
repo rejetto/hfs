@@ -122,6 +122,9 @@ describe('basics', () => {
         return login('rejetto').then(() => { throw Error('logged in') }, () => 0)
             .finally(() => defaultBaseUrl = BASE_URL)
     })
+
+    it('folder size', reqApi('get_folder_size', { uri: 'f1/page' }, res => res.bytes === 6328 ))
+    it('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
 })
 
 describe('accounts', () => {
