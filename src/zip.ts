@@ -24,7 +24,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const uri of list) {
-                if (ctx.req.destroyed) return
+                if (ctx.isAborted()) return
                 const subNode = await urlToNode(uri, ctx, node)
                 if (!subNode)
                     continue
