@@ -169,7 +169,7 @@ function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon
     return !snapEntries.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
             snapEntries.slice(0, MAX).map((e, i) => {
-                const working = e === uploading
+                const working = e.file === uploading?.file // e is a proxy, so we check 'file' as it's a ref
                 return h(Fragment, { key: i },
                     h('tr', {},
                         h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) =>
