@@ -177,12 +177,15 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                 preserveTempFile = true // this is affecting only split-uploads, because is undefined on first chunk (or no chunking)
                 if (size > toUpload.file.size) return
                 const {expires} = data
-                const timeout = typeof expires !== 'number' ? 0
-                    : (Number(new Date(expires)) - Date.now()) / 1000
+                let timeout = typeof expires !== 'number' ? 0
+                    : (Number(new Date(expires)) - Date.now())
+                if (timeout)
+                    setTimeout(() => preserveTempFile = undefined, timeout) // the resumable is gone
                 closeLastDialog?.()
                 const cancelSub = subscribeKey(uploadState, 'partial', v =>
                     v >= size && closeLastDialog?.() )  // dismiss dialog as soon as we pass the threshold
                 const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/toUpload.file.size)} = ${formatBytes(size)})`
+                timeout /= 1000 // needs seconds
                 const dialog = confirmDialog(msg, { timeout })
                 closeLastDialog = dialog.close
                 const confirmed = await dialog

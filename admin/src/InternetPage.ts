@@ -128,7 +128,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
             }>, {
                 keys: [ CFG.geo_enable, CFG.geo_allow, CFG.geo_list, CFG.geo_allow_unknown ],
                 form: values => ({ fields: [
-                    { k: CFG.geo_enable, comp: BoolField, label: "Enable", helperText: md("Necessary database will be downloaded every month (2MB). Service is made possibly thanks to [IP2Location](https://www.ip2location.com).") },
+                    { k: CFG.geo_enable, comp: BoolField, label: "Enable", helperText: md("Necessary database will be downloaded every month (2MB). Service is made possible thanks to [IP2Location](https://www.ip2location.com).") },
                     ...!values?.[CFG.geo_enable] ? [] : [
                         {
                             k: CFG.geo_allow,
