@@ -23,12 +23,14 @@ export function showOptions (){
         const {t} = useI18N()
         return h(FlexV, { gap: '1.5em' },
             snap.adminUrl && h(MenuLink, {
+                id: 'admin-link',
                 icon: 'admin',
                 label: t`Admin-panel`,
                 href: snap.adminUrl,
                 target: 'admin',
             }),
             h(Select, {
+                id: 'option-sort-by',
                 options: SORT_BY_OPTIONS.map(x => ({
                     value: x,
                     label: t("Sort by:", { by: t(x) }, t`Sort by` + ': ' + t(x))
@@ -37,19 +39,22 @@ export function showOptions (){
                 onChange(v) { state.sort_by = v }
             }),
             h(Checkbox, {
+                id: 'option-invert-order',
                 value: snap.invert_order,
                 onChange(v) { state.invert_order = v }
             }, t`Invert order`),
             h(Checkbox, {
+                id: 'option-folders-first',
                 value: snap.folders_first,
                 onChange(v) { state.folders_first = v }
             }, t`Folders first`),
             h(Checkbox, {
+                id: 'option-sort-numerics',
                 value: snap.sort_numerics,
                 onChange(v) { state.sort_numerics = v }
             }, t`Numeric names`),
 
-            h('div', {},
+            h('div', { id: 'option-tile-size' },
                 h('div', {}, t`Tiles mode:`, ' ', state.tile_size || t`off`),
                 h('input', {
                     type: 'range',
@@ -62,6 +67,7 @@ export function showOptions (){
             ),
 
             !getHFS().forceTheme && h(Select, {
+                id: 'option-theme',
                 options: _.map(THEME_OPTIONS, (value, label) => ({ label: t(["theme:", "Theme:", ]) + ' ' + t(label), value })),
                 value: snap.theme,
                 onChange(v) {
@@ -70,6 +76,7 @@ export function showOptions (){
             }),
 
             h(Checkbox, {
+                id: 'option-english',
                 value: snap.disableTranslation,
                 onChange(v) {
                     i18n.state.disabled = state.disableTranslation = v

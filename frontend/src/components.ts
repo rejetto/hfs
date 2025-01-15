@@ -44,18 +44,20 @@ interface CheckboxProps extends Omit<Partial<InputHTMLAttributes<any>>, 'onChang
     value?: any,
     onChange?: (v: boolean, ev: ChangeEvent) => void
     labelProps?: LabelHTMLAttributes<any>
+    id?: string
 }
 
-export const Checkbox = forwardRef(({ onChange, value, children, labelProps, ...props }: CheckboxProps, ref) => {
+export const Checkbox = forwardRef(({ onChange, value, children, labelProps, id, ...props }: CheckboxProps, ref) => {
     const ret = h('input', {
         ref,
         type: 'checkbox',
         onChange: (ev:  ChangeEvent<HTMLInputElement>) => onChange?.(Boolean(ev.target.checked), ev),
         ...value !== undefined && { checked: Boolean(value) },
         value: 1,
+        id: children ? undefined : id,
         ...props
     })
-    return !children ? ret : h('label', labelProps || {}, ret, children)
+    return !children ? ret : h('label', { id, ...labelProps }, ret, children)
 })
 
 interface SelectProps<T> extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {

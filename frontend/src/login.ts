@@ -102,7 +102,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     h('div', { style: { textAlign: 'right' } },
                         h('button', { type: 'submit' }, t`Continue`)),
                     h('div', { id: 'login-options' },
-                        h(Checkbox, { ref: ipRef, labelProps: { id: 'allow_session_ip_change' } },
+                        h(Checkbox, { ref: ipRef, id: 'allow_session_ip_change' },
                             t('allow_session_ip_change', "Allow IP change during this session")),
                     ),
                 )
