@@ -138,7 +138,7 @@ accounts:
     disabled: true
   admins:
     admin: true
-version: 0.55.3
+version: 0.55.4-beta1
 max_downloads_per_account: 2
 max_downloads: 1
 roots:
