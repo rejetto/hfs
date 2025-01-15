@@ -93,7 +93,7 @@ export function showUpload() {
                         )
                     ),
             ),
-            h(FilesList, {
+            h(FileList, {
                 entries: uploadState.adding,
                 actions: {
                     cancel: rec => _.remove(uploadState.adding, rec),
@@ -133,7 +133,7 @@ export function showUpload() {
                 qs.map((q,idx) =>
                     h('div', { key: q.to },
                         h(Link, { to: q.to, onClick: close }, t`Destination`, ' ', decodeURI(q.to)),
-                        h(FilesList, {
+                        h(FileList, {
                             entries: uploadState.qs[idx].entries,
                             actions: {
                                 cancel: f => {
@@ -159,8 +159,8 @@ export function showUpload() {
 
 }
 
-function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
-    const { uploading, progress }  = useSnapshot(uploadState)
+function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
+    const { uploading, progress, partial }  = useSnapshot(uploadState)
     const snapEntries = useSnapshot(entries)
     const [all, setAll] = useState(false)
     useEffect(() => setAll(false), [entries.length])
@@ -170,6 +170,7 @@ function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon
         h('tbody', {},
             snapEntries.slice(0, MAX).map((e, i) => {
                 const working = e.file === uploading?.file // e is a proxy, so we check 'file' as it's a ref
+                const title = formatPerc(progress)
                 return h(Fragment, { key: i },
                     h('tr', {},
                         h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) =>
@@ -177,8 +178,8 @@ function FilesList({ entries, actions }: { entries: ToUpload[], actions: { [icon
                         h('td', {}, formatBytes(e.file.size)),
                         h('td', {},
                             h('span', { className: working ? 'ani-working' : undefined }, e.name || getFilePath(entries[i].file)),
-                            working && h('span', { className: 'upload-progress' }, formatPerc(progress)),
-                            working && h('progress', { className: 'upload-progress-bar', value: progress, max: 1 }),
+                            working && h('span', { className: 'upload-progress', title }, formatBytes(partial)),
+                            working && h('progress', { className: 'upload-progress-bar', title, value: progress, max: 1 }),
                         ),
                     ),
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
