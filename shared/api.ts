@@ -88,7 +88,6 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     const reloadingRef = useRef<any>()
     const dataRef = useRef<any>()
     useEffect(() => {
-        loadingRef.current?.abort()
         setError(undefined)
         let aborted = false
         let req: undefined | ReturnType<typeof apiCall>
@@ -107,6 +106,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
             }
         })
         reloadingRef.current?.resolve(wholePromise)
+        return () => loadingRef.current?.abort()
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
     const reload = useCallback(() => {
         if (loadingRef.current) return
