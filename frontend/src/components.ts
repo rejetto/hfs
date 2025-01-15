@@ -1,10 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix } from './misc'
+import {
+    Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix, noAriaTitle, formatBytes
+} from './misc'
 import {
     ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
-    useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes, useRef
+    useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes, useRef, ReactElement
 } from 'react'
 import _ from 'lodash'
 import i18n from './i18n'
@@ -111,7 +113,7 @@ export function iconBtn(icon: string, onClick: MouseEventHandler, { title, ...pr
 }
 
 export interface BtnProps extends ComponentPropsWithoutRef<"button"> {
-    icon?: string,
+    icon?: string | ReactElement,
     label: string,
     tooltip?: string,
     toggled?: boolean,
@@ -147,5 +149,10 @@ export function Btn({ icon, label, tooltip, toggled, onClick, onClickAnimation, 
         ...rest,
         ...asText ? { role: 'button', style: { cursor: 'pointer', ...rest.style } } : undefined,
         className: [rest.className, toggled && 'toggled', working && 'ani-working', success && 'success'].filter(Boolean).join(' '),
-    }, icon && hIcon(icon), h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
+    }, icon && (isValidElement(icon) ? icon : hIcon(icon)),
+        h('span', { className: 'label' }, label) ) // don't use <label> as VoiceOver will get redundant
+}
+
+export function Bytes({ bytes, ...props }: { bytes: number } & HTMLAttributes<HTMLSpanElement>) {
+    return h('span', { ...noAriaTitle(bytes.toLocaleString()), ...props }, formatBytes(bytes))
 }

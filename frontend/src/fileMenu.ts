@@ -2,7 +2,8 @@ import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
     pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful
 } from './misc'
-import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode } from 'react'
+import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode, useState } from 'react'
+import { Btn, Bytes, Spinner } from './components'
 import _ from 'lodash'
 import { getEntryIcon, MISSING_PERM } from './BrowseFiles'
 import { DirEntry, state } from './state'
@@ -67,7 +68,6 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
         }),
         state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
         state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
-        isFolder && { id: 'folderSize', label: t`Folder size`, icon: 'total', onClick: () => folderSize() },
         isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ].filter(Boolean)
     const folder = entry.n.slice(0, -entry.name.length - (entry.isFolder ? 2 : 1))
@@ -84,6 +84,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
                 onClick: () => closeDialog(null, true)
             }, folder.replaceAll('/', ' / '))
         },
+        isFolder && { id: 'folderSize', label: t`Size`, value: h(FolderSize) },
     ].filter(Boolean)
     const res = hfsEvent('fileMenu', { entry, menu, props })
     menu.push(...res.flat()) // flat because each plugin may return an array of entries
@@ -143,9 +144,15 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
         }
     })
 
-    async function folderSize() {
-        const { bytes } = await apiCall('get_folder_size', { uri: entry.uri }, { modal: working, timeout: false })
-        await alertDialog(formatBytes(bytes), 'info', t`Folder size`)
+    function FolderSize() {
+        const [size, setSize] = useState<any>(null)
+        useApi(size !== null && 'get_folder_size', { uri: entry.uri }, {
+            timeout: false,
+            onResponse: (res, data) => setSize(data.bytes)
+        })
+        return size === null ? h(Btn, { asText: true, label: t`Calculate`, onClick() { setSize(true) } })
+            : size === true ?  h(Btn, { asText: true, label: t`Cancel`, icon: h(Spinner), onClick() { setSize(null) } })
+                : h(Bytes, { bytes: size })
     }
 }
 

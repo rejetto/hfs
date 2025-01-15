@@ -177,6 +177,8 @@
         "allow_session_ip_change": "Allow IP change during this session",
 
         "focus_hint": "By typing on your keyboard, you search and focus elements of the list.",
-        "copy_links": "Copy links"
+        "copy_links": "Copy links",
+
+        "Calculate": "Calculate"
     }
 }

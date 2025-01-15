@@ -108,6 +108,9 @@ img.file-icon { height: 1em; }
     vertical-align: text-bottom;
 }
 
+[role=button] .icon {
+    margin-right: 0.5em;
+}
 .icon.mirror:before { transform: scaleX(-1); }
 a {
     text-decoration: none;

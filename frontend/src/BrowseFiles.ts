@@ -5,9 +5,9 @@ import { createElement as h, Fragment, memo, MouseEvent, useCallback, useEffect,
     useId} from 'react'
 import { useEventListener, useMediaQuery, useWindowSize } from 'usehooks-ts'
 import {
-    domOn, formatBytes, ErrorMsg, hIcon, onlyTruthy, noAriaTitle, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp
+    domOn, ErrorMsg, hIcon, onlyTruthy, prefix, isMac, isCtrlKey, hfsEvent, formatTimestamp
 } from './misc'
-import { Checkbox, CustomCode, iconBtn, Spinner } from './components'
+import { Checkbox, CustomCode, Bytes, iconBtn, Spinner } from './components'
 import { Head } from './Head'
 import { DirEntry, state, useSnapState } from './state'
 import { alertDialog } from './dialog'
@@ -350,5 +350,5 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
 })
 
 const EntrySize = memo(({ s }: { s: DirEntry['s']  }) =>
-    s === undefined ? null
-        : h('span', { className: 'entry-size', ...noAriaTitle(s.toLocaleString()) }, formatBytes(s)))
+    s === undefined ? null : h(Bytes, { className: 'entry-size', bytes: s }) )
+
