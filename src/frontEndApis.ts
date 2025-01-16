@@ -17,11 +17,13 @@ import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-import { apiAssertTypes, deleteNode } from './misc'
+import { apiAssertTypes, deleteNode, popKey } from './misc'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
 import _ from 'lodash'
+
+const partialFolderSize: any = {}
 
 export const frontEndApis: ApiHandlers = {
     get_file_list,
@@ -171,7 +173,12 @@ export const frontEndApis: ApiHandlers = {
         return {}
     },
 
-    async get_folder_size({ uri }, ctx) {
+    async get_folder_size_partial({ id }, ctx) {
+        apiAssertTypes({ string: { id } })
+        return partialFolderSize[id] || new ApiError(HTTP_NOT_FOUND)
+    },
+
+    async get_folder_size({ uri, id }, ctx) {
         apiAssertTypes({ string: { uri } })
         const folder = await urlToNode(uri, ctx)
         if (!folder)
@@ -181,9 +188,13 @@ export const frontEndApis: ApiHandlers = {
         if (statusCodeForMissingPerm(folder, 'can_list', ctx))
             return new ApiError(ctx.status)
         let bytes = 0
-        for await (const n of walkNode(folder, { ctx, onlyFiles: true, depth: Infinity }))
+        let files = 0
+        for await (const n of walkNode(folder, { ctx, onlyFiles: true, depth: Infinity })) {
             bytes += await nodeStats(n).then(x => x?.size || 0, () => 0)
-        return { bytes }
+            files++
+            partialFolderSize[id] = { bytes, files }
+        }
+        return popKey(partialFolderSize, id)
     },
 }
 

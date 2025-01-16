@@ -1,6 +1,6 @@
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful
+    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode, useState } from 'react'
 import { Btn, Bytes, Spinner } from './components'
@@ -15,6 +15,7 @@ import { apiCall, useApi } from '@hfs/shared/api'
 import { inputComment } from './upload'
 import { cut } from './clip'
 import { loginDialog } from './login'
+import { useInterval } from 'usehooks-ts'
 import i18n from './i18n'
 const { t, useI18N } = i18n
 
@@ -145,14 +146,22 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
     })
 
     function FolderSize() {
-        const [size, setSize] = useState<any>(null)
-        useApi(size !== null && 'get_folder_size', { uri: entry.uri }, {
-            timeout: false,
-            onResponse: (res, data) => setSize(data.bytes)
-        })
-        return size === null ? h(Btn, { asText: true, label: t`Calculate`, onClick() { setSize(true) } })
-            : size === true ?  h(Btn, { asText: true, label: t`Cancel`, icon: h(Spinner), onClick() { setSize(null) } })
-                : h(Bytes, { bytes: size })
+        const [go, setGo] = useState(false)
+        const [id] = useState(() => randomId())
+        const { data } = useApi(go && 'get_folder_size', { uri: entry.uri, id }, { timeout: false })
+        const partial = useApi(go && !data && 'get_folder_size_partial', { id })
+        useInterval(partial.reload, 1000)
+        return data ? showRes(data)
+            : !go ? h(Btn, { asText: true, label: t`Calculate`, onClick() { setGo(true) } })
+                : h('span', {},
+                    showRes(partial.data),
+                    ' ',
+                    h(Btn, { asText: true, label: t`Cancel`, icon: h(Spinner), onClick() { setGo(false) } })
+                )
+
+        function showRes(data: any) {
+            return data && h('span', {}, h(Bytes, _.pick(data,'bytes')), ' / ', t('n_files', { n: data.files.toLocaleString() }, '{n,plural,one{# file} other{# files}}') )
+        }
     }
 }
 
