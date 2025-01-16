@@ -16,9 +16,9 @@
     --button-text: #eaeaea;
     --focus-color: #468;
     --separator: " – "; // fallback
-    --success: #8c8;
-    --warning: #cc8;
-    --error: #c88;
+    --success: #7c7;
+    --warning: #cc7;
+    --error: #c77;
     @supports (content: "" / "") {
         --separator: " – " / ""; // skip for screen-reader
     }
@@ -554,6 +554,11 @@ form label+input { margin-top: .2em; }
 }
 
 .unauthorized { text-align: center }
+
+.toast-content {
+    a { color: var(--bg); text-decoration: underline; }
+    .horiz-sep { display: none }
+}
 
 #clipBar {
     position: sticky; bottom: 0;

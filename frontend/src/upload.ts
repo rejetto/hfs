@@ -208,11 +208,12 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
     const msgDone = done.length > 0 && t('upload_finished', { n: done.length, size: formatBytes(doneByte) }, "{n} finished ({size})")
     const msgSkipped = skipped.length > 0 && t('upload_skipped', { n: skipped.length }, "{n} skipped")
     const msgErrors = errors.length > 0 && t('upload_errors', { n: errors.length }, "{n} failed")
-    const s = [msgDone, msgSkipped, msgErrors].filter(Boolean).join(' – ')
-    if (!s) return null
+    const msg = [msgDone, msgSkipped, msgErrors].filter(Boolean).join(' – ')
+    if (!msg) return null
+    const sep = h('span', { className: 'horiz-sep' }, ' – ')
     return h('div', { style: { ...props } },
-        s, ' – ', h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }),
-        ' – ', h(Btn, {
+        msg, sep, h(Btn, { label: t`Show details`, asText: true, onClick: showDetails }),
+        sep, h(Btn, {
             label: t('copy_links', "Copy links"),
             asText: true,
             successFeedback: true,
