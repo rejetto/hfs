@@ -75,7 +75,7 @@ export function showOptions (){
                 }
             }),
 
-            h(Checkbox, {
+            !_.isEmpty(getHFS().lang) && h(Checkbox, {
                 id: 'option-english',
                 value: snap.disableTranslation,
                 onChange(v) {
