@@ -1,7 +1,7 @@
 {
     "author": "killersolyom",
-    "version": 0.4,
-    "hfs_version": "0.53.0",
+    "version": 0.5,
+    "hfs_version": "0.55.0",
     "translate": {
         "Select": "Kiválasztás",
         "n_files": "{n,többes szám,egy{# file} egyéb{# file}}",
@@ -112,7 +112,7 @@
         "Download": "Letöltés",
         "Missing permission": "Hiányzó engedély",
         "Reload": "Újratöltés",
-        "Get list": "Tartalom lekérése",
+        "Get list": "Tartalom lista",
         "Skip existing files": "Meglévő fájlok kihagyása",
         "Size": "Méret",
         "Timestamp": "Időbélyeg",
@@ -160,7 +160,7 @@
         "Select all": "Kiválaszt mindent",
         "go_first": "Ugrás azt első elemre",
         "go_last": "Ugrás azt utolsó elemre",
-        "Shuffle": "Keverés",
+        "Shuffle": "Véletlenszerü",
         "Repeat": "Ismétlés",
         "showHelpListShortcut": "A fájl listában tartsa nyomva a {key} gombot a gyors nézethez",
         "Invalid value": "Érvénytelen érték",
@@ -172,10 +172,16 @@
 		
 		"clipboard": "Vágólap ({content})",
         "to_clipboard_source_tooltip": "Ugrorás a mappába ahova a vágólap tartalma mutat",
-        "more_items": "{n} több elem(ek)",
+        "more_items": "{n} elem",
         "Show details": "Részletek mutatása",
         "upload_conflict": "Már létezik",
         "Logged in": "Bejelentkezett",
-        "Logged out": "Kijelentkezett"
+        "Logged out": "Kijelentkezett",
+		
+		"Cancel": "Mégse",
+        "allow_session_ip_change": "IP cím változás engedélyezése",
+
+        "focus_hint": "A billentyűzeten gépelve kereshet és fókuszálhat a lista elemeire.",
+        "copy_links": "Linkek másolása"
     }
 }
