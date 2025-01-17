@@ -65,7 +65,7 @@ export function createDirStream(startPath: string, { depth=0, hidden=true }) {
                 work(Object.assign(Object.create(methods), {
                     isDir: f.IS_DIRECTORY,
                     name: f.LONG_NAME,
-                    stats: { size: f.SIZE, ctime: f.CREATION_TIME, mtime: f.LAST_WRITE_TIME } as Stats
+                    stats: { size: f.SIZE, birthtime: f.CREATION_TIME, mtime: f.LAST_WRITE_TIME } as Stats
                 }))
             }
         }

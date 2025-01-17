@@ -35,9 +35,9 @@ const apis: ApiHandlers = {
             const { source } = node
             const stats = !source ? undefined : (node.stats || await stat(source!).catch(() => undefined))
             const isDir = !nodeIsLink(node) && (!source || (stats?.isDirectory() ?? node.children?.length! > 0))
-            const copyStats: Pick<VfsNodeAdminSend, 'size' | 'ctime' | 'mtime'> = stats ? _.pick(stats, ['size', 'ctime', 'mtime'])
+            const copyStats: Pick<VfsNodeAdminSend, 'size' | 'birthtime' | 'mtime'> = stats ? _.pick(stats, ['size', 'birthtime', 'mtime'])
                 : { size: source ? -1 : undefined }
-            if (copyStats.mtime && Number(copyStats.mtime) === Number(copyStats.ctime))
+            if (copyStats.mtime && (stats?.mtimeMs! - stats?.birthtimeMs!) < 1000)
                 delete copyStats.mtime
             const inherited = node.parent && permsFromParent(node.parent, {})
             const byMasks = node.original && _.pickBy(node, (v,k) =>
@@ -213,7 +213,7 @@ const apis: ApiHandlers = {
                             list.add({
                                 n: name,
                                 s: stats.size,
-                                c: stats.ctime,
+                                c: stats.birthtime,
                                 m: stats.mtime,
                                 k: isDir ? 'd' : undefined,
                             })

@@ -138,7 +138,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
         save: {
             ...propsForModifiedValues(isModifiedConfig(values, rest)),
             async onClick() {
-                const props = _.omit(values, ['ctime','mtime','size','id'])
+                const props = _.omit(values, ['birthtime','mtime','size','id'])
                 ;(props as any).masks ||= null // undefined cannot be serialized
                 await apiCall('set_vfs', { uri: values.id, props })
                 if (props.name !== file.name) // when the name changes, the id of the selected file is changing too, and we have to update it in the state if we want it to be correctly re-selected after reload
@@ -191,7 +191,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
                 toField: x => x > '',
             },
             showSize && { k: 'size', comp: DisplayField, sm: 6, lg: 4, toField: formatBytes },
-            showTimestamps && { k: 'ctime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
+            showTimestamps && { k: 'birthtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Created", toField: formatTimestamp },
             showTimestamps && { k: 'mtime', comp: DisplayField, sm: 6, lg: showSize && 4, label: "Modified", toField: formatTimestamp },
             showAccept && { k: 'accept', label: "Accept on upload", placeholder: "anything", xl: showWebsite ? 4 : 12,
                 helperText: h(Link, { href: ACCEPT_LINK, target: '_blank' }, "Example: .zip") },

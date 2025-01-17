@@ -72,7 +72,7 @@ export type VfsNodeAdminSend = {
     name: string
     type?: 'folder'
     size?: number
-    ctime?: Date
+    birthtime?: Date
     mtime?: Date
     website?: true
     byMasks?: VfsPerms

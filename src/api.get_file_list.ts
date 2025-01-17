@@ -125,8 +125,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
             const pa = Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
             return {
                 n: name + (isFolder ? '/' : ''),
-                c: st?.ctime,
-                m: !st || Math.abs(+st.mtime - +st.ctime) < 1000 ? undefined : st.mtime,
+                c: st?.birthtime,
+                m: !st || Math.abs(st.mtimeMs - st.birthtimeMs) < 1000 ? undefined : st.mtime,
                 s: isFolder ? undefined : st?.size,
                 p: (pr + pl + pd + pa) || undefined,
                 comment: node.comment ?? await getCommentFor(source),

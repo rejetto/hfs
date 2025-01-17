@@ -32,7 +32,7 @@ class Logger {
             return this.stream = undefined
         try {
             const stats = await stat(path)
-            this.last = stats.mtime || stats.ctime
+            this.last = stats.mtime || stats.birthtime
         }
         catch {
             if (await prepareFolder(path) === false)

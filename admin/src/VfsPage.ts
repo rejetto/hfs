@@ -184,9 +184,9 @@ export async function deleteFiles() {
     }
 }
 
-export interface VfsNode extends Omit<VfsNodeAdminSend, 'ctime' | 'mtime' | 'children'> {
+export interface VfsNode extends Omit<VfsNodeAdminSend, 'birthtime' | 'mtime' | 'children'> {
     id: string
-    ctime?: string
+    birthtime?: string
     mtime?: string
     default?: string
     children?: VfsNode[]
