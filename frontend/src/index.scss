@@ -513,6 +513,7 @@ button .icon + .label {
         margin-left: .1em;
     }
 }
+#search-dialog form label:not(:first-of-type) { display: block; margin-top: 1em }
 
 form label+input { margin-top: .2em; }
 

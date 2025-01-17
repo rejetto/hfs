@@ -24,7 +24,7 @@ export function usePath() {
 // allow links with ?search
 let firstListRequest: any
 setTimeout(() => {// wait, urlParams is defined at top level
-    state.remoteSearch = urlParams.search || ''
+    state.remoteSearch = urlParams.search ? { search: urlParams.search } : undefined
     firstListRequest = objFromKeys(['onlyFiles', 'onlyFolders'], x => x in urlParams || undefined)
 })
 
@@ -33,7 +33,7 @@ let autoPlayOnce: string | undefined = urlParams.autoplay // this will be consum
 export default function useFetchList() {
     const snap = useSnapState()
     const uri = usePath() // this api can still work removing the initial slash, but then we'll have a mixed situation that will require plugins an extra effort
-    const search = snap.remoteSearch || undefined
+    const {remoteSearch} = snap
     const lastUri = useRef('')
     const lastParams = useRef<any>()
     const lastReloader = useRef(snap.listReloader)
@@ -49,13 +49,12 @@ export default function useFetchList() {
             state.stopSearch?.()
         }
         state.searchManuallyInterrupted = false
-        if (previous && previous !== uri && search) {
-            state.remoteSearch = ''
+        if (previous && previous !== uri && remoteSearch) {
+            state.remoteSearch = undefined
             return
         }
 
-        const params = { uri, search, ...firstListRequest, ...snap.searchOptions }
-        params.wild = params.wild ? undefined : 'no'
+        const params = { uri, ...remoteSearch, ...firstListRequest }
         if (snap.listReloader === lastReloader.current && _.isEqual(params, lastParams.current)) return
         lastParams.current = params
         lastReloader.current = snap.listReloader
@@ -162,7 +161,7 @@ export default function useFetchList() {
             state.stopSearch?.()
             lastParams.current = null
         }
-    }, [uri, search, snap.username, snap.listReloader, loginRequired])
+    }, [uri, remoteSearch, snap.username, snap.listReloader, loginRequired])
 }
 
 export function reloadList() {

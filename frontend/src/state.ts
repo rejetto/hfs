@@ -3,7 +3,17 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import { FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, objSameKeys, pathEncode, StringifyProps, typedKeys } from './misc'
+import {
+    Dict,
+    FRONTEND_OPTIONS,
+    getHFS,
+    hfsEvent,
+    hIcon,
+    objSameKeys,
+    pathEncode,
+    StringifyProps,
+    typedKeys
+} from './misc'
 import { DirEntry as ServerDirEntry } from '../../src/api.get_file_list'
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
@@ -21,7 +31,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     patternFilter: string,
     showFilter: boolean,
     selected: { [uri:string]: true }, // by using an object instead of an array, Entry components are not rendered when others get selected
-    remoteSearch: string,
+    remoteSearch: Dict<any> | undefined,
     adminUrl?: string,
     loginRequired?: boolean, // force user to login before proceeding
     messageOnly?: string, // no gui, just show this message
@@ -37,11 +47,9 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     canChangePassword: boolean
     uri: string
     uploadOnExisting: 'skip' | 'overwrite' | 'rename'
-    searchOptions: any
     expandedUsername: string[]
 }>({
     expandedUsername: [],
-    searchOptions: { wild: true },
     uploadOnExisting: getHFS().dontOverwriteUploading ? 'rename' : 'skip',
     uri: '',
     canChangePassword: false,
@@ -56,7 +64,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
     patternFilter: '',
     showFilter: false,
     selected: {},
-    remoteSearch: '',
+    remoteSearch: undefined,
 })
 
 export function useSnapState() {

@@ -18,12 +18,12 @@ import { useSnapshot } from 'valtio'
 import { apiCall } from '@hfs/shared/api'
 import { reloadList } from './useFetchList'
 import { cut } from './clip'
-import { Btn, BtnProps, CustomCode } from './components'
+import { Btn, BtnProps, Checkbox, CustomCode } from './components'
 import i18n from './i18n'
 const { t, useI18N } = i18n
 
 export function MenuPanel() {
-    const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props, searchOptions } = useSnapState()
+    const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
     const { can_upload, can_delete, can_archive } = props ? { ...defaultPerms, ...props } : {} as VfsPerms
     const { uploading, qs }  = useSnapshot(uploadState)
     useEffect(() => {
@@ -103,7 +103,7 @@ export function MenuPanel() {
                     : t('zip_tooltip_whole', "Download whole list (unfiltered) as a single zip file. If you select some elements, only those will be downloaded."),
                 href: buildUrlQueryString(_.pickBy({
                     get: 'zip',
-                    search: remoteSearch,
+                    ...remoteSearch,
                     list
                 })),
                 ...!list && {
@@ -123,7 +123,10 @@ export function MenuPanel() {
             h(CustomCode, { name: 'appendMenuBar' }),
         ),
         remoteSearch && h('div', { id: 'searched' },
-            (stopSearch ? t`Searching` : t`Searched`) + ': ' + remoteSearch + prefix(' (', searchManuallyInterrupted && t`interrupted`, ')')),
+            (stopSearch ? t`Searching` : t`Searched`) + ': ',
+            _.map({ search: t`Name`, searchComment: t`Comment` }, (v,k) => prefix(v + ': ', remoteSearch[k])).filter(Boolean).join(' and '),
+            prefix(' (', searchManuallyInterrupted && t`interrupted`, ')')
+        ),
     )
 
     function getSearchProps() {
@@ -141,42 +144,14 @@ export function MenuPanel() {
             icon: 'search_off',
             label: t`Clear search`,
             onClick() {
-                state.remoteSearch = ''
+                state.remoteSearch = undefined
             }
         } : {
             id: 'search-button',
             icon: 'search',
             label: t`Search`,
             onClickAnimation: false,
-            onClick: () => formDialog({
-                title: t`Search`,
-                Content: () => h('div', {},
-                    h('label', { htmlFor: 'text' }, t('search_msg', "Search this folder and sub-folders")),
-                    h('input', {
-                        name: 'text',
-                        style: { width: 0, minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box' },
-                        autoFocus: true,
-                    }),
-                    h('div', { style: { margin: '1em 0' } },
-                        h('input', {
-                            type: 'checkbox',
-                            name: 'wild',
-                            defaultChecked: searchOptions.wild,
-                            style: { marginRight: '1em' },
-                        }),
-                        "Wildcards",
-                        h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info')),
-                    ),
-                    h('div', { style: { textAlign: 'right', marginTop: '.8em' } },
-                        h('button', {}, t`Continue`)),
-                )
-            }).then(res => {
-                if (!res) return
-                const { text='', wild, ...rest } = res
-                state.searchOptions = { ...rest, wild: Boolean(wild) }
-                state.remoteSearch = text
-                state.stopSearch?.()
-            })
+            onClick: searchDialog,
         }
     }
 }
@@ -233,4 +208,34 @@ export async function deleteFiles(uris: string[]) {
             ...errors.map(e => h(ErrorMsg, { err: t(err2msg(e.err)) + ': ' + e.uri }))
         )
     ))
+}
+
+function searchDialog() {
+    formDialog({
+        title: t`Search`,
+        dialogProps: { id: 'search-dialog' },
+        Content() {
+            const style = { width: 0, minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box' }
+            return h(Fragment, {},
+                h('label', { htmlFor: 'name' }, t('search_msg', "Search this folder and sub-folders")),
+                h('input', { name: 'name', style, autoFocus: true, }),
+                h('label', { htmlFor: 'comment' }, t`Comment`),
+                h('input', { name: 'comment', style, }),
+                h('div', { style: { margin: '1em 0' } },
+                    h(Checkbox, { name: 'wild', defaultChecked: true }, "Wildcards"), // uncontrolled
+                    h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info')),
+                ),
+                h('div', { style: { textAlign: 'right', marginTop: '.8em' } },
+                    h('button', {}, t`Continue`)),
+            )
+        }
+    }).then(res => {
+        if (!res) return
+        state.remoteSearch = !res.name && !res.comment ? undefined : {
+            search: res.name || undefined,
+            searchComment: res.comment || undefined,
+            wild: res.wild ? undefined : 'no'
+        }
+        state.stopSearch?.()
+    })
 }

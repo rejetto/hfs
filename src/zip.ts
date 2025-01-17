@@ -2,7 +2,7 @@
 
 import { getNodeName, hasPermission, nodeIsDirectory, nodeIsLink, urlToNode, VfsNode, walkNode, statusCodeForMissingPerm } from './vfs'
 import Koa from 'koa'
-import { filterMapGenerator, isWindowsDrive, pattern2filter, safeDecodeURIComponent, wantArray } from './misc'
+import { filterMapGenerator, isWindowsDrive, safeDecodeURIComponent, wantArray } from './misc'
 import { QuickZipStream } from './QuickZipStream'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
@@ -10,6 +10,8 @@ import { defineConfig } from './config'
 import { basename, dirname } from 'path'
 import { applyRange, forceDownload, monitorAsDownload } from './serveFile'
 import { HTTP_OK } from './const'
+import { paramsToFilter } from './api.get_file_list'
+import { getCommentFor } from './comments'
 
 // expects 'node' to have had permissions checked by caller
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
@@ -20,7 +22,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     // ctx.query.list is undefined | string | string[]
     const name = list?.length === 1 ? safeDecodeURIComponent(basename(list[0]!)) : getNodeName(node)
     forceDownload(ctx, (isWindowsDrive(name) ? name[0] : (name || 'archive')) + '.zip')
-    const filter = pattern2filter(String(ctx.query.search||''))
+    const { filterName, filterComment } = paramsToFilter(ctx.query)
     const walker = !list ? walkNode(node, { ctx, requiredPerm: 'can_archive' })
         : (async function*(): AsyncIterableIterator<VfsNode> {
             for await (const uri of list) {
@@ -45,7 +47,8 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         if (!hasPermission(el, 'can_archive', ctx)) return // the fact you see it doesn't mean you can get it
         const { source } = el
         const name = getNodeName(el)
-        if (!filter(name))
+        if (filterName && !filterName(name)
+        || filterComment && !filterComment(await getCommentFor(source) || ''))
             return
         try {
             if (el.isFolder)

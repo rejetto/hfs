@@ -59,7 +59,7 @@ function Breadcrumb({ path, label, current, ...rest }: { current?: boolean, path
                     label: t`Reload`,
                     icon: 'reload',
                     onClick() {
-                        state.remoteSearch = ''
+                        state.remoteSearch = undefined
                         state.stopSearch?.()
                         reloadList()
                     }

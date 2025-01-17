@@ -7,8 +7,8 @@ import {
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { stat } from 'fs/promises'
 import { mapPlugins } from './plugins'
-import { asyncGeneratorToArray, dirTraversal, pattern2filter, WHO_NO_ONE } from './misc'
-import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
+import { asyncGeneratorToArray, pattern2filter, WHO_NO_ONE } from './misc'
+import { HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
 import { getCommentFor, areCommentsEnabled } from './comments'
 import { basename } from 'path'
@@ -19,14 +19,21 @@ import { SendListReadable } from './SendList'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string, icon?: string | true }
 
-export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search, wild, c, onlyFolders, onlyFiles, admin }, ctx) => {
+export function paramsToFilter({ search, wild, searchComment }: any) {
+    search = String(search || '').toLocaleLowerCase()
+    searchComment = String(searchComment || '').toLocaleLowerCase()
+    return {
+        filterName: search > '' && (wild === 'no' ? (s: string) => s.includes(search) : pattern2filter(search)),
+        filterComment: searchComment > '' && (wild === 'no' ? (s: string) => s.includes(searchComment) : pattern2filter(searchComment))
+    }
+}
+
+export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onlyFolders, onlyFiles, admin, ...rest }, ctx) => {
     const node = await urlToNode(uri, ctx)
     const list = ctx.get('accept') === 'text/event-stream' ? new SendListReadable() : undefined
     if (!node)
         return fail(HTTP_NOT_FOUND)
     admin &&= ctxAdminAccess(ctx) // validate 'admin' flag
-    if (dirTraversal(search))
-        return fail(HTTP_FOOL)
     if (await hasDefaultFile(node, ctx) || !await nodeIsDirectory(node)) // in case of files without permission, we are provided with the frontend, and the location is the file itself
         // so, we first check if you have a permission problem, to tell frontend to show login, otherwise we fall back to method_not_allowed, as it's proper for files.
         return fail(!admin && statusCodeForMissingPerm(node, 'can_read', ctx) ? undefined : HTTP_METHOD_NOT_ALLOWED)
@@ -34,10 +41,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         return fail()
     offset = Number(offset)
     limit = Number(limit)
-    search = String(search || '').toLocaleLowerCase()
-    const filter = wild === 'no' ? (s: string) => s.includes(search)
-        : pattern2filter(search)
-    const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth: search ? Infinity : 0 })
+    const { filterName, filterComment } = paramsToFilter(rest)
+    const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth: filterName || filterComment ? Infinity : 0 })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
     const fakeChild = await applyParentToChild({ source: 'dummy-file' }, node) // used to check permission; simple but but can produce false results
@@ -70,7 +75,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         for await (const sub of walker) {
             let name = getNodeName(sub)
             name = basename(name) || name // on windows, basename('C:') === ''
-            if (!filter(name))
+            if (filterName && !filterName(name)
+            || filterComment && !filterComment(await getCommentFor(sub.source) || ''))
                 continue
             const entry = await nodeToDirEntry(ctx, sub)
             if (!entry)
