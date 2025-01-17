@@ -26,6 +26,8 @@ async function urlToNodeOriginal(uri: string) {
 
 const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url','target','comment','icon', ...PERM_KEYS]
 
+export interface LsEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
+
 const apis: ApiHandlers = {
 
     async get_vfs() {
@@ -185,7 +187,7 @@ const apis: ApiHandlers = {
     get_disk_spaces: getDiskSpaces,
 
     get_ls({ path, files=true, fileMask }, ctx) {
-        return new SendListReadable({
+        return new SendListReadable<LsEntry>({
             async doAtStart(list) {
                 if (!path && IS_WINDOWS) {
                     try {
@@ -213,8 +215,8 @@ const apis: ApiHandlers = {
                             list.add({
                                 n: name,
                                 s: stats.size,
-                                c: stats.birthtime,
-                                m: stats.mtime,
+                                c: stats.birthtime.toJSON(),
+                                m: stats.mtime.toJSON(),
                                 k: isDir ? 'd' : undefined,
                             })
                         } catch {} // just ignore entries we can't stat

@@ -11,8 +11,7 @@ import { StringField } from '@hfs/mui-grid-form'
 import { FileIcon, FolderIcon } from './VfsTree'
 import { FixedSizeList } from 'react-window'
 import { promptDialog } from './dialog'
-
-export interface DirEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
+import { LsEntry } from '../../src/api.vfs'
 
 interface FilePickerProps {
     onSelect:(v:string[])=>void
@@ -34,7 +33,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
             }
         }).finally(() => setReady(true))
     }, [from])
-    const { list, props, error, connecting, reload } = useApiList<DirEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
+    const { list, props, error, connecting, reload } = useApiList<LsEntry>(ready && 'get_ls', { path: cwd, files, fileMask })
     useEffect(() => {
         setSel([])
         setFilter('')
@@ -107,7 +106,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                             width: '100%', height: listHeight,
                             itemSize: 46, itemCount: filteredList.length, overscanCount: 5,
                             children({ index, style }) {
-                                const it: DirEntry = filteredList[index]
+                                const it = filteredList[index]
                                 const isFolder = it.k === 'd'
                                 return h(MenuItem, {
                                         style: { ...style, padding: 0 },
