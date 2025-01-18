@@ -51,7 +51,7 @@ function getScriptAttr(k: string) {
 }
 
 export function buildUrlQueryString(params: Dict) { // not using URLSearchParams.toString as it doesn't work on firefox50
-    return '?' + Object.entries(params).filter(pair => pair[1] !== undefined).map(pair => pair.map(encodeURIComponent).join('=') ).join('&')
+    return '?' + Object.entries(params).filter(pair => pair[1] !== undefined).map(pair => pair.map(x => encodeURIComponent(x).replaceAll('%2F','/')).join('=') ).join('&')
 }
 
 export function domOn<K extends keyof WindowEventMap>(eventName: K, cb: (ev: WindowEventMap[K]) => void, { target=window }={}) {
