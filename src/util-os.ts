@@ -6,11 +6,13 @@ import Parser from '@gregoranders/csv';
 import { pid, ppid } from 'node:process'
 import { promisify } from 'util'
 import { IS_WINDOWS } from './const'
+import { access } from 'fs/promises'
+import { statfs } from 'node:fs/promises'
 
 const DF_TIMEOUT = 2000
 
 export function getDiskSpaceSync(path: string) {
-    while (path && !existsSync(path))
+    while (path && !isWindowsDrive(path) && !existsSync(path))
         path = dirname(path)
     const res = statfsSync(path)
     return { free: res.bavail * res.bsize, total: res.blocks * res.bsize, name: path }
@@ -25,9 +27,9 @@ export function cmdEscape(par: string) {
 }
 
 export async function getDiskSpace(path: string) {
-    while (path && !isWindowsDrive(path) && !existsSync(path))
+    while (path && !isWindowsDrive(path) && !access(path))
         path = dirname(path)
-    const res = statfsSync(path)
+    const res = await statfs(path)
     return { free: res.bavail * res.bsize, total: res.blocks * res.bsize, name: path }
 }
 
