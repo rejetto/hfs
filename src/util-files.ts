@@ -7,7 +7,6 @@ import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
 import { once, Readable } from 'stream'
-import { createDirStream, DirStreamEntry } from './dirStream'
 // @ts-ignore
 import unzipper from 'unzip-stream'
 
@@ -71,16 +70,6 @@ export function dirTraversal(s?: string) {
 // apply this to paths that may contain \ as separator (not supported by fast-glob) and other special chars to be escaped (parenthesis)
 export function adjustStaticPathForGlob(path: string) {
     return glob.escapePath(path.replace(/\\/g, '/'))
-}
-
-export async function* dirStream(path: string, { depth=0, onlyFiles=false, onlyFolders = false, hidden=true }={}) {
-    if (!await isDirectory(path))
-        throw Error('ENOTDIR')
-    for await (const entry of createDirStream(path, { depth, hidden })) {
-        const dirent = entry as DirStreamEntry
-        if (dirent.isDirectory() ? onlyFiles : (onlyFolders || !dirent.isFile())) continue
-        yield dirent
-    }
 }
 
 export async function unzip(stream: Readable, cb: (path: string) => Promisable<false | string>) {

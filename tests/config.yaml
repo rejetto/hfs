@@ -6,6 +6,8 @@ vfs:
       mime: text/plain
     protectFromAbove/child/*.txt:
       can_read: false
+    cantSearchForMasks/page:
+      can_list: false
   children:
     - source: tests/alfa.txt
       name: x%#x
@@ -57,6 +59,8 @@ vfs:
       masks:
         "*":
           can_list: true
+    - name: cantSearchForMasks
+      source: tests
     - name: cantReadBut
       source: tests
       can_read: false

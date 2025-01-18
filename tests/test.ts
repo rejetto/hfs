@@ -61,7 +61,7 @@ describe('basics', () => {
     it('cantListBut.zip', req('/cantListBut/?get=zip', 403))
     it('cantListBut.parent', reqList('/', { permInList: { 'cantListBut/': 'l' } }))
     it('cantListBut.child masked', reqList('/cantListBut/page', 200))
-
+    it('cantSearchForMasks', reqList('/', { outList: ['cantSearchForMasks/page/gpl.png'] }, { search: 'gpl' }))
     it('cantReadBut', reqList('/cantReadBut/', 403))
     it('cantReadBut.can', req('/cantReadBut/alfa.txt', 200))
     it('cantReadBut.parent', reqList('/', { permInList: { 'cantReadBut/': '!r' } }))

@@ -2,10 +2,10 @@ import { makeQ } from './makeQ'
 import { stat, readdir } from 'fs/promises'
 import { IS_WINDOWS } from './const'
 import { join } from 'path'
-import { Readable } from 'stream'
-import { pendingPromise } from './cross'
+import { pendingPromise, Promisable } from './cross'
 import { Stats, Dirent } from 'node:fs'
 import fswin from 'fswin'
+import { isDirectory } from './util-files'
 
 export interface DirStreamEntry extends Dirent {
     closingBranch?: Promise<string>
@@ -14,39 +14,26 @@ export interface DirStreamEntry extends Dirent {
 
 const dirQ = makeQ(3)
 
-export function createDirStream(startPath: string, { depth=0, hidden=true }) {
+// cb returns void = just go on, null = stop, false = go on but don't recur (in case of depth)
+export function walkDir(path: string, { depth = 0, hidden = true }: {
+    depth?: number,
+    hidden?: boolean
+}, cb: (e: DirStreamEntry) => Promisable<void | null | false>) {
     let stopped = false
-    let started = false
     const closingQ: string[] = []
-    const stream = new Readable({
-        objectMode: true,
-        read() {
-            if (started) return
-            started = true
-            dirQ.add(() => readDir('', depth)
-                .then(res => { // don't make the job await for it, but use it to close the stream
-                    Promise.resolve(res?.branchDone).then(() => {
-                        stream.push(null)
-                    })
-                }, e => {
-                    stream.emit('error', e)
-                    return stream.push(null)
-                })
-            )
-        }
-    })
-    stream.on('close', () => stopped = true)
-    return Object.assign(stream, {
-        stop() {
-            stopped = true
-            if (!dirQ.isWorking())
-                stream.push(null)
-        },
+    return new Promise(async (resolve, reject) => {
+        if (!await isDirectory(path))
+            throw Error('ENOTDIR')
+        dirQ.add(() => readDir('', depth)
+            .then(res => { // don't make the job await for it, but use it to know it's over
+                Promise.resolve(res?.branchDone).then(resolve)
+            }, reject)
+        )
     })
 
-    async function readDir(path: string, depth: number) {
+    async function readDir(relativePath: string, depth: number) {
         if (stopped) return
-        const base = join(startPath, path)
+        const base = join(path, relativePath)
         const subDirsDone: Promise<any>[] = []
         let n = 0
         let last: DirStreamEntry | undefined
@@ -62,7 +49,7 @@ export function createDirStream(startPath: string, { depth=0, hidden=true }) {
             for (const f of entries) {
                 if (stopped) break
                 if (!hidden && f.IS_HIDDEN) continue
-                work(Object.assign(Object.create(methods), {
+                await work(Object.assign(Object.create(methods), {
                     isDir: f.IS_DIRECTORY,
                     name: f.LONG_NAME,
                     stats: { size: f.SIZE, birthtime: f.CREATION_TIME, mtime: f.LAST_WRITE_TIME } as Stats
@@ -80,36 +67,37 @@ export function createDirStream(startPath: string, { depth=0, hidden=true }) {
             const expanded: DirStreamEntry = entry
             if (stats)
                 expanded.stats = stats
-            work(expanded)
+            await work(expanded)
         }
 
-        function work(entry: DirStreamEntry) {
-            entry.path = (path && path + '/') + entry.name
+        async function work(entry: DirStreamEntry) {
+            entry.path = (relativePath && relativePath + '/') + entry.name
             if (last && closingQ.length) // pending entries
                 last.closingBranch = Promise.resolve(closingQ.shift()!)
             last = entry
-            if (depth > 0 && entry.isDirectory()) {
-                const branchDone = pendingPromise() // per-job
-                const job = () =>
-                    readDir(entry.path, depth - 1) // recur
-                        .then(x => x, () => {}) // mute errors
-                        .then(res => { // don't await, as readDir must resolve without branch being done
-                            if (!res?.n)
-                                closingQ.push(entry.path) // no children to tell i'm done
-                            Promise.resolve(res?.branchDone).then(() =>
-                                branchDone.resolve())
-                        })
-                dirQ.add(job) // this won't start until next tick
-                subDirsDone.push(branchDone)
-            }
-            stream.push(entry)
+            const res = await cb(entry)
+            if (res === null) return stopped = true
+            if (res === false) return
             n++
+            if (!depth || !entry.isDirectory()) return
+            const branchDone = pendingPromise() // per-job
+            const job = () =>
+                readDir(entry.path, depth - 1) // recur
+                    .then(x => x, () => {}) // mute errors
+                    .then(res => { // don't await, as readDir must resolve without branch being done
+                        if (!res?.n)
+                            closingQ.push(entry.path) // no children to tell i'm done
+                        Promise.resolve(res?.branchDone).then(() =>
+                            branchDone.resolve())
+                    })
+            dirQ.add(job) // this won't start until next tick
+            subDirsDone.push(branchDone)
         }
         const branchDone = Promise.allSettled(subDirsDone).then(() => {})
         if (last) // using streams, we don't know when the entries are received, so we need to notify on last item
-            last.closingBranch = branchDone.then(() => path)
+            last.closingBranch = branchDone.then(() => relativePath)
         else
-            closingQ.push(path) // ok, we'll ask next one to carry this info
+            closingQ.push(relativePath) // ok, we'll ask next one to carry this info
         // don't return the promise directly, as this job ends here, but communicate to caller the promise for the whole branch
         return { branchDone, n }
     }

@@ -7,7 +7,7 @@ import { mkdir, stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import { dirname, extname, join, resolve } from 'path'
 import {
-    dirStream, enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
+    enforceFinal, enforceStarting, isDirectory, isValidFileName, isWindowsDrive, makeMatcher, PERM_KEYS,
     VfsNodeAdminSend
 } from './misc'
 import {
@@ -17,6 +17,7 @@ import {
 import { getDiskSpace, getDiskSpaces, getDrives, reg } from './util-os'
 import { getBaseUrlOrDefault, getServerStatus } from './listen'
 import { SendListReadable } from './SendList'
+import { walkDir } from './walkDir'
 
 // to manipulate the tree we need the original node
 async function urlToNodeOriginal(uri: string) {
@@ -202,14 +203,14 @@ const apis: ApiHandlers = {
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
-                    for await (const entry of dirStream(path)) {
+                    await walkDir(path, {}, async entry => {
                         if (ctx.isAborted())
-                            return
+                            return null
                         const {path:name} = entry
                         const isDir = entry.isDirectory()
                         if (!isDir)
                             if (!files || fileMask && !matching(name))
-                                continue
+                                return
                         try {
                             const stats = entry.stats || await stat(join(path, name))
                             list.add({
@@ -220,7 +221,7 @@ const apis: ApiHandlers = {
                                 k: isDir ? 'd' : undefined,
                             })
                         } catch {} // just ignore entries we can't stat
-                    }
+                    })
                     await sendPropsAsap.catch(() => {})
                     list.close()
                 } catch (e: any) {
