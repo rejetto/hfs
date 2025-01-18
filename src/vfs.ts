@@ -15,6 +15,7 @@ import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
 import { Stats } from 'node:fs'
 import fswin from 'fswin'
+import { DESCRIPT_ION, descriptIon } from './comments'
 
 const showHiddenFiles = defineConfig('show_hidden_files', false)
 
@@ -314,6 +315,8 @@ export async function* walkNode(parent: VfsNode, {
                 const {path} = entry
                 const isFolder = entry.isDirectory()
                 const name = prefixPath + (parent.rename?.[path] || path)
+                if (descriptIon.get() && basename(name) === DESCRIPT_ION)
+                    continue
                 if (taken?.has(normalizeFilename(name))) continue
                 if (depth) {
                     const dir = dirname(name)

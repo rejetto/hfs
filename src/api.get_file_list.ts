@@ -10,7 +10,7 @@ import { mapPlugins } from './plugins'
 import { asyncGeneratorToArray, dirTraversal, pattern2filter, WHO_NO_ONE } from './misc'
 import { HTTP_FOOL, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND } from './const'
 import Koa from 'koa'
-import { descriptIon, DESCRIPT_ION, getCommentFor, areCommentsEnabled } from './comments'
+import { getCommentFor, areCommentsEnabled } from './comments'
 import { basename } from 'path'
 import { updateConnectionForCtx } from './connections'
 import { ctxAdminAccess } from './adminApis'
@@ -70,8 +70,6 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, search
         for await (const sub of walker) {
             let name = getNodeName(sub)
             name = basename(name) || name // on windows, basename('C:') === ''
-            if (descriptIon.get() && name === DESCRIPT_ION)
-                continue
             if (!filter(name))
                 continue
             const entry = await nodeToDirEntry(ctx, sub)
