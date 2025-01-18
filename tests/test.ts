@@ -97,7 +97,7 @@ describe('basics', () => {
     it('protectFromAbove.list', reqList('/protectFromAbove/child/', { inList:['alfa.txt'] }))
 
     const zipSize = 13010
-    const zipOfs = 5000
+    const zipOfs = 0x1359
     it('zip.head', req('/f1/?get=zip', { empty:true, length:zipSize }, { method:'HEAD' }) )
     it('zip.partial', req('/f1/?get=zip', { re:/^C3$/, length: 2 }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+1}` } }) )
     it('zip.partial.resume', req('/f1/?get=zip', { re:/^C3/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )

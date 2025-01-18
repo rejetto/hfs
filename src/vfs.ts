@@ -275,15 +275,16 @@ export async function* walkNode(parent: VfsNode, {
     onlyFiles = false,
 }: { ctx?: Koa.Context,depth?: number, prefixPath?: string, requiredPerm?: undefined | keyof VfsPerms, onlyFolders?: boolean, onlyFiles?: boolean } = {}): AsyncIterableIterator<VfsNode> {
     const { children, source } = parent
-    const took = prefixPath ? undefined : new Set()
+    const taken = prefixPath ? undefined : new Set()
     const maskApplier = parentMaskApplier(parent)
     const parentsCache = new Map() // we use this only if depth > 0
+    const visitLater: any = []
     if (children)
         for (const child of children) {
             if (await nodeIsDirectory(child) ? onlyFiles : onlyFolders) continue
             const nodeName = getNodeName(child)
             const name = prefixPath + nodeName
-            took?.add(normalizeFilename(name))
+            taken?.add(normalizeFilename(name))
             const item = { ...child, name }
             if (!await canSee(item)) continue
             if (item.source) // real items must be accessible
@@ -294,48 +295,55 @@ export async function* walkNode(parent: VfsNode, {
             parentsCache.set(name, item)
             inheritMasks(item, parent,  nodeName)
             if (!ctx || hasPermission(item, 'can_list', ctx)) // check perm before recursion
-                yield* walkNode(item, { ctx, depth: depth - 1, prefixPath: name + '/', requiredPerm, onlyFolders })
+                visitLater.push([item, name]) // prioritize siblings
         }
-    if (!source)
-        return
-    if (requiredPerm && ctx // no permission, no reason to continue (at least for dynamic elements)
-    && !hasPermission(parent, requiredPerm, ctx)
-    && !masksCouldGivePermission(parent.masks, requiredPerm))
-        return
-
     try {
-        let lastDir = prefixPath.slice(0, -1) || '.'
-        parentsCache.set(lastDir, parent)
-        for await (const entry of dirStream(source, { depth, onlyFolders, hidden: showHiddenFiles.get() })) {
-            if (ctx?.isAborted()) break
-            const {path} = entry
-            const isFolder = entry.isDirectory()
-            const name = prefixPath + (parent.rename?.[path] || path)
-            if (took?.has(normalizeFilename(name))) continue
-            if (depth) {
-                const dir = dirname(name)
-                if (dir !== lastDir)
-                    parent = parentsCache.get(lastDir = dir)
-            }
 
-            const item: VfsNode = {
-                name,
-                isFolder,
-                source: join(source, path),
-                rename: renameUnderPath(parent.rename, path),
+        if (!source)
+            return
+        if (requiredPerm && ctx // no permission, no reason to continue (at least for dynamic elements)
+        && !hasPermission(parent, requiredPerm, ctx)
+        && !masksCouldGivePermission(parent.masks, requiredPerm))
+            return
+
+        try {
+            let lastDir = prefixPath.slice(0, -1) || '.'
+            parentsCache.set(lastDir, parent)
+            for await (const entry of dirStream(source, { depth, onlyFolders, hidden: showHiddenFiles.get() })) {
+                if (ctx?.isAborted()) break
+                const {path} = entry
+                const isFolder = entry.isDirectory()
+                const name = prefixPath + (parent.rename?.[path] || path)
+                if (taken?.has(normalizeFilename(name))) continue
+                if (depth) {
+                    const dir = dirname(name)
+                    if (dir !== lastDir)
+                        parent = parentsCache.get(lastDir = dir)
+                }
+
+                const item: VfsNode = {
+                    name,
+                    isFolder,
+                    source: join(source, path),
+                    rename: renameUnderPath(parent.rename, path),
+                }
+                if (isFolder) // store it even if we can't see it (masks), as its children can be produced by dirStream
+                    parentsCache.set(name, item)
+                if (!(onlyFiles && isFolder) && await canSee(item))
+                    yield item
+                entry.closingBranch?.then(p =>
+                    parentsCache.delete(p || '.'))
             }
-            if (isFolder) // store it even if we can't see it (masks), as its children can be produced by dirStream
-                parentsCache.set(name, item)
-            if (!(onlyFiles && isFolder) && await canSee(item))
-                yield item
-            entry.closingBranch?.then(p =>
-                parentsCache.delete(p || '.'))
         }
+        catch(e) {
+            console.debug('walkNode', source, e) // ENOTDIR, or lacking permissions
+        }
+        parentsCache.clear() // hoping for faster GC
     }
-    catch(e) {
-        console.debug('walkNode', source, e) // ENOTDIR, or lacking permissions
+    finally {
+        for (const [item, name] of visitLater)
+            yield* walkNode(item, { ctx, depth: depth - 1, prefixPath: name + '/', requiredPerm, onlyFolders })
     }
-    parentsCache.clear() // hoping for faster GC
 
     // item will be changed, so be sure to pass a temp node
      async function canSee(item: VfsNode) {
