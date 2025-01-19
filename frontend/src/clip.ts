@@ -51,13 +51,17 @@ export function ClipBar() {
             uri_to: here,
         }).then(res => {
             const bad = _.sumBy(res.errors, x => x ? 1 : 0)
-            alertDialog(h(Fragment, {},
-                t('good_bad', { bad, good: clip.length - bad }, "{good} moved, {bad} failed"),
-                h('ul', {}, res.errors.map(((e: any, i: number) => {
-                    e = xlate(e, HTTP_MESSAGES)
-                    return e && h('li', {}, clip[i].name + ': ' + e)
-                }))),
-            ), bad ? 'warning' : 'info')
+            const msg = t('good_bad', { bad, good: clip.length - bad }, "{good} moved, {bad} failed")
+            if (!bad)
+                toast(msg, 'success')
+            else
+                alertDialog(h(Fragment, {},
+                    msg,
+                    h('ul', {}, res.errors.map(((e: any, i: number) => {
+                        e = xlate(e, HTTP_MESSAGES)
+                        return e && h('li', {}, clip[i].name + ': ' + e)
+                    }))),
+                ), 'warning')
             cancel()
             reloadList()
         }, alertDialog)
