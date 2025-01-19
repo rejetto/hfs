@@ -3,17 +3,7 @@
 import _ from 'lodash'
 import { proxy, useSnapshot } from 'valtio'
 import { subscribeKey } from 'valtio/utils'
-import {
-    Dict,
-    FRONTEND_OPTIONS,
-    getHFS,
-    hfsEvent,
-    hIcon,
-    objSameKeys,
-    pathEncode,
-    StringifyProps,
-    typedKeys
-} from './misc'
+import { Dict, FRONTEND_OPTIONS, getHFS, hfsEvent, hIcon, objSameKeys, pathEncode, typedKeys } from './misc'
 import { DirEntry as ServerDirEntry } from '../../src/api.get_file_list'
 
 export const state = proxy<typeof FRONTEND_OPTIONS & {
@@ -101,12 +91,12 @@ function storeSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(_.pick(state, SETTINGS_TO_STORE)))
 }
 
-export class DirEntry implements StringifyProps<ServerDirEntry> {
+export class DirEntry implements ServerDirEntry {
     static FORBIDDEN = 'FORBIDDEN'
     public readonly n: string
     public readonly s?: number
-    public readonly m?: string
-    public readonly c?: string
+    public readonly m?: Date
+    public readonly c?: Date
     public readonly p?: string
     public readonly icon?: string | true
     public readonly web?: true
@@ -118,7 +108,7 @@ export class DirEntry implements StringifyProps<ServerDirEntry> {
     public readonly uri: string
     public readonly ext: string = ''
     public readonly isFolder: boolean
-    public readonly t?:Date
+    public readonly t?: Date
     public readonly cantOpen?: true | typeof DirEntry.FORBIDDEN
     public readonly key?: string
 
@@ -131,9 +121,9 @@ export class DirEntry implements StringifyProps<ServerDirEntry> {
             const i = this.n.lastIndexOf('.') + 1
             this.ext = i ? this.n.substring(i).toLowerCase() : ''
         }
-        const t = this.m || this.c
-        if (t)
-            this.t = new Date(t)
+        this.c &&= new Date(this.c)
+        this.m &&= new Date(this.m)
+        this.t = this.m || this.c
         this.name = this.isFolder ? this.n.slice(this.n.lastIndexOf('/', this.n.length - 2) + 1, -1)
             : this.n.slice(this.n.lastIndexOf('/') + 1)
         const x = this.isFolder && !this.web  ? 'L' : 'R' // to open we need list for folders and read for files

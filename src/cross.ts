@@ -25,7 +25,7 @@ export const FRONTEND_OPTIONS = {
     auto_play_seconds: 5,
     disableTranslation: false,
 }
-export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time']
+export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time', 'creation']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
 export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
@@ -38,7 +38,6 @@ type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
 export type Functionable<T> = T | ((...args: any[]) => T)
-export type StringifyProps<T> = { [P in keyof T]: Exclude<T[P], Date> extends T[P] ? string | Exclude<T[P], Date> : T[P] }
 export interface VfsPerms {
     can_see?: Who
     can_read?: Who

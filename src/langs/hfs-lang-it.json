@@ -171,6 +171,8 @@
         "focus_hint": "Scrivendo sulla tastiera cerchi tra gli elementi della lista.",
         "copy_links": "Copia i link",
 
-        "Calculate": "Calcola"
+        "Calculate": "Calcola",
+        "Creation": "Creazione",
+        "creation": "creazione"
     }
 }

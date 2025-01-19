@@ -94,7 +94,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 --offset
                 continue
             }
-            if (!c) { // include c field?
+            if (c === 'no') { // allow excluding c for smaller payload
                 if (!entry.m)
                     entry.m = entry.c
                 if (entry.c)

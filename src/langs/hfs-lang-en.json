@@ -179,6 +179,8 @@
         "focus_hint": "By typing on your keyboard, you search and focus elements of the list.",
         "copy_links": "Copy links",
 
-        "Calculate": "Calculate"
+        "Calculate": "Calculate",
+        "Creation": "Creation",
+        "creation": "creation"
     }
 }

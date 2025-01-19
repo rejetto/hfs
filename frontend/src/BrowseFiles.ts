@@ -326,7 +326,8 @@ export function getEntryIcon(entry: DirEntry) {
 }
 
 export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
-    const { t: time, s } = entry
+    const { sort_by } = useSnapState()
+    const time = sort_by === 'creation' ? entry.c : entry.t
     const today = time && time > midnight
     const shortTs = useWindowSize().width < 800
     const {t} = useI18N()
@@ -334,7 +335,7 @@ export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnig
     return h('div', { className: 'entry-details' },
         h(CustomCode, { name: 'additionalEntryDetails', entry }),
         entry.cantOpen && hIcon(entry.cantOpen === DirEntry.FORBIDDEN ? 'lock' : 'password', { className: 'miss-perm', title: t(MISSING_PERM) }),
-        h(EntrySize, { s }),
+        h(EntrySize, { s: entry.s }),
         time && h('span', {
             className: 'entry-ts',
             'aria-hidden': true,

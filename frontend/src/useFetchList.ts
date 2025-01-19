@@ -176,6 +176,7 @@ function sort(list: DirList) {
     const bySize = sort_by === 'size'
     const byExt = sort_by === 'extension'
     const byTime = sort_by === 'time'
+    const byCreation = sort_by === 'creation'
     const invert = state.invert_order ? -1 : 1
     return list.sort((a,b) =>
         hfsEvent('sortCompare', { a, b }).find(Boolean)
@@ -183,7 +184,8 @@ function sort(list: DirList) {
         || invert * (bySize ? compare(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
                 : byTime ? compare(a.t, b.t)
-                    : 0
+                    : byCreation ? compare(a.c, b.c)
+                        : 0
         )
         || sort_numerics && (invert * compareNumerics(a.n, b.n))
         || invert * localCompare(a.n, b.n) // fallback to name/path
