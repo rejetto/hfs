@@ -68,6 +68,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
 
     const sideContent = accountsApi.element || !vfs ? null
         : single ? h(FileForm, {
+            key: single.id,
             addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
             statusApi,
             saved: () => closeDialogRef.current(),
