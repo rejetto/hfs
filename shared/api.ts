@@ -84,8 +84,8 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     const [data, setData] = useStateMounted<Awaited<ReturnType<typeof apiCall<T>>> | undefined>(undefined)
     const [error, setError] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
-    const loadingRef = useRef<ReturnType<typeof apiCall>>()
-    const reloadingRef = useRef<any>()
+    const [loading, setLoading, getLoading] = useStateMounted<undefined | ReturnType<typeof apiCall>>(undefined)
+    const reloadPromise = useRef<any>()
     const dataRef = useRef<any>()
     useEffect(() => {
         setError(undefined)
@@ -98,25 +98,25 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
                 setError(err)
                 setData(dataRef.current = undefined)
             })
-            .finally(() => loadingRef.current = reloadingRef.current = undefined)
-        loadingRef.current = Object.assign(wholePromise, {
+            .finally(() => setLoading(reloadPromise.current = undefined))
+        if (cmd && !aborted) setLoading(Object.assign(wholePromise, {
             abort() {
                 aborted = true
                 req?.abort()
             }
-        })
-        reloadingRef.current?.resolve(wholePromise)
-        return () => loadingRef.current?.abort()
+        }))
+        reloadPromise.current?.resolve(wholePromise)
+        return () => getLoading()?.abort()
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
     const reload = useCallback(() => {
-        if (loadingRef.current) return
+        if (getLoading()) return
         setForcer(v => v + 1)
-        reloadingRef.current = pendingPromise()
+        reloadPromise.current = pendingPromise()
     }, [setForcer])
     const ee = useMemo(() => new BetterEventEmitter, [])
     const sub = useCallback((cb: Callback) => ee.on('data', cb), [ee])
     useEffect(() => { ee.emit('data') }, [data])
-    return { data, setData, error, reload, sub, loading: loadingRef.current || reloadingRef.current, getData: () => dataRef.current }
+    return { data, setData, error, reload, sub, loading, getData: () => dataRef.current }
 }
 
 type EventHandler = (type:string, data?:any) => void

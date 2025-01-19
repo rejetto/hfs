@@ -194,7 +194,7 @@ export const frontEndApis: ApiHandlers = {
             files++
             partialFolderSize[id] = { bytes, files }
         }
-        return popKey(partialFolderSize, id)
+        return popKey(partialFolderSize, id) || { bytes, files }
     },
 }
 

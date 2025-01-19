@@ -1,6 +1,6 @@
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId
+    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId, err2msg
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode, useState } from 'react'
 import { Btn, Bytes, Spinner } from './components'
@@ -86,7 +86,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
                 onClick: () => closeDialog(null, true)
             }, folder.replaceAll('/', ' / '))
         },
-        isFolder && { id: 'folderSize', label: t`Size`, value: h(FolderSize) },
+        isFolder && !entry.cantOpen && { id: 'folderSize', label: t`Size`, value: h(FolderSize) },
     ].filter(Boolean)
     const res = hfsEvent('fileMenu', { entry, menu, props })
     menu.push(...res.flat()) // flat because each plugin may return an array of entries
@@ -149,19 +149,20 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
     function FolderSize() {
         const [go, setGo] = useState(false)
         const [id] = useState(() => randomId())
-        const { data } = useApi(go && 'get_folder_size', { uri: entry.uri, id }, { timeout: false })
-        const partial = useApi(go && !data && 'get_folder_size_partial', { id })
+        const { data, error, loading } = useApi(go && 'get_folder_size', { uri: entry.uri, id }, { timeout: false })
+        const partial = useApi(loading && 'get_folder_size_partial', { id })
         useInterval(partial.reload, 1000)
-        return data ? showRes(data)
-            : !go ? h(Btn, { asText: true, label: t`Calculate`, onClick() { setGo(true) } })
-                : h('span', {},
-                    showRes(partial.data),
-                    ' ',
-                    h(Btn, { asText: true, label: t`Cancel`, icon: h(Spinner), onClick() { setGo(false) } })
-                )
+        return showRes(data || error)
+            || (!loading ? h(Btn, { asText: true, label: t`Calculate`, onClick() { setGo(true) } })
+                : h('span', {}, showRes(partial.data), ' ',
+                    h(Btn, { asText: true, label: t`Cancel`, icon: h(Spinner), onClick() { setGo(false) } }) )
+            )
 
         function showRes(data: any) {
-            return data && h('span', {}, h(Bytes, _.pick(data,'bytes')), ' / ', t('n_files', { n: data.files.toLocaleString() }, '{n,plural,one{# file} other{# files}}') )
+            return data && (
+                data.code ? err2msg(data)
+                    : h('span', {}, h(Bytes, _.pick(data,'bytes')), ' / ', t('n_files', { n: data.files.toLocaleString() }, '{n,plural,one{# file} other{# files}}') )
+            )
         }
     }
 }
