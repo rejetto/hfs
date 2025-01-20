@@ -234,7 +234,7 @@ function ColorField(rest: FieldProps<string>) {
             sx: { position: 'absolute', right: 4 },
             title: "Clear",
             onClick(event) {
-                rest.onChange(undefined as any, { was: rest.value, event: event })
+                rest.onChange(null as any, { was: rest.value, event: event })
             }
         }) : h(Box, {
                 sx: {
