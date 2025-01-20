@@ -15,6 +15,7 @@ export function Head() {
         h(MenuPanel),
         h(CustomCode, { name: 'afterMenuBar' }),
         h(Breadcrumbs),
+        h(CustomCode, { name: 'afterBreadcrumbs' }),
         h(FolderStats),
         h(FilterBar),
     )
@@ -44,6 +45,7 @@ function FolderStats() {
                 size ? formatBytes(size) : '',
             ].filter(Boolean).join(', '),
         ),
+        h(CustomCode, { name: 'afterFolderStats' }),
         h('div', { style:{ clear:'both' }}),
     )
 }

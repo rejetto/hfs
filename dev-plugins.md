@@ -450,6 +450,9 @@ This is a list of available frontend-events, with respective object parameter an
 - All of the following have no parameters and you are supposed to output `Html` that will be displayed in the described place:
 -   `appendMenuBar` inside menu-bar, at the end
   - `afterMenuBar` between menu-bar and breadcrumbs
+  - `afterBreadcrumbs` between breadcrumbs and folder-stats
+  - `afterFolderStats` between folder-stats and filter-bar
+  - `afterFilter` at the input of the filter-bar
   - `afterList` at the end of the files list
   - `footer` at the bottom of the screen, even after the clipboard-bar (when visible)
   - `unauthorized` displayed behind the login dialog accessing a protected folder
@@ -715,8 +718,9 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 11 (v0.56.0)
+- 11.1 (v0.56.0)
     - api.setError 
+    - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
 - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams

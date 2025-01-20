@@ -1,7 +1,7 @@
 import { state, useSnapState } from './state'
 import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
-import { Checkbox } from './components'
+import { Checkbox, CustomCode } from './components'
 import { usePath } from './useFetchList'
 import { getHFS, with_ } from './misc'
 import i18n from './i18n'
@@ -44,6 +44,7 @@ export function FilterBar() {
                 setFilter(ev.target.value)
             }
         }),
+        h(CustomCode, { name: 'afterFilter' }),
         h('span', {}, [
             with_(Object.keys(selected).length, n => n && t('select_count', { n }, "{n} selected")),
             with_(filteredList?.length, n => n !== undefined && n < list.length && t('filter_count', {n}, "{n} filtered")),
