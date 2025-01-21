@@ -126,7 +126,7 @@ export default function HomePage() {
             !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
                 : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
                     : h(Flex, { vert: true },
-                        updates.map((x: any) => h(Update, { info: x })) ),
+                        updates.map((x: any) => h(Update, { info: x, key: x.name })) ),
             entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
         )),
         h(SwitchThemeBtn, { variant: 'outlined' }),
@@ -141,7 +141,7 @@ export default function HomePage() {
 
 function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean }) {
     const [collapsed, setCollapsed] = useState(bodyCollapsed)
-    return h(Flex, { key: info.name, alignItems: 'flex-start', flexWrap: 'wrap' },
+    return h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },
         h(Card, {}, h(CardContent, {},
             title && h(Box, { fontSize: 'larger', mb: 1 }, title),
             h(Btn, {
