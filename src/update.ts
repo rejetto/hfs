@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getProjectInfo, getRepoInfo } from './github'
+import { apiGithubPaginated, getProjectInfo, getRepoInfo } from './github'
 import { ARGS_FILE, HFS_REPO, IS_BINARY, IS_WINDOWS, RUNNING_BETA } from './const'
 import { dirname, join } from 'path'
 import { spawn, spawnSync } from 'child_process'
@@ -70,22 +70,16 @@ export async function getUpdates(strict=false) {
 
     async function getBetas() {
         if (!updateToBeta.get() && !RUNNING_BETA) return []
-        let page = 1
-        const ret = []
-        while (1) {
-            const per = 100
-            const res: Release[] = await getRepoInfo(HFS_REPO + `/releases?per_page=${per}&page=${page++}`)
-            if (!res.length) break
-            const curV = currentVersion.getScalar()
-            for (const x of res) {
-                if (!x.prerelease || x.name.endsWith('-ignore')) continue
-                const v = x.versionScalar = versionToScalar(x.name)
-                if (v < stable.versionScalar) // we don't consider betas before stable
-                    return ret
-                if (v === curV) continue // skip current
-                x.isNewer = v > curV // make easy to know what's newer
-                ret.push(x)
-            }
+        const ret: Release[] = []
+        const curV = currentVersion.getScalar()
+        for await (const x of apiGithubPaginated(`repos/${HFS_REPO}/releases`)) {
+            if (!x.prerelease || x.name.endsWith('-ignore')) continue
+            const v = x.versionScalar = versionToScalar(x.name)
+            if (v < stable.versionScalar) // we don't consider betas before stable
+                return ret
+            if (v === curV) continue // skip current
+            x.isNewer = v > curV // make easy to know what's newer
+            ret.push(x)
         }
         return ret
     }

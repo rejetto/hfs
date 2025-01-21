@@ -188,16 +188,18 @@ async function apiGithub(uri: string) {
     })
 }
 
-async function *apiGithubPaginated<T=any>(uri: string) {
+export async function *apiGithubPaginated<T=any>(uri: string) {
+    uri += uri.includes('?') ? '&' : '?'
     const PAGE_SIZE = 100
     let page = 1
     let n = 0
     try {
         while (1) {
-            const res = await apiGithub(uri + `&page=${page++}&per_page=${PAGE_SIZE}`)
-            for (const x of res.items)
+            const res = await apiGithub(uri + `page=${page++}&per_page=${PAGE_SIZE}`)
+            const a = res.items || res // "search/repositories" returns an object, while "releases" returns simply an array
+            for (const x of a)
                 yield x as T
-            const now = res.items.length
+            const now = a.length
             n += now
             if (!now || n >= res.total_count) break
         }
