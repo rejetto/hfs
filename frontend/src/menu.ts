@@ -42,7 +42,7 @@ export function MenuPanel() {
 
     // passing files as string in the url should allow 1-2000 items before hitting the url limit of 64KB. Shouldn't be a problem, right?
     const ofs = location.pathname.length
-    const list = useMemo(() => Object.keys(selected).map(s => s.slice(ofs, s.endsWith('/') ? -1 : Infinity)).join('*'), [selected])
+    const list = useMemo(() => Object.keys(selected).map(s => s.slice(ofs, s.endsWith('/') ? -1 : Infinity)).join('//'), [selected])
 
     // avoid useless dom changes while we are still waiting for necessary data
     const [changingButton, setChangingButton] = useState<'' | 'upload' | 'delete'>('')
@@ -68,7 +68,7 @@ export function MenuPanel() {
                 icon: 'delete',
                 label: t`Delete`,
                 className: 'show-sliding',
-                disabled: !list.length,
+                disabled: !list,
                 tooltip: t('delete_select', "Select something to delete"),
                 onClick: () => deleteFiles(Object.keys(selected))
             } : {

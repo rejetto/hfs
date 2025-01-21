@@ -15,7 +15,7 @@ import { getCommentFor } from './comments'
 
 // expects 'node' to have had permissions checked by caller
 export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
-    const list = wantArray(ctx.query.list)[0]?.split('*') // we are using * as separator because it cannot be used in a file name and doesn't need url encoding
+    const list = wantArray(ctx.query.list)[0]?.split('//') // slash is the only char not allowed in file names both for windows and unix, but still we need to encode whole paths, so the only safe choice to separate the entries is the double slash
     if (!list && statusCodeForMissingPerm(node, 'can_archive', ctx)) return
     ctx.status = HTTP_OK
     ctx.mime = 'zip'
