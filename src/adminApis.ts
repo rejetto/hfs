@@ -24,7 +24,7 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtml, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
-import { autoCheckUpdateResult, getUpdates, localUpdateAvailable, update, updateSupported } from './update'
+import { autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateSupported } from './update'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
 import { ip2country } from './geo'
@@ -77,6 +77,11 @@ export const adminApis = {
     }),
     async check_update() {
         return { options: await getUpdates() }
+    },
+    async get_other_versions() {
+        let left = 50
+        const res = await getVersions(r => !r.prerelease && !left--)
+        return { options: res.filter(x => !x.prerelease) }
     },
     async wait_project_info() { // used by admin/home/check-for-updates
         await getProjectInfo()

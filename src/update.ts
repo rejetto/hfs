@@ -56,33 +56,37 @@ export type Release = { // not using interface, as it will not work with kvstora
 const ReleaseKeys = ['prerelease', 'tag_name', 'name', 'body', 'assets', 'isNewer', 'versionScalar'] satisfies (keyof Release)[]
 const ReleaseAssetKeys = ['name', 'browser_download_url'] satisfies (keyof Release['assets'][0])[]
 
+const curV = currentVersion.getScalar()
+function prepareRelease(r: Release) {
+    const v = versionToScalar(r.name)
+    return Object.assign(_.pick(r, ReleaseKeys), { // prune a bit, as it will be serialized and it has a lot of unused data
+        versionScalar: v,
+        isNewer: v > curV, // make easy to know what's newer
+        assets: r.assets.map((a: any) => _.pick(a, ReleaseAssetKeys))
+    })
+}
+
+export async function getVersions(interrupt?: (r: Release) => boolean) {
+    if (!updateToBeta.get() && !RUNNING_BETA) return []
+    const ret: Release[] = []
+    for await (const x of apiGithubPaginated(`repos/${HFS_REPO}/releases`)) {
+        if (x.name.endsWith('-ignore')) continue
+        const rel = prepareRelease(x)
+        if (rel.versionScalar === curV) continue
+        if (interrupt?.(rel)) break // avoid fetching too much data
+        ret.push(rel)
+    }
+    return _.sortBy(ret, x => -x.versionScalar)
+}
+
 export async function getUpdates(strict=false) {
     getProjectInfo() // check for alerts
-    const stable: Release = await getRepoInfo(HFS_REPO + '/releases/latest')
-    stable.isNewer = currentVersion.olderThan(stable.tag_name)
-    stable.versionScalar = versionToScalar(stable.name)
-    const ret = await getBetas()
+    const stable: Release = prepareRelease(await getRepoInfo(HFS_REPO + '/releases/latest'))
+    const res = await getVersions(r => r.versionScalar < stable.versionScalar) // we don't consider betas before stable
+    const ret = res.filter(x => x.prerelease && (strict ? x.isNewer : (x.versionScalar !== currentVersion.getScalar())) )
     if (stable.isNewer || RUNNING_BETA)
         ret.push(stable)
-    // prune a bit, as it will be serialized, but it has a lot of unused data
-    return _.sortBy(ret, x => -x.versionScalar).filter(x => !strict || x.isNewer).map(x =>
-        Object.assign(_.pick(x, ReleaseKeys), { assets: x.assets.map(a => _.pick(a, ReleaseAssetKeys)) }))
-
-    async function getBetas() {
-        if (!updateToBeta.get() && !RUNNING_BETA) return []
-        const ret: Release[] = []
-        const curV = currentVersion.getScalar()
-        for await (const x of apiGithubPaginated(`repos/${HFS_REPO}/releases`)) {
-            if (!x.prerelease || x.name.endsWith('-ignore')) continue
-            const v = x.versionScalar = versionToScalar(x.name)
-            if (v < stable.versionScalar) // we don't consider betas before stable
-                return ret
-            if (v === curV) continue // skip current
-            x.isNewer = v > curV // make easy to know what's newer
-            ret.push(x)
-        }
-        return ret
-    }
+    return ret
 }
 
 const LOCAL_UPDATE = 'hfs-update.zip' // update from file takes precedence over net

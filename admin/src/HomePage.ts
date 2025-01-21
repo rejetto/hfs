@@ -32,7 +32,8 @@ export default function HomePage() {
     const { list: plugins } = useApiList('get_plugins')
     const [checkPlugins, setCheckPlugins] = useState(false)
     const { list: pluginUpdates} = useApiList(checkPlugins && 'get_plugin_updates')
-    const [updates, setUpdates] = useState<undefined | any[]>()
+    const [updates, setUpdates] = useState<undefined | Release[]>()
+    const [otherVersions, setOtherVersions] = useState<undefined | Release[]>()
     if (statusEl || !status)
         return statusEl
     const { http, https } = status
@@ -122,13 +123,19 @@ export default function HomePage() {
                 ]
             }
         }),
-        updates && with_(_.find(updates, 'isNewer'), newer => h(Fragment, {},
+        updates && with_(_.find(updates, 'isNewer'), newer =>
             !updates.length || !status.updatePossible && !newer ? entry('', "No update available")
                 : newer && !status.updatePossible ? entry('success', `Version ${newer.name} available`)
                     : h(Flex, { vert: true },
                         updates.map((x: any) => h(Update, { info: x, key: x.name })) ),
-            entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
-        )),
+        ),
+        !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
+            : otherVersions ? h(Flex, { vert: true }, otherVersions.map((x: any) => h(Update, { info: x, key: x.name, bodyCollapsed: true })) )
+                : h(Btn, {
+                    variant: 'outlined',
+                    onClick: () => apiCall<typeof adminApis.get_other_versions>('get_other_versions')
+                        .then(x => setOtherVersions(x.options), alertDialog)
+                }, "Install other version"),
         h(SwitchThemeBtn, { variant: 'outlined' }),
         Date.now() - Number(new Date(status.started)) > HOUR && h(Link, {
             title: "Donate",
