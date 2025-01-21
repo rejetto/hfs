@@ -9,7 +9,7 @@ import fs from 'fs/promises'
 import { defineConfig } from './config'
 import { basename, dirname } from 'path'
 import { applyRange, forceDownload, monitorAsDownload } from './serveFile'
-import { HTTP_OK } from './const'
+import { HTTP_OK, IS_WINDOWS } from './const'
 import { paramsToFilter } from './api.get_file_list'
 import { getCommentFor } from './comments'
 
@@ -46,7 +46,9 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
         if (nodeIsLink(el)) return
         if (!hasPermission(el, 'can_archive', ctx)) return // the fact you see it doesn't mean you can get it
         const { source } = el
-        const name = getNodeName(el)
+        let name = getNodeName(el)
+        if (!IS_WINDOWS) // posix supports \ in file names, but zip tools don't
+            name = name.replaceAll('\\', '_')
         if (filterName && !filterName(name)
         || filterComment && !filterComment(await getCommentFor(source) || ''))
             return
