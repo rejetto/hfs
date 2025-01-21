@@ -143,12 +143,15 @@ function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Relea
     const [collapsed, setCollapsed] = useState(bodyCollapsed)
     return h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },
         h(Card, {}, h(CardContent, {},
-            title && h(Box, { fontSize: 'larger', mb: 1 }, title),
-            h(Btn, {
-                icon: UpdateIcon,
-                ...!info.isNewer && info.prerelease && { color: 'warning', variant: 'outlined' },
-                onClick: () => update(info.tag_name)
-            }, prefix("Install ", info.name, info.isNewer ? '' : " (older)")),
+            h(Flex, {},
+                title && h(Box, { fontSize: 'larger', mb: 1 }, title),
+                h(Btn, {
+                    icon: UpdateIcon,
+                    ...!info.isNewer && info.prerelease && { color: 'warning', variant: 'outlined' },
+                    onClick: () => update(info.tag_name)
+                }, prefix("Install ", info.name, info.isNewer ? '' : " (older)")),
+                h(Link, { href: REPO_URL + 'releases/tag/' + info.tag_name, target: 'repo' }, h(OpenInNew)),
+            ),
             collapsed ? h(LinkBtn, { sx: { display: 'block', mt: 1 }, onClick(){ setCollapsed(false) } }, "See details")
                 : h(Box, { mt: 1 }, renderChangelog(info.body))
         )),
