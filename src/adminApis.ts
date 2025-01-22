@@ -24,7 +24,9 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { customHtmlSections, customHtml, saveCustomHtml } from './customHtml'
 import _ from 'lodash'
-import { autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateSupported } from './update'
+import {
+    autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateSupported, previousAvailable
+} from './update'
 import { resolve } from 'path'
 import { getErrorSections } from './errorPages'
 import { ip2country } from './geo'
@@ -128,6 +130,7 @@ export const adminApis = {
             baseUrl: await getBaseUrlOrDefault(),
             roots: roots.get(),
             updatePossible: !await updateSupported() ? false : (await localUpdateAvailable()) ? 'local' : true,
+            previousVersionAvailable: await previousAvailable(),
             autoCheckUpdateResult: autoCheckUpdateResult.get(), // in this form, we get the same type of the serialized json
             alerts: alerts.get(),
             proxyDetected: getProxyDetected(),

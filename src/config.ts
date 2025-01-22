@@ -43,11 +43,13 @@ export const versionToScalar = _.memoize((ver: string) => { // memoize so we don
 })
 
 class Version extends String {
-    olderThan(otherVersion: string) {
-        return versionToScalar(this.valueOf()) < versionToScalar(otherVersion)
+    readonly scalar
+    constructor(v: string) {
+        super(v)
+        this.scalar = versionToScalar(v)
     }
-    getScalar() {
-        return versionToScalar(this.valueOf())
+    olderThan(otherVersion: string) {
+        return this.scalar < versionToScalar(otherVersion)
     }
 }
 

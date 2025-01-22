@@ -1,14 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useState } from 'react'
+import { createElement as h, ReactNode, useState } from 'react'
 import { Box, Card, CardContent, LinearProgress, Link } from '@mui/material'
 import { apiCall, useApiEx, useApiList } from './api'
 import {
     dontBotherWithKeys, objSameKeys, onlyTruthy, prefix, REPO_URL, md,
-    replaceStringToReact, wait, with_, DAY, HOUR
+    replaceStringToReact, wait, with_, DAY, HOUR, PREVIOUS_TAG
 } from './misc'
 import { Btn, Flex, InLink, LinkBtn, wikiLink, } from './mui'
-import { BrowserUpdated as UpdateIcon, CheckCircle, Error, Info, Launch, OpenInNew, Warning } from '@mui/icons-material'
+import {
+    BrowserUpdated as UpdateIcon, CheckCircle, Colorize, Error, Info, Launch, OpenInNew, Restore, Warning
+} from '@mui/icons-material'
 import { state, useSnapState } from './state'
 import { alertDialog, confirmDialog, promptDialog, toast } from './dialog'
 import { isCertError, isKeyError, suggestMakingCert } from './OptionsPage'
@@ -101,7 +103,6 @@ export default function HomePage() {
                 fields: [
                     status.updatePossible === 'local' ? h(Btn, { icon: UpdateIcon, onClick: () => update() }, "Update from local file")
                         : !updates && h(Btn, {
-                            variant: 'outlined',
                             icon: UpdateIcon,
                             onClick() {
                                 apiCall('wait_project_info').then(reloadStatus)
@@ -129,14 +130,18 @@ export default function HomePage() {
                     : h(Flex, { vert: true },
                         updates.map((x: any) => h(Update, { info: x, key: x.name })) ),
         ),
-        !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
-            : otherVersions ? h(Flex, { vert: true }, otherVersions.map((x: any) => h(Update, { info: x, key: x.name, bodyCollapsed: true })) )
-                : h(Btn, {
-                    variant: 'outlined',
-                    onClick: () => apiCall<typeof adminApis.get_other_versions>('get_other_versions')
-                        .then(x => setOtherVersions(x.options), alertDialog)
-                }, "Install other version"),
-        h(SwitchThemeBtn, { variant: 'outlined' }),
+        h(Flex, { flexWrap: 'wrap' },
+            !otherVersions && status.updatePossible && status.previousVersionAvailable
+                && h(Btn, { icon: Restore, onClick: () => update(PREVIOUS_TAG) }, "Install previous version"),
+            !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
+                : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions }, "Install other version")
+                    : h(Flex, { vert: true }, otherVersions.map((x: any) => h(Update, {
+                        info: x,
+                        key: x.name,
+                        bodyCollapsed: true
+                    }))),
+        ),
+        h(SwitchThemeBtn),
         Date.now() - Number(new Date(status.started)) > HOUR && h(Link, {
             title: "Donate",
             target: 'donate',
@@ -144,6 +149,11 @@ export default function HomePage() {
             href: 'https://www.paypal.com/donate/?hosted_button_id=HC8MB4GRVU5T2'
         }, '❤️')
     )
+
+    async function getOtherVersions() {
+        return apiCall<typeof adminApis.get_other_versions>('get_other_versions')
+            .then(x => setOtherVersions(x.options), alertDialog)
+    }
 }
 
 function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean }) {
