@@ -15,7 +15,7 @@ export interface StringFieldProps extends FieldProps<string>, Partial<Omit<Stand
     end?: ReactNode
     wrap?: boolean
 }
-export function StringField({ value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, wrap, ...props }: StringFieldProps) {
+export function StringField({ value, onChange, min, max, required, setApi, typing, start, end, onTyping, suggestions, wrap, fieldRef, ...props }: StringFieldProps) {
     const normalized = value ?? ''
     setApi?.({
         getError() {
@@ -39,6 +39,7 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
         InputLabelProps: state || props.placeholder ? { shrink: true } : undefined,
         ...props,
         ...params,
+        ref: fieldRef,
         sx: props.label ? props.sx : Object.assign({ '& .MuiInputBase-input': { pt: 1.5 } }, props.sx),
         value: state,
         onChange(ev) {

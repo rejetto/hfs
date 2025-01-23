@@ -9,6 +9,7 @@ import {
 } from '@mui/material'
 import { Cancel } from '@mui/icons-material'
 import _ from 'lodash'
+import { useGetSize } from '@hfs/shared'
 
 export function DisplayField({ value, empty='-', ...props }: any) {
     if (!props.toField && empty !== undefined && value !== 0 && !value)
@@ -23,6 +24,7 @@ export function NumberField({ value, onChange, setApi, required, min=0, max, ste
                 : (value < min ? "too low" : value > max ? "too high" : false)
         }
     })
+    const size = useGetSize({ refProp: 'fieldRef' })
     return h(StringField, {
         type: 'number',
         value: value == null ? '' : String(value),
@@ -35,7 +37,7 @@ export function NumberField({ value, onChange, setApi, required, min=0, max, ste
         inputProps: { min, max, step, },
         InputProps: _.merge({
             sx: { '& input': { appearance: 'textfield' } },
-            startAdornment: (clearable ?? props.placeholder) && (value || value === 0) && h(InputAdornment, {
+            startAdornment: (clearable ?? props.placeholder) && size.w! > 100 && (value || value === 0) && h(InputAdornment, {
                 position: 'start',
             }, h(IconButton, {
                 size: 'small',
@@ -52,6 +54,7 @@ export function NumberField({ value, onChange, setApi, required, min=0, max, ste
             }, unit),
         }),
         ...props,
+        ...size.props,
     })
 }
 

@@ -121,7 +121,7 @@ export function useOnResize(cb: Callback<[number, number]>) {
     }), [observer])
 }
 
-export function useGetSize() {
+export function useGetSize({ refProp='ref' }={}) {
     const [size, setSize] = useState<[number,number]>()
     const ref = useRef<HTMLElement>()
     const props = useOnResize(setSize)
@@ -132,7 +132,8 @@ export function useGetSize() {
         ref,
         props: {
             ...props,
-            ref: propsRef
+            ...refProp !== 'ref' && { ref: undefined },
+            [refProp]: propsRef
         }
     }), [size, ref, propsRef])
 }
