@@ -25,6 +25,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
     let onClose: any
     let firstUri: string
     let playMsgOnce = true
+    let justOpen = true
     const { close } = newDialog({
         noFrame: true,
         className: 'file-show',
@@ -105,11 +106,16 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             }
             useEffect(() => {
                 const showElement = getShowElement()
-                if (!autoPlaying || !showElement) return
+                try {
+                    if (!autoPlaying && !justOpen || !showElement) return
+                } finally {
+                    justOpen = false
+                }
                 if (showElement instanceof HTMLMediaElement) {
                     showElement.play().catch(playFailed)
                     return domOn('ended', goNext, { target: showElement as any })
                 }
+                if (!autoPlaying) return // we reached here because of the justOpen, but we are not interested in images
                 // we are supposedly showing an image
                 const h = setTimeout(goNext, state.auto_play_seconds * 1000)
                 return () => clearTimeout(h)
