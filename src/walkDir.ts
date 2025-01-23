@@ -23,7 +23,7 @@ export function walkDir(path: string, { depth = 0, hidden = true }: {
     const closingQ: string[] = []
     return new Promise(async (resolve, reject) => {
         if (!await isDirectory(path))
-            throw Error('ENOTDIR')
+            return reject(Error('ENOTDIR'))
         dirQ.add(() => readDir('', depth)
             .then(res => { // don't make the job await for it, but use it to know it's over
                 Promise.resolve(res?.branchDone).then(resolve)
