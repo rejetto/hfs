@@ -149,7 +149,7 @@ export default function HomePage() {
 function Update({ info, title, bodyCollapsed }: { title?: ReactNode, info: Release, bodyCollapsed?: boolean }) {
     const [collapsed, setCollapsed] = useState(bodyCollapsed)
     return h(Flex, { alignItems: 'flex-start', flexWrap: 'wrap' },
-        h(Card, {}, h(CardContent, {},
+        h(Card, { className: 'release' }, h(CardContent, {},
             h(Flex, {},
                 title && h(Box, { fontSize: 'larger', mb: 1 }, title),
                 h(Btn, {
@@ -169,7 +169,7 @@ function renderChangelog(s: string) {
     return md(s, {
         html: false,
         onText: s => replaceStringToReact(s, /(?<=^|\W)#(\d+)\b|(https:.*\S+)/g, m =>  // link issues and urls
-            m[1] ? h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew))
+            m[1] ? h(Link, { href: REPO_URL + 'issues/' + m[1], target: '_blank' }, h(OpenInNew, { fontSize: 'small' }) )
                 : h(Link, { href: m[2], target: '_blank' }, m[2] )
         )
     })
