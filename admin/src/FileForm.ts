@@ -59,9 +59,9 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
     const isLink = values.url !== undefined
     const hasSource = source !== undefined // we need a boolean
     const realFolder = hasSource && isDir
-    const lg = useBreakpoint('lg')
-    const showTimestamps = !isLink && (lg || hasSource)
-    const showSize = !isLink && lg || (hasSource && !realFolder)
+    const xl = useBreakpoint('xl')
+    const showTimestamps = !isLink && (xl || hasSource)
+    const showSize = !isLink && xl || (hasSource && !realFolder)
     const showAccept = file.accept! > '' || isDir && (file.can_upload ?? file.inherited?.can_upload)
     const showWebsite = isDir
     const barColors = useDialogBarColors()
@@ -177,7 +177,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
                 }
             },
             perm('can_read', "Who can see but not download will be asked to login"),
-            perm('can_archive', "Should this be included when user downloads as ZIP", { lg: isDir ? 6 : 12 }),
+            perm('can_archive', "Should this be included when user downloads as ZIP"),
             perm('can_list', "Permission to requests the list of a folder. The list will include only things you can see.", { contentText: "subfolders" }),
             perm('can_delete', [needSourceWarning, "Those who can delete can also rename and cut/move"]),
             perm('can_upload', needSourceWarning, { contentText: "subfolders" }),
@@ -219,7 +219,7 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
             inherit = _.get(values, inherit) ?? _.get(file.inherited, inherit) ?? _.get(defaultPerms, inherit)! // then show its value instead
         return {
             comp: WhoField,
-            k: perm, sm: 6, xl: 4,
+            k: perm, sm: 6, lg: 12, xl: 4,
             parent, accounts, helperText, isDir,
             otherPerms: others.map(x => ({ value: x, label: who2desc(x) })),
             label: "Who can " + perm2word(perm),
