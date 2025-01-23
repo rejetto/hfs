@@ -17,7 +17,7 @@ export class BetterEventEmitter {
                 this.listeners.set(e, cbs = new Set())
             cbs.add(listener)
             if (cbs.size > warnAfter)
-                console.warn("Warning: many events listeners for ", e)
+                console.warn("Warning: many event listeners for ", e)
             this.emit(e + LISTENERS_SUFFIX, cbs)
         }
         return () => {
