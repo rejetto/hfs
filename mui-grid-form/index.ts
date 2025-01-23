@@ -4,11 +4,12 @@ import {
     createElement as h, FC, Fragment, isValidElement, ReactElement, ReactNode, useEffect, useState, useRef,
     MutableRefObject
 } from 'react'
-import { Box, BoxProps, Button, Grid, Tooltip } from '@mui/material'
+import { Box, BoxProps, Button, Tooltip } from '@mui/material'
 import { Save } from '@mui/icons-material'
 import { LoadingButton } from '@mui/lab'
 import _ from 'lodash'
 import { StringField } from './StringField'
+import Grid from '@mui/material/Unstable_Grid2'
 import { GridProps } from '@mui/material/Grid/Grid'
 import { useDebounce } from 'usehooks-ts'
 export * from './SelectField'
@@ -121,7 +122,7 @@ export function Form<Values extends Dict>({
                 if (!row)
                     return null
                 if (isValidElement(row))
-                    return h(Grid, { key: idx, item: true, xs: 12 }, row)
+                    return h(Grid, { key: idx, xs: 12 }, row)
                 const { k, fromField=_.identity, toField=_.identity, getError, error, ...field } = row
                 let errMsg = errors[k] || error || fieldExceptions[k]
                 if (errMsg === true)
@@ -169,7 +170,7 @@ export function Form<Values extends Dict>({
                         ...rest } = field
                     Object.assign(rest, { name: k })
                     const n = (keyMet[k] = (keyMet[k] || 0) + 1)
-                    return h(Grid, { key: k ? k + n : idx, item: true, xs, sm, md, lg, xl, ...parentProps },
+                    return h(Grid, { key: k ? k + n : idx, xs, sm, md, lg, xl, ...parentProps },
                         before,
                         isValidElement(comp) ? comp : h(comp, rest),
                         after
