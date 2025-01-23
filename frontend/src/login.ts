@@ -10,23 +10,22 @@ import {
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { reloadList } from './useFetchList'
 import { Checkbox, CustomCode } from './components'
+import { changePassword } from './UserPanel'
 import i18n from './i18n'
 const { t, useI18N } = i18n
 
 async function login(username:string, password:string, extra?: object) {
     const stopWorking = working()
     return srpClientSequence(username, password, apiCall, extra).then(res => {
-        stopWorking()
         refreshSession(res)
         state.loginRequired = false
         return res
     }, (err: any) => {
-        stopWorking()
         throw Error(err.message === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
             : err.code === HTTP_UNAUTHORIZED ? t('login_bad_credentials', "Invalid credentials")
                 : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")
                     : t(err.message || String(err)))
-    })
+    }).finally(stopWorking)
 }
 
 const refreshSession = makeSessionRefresher(state)
@@ -147,7 +146,14 @@ export async function loginDialog(closable=true, reloadAfter=true) {
 }
 
 export function useAuthorized() {
-    const { loginRequired } = useSnapState()
+    const { loginRequired, username } = useSnapState()
+    const last = useRef('')
+    useEffect(() => {
+        if (last.current === username) return // need to remember because we are not undoing our useEffect
+        last.current = username
+        if (username && getHFS().session?.requireChangePassword)
+            changePassword(true)
+    }, [username])
     useEffect(() => {
         if (!loginRequired)
             closeLoginDialog?.()

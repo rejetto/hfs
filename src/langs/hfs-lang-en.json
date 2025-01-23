@@ -181,6 +181,7 @@
 
         "Calculate": "Calculate",
         "Creation": "Creation",
-        "creation": "creation"
+        "creation": "creation",
+        "required_change_password": "You are required to change your password"
     }
 }

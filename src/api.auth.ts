@@ -85,6 +85,7 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
         expandedUsername: expandUsername(username),
         adminUrl: ctxAdminAccess(ctx) ? ctx.state.revProxyPath + ADMIN_URI : undefined,
         canChangePassword: canChangePassword(ctx.state.account),
+        requireChangePassword: ctx.state.account?.require_password_change,
         exp: keepSessionAlive.get() ? new Date(Date.now() + sessionDuration.compiled()) : undefined,
         accountExp: ctx.state.account?.expire,
     }
@@ -93,7 +94,9 @@ export const refresh_session: ApiHandler = async ({}, ctx) => {
 export const change_my_srp: ApiHandler = async ({ salt, verifier }, ctx) => {
     const a = ctx.state.account
     return !a || !canChangePassword(a) ? new ApiError(HTTP_UNAUTHORIZED)
-        : changeSrpHelper(a, salt, verifier)
+        : changeSrpHelper(a, salt, verifier).then(() => {
+            delete a.require_password_change
+        })
 }
 
 function canChangePassword(account: Account | undefined) {

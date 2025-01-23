@@ -215,7 +215,8 @@ For each account entries, this is the list of properties you can have:
 - `disabled` prevents using this account. Default is false.
 - `expire` account won't work once the time has passed this timestamp. Use JSON timestamp syntax. Default is none.
 - `days_to_live` used to set `expire` on first login. Default is none.
-- `disable_password_change` set `true` if you want to forbid password change for users. Default is `false`.
+- `disable_password_change` set `true` if you want to forbid password change for this user. Default is `false`.
+- `require_password_change` set `true` if you want to require password change for this user. Default is `false`.
 - `allow_net` a mask of addresses to restrict the access of the account
 
 ### Specify another file

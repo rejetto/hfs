@@ -173,6 +173,7 @@
 
         "Calculate": "Calcola",
         "Creation": "Creazione",
-        "creation": "creazione"
+        "creation": "creazione",
+        "required_change_password": "È necessario cambiare la password"
     }
 }

@@ -75,10 +75,11 @@ export function isDescendant(child: Node | null | undefined, parentMatch: Node |
 
 let waitClosing = Promise.resolve()
 let ignorePopState = false
-function back() {
+async function back() {
     ignorePopState = true
     let was = history.state
     history.back()
+    await waitClosing
     return waitClosing = new Promise<void>(res => {
         const h = setInterval(() => was !== history.state && res() , 10)
         setTimeout(() => clearTimeout(h), 500)

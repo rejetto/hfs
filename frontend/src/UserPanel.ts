@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { useSnapState } from './state'
+import { state, useSnapState } from './state'
 import { createElement as h } from 'react'
 import { alertDialog, newDialog, promptDialog } from './dialog'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
@@ -27,23 +27,7 @@ export default function showUserPanel() {
                     label: t`Change password`,
                     id: 'change-password',
                     onClickAnimation: false,
-                    async onClick() {
-                        const pwd = await promptDialog(t('enter_pass', "Enter new password"), { type: 'password' })
-                        if (!pwd) return
-                        const check = await promptDialog(t('enter_pass2', "RE-enter same new password"), { type: 'password' })
-                        if (!check) return
-                        if (check !== pwd)
-                            return alertDialog(t('pass2_mismatch', "The second password you entered did not match the first. Procedure aborted."), 'warning')
-                        const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
-                        const res = await createVerifierAndSalt(srp6aNimbusRoutines, snap.username, pwd)
-                        try {
-                            await apiCall('change_my_srp', { salt: String(res.s), verifier: String(res.v) }, { modal: working })
-                            return alertDialog(t('password_changed', "Password changed"))
-                        }
-                        catch(e) {
-                            return alertDialog(e as Error)
-                        }
-                    }
+                    onClick: changePassword,
                 }),
                 h(Btn, {
                     icon: 'logout',
@@ -58,4 +42,25 @@ export default function showUserPanel() {
             )
         }
     })
+}
+
+export async function changePassword(required=false) {
+    const pwd = await promptDialog(t('enter_pass', "Enter new password"), {
+        type: 'password',
+        helperText: required && t('required_change_password', "You are required to change your password")
+    })
+    if (!pwd) return
+    const check = await promptDialog(t('enter_pass2', "RE-enter same new password"), { type: 'password' })
+    if (!check) return
+    if (check !== pwd)
+        return alertDialog(t('pass2_mismatch', "The second password you entered did not match the first. Procedure aborted."), 'warning')
+    const srp6aNimbusRoutines = new SRPRoutines(new SRPParameters())
+    const res = await createVerifierAndSalt(srp6aNimbusRoutines, state.username, pwd)
+    try {
+        await apiCall('change_my_srp', { salt: String(res.s), verifier: String(res.v) }, { modal: working })
+        return alertDialog(t('password_changed', "Password changed"))
+    }
+    catch(e) {
+        return alertDialog(e as Error)
+    }
 }
