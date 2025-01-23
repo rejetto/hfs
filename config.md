@@ -140,6 +140,8 @@ Valid keys in a node are:
   Value is a dictionary, where the key is the original name. No UI.
 - `mime`: specify what mime to use for this resource. Use "auto" for automatic detection.
 - `url`: when this value is present, the element is a link to the URL you specify.
+- `order`: a number that you can set if you want to force the position of this element to the top or the bottom of the list. 
+   A positive number for the top, negative for the bottom. If you set "1" for an entry and "2" for another, the "2" will be the topmost.
 - `target`: optional, for links only, used to [open the link in a new browser](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). E.g. `_blank`
 - `accept`:  valid only on upload folders, used to restrict the type of files you can upload. E.g. `.zip,.rar`
 - `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".

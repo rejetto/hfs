@@ -36,6 +36,7 @@ export interface VfsNodeStored extends VfsPerms {
     accept?: string
     comment?: string
     icon?: string
+    order?: number
 }
 export interface VfsNode extends VfsNodeStored { // include fields that are only filled at run-time
     isTemp?: true // this node doesn't belong to the tree and was created by necessity

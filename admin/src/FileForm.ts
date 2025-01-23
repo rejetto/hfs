@@ -3,7 +3,8 @@
 import { state, useSnapState } from './state'
 import { createElement as h, forwardRef, ReactElement, ReactNode, useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Collapse, FormHelperText, Link, MenuItem, MenuList, useTheme } from '@mui/material'
-import { BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, SelectField, StringField
+import {
+    BoolField, DisplayField, Field, FieldProps, Form, MultiSelectField, NumberField, SelectField, StringField
 } from '@hfs/mui-grid-form'
 import { apiCall, UseApi } from './api'
 import {
@@ -158,15 +159,17 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
                         : isDir ? "Content from this path on disk will be listed, but you can also add more" : undefined,
             },
             { k: 'id', comp: LinkField, statusApi, xs: 12 },
+            { k: 'order', comp: NumberField, min: -1E5, max: 1E5, placeholder: 'default', sm: 4, helperText: wikiLink('Virtual-file-system#order', "To force position") },
             {
                 k: 'iconType',
                 comp: SelectField,
                 options: ['default', 'file', 'embedded'],
                 value: !values.icon ? 'default' : embeddedIcon ? 'embedded' : 'file',
                 fromField: v => setValues({ ...values, icon: v === 'default' ? '' : v === 'file' ? 'select.a.file' : Object.keys(SYS_ICONS)[0] }),
-                xs: defaultIcon ? 12 : true,
+                xs: true,
+                sm: defaultIcon ? 8 : true,
             },
-            !defaultIcon && { k: 'icon', xs: 7, md: 8, xl: 10,
+            !defaultIcon && { k: 'icon', xs: 8, sm: 4,
                 ...embeddedIcon ? {
                     comp: SelectField, // uniqBy to avoid same icon (with different names), but it works only on array, so first step is to convert the object
                     options: _.map(_.uniqBy(_.map(SYS_ICONS, (v,k) => [k, v[0], v[1] ?? k] as const), x => x[2]), ([k, emoji]) =>

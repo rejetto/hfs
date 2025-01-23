@@ -25,7 +25,7 @@ async function urlToNodeOriginal(uri: string) {
     return n?.isTemp ? n.original : n
 }
 
-const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url','target','comment','icon', ...PERM_KEYS]
+const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url','target','comment','icon','order', ...PERM_KEYS]
 
 export interface LsEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 

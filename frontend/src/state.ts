@@ -102,6 +102,7 @@ export class DirEntry implements ServerDirEntry {
     public readonly web?: true
     public readonly url?: string
     public readonly target?: string
+    public readonly order?: number
     public comment?: string
     // we memoize these value for speed
     public readonly name: string

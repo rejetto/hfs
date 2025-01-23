@@ -17,7 +17,7 @@ import { ctxAdminAccess } from './adminApis'
 import { dontOverwriteUploading } from './upload'
 import { SendListReadable } from './SendList'
 
-export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string, icon?: string | true }
+export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string, icon?: string | true, order?: number }
 
 export function paramsToFilter({ search, wild, searchComment }: any) {
     search = String(search || '').toLocaleLowerCase()
@@ -133,6 +133,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 m: !st || Math.abs(st.mtimeMs - st.birthtimeMs) < 1000 ? undefined : st.mtime,
                 s: isFolder ? undefined : st?.size,
                 p: (pr + pl + pd + pa) || undefined,
+                order: node.order,
                 comment: node.comment ?? await getCommentFor(source),
                 icon: getNodeIcon(node),
                 web: await hasDefaultFile(node, ctx) ? true : undefined,
