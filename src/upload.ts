@@ -258,7 +258,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     }
 
     function fail(status?: number, msg?: string) {
-        console.debug('upload failed', status, msg)
+        console.debug('upload failed', status||'', msg||'')
         releaseFile()
         if (status)
             ctx.status = status

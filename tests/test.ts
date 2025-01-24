@@ -27,6 +27,15 @@ const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to satura
 const throttle = BIG_CONTENT.length /1000 /0.5 // KB, finish in 0.5s, quick but still overlapping downloads
 let defaultBaseUrl = BASE_URL
 
+class StringRepeaterStream extends Readable {
+    constructor(private str: string, private n: number, readonly length=n*str.length) {
+        super()
+    }
+    _read() {
+        this.push(this.n-- > 0 ? this.str : null)
+    }
+}
+
 describe('basics', () => {
     //before(async () => appStarted)
     it('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
@@ -156,6 +165,10 @@ describe('after-login', () => {
         await reqUpload(UPLOAD_DEST, 409)() // should conflict
         await first
     })
+    it('upload.concurrent', () => Promise.all([
+        reqUpload(UPLOAD_DEST, 200, new StringRepeaterStream(BIG_CONTENT, 150))(), // 300MB
+        ..._.range(3).map(i =>  reqUpload(UPLOAD_DEST + i, 200, new StringRepeaterStream(BIG_CONTENT, 50))()) // 3 x 100MB
+    ])).timeout(5000)
     const renameTo = 'z'
     it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
     it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
@@ -183,8 +196,7 @@ describe('after-login', () => {
         await reqUpload(uri, 200, BIG_CONTENT)()
         await testMaxDl(uri, 2, 1)
     })
-    after(() =>
-        rm(join(__dirname, 'temp'), { recursive: true}).catch(() => 0))
+    after(() => rm(join(__dirname, 'temp'), { recursive: true }).catch(() => 0))
 })
 
 function login(usr: string, pwd=password) {
@@ -265,7 +277,7 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
                 })
                 || test.empty && data && 'expected empty body'
                 || length !== undefined && gotLength !== String(length) && "expected content-length " + length + " got " + gotLength
-                || test.cb?.(data, res) === false && 'error'
+                || test.cb?.(obj ?? data, res) === false && 'error'
                 || ''
             if (err)
                 throw Error(err)
