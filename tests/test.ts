@@ -206,9 +206,23 @@ function login(usr: string, pwd=password) {
 
 function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number) {
     const fn = join(__dirname, 'page/gpl.png')
+    size ??= (body as any)?.length ?? statSync(fn).size  // it's ok that Readable.length is undefined
+    if (tester === 200)
+        tester = {
+            status: tester,
+            cb(data) {
+                const fn = ROOT + decodeURI(data.uri).replace(UPLOAD_ROOT, '')
+                const stats = try_(() => statSync(fn))
+                if (!stats)
+                    throw Error("uploaded file not found: " + fn)
+                if (size !== stats.size)
+                    throw Error("uploaded file wrong size: " + fn)
+                return true
+            }
+        }
     return req(dest, tester, {
         method: 'PUT',
-        headers: { 'content-length': size ?? (body as any)?.length ?? statSync(fn).size }, // it's ok that Readable.length is undefined
+        headers: { 'content-length': size },
         body: body ?? createReadStream(fn)
     })
 }
