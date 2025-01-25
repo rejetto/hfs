@@ -1,6 +1,7 @@
 import { srpClientSequence } from '../src/srp'
 import { createReadStream, statSync } from 'fs'
-import { dirname, join } from 'path'
+import { basename, dirname, join, resolve } from 'path'
+import { exec } from 'child_process'
 import _ from 'lodash'
 import { findDefined, randomId, tryJson, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
@@ -25,6 +26,7 @@ const UPLOAD_RELATIVE = 'temp/gpl.png'
 const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to saturate buffers
 const throttle = BIG_CONTENT.length /1000 /0.5 // KB, finish in 0.5s, quick but still overlapping downloads
+const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 let defaultBaseUrl = BASE_URL
 
 class StringRepeaterStream extends Readable {
@@ -119,6 +121,20 @@ describe('basics', () => {
     }))
 
     it('upload.need account', reqUpload( UPLOAD_DEST, 401))
+    it('upload.post', done => {
+        const cmd = `curl -u ${username}:${password} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`;
+        exec(cmd, (err, out) => {
+            if (err) return done(err)
+            const fn = resolve(__dirname, basename(decodeURI(tryJson(out)?.uris?.[0])))
+            if (!fn) return done("unexpected output " + out)
+            try {
+                const stats = statSync(fn)
+                rm(fn).catch(() => {}) // clear
+                done(stats?.size !== statSync(SAMPLE_FILE_PATH).size && "unexpected size for " + fn)
+            }
+            catch (e) { done(e) }
+        })
+    })
     it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
     it('delete.no perm', reqApi('delete', { uri: '/for-admins/' }, 405))
     it('delete.need account', reqApi('delete', { uri: UPLOAD_ROOT }, 401))
@@ -205,8 +221,7 @@ function login(usr: string, pwd=password) {
 }
 
 function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number) {
-    const fn = join(__dirname, 'page/gpl.png')
-    size ??= (body as any)?.length ?? statSync(fn).size  // it's ok that Readable.length is undefined
+    size ??= (body as any)?.length ?? statSync(SAMPLE_FILE_PATH).size  // it's ok that Readable.length is undefined
     if (tester === 200)
         tester = {
             status: tester,
@@ -223,7 +238,7 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
     return req(dest, tester, {
         method: 'PUT',
         headers: { 'content-length': size },
-        body: body ?? createReadStream(fn)
+        body: body ?? createReadStream(SAMPLE_FILE_PATH)
     })
 }
 
