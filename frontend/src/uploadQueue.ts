@@ -78,7 +78,7 @@ let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource | undefined
-let closeLastDialog: undefined | (() => void)
+let closeLastDialog: undefined | ((() => void) & { path?: string })
 
 let reloadOnClose = false
 export function resetReloadOnClose() {
@@ -172,22 +172,26 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             if (!uploading) return
             if (name === UPLOAD_RESUMABLE) {
                 waitSecondChunk.resolve()
-                const size = data?.[getFilePath(uploading.file)] //TODO use toUpload?
-                if (!size) return
+                const path = getFilePath(uploading.file)
+                const size = data?.[path] //TODO use toUpload?
+                if (!size) {
+                    if (!closeLastDialog?.path || closeLastDialog?.path === path) {// previous resumable is gone
+                        closeLastDialog?.()
+                        preserveTempFile = undefined
+                    }
+                    return
+                }
                 preserveTempFile = true // this is affecting only split-uploads, because is undefined on first chunk (or no chunking)
                 if (size > toUpload.file.size) return
-                const {expires} = data
-                let timeout = typeof expires !== 'number' ? 0
-                    : (Number(new Date(expires)) - Date.now())
-                if (timeout)
-                    setTimeout(() => preserveTempFile = undefined, timeout) // the resumable is gone
                 closeLastDialog?.()
                 const cancelSub = subscribeKey(uploadState, 'partial', v =>
                     v >= size && closeLastDialog?.() )  // dismiss dialog as soon as we pass the threshold
                 const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/toUpload.file.size)} = ${formatBytes(size)})`
-                timeout /= 1000 // needs seconds
+                const {expires} = data
+                const timeout = typeof expires !== 'number' ? 0
+                    : (Number(new Date(expires)) - Date.now()) / 1000
                 const dialog = confirmDialog(msg, { timeout })
-                closeLastDialog = dialog.close
+                closeLastDialog = Object.assign(dialog.close, { path })
                 const confirmed = await dialog
                 cancelSub()
                 if (!confirmed) return

@@ -8,7 +8,7 @@ import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import {
     Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
-    enforceFinal
+    enforceFinal, Timeout
 } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
@@ -27,7 +27,7 @@ export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('dele
 export const minAvailableMb = defineConfig('min_available_mb', 100)
 export const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', true)
 
-const waitingToBeDeleted: Record<string, ReturnType<typeof setTimeout>> = {}
+const waitingToBeDeleted: Record<string, { timeout: Timeout, expires: number }> = {}
 onProcessExit(() => {
     if (!Object.keys(waitingToBeDeleted).length) return
     console.log("removing unfinished uploads")
@@ -105,12 +105,12 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         // use temporary name while uploading
         const keepName = basename(fullPath).slice(-200)
         const firstTempName = join(dir, 'hfs$upload-' + keepName)
-        const altTempName = join(dir, 'hfs$upload2-' + keepName)
+        const altTempName = join(dir, 'hfs$upload2-' + keepName) // this file makes sense only while smaller than firstTempName
         const splitAndPreserving = ctx.query.preserveTempFile // frontend knows about existing temp that can be resumed, but it is not resuming that, but instead it is continuing split-uploading on alternative temp file
         let tempName = splitAndPreserving ? altTempName : firstTempName
         const stats = try_(() => fs.statSync(tempName))
         const resumableSize = stats?.size || 0 // we use size to even when user has not required resume, yet, to notify frontend of the possibility
-        const resumableTempName = resumableSize > 0 && tempName
+        let resumableTempName = resumableSize > 0 && tempName
         if (resumableTempName)
             tempName = altTempName
         // checks for resume feature
@@ -118,25 +118,16 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         if (resume > resumableSize)
             return fail(HTTP_RANGE_NOT_SATISFIABLE)
         // warn frontend about resume possibility
-        let resumableLost = false
-        if (!resume && !resumableTempName)
-            notifyClient(ctx, UPLOAD_RESUMABLE, { [path]: 0 })
-        if (!resume && resumableTempName) {
-            const timeout = 30
-            notifyClient(ctx, UPLOAD_RESUMABLE, { [path]: resumableSize, expires: Date.now() + timeout * 1000 })
-            delayedDelete(resumableTempName, timeout, () => // if user resumes, this upload is interrupted, and next upload will cancel this delayedDelete
-                fs.rename(tempName, resumableTempName, err => { // try to rename $upload2 to $upload, overwriting
-                    if (err) return
-                    tempName = resumableTempName
-                    resumableLost = true
-                }) )
-        }
+        if (!resume)
+            notifyClient(ctx, UPLOAD_RESUMABLE,
+                resumableTempName ? { [path]: resumableSize, expires: waitingToBeDeleted[path]?.expires } : { [path]: 0 } )
+        let isWritingSecondFile = tempName === altTempName
         // append if resuming
         const resuming = resume && resumableTempName
         if (!resuming)
             resume = 0
         const writeStream = createStreamLimiter(reqSize ?? Infinity)
-        if (resuming && !splitAndPreserving) {
+        if (resume && resumableTempName && !splitAndPreserving) {
             fs.rm(tempName, () => {})
             tempName = resumableTempName
         }
@@ -147,7 +138,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         const resEvent = events.emit('uploadStart', obj)
         if (resEvent?.isDefaultPrevented()) return
 
-        const fileStream = resuming ? fs.createWriteStream(resumableTempName, { flags: 'r+', start: resume })
+        const fileStream = resume && resumableTempName ? fs.createWriteStream(resumableTempName, { flags: 'r+', start: resume })
             : fs.createWriteStream(tempName)
         writeStream.on('error', e => {
             releaseFile()
@@ -156,14 +147,16 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         writeStream.pipe(fileStream)
         Object.assign(obj, { fileStream })
         trackProgress()
+        // the file stream doesn't have an event for data being written, so we use 'data' of its feeder, which happens before, so we postpone a bit, trying have a fresher view
+        writeStream.on('data', () => setTimeout(checkIfNewUploadBecameLargerThanResumable))
 
         const lockMiddleware = pendingPromise<string>() // outside we need to know when all operations stopped
         writeStream.once('close', async () => {
             try {
                 await new Promise(res => fileStream.close(res)) // this only seem to be necessary on Windows
                 if (ctx.isAborted()) {
-                    if (resumableTempName && !resumableLost && !resuming) // we don't want to be left with 2 temp files
-                        return rm(tempName)
+                    if (isWritingSecondFile) // we don't want to be left with 2 temp files
+                        return rm(altTempName).catch(console.warn)
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
                 }
@@ -171,7 +164,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                 let dest = fullPath
                 if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
                     if (overwriteRequestedButForbidden) {
-                        await rm(tempName)
+                        await rm(tempName).catch(console.warn)
                         return fail()
                     }
                     const ext = extname(dest)
@@ -183,14 +176,12 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                 try {
                     await rename(tempName, dest)
                     cancelDeletion(tempName) // not necessary, as deletion's failure is silent, but still
-                    if (splitAndPreserving) // we've been using altTempName, but now we're done, so we can delete firstTempName
-                        delayedDelete(firstTempName, 0)
+                    if (isWritingSecondFile) // we've been using altTempName, but now we're done, so we can delete firstTempName
+                        await delayedDelete(firstTempName, 0) // wait, so the client can count on the temp-file being gone
                     ctx.state.uploadDestinationPath = dest
                     setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
                         void setCommentFor(dest, String(ctx.query.comment))
-                    if (resumableTempName && !resuming) // this happens if user decided to not resume and the new upload finished before delayedDelete
-                        rm(resumableTempName).catch(console.warn)
                     obj.uri = enforceFinal('/', baseUri) + pathEncode(basename(dest))
                     events.emit('uploadFinished', obj)
                     if (resEvent) for (const cb of resEvent)
@@ -226,6 +217,18 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             }, 1000)
             writeStream.once('close', () => clearInterval(h) )
         }
+
+        function checkIfNewUploadBecameLargerThanResumable() {
+            const currentSize = fileStream.bytesWritten + resume
+            if (isWritingSecondFile && currentSize > resumableSize)
+                try { // better be sync here, as we don't want the upload to finish in the middle of the rename
+                    fs.renameSync(tempName, firstTempName) // try to rename $upload2 to $upload, overwriting
+                    tempName = firstTempName
+                    isWritingSecondFile = resumableTempName = false
+                    notifyClient(ctx, UPLOAD_RESUMABLE, { [path]: 0 }) // no longer resumable
+                }
+                catch{}
+        }
     }
     catch (e: any) {
         releaseFile()
@@ -241,15 +244,22 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     }
 
     function delayedDelete(path: string, secs: number, cb?: Callback) {
-        clearTimeout(waitingToBeDeleted[path])
-        waitingToBeDeleted[path] = setTimeout(() => {
-            delete waitingToBeDeleted[path]
-            fs.rm(path, () => cb?.())
-        }, secs * 1000)
+        if (!secs) {
+            cancelDeletion(path)
+            return rm(path)
+        }
+        clearTimeout(waitingToBeDeleted[path]?.timeout)
+        waitingToBeDeleted[path] = {
+            expires: Date.now() + secs * 1000,
+            timeout: setTimeout(() => {
+                delete waitingToBeDeleted[path]
+                fs.rm(path, () => cb?.())
+            }, secs * 1000)
+        }
     }
 
     function cancelDeletion(path: string) {
-        clearTimeout(waitingToBeDeleted[path])
+        clearTimeout(waitingToBeDeleted[path]?.timeout)
         delete waitingToBeDeleted[path]
     }
 

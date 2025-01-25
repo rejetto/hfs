@@ -164,7 +164,7 @@ export function confirmDialog(msg: ReactElement | string, options: ConfirmOption
     function Content() {
         const [sec,setSec] = useState(Math.ceil(timeout||0))
         useInterval(() => setSec(x => Math.max(0, x-1)), 1000)
-        const missingText = timeout!>0 && ` (${sec})`
+        const missingText = timeout && timeout > 0 && timeout < 60 && ` (${sec})` || ''
         useEffect(() => {
             if (timeout && !sec)
                 dialog.close(timeoutConfirm)

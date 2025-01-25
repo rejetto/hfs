@@ -207,9 +207,18 @@ describe('after-login', () => {
         await makeAbortedRequest(timeFirstRequest * .5) // upload less than r1
         if (size !== getTempSize()) // shouldn't change, as r2 is smaller
             throw Error("modified temp file")
+        await makeAbortedRequest(timeFirstRequest * 1.5) // upload more than r1
+        if (!(size < getTempSize()!)) // should be increased
+            throw Error("temp file not enlarged")
         await reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(0))() // quickly complete the upload, and check for final size
         if (getTempSize())
             throw Error("temp file should be cleared")
+        // test resume
+        await makeAbortedRequest(timeFirstRequest)
+        const partial = getTempSize()
+        if (!partial)
+            throw Error("partial file missing")
+        await reqUpload(UPLOAD_DEST, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial)()
     })
     const renameTo = 'z'
     it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
@@ -246,7 +255,9 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number) {
+function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume?: number) {
+    if (resume)
+        dest += '?resume=' + resume
     size ??= (body as any)?.length ?? statSync(SAMPLE_FILE_PATH).size  // it's ok that Readable.length is undefined
     if (tester === 200)
         tester = {
@@ -263,7 +274,7 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
         }
     return req(dest, tester, {
         method: 'PUT',
-        headers: { 'content-length': size },
+        headers: { 'content-length': size === undefined ? size : size - (resume||0) },
         body: body ?? createReadStream(SAMPLE_FILE_PATH)
     })
 }
