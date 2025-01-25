@@ -1,9 +1,9 @@
 import { srpClientSequence } from '../src/srp'
 import { createReadStream, statSync } from 'fs'
-import { basename, dirname, join, resolve } from 'path'
+import { basename, dirname, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
-import { findDefined, randomId, tryJson, wait } from '../src/cross'
+import { findDefined, randomId, try_, tryJson, wait } from '../src/cross'
 import { httpStream, stream2string, XRequestOptions } from '../src/util-http'
 import { ThrottledStream, ThrottleGroup } from '../src/ThrottledStream'
 import { rm, writeFile } from 'fs/promises'
@@ -36,6 +36,11 @@ class StringRepeaterStream extends Readable {
     _read() {
         this.push(this.n-- > 0 ? this.str : null)
     }
+}
+
+function makeReadableThatTakes(ms: number) {
+    return Object.assign(Readable.from(BIG_CONTENT).pipe(new ThrottledStream(new ThrottleGroup(BIG_CONTENT.length / ms))),
+        { length: BIG_CONTENT.length })
 }
 
 describe('basics', () => {
@@ -174,10 +179,9 @@ describe('after-login', () => {
     it('upload.ok', reqUpload(UPLOAD_DEST, 200))
     it('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 418))
     it('upload.overlap', async () => {
-        const seconds = .3
-        const throttled = Readable.from(BIG_CONTENT).pipe(new ThrottledStream(new ThrottleGroup(BIG_CONTENT.length / 1000 / seconds)))
-        const first = reqUpload(UPLOAD_DEST, 200, throttled, BIG_CONTENT.length)()
-        await wait(100)
+        const ms = 300
+        const first = reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(ms))()
+        await wait(ms/3)
         await reqUpload(UPLOAD_DEST, 409)() // should conflict
         await first
     })
@@ -185,6 +189,28 @@ describe('after-login', () => {
         reqUpload(UPLOAD_DEST, 200, new StringRepeaterStream(BIG_CONTENT, 150))(), // 300MB
         ..._.range(3).map(i =>  reqUpload(UPLOAD_DEST + i, 200, new StringRepeaterStream(BIG_CONTENT, 50))()) // 3 x 100MB
     ])).timeout(5000)
+    it('upload.interrupted', async () => {
+        const fn = resolve(__dirname, UPLOAD_RELATIVE.replace('/', '/hfs$upload-'))
+        await rm(fn, {force: true})
+        const neededTime = 300
+        const makeAbortedRequest = (afterMs: number) => {
+            const r = reqUpload(UPLOAD_DEST, 0, makeReadableThatTakes(neededTime))()
+            setTimeout(r.abort, afterMs)
+            return r.catch(() => {}) // wait for it to fail
+        }
+        const timeFirstRequest = neededTime * .5 // not enough to finish
+        await makeAbortedRequest(timeFirstRequest)
+        const getTempSize = () => try_(() => statSync(fn)?.size)
+        const size = getTempSize()
+        if (!size) // shouldn't be empty
+            throw Error("missing temp file")
+        await makeAbortedRequest(timeFirstRequest * .5) // upload less than r1
+        if (size !== getTempSize()) // shouldn't change, as r2 is smaller
+            throw Error("modified temp file")
+        await reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(0))() // quickly complete the upload, and check for final size
+        if (getTempSize())
+            throw Error("temp file should be cleared")
+    })
     const renameTo = 'z'
     it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
     it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
@@ -212,7 +238,7 @@ describe('after-login', () => {
         await reqUpload(uri, 200, BIG_CONTENT)()
         await testMaxDl(uri, 2, 1)
     })
-    after(() => rm(join(__dirname, 'temp'), { recursive: true }).catch(() => 0))
+    after(() => rm(resolve(__dirname, 'temp'), { recursive: true }).catch(() => 0))
 })
 
 function login(usr: string, pwd=password) {
@@ -273,11 +299,12 @@ const jar = {}
 
 function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }: XRequestOptions & { throttle?: number, baseUrl?: string }={}) {
     // passing 'path' keeps it as it is, avoiding internal resolving
-    return () => httpStream((baseUrl || defaultBaseUrl) + url, { path: url, jar, ...requestOptions }).catch(e => {
+    let abortable // copy abortable interface to returned promise
+    return () => Object.assign((abortable = httpStream((baseUrl || defaultBaseUrl) + url, { path: url, jar, ...requestOptions })).catch(e => {
         if (e.code === 'ECONNREFUSED')
             throw e
         return e.cause
-    }).then(process)
+    }).then(process), _.pick(abortable, 'abort'))
 
     async function process(res:any) {
         //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])

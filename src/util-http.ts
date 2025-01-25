@@ -31,8 +31,10 @@ export interface XRequestOptions extends https.RequestOptions {
 }
 
 export declare namespace httpStream { let defaultProxy: string | undefined }
-export function httpStream(url: string, { body, jar, noRedirect, httpThrow, proxy, ...options }: XRequestOptions ={}): Promise<IncomingMessage> {
-    return new Promise((resolve, reject) => {
+export function httpStream(url: string, { body, jar, noRedirect, httpThrow, proxy, ...options }: XRequestOptions ={}) {
+    const controller = new AbortController()
+    options.signal ??= controller.signal
+    return Object.assign(new Promise<IncomingMessage>((resolve, reject) => {
         proxy ??= httpStream.defaultProxy
         options.headers ??= {}
         if (body) {
@@ -81,6 +83,8 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, prox
             body.pipe(req).on('end', () => req.end())
         else
             req.end(body)
+    }), {
+        abort() { controller.abort() }
     })
 }
 
