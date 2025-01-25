@@ -87,7 +87,7 @@ export async function serveFile(ctx: Koa.Context, source:string, mime?:string, c
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const t = stats.mtime.toUTCString()
         ctx.set('Last-Modified', t)
-        ctx.set('Etag', createHash('md5').update(source).update(t).digest('hex'))
+        ctx.set('Etag', createHash('sha256').update(source).update(t).digest('hex'))
         ctx.state.fileSource = source
         ctx.state.fileStats = stats
         ctx.status = HTTP_OK
