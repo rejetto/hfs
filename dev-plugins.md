@@ -634,7 +634,10 @@ You can decide if you want to use some building system/transpiler, but you'll ha
 
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
 To set the topic go on the repo home and click on the gear icon near the "About" box.
-Be sure to also fill the "description" field, especially with words that people may search for.
+Be sure to also fill the "exports.description" field, especially with words that people may search for.
+
+If the name of the repository has the prefix "hfs-", it won't be displayed. Eg: "hfs-chat" will be displayed as "chat".
+This is good way to have a clearer repository name on github, while avoiding being redundant within the context of the HFS' UI. 
 
 The files intended to be installed must go in a folder named `dist`.
 You can keep other files outside.
