@@ -37,7 +37,7 @@ Object.assign(HFS, {
 })
 formatBytes.k = HFS.kb
 
-export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.gif|*.svg'
+export const IMAGE_FILEMASK = '*.jpg|*.jpeg|*.png|*.gif|*.svg'
 
 //@ts-ignore
 if (import.meta.env.PROD) {
