@@ -182,6 +182,7 @@
         "Calculate": "Calculate",
         "Creation": "Creation",
         "creation": "creation",
-        "required_change_password": "You are required to change your password"
+        "required_change_password": "You are required to change your password",
+        "Wildcards": "Wildcards"
     }
 }

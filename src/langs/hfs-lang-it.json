@@ -174,6 +174,7 @@
         "Calculate": "Calcola",
         "Creation": "Creazione",
         "creation": "creazione",
-        "required_change_password": "È necessario cambiare la password"
+        "required_change_password": "È necessario cambiare la password",
+        "Wildcards": "Caratteri jolly"
     }
 }

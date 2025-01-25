@@ -222,7 +222,7 @@ function searchDialog() {
                 h('label', { htmlFor: 'comment' }, t`Comment`),
                 h('input', { name: 'comment', style, }),
                 h('div', { style: { margin: '1em 0' } },
-                    h(Checkbox, { name: 'wild', defaultChecked: true }, "Wildcards"), // uncontrolled
+                    h(Checkbox, { name: 'wild', defaultChecked: true }, t`Wildcards`), // uncontrolled
                     h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info')),
                 ),
                 h('div', { style: { textAlign: 'right', marginTop: '.8em' } },

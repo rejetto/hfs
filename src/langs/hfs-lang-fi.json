@@ -186,6 +186,7 @@
         "Calculate": "Laske",
         "Creation": "Luonti",
         "creation": "luonti",
-        "required_change_password": "Sinun täytyy vaihtaa salasanasi"
+        "required_change_password": "Sinun täytyy vaihtaa salasanasi",
+        "Wildcards": "Villimerkit"
     }
 }
