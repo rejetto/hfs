@@ -160,7 +160,7 @@ export function showUpload() {
 }
 
 function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:string]: null | ((rec :ToUpload) => any) } }) {
-    const { uploading, progress, partial }  = useSnapshot(uploadState)
+    const { uploading, progress, partial, hashing }  = useSnapshot(uploadState)
     const snapEntries = useSnapshot(entries)
     const [all, setAll] = useState(false)
     useEffect(() => setAll(false), [entries.length])
@@ -179,6 +179,7 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
                         h('td', {},
                             h('span', { className: working ? 'ani-working' : undefined }, e.name || getFilePath(entries[i].file)),
                             working && h('span', { className: 'upload-progress', title }, formatBytes(partial)),
+                            working && hashing && h('span', { className: 'upload-hashing' }, t`Considering resume`, ' (', formatPerc(hashing), ')'),
                             working && h('progress', { className: 'upload-progress-bar', title, value: progress, max: 1 }),
                         ),
                     ),

@@ -481,6 +481,7 @@ button .icon + .label {
     z-index: 3; // necessary to not be covered by icon-buttons
     box-shadow: 0 0 .3em .3em var(--bg);
 }
+.upload-hashing::before,
 .upload-progress::before { content: var(--separator); }
 .entry-size::after { content: var(--separator) }
 

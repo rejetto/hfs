@@ -1,7 +1,7 @@
 import { defineConfig } from './config'
 import { dirname, join } from 'path'
 import { basename } from './cross'
-import { parseFile, parseFileCache } from './util-files'
+import { parseFileContent, parseFileCache } from './util-files'
 import { createWriteStream } from 'fs'
 import { singleWorkerFromBatchWorker } from './misc'
 import _ from 'lodash'
@@ -52,7 +52,7 @@ export function areCommentsEnabled() {
 const MULTILINE_SUFFIX = Buffer.from([4, 0xC2])
 function readDescription(path: string) {
     // decoding could also be done with native TextDecoder.decode, but we need iconv for the encoding anyway
-    return parseFile(join(path, DESCRIPT_ION), raw => {
+    return parseFileContent(join(path, DESCRIPT_ION), raw => {
         // for simplicity we "remove" the sequence MULTILINE_SUFFIX before iconv.decode messes it up
         for (let i=0; i<raw.length; i++)
             if (raw[i] === MULTILINE_SUFFIX[0] && raw[i+1] === MULTILINE_SUFFIX[1] && [undefined,13,10].includes(raw[i+2]))

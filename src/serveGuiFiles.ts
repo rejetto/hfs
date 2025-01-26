@@ -12,7 +12,7 @@ import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
 import {
-    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFile
+    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFileContent
 } from './misc'
 import { favicon, title } from './adminApis'
 import { customHtml, getAllSections, getSection } from './customHtml'
@@ -46,7 +46,7 @@ function serveStatic(uri: string): Koa.Middleware {
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
         const fullPath = join(__dirname, '..', DEV_STATIC, folder, serveApp ? '/index.html': ctx.path)
-        const content = await parseFile(fullPath,
+        const content = await parseFileContent(fullPath,
             raw => serveApp || !raw.length ? raw : adjustBundlerLinks(ctx, uri, raw) )
             .catch(() => null)
         if (content === null)

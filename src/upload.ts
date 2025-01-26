@@ -2,13 +2,13 @@ import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_BAD_REQUEST,
-    UPLOAD_RESUMABLE, UPLOAD_STATUS,
+    UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
 import {
-    Callback, dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
-    enforceFinal, Timeout
+    dirTraversal, loadFileAttr, pendingPromise, storeFileAttr, try_, createStreamLimiter, pathEncode,
+    enforceFinal, Timeout, with_, parseFile
 } from './misc'
 import { notifyClient } from './frontEndApis'
 import { defineConfig } from './config'
@@ -22,12 +22,13 @@ import events from './events'
 import { rename, rm } from 'fs/promises'
 import { expiringCache } from './expiringCache'
 import { onProcessExit } from './first'
+import { once, Transform } from 'stream'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
 export const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', true)
 
-const waitingToBeDeleted: Record<string, { timeout: Timeout, expires: number }> = {}
+const waitingToBeDeleted: Record<string, { timeout: Timeout, expires: number, mtimeMs: any, giveBack: any }> = {}
 onProcessExit(() => {
     if (!Object.keys(waitingToBeDeleted).length) return
     console.log("removing unfinished uploads")
@@ -49,9 +50,29 @@ function setUploadMeta(path: string, ctx: Koa.Context) {
     })
 }
 
-// stay sync because we use this function with formidable()
+async function calcHash(fn: string, limit=Infinity) {
+    const hash = await makeXXHash()
+    const stream = new Transform({
+        transform(chunk, enc, done) {
+            hash.update(chunk)
+            done()
+        }
+    })
+    fs.createReadStream(fn, { end: limit - 1 }).pipe(stream)
+    console.debug('hashing', fn)
+    await once(stream, 'finish')
+    console.debug('hashed', fn)
+    return hash.digest().toString(16)
+}
+
+async function makeXXHash(seed?: string) {
+    const lib = await import('xxhash-wasm')
+    return (await lib.default()).create32(seed ? parseInt(seed, 16) : undefined)
+}
+
 const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
 const uploadingFiles = new Set()
+// stay sync because we use this function with formidable()
 export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
     let fullPath = ''
     if (dirTraversal(path))
@@ -110,7 +131,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         let tempName = splitAndPreserving ? altTempName : firstTempName
         const stats = try_(() => fs.statSync(tempName))
         const resumableSize = stats?.size || 0 // we use size to even when user has not required resume, yet, to notify frontend of the possibility
-        let resumableTempName = resumableSize > 0 && tempName
+        const firstResumableStats = tempName === firstTempName ? stats : try_(() => fs.statSync(firstTempName))
+        let resumableTempName = resumableSize > 0 ? tempName : undefined
         if (resumableTempName)
             tempName = altTempName
         // checks for resume feature
@@ -118,9 +140,21 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         if (resume > resumableSize)
             return fail(HTTP_RANGE_NOT_SATISFIABLE)
         // warn frontend about resume possibility
+        let resumeInfo = resumableTempName ? waitingToBeDeleted[resumableTempName] : undefined
+        if (resumeInfo?.mtimeMs && resumeInfo?.mtimeMs !== try_(() => fs.statSync(resumableTempName!).mtimeMs)) // outdated?
+            resumeInfo = undefined
         if (!resume)
-            notifyClient(ctx, UPLOAD_RESUMABLE,
-                resumableTempName ? { [path]: resumableSize, expires: waitingToBeDeleted[path]?.expires } : { [path]: 0 } )
+            with_(resumableTempName, async x => {
+                notifyClient(ctx, UPLOAD_RESUMABLE, !x ? { path } : {
+                    path,
+                    size: resumableSize,
+                    // a resumable file exists without a record? then we record it (delayedDelete), plus we provide a hash ASAP, since there's no previous giveBack to compare with
+                    ...resumeInfo || _.omit(delayedDelete(path, deleteUnfinishedUploadsAfter.get() || 0), 'giveBack'), // giveBack makes sense only if coming from resumeObject
+                    timeout: undefined
+                })
+                if (x && !resumeInfo)
+                    notifyClient(ctx, UPLOAD_RESUMABLE_HASH, { path, hash: await parseFile(x!, calcHash) })  // negligible memory leak
+            })
         let isWritingSecondFile = tempName === altTempName
         // append if resuming
         const resuming = resume && resumableTempName
@@ -176,8 +210,10 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                 try {
                     await rename(tempName, dest)
                     cancelDeletion(tempName) // not necessary, as deletion's failure is silent, but still
-                    if (isWritingSecondFile) // we've been using altTempName, but now we're done, so we can delete firstTempName
-                        await delayedDelete(firstTempName, 0) // wait, so the client can count on the temp-file being gone
+                    if (isWritingSecondFile) { // we've been using altTempName, but now we're done, so we can delete firstTempName
+                        cancelDeletion(firstTempName)
+                        await rm(firstTempName) // wait, so the client can count on the temp-file being gone
+                    }
                     ctx.state.uploadDestinationPath = dest
                     setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
@@ -220,12 +256,13 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
 
         function checkIfNewUploadBecameLargerThanResumable() {
             const currentSize = fileStream.bytesWritten + resume
-            if (isWritingSecondFile && currentSize > resumableSize)
+            if (isWritingSecondFile && currentSize > firstResumableStats?.size!)
                 try { // better be sync here, as we don't want the upload to finish in the middle of the rename
                     fs.renameSync(tempName, firstTempName) // try to rename $upload2 to $upload, overwriting
                     tempName = firstTempName
-                    isWritingSecondFile = resumableTempName = false
-                    notifyClient(ctx, UPLOAD_RESUMABLE, { [path]: 0 }) // no longer resumable
+                    isWritingSecondFile = false
+                    resumableTempName = undefined
+                    notifyClient(ctx, UPLOAD_RESUMABLE, { path }) // no longer resumable
                 }
                 catch{}
         }
@@ -243,17 +280,15 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         return false
     }
 
-    function delayedDelete(path: string, secs: number, cb?: Callback) {
-        if (!secs) {
-            cancelDeletion(path)
-            return rm(path)
-        }
+    function delayedDelete(path: string, secs: number) {
         clearTimeout(waitingToBeDeleted[path]?.timeout)
-        waitingToBeDeleted[path] = {
+        return waitingToBeDeleted[path] = {
+            giveBack: ctx.query.giveBack,
+            mtimeMs: try_(() => fs.statSync(path).mtimeMs),
             expires: Date.now() + secs * 1000,
             timeout: setTimeout(() => {
                 delete waitingToBeDeleted[path]
-                fs.rm(path, () => cb?.())
+                void rm(path)
             }, secs * 1000)
         }
     }
@@ -274,7 +309,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             ctx.status = status
         if (msg)
             ctx.body = msg
-        notifyClient(ctx, UPLOAD_STATUS, { [path]: ctx.status }) // allow browsers to detect failure while still sending body
+        notifyClient(ctx, UPLOAD_REQUEST_STATUS, { [path]: ctx.status }) // allow browsers to detect failure while still sending body
     }
 }
 

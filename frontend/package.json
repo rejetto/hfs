@@ -16,12 +16,14 @@
     "tssrp6a": "^3.0.0",
     "usehooks-ts": "^2.6.0",
     "valtio": "^1.13.0",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xxhashjs": "^0.2.2"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.178",
     "@types/react": "^18.3.14",
     "@types/react-dom": "^18.3.2",
+    "@types/xxhashjs": "^0.2.4",
     "@vitejs/plugin-legacy": "^6.0.0",
     "cross-env": "^7.0.3",
     "sass": "^1.54.5",

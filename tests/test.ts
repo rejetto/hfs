@@ -227,13 +227,6 @@ describe('after-login', () => {
     it('reupload', reqUpload(UPLOAD_DEST, 200))
     it('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
     it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
-    it('upload.size', async () => {
-        const fn = 'temp/size'
-        await reqUpload(UPLOAD_ROOT + fn, 200, BIG_CONTENT)()
-        const { size } = statSync(ROOT + fn)
-        if (size !== BIG_CONTENT.length)
-            throw Error(`wrote ${size}`)
-    })
     it('upload.too much', async () => {
         const fn = 'temp/tooMuch'
         const wrongSize = BIG_CONTENT.length / 2
@@ -268,7 +261,7 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
                 if (!stats)
                     throw Error("uploaded file not found: " + fn)
                 if (size !== stats.size)
-                    throw Error("uploaded file wrong size: " + fn)
+                    throw Error(`uploaded file wrong size: ${fn} = ${stats.size.toLocaleString()} expected ${size?.toLocaleString()}`)
                 return true
             }
         }

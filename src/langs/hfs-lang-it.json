@@ -60,7 +60,6 @@
         "send_files": "Invia {n} file, {size}",
         "Clear": "Azzera",
         "failed_upload": "Upload fallito per {name}",
-        "confirm_resume": "Vuoi riprendere questo upload?",
         "file too large": "file troppo grande",
         "Enter folder name": "Inserisci nome cartella",
         "Successfully created": "Creazione riuscita",
@@ -175,6 +174,7 @@
         "Creation": "Creazione",
         "creation": "creazione",
         "required_change_password": "È necessario cambiare la password",
-        "Wildcards": "Caratteri jolly"
+        "Wildcards": "Caratteri jolly",
+        "Considering resume": "Ripristino upload"
     }
 }

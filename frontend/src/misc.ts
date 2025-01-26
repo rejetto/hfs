@@ -64,6 +64,27 @@ export function hfsEvent(name: string, params?:Dict) {
     })
 }
 
+export function onHfsEvent(name: string, cb: (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }, output: any[]) => any) {
+    const key = 'hfs.' + name
+    document.addEventListener(key, wrapper)
+    return () => document.removeEventListener(key, wrapper)
+
+    function wrapper(ev: Event) {
+        const { params, output, order } = (ev as CustomEvent).detail
+        let thisOrder
+        const res = cb(params, {
+            output,
+            setOrder(x) { thisOrder = x },
+            preventDefault: () => ev.preventDefault()
+        }, output) // legacy pre-0.54, third parameter used by file-icons plugin
+        if (res !== undefined && Array.isArray(output)) {
+            output.push(res)
+            if (thisOrder)
+                order[output.length - 1] = thisOrder
+        }
+    }
+}
+
 export function formatTimestamp(x: number | string | Date, options?: Intl.DateTimeFormatOptions) {
     const cached = getOrSet(formatTimestamp as any, 'langs', () => {
         const ret = getLangs()
@@ -79,6 +100,7 @@ Object.assign(getHFS(), {
     fileShowComponents: { Video, Audio },
     misc: { ...cross, ...shared },
     emit: hfsEvent,
+    onEvent: onHfsEvent,
     watchState(k: string, cb: (v: any) => void) {
         const up = k.split('upload.')[1]
         return subscribeKey(up ? uploadState : state as any, up || k, cb, true)
@@ -87,26 +109,6 @@ Object.assign(getHFS(), {
         return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)
     },
     html: (html: string) => h(Html, {}, html),
-    onEvent(name: string, cb: (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }, output: any[]) => any) {
-        const key = 'hfs.' + name
-        document.addEventListener(key, wrapper)
-        return () => document.removeEventListener(key, wrapper)
-
-        function wrapper(ev: Event) {
-            const { params, output, order } = (ev as CustomEvent).detail
-            let thisOrder
-            const res = cb(params, {
-                output,
-                setOrder(x) { thisOrder = x },
-                preventDefault: () => ev.preventDefault()
-            }, output) // legacy pre-0.54, third parameter used by file-icons plugin
-            if (res !== undefined && Array.isArray(output)) {
-                output.push(res)
-                if (thisOrder)
-                    order[output.length - 1] = thisOrder
-            }
-        }
-    }
 })
 
 export function operationSuccessful() {

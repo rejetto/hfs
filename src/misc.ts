@@ -132,7 +132,7 @@ export function apiAssertTypes(paramsByType: { [type:string]: { [name:string]: a
 export function createStreamLimiter(limit: number) {
     let got = 0
     return new Transform({
-        transform(chunk, enc, cb) {
+        transform(chunk, enc, done) {
             const left = limit - got
             got += chunk.length
             if (left > 0) {
@@ -140,7 +140,7 @@ export function createStreamLimiter(limit: number) {
                 if (got >= limit)
                     this.end()
             }
-            cb()
+            done()
         }
     })
 }

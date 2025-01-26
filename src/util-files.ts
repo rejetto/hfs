@@ -123,15 +123,18 @@ export function exists(path: string) {
     return access(path).then(() => true, () => false)
 }
 
-// read and parse a file, caching unless timestamp has changed
+// parse a file, caching unless timestamp has changed
 export const parseFileCache = new Map<string, { ts: Date, parsed: unknown }>()
-export async function parseFile<T>(path: string, parse: (raw: Buffer) => T) {
+export async function parseFile<T>(path: string, parse: (path: string) => T) {
     const { mtime: ts } = await stat(path)
     const cached = parseFileCache.get(path)
     if (cached && Number(ts) === Number(cached.ts))
         return cached.parsed as T
-    const raw = await readFile(path)
-    const parsed = parse(raw)
+    const parsed = parse(path)
     parseFileCache.set(path, { ts, parsed })
     return parsed
+}
+
+export async function parseFileContent<T>(path: string, parse: (raw: Buffer) => T) {
+    return parseFile(path, () => readFile(path).then(parse))
 }

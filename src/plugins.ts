@@ -4,7 +4,7 @@ import glob from 'fast-glob'
 import { watchLoad } from './watchLoad'
 import _ from 'lodash'
 import {
-    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, ICONS_URI, IS_WINDOWS, MIME_AUTO, PLUGINS_PUB_URI
+    API_VERSION, APP_PATH, COMPATIBLE_API_VERSION, HTTP_NOT_FOUND, IS_WINDOWS, MIME_AUTO, PLUGINS_PUB_URI
 } from './const'
 import * as Const from './const'
 import Koa from 'koa'

@@ -3,7 +3,7 @@ import { createElement as h, useEffect, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
 import { Checkbox, CustomCode } from './components'
 import { usePath } from './useFetchList'
-import { getHFS, with_ } from './misc'
+import { onHfsEvent, with_ } from './misc'
 import i18n from './i18n'
 const { useI18N } = i18n
 
@@ -15,7 +15,7 @@ export function FilterBar() {
     const {t} = useI18N()
 
     state.patternFilter = useDebounce(showFilter ? filter : '', 300)
-    useEffect(() => getHFS().onEvent('entryToggleSelection', () => setAll(false)), [])
+    useEffect(() => onHfsEvent('entryToggleSelection', () => setAll(false)), [])
 
     const tabIndex = showFilter ? undefined : -1
     return h('div', { id: 'filter-bar', style: { display: showFilter ? undefined : 'none' } },

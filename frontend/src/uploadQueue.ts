@@ -1,18 +1,17 @@
 import {
-    buildUrlQueryString, dirname, formatBytes, formatPerc, getHFS,
-    HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, UPLOAD_RESUMABLE, UPLOAD_STATUS,
-    pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait
+    HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
+    buildUrlQueryString, dirname, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait
 } from '@hfs/shared'
 import { state } from './state'
 import { getNotifications } from '@hfs/shared/api'
-import { subscribeKey } from 'valtio/utils'
-import { alertDialog, confirmDialog, toast } from './dialog'
+import { alertDialog, toast } from './dialog'
 import { reloadList } from './useFetchList'
 import { proxy, ref, snapshot, subscribe } from 'valtio'
 import { createElement as h } from 'react'
 import _ from 'lodash'
 import { UploadStatus } from './upload'
 import i18n from './i18n'
+import { hfsEvent, onHfsEvent } from './misc'
 const { t } = i18n
 
 export interface ToUpload { file: File, comment?: string, name?: string, to?: string, error?: string }
@@ -25,6 +24,7 @@ export const uploadState = proxy<{
     qs: { to: string, entries: ToUpload[] }[]
     paused: boolean
     uploading?: ToUpload
+    hashing?: number
     progress: number // percentage
     partial: number // relative to uploading file. This is how much we have done of the current queue.
     speed: number
@@ -78,7 +78,7 @@ let req: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource | undefined
-let closeLastDialog: undefined | ((() => void) & { path?: string })
+let closeLastDialog: undefined | (() => void)
 
 let reloadOnClose = false
 export function resetReloadOnClose() {
@@ -88,6 +88,7 @@ export function resetReloadOnClose() {
 }
 
 export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
+    console.debug('start upload', getFilePath(toUpload.file))
     let resuming = false
     let preserveTempFile = undefined
     overrideStatus = 0
@@ -153,6 +154,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         const partial = splitSize && offset + splitSize < fullSize
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
             notificationChannel,
+            giveBack: toUpload.file.lastModified,
             ...partial && { partial: 'y' },
             ...offset && { resume: offset, preserveTempFile },
             ...toUpload.comment && { comment: toUpload.comment },
@@ -167,42 +169,45 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     async function subscribeNotifications() {
         if (notificationChannel) return
         notificationChannel = 'upload-' + randomId()
+        const PREFIX = 'resume hash/'
         notificationSource = await getNotifications(notificationChannel, async (name, data) => {
             const {uploading} = uploadState
             if (!uploading) return
+            if (name === UPLOAD_RESUMABLE_HASH)
+                return hfsEvent(PREFIX + data.path, data.hash)
             if (name === UPLOAD_RESUMABLE) {
                 waitSecondChunk.resolve()
                 const path = getFilePath(uploading.file)
-                const size = data?.[path] //TODO use toUpload?
+                if (path !== data.path) return // is it about current file?
+                const {size} = data //TODO use toUpload?
                 if (!size) {
-                    if (!closeLastDialog?.path || closeLastDialog?.path === path) {// previous resumable is gone
-                        closeLastDialog?.()
-                        preserveTempFile = undefined
-                    }
+                    preserveTempFile = undefined
                     return
                 }
                 preserveTempFile = true // this is affecting only split-uploads, because is undefined on first chunk (or no chunking)
                 if (size > toUpload.file.size) return
+                if (data.giveBack) {
+                    // lastModified doesn't necessarily mean the file has changed, but it seems ok for the time being
+                    if (data.giveBack !== String(toUpload.file.lastModified)) // query params are always string
+                        return console.debug('upload timestamp changed')
+                    console.debug('upload unchanged')
+                }
+                else { // timestamp may miss if the file is left by old version, or HFS was killed
+                    const hashFromServer = new Promise<any>(res => onHfsEvent(PREFIX + path, res))
+                    const hashed = await calcHash(uploading.file, size) // therefore, we attempt a check using the hash
+                    if (!hashed) return // too late, we are working on another file
+                    if (hashed !== await hashFromServer) return console.debug('upload hash mismatch')
+                    console.debug('upload hash is matching')
+                }
                 closeLastDialog?.()
-                const cancelSub = subscribeKey(uploadState, 'partial', v =>
-                    v >= size && closeLastDialog?.() )  // dismiss dialog as soon as we pass the threshold
-                const msg = t('confirm_resume', "Resume upload?") + ` (${formatPerc(size/toUpload.file.size)} = ${formatBytes(size)})`
-                const {expires} = data
-                const timeout = typeof expires !== 'number' ? 0
-                    : (Number(new Date(expires)) - Date.now()) / 1000
-                const dialog = confirmDialog(msg, { timeout })
-                closeLastDialog = Object.assign(dialog.close, { path })
-                const confirmed = await dialog
-                cancelSub()
-                if (!confirmed) return
-                if (uploading !== uploadState.uploading) return // too late
                 resuming = true
+                console.debug('resuming upload', size.toLocaleString())
                 preserveTempFile = undefined
                 abortCurrentUpload()
                 await wait(500) // be sure the server had the time to react to the abort() and unlocked the file, or our next request will fail
                 return startUpload(toUpload, to, size)
             }
-            if (name === UPLOAD_STATUS) {
+            if (name === UPLOAD_REQUEST_STATUS) {
                 overrideStatus = data?.[getFilePath(uploading.file)]
                 if (overrideStatus >= 400)
                     abortCurrentUpload()
@@ -302,3 +307,49 @@ export function resetCounters() {
         skipped: [],
     })
 }
+
+async function calcHash(file: File, limit=Infinity) {
+    const hash = await hasher()
+    const t = Date.now()
+    const reader = file.stream().getReader()
+    let left = limit
+    const updateUI = _.debounce(() => uploadState.hashing = (limit - left) / limit, 100, { maxWait: 500 })
+    try {
+        while (left > 0) {
+            if (uploadState.uploading?.file !== file) return // upload aborted
+            const res = await reader.read()
+            if (res.done) break
+            const chunk = res.value.slice(0, left)
+            hash.update(chunk)
+            left -= chunk.length
+            updateUI()
+            await wait(1) // cooperative: without this, the browser may freeze
+        }
+    }
+    finally {
+        updateUI.flush()
+        uploadState.hashing = undefined
+    }
+    const ret = hash.digest().toString(16)
+    console.debug('hash calculated in', Date.now() - t, 'ms', ret)
+    return ret
+
+    async function hasher() {
+        /* using this lib because it's much faster, works on legacy browsers, and we don't need it to be cryptographic. Sure 32bit isn't much.
+           Benchmark on 2GB:
+                18.5s aws-crypto/sha256-browser
+                43.6s js-sha512
+                73.3s sha512@hash-wasm
+                8.2s xxhash-wasm/64
+                8.2s xxhash-wasm/32
+                41s xxhashjs/64
+                9.1s xxhashjs/32
+         */
+        //if (BigInt !== Number && BigInt) return (await (await import('xxhash-wasm')).default()).create64() // at 32bit, a 9% difference is not worth having 2 libs, but 64bit is terrible without wasm
+        const ret = (await import('xxhashjs')).h32()
+        const original = ret.update
+        ret.update = (x: Uint8Array) => original.call(ret, x.buffer) // xxhashjs only works with ArrayBuffer, not UInt8Array
+        return ret
+    }
+}
+

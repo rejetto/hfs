@@ -9,7 +9,8 @@ export const NBSP = '\xA0'
 export const PLUGIN_CUSTOM_REST_PREFIX = '_'
 export const HFS_REPO = 'rejetto/hfs'
 export const UPLOAD_RESUMABLE = 'upload.resumable'
-export const UPLOAD_STATUS = 'upload.status'
+export const UPLOAD_RESUMABLE_HASH = 'upload.hash'
+export const UPLOAD_REQUEST_STATUS = 'upload.status'
 export const PREVIOUS_TAG = 'previous'
 
 export const HTTP_OK = 200

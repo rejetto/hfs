@@ -62,7 +62,6 @@
         "send_files": "Send {n,plural,one{# file} other{# files}}, {size}",
         "Clear": "Clear",
         "failed_upload": "Couldn't upload {name}",
-        "confirm_resume": "Resume upload?",
         "file too large": "file too large",
         "Enter folder name": "Enter folder name",
         "Successfully created": "Successfully created",
@@ -183,6 +182,7 @@
         "Creation": "Creation",
         "creation": "creation",
         "required_change_password": "You are required to change your password",
-        "Wildcards": "Wildcards"
+        "Wildcards": "Wildcards",
+        "Considering resume": "Considering resume"
     }
 }

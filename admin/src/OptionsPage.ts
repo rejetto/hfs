@@ -213,8 +213,7 @@ export default function OptionsPage() {
             { k : CFG.split_uploads, comp: NumberField, unit: 'MB', md: 2, step: .1,
                 fromField: x => x * 1E6, toField: x => x ? x / 1E6 : null,
                 placeholder: "disabled", label: "Split uploads in chunks", helperText: "Overcome proxy limits" },
-            { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", placeholder: "Never",
-                helperText: "Leave empty to never delete" },
+            { k: 'delete_unfinished_uploads_after', comp: NumberField, md: 3, min : 0, unit: "seconds", required: true },
             { k: 'min_available_mb', comp: NumberField, md: 3, min : 0, unit: "MBytes", placeholder: "None",
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
 
