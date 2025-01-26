@@ -147,6 +147,13 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to frontend.
 - `customHtml: object | () => object` return custom-html sections programmatically.
 - `customRest: { [name]: (parameters: object) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
+  E.g. 
+  ```js
+  exports.customRest = {
+    myCommand({ text }) { console.log(text) }
+  }
+  // then, in the frontend yon can call HFS.customRestCall('myCommand', { text: 'hello' })
+  ```
 - `customApi: { [name]: (parameters) => any }` declare functions to be called by other plugins (only backend, not frontend) using `api.customApiCall` (documented below) 
 
 ### FieldDescriptor
@@ -156,7 +163,8 @@ A FieldDescriptor is an object and can be empty. Currently, these optional prope
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set. Default is undefined.
 - `helperText: string` extra text printed next to the field.
-- `showIf: (values: object) => boolean` only show this field if the function returns truthy. Must not reference variables of the outer scope.
+- `showIf: (values: object) => boolean` only show this field if the function returns truthy. 
+  Must not reference variables of the outer scope. [See example](https://github.com/rejetto/rich-folder/blob/main/dist/plugin.js).
 - `frontend: boolean` expose this setting on the frontend, so that javascript can access it 
    using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`.
    Hint: if you need to use a numeric config in CSS but you need to add a unit (like `em`),
