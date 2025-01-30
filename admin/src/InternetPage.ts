@@ -274,7 +274,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             comp: ArrayField,
                             fields: [
                                 { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com" },
-                                { k: 'root', label: "Home/Root", comp: VfsPathField, placeholder: "default", helperText: "Root path in VFS",
+                                { k: 'root', label: "Home/Root", comp: VfsPathField, files: false, placeholder: "default", helperText: "Root path in VFS",
                                     $column: { renderCell({ value }: any) { return value || h('i', {}, 'default') } } },
                             ],
                             toField: x => Object.entries(x || {}).map(([host,root]) => ({ host, root })),

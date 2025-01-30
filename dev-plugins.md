@@ -192,6 +192,10 @@ Based on `type`, other properties are supported:
     - `folders: boolean` allow to select a folder. Default is `false`.
     - `defaultPath: string` what path to start from if no value is set. E.g. __dirname if you want to start with your plugin's folder.
     - `fileMask: string` restrict files that are displayed. E.g. `*.jpg|*.png`
+- `vfs_path` path to VFS
+    - `folders: boolean` set false to forbid selection of folders. Default is true.
+    - `files: boolean | string` set force to forbid selection of files. If you set a string, it will be used as a file-mask. 
+       E.g. `*.jpg|*.png` Default is true. 
 - `username`
     - `groups: undefined | boolean` true if you want only groups, false if you want only users. Default is undefined.
     - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
@@ -729,9 +733,10 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 11.1 (v0.56.0)
+- 11.2 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
+    - config.type.vfs_path: folders, files
 - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams

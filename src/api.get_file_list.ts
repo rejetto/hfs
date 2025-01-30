@@ -19,11 +19,13 @@ import { SendListReadable } from './SendList'
 
 export interface DirEntry { n:string, s?:number, m?:Date, c?:Date, p?: string, comment?: string, web?: boolean, url?: string, target?: string, icon?: string | true, order?: number }
 
-export function paramsToFilter({ search, wild, searchComment }: any) {
+export function paramsToFilter({ search, wild, searchComment, fileMask }: any) {
     search = String(search || '').toLocaleLowerCase()
     searchComment = String(searchComment || '').toLocaleLowerCase()
     return {
+        depth: search || searchComment ? Infinity : 0,
         filterName: search > '' && (wild === 'no' ? (s: string) => s.includes(search) : pattern2filter(search)),
+        fileMask: fileMask > '' && pattern2filter(fileMask),
         filterComment: searchComment > '' && (wild === 'no' ? (s: string) => s.includes(searchComment) : pattern2filter(searchComment))
     }
 }
@@ -41,8 +43,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         return fail()
     offset = Number(offset)
     limit = Number(limit)
-    const { filterName, filterComment } = paramsToFilter(rest)
-    const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth: filterName || filterComment ? Infinity : 0 })
+    const { filterName, filterComment, fileMask, depth } = paramsToFilter(rest)
+    const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
     const fakeChild = await applyParentToChild({ source: 'dummy-file' }, node) // used to check permission; simple but but can produce false results
@@ -75,7 +77,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
         for await (const sub of walker) {
             let name = getNodeName(sub)
             name = basename(name) || name // on windows, basename('C:') === ''
-            if (filterName && !filterName(name)
+            if (filterName && !filterName(name) || fileMask && !await nodeIsDirectory(sub) && !fileMask(name)
             || filterComment && !filterComment(await getCommentFor(sub.source) || ''))
                 continue
             const entry = await nodeToDirEntry(ctx, sub)

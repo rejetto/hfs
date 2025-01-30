@@ -8,16 +8,31 @@ interface VfsPathFieldProps extends FieldProps<string> {
     autocompleteProps: Partial<AutocompleteProps<string, false, true, undefined>>
 }
 
-export default function VfsPathField({ value='', onChange, helperText, setApi, autocompleteProps, onlyFolders=true, ...props }: VfsPathFieldProps) {
+export default function VfsPathField({ value='', onChange, helperText, setApi, autocompleteProps, folders=true, files=true, ...props }: VfsPathFieldProps) {
     const uri = dirname(value)
-    const { list, loading } = useApiList('get_file_list', { uri, admin: true, onlyFolders })
-    const options = useMemo(() => [uri + '/'].concat(list.map(x => value + x.n)), [list, uri])
+    const { list, loading } = useApiList('get_file_list', {
+        uri,
+        admin: true,
+        fileMask: typeof files === 'string' ? files : undefined,
+        onlyFolders: !files
+    })
+    const options = useMemo(() => {
+        const ret = [uri && (dirname(uri) + '/'), uri + '/'].filter(Boolean).concat(list.map(x => uri + '/' + x.n))
+        if (value && !ret.includes(value)) ret.push(value) // console warning otherwise
+        return ret
+    }, [list, uri])
+    setApi?.({
+        getError() {
+            return !folders && value?.endsWith('/') && "must be a file" || false
+        }
+    })
     return h(Autocomplete<string, false, true, undefined>, {
         value,
         options,
         isOptionEqualToValue: (o,v) => o === v || o === v + '/',
         loading,
         disableClearable: true,
+        disableCloseOnSelect: true,
         renderInput: params => h(TextField, {
             helperText,
             onChange(event) {

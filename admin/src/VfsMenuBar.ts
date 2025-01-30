@@ -57,7 +57,7 @@ function SystemIntegrationButton({ platform }: { platform: string | undefined })
                         h(Box, {}, "It will also automatically copy the URL, ready to paste!")),
                 )
                 const parent = await promptDialog(msg, {
-                    field: { comp: VfsPathField, label: "Add to this folder", placeholder: "home",
+                    field: { comp: VfsPathField, files: false, label: "Add to this folder", placeholder: "home",
                         autoFocus: sm }, // this dialog is tall, and mobile keyboard will disrupt user's ability to view its content
                     form: { saveOnEnter: false }
                 })
