@@ -53,6 +53,17 @@ export default function HomePage() {
                     "make one"
                 ), " or ", SOLUTION_SEP, cfgLink("provide adequate files")
             ]]))
+    const rightClickToInstallFromUrl = {
+        async onContextMenu(ev: any) {
+            ev.preventDefault()
+            if (!status.updatePossible)
+                return alertDialog("Automatic update is only for binary versions", 'warning')
+            const res = await promptDialog("Enter a link to the zip to install")
+            if (res)
+                await update(res)
+        },
+        title: status.updatePossible && "Right-click if you want to install a zip",
+    }
     return h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
         username && entry('', "Welcome, "+username),
         dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
@@ -109,15 +120,7 @@ export default function HomePage() {
                                 setCheckPlugins(true) // this only happens once, actually (until you change page)
                                 return apiCall<typeof adminApis.check_update>('check_update').then(x => setUpdates(x.options), alertDialog)
                             },
-                            async onContextMenu(ev) {
-                                ev.preventDefault()
-                                if (!status.updatePossible)
-                                    return alertDialog("Automatic update is only for binary versions", 'warning')
-                                const res = await promptDialog("Enter a link to the zip to install")
-                                if (res)
-                                    await update(res)
-                            },
-                            title: status.updatePossible && "Right-click if you want to install a zip",
+                            ...rightClickToInstallFromUrl
                         }, "Check for updates"),
                     { k: 'auto_check_update', comp: CheckboxField, label: "Auto check updates daily" },
                     { k: 'update_to_beta', comp: CheckboxField, label: "Include beta versions" },
@@ -134,7 +137,7 @@ export default function HomePage() {
             !otherVersions && status.updatePossible && status.previousVersionAvailable
                 && h(Btn, { icon: Restore, onClick: () => update(PREVIOUS_TAG) }, "Install previous version"),
             !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
-                : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions }, "Install other version")
+                : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions, ...rightClickToInstallFromUrl }, "Install other version")
                     : h(Flex, { vert: true }, otherVersions.map((x: any) => h(Update, {
                         info: x,
                         key: x.name,
