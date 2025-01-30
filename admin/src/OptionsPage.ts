@@ -11,7 +11,9 @@ import {
     MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK,
     Dict, md, wait, with_, try_, ipForUrl,
 } from './misc'
-import { iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported } from './mui'
+import {
+    iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported, Flex
+} from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
@@ -167,7 +169,8 @@ export default function OptionsPage() {
                 fields: [
                     { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2,
                         $column: { mergeRender: { comment: {}, expire: {} } },
-                        helperText: h(WildcardsSupported) },
+                        helperText: h(Flex, { component: 'span' }, h(WildcardsSupported), "Be careful to not kick yourself out, by blocking also your IP."),
+                    },
                     { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, $hideUnder: 'sm',
                         helperText: "Leave empty for no expiration" },
                     {

@@ -5,7 +5,7 @@ import { PauseCircle, PlayCircle, Refresh, SvgIconComponent } from '@mui/icons-m
 import { SxProps } from '@mui/system'
 import {
     createElement as h, forwardRef, Fragment, ReactElement, ReactNode, useCallback, useEffect, useRef,
-    ForwardedRef, useState, useMemo, isValidElement
+    ForwardedRef, useState, useMemo, isValidElement, ElementType
 } from 'react'
 import { Box, BoxProps, Breakpoint, ButtonProps, CircularProgress, IconButton, IconButtonProps, Link, LinkProps,
     Tooltip, TooltipProps, useMediaQuery } from '@mui/material'
@@ -74,8 +74,8 @@ export function IconProgress({ icon, progress, offset, title, sx }: IconProgress
     )
 }
 
-type FlexProps = SxProps & { vert?: boolean, center?: boolean, children?: ReactNode, props?: BoxProps }
-export function Flex({ vert=false, center=false, children=null, props={}, ...rest }: FlexProps) {
+type FlexProps = SxProps & { vert?: boolean, center?: boolean, children?: ReactNode, props?: BoxProps, component?: ElementType }
+export function Flex({ vert=false, center=false, children=null, props={}, component, ...rest }: FlexProps) {
     return h(Box, {
         sx: {
             display: 'flex',
@@ -85,6 +85,7 @@ export function Flex({ vert=false, center=false, children=null, props={}, ...res
             ...center && { justifyContent: 'center' },
             ...rest,
         },
+        component,
         ...props
     }, children)
 }
