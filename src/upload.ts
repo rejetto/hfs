@@ -23,12 +23,13 @@ import { rename, rm } from 'fs/promises'
 import { expiringCache } from './expiringCache'
 import { onProcessExit } from './first'
 import { once, Transform } from 'stream'
+import { utimes } from 'node:fs/promises'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
 export const dontOverwriteUploading = defineConfig('dont_overwrite_uploading', true)
 
-const waitingToBeDeleted: Record<string, { timeout: Timeout, expires: number, mtimeMs: any, giveBack: any }> = {}
+const waitingToBeDeleted: Record<string, { timeout: Timeout, expires: number, mtimeMs?: number, giveBack?: any }> = {}
 onProcessExit(() => {
     if (!Object.keys(waitingToBeDeleted).length) return
     console.log("removing unfinished uploads")
@@ -209,13 +210,16 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                 }
                 try {
                     await rename(tempName, dest)
+                    const t = Number(ctx.query.giveBack) // we know giveBack contains lastModified in ms
+                    if (t) // so we use it to touch the file
+                        await utimes(dest, Date.now() / 1000, t / 1000)
                     cancelDeletion(tempName) // not necessary, as deletion's failure is silent, but still
                     if (isWritingSecondFile) { // we've been using altTempName, but now we're done, so we can delete firstTempName
                         cancelDeletion(firstTempName)
                         await rm(firstTempName) // wait, so the client can count on the temp-file being gone
                     }
                     ctx.state.uploadDestinationPath = dest
-                    setUploadMeta(dest, ctx)
+                    void setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
                         void setCommentFor(dest, String(ctx.query.comment))
                     obj.uri = enforceFinal('/', baseUri) + pathEncode(basename(dest))
@@ -225,7 +229,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                             cb(obj)
                 }
                 catch (err: any) {
-                    setUploadMeta(tempName, ctx)
+                    void setUploadMeta(tempName, ctx)
                     console.error("couldn't rename temp to", dest, String(err))
                 }
             }
