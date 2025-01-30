@@ -9,7 +9,7 @@ import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-g
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import { DateTimeField } from './DateTimeField'
 import _ from 'lodash'
-import { Center, IconBtn, useBreakpoint } from './mui'
+import { Center, Flex, IconBtn, useBreakpoint } from './mui'
 import { DataTable } from './DataTable'
 
 type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean, autoRowHeight?: boolean }
@@ -25,8 +25,10 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
     setApi?.({ isEqual: isOrderedEqual }) // don't rely on stringify, as it wouldn't work with non-json values
     const [undo, setUndo] = useState<typeof value>()
     return h(Fragment, {},
-        label && h(FormLabel, { sx: { ml: 1 } }, label),
-        helperText && h(FormHelperText, {}, helperText),
+        h(Flex, {},
+            label && h(FormLabel, { sx: { ml: 1 } }, label),
+            helperText && h(FormHelperText, {}, helperText),
+        ),
         h(Box, { ...rest },
             h(DataTable, {
                 rows,
@@ -102,7 +104,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     title,
                                     onClick(ev: MouseEvent) {
                                         ev.stopPropagation()
-                                        formDialog<T>({ values: row as any, form, title }).then(x => {
+                                        formDialog<T>({ values: row as any, form, title: h(Fragment, {}, title, label && ' - ', label) }).then(x => {
                                             if (x)
                                                 set(value!.map((oldRec, i) => i === $idx ? x : oldRec), ev)
                                         })
