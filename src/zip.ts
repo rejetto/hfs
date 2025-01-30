@@ -62,7 +62,7 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
             return {
                 path: name,
                 size: st.size,
-                ts: st.mtime || st.birthtime,
+                ts: st.mtime,
                 mode: st.mode,
                 sourcePath: source,
                 getData: () => createReadStream(source, { start: 0 , end: Math.max(0, st.size-1) })

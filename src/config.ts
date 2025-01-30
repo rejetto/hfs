@@ -176,7 +176,7 @@ const saveDebounced = debounceAsync(async () => {
     // keep backup
     const bak = filePath + '.bak'
     const aWeekAgo = Date.now() - DAY * 7
-    if (await stat(bak).then(x => aWeekAgo > (x.mtimeMs || x.birthtimeMs), () => true))
+    if (await stat(bak).then(x => aWeekAgo > x.mtimeMs, () => true))
         await copyFile(filePath, bak).catch(() => {}) // ignore errors
 
     await configFile.save(stringify({ ...state, version: VERSION }))
