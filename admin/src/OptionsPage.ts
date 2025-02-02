@@ -78,7 +78,6 @@ export default function OptionsPage() {
         sm: 4,
     }
     const httpsEnabled = values.https_port >= 0
-    const isWindows = status?.platform === 'win32'
     return h(Form, {
         sx: { maxWidth: '60em' },
         values,
@@ -218,21 +217,21 @@ export default function OptionsPage() {
                 label: "Min. available disk space", helperText: "Reject uploads that don't comply" },
 
             h(Section, { title: "Others" }),
-            { k: 'keep_session_alive', comp: BoolField, sm: 4, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
-            { k: 'session_duration', comp: NumberField, sm: 4, md: 3, min: 5, unit: "seconds", required: true },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 4, md: 3, unit: "seconds", required: true,
+            { k: 'keep_session_alive', comp: BoolField, sm: 6, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
+            { k: 'session_duration', comp: NumberField, sm: 6, md: 3, min: 5, unit: "seconds", required: true },
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 6, md: 3, unit: "seconds", required: true,
                 label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
 
-            { k: 'descript_ion', comp: BoolField, ...isWindows && { sm: 4, md: 3 },  label: "Enable comments", helperText: "In file DESCRIPT.ION" },
-            { k: 'show_hidden_files', comp: BoolField, sm: 4, md: 3 },
-            { k: CFG.size_1024, label: "KB size", comp: SelectField, md: 3, options: { 1000: false, 1024: true } },
-            { k: 'descript_ion_encoding', sm: 4, md: 6, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+            { k: 'show_hidden_files', comp: BoolField, sm: 6, md: 3 },
+            { k: 'descript_ion', comp: BoolField, sm: 6, md: 3, label: "Enable comments", helperText: "In file DESCRIPT.ION" },
+            { k: 'descript_ion_encoding', sm: 6, md: 3, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
                 options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
+            { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 6, md: 3, options: { 1000: false, 1024: true } },
 
-            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start",
+            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", sm: 4, md: 6,
                 helperText: "Browser is automatically launched with HFS"
             },
-            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, md: 6,
+            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, sm: 12, md: 6,
                 fields: [
                     { k: 'v', label: "Mime type", placeholder: "auto", $width: 2, helperText: "Leave empty to get automatic value" },
                     { k: 'k', label: "File mask", helperText: h(WildcardsSupported), $width: 1, $column: {
@@ -247,6 +246,7 @@ export default function OptionsPage() {
                 toField: x => Object.entries(x || {}).map(([k,v]) => ({ k, v })),
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
             },
+
             { k: 'server_code', comp: TextEditorField, lang: 'js', sm: 12,
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
