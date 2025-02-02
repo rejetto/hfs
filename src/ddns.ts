@@ -33,6 +33,7 @@ events.onListeners(EVENT, cbs => {
 
 export interface DynamicDnsResult { ts: string, error: string, url: string }
 let stopEvent: any
+let last: DynamicDnsResult | undefined
 dynamicDnsUrl.sub(v => {
     stopEvent?.()
     if (!v) return
@@ -47,13 +48,14 @@ dynamicDnsUrl.sub(v => {
                 }, (err: any) => err.code || err.message || String(err) )
             return { ts: new Date().toJSON(), error, url }
         }))
-        const best = _.find(all, 'error') || all[0] // the system is designed for just one result, and we give precedence to errors
-        events.emit('dynamicDnsError', best)
-        console.log('dynamic dns update', best?.error || 'ok')
+        last = _.find(all, 'error') || all[0] // the system is designed for just one result, and we give precedence to errors
+        events.emit('dynamicDnsError', last)
+        console.log('dynamic dns update', last?.error || 'ok')
     })
 })
 
 export async function* get_dynamic_dns_error() {
+    if (last) yield last
     while (1) {
         const res = await events.once('dynamicDnsError')
         yield res[0]
