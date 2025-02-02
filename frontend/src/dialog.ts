@@ -67,7 +67,7 @@ export async function promptDialog(msg: string, { value, type, helperText, trim=
                 onKeyDown(ev: KeyboardEvent) {
                     const { key } = ev
                     if (key === 'Escape')
-                        return closeDialog(null)
+                        return closeDialog()
                     if ((textarea ? isCtrlKey(ev) : key) === 'Enter') {
                         ev.preventDefault()
                         return go()
