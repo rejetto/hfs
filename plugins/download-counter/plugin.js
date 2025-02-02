@@ -1,7 +1,7 @@
 // other plugins can use ctx.state.download_counter_ignore to mark downloads that shouldn't be counted
 
 exports.description = "Counts downloads for each file, and displays the total in the list or file menu"
-exports.version = 6.2 // reintroduced conversion of legacy data
+exports.version = 6.3 // fixed slow conversion of big legacy files
 exports.apiRequired = 8.89  // openDb
 
 exports.config = {
@@ -17,14 +17,17 @@ exports.configDialog = {
 exports.init = async api => {
     const db = await api.openDb('counters.kv', { defaultPutDelay: 5_000, maxPutDelay: 30_000 })
 
-    try { // load legacy file
+    if (!db.size()) try { // load legacy file
         const countersFile = 'counters.yaml'
         const yaml = api.require('yaml')
-        const { readFile, rename } = api.require('fs/promises')
-        const data = await readFile(countersFile, 'utf8')
-        for (const [k,v] of Object.entries(yaml.parse(data)))
-            db.put(uri2key(k), v)
-        rename(countersFile, countersFile + ' - old format, now converted, you can delete')
+        const input = api.require('fs').createReadStream(countersFile)
+        const readline = api.require('readline').createInterface({ input })
+        for await (const line of readline) {
+            const parsed = yaml.parse(line) // parsing a 3.7MB file as a whole takes 25x in my tests
+            for (const [k,v] of Object.entries(parsed))
+                db.put(uri2key(k), v)
+        }
+        api.require('fs').promises.rename(countersFile, countersFile + ' - old format, now converted, you can delete')
         api.log("data converted")
     }
     catch(err) {
