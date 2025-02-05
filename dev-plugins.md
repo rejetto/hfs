@@ -173,6 +173,7 @@ A FieldDescriptor is an object and can be empty. Currently, these optional prope
 Based on `type`, other properties are supported:
 - `string`
     - `multiline: boolean`. Default is `false`.
+    - to make it a password field, use this property `inputProps: { type: 'password' }`; valid also for other standard html input types.  
 - `number`
     - `min: number`
     - `max: number`
@@ -210,8 +211,9 @@ The `api` object you get as parameter of the `init` contains the following:
   
 - `setConfig(key: string, value: any)` set plugin's config value.
 
-- `subscribeConfig(key: string, callback: (value: any) => void): Unsubscriber`
+- `subscribeConfig(key: string | string[], callback: (value: any) => void): Unsubscriber`
   will call `callback` with initial value and then at each change.
+  Passing an array of keys, the `value` parameter becomes an object with the specified keys and respective values.
 
 - `getHfsConfig(key: string): any` similar to getConfig, but retrieves HFS' config instead.
 
@@ -733,10 +735,11 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 11.2 (v0.56.0)
+- 11.3 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
     - config.type.vfs_path: folders, files
+    - api.subscribeConfig supports multiple keys 
 - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams

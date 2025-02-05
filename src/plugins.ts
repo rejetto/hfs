@@ -10,7 +10,7 @@ import * as Const from './const'
 import Koa from 'koa'
 import {
     adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
-    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir
+    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys
 } from './misc'
 import * as misc from './misc'
 import { defineConfig, getConfig } from './config'
@@ -495,11 +495,13 @@ function watchPlugin(id: string, path: string) {
                 },
                 setConfig: (cfgKey: string, value: any) =>
                     setPluginConfig(id, { [cfgKey]: value }),
-                subscribeConfig(cfgKey: string, cb: Callback<any>) {
-                    let last = this.getConfig(cfgKey)
+                subscribeConfig(cfgKey: string | string[], cb: Callback<any>) {
+                    const get = () => Array.isArray(cfgKey) ? objFromKeys(cfgKey, k => this.getConfig(k))
+                        : this.getConfig(cfgKey)
+                    let last = get()
                     cb(last)
                     return pluginsConfig.sub(() => {
-                        const now = this.getConfig(cfgKey)
+                        const now = get()
                         if (same(now, last)) return
                         try { cb(last = now) }
                         catch(e){ this.log(String(e)) }
