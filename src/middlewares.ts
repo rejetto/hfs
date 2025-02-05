@@ -8,7 +8,7 @@ import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount, getFromAccount } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
-import { invalidateSessionBefore, setLoggedIn, srpCheck } from './auth'
+import { clearTextLogin, invalidateSessionBefore } from './auth'
 import { constants } from 'zlib'
 import { getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
@@ -112,14 +112,12 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     updateConnectionForCtx(ctx)
     await next()
 
-    async function urlLogin() {
+    function urlLogin() {
         const { login }  = ctx.query
         if (!login) return
         const [u, p] = splitAt(':', String(login))
-        const a = await doLogin(u, p, 'url')
-        if (!a) return
         ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
-        return a
+        return u && clearTextLogin(ctx, u, p, 'url')
     }
 
     function getHttpAccount() {
@@ -127,22 +125,10 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         if (!b64) return
         try {
             const [u, p] = atob(b64).split(':')
-            return doLogin(u!, p||'', 'header')
+            if (!u || u === ctx.session?.username) return // providing credentials, but not needed
+            return clearTextLogin(ctx, u, p||'', 'header')
         }
         catch {}
-    }
-
-    async function doLogin(u: string, p: string, via: string) {
-        if (!u || u === ctx.session?.username) return // providing credentials, but not needed
-        if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
-        const a = await srpCheck(u, p)
-        if (a) {
-            await setLoggedIn(ctx, a.username)
-            ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
-        }
-        else if (u)
-            events.emit('failedLogin', ctx, { username: u, via })
-        return a
     }
 }
 

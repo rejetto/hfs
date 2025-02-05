@@ -26,7 +26,7 @@ export default function AccountsPage() {
         if (Array.isArray(data?.list) && selectionMode)
             setSel( sel.filter(u => data!.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
     }, [data]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
-    const list = useMemo(() => data && _.sortBy(data.list, ['hasPassword', x => !x.adminActualAccess, 'username']), [data])
+    const list = useMemo(() => data && _.sortBy(data.list, [x => !x.isGroup, x => !x.adminActualAccess, 'username']), [data])
     const selectedAccount = selectionMode && _.find(list, { username: sel[0] })
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
@@ -45,7 +45,7 @@ export default function AccountsPage() {
             : with_(selectedAccount || newAccount(), a =>
                 h(AccountForm, {
                     account: a,
-                    groups: list.filter(x => !x.hasPassword).map( x => x.username ),
+                    groups: list.filter(x => x.isGroup).map(x => x.username),
                     addToBar: isSideBreakpoint && [
                         h(Box, { flex:1 }),
                         account2icon(a, { fontSize: 'large', sx: { p: 1 }}),
@@ -64,7 +64,7 @@ export default function AccountsPage() {
         const { close } = newDialog({
             title: _.isString(sel) ? _.startCase(sel)
                 : sel.length > 1 ? "Multiple selection"
-                    : selectedAccount ? (selectedAccount.hasPassword ? "User: " : "Group: ") + selectedAccount.username
+                    : selectedAccount ? (selectedAccount.isGroup ? "Group: " : "User: ") + selectedAccount.username
                         : '?', // never
             Content: () => sideContent,
             onClose: selectNone,
@@ -148,6 +148,7 @@ export default function AccountsPage() {
             adminActualAccess: false,
             invalidated: undefined,
             canLogin: true,
+            isGroup: false,
             members: [],
         } satisfies Account
     }
@@ -171,6 +172,6 @@ export default function AccountsPage() {
     }
 
     function account2icon(ac: Account, props={}) {
-        return h(ac.hasPassword ? Person : Group, props)
+        return h(ac.isGroup ? Group : Person, props)
     }
 }

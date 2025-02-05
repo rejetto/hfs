@@ -219,7 +219,7 @@ function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProp
     const { data, element, loading } = useApiEx<{ list: Account[] }>('get_accounts')
     return !loading && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
         value, onChange,
-        options: data?.list.filter(x => groups === undefined || groups === !x.hasPassword).map(x => x.username),
+        options: data?.list.filter(x => groups === undefined || groups === x.isGroup).map(x => x.username),
         ...rest,
     })
 }

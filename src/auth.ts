@@ -38,6 +38,19 @@ export function getCurrentUsername(ctx: Context): string {
     return ctx.state.account?.username || ''
 }
 
+export async function clearTextLogin(ctx: Context, u: string, p: string, via: string) {
+    if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
+    const plugins = await events.emitAsync('clearTextLogin', { ctx, username: u, password: p, via }) // provide clear password to plugins
+    const a = plugins?.some(Boolean) ? getAccount(u) : await srpCheck(u, p)
+    if (a) {
+        await setLoggedIn(ctx, a.username)
+        ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
+    }
+    else if (u)
+        events.emit('failedLogin', ctx, { username: u, via })
+    return a
+}
+
 // centralized log-in state
 export async function setLoggedIn(ctx: Context, username: string | false) {
     const s = ctx.session

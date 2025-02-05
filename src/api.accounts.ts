@@ -15,6 +15,7 @@ function prepareAccount(ac: Account | undefined) {
         ..._.omit(ac, ['password','hashed_password','srp']),
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
+        isGroup: ac.plugin?.isGroup ?? !accountHasPassword(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
         invalidated: invalidateSessionBefore.get(ac.username),

@@ -24,6 +24,7 @@ export interface Account {
     days_to_live?: number // this is not inherited, but it will affect sub-accounts via 'expire'
     allow_net?: string
     require_password_change?: boolean
+    plugin?: { isGroup?: boolean, [rest: string]: unknown }
 }
 interface Accounts { [username:string]: Account }
 
@@ -197,7 +198,7 @@ export function accountHasPassword(account: Account) {
 }
 
 export function accountCanLogin(account: Account) {
-    return accountHasPassword(account) && !allDisabled(account)
+    return (accountHasPassword(account) || account.plugin && !account.plugin.isGroup) && !allDisabled(account)
 }
 
 function allDisabled(account: Account): boolean {
@@ -208,7 +209,7 @@ function allDisabled(account: Account): boolean {
 }
 
 export function accountCanLoginAdmin(account: Account) {
-    return accountCanLogin(account) && Boolean(getFromAccount(account, a => a.admin))
+    return accountCanLogin(account) && getFromAccount(account, a => a.admin) || false
 }
 
 export async function changeSrpHelper(account: Account, salt: string, verifier: string) {

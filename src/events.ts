@@ -74,7 +74,7 @@ export class BetterEventEmitter {
     async emitAsync(event: string, ...args: any[]) {
         const syncRet = this.emit(event, ...args)
         if (!syncRet) return
-        const asyncRet = await Promise.all(syncRet)
+        const asyncRet: typeof syncRet = await Promise.all(syncRet)
         return Object.assign(asyncRet, {
             isDefaultPrevented: () => syncRet.isDefaultPrevented()
                 || asyncRet.some((r: any) => r === this.preventDefault)

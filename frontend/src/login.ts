@@ -5,7 +5,7 @@ import { state, useSnapState } from './state'
 import { alertDialog, newDialog, toast } from './dialog'
 import {
     getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth,
-    HTTP_CONFLICT, HTTP_UNAUTHORIZED, CFG,
+    HTTP_CONFLICT, HTTP_UNAUTHORIZED, CFG, HTTP_FAILED_DEPENDENCY,
 } from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { reloadList } from './useFetchList'
@@ -16,11 +16,15 @@ const { t, useI18N } = i18n
 
 async function login(username:string, password:string, extra?: object) {
     const stopWorking = working()
-    return srpClientSequence(username, password, apiCall, extra).then(res => {
+    return srpClientSequence(username, password, apiCall, extra).catch(err => {
+        if (err.code == HTTP_FAILED_DEPENDENCY)
+            return apiCall('login', { username, password, ...extra })
+        throw err
+    }).then(res => {
         refreshSession(res)
         state.loginRequired = false
         return res
-    }, (err: any) => {
+    }, err => {
         throw Error(err.message === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
             : err.code === HTTP_UNAUTHORIZED ? t('login_bad_credentials', "Invalid credentials")
                 : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")

@@ -27,10 +27,11 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             ref.current?.querySelector('input')?.focus()
     }, [JSON.stringify(account)]) //eslint-disable-line
     const add = !account.username
-    const group = !values.hasPassword
+    const { isGroup } = values
     const ref = useRef<HTMLFormElement>()
     const expired = Boolean(values.expire)
     const { members } = account
+    const pluginAuth = !isGroup && account.plugin && !account.hasPassword
     return h(Form, {
         formRef: ref,
         values,
@@ -57,14 +58,15 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             ...wantArray(addToBar),
         ],
         fields: [
-            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, lg: group ? 12 : 4,
+            { k: 'username', label: isGroup ? 'Group name' : undefined, autoComplete: 'off', required: true, lg: isGroup ? 12 : 4,
                 getError: v => v !== account.username && apiCall('get_account', { username: v })
                     .then(got => got?.username === account.username ? "usernames are case-insensitive" : "already used", () => false),
             },
-            !group && { k: 'password', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', required: add,
+            pluginAuth && h(Alert, { severity: 'info' }, " Authentication handled by a plugin"),
+            !isGroup && !pluginAuth && { k: 'password', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', required: add,
                 label: add ? "Password" : "Change password"
             },
-            !group && { k: 'password2', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
+            !isGroup && !pluginAuth && { k: 'password2', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 getError: (x, { values }) => (x||'') !== (values.password||'') && "Enter same password" },
             { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 8,
                 helperText: !values.disabled && values.canLogin === false ? h(Box, { color: 'warning.main', component: 'span' }, "Login is prevented because all of its groups are disabled")
@@ -78,13 +80,13 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: true },
             { k: 'require_password_change', comp: BoolField, xs: 12, lg: 4, helperText: "At first login" },
             !members ? null
-                : group && !members.length ? h(Box, {}, "No members")
+                : isGroup && !members.length ? h(Box, {}, "No members")
                     : members.length > 0 && h(Box, {}, `${members.length} members: `,
                         reactJoin(', ', account.members?.map((u: string) => h(groups.includes(u) ? 'i' : 'span', {}, u))) ),
-            group && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
+            isGroup && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
             { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions, sm: 6,
                 helperText: "Specify groups to inherit permissions from"
-                    + (!group ? '' : ". A group can inherit from another group")
+                    + (!isGroup ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
             { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", helperText: h(WildcardsSupported), sm: 6,
