@@ -277,6 +277,32 @@ The `api` object you get as parameter of the `init` contains the following:
   These are not documented, probably never will, and are subject to change without notifications,
   but you can study the sources if you are interested in using them. It's just a shorter version of `api.require('./misc')`
 
+- `getAccount(username: string): Account | undefined` retrieve an account object, or undefined of not found.
+  The `Account` object has the following properties:
+      `username: string` 
+      `srp?: string` if this value is not present, then it's a group
+      `belongs?: string[]` list of groups this account belongs to
+      `ignore_limits?: boolean` don't apply limits to this account
+      `disable_password_change?: boolean` don't allow password change
+      `admin?: boolean` allow access to admin-panel
+      `redirect?: string` redirect to this URL as soon as the user logs in
+      `disabled?: boolean` forbid login
+      `expire?: Date` account expiration date
+      `days_to_live?: number` set expiration date (after this many days) automatically at next login 
+      `allow_net?: string` allow login of this account only from this network mask
+      `require_password_change?: boolean` ask user to change password at next login
+
+- `getAccounts(): string[]` retrieve list of all usernames
+
+- `addAccount(username: string, properties: Partial<Account>, updateExisting=false): Account | undefined`
+  If username already exists, it will ignore the request and return undefined, unless you set `updateExisting` to true.  
+ 
+- `delAccount(username: string): boolean` returns true if it succeeds. 
+
+- `updateAccount(account: Account, changes: Partial<Account>)` apply specified changes.
+
+- `renameAccount(from: string, to: string): boolean` returns true if it succeeds.
+
 ## Frontend specific
 
 The following information applies to the default frontend, and may not apply to a custom one.
@@ -739,7 +765,8 @@ If you want to override a text regardless of the language, use the special langu
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
     - config.type.vfs_path: folders, files
-    - api.subscribeConfig supports multiple keys 
+    - api.subscribeConfig supports multiple keys
+    - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
 - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams

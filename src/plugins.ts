@@ -30,7 +30,7 @@ import { app } from './index'
 import { addBlock } from './block'
 import { getLangData } from './lang'
 import { i18nFromTranslations } from './i18n'
-import { ctxBelongsTo } from './perm'
+import { addAccount, ctxBelongsTo, delAccount, getAccount, getUsernames, renameAccount, updateAccount } from './perm'
 import { getCurrentUsername } from './auth'
 import { CustomizedIcons, watchIconsFolder } from './icons'
 
@@ -128,6 +128,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
         misc,
         ctxBelongsTo,
         getCurrentUsername,
+        getAccount, getUsernames, addAccount, delAccount, updateAccount, renameAccount,
         ...morePassedToInit
     })
     Object.assign(pl, typeof res === 'function' ? { unload: res } : res)

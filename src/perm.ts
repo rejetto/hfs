@@ -49,6 +49,10 @@ export function ctxBelongsTo(ctx: Koa.Context, usernames: string[]) {
         .some((u: string) => usernames.includes(u))
 }
 
+export function getUsernames() {
+    return Object.keys(accounts)
+}
+
 export function getAccount(username:string, normalize=true) : Account | undefined {
     if (normalize)
         username = normalizeUsername(username)
