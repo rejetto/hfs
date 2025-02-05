@@ -32,7 +32,7 @@ import { getLangData } from './lang'
 import { i18nFromTranslations } from './i18n'
 import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
-import { CustomizedIcons, ICONS_FOLDER, watchIconsFolder } from './icons'
+import { CustomizedIcons, watchIconsFolder } from './icons'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
