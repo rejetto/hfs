@@ -1,5 +1,5 @@
 import { makeQ } from './makeQ'
-import { stat, readdir } from 'fs/promises'
+import { stat, opendir } from 'fs/promises'
 import { IS_WINDOWS } from './const'
 import { join } from 'path'
 import { pendingPromise, Promisable } from './cross'
@@ -38,25 +38,25 @@ export function walkDir(path: string, { depth = 0, hidden = true }: {
         let n = 0
         let last: DirStreamEntry | undefined
         if (IS_WINDOWS) { // use native apis to read 'hidden' attribute
-            const entries = await new Promise<fswin.Find.File[]>(res => fswin.find(base + '\\*', res))
-            const methods = {
+            const direntMethods = {
                 isDir: false,
                 isFile(){ return !this.isDir },
                 isDirectory(){ return this.isDir },
                 isBlockDevice(){ return false },
                 isCharacterDevice() { return false },
             }
-            for (const f of entries) {
-                if (stopped) break
-                if (!hidden && f.IS_HIDDEN) continue
-                await work(Object.assign(Object.create(methods), {
+            await new Promise<void>(res => fswin.find(base + '\\*', (event, f) => {
+                if (event !== 'FOUND') return res()
+                if (stopped) return true // stop signal
+                if (!hidden && f.IS_HIDDEN) return
+                work(Object.assign(Object.create(direntMethods), {
                     isDir: f.IS_DIRECTORY,
                     name: f.LONG_NAME,
                     stats: { size: f.SIZE, birthtime: f.CREATION_TIME, mtime: f.LAST_WRITE_TIME } as Stats
                 }))
-            }
+            }, true))
         }
-        else for await (let entry of await readdir(base, { withFileTypes: true })) {
+        else for await (let entry of await opendir(base)) {
             if (stopped) break
             if (!hidden && entry.name[0] === '.')
                 continue
