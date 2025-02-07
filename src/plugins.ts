@@ -570,8 +570,6 @@ function setError(id: string, error: string) {
 
 function deleteModule(id: string) {
     const { cache } = require
-    if (!cache) // bun 0.6.2 doesn't have it
-        return console.warn("plugin may be not reloaded correctly")
     // build reversed map of dependencies
     const requiredBy: Record<string,string[]> = { '.':['.'] } // don't touch main entry
     for (const k in cache)
