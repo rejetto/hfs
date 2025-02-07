@@ -16,6 +16,8 @@ for (const k of ['log','warn','error']) {
             consoleLog.splice(0, 1_000)
         events.emit('console', rec)
         f?.write(`${formatTimestamp(ts)} [${k}] ${msg}\n`)
+        if (k !== 'log')
+            args.unshift('!')
         return original(formatTime(ts), ...args) // bundled nodejs doesn't have locales (and apparently uses en-US)
     }
 }

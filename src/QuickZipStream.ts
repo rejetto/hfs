@@ -11,7 +11,7 @@ const ZIP64_NUMBER_LIMIT = 0xffff
 
 type Crc32Function = (input: string | Buffer, initialState?: number | undefined) => number
 const crc32function: Crc32Function = try_(() => require('@node-rs/crc32').crc32 satisfies Crc32Function, () => {
-    console.log('! using generic lib for crc32')
+    console.warn('using generic lib for crc32')
     return unsigned satisfies Crc32Function
 })
 

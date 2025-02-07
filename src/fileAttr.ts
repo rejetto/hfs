@@ -10,7 +10,7 @@ import { IS_WINDOWS } from './const'
 const fsx = try_(() => {
     const lib = require('fs-x-attributes')
     return { set: promisify(lib.set), get: promisify(lib.get) }
-}, () => console.log('! fs-x-attributes not available'))
+}, () => console.warn('fs-x-attributes not available'))
 
 const fileAttrDb = new KvStorage({ defaultPutDelay: 1000, maxPutDelay: 5000 })
 onProcessExit(() => fileAttrDb.flush())
