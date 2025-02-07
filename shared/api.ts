@@ -66,7 +66,8 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
     }).finally(() => clearTimeout(timeout)), {
         abort() {
             controller.abort(aborted='cancel')
-        }
+        },
+        aborted: () => controller.signal.aborted
     })
 }
 
@@ -81,32 +82,29 @@ export class ApiError extends Error {
 
 export type UseApi<T=unknown> = ReturnType<typeof useApi<T>>
 export function useApi<T=any>(cmd: string | Falsy, params?: object, options: ApiCallOptions={}) {
-    const [data, setData] = useStateMounted<Awaited<ReturnType<typeof apiCall<T>>> | undefined>(undefined)
+    const [data, setData, getData] = useStateMounted<Awaited<ReturnType<typeof apiCall<T>>> | undefined>(undefined)
     const [error, setError] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const [loading, setLoading, getLoading] = useStateMounted<undefined | ReturnType<typeof apiCall>>(undefined)
     const reloadPromise = useRef<any>()
-    const dataRef = useRef<any>()
     useEffect(() => {
         setError(undefined)
-        let aborted = false
-        let req: undefined | ReturnType<typeof apiCall>
+        const aborted = () => getLoading()?.aborted()
         const wholePromise = wait(0) // postpone a bit, so that if it is aborted immediately, it is never really fired (happens mostly in dev mode)
-            .then(() => !cmd || aborted ? undefined : req = apiCall<T>(cmd, params, options))
-            .then(res => aborted || setData(dataRef.current = res as any) || setError(undefined), err => {
-                if (aborted) return
-                setError(err)
-                setData(dataRef.current = undefined)
+            .then(() => {
+                const ret = !cmd || aborted() ? undefined : apiCall<T>(cmd, params, options)
+                setLoading(ret)
+                return ret
             })
+            .then(res => aborted() || setData(res as any) || setError(undefined),
+                err => {
+                    if (aborted()) return
+                    setError(err)
+                    setData(undefined)
+                })
             .finally(() => setLoading(reloadPromise.current = undefined))
-        if (cmd && !aborted) setLoading(Object.assign(wholePromise, {
-            abort() {
-                aborted = true
-                req?.abort()
-            }
-        }))
         reloadPromise.current?.resolve(wholePromise)
-        return () => getLoading()?.abort()
+        return () => { wholePromise.finally(() => getLoading()?.abort()) }
     }, [cmd, JSON.stringify(params), forcer]) //eslint-disable-line -- json-ize to detect deep changes
     const reload = useCallback(() => {
         if (getLoading()) return
@@ -116,7 +114,7 @@ export function useApi<T=any>(cmd: string | Falsy, params?: object, options: Api
     const ee = useMemo(() => new BetterEventEmitter, [])
     const sub = useCallback((cb: Callback) => ee.on('data', cb), [ee])
     useEffect(() => { ee.emit('data') }, [data])
-    return { data, setData, error, reload, sub, loading, getData: () => dataRef.current }
+    return { data, setData, getData, error, reload, sub, loading }
 }
 
 type EventHandler = (type:string, data?:any) => void
