@@ -294,7 +294,7 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `getAccounts(): string[]` retrieve list of all usernames
 
-- `addAccount(username: string, properties: Partial<Account>, updateExisting=false): Account | undefined`
+- `addAccount(username: string, properties: Partial<Account>, updateExisting=false): Promise<Account> | undefined`
   If username already exists, it will ignore the request and return undefined, unless you set `updateExisting` to true.  
  
 - `delAccount(username: string): boolean` returns true if it succeeds. 

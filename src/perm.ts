@@ -157,7 +157,7 @@ export function renameAccount(from: string, to: string) {
     }
 }
 
-export async function addAccount(username: string, props: Partial<Account>, updateExisting=false) {
+export function addAccount(username: string, props: Partial<Account>, updateExisting=false) {
     username = normalizeUsername(username)
     if (!username) return
     let account = getAccount(username, false)
@@ -166,8 +166,7 @@ export async function addAccount(username: string, props: Partial<Account>, upda
     Object.assign(account, _.pickBy(props, Boolean))
     accountsConfig.set(accounts =>
         Object.assign(accounts, { [username]: account }))
-    await updateAccount(account, account)
-    return account
+    return updateAccount(account, account).then(() => account!)
 }
 
 export function delAccount(username: string) {
