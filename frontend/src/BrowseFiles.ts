@@ -76,8 +76,8 @@ function FilesList() {
     const theList = filteredList || list
     const total = theList.length
     const nPages = Math.ceil(total / pageSize)
-    const pageEnd = offset + pageSize * (1+extraPages)
-    const thisPage = theList.slice(offset, pageEnd)
+    const pageEnd = offset + pageSize * (1+extraPages) - 1
+    const thisPage = theList.slice(offset, pageEnd + 1)
 
     useEffect(() => setPage(0), [theList[0]]) // reset page if the list changes
     // reset scrolling if the page changes
@@ -106,6 +106,7 @@ function FilesList() {
 
     // type to focus
     const [focus, setFocus] = useState('')
+    const [focusSkip, setFocusSkip] = useState(0)
     useEffect(() => setFocus(''), [theList]) // reset
     const navigate = useNavigate()
     const timeout = useRef()
@@ -115,29 +116,60 @@ function FilesList() {
             return navigate(location.pathname + '..')
         const { key } = ev
         if (ev.metaKey || ev.ctrlKey || ev.altKey) return
+        if (key === 'Tab' && focus) {
+            const go = ev.shiftKey ? -1 : 1
+            setFocusSkip(x => x + (go > 0 || x ? go : 0)) // we always try to go forward, and skip more, and if no enough matching items are found, we adjust "focusSkip" back
+            renewTimeout()
+            ev.preventDefault()
+            return
+        }
         setFocus(was => {
             const will = key === 'Backspace' ? was.slice(0, -1)
-                : key === 'Escape' || key === 'Tab' ? ''
+                : key === 'Escape' ? ''
                 : key.length === 1 ? was + key.toLocaleLowerCase()
                 : was
-            if (will !== was) {
-                clearTimeout(timeout.current)
-                timeout.current = setTimeout(() => setFocus(''), 5_000) as any
-            }
+            if (will !== was)
+                renewTimeout()
             return will
         })
+
+        function renewTimeout() {
+            clearTimeout(timeout.current)
+            timeout.current = setTimeout(() => setFocus(''), 5_000) as any
+        }
     })
     const focusIndex = useMemo(() => {
-        if (!focus) return -1
-        const match = (x: typeof theList[0]) => x.name.toLocaleLowerCase().normalize().startsWith(focus)
-        const inThisPage = thisPage.findIndex(match) // first attempt within this page
-        if (inThisPage >= 0)
-            return inThisPage + offset
-        const i = theList.findIndex(match) // search again on whole list
-        if (i >= 0)
-            setPage(Math.floor(i / pageSize))
-        return i
-    }, [focus])
+        if (!focus) {
+            setFocusSkip(0)
+            return -1
+        }
+        let ret = search(offset) // first attempt within this page
+        if (offset && (ret < 0 || ret > pageEnd))
+            ret = search(0) // search again on whole list
+        if (ret >= 0)
+            setPage(Math.floor(ret / pageSize))
+        return ret
+
+        function search(offset: number) {
+            let prev = offset - 1
+            let leftToSkip = focusSkip
+            while (1) {
+                const ret = _.findIndex(theList, x => x.name.toLocaleLowerCase().normalize().startsWith(focus), prev + 1)
+                if (ret < 0) {
+                    if (offset || prev < offset) // this is not our last search, or prev is not a result
+                        return -1
+                    if (focusSkip)
+                        setFocusSkip(x => x - leftToSkip - 1) // prev is a result, but let's lessen the skip
+                    console.log(prev, theList[prev]?.name, leftToSkip)
+                    return prev
+                }
+                if (! leftToSkip--)
+                    return ret
+                prev = ret
+            }
+            throw 'unreachable' // shut up ts
+        }
+    }, [focus, focusSkip])
     useEffect(() => { // wait for possible page-change before focusing
         if (focusIndex >= 0)
             (document.querySelector(`a[href="${theList[focusIndex]?.uri}"]`) as HTMLElement)?.focus()
