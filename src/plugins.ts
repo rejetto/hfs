@@ -10,7 +10,7 @@ import * as Const from './const'
 import Koa from 'koa'
 import {
     adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
-    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys
+    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
 import { defineConfig, getConfig } from './config'
@@ -114,11 +114,19 @@ export function getPluginConfigFields(id: string) {
 }
 
 async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>) {
+    const undoEvents: any[] = []
     const res = await pl.init?.({
         Const,
         require,
         getConnections,
-        events,
+        // intercept all subscriptions, so to be able to undo them on unload
+        events: Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
+            value() {
+                const ret = (events[k] as any)(...arguments)
+                undoEvents.push(ret)
+                return ret
+            }
+        }))),
         log: console.log,
         setError(msg: string) { setError(morePassedToInit?.id || 'server_code', msg) },
         getHfsConfig: getConfig,
@@ -133,6 +141,11 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
         ...morePassedToInit
     })
     Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
+    patchKey(pl, 'unload', was => () => {
+        for (const cb of undoEvents) cb()
+        if (typeof was === 'function')
+            return was(...arguments)
+    })
     events.emit('pluginInitialized', pl)
     return pl
 }

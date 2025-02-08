@@ -509,6 +509,11 @@ export function popKey(o: any, k: string) {
     return x
 }
 
+export function patchKey(o: any, k: string, replacer: (was: unknown) => unknown) {
+    o[k] = replacer(o[k])
+    return o
+}
+
 export function shortenAgent(agent: string) {
     return _.findKey(BROWSERS, re => re.test(agent))
         || /^[^/(]+ ?/.exec(agent)?.[0]

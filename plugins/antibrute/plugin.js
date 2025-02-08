@@ -16,32 +16,30 @@ const byIp = {}
 
 exports.init = api => {
     const { getOrSet, isLocalHost, HOUR } = api.misc
-    return {
-        unload: api.events.multi({
-            async attemptingLogin({ ctx }) {
-                const { ip } = ctx
-                const now = new Date
-                const rec = getOrSet(byIp, ip, () => ({ attempts: 0, next: now }))
-                const max = api.getConfig('max') * 1000
-                const delay = Math.min(max, 1000 * api.getConfig('increment') * ++rec.attempts)
-                const wait = rec.next - now
-                rec.next = new Date(+rec.next + delay)
-                if (rec.attempts > api.getConfig('blockAfter') && !isLocalHost(ctx)) {
-                    const hours = api.getConfig('blockForHours')
-                    api.addBlock({ ip, comment: "From antibrute plugin", expire: hours ? new Date(now.getTime() + hours * HOUR) : undefined })
-                }
-                clearTimeout(rec.timer)
-                if (wait > 0) {
-                    api.log('delaying', ip, 'for', Math.round(wait / 1000))
-                    ctx.set('x-anti-brute-force', wait)
-                    await new Promise(resolve => setTimeout(resolve, wait))
-                }
-                rec.timer = setTimeout(() => delete byIp[ip], 24 * HOUR) // no memory leak
-            },
-            login: ctx => {
-                if (ctx.state.account)
-                    delete byIp[ctx.ip] // reset if login was successful
+    api.events.multi({
+        async attemptingLogin({ ctx }) {
+            const { ip } = ctx
+            const now = new Date
+            const rec = getOrSet(byIp, ip, () => ({ attempts: 0, next: now }))
+            const max = api.getConfig('max') * 1000
+            const delay = Math.min(max, 1000 * api.getConfig('increment') * ++rec.attempts)
+            const wait = rec.next - now
+            rec.next = new Date(+rec.next + delay)
+            if (rec.attempts > api.getConfig('blockAfter') && !isLocalHost(ctx)) {
+                const hours = api.getConfig('blockForHours')
+                api.addBlock({ ip, comment: "From antibrute plugin", expire: hours ? new Date(now.getTime() + hours * HOUR) : undefined })
             }
+            clearTimeout(rec.timer)
+            if (wait > 0) {
+                api.log('delaying', ip, 'for', Math.round(wait / 1000))
+                ctx.set('x-anti-brute-force', wait)
+                await new Promise(resolve => setTimeout(resolve, wait))
+            }
+            rec.timer = setTimeout(() => delete byIp[ip], 24 * HOUR) // no memory leak
+        },
+        login(ctx) {
+            if (ctx.state.account)
+                delete byIp[ctx.ip] // reset if login was successful
+        }
         })
-    }
 }
