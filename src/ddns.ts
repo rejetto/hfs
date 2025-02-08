@@ -15,6 +15,7 @@ const dynamicDnsUrl = defineConfig(CFG.dynamic_dns_url, '')
 const EVENT = 'publicIpsChanged'
 let stopFetching: any
 let lastIPs: any
+let lastMap: any
 events.onListeners(EVENT, cbs => {
     stopFetching?.()
     if (!cbs?.size) return
@@ -22,7 +23,7 @@ events.onListeners(EVENT, cbs => {
         const IPs = await getPublicIps()
         if (_.isEqual(lastIPs, IPs)) return
         lastIPs = IPs
-        events.emit(EVENT, {
+        events.emit(EVENT, lastMap = {
             IPs,
             IPX: IPs[0] || '',
             IP4: _.find(IPs, isIPv4) || '',
@@ -32,15 +33,17 @@ events.onListeners(EVENT, cbs => {
 })
 
 export interface DynamicDnsResult { ts: string, error: string, url: string }
-let stopEvent: any
+let stopListening: any
 let last: DynamicDnsResult | undefined
 dynamicDnsUrl.sub(v => {
-    stopEvent?.()
+    stopListening?.()
     if (!v) return
-    stopEvent = events.on(EVENT, async map => {
-        const all: DynamicDnsResult[] = await Promise.all(v.split('\n').map(async line => {
+    stopListening = events.on(EVENT, async () => {
+        if (!lastMap) return // called at start once, before first getPublicIps. Just skip it
+        const lines = dynamicDnsUrl.get()
+        const all: DynamicDnsResult[] = await Promise.all(lines.split('\n').map(async line => {
             const [templateUrl, re] = splitAt('>', line)
-            const url = replace(templateUrl, map, '$')
+            const url = replace(templateUrl, lastMap, '$')
             const error = await httpWithBody(url, { httpThrow: false, headers: { 'User-Agent': "HFS/" + VERSION } }) // UA specified as requested by no-ip guidelines
                 .then(async res => {
                     const str = String(res.body).trim()
@@ -51,7 +54,7 @@ dynamicDnsUrl.sub(v => {
         last = _.find(all, 'error') || all[0] // the system is designed for just one result, and we give precedence to errors
         events.emit('dynamicDnsError', last)
         console.log('dynamic dns update', last?.error || 'ok')
-    })
+    }, { callNow: true })
 })
 
 export async function* get_dynamic_dns_error() {

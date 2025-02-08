@@ -8,7 +8,7 @@ export class BetterEventEmitter {
     protected listeners = new Map<string, Listeners>()
     preventDefault = Symbol()
     stop = this.preventDefault // legacy pre-0.54 (introduced in 0.53)
-    on(event: string | string[], listener: Listener, { warnAfter=10 }={}) {
+    on(event: string | string[], listener: Listener, { warnAfter=10, callNow=false }={}) {
         if (typeof event === 'string')
             event = [event]
         for (const e of event) {
@@ -20,6 +20,9 @@ export class BetterEventEmitter {
                 console.warn("Warning: many event listeners for ", e)
             this.emit(e + LISTENERS_SUFFIX, cbs)
         }
+        if (callNow)
+            try { listener() }
+            catch {}
         return () => {
             for (const e of event) {
                 const cbs = this.listeners.get(e)
