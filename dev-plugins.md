@@ -214,6 +214,7 @@ The `api` object you get as parameter of the `init` contains the following:
 - `subscribeConfig(key: string | string[], callback: (value: any) => void): Unsubscriber`
   will call `callback` with initial value and then at each change.
   Passing an array of keys, the `value` parameter becomes an object with the specified keys and respective values.
+  Will be automatically unsubscribed at plugin's unload.
 
 - `getHfsConfig(key: string): any` similar to getConfig, but retrieves HFS' config instead.
 
@@ -761,12 +762,13 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 11.3 (v0.56.0)
+- 11.4 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
     - config.type.vfs_path: folders, files
     - api.subscribeConfig supports multiple keys
     - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
+    - automatic unload of api.subscribeConfig
 - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams

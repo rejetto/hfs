@@ -474,8 +474,9 @@ function watchPlugin(id: string, path: string) {
             if (!module.startsWith(process.cwd())) //legacy pre-0.53.0, bundled plugins' storageDir was not under cwd
                 await rename(resolve(module, '..', STORAGE_FOLDER), storageDir).catch(() => {})
             await mkdir(storageDir, { recursive: true })
-            const dbs: KvStorage[] = []
-            await initPlugin(pluginData, {
+            const openDbs: KvStorage[] = []
+            const subbedConfigs: Callback[] = []
+            await initPlugin(pluginData, { // following properties are not available in server_code
                 id,
                 srcDir: __dirname,
                 storageDir,
@@ -483,7 +484,7 @@ function watchPlugin(id: string, path: string) {
                     if (!filename) throw Error("missing filename")
                     const db = new KvStorage(options)
                     await db.open(join(storageDir, filename))
-                    dbs.push(db)
+                    openDbs.push(db)
                     return db
                 },
                 log(...args: any[]) {
@@ -501,12 +502,14 @@ function watchPlugin(id: string, path: string) {
                         : this.getConfig(cfgKey)
                     let last = get()
                     cb(last)
-                    return pluginsConfig.sub(() => {
+                    const ret = pluginsConfig.sub(() => {
                         const now = get()
                         if (same(now, last)) return
                         try { cb(last = now) }
                         catch(e){ this.log(String(e)) }
                     })
+                    subbedConfigs.push(ret)
+                    return ret
                 },
                 async i18n(ctx: any) {
                     return i18nFromTranslations(await getLangData(ctx))
@@ -521,8 +524,9 @@ function watchPlugin(id: string, path: string) {
             const plugin = new Plugin(id, folder, pluginData, async () => {
                 unwatchIcons()
                 unwatch()
-                await Promise.allSettled(dbs.map(x => x.close()))
-                dbs.length = 0
+                for (const x of subbedConfigs) x()
+                await Promise.allSettled(openDbs.map(x => x.close()))
+                openDbs.length = 0
             })
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
