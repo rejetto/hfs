@@ -1,6 +1,6 @@
 exports.version = 3
 exports.description = "Introduce increasing delays between login attempts."
-exports.apiRequired = 8.8 // attemptingLogin
+exports.apiRequired = 9.6 // addBlock
 
 exports.config = {
     increment: { type: 'number', min: 1, defaultValue: 5, unit: "seconds", helperText: "How longer user must wait for each login attempt" },
@@ -15,11 +15,10 @@ exports.configDialog = {
 const byIp = {}
 
 exports.init = api => {
-    const { getOrSet, isLocalHost, HOUR } = api.require('./misc')
-    const { block } = api.require('./block')
+    const { getOrSet, isLocalHost, HOUR } = api.misc
     return {
         unload: api.events.multi({
-            attemptingLogin: async ({ ctx }) => {
+            async attemptingLogin({ ctx }) {
                 const { ip } = ctx
                 const now = new Date
                 const rec = getOrSet(byIp, ip, () => ({ attempts: 0, next: now }))
@@ -29,8 +28,7 @@ exports.init = api => {
                 rec.next = new Date(+rec.next + delay)
                 if (rec.attempts > api.getConfig('blockAfter') && !isLocalHost(ctx)) {
                     const hours = api.getConfig('blockForHours')
-                    const newRule = { ip, comment: "From antibrute plugin", expire: hours ? new Date(now.getTime() + hours * HOUR) : undefined }
-                    block.set(x => [...x, newRule])
+                    api.addBlock({ ip, comment: "From antibrute plugin", expire: hours ? new Date(now.getTime() + hours * HOUR) : undefined })
                 }
                 clearTimeout(rec.timer)
                 if (wait > 0) {
@@ -44,6 +42,6 @@ exports.init = api => {
                 if (ctx.state.account)
                     delete byIp[ctx.ip] // reset if login was successful
             }
-    })
+        })
     }
 }
