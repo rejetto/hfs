@@ -70,7 +70,10 @@ export function openAdmin() {
     for (const srv of [httpSrv, httpsSrv]) {
         const a = srv?.address()
         if (!a || typeof a === 'string') continue
-        const baseUrl = srv!.name + '://localhost:' + a.port
+        const i = listenInterface.get()
+        // open() will fail with ::1, don't know why, as my browser correctly opens the resulting url
+        const hostname = i === '::1' || i in genericInterfaceNames ? 'localhost' : i
+        const baseUrl = `${srv!.name}://${hostname}:${a.port}`
         open(baseUrl + ADMIN_URI, { wait: true}).catch(async e => {
             console.debug(String(e))
             console.warn("cannot launch browser on this machine >PLEASE< open your browser and reach one of these (you may need a different address)",
@@ -176,12 +179,14 @@ export const httpsPortCfg = defineConfig('https_port', PORT_DISABLED)
 httpsPortCfg.sub(considerHttps)
 listenInterface.sub(considerHttps)
 
+const genericInterfaceNames = {
+    '0.0.0.0': "any IPv4",
+    '::': "any IPv6",
+    '': "any network",
+}
+
 function renderHost(host: string) {
-    return xlate(host, {
-        '0.0.0.0': "any IPv4",
-        '::': "any IPv6",
-        '': "any network",
-    })
+    return xlate(host, genericInterfaceNames)
 }
 
 interface StartServer { port: number, host?:string }
