@@ -108,8 +108,10 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                         }),
                         values: lastSaved,
                         dialogProps: _.merge({ maxWidth: 'md', sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
-                            with_(row.configDialog?.maxWidth, x => x?.length === 2 ? { maxWidth: x } : x ? { sx: { maxWidth: x } } : null), // this makes maxWidth support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
-                            row.configDialog),
+                            row.configDialog,
+                            // this makes maxWidth support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
+                            with_(row.configDialog?.maxWidth, x => x?.length === 2 ? { maxWidth: x } : x ? { maxWidth: false, sx: { maxWidth: x } } : null),
+                        ),
                     })
                     if (values && !_.isEqual(lastSaved, values))
                         return save(values)
