@@ -22,7 +22,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     useEffect(() => {
         setList(list =>
-            _.sortBy(list, x => (x.started || x.error ? '0' : '1') + treatPluginName(x.id)))
+            _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : 2) + treatPluginName(x.id)))
     }, [list.length]);
     const size = 'small'
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
