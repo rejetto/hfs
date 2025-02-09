@@ -122,6 +122,14 @@ export function monitorAsDownload(ctx: Koa.Context, size?: number, offset?: numb
     })
 }
 
+declare module "koa" {
+    interface DefaultState {
+        opProgress?: number
+        opTotal?: number
+        opOffset?: number
+    }
+}
+
 export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length) {
     ctx.set('Accept-Ranges', 'bytes')
     const { range } = ctx.request.header

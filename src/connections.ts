@@ -60,7 +60,7 @@ export function getConnection(ctx: Context) {
     return ctx.state.connection
 }
 
-export function updateConnectionForCtx(ctx: Context ) {
+export function updateConnectionForCtx(ctx: Context) {
     const conn = getConnection(ctx)
     if (conn)
         updateConnection(conn, { ctx })

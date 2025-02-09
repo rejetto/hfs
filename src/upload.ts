@@ -91,7 +91,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
     const reqSize = Number(ctx.headers["content-length"])
-    if (isNaN(reqSize)) {
+    const fullSize = Math.max(reqSize, Number(ctx.query.partial) || 0)
+    if (isNaN(fullSize)) {
         if (min)
             return fail(HTTP_BAD_REQUEST, 'content-length mandatory')
     }
@@ -107,7 +108,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             const { free } = res
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
-            if (reqSize > free - (min || 0))
+            if (fullSize > free - (min || 0))
                 return fail(HTTP_PAYLOAD_TOO_LARGE)
         }
         catch(e: any) { // warn, but let it through
@@ -243,7 +244,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         function trackProgress() {
             let lastGot = 0
             let lastGotTime = 0
-            const opTotal = reqSize + resume
+            const opTotal = fullSize + resume
             Object.assign(ctx.state, { opTotal, opOffset: resume / opTotal, opProgress: 0 })
             const conn = updateConnectionForCtx(ctx)
             if (!conn) return

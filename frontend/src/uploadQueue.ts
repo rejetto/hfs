@@ -10,8 +10,8 @@ import { proxy, ref, snapshot, subscribe } from 'valtio'
 import { createElement as h } from 'react'
 import _ from 'lodash'
 import { UploadStatus } from './upload'
-import i18n from './i18n'
 import { hfsEvent, onHfsEvent } from './misc'
+import i18n from './i18n'
 const { t } = i18n
 
 export interface ToUpload { file: File, comment?: string, name?: string, to?: string, error?: string }
@@ -155,7 +155,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
             notificationChannel,
             giveBack: toUpload.file.lastModified,
-            ...partial && { partial: 'y' },
+            ...partial && { partial: fullSize - offset },
             ...offset && { resume: offset, preserveTempFile },
             ...toUpload.comment && { comment: toUpload.comment },
             ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default
