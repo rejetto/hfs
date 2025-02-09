@@ -49,7 +49,8 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             }),
             h(IconBtn, {
                 icon: AutoDelete,
-                title: `Invalidate past sessions ${prefix('(', formatTimestamp(account.invalidated || 0), ')')}`,
+                title: `Invalidate past sessions${prefix('\n(already invalidated sessions before ', formatTimestamp(account.invalidated || 0), ')')}`,
+                confirm: `Invalidate all sessions up to now for "${account.username}"?`,
                 doneMessage: true,
                 onClick: () => apiCall('invalidate_sessions', { username: account.username }).then(reload)
             }),
