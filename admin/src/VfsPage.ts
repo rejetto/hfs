@@ -5,7 +5,7 @@ import { apiCall, useApiEx } from './api'
 import { Alert, Box, Button, Card, CardContent, Grid, Link, List, ListItem, ListItemText, Typography } from '@mui/material'
 import { state, useSnapState } from './state'
 import VfsTree, { vfsNodeIcon } from './VfsTree'
-import { CFG, matches, newDialog, normalizeHost, onlyTruthy, prefix, VfsNodeAdminSend } from './misc'
+import { CFG, matches, newDialog, normalizeHost, onlyTruthy, pathEncode, prefix, VfsNodeAdminSend } from './misc'
 import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
@@ -140,7 +140,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         // calculate id and parent fields, and builds the map id2node
         function recur(node: VfsNode, pre='/', parent: VfsNode|undefined=undefined) {
             node.parent = parent
-            node.id = node.isRoot ? '/' : prefix(pre, encodeURIComponent(node.name), node.type === 'folder' ? '/' : '')
+            node.id = node.isRoot ? '/' : prefix(pre, pathEncode(node.name), node.type === 'folder' ? '/' : '')
             id2node.set(node.id, node)
             if (!node.children) return
             for (const n of node.children)

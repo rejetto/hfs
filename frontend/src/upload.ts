@@ -4,7 +4,7 @@ import { createElement as h, DragEvent, Fragment, useMemo, useState, useEffect, 
 import { Btn, Flex, FlexV, iconBtn, Select } from './components'
 import {
     basename, formatBytes, formatPerc, hIcon, useIsMobile, newDialog, selectFiles, working, copyTextToClipboard,
-    HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, cpuSpeedIndex, closeDialog, prefix, operationSuccessful,
+    HTTP_CONFLICT, formatSpeed, getHFS, onlyTruthy, cpuSpeedIndex, closeDialog, prefix, operationSuccessful, pathEncode,
 } from './misc'
 import _ from 'lodash'
 import { INTERNAL_Snapshot, ref, useSnapshot } from 'valtio'
@@ -276,7 +276,7 @@ export async function createFolder() {
         await alertDialog(h(() =>
             h(FlexV, {},
                 h('div', {}, t`Successfully created`),
-                h(LinkClosingDialog, { to: uri + encodeURIComponent(name) + '/' }, t('enter_folder', "Enter the folder")),
+                h(LinkClosingDialog, { to: uri + pathEncode(name) + '/' }, t('enter_folder', "Enter the folder")),
             )))
     }
     catch(e: any) {
