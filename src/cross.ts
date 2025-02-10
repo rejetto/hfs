@@ -103,7 +103,7 @@ export function formatBytes(n: number, { post='B', k=0, digits=NaN, sep=' ' }={}
     return nAsString + sep + (MULTIPLIERS[i]||'') + post
 } // formatBytes
 
-export function formatSpeed(n: number, options: { digits?: number }={}) {
+export function formatSpeed(n: number, options: Parameters<typeof formatBytes>[1]={}) {
     return formatBytes(n, { post: 'B/s', ...options })
 }
 

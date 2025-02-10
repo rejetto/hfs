@@ -6,7 +6,7 @@ import { API_URL, apiCall, useApi, useApiList } from './api'
 import { DataTable, DataTableProps } from './DataTable'
 import {
     CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
-    typedKeys, NBSP, _dbg, mapFilter, safeDecodeURIComponent, stringAfter, onlyTruthy, formatTimestamp
+    typedKeys, _dbg, mapFilter, safeDecodeURIComponent, stringAfter, onlyTruthy, formatTimestamp, formatSpeed
 } from '@hfs/shared'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
@@ -283,7 +283,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             {
                 field: 'notes',
                 headerName: "Notes",
-                width: 105, // https://github.com/rejetto/hfs/discussions/388
+                width: 110,
                 hideUnder: 'sm',
                 cellClassName: 'wrap',
                 renderCell: ({ value }) => value && md(value),
@@ -323,8 +323,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             const upload = row.method === 'PUT' || extra?.ul
             if (upload)
                 row.length = extra?.size
-            row.notes = extra?.dl ? "fully downloaded" // 'dl' here is not the '?dl' of the url, and has a different meaning
-                : upload ? `${partial ? "partial " : ""} upload`
+            row.notes = extra?.dl ? "full download " + (extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : '') // 'dl' here is not the '?dl' of the url, and has a different meaning
+                : upload ? `${partial ? "partial " : ""} upload ${extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : 0}`
                     : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
                         : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (row.notes || '')
         }
