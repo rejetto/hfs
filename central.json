@@ -43,5 +43,10 @@
             "ips": ["2001:4860:4802:32::a", "2001:4860:4802:34::a", "2001:4860:4802:36::a", "2001:4860:4802:38::a"],
             "name": "o-o.myaddr.l.google.com", "dnsRecord": "TXT"
         }
-    ]
+    ],
+    "byVersion": {
+        "0.56.0-rc8": {
+            "alert": "This version is buggy. Click check-for-updates and install rc7."
+        }
+    }
 }
