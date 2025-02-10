@@ -2,7 +2,7 @@
 
 import events from './events'
 import {
-    DAY, httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey, onlyTruthy
+    httpString, httpStream, unzip, AsapStream, debounceAsync, asyncGeneratorToArray, wait, popKey, onlyTruthy, HOUR
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginRunning, mapPlugins,
@@ -267,4 +267,4 @@ export const getProjectInfo = debounceAsync(
             }
             return o
         }),
-    { retain: DAY, retainFailure: 60_000 })
+    { retain: HOUR, retainFailure: 60_000 })
