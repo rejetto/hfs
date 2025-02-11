@@ -155,6 +155,8 @@ describe('basics', () => {
 
     it('folder size', reqApi('get_folder_size', { uri: 'f1/page' }, res => res.bytes === 6328 ))
     it('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
+
+    it('get_accounts', reqApi('get_accounts', {}, ({ list }) => _.find(list, { username}) && _.find(list, { username: 'admins' })))
 })
 
 describe('accounts', () => {
