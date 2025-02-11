@@ -138,7 +138,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         }
     })
     const { list, setList, error, connecting, reload } = useApiList(firstSight && 'get_log', { file }, { limit, invert, pause, map: enhanceLogLine })
-    if (file === 'ips')
+    const isIps = file === 'ips'
+    if (isIps)
         reloadIps = reload
     const tsColumn: GridColDef = {
         field: 'ts',
@@ -155,7 +156,6 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         [list, showApi, filter])
     const blockIp = useBlockIp()
     const isConsole = file === 'console'
-    const isIps = file === 'ips'
     return hidden ? null : h(DataTable, {
         persist: 'log_' + file,
         error,

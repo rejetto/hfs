@@ -208,6 +208,7 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `getConfig(key?: string): any` get plugin's config value, described in `exports.config`.
   If key is not provided, an object with all keys is returned. 
+  If it's an array/object, DON'T modify it to then use setConfig, as it won't persist. You should first clone it.  
   
 - `setConfig(key: string, value: any)` set plugin's config value.
 
@@ -303,6 +304,8 @@ The `api` object you get as parameter of the `init` contains the following:
 - `updateAccount(account: Account, changes: Partial<Account>)` apply specified changes.
 
 - `renameAccount(from: string, to: string): boolean` returns true if it succeeds.
+
+- `_` [lodash library](https://lodash.com/docs/)
 
 ## Frontend specific
 
@@ -769,6 +772,7 @@ If you want to override a text regardless of the language, use the special langu
     - api.subscribeConfig supports multiple keys
     - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
     - automatic unload of api.subscribeConfig
+    - api._
 - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams

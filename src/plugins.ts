@@ -126,6 +126,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
         notifyClient,
         addBlock,
         misc,
+        _,
         ctxBelongsTo,
         getCurrentUsername,
         getAccount, getUsernames, addAccount, delAccount, updateAccount, renameAccount,
