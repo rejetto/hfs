@@ -2,8 +2,8 @@
 
 import { defineConfig } from './config'
 import { disconnect, getConnections, normalizeIp } from './connections'
-import { makeNetMatcher, MINUTE, onlyTruthy } from './misc'
-import { Socket } from 'net'
+import { makeNetMatcher, MINUTE, netMatches, onlyTruthy } from './misc'
+import { isIP, Socket } from 'net'
 import _ from 'lodash'
 
 export interface BlockingRule { ip: string, comment?: string, expire?: Date, disabled?: boolean }
@@ -22,8 +22,12 @@ export const block = defineConfig('block', [] as BlockingRule[], rules => {
 })
 
 export function applyBlock(socket: Socket, ip=normalizeIp(socket.remoteAddress||'')) {
-    if (ip && block.compiled().find(rule => rule(ip)))
+    if (ip && isBlocked(ip))
         return disconnect(socket, 'block-ip')
+}
+
+function isBlocked(ip: string) {
+    return block.compiled().find(rule => rule(ip))
 }
 
 setInterval(() => { // twice a minute, check if any block has expired
@@ -36,9 +40,11 @@ setInterval(() => { // twice a minute, check if any block has expired
 }, MINUTE/2)
 
 export function addBlock(rule: BlockingRule, merge?: Partial<BlockingRule>) {
+    if (isIP(rule.ip) && isBlocked(rule.ip)) return // already
     block.set(was => {
         const foundIdx = merge ? _.findIndex(was, merge) : -1
         return foundIdx < 0 ? [...was, { ...merge, ...rule }]
-            : was.map((x, i) => i === foundIdx ? { ...x, ...rule, ip: `${x.ip}|${rule.ip}` } : x)
+            : netMatches(rule.ip, was[foundIdx]!.ip) ? was // in case the rule is disabled, and isBlocked returned false
+                : was.map((x, i) => i === foundIdx ? { ...x, ...rule, ip: `${x.ip}|${rule.ip}` } : x)
     })
 }
