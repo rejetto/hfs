@@ -109,7 +109,7 @@ export async function update(tagOrUrl: string='') {
     let url = tagOrUrl.includes('://') && tagOrUrl
     if (tagOrUrl === PREVIOUS_TAG)
         await rename(PREVIOUS_FN, LOCAL_UPDATE)
-    else if (tagOrUrl && !url) {
+    else if (tagOrUrl ? !url : !await localUpdateAvailable()) {
         if (/^\d/.test(tagOrUrl)) // work even if the tag is passed without the initial 'v' (useful for console commands)
             tagOrUrl = 'v' + tagOrUrl
         const update = !tagOrUrl ? (await getUpdates(true))[0]
