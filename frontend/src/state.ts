@@ -127,7 +127,7 @@ export class DirEntry implements ServerDirEntry {
         this.t = this.m || this.c
         this.name = this.isFolder ? this.n.slice(this.n.lastIndexOf('/', this.n.length - 2) + 1, -1)
             : this.n.slice(this.n.lastIndexOf('/') + 1)
-        const x = this.isFolder && !this.web  ? 'L' : 'R' // to open we need list for folders and read for files
+        const x = this.isFolder && !this.web ? 'L' : 'R' // to open we need list for folders and read for files
         this.cantOpen = this.p?.match(x) ? true : this.p?.match(x.toLowerCase()) ? DirEntry.FORBIDDEN : undefined
     }
 

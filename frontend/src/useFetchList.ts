@@ -178,19 +178,23 @@ function sort(list: DirList) {
     const byTime = sort_by === 'time'
     const byCreation = sort_by === 'creation'
     const invert = state.invert_order ? -1 : 1
-    return list.sort((a,b) =>
-        -compare(a.order||0, b.order||0)
+    return list.sort((a, b) =>
+        -compareScalar(a.order||0, b.order||0)
         || hfsEvent('sortCompare', { a, b }).find(Boolean)
-        || folders_first && -compare(a.isFolder, b.isFolder)
-        || invert * (bySize ? compare(a.s||0, b.s||0)
+        || folders_first && -compareScalar(a.isFolder, b.isFolder)
+        || invert * (bySize ? compareScalar(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
-                : byTime ? compare(a.t, b.t)
-                    : byCreation ? compare(a.c, b.c)
+                : byTime ? compareScalar(a.t, b.t)
+                    : byCreation ? compareScalar(a.c, b.c)
                         : 0
         )
         || sort_numerics && (invert * compareNumerics(a.n, b.n))
-        || invert * localCompare(a.n, b.n) // fallback to name/path
+        || invert * localCompare(nameToCompare(a), nameToCompare(b)) // fallback to name/path
     )
+
+    function nameToCompare(x: DirEntry) { // try to avoid slicing. When searching, we need to consider the path
+        return !x.isFolder ? x.n : !state.remoteSearch ? x.name : x.n.slice(0, -1)
+    }
 
     function compareNumerics(a: string, b: string) {
         const re = /\d/g
@@ -201,12 +205,11 @@ function sort(list: DirList) {
             a = a.slice(i-1)
             b = b.slice(i-1)
         }
-        return compare(parseFloat(a), parseFloat(b))
+        return compareScalar(parseFloat(a), parseFloat(b))
     }
 }
 
-// generic comparison
-function compare(a:any, b:any) {
+function compareScalar(a:any, b:any) {
     return a - b
 }
 
