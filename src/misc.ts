@@ -42,7 +42,7 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         return () => emptyMaskReturns
     mask = mask.replaceAll(' ','')
     mask = mask.replace('localhost', '::1|127.0.0.1')
-    if (!mask.includes('/'))
+    if (!mask.includes('/')) // for CIDR we use BlockList
         return makeMatcher(mask)
     const all = mask.split('|')
     const neg = all[0]?.[0] === '!'
