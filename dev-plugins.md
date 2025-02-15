@@ -202,6 +202,8 @@ Based on `type`, other properties are supported:
     - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
       and the resulting value will be array of strings, instead of a string. Default is false.
 
+FieldDescriptor can, instead of an object, be a string, but that won't count as an actual field, but will just be displayed as HTML.
+
 ## api object
 
 The `api` object you get as parameter of the `init` contains the following:
@@ -765,7 +767,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 11.4 (v0.56.0)
+- 11.5 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
     - config.type.vfs_path: folders, files
@@ -773,6 +775,7 @@ If you want to override a text regardless of the language, use the special langu
     - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
     - automatic unload of api.subscribeConfig
     - api._
+    - config as html-string
 - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams

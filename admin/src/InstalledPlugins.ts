@@ -7,7 +7,7 @@ import { DataTable, DataTableColumn } from './DataTable'
 import {
     Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
-import { CFG, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
+import { CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { Account } from './AccountsPage'
@@ -170,7 +170,7 @@ export function renderName({ row, value }: any) {
 function makeFields(config: any, values: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
         if (!_.isPlainObject(o))
-            return o
+            return typeof o === 'string' ? h(Html, {}, o) : o
         let { type, defaultValue, fields, frontend, helperText, showIf, ...rest } = o
         try {
             if (typeof showIf === 'string') // compile once
