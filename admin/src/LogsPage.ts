@@ -320,8 +320,11 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             setShowAgent(true)
         if (row.uri) {
             const partial = stringAfter('?', row.uri).includes('partial=')
+            const upload = row.method === 'PUT' || extra?.ul
+            if (upload)
+                row.length = extra?.size
             row.notes = extra?.dl ? "fully downloaded" // 'dl' here is not the '?dl' of the url, and has a different meaning
-                : (row.method === 'PUT' || extra?.ul) ? "uploaded " + (partial ? "up to " : "") + formatBytes(extra?.size, { sep: NBSP })
+                : upload ? `${partial ? "partial " : ""} upload`
                     : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
                         : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (row.notes || '')
         }
