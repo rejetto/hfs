@@ -83,11 +83,7 @@ function parseAddress(s: string) {
 }
 
 export function same(a: any, b: any) {
-    try {
-        assert.deepStrictEqual(a, b)
-        return true
-    }
-    catch { return false }
+    return _.isEqual(a, b)
 }
 
 export function asyncGeneratorToReadable<T>(generator: AsyncIterable<T>) {
