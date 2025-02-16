@@ -169,8 +169,6 @@ export function renderName({ row, value }: any) {
 
 function makeFields(config: any, values: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
-        if (!_.isPlainObject(o))
-            return typeof o === 'string' ? h(Html, {}, o) : o
         let { type, defaultValue, fields, frontend, helperText, showIf, ...rest } = o
         try {
             if (typeof showIf === 'string') // compile once
@@ -203,6 +201,7 @@ const type2comp = {
     vfs_path: VfsPathField,
     username: UsernameField,
     color: ColorField,
+    showHtml: ({ html }: any) => h(Html, {}, String(html)),
 }
 
 export async function startPlugin(id: string) {

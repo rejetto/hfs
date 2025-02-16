@@ -201,8 +201,8 @@ Based on `type`, other properties are supported:
     - `groups: undefined | boolean` true if you want only groups, false if you want only users. Default is undefined.
     - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
       and the resulting value will be array of strings, instead of a string. Default is false.
-
-FieldDescriptor can, instead of an object, be a string, but that won't count as an actual field, but will just be displayed as HTML.
+- `showHtml`
+    - `html: string` HTML code to display.
 
 ## api object
 
@@ -767,7 +767,7 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 11.5 (v0.56.0)
+- 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
     - config.type.vfs_path: folders, files
@@ -775,7 +775,7 @@ If you want to override a text regardless of the language, use the special langu
     - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
     - automatic unload of api.subscribeConfig
     - api._
-    - config as html-string
+    - config.type=showHtml
 - 10.3 (v0.55.0)
     - HFS.copyTextToClipboard
     - HFS.urlParams
