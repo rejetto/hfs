@@ -189,12 +189,8 @@ function sort(list: DirList) {
                         : 0
         )
         || sort_numerics && (invert * compareNumerics(a.n, b.n))
-        || invert * localCompare(nameToCompare(a), nameToCompare(b)) // fallback to name/path
+        || invert * localCompare(a.n, b.n) // fallback to name/path
     )
-
-    function nameToCompare(x: DirEntry) { // try to avoid slicing. When searching, we need to consider the path
-        return !x.isFolder ? x.n : !state.remoteSearch ? x.name : x.n.slice(0, -1)
-    }
 
     function compareNumerics(a: string, b: string) {
         const re = /\d/g

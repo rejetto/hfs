@@ -288,7 +288,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerName = n.slice(0, -name.length - (isFolder ? 1 : 0)).replaceAll('/', '/ ')
+    const containerName = n.slice(0, -name.length).replaceAll('/', '/ ')
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
@@ -303,7 +303,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     return h(CustomCode, {
         name: 'entry',
         entry,
-        render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null
+        render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null // custom-code wants us to skip this entry
     }, showFilter && h(Checkbox, {
             disabled: !entry.canSelect(),
             'aria-labelledby': ariaId,

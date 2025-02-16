@@ -115,18 +115,19 @@ export class DirEntry implements ServerDirEntry {
 
     constructor(n: string, rest?: any) {
         Object.assign(this, rest) // we actually allow any custom property to be memorized
-        this.n = n // must do it after rest to avoid overwriting
-        this.uri = rest?.url || ((n[0] === '/' ? '' : location.pathname) + pathEncode(this.n))
-        this.isFolder = this.n.endsWith('/')
+        this.isFolder = n.endsWith('/')
+        if (this.isFolder)
+            n = n.slice(0, -1)
+        this.n = n // must do it after 'rest' to avoid overwriting
+        this.uri = rest?.url || ((n[0] === '/' ? '' : location.pathname) + pathEncode(n) + (this.isFolder ? '/' : ''))
         if (!this.isFolder) {
-            const i = this.n.lastIndexOf('.') + 1
-            this.ext = i ? this.n.substring(i).toLowerCase() : ''
+            const i = n.lastIndexOf('.') + 1
+            this.ext = i ? n.substring(i).toLowerCase() : ''
         }
         this.c &&= new Date(this.c)
         this.m &&= new Date(this.m)
         this.t = this.m || this.c
-        this.name = this.isFolder ? this.n.slice(this.n.lastIndexOf('/', this.n.length - 2) + 1, -1)
-            : this.n.slice(this.n.lastIndexOf('/') + 1)
+        this.name = n.slice(n.lastIndexOf('/') + 1)
         const x = this.isFolder && !this.web ? 'L' : 'R' // to open we need list for folders and read for files
         this.cantOpen = this.p?.match(x) ? true : this.p?.match(x.toLowerCase()) ? DirEntry.FORBIDDEN : undefined
     }

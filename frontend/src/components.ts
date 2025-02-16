@@ -76,6 +76,7 @@ export function Select<T extends string>({ onChange, value, options, ...props }:
     }, options.map(({ value, label }) => h('option', { key: value, value }, label)))
 }
 
+// @param render always gets a truthy, even with empty children will get empty array, unless the custom-code is requiring to cancel the whole entry
 export function CustomCode({ name, children, render, ...props }: {
     name: string,
     children?: ReactNode,
