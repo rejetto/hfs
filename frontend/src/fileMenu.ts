@@ -76,7 +76,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
         { id: 'name', label: t`Name`, value: entry.name },
         typeof s === 'number' && { id: 'size', label: t`Size`,
             value: h(Fragment, {}, formatBytes(s), h('small', {}, prefix(' (', s > getHFS().kb && s.toLocaleString(), ')')) ) },
-        entry.t && { id: 'timestamp', label: t`Timestamp`, value: entry.t.toLocaleString() },
+        entry.m && { id: 'timestamp', label: t`Timestamp`, value: entry.m.toLocaleString() },
         entry.c && { id: 'creation', label: t`Creation`, value: entry.c.toLocaleString() },
         folder && {
             id: 'folder',

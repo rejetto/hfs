@@ -359,7 +359,7 @@ export function getEntryIcon(entry: DirEntry) {
 
 export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
     const { sort_by } = useSnapState()
-    const time = sort_by === 'creation' ? entry.c : entry.t
+    const time = sort_by === 'creation' ? entry.c : entry.m
     const today = time && time > midnight
     const shortTs = useWindowSize().width < 800
     const {t} = useI18N()

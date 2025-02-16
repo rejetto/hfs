@@ -184,7 +184,7 @@ function sort(list: DirList) {
         || folders_first && -compareScalar(a.isFolder, b.isFolder)
         || invert * (bySize ? compareScalar(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
-                : byTime ? compareScalar(a.t, b.t)
+                : byTime ? compareScalar(a.m, b.m)
                     : byCreation ? compareScalar(a.c, b.c)
                         : 0
         )

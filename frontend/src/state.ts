@@ -109,7 +109,6 @@ export class DirEntry implements ServerDirEntry {
     public readonly uri: string
     public readonly ext: string = ''
     public readonly isFolder: boolean
-    public readonly t?: Date
     public readonly cantOpen?: true | typeof DirEntry.FORBIDDEN
     public readonly key?: string
 
@@ -125,8 +124,7 @@ export class DirEntry implements ServerDirEntry {
             this.ext = i ? n.substring(i).toLowerCase() : ''
         }
         this.c &&= new Date(this.c)
-        this.m &&= new Date(this.m)
-        this.t = this.m || this.c
+        this.m = this.m ? new Date(this.m) : this.c
         this.name = n.slice(n.lastIndexOf('/') + 1)
         const x = this.isFolder && !this.web ? 'L' : 'R' // to open we need list for folders and read for files
         this.cantOpen = this.p?.match(x) ? true : this.p?.match(x.toLowerCase()) ? DirEntry.FORBIDDEN : undefined

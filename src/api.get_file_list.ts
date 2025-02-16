@@ -96,12 +96,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 --offset
                 continue
             }
-            if (c === 'no') { // allow excluding c for smaller payload
-                if (!entry.m)
-                    entry.m = entry.c
-                if (entry.c)
-                    entry.c = undefined
-            }
+            if (c === 'no' && entry.c) // allow excluding c for smaller payload
+                entry.c = undefined
             yield entry
             if (limit && !--limit)
                 break
