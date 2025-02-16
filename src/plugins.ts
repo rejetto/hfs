@@ -115,6 +115,7 @@ export function getPluginConfigFields(id: string) {
 
 async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>) {
     const undoEvents: any[] = []
+    const timeouts: NodeJS.Timer[] = []
     const res = await pl.init?.({
         Const,
         require,
@@ -130,6 +131,16 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
         log: console.log,
         setError(msg: string) { setError(morePassedToInit?.id || 'server_code', msg) },
         getHfsConfig: getConfig,
+        setInterval() { // @ts-ignore
+            const ret = setInterval(...arguments)
+            timeouts.push(ret) // intervals can be canceled by clearTimeout (source: MDN)
+            return ret
+        },
+        setTimeout() { // @ts-ignore
+            const ret = setTimeout(...arguments)
+            timeouts.push(ret)
+            return ret
+        },
         customApiCall,
         notifyClient,
         addBlock,
@@ -142,6 +153,7 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
     })
     Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
     patchKey(pl, 'unload', was => () => {
+        for (const x of timeouts) clearTimeout(x)
         for (const cb of undoEvents) cb()
         if (typeof was === 'function')
             return was(...arguments)
