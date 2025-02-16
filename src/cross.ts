@@ -465,8 +465,10 @@ export function makeMatcher(mask: string, emptyMaskReturns=false) {
         : () => emptyMaskReturns
 }
 
+// this is caching all matchers, so don't use it with frequently changing masks. Benchmarks revealed that _.memoize make it slower than not using it, while this simple cache can speed up to 30x
 export function matches(s: string, mask: string, emptyMaskReturns=false) {
-    return makeMatcher(mask, emptyMaskReturns)(s)
+    const cache = (matches as any).cache ||= {}
+    return (cache[mask + (emptyMaskReturns ? '1' : '0')] ||= makeMatcher(mask, emptyMaskReturns))(s)
 }
 
 // if delimiter is specified, it is prefixed to symbols. If it contains a space, the part after the space is considered as suffix.

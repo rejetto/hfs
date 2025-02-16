@@ -33,9 +33,10 @@ export function isLocalHost(c: Connection | Koa.Context | string) {
     return ip && isIpLocalHost(ip)
 }
 
-// this will memory-leak over mask, so be careful with what you use this
+// this will memory-leak over mask, so be careful with what you use this. Object is 3x faster than _.memoize
 export function netMatches(ip: string, mask: string, emptyMaskReturns=false) {
-    return _.memoize(makeNetMatcher, (a,b) => `${a}\t${b ? 1 : 0}`)(mask, emptyMaskReturns)(ip) // cache the matcher
+    const cache = (netMatches as any).cache ||= {}
+    return (cache[mask + (emptyMaskReturns ? '1' : '0')] ||= makeNetMatcher(mask, emptyMaskReturns))(ip) // cache the matcher
 }
 export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
     if (!mask)
