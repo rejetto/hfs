@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { getOrSet, HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
+import { HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
@@ -46,7 +46,7 @@ export function expandUsername(who: string): string[] {
 
 // check if current username or any ancestor match the provided usernames
 export function ctxBelongsTo(ctx: Koa.Context, usernames: string[]) {
-    return getOrSet(ctx.state, 'usernames', () => expandUsername(getCurrentUsername(ctx))) // cache ancestors' usernames inside context state
+    return (ctx.state.usernames ||= expandUsername(getCurrentUsername(ctx))) // cache ancestors' usernames inside context state
         .some((u: string) => usernames.includes(u))
 }
 

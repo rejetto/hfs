@@ -15,12 +15,12 @@ exports.configDialog = {
 const byIp = {}
 
 exports.init = api => {
-    const { getOrSet, isLocalHost, HOUR } = api.misc
+    const { isLocalHost, HOUR } = api.misc
     api.events.multi({
         async attemptingLogin({ ctx }) {
             const { ip } = ctx
             const now = new Date
-            const rec = getOrSet(byIp, ip, () => ({ attempts: 0, next: now }))
+            const rec = byIp[ip] ||= { attempts: 0, next: now }
             const max = api.getConfig('max') * 1000
             const delay = Math.min(max, 1000 * api.getConfig('increment') * ++rec.attempts)
             const wait = rec.next - now

@@ -9,7 +9,7 @@ import {
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
+    adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, objSameKeys, onlyTruthy,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
@@ -594,7 +594,7 @@ function deleteModule(id: string) {
     for (const k in cache)
         if (k !== id)
             for (const child of wantArray(cache[k]?.children))
-                getOrSet(requiredBy, child.id, ()=> [] as string[]).push(k)
+                (requiredBy[child.id] ||= []).push(k)
     const deleted: string[] = []
     ;(function deleteCache(id: string) {
         const mod = cache[id]

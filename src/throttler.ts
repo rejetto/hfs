@@ -4,7 +4,7 @@ import { Readable } from 'stream'
 import Koa from 'koa'
 import { ThrottledStream, ThrottleGroup } from './ThrottledStream'
 import { defineConfig } from './config'
-import { getOrSet, isLocalHost } from './misc'
+import { isLocalHost } from './misc'
 import { Connection, getConnection, updateConnection } from './connections'
 import _ from 'lodash'
 import events from './events'
@@ -40,10 +40,10 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
         return
     // we wrap the stream also for unlimited connections to get speed and other features
     const noLimit = ctx.state.account?.ignore_limits || isLocalHost(ctx)
-    const ipGroup = getOrSet(ip2group, noLimit ? '' : ctx.ip, () => ({
+    const ipGroup = ip2group[noLimit ? '' : ctx.ip] ||= {
         count:0,
         group: new ThrottleGroup(noLimit ? Infinity : maxKbpsPerIp.get(), noLimit ? undefined : mainThrottleGroup),
-    }))
+    }
     const conn = getConnection(ctx)
     if (!conn) throw 'assert throttler connection'
 
