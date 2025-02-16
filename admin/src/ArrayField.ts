@@ -25,8 +25,8 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
     setApi?.({ isEqual: isOrderedEqual }) // don't rely on stringify, as it wouldn't work with non-json values
     const [undo, setUndo] = useState<typeof value>()
     return h(Fragment, {},
-        h(Flex, {},
-            label && h(FormLabel, { sx: { ml: 1 } }, label),
+        h(Flex, { rowGap: 0, flexWrap: 'wrap' },
+            label && h(FormLabel, { sx: { ml: .5 } }, label),
             helperText && h(FormHelperText, {}, helperText),
         ),
         h(Box, { ...rest },

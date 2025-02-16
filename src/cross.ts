@@ -466,7 +466,7 @@ export function makeMatcher(mask: string, emptyMaskReturns=false) {
 }
 
 export function matches(s: string, mask: string, emptyMaskReturns=false) {
-    return makeMatcher(mask, emptyMaskReturns)(s) // adding () will allow us to use the pipe at root level
+    return makeMatcher(mask, emptyMaskReturns)(s)
 }
 
 // if delimiter is specified, it is prefixed to symbols. If it contains a space, the part after the space is considered as suffix.
