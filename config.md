@@ -124,6 +124,7 @@ Configuration can be done in several ways
 - `allow_session_ip_change` should requests of the same login session be allowed from different IP addresses. Default is false, to prevent cookie stealing. You can set it `true` to always allow it, or `https` to allow only on https, where stealing the cookie is harder. No UI.   
 - `authorization_header` support Authentication HTTP header. Default is true. No UI.
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.
+- `disable_custom_html` disable the content of `custom_html`. Default is false.
 - `create-admin` special entry to quickly create an admin account. The value will be set as password. As soon as the account is created, this entry is removed. 
 
 #### Virtual File System (VFS)

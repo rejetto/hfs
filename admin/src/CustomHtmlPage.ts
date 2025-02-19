@@ -4,14 +4,16 @@ import { createElement as h, Fragment, useEffect, useMemo, useState } from 'reac
 import { Field, SelectField } from '@hfs/mui-grid-form'
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { Dict, HTTP_MESSAGES, isCtrlKey, prefix, md, isNumeric } from './misc';
-import { IconBtn, reloadBtn, wikiLink } from './mui';
+import { Dict, HTTP_MESSAGES, isCtrlKey, prefix, md, isNumeric, CFG } from './misc'
+import { hTooltip, IconBtn, reloadBtn, wikiLink } from './mui'
 import { Save } from '@mui/icons-material'
 import _ from 'lodash'
 import { useDebounce } from 'usehooks-ts'
 import { TextEditor } from './TextEditor';
 import { state, useSnapState } from './state'
 import { PageProps } from './App'
+import { switchBtn } from './VerticalSwitch';
+import { adminApis } from '../../src/adminApis'
 
 const names: any = {
     top: "Top of HTML Body",
@@ -19,11 +21,15 @@ const names: any = {
 }
 
 export default function CustomHtmlPage({ setTitleSide }: PageProps) {
-    const { data, reload } = useApiEx<{ sections: Dict<string> }>('get_custom_html')
+    const { data, reload } = useApiEx<typeof adminApis.get_custom_html>('get_custom_html')
     const { customHtmlSection: section } = useSnapState()
     const [all, setAll] = useState<Dict<string>>({})
     const [saved, setSaved] = useState({})
-    useEffect(() => data && setSaved(data?.sections), [data])
+    useEffect(() => {
+        if (!data) return
+        setSaved(data.sections)
+        setEnabled(data.enabled)
+    }, [data])
     useEffect(() => setAll(saved), [saved])
     const options = useMemo(() => {
         const keys = _.sortBy(Object.keys(all), isNumeric) // http codes at the bottom
@@ -36,6 +42,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
     }, [useDebounce(all, 500)])
     const anyChange = useMemo(() => !_.isEqualWith(saved, all, (a,b) => !a && !b || undefined),
         [saved, all])
+    const [enabled, setEnabled] = useState<boolean>()
     setTitleSide(useMemo(() => h(Box, { sx: { display: { xs: 'none', md: 'block' }  } },
         h(Alert, { severity: 'info' },
             md("Add HTML code to some parts of the Front-end. It's saved to file `custom.html`, that you can edit directly with your editor of choice. "),
@@ -58,6 +65,10 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
                 modified: anyChange,
                 onClick: save,
             }),
+            hTooltip("Enable / Disable", undefined, switchBtn(enabled, async v => {
+                await apiCall('set_config', { values: { [CFG.disable_custom_html]: !v } })
+                setEnabled(v)
+            })),
         ),
         h(TextEditor, {
             lang: section === 'style' ? 'css' : section === 'script' ? 'js' : 'html',

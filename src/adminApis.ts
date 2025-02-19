@@ -22,7 +22,7 @@ import Koa from 'koa'
 import { cloudflareDetected, getProxyDetected } from './middlewares'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { customHtmlSections, customHtml, saveCustomHtml } from './customHtml'
+import { customHtmlSections, customHtml, saveCustomHtml, disableCustomHtml } from './customHtml'
 import _ from 'lodash'
 import {
     autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateSupported, previousAvailable
@@ -106,6 +106,7 @@ export const adminApis = {
 
     get_custom_html() {
         return {
+            enabled: !disableCustomHtml.get(),
             sections: Object.fromEntries([
                 ...customHtmlSections.concat(getErrorSections()).map(k => [k,'']), // be sure to output all sections
                 ...customHtml.sections // override entries above
