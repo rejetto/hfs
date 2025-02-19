@@ -1,6 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
+import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react'
+import httpCodes from './httpCodes'
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, apiCall, useApi, useApiList } from './api'
 import { DataTable, DataTableProps } from './DataTable'
@@ -263,6 +264,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 type: 'number',
                 width: 70,
                 hideUnder: 'xl',
+                renderCell: ({ value }) => hTooltip(prefix(value + ' - ', httpCodes[value]) || "Unknown", undefined,
+                    h(Box, { bgcolor: '#888a', color: '#fff', borderRadius: '.3em', p: '.05em .2em' }, value))
             },
             {
                 field: 'length',
