@@ -249,7 +249,7 @@ interface WhoFieldProps extends FieldProps<Who | undefined> {
 function WhoField({ value, onChange, parent, inherit, accounts, helperText, otherPerms, byMasks,
         hideValues, isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = who2desc(byMasks ?? inherit)
-        + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "inherited" : "default", ')')
+        + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "as parent folder" : "default", ')')
     const objectMode = isWhoObject(value)
     const thisValue = objectMode ? value.this : value
 
