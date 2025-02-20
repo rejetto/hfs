@@ -143,6 +143,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             node.id = node.isRoot ? '/' : prefix(pre, pathEncode(node.name), node.type === 'folder' ? '/' : '')
             id2node.set(node.id, node)
             if (!node.children) return
+            node.children = _.sortBy(node.children, ['type', x => x.name?.toLocaleLowerCase()])
             for (const n of node.children)
                 recur(n, node.id, node)
         }
