@@ -38,7 +38,7 @@ export function useApiEx<T=any>(...args: Parameters<typeof useApi>) {
     }
 }
 
-export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause, limit }: { limit?: number, pause?: boolean, invert?: boolean, map?: (rec: S) => T }={}) {
+export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map, invert, pause, limit }: { limit?: number, pause?: boolean, invert?: boolean, map?: (rec: S) => unknown }={}) {
     const [list, setList] = useStateMounted<T[]>([])
     const [props, setProps] = useStateMounted<any>(undefined)
     const [error, setError] = useStateMounted<any>(undefined)

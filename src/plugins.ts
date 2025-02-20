@@ -239,10 +239,12 @@ type OnDirEntry = (params:OnDirEntryParams) => void | false
 export class Plugin implements CommonPluginInterface {
     started: Date | null = new Date()
     icons: CustomizedIcons
+    log: { ts: Date, msg: string }[]
 
     constructor(readonly id:string, readonly folder:string, private readonly data:any, private onUnload:()=>unknown){
         if (!data) throw 'invalid data'
 
+        this.log = []
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
         // some validation
         for (const k of ['frontend_css', 'frontend_js']) {
@@ -503,6 +505,7 @@ function watchPlugin(id: string, path: string) {
             await mkdir(storageDir, { recursive: true })
             const openDbs: KvStorage[] = []
             const subbedConfigs: Callback[] = []
+            const pluginReady = pendingPromise()
             await initPlugin(pluginData, { // following properties are not available in server_code
                 id,
                 srcDir: __dirname,
@@ -516,6 +519,12 @@ function watchPlugin(id: string, path: string) {
                 },
                 log(...args: any[]) {
                     console.log('plugin', id+':', ...args)
+                    pluginReady.then(() => { // log() maybe invoked during init(), while plugin is undefined
+                        if (!plugin) return
+                        plugin.log.unshift({ ts: new Date, msg: args.map(x => x && typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ') })
+                        plugin.log.length = Math.min(100, plugin.log.length) // truncate
+                        events.emit('pluginLog:' + id, plugin.log[0])
+                    })
                 },
                 getConfig(cfgKey?: string) {
                     const cur = pluginsConfig.get()?.[id]
@@ -555,6 +564,7 @@ function watchPlugin(id: string, path: string) {
                 await Promise.allSettled(openDbs.map(x => x.close()))
                 openDbs.length = 0
             })
+            pluginReady.resolve()
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {

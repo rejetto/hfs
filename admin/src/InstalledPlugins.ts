@@ -2,12 +2,14 @@
 
 import { apiCall, useApiEx, useApiList } from './api'
 import { createElement as h, Fragment, useEffect } from 'react'
-import { Box, Link } from '@mui/material'
+import { Box, Breakpoint, Link, Paper, useTheme } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
-    Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade
+    Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
-import { CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
+import {
+    CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact
+} from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { Account } from './AccountsPage'
@@ -15,7 +17,7 @@ import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectFiel
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
-import { Btn, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
+import { Btn, Flex, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
 import VfsPathField from './VfsPathField'
 
 export default function InstalledPlugins({ updates }: { updates?: true }) {
@@ -28,6 +30,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
         onClick: () => apiCall('set_config', { values: { [CFG.suspend_plugins]: !pause } })
     })
+    const theme = useTheme()
     return h(DataTable, {
         error: xlate(error, PLUGIN_ERRORS),
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
@@ -90,28 +93,66 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 onClick: () => startPlugin(id),
             }),
             h(IconBtn, {
-                icon: Settings,
-                title: "Options",
+                icon: row.config || !row.started ? Settings : ListAlt,
+                title: row.config ? "Options" : "Log",
                 size,
-                disabled: !row.started && "Start plugin to access options"
-                    || !row.config && "No options available for this plugin",
+                disabled: !row.started && "Start plugin to access options",
                 async onClick() {
                     const { config: lastSaved } = await apiCall('get_plugin', { id })
+                    // support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
+                    let maxWidth = with_(row.configDialog, x => theme.breakpoints.values[x?.maxWidth as Breakpoint] || x?.sx?.maxWidth || xlate(x?.maxWidth, { xs: 0 }) || 432)
+                    if (typeof maxWidth === 'number')  // @ts-ignore
+                        maxWidth += 'px'
+                    const showOptions = Boolean(row.config)
                     const values = await formDialog({
-                        title: `Options for ${id}`,
+                        title: showOptions ? `Options for ${id}` : `Log for ${id}`,
                         form: values => ({
-                            before: h(Box, { mx: 2, mb: 3 }, row.description),
-                            fields: makeFields(row.config, values),
-                            save: { children: "Save and close" },
+                            before: row.description && h(Box, { mx: 2, mb: 2 }, row.description),
+                            fields: makeFields(row.config || {}, values),
+                            save: showOptions ? { children: "Save and close" } : false,
                             barSx: { gap: 1 },
                             addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
                         }),
                         values: lastSaved,
                         dialogProps: _.merge({ maxWidth: 'md', sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
                             row.configDialog,
-                            // this makes maxWidth support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
-                            with_(row.configDialog?.maxWidth, x => x?.length === 2 ? { maxWidth: x } : x ? { maxWidth: false, sx: { maxWidth: x } } : null),
+                            { maxWidth: false,  sx: { maxWidth: null } }, // cancel maxWidth to move it to the Box below
                         ),
+                        Wrapper({ children }: any) {
+                            const { list } = useApiList('get_plugin_log', { id }, {
+                                invert: true,
+                                map(x) { x.ts = new Date(x.ts) }
+                            })
+                            let lastDate: any
+                            return h(Flex, { alignItems: 'stretch', justifyContent: 'center', flexWrap: 'wrap', flexDirection: showOptions ? undefined : 'column' },
+                                h(Box, { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ }, children),
+                                list.length > 0 ? h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
+                                    h(Box, { my: .5, pb: .5, borderBottom: '1px solid' }, "Output (last on top)"),
+                                    h(Box, { position: 'absolute', bottom: 0, top: '1.8em', left: 0, right: 0, sx: { overflowY: 'auto' } },
+                                        h(Box, {
+                                            sx: {
+                                                textIndent: '-1em', pl: '1em',
+                                                position: 'absolute', width: 'calc(100% - 1.2em)', ml: '2px', pt: '.2em',
+                                            }
+                                        }, list.map(x => {
+                                            formatDate(x.ts)
+                                                const thisDate = formatDate(x.ts)
+                                                return h(Fragment, { key: x.id },
+                                                    thisDate !== lastDate && (lastDate = thisDate),
+                                                    h(Box, {},
+                                                        h(Box, { title: thisDate, display: 'inline', color: 'text.secondary', mr: 1 }, formatTime(x.ts)),
+                                                        replaceStringToReact(x.msg, /https?:\/\/\S+/, m => h(Link, {
+                                                            href: m[0],
+                                                            target: '_blank'
+                                                        }, m[0])) // make links clickable
+                                                    )
+                                                )
+                                            }
+                                        ))
+                                    )
+                                ) : showOptions ? null : h(Box, { p: '1em', pt: 0 }, "Log is empty")
+                            )
+                        }
                     })
                     if (values && !_.isEqual(lastSaved, values))
                         return save(values)

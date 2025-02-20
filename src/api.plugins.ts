@@ -170,6 +170,16 @@ const apis: ApiHandlers = {
         return {}
     },
 
+    get_plugin_log({ id }, ctx) {
+        const p = getPluginInfo(id)
+        if (!p)
+            return new ApiError(HTTP_NOT_FOUND)
+        const list = new SendListReadable({ addAtStart: p.log })
+        return list.events(ctx, {
+            ['pluginLog:' + id]: x => list.add(x)
+        })
+    },
+
 }
 
 export default apis
