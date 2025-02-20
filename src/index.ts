@@ -67,6 +67,9 @@ process.on('uncaughtException', (err: any) => {
     if (err.syscall !== 'watch' && err.code !== 'ECONNRESET')
         console.error("uncaught:", err)
 })
+// this warning is scaring users, and has been removed in node 20.12.0 https://github.com/nodejs/node/pull/51204
+const original = process.emitWarning
+process.emitWarning = warn => String(warn).startsWith('An error event has already been emitted') || original.call(process, warn)
 
 defineConfig('proxies', 0).sub(n => {
     app.proxy = n > 0
