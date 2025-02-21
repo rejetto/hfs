@@ -590,6 +590,7 @@ This section is still partially documented, and you may need to have a look at t
 - `newSocket`
   - parameters: { socket,ip }
   - preventable
+  - return: you can return a string with a message that will be logged, and it will also cause disconnection
 - `getList` called when get=list on legit requests to ?get=list
     - parameters: { node, ctx }
     - async supported

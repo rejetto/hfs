@@ -4,6 +4,7 @@ import { Socket } from 'net'
 import events from './events'
 import { Context } from 'koa'
 import { ip2country } from './geo'
+import _ from 'lodash'
 
 export class Connection {
     readonly started = new Date()
@@ -42,8 +43,10 @@ const all: Connection[] = []
 
 export function newConnection(socket: Socket) {
     const ip = normalizeIp(socket.remoteAddress || '')
-    if (events.emit('newSocket', { socket, ip })?.isDefaultPrevented())
-        return socket.destroy()
+    const res = events.emit('newSocket', { socket, ip })
+    const msg = res?.isDefaultPrevented() ? 'plugin (newSocket)' : res?.find(_.isString)
+    if (msg)
+        return disconnect(socket, msg)
     new Connection(socket)
 }
 

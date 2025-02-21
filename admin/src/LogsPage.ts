@@ -4,7 +4,7 @@ import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState }
 import httpCodes from './httpCodes'
 import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, apiCall, useApi, useApiList } from './api'
-import { DataTable, DataTableProps } from './DataTable'
+import { DataTable, DataTableColumn, DataTableProps } from './DataTable'
 import {
     CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
     typedKeys, _dbg, mapFilter, safeDecodeURIComponent, stringAfter, onlyTruthy, formatTimestamp, formatSpeed
@@ -13,7 +13,6 @@ import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
     hTooltip, Btn, wikiLink
 } from './mui';
-import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
 import { AutoDelete, LinkOff, ClearAll, Delete, Download, Settings, SmartToy, Terminal } from '@mui/icons-material'
 import { ConfigForm } from './ConfigForm'
@@ -143,13 +142,25 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const isIps = file === 'ips'
     if (isIps)
         reloadIps = reload
-    const tsColumn: GridColDef = {
+    const tsColumn: DataTableColumn = {
         field: 'ts',
         headerName: "Timestamp",
         type: 'dateTime',
         width: 96,
         valueGetter: ({ value }) => new Date(value as string),
         renderCell: ({ value }) => h(Fragment, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
+    }
+    const ipColumn: DataTableColumn = {
+        field: 'ip',
+        headerName: "Address",
+        flex: .6,
+        minWidth: 130,
+        maxWidth: 230,
+        mergeRender: {
+            user: { display: 'flex', justifyContent: 'space-between', gap: '.5em', },
+            country: showCountry && {},
+            ua: {},
+        },
     }
     const rows = useMemo(() =>
         filter ? list.filter(filter)
@@ -209,34 +220,26 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 flex: 1,
                 mergeRender: { k: { override: { valueFormatter: ({ value }) => value !== 'log' && value } } }
             }
-        ] : file === 'ips' || file === 'disconnections' ? [
+        ] : isIps || file === 'disconnections' ? [
             tsColumn,
-            {
-                field: 'ip',
-                headerName: "Address",
-                flex: 1,
-            },
+            ipColumn,
             {
                 headerName: "Country",
                 field: 'country',
                 flex: 1,
                 hidden: !showCountry,
+                hideUnder: 'md',
                 valueGetter: ({ value }) => _.find(COUNTRIES, { code: value })?.name || value,
                 renderCell: ({ row }) => h(Country, { code: row.country, long: true, def: '-' }),
+            },
+            {
+                hidden: isIps,
+                field: 'msg',
+                headerName: "Message",
+                flex: 4,
             }
         ] : [
-            {
-                field: 'ip',
-                headerName: "Address",
-                flex: .6,
-                minWidth: 130,
-                maxWidth: 230,
-                mergeRender: {
-                    user: { display: 'flex', justifyContent: 'space-between', gap: '.5em', },
-                    country: showCountry && {},
-                    ua: {},
-                },
-            },
+            ipColumn,
             {
                 headerName: "Country",
                 field: 'country',
