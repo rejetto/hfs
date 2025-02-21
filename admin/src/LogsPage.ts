@@ -23,8 +23,8 @@ import { BlockIpBtn } from './blockIp';
 import { ALL as COUNTRIES } from './countries'
 
 const logLabels = {
-    log: "Access",
-    error_log: "Access error",
+    log: "Served",
+    error_log: "Not served",
     console: "Console",
     ips: "IP's",
 }
@@ -34,7 +34,7 @@ let reloadIps: any
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
     const files = typedKeys(logLabels)
-    const shorterLabels = !useBreakpoint('sm') && { error_log: "Errors" }
+    const shorterLabels = !useBreakpoint('sm') && { error_log: "Not" }
     const file = files[tab]
     const fileAvailable = file.endsWith('log')
     return h(Fragment, {},
