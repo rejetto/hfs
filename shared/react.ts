@@ -47,7 +47,7 @@ export function useRequestRender() {
 /* the idea is that you need a job done by a worker, but the worker will execute only after it collected jobs for some time
     by other "users" of the same worker, like other instances of the same component, but potentially also different components.
     User of this hook will just be returned with the single result of its own job.
-    As an additional feature, results are cached. You can clear the cache by calling cache.clear()
+    As an additional feature, results are cached, but you can refresh()
 */
 export function useBatch<Job=unknown,Result=unknown>(
     worker: Falsy | ((jobs: Job[]) => Promise<Result[]>),
@@ -69,22 +69,37 @@ export function useBatch<Job=unknown,Result=unknown>(
     useEffect(() => {
         worker && (env.waiter ||= new Promise<void>(resolve => {
             setTimeout(async () => {
-                if (!env.batch.size)
-                    return resolve()
-                const jobs = [...env.batch.values()]
-                env.batch.clear()
-                const res = await worker(jobs)
-                jobs.forEach((job, i) =>
-                    env.cache.set(job, res[i] ?? null) )
-                env.waiter = undefined
-                resolve()
+                try {
+                    if (!env.batch.size)
+                        return
+                    const jobs = [...env.batch.values()]
+                    env.batch.clear()
+                    worker(jobs).then(res => {
+                        jobs.forEach((job, i) =>
+                            env.cache.set(job, res[i] ?? null) )
+                    }).finally(resolve)
+                }
+                finally {
+                    env.waiter = undefined
+                }
             }, delay)
-        })).then(requestRender)
-    }, [worker])
+        })).then(requestRender) // all instances share the same 'waiter', but each instance will call its own 'requestRender'
+    }, [worker, requestRender.state])
     const cached = env && env.cache.get(job) // don't use ?. as env can be falsy
-    if (env && cached === undefined)
-        env.batch.add(job)
-    return { data: cached, ...env } as Env & { data: Result | undefined | null } // so you can cache.clear
+    useEffect(() => {
+        if (env && cached === undefined) {
+            requestRender()
+            env.batch.add(job)
+        }
+    }, [job, cached])
+    return {
+        data: cached,
+        refresh() {
+            if (!env) return
+            env.batch.add(job)
+            requestRender()
+        }
+    }
 }
 
 export function KeepInScreen({ margin, ...props }: any) {

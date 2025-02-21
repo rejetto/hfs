@@ -33,7 +33,7 @@ import { ip2country } from './geo'
 import { roots } from './roots'
 import { SendListReadable } from './SendList'
 import { get_dynamic_dns_error } from './ddns'
-import { addBlock, BlockingRule } from './block'
+import { addBlock, BlockingRule, isBlocked } from './block'
 import { alerts, blacklistedInstalledPlugins, getProjectInfo } from './github'
 import { acmeRenewError } from './acme'
 
@@ -95,6 +95,13 @@ export const adminApis = {
         return {
             codes: res.map(x => x.status === 'rejected' || x.value === '-' ? '' : x.value)
         }
+    },
+    is_ip_blocked({ ips }) {
+        apiAssertTypes({
+            array: { ips },
+            string: { ips0: ips[0] }
+        })
+        return { blocked: ips.map((x: string) => isBlocked(x) ? 1 : 0) }
     },
 
     get_custom_html() {

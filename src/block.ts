@@ -26,7 +26,7 @@ export function applyBlock(socket: Socket, ip=normalizeIp(socket.remoteAddress||
         return disconnect(socket, 'block-ip')
 }
 
-function isBlocked(ip: string) {
+export function isBlocked(ip: string) {
     return block.compiled().find(rule => rule(ip))
 }
 

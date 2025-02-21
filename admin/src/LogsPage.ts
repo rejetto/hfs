@@ -18,7 +18,7 @@ import { AutoDelete, ClearAll, Delete, Download, Settings, SmartToy } from '@mui
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
-import { useBlockIp } from './useBlockIp'
+import { BlockIpBtn } from './blockIp';
 import { ALL as COUNTRIES } from './countries'
 
 const logLabels = {
@@ -154,7 +154,6 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             : showApi || list?.[0]?.uri === undefined ? list
                 : list.filter(x => !x.uri.startsWith(API_URL)),
         [list, showApi, filter])
-    const blockIp = useBlockIp()
     const isConsole = file === 'console'
     return hidden ? null : h(DataTable, {
         persist: 'log_' + file,
@@ -164,7 +163,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         compact: true,
         actionsProps: { hideUnder: 'md' },
         actions: isConsole ? undefined : (({ row }) => onlyTruthy([
-            blockIp.iconBtn(row.ip, "From log"),
+            h(BlockIpBtn, { ip: row.ip, comment: "From log" }),
             isIps && h(Btn, {
                 icon: Delete,
                 confirm: true,

@@ -17,7 +17,7 @@ import { Field, SelectField } from '@hfs/mui-grid-form'
 import { StandardCSSProperties } from '@mui/system/styleFunctionSx/StandardCssProperties'
 import { agentIcons, LogFile } from './LogsPage'
 import { state, useSnapState } from './state'
-import { useBlockIp } from './useBlockIp'
+import { BlockIpBtn } from './blockIp'
 import { alertDialog, confirmDialog, toast } from './dialog'
 import { useInterval } from 'usehooks-ts'
 import { PageProps } from './App'
@@ -119,7 +119,6 @@ function Connections() {
     const rows = useMemo(() =>
             list?.filter((x: any) => !monitorOnlyFiles || x.op).map((x: any, id: number) => ({ id, ...x })),
         [!pause && list, monitorOnlyFiles]) //eslint-disable-line
-    const blockIp = useBlockIp()
     const logAble = useBreakpoint('md')
     const [wantLog, wantLogButton] = useToggleButton("Show log", "Hide log", v => ({
         icon: History,
@@ -264,7 +263,7 @@ function Connections() {
                             doneMessage: true,
                             onClick: () => apiCall('disconnect', _.pick(row, ['ip', 'port'])).then(x => x.result > 0)
                         }),
-                        blockIp.iconBtn(row.ip, "From monitoring", { disabled: row.ip === props?.you }),
+                        h(BlockIpBtn, { ip: row.ip, comment: "From monitoring", disabled: row.ip === props?.you }),
                     ]
                 }),
             ),
