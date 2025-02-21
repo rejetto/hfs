@@ -43,7 +43,7 @@ export function addBlock(rule: BlockingRule, merge?: Partial<BlockingRule>) {
     if (isIP(rule.ip) && isBlocked(rule.ip)) return // already
     block.set(was => {
         const foundIdx = merge ? _.findIndex(was, merge) : -1
-        return foundIdx < 0 ? [...was, { ...merge, ...rule }]
+        return foundIdx < 0 || was[foundIdx]?.disabled ? [...was, { ...merge, ...rule }] // add as new rule
             : netMatches(rule.ip, was[foundIdx]!.ip) ? was // in case the rule is disabled, and isBlocked returned false
                 : was.map((x, i) => i === foundIdx ? { ...x, ...rule, ip: `${x.ip}|${rule.ip}` } : x)
     })
