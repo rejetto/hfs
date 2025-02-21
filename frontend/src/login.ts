@@ -26,9 +26,10 @@ async function login(username:string, password:string, extra?: object) {
         return res
     }, err => {
         throw Error(err.message === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
-            : err.code === HTTP_UNAUTHORIZED ? t('login_bad_credentials', "Invalid credentials")
-                : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")
-                    : t(err.message || String(err)))
+            : err.message === 'wrong' ? t('login_bad_credentials', "Invalid credentials")
+                : err.code === HTTP_UNAUTHORIZED ? t(err.message) // plugin's custom error
+                    : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")
+                        : t(err.message || String(err)) )
     }).finally(stopWorking)
 }
 
@@ -75,7 +76,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                 return h('form', {
                     onSubmit(ev:any) {
                         ev.preventDefault()
-                        go()
+                        go(ev)
                     }
                 },
                     h(CustomCode, { name: 'beforeLogin' }),
@@ -115,18 +116,22 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     if (key === 'Escape')
                         return close(null)
                     if (key === 'Enter')
-                        return go()
+                        return go(ev)
                 }
 
-                async function go(ev?: Event) {
-                    ev?.stopPropagation()
-                    const usr = usrRef.current?.value.trim()
-                    const pwd = pwdRef.current?.value
-                    if (going || !usr || !pwd) return
+                async function go(ev: Event) {
+                    const form = ev.target instanceof HTMLElement && ev.target.closest('form')
+                    if (!form) return
+                    ev.stopPropagation()
+                    const { username, password, ...rest } = Object.fromEntries(Array.from(form.querySelectorAll('[name]'))
+                        .map(el => el instanceof HTMLInputElement ? [el.name, el.value] : []))
+                    const u = username.trim()
+                    if (going || !u || !password) return
                     going = true
                     try {
-                        const res = await login(usr, pwd, {
-                            [CFG.allow_session_ip_change]: ipRef.current?.checked
+                        const res = await login(u, password, {
+                            [CFG.allow_session_ip_change]: ipRef.current?.checked,
+                            ...rest
                         })
                         await close(true)
                         toast(t`Logged in`, 'success')

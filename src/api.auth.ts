@@ -21,9 +21,14 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
         return new ApiError(HTTP_BAD_REQUEST)
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
-    const account = await clearTextLogin(ctx, username, password, 'api')
-    if (!account)
-        return new ApiError(HTTP_UNAUTHORIZED)
+    try {
+        const account = await clearTextLogin(ctx, username, password, 'api')
+        if (!account)
+            return new ApiError(HTTP_UNAUTHORIZED, 'wrong')
+    }
+    catch (e) {
+        return new ApiError(HTTP_UNAUTHORIZED, String(e))
+    }
     return {
         redirect: ctx.state.account?.redirect,
         ...await refresh_session({},ctx)
@@ -71,6 +76,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         return new ApiError(HTTP_NOT_FOUND)
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
+            .catch(() => { throw 'wrong' })
         await setLoggedIn(ctx, username)
         return {
             proof: String(M2),

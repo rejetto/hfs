@@ -561,6 +561,11 @@ This section is still partially documented, and you may need to have a look at t
   - async supported
   - preventable
 - `failedLogin`
+- `finalizingLogin`
+  - parameters: { ctx, username, inputs }
+    - inputs: object
+      - merge of all inputs both from body and URL
+  - async supported
 - `config ready`
 - `config.KEY` where KEY is the key of a config that has changed
 - `connectionClosed`
@@ -772,6 +777,8 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
+- 12.0 (v0.57.0)
+    - backend event: finalizingLogin 
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter

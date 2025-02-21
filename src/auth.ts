@@ -64,6 +64,7 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     }
     const a = ctx.state.account = getAccount(username)
     if (!a) return
+    await events.emitAsync('finalizingLogin', { ctx, username, inputs: { ...ctx.state.params, ...ctx.query } })
     s.username = normalizeUsername(username)
     s.ts = Date.now()
     const k = CFG.allow_session_ip_change
