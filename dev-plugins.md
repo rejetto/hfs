@@ -547,14 +547,19 @@ The example above will return false only when the file is NOT ending with .jpg, 
 
 This section is still partially documented, and you may need to have a look at the sources for further details.
 
-- `deleting`
+- `deleting` called just before trying to delete a file or folder (which still may not exist and fail)
   - parameters: { node, ctx }
-  - called just before trying to delete a file or folder (which still may not exist and fail)
   - async supported
   - preventable
 - `login`
 - `logout`
-- `attemptingLogin`
+- `attemptingLogin` called when the login process starts
+  - parameters: { ctx, username, via? }
+    - via?: string
+      - `'url'` if login is attempted via `?login=...`, or `'header'` if it's "Basic" authentication
+        (which includes credentials using the @-syntax in the URL), otherwise it's standard SRP login. 
+  - async supported
+  - preventable
 - `failedLogin`
 - `config ready`
 - `config.KEY` where KEY is the key of a config that has changed
@@ -585,9 +590,8 @@ This section is still partially documented, and you may need to have a look at t
 - `newSocket`
   - parameters: { socket,ip }
   - preventable
-- `getList`
+- `getList` called when get=list on legit requests to ?get=list
     - parameters: { node, ctx }
-    - called when get=list on legit requests to ?get=list
     - async supported
     - stoppable
 

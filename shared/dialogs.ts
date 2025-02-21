@@ -28,7 +28,7 @@ interface Dialog extends DialogOptions {
     $id?: number
     $opening?: NodeJS.Timeout
     ts?: number
-    close: (v?: any) => void
+    close: (v?: any) => undefined | Promise<void>
     restoreFocus?: any
 }
 

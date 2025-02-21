@@ -54,7 +54,7 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     s.username = normalizeUsername(username)
     s.ts = Date.now()
     const k = CFG.allow_session_ip_change
-    s[k] = k in ctx.query || Boolean(ctx.state.params?.[k]) || undefined
+    s[k] = k in ctx.query || Boolean(ctx.state.params?.[k]) || undefined // login APIs will get ctx.state.params, others can rely on ctx.query
     if (!a.expire && a.days_to_live)
         updateAccount(a, { expire: new Date(Date.now() + a.days_to_live! * DAY) })
     await events.emitAsync('login', ctx)
