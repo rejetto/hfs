@@ -6,7 +6,7 @@ import { Block } from '@mui/icons-material'
 
 export function useBlockIp() {
     const { data, reload } = useApi('get_config', { only: ['block'] })
-    const isBlocked = useCallback((ip: string) => data?.block?.find((x: any) => x.ip.includes(ip)), [data]) //TODO have a gui version of netMatches, and use that
+    const isBlocked = useCallback((ip: string) => data?.block?.find((x: any) => x.ip.includes(ip) && !x.ip.startsWith('!')), [data]) //TODO have a gui version of netMatches, and use that
     return {
         iconBtn: (ip: string, comment: string, options: Partial<IconBtnProps>={}) => h(IconBtn, {
             icon: Block,
