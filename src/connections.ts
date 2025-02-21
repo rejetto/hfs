@@ -3,6 +3,7 @@
 import { Socket } from 'net'
 import events from './events'
 import { Context } from 'koa'
+import { ip2country } from './geo'
 
 export class Connection {
     readonly started = new Date()
@@ -77,10 +78,19 @@ export function updateConnection(conn: Connection, change: Partial<Connection>, 
     events.emit('connectionUpdated', conn, change)
 }
 
+export const disconnectionsLog: { ts: Date, ip: string, country?: string, msg?: string }[] = []
+
 export function disconnect(what: Context | Socket, debugLog='') {
     if ('socket' in what)
         what = what.socket
+    const ip = normalizeIp(what.remoteAddress || '')
     if (debugLog)
-        console.debug("disconnection:", debugLog, normalizeIp(what.remoteAddress || ''))
+        console.debug("disconnection:", debugLog, ip)
+    ip2country(ip).then(res => {
+        const rec = { ip, country: res || undefined, ts: new Date, msg: debugLog || undefined }
+        disconnectionsLog.unshift(rec)
+        disconnectionsLog.length = Math.min(1000, disconnectionsLog.length)
+        events.emit('disconnection', rec)
+    })
     return what.destroy()
 }

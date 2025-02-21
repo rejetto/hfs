@@ -15,7 +15,7 @@ import {
 } from './mui';
 import { GridColDef } from '@mui/x-data-grid'
 import _ from 'lodash'
-import { AutoDelete, ClearAll, Delete, Download, Settings, SmartToy } from '@mui/icons-material'
+import { AutoDelete, LinkOff, ClearAll, Delete, Download, Settings, SmartToy, Terminal } from '@mui/icons-material'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
@@ -26,6 +26,7 @@ const logLabels = {
     log: "Served",
     error_log: "Not served",
     console: "Console",
+    disconnections: "Disconnections",
     ips: "IP's",
 }
 
@@ -34,7 +35,7 @@ let reloadIps: any
 export default function LogsPage() {
     const [tab, setTab] = useState(0)
     const files = typedKeys(logLabels)
-    const shorterLabels = !useBreakpoint('sm') && { error_log: "Not" }
+    const shorterLabels = !useBreakpoint('sm') && { error_log: "Not", console: h(Terminal), disconnections: h(LinkOff) }
     const file = files[tab]
     const fileAvailable = file.endsWith('log')
     return h(Fragment, {},
@@ -208,7 +209,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 flex: 1,
                 mergeRender: { k: { override: { valueFormatter: ({ value }) => value !== 'log' && value } } }
             }
-        ] : file === 'ips' ? [
+        ] : file === 'ips' || file === 'disconnections' ? [
             tsColumn,
             {
                 field: 'ip',

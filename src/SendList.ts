@@ -61,7 +61,7 @@ export class SendListReadable<T> extends Readable {
         else
             this.processBuffer()
     }
-    add(rec: T | T[]) {
+    add(rec: T) {
         this._push([LIST.add, rec])
     }
     remove(search: Partial<T>) {
@@ -72,7 +72,7 @@ export class SendListReadable<T> extends Readable {
         if (op === LIST.remove) return
         if (found) {
             this.buffer.splice(idx, 1)
-            if (op === LIST.add) return
+            if (op === LIST.add) return // assuming this never reached the client
         }
         this._push([LIST.remove, search])
     }
