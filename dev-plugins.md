@@ -585,6 +585,8 @@ This section is still partially documented, and you may need to have a look at t
 - `pluginUninstalled`
 - `pluginStopped`
 - `pluginStarted`
+- `httpsServerOptions` if you need to customize the options of the https server.
+  - return: object with some properties [documented here](https://nodejs.org/api/https.html#httpscreateserveroptions-requestlistener).  
 - `uploadStart`
   - parameters: { ctx, writeStream } 
   - preventable
@@ -778,7 +780,7 @@ If you want to override a text regardless of the language, use the special langu
 ## API version history
 
 - 12.0 (v0.57.0)
-    - backend event: finalizingLogin 
+    - backend event: finalizingLogin, httpsServerOptions 
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
