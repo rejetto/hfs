@@ -143,7 +143,7 @@ accounts:
   admins:
     allow_net: ::1
     admin: true
-version: 0.56.0
+version: 0.57.0-alpha1
 max_downloads_per_account: 2
 max_downloads: 1
 roots:
