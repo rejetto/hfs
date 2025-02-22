@@ -6,7 +6,7 @@ import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
 import { formatTimestamp, isEqualLax, prefix, reactJoin, useIsMobile, wantArray } from './misc'
-import { IconBtn, NetmaskField, propsForModifiedValues, WildcardsSupported } from './mui'
+import { Btn, IconBtn, NetmaskField, propsForModifiedValues, WildcardsSupported } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
@@ -82,7 +82,13 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             !members ? null
                 : isGroup && !members.length ? h(Box, {}, "No members")
                     : members.length > 0 && h(Box, {}, `${members.length} members: `,
-                        reactJoin(', ', account.members?.map((u: string) => h(groups.includes(u) ? 'i' : 'span', {}, u))) ),
+                        reactJoin(', ', account.members?.map(u => h(groups.includes(u) ? 'i' : 'span', {}, u))),
+                        h(Btn, {
+                            icon: Delete,
+                            confirm: `Delete ${account.members.length} accounts?`,
+                            onClick: () => Promise.all(account.members.map(u => apiCall('del_account', { username: u }))).finally(reload)
+                        }),
+                ),
             isGroup && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
             { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions, sm: 6,
                 helperText: "Specify groups to inherit permissions from"
