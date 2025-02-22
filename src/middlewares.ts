@@ -139,7 +139,7 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
             ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
         }
         else if (u)
-            events.emit('failedLogin', ctx, { username: u })
+            events.emit('failedLogin', ctx, { username: u, via })
         return a
     }
 }
