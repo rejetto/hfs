@@ -35,8 +35,7 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
                 disconnect(ctx, forceAddress.key())
                 return true // true will avoid calling next
             }
-        if (!root || root === '/') return // not transformation is required
-        if (root === '' || root === '/') return
+        if (!root || root === '/') return // no transformation is required
         changeUriParams(v => join(root, v))
         if (!params)
             ctx.path = join(root, ctx.path)

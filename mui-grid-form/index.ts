@@ -55,7 +55,7 @@ type Dict<T=any> = Record<string,T>
 
 export interface FormProps<Values> extends Partial<BoxProps> {
     fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
-    defaults?: (f:FieldDescriptor) => any
+    defaults?: (f:FieldDescriptor) => Partial<FieldDescriptor>
     values: Values
     set: (v: any, fieldK: keyof Values) => void
     save: false | Partial<Parameters<typeof Button>[0]> | (()=>any)
@@ -123,14 +123,18 @@ export function Form<Values extends Dict>({
                     return null
                 if (isValidElement(row))
                     return h(Grid, { key: idx, xs: 12 }, row)
-                const { k, fromField=_.identity, toField=_.identity, getError, error, ...field } = row
+                if (defaults)
+                    row = { ...defaults?.(row), ...row }
+                const { k, fromField=_.identity, toField=_.identity, getError, error,
+                    xs=12, sm, md, lg, xl, comp=StringField, before, after, parentProps,
+                    ...field } = row
                 let errMsg = errors[k] || error || fieldExceptions[k]
                 if (errMsg === true)
                     errMsg = "Not valid"
                 if (k) {
                     const originalValue = row.hasOwnProperty('value') ? row.value : values?.[k]
-                    const whole = { ...row, ...field }
                     Object.assign(field, {
+                        name: k,
                         value: toField(originalValue),
                         error: Boolean(errMsg || error) || undefined,
                         setApi(api) { apis[k] = api },
@@ -162,20 +166,13 @@ export function Form<Values extends Dict>({
                             )
                     if (field.label === undefined)
                         field.label = labelFromKey(k)
-                    _.defaults(field, defaults?.(whole))
                 }
-                {
-                    const { xs=12, sm, md, lg, xl, comp=StringField, before, after, parentProps,
-                        fromField, toField, // don't propagate
-                        ...rest } = field
-                    Object.assign(rest, { name: k })
-                    const n = (keyMet[k] = (keyMet[k] || 0) + 1)
-                    return h(Grid, { key: k ? k + n : idx, xs, sm, md, lg, xl, ...parentProps },
-                        before,
-                        isValidElement(comp) ? comp : h(comp, rest),
-                        after
-                    )
-                }
+                const n = (keyMet[k] = (keyMet[k] || 0) + 1)
+                return h(Grid, { key: k ? k + n : idx, xs, sm, md, lg, xl, ...parentProps },
+                    before,
+                    isValidElement(comp) ? comp : h(comp, field),
+                    after
+                )
             })
         ),
         saveBtn && h(Box, {
