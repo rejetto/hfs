@@ -58,15 +58,15 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             ...wantArray(addToBar),
         ],
         fields: [
-            { k: 'username', label: isGroup ? 'Group name' : undefined, autoComplete: 'off', required: true, lg: isGroup ? 12 : 4,
+            { k: 'username', label: isGroup ? 'Group name' : undefined, autoComplete: 'off', required: true, md: isGroup && !pluginAuth ? 12 : 4,
                 getError: v => v !== account.username && apiCall('get_account', { username: v })
                     .then(got => got?.username === account.username ? "usernames are case-insensitive" : "already used", () => false),
             },
-            pluginAuth && h(Alert, { severity: 'info' }, " Authentication handled by a plugin"),
-            !isGroup && !pluginAuth && { k: 'password', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', required: add,
+            pluginAuth && { k: '', md: 8, comp: h(Alert, { severity: 'info' }, " Authentication handled by a plugin") },
+            !isGroup && !pluginAuth && { k: 'password', xs: 6, md: 4, type: 'password', autoComplete: 'new-password', required: add,
                 label: add ? "Password" : "Change password"
             },
-            !isGroup && !pluginAuth && { k: 'password2', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
+            !isGroup && !pluginAuth && { k: 'password2', xs: 6, md: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 getError: (x, { values }) => (x||'') !== (values.password||'') && "Enter same password" },
             { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 8,
                 helperText: !values.disabled && values.canLogin === false ? h(Box, { color: 'warning.main', component: 'span' }, "Login is prevented because all of its groups are disabled")
