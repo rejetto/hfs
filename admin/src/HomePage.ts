@@ -65,7 +65,9 @@ export default function HomePage() {
         title: status.updatePossible && "Right-click if you want to install a zip",
     }
     return h(Box, { display:'flex', gap: 2, flexDirection:'column', alignItems: 'flex-start', height: '100%' },
-        username && entry('', "Welcome, "+username),
+        account?.adminActualAccess ? entry('', "Welcome, "+username)
+            : entry('', md("On <u>localhost</u> you don't need to login"),
+                SOLUTION_SEP, "to access Admin-panel from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
         dontBotherWithKeys(status.alerts?.map(x => entry('warning', md(x, { html: false })))),
         errors.length ? dontBotherWithKeys(errors.map(msg => entry('error', dontBotherWithKeys(msg))))
             : entry('success', "Server is working"),
@@ -84,8 +86,7 @@ export default function HomePage() {
             : !vfs.root?.children?.length && !vfs.root?.source ? entry('warning', "You have no files shared", SOLUTION_SEP, fsLink("add some"))
                 : entry('', md("This is the Admin-panel, where you manage your server. Access your files on "),
                     h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
-        !account?.adminActualAccess && entry('', md("On <u>localhost</u> you don't need to login"),
-            SOLUTION_SEP, "to access Admin-panel from another computer ", h(InLink, { to:'accounts' }, md("create an account with *admin* permission")) ),
+
         with_(proxyWarning(cfg, status), x => x && entry('warning', x,
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure and you can ", h(Btn, {
