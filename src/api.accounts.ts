@@ -25,7 +25,7 @@ function prepareAccount(ac: Account | undefined) {
                 news = accounts.filter(a => a.belongs?.some(x => news.includes(x))).map(x => x.username)
                 ret.push(...news)
             }
-            return ret.sort()
+            return _.uniq(ret).sort()
         })
     }
 }
