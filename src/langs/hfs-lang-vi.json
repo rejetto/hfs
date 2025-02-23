@@ -1,6 +1,6 @@
 {
-	"_comment_": "This is Vietnamese translation for HFS (Đây là file ngôn ngữ tiếng việt của HFS)",
-	"__comment__": "Credit & Copyright to author!",
+    "_comment_": "This is Vietnamese translation for HFS (Đây là file ngôn ngữ tiếng việt của HFS)",
+    "__comment__": "Credit & Copyright to author!",
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
     "version": 3.1,
     "hfs_version": "0.56.0",
@@ -186,11 +186,11 @@
         "focus_hint": "Bằng cách nhập nhanh lên bàn phím, có thể tìm và xem các phần trong danh sách",
         "copy_links": "Copy đường dẫn",
 		
-		"Calculate": "Tính",
-		"Creation": "Ngày tạo",
-		"creation": "ngày tạo",
-		"required_change_password": "Bạn được yêu cầu đổi ngay cái password",
-		"Wildcards": "Wildcards (nâng cao)",
-		"Considering resume": "Lỗi kết nối. Đang kết nối lại..."
+	"Calculate": "Tính",
+	"Creation": "Ngày tạo",
+	"creation": "ngày tạo",
+	"required_change_password": "Bạn được yêu cầu đổi ngay cái password",
+	"Wildcards": "Wildcards (nâng cao)",
+	"Considering resume": "Lỗi kết nối. Đang kết nối lại..."
     }
 }
