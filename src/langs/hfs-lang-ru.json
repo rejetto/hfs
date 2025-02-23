@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule, ItsNeverLight",
-    "version": 2.6,
-    "hfs_version": "0.55.0",
+    "version": 2.7,
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{# файл} few{# файла} many{# файлов}}",
@@ -138,7 +138,7 @@
         "Destination": "Назначение",
         "in_queue": "{n} в очереди",
         "enter_comment": "Комментарий для {name}",
-        "Comment": "Комментировать",
+        "Comment": "Комментарий",
         "upload_dd_hint": "Вы можете загрузить файлы перетащив их в список файлов",
         "Upload not available": "Загрузка недоступна",
         "Cut": "Вырезать",
@@ -181,6 +181,13 @@
         "allow_session_ip_change": "Разрешить смену IP в этой сессии",
 
         "focus_hint": "Набирая текст на клавиатуре, вы можете выполнять поиск и выбирать элементы из списка.",
-        "copy_links": "Копировать ссылки"
+        "copy_links": "Копировать ссылки",
+
+        "Calculate": "Рассчитать",
+        "Creation": "Дата создания",
+        "creation": "созданию",
+        "required_change_password": "Вам необходимо изменить свой пароль",
+        "Wildcards": "Шаблоны",
+        "Considering resume": "Оценка возобновления"
     }
 }
