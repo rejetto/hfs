@@ -1,7 +1,7 @@
 {
     "author": "NAME OF THE AUTHOR(S) OF THIS TRANSLATION",
     "version": 1.0,
-    "hfs_version": "0.53.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",

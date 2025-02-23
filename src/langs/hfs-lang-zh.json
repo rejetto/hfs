@@ -1,7 +1,7 @@
 {
     "author": "yx3016 & MircoH0 & CMJNB & Cheuksing",
     "version": 1.5,
-    "hfs_version": "0.50.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "选择",
         "n_files": "{n} 个文件",
@@ -148,6 +148,46 @@
         "Cancel clipboard": "取消剪贴板",
         "to_clipboard_source": "返回源文件夹",
         "Paste": "粘贴",
-        "clipboard_list": "剪贴板文件:"
+        "clipboard_list": "剪贴板文件:",
+
+        "Close": "关闭",
+        "Folder": "文件夹",
+        "Web page": "网页",
+        "Link": "链接",
+        "Auto-play": "自动播放",
+        "autoplay_seconds": "图片间隔秒数",
+        "Select all": "全选",
+        "go_first": "跳到第一个项目",
+        "go_last": "跳到最后一个项目",
+        "Shuffle": "随机播放",
+        "Repeat": "重复",
+        "showHelpListShortcut": "文件列表中，按住 {key} 点击快速显示",
+        "Invalid value": "无效值",
+        "upload_skipped": "{n} 已跳过",
+        "Overwrite policy": "覆盖策略",
+        "Rename to avoid overwriting": "重命名以避免覆盖",
+        "Overwrite existing files": "覆盖已存在文件",
+        "Menu": "菜单",
+
+        "clipboard": "剪贴板 ({content})",
+        "to_clipboard_source_tooltip": "前往剪贴板内容所在的文件夹",
+        "more_items": "还有 {n} 个项目",
+        "Show details": "显示详情",
+        "upload_conflict": "已存在",
+        "Logged in": "已登录",
+        "Logged out": "已注销",
+
+        "Cancel": "取消",
+        "allow_session_ip_change": "允许会话期间IP变更",
+
+        "focus_hint": "您可以通过键盘输入快速搜索并选择列表中的项目。",
+        "copy_links": "复制链接",
+
+        "Calculate": "计算",
+        "Creation": "创建时间",
+        "creation": "创建",
+        "required_change_password": "您需要更改密码",
+        "Wildcards": "通配符",
+        "Considering resume": "尝试恢复上传"
     }
 }

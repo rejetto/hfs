@@ -1,7 +1,7 @@
 {
     "author": "killersolyom",
     "version": 0.5,
-    "hfs_version": "0.55.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "Kiválasztás",
         "n_files": "{n,többes szám,egy{# file} egyéb{# file}}",
@@ -182,6 +182,13 @@
         "allow_session_ip_change": "IP cím változás engedélyezése",
 
         "focus_hint": "A billentyűzeten gépelve kereshet és fókuszálhat a lista elemeire.",
-        "copy_links": "Linkek másolása"
+        "copy_links": "Linkek másolása",
+
+        "Calculate": "Számítás",
+        "Creation": "Létrehozás",
+        "creation": "létrehozás",
+        "required_change_password": "Meg kell változtatnia a jelszavát",
+        "Wildcards": "Helyettesítő karakterek",
+        "Considering resume": "Feltöltés folytatásának ellenőrzése"
     }
 }

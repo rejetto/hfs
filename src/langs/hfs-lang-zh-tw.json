@@ -1,7 +1,7 @@
 {
     "author": "Phoenix",
     "version": 1.0,
-    "hfs_version": "0.52.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "選擇",
         "n_files": "{n,plural,one{# 個檔案} other{# 個檔案}}",
@@ -163,6 +163,27 @@
         "Overwrite policy": "覆蓋規則",
         "Rename to avoid overwriting": "重新命名以避免覆蓋",
         "Overwrite existing files": "覆蓋已存在的檔案",
-        "Menu": "選單"
+        "Menu": "選單",
+
+        "clipboard": "剪貼簿 ({content})",
+        "to_clipboard_source_tooltip": "前往剪貼簿內容的來源資料夾",
+        "more_items": "還有 {n} 個項目",
+        "Show details": "顯示詳情",
+        "upload_conflict": "已存在",
+        "Logged in": "登入成功",
+        "Logged out": "已登出",
+
+        "Cancel": "取消",
+        "allow_session_ip_change": "允許本次會話期間IP變更",
+
+        "focus_hint": "透過鍵盤輸入以搜尋並選取清單中的項目。",
+        "copy_links": "複製連結",
+
+        "Calculate": "計算",
+        "Creation": "建立日期",
+        "creation": "建立",
+        "required_change_password": "您必須更改密碼",
+        "Wildcards": "萬用字元",
+        "Considering resume": "考慮繼續上傳"
     }
 }

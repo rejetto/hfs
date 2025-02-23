@@ -1,7 +1,7 @@
 {
     "author": "Soonthorn Srichomkwan",
     "version": 1.0,
-    "hfs_version": "0.53.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "เลือก",
         "n_files": "{n} ไฟล์",
@@ -171,6 +171,19 @@
         "Show details": "แสดงรายละเอียด",
         "upload_conflict": "มีอยู่แล้ว",
         "Logged in": "เข้าสู่ระบบ",
-        "Logged out": "ออกจากระบบ"
+        "Logged out": "ออกจากระบบ",
+
+        "Cancel": "ยกเลิก",
+        "allow_session_ip_change": "อนุญาตให้เปลี่ยน IP ในระหว่างเซสชันนี้",
+
+        "focus_hint": "พิมพ์เพื่อค้นหาและเลือกจากรายการ",
+        "copy_links": "คัดลอกลิงก์",
+
+        "Calculate": "คำนวณ",
+        "Creation": "วันที่สร้าง",
+        "creation": "การสร้าง",
+        "required_change_password": "คุณจำเป็นต้องเปลี่ยนรหัสผ่านของคุณ",
+        "Wildcards": "อักขระตัวแทน",
+        "Considering resume": "กำลังพิจารณาดำเนินการต่อ"
     }
 }

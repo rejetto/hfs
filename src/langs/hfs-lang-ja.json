@@ -1,7 +1,7 @@
 {
     "author": "Kuruton8",
     "version": 1.1,
-    "hfs_version": "0.54.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "選択",
         "n_files": "{n,plural,one{# ファイル} other{# ファイル}}",
@@ -174,6 +174,16 @@
         "Logged out": "ログアウトしました",
 
         "Cancel": "キャンセル",
-        "allow_session_ip_change": "このセッション中にIPアドレスの変更を許可する"
+        "allow_session_ip_change": "このセッション中にIPアドレスの変更を許可する",
+
+        "focus_hint": "キーボード入力で、リスト内の項目を検索・選択できます。",
+        "copy_links": "リンクをコピー",
+
+        "Calculate": "計算",
+        "Creation": "作成日時",
+        "creation": "作成日時",
+        "required_change_password": "パスワードを変更する必要があります",
+        "Wildcards": "ワイルドカード",
+        "Considering resume": "アップロード再開の確認中"
     }
 }

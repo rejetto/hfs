@@ -1,7 +1,7 @@
 {
     "author": "Uwe Wennmann",
     "version": 0.1,
-    "hfs_version": "0.54.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "Auswählen",
         "n_files": "{n,plural,one{# Datei} other{# Dateien}}",
@@ -161,6 +161,19 @@
         "Show details": "Details anzeigen",
         "upload_conflict": "existiert bereits",
         "Logged in": "Angemeldet",
-        "Logged out": "Abgemeldet"
+        "Logged out": "Abgemeldet",
+
+        "Cancel": "Abbrechen",
+        "allow_session_ip_change": "IP-Wechsel während dieser Sitzung erlauben",
+
+        "focus_hint": "Durch Tippen auf Ihrer Tastatur können Sie Elemente aus der Liste suchen und auswählen.",
+        "copy_links": "Links kopieren",
+
+        "Calculate": "Berechnen",
+        "Creation": "Erstellung",
+        "creation": "Erstellung",
+        "required_change_password": "Sie müssen Ihr Passwort ändern.",
+        "Wildcards": "Platzhalter",
+        "Considering resume": "Prüfe Fortsetzen des Uploads"
     }
 }

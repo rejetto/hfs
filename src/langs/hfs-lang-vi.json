@@ -1,7 +1,7 @@
 {
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
     "version": 2.6,
-    "hfs_version": "0.55.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
@@ -181,6 +181,13 @@
         "allow_session_ip_change": "Cho phép đổi IP trong phiên này",
 
         "focus_hint": "Bằng cách nhập nhanh lên bàn phím, có thể tìm và xem các phần tử trong danh sách",
-        "copy_links": "Copy đường dẫn"
+        "copy_links": "Copy đường dẫn",
+
+        "Calculate": "Tính toán",
+        "Creation": "Ngày tạo",
+        "creation": "ngày tạo",
+        "required_change_password": "Bạn cần phải đổi mật khẩu",
+        "Wildcards": "Ký tự đại diện",
+        "Considering resume": "Đang cân nhắc tiếp tục"
     }
 }

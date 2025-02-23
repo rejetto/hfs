@@ -1,7 +1,7 @@
 {	
 	"author":	"Club Microtel Vernon",
 	"version":	"1.5",
-	"hfs_version":	"0.52.1",
+	"hfs_version":	"0.56.0",
 	"translate": {
 		"Select": "Selectionner",
 		"n_files": "{n,plural, one{# fichier} other{# fichiers}}",
@@ -167,6 +167,27 @@
         "Overwrite policy": "Stratégie de remplacement",
         "Rename to avoid overwriting": "Renommer pour éviter l'écrasement",
         "Overwrite existing files": "Écraser les fichiers existants",
-        "Menu": "Menu"
+        "Menu": "Menu",
+
+		"clipboard": "Presse-papiers ({content})",
+		"to_clipboard_source_tooltip": "Aller au dossier d'origine des éléments du presse-papiers",
+		"more_items": "{n} élément(s) supplémentaire(s)",
+		"Show details": "Afficher les détails",
+		"upload_conflict": "existe déjà",
+		"Logged in": "Connecté",
+		"Logged out": "Déconnecté",
+
+		"Cancel": "Annuler",
+		"allow_session_ip_change": "Autoriser le changement d'IP durant cette session",
+
+		"focus_hint": "En saisissant sur votre clavier, vous pouvez rechercher et sélectionner des éléments dans la liste.",
+		"copy_links": "Copier les liens",
+
+		"Calculate": "Calculer",
+		"Creation": "Création",
+		"creation": "création",
+		"required_change_password": "Vous devez changer votre mot de passe",
+		"Wildcards": "Caractères génériques",
+		"Considering resume": "Reprise en cours d'analyse"
 	}
 }

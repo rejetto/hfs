@@ -1,7 +1,7 @@
 {
     "author": "Eidy Estupiñan Varona, Arturo Fernández Rivas",
     "version": 1.3,
-    "hfs_version": "0.53.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "Seleccionar",
         "n_files": "{n,plural,one{# archivo} other {# archivos}}",
@@ -172,6 +172,22 @@
         "to_clipboard_source_tooltip": "Ir a la carpeta del portapapeles",
         "more_items": "{n} más elemento(s)",
         "Show details": "Mostrar detalles",
-        "upload_conflict": "ya existe"
+        "upload_conflict": "ya existe",
+
+        "Logged in": "Sesión iniciada",
+        "Logged out": "Sesión cerrada",
+
+        "Cancel": "Cancelar",
+        "allow_session_ip_change": "Permitir cambio de IP durante esta sesión",
+
+        "focus_hint": "Puede buscar y seleccionar elementos de la lista escribiendo en su teclado.",
+        "copy_links": "Copiar enlaces",
+
+        "Calculate": "Calcular",
+        "Creation": "Creación",
+        "creation": "creación",
+        "required_change_password": "Debe cambiar su contraseña",
+        "Wildcards": "Comodines",
+        "Considering resume": "Considerando reanudar"
     }
 }

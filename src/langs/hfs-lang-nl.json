@@ -1,7 +1,7 @@
 {
     "author": "H.F.P. Pit - PH5HP",
     "version": 1.0,
-    "hfs_version": "0.54.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "Selecteer",
         "n_files": "{n,plural,one{# bestand} other{# bestanden}}",
@@ -62,7 +62,6 @@
         "send_files": "Verzonden {n,plural,one{# bestand} other{# bestanden}}, {grootte}",
         "Clear": "Clear",
         "failed_upload": "Kon het niet uploaden {name}",
-        "confirm_resume": "Upload hervatten?",
         "file too large": "bestand te groot",
         "Enter folder name": "Geef map naam in",
         "Successfully created": "Succesvol gecreeerd",
@@ -121,8 +120,22 @@
         "Operation successful": "Operatie succesvol",
         "Uploader": "Uploader",
         "Download counter": "Download teller",
-		"upload_dd_hint": "U kunt bestanden uploaden door te veslepen & lost te laten in de bestanden lijst",
 
+
+
+        "File Show help": "Bestand tonen hulp",
+        "showHelpMain": "U kunt het toetsenbord gebruiken voor bepaalde acties:",
+        "showHelp_←/→": "←/→",
+        "showHelp_↑/↓": "↑/↓",
+        "showHelp_space": "Spatiebalk",
+        "showHelp_←/→_body": "Ga naar vorige/volgende bestand",
+        "showHelp_↑/↓_body": "Scrollen door lange afbeeldingen",
+        "Destination": "Bestemming",
+        "in_queue": "{n} in wachtrij",
+        "enter_comment": "Opmerking voor {name}",
+        "Comment": "Opmerking",
+        "upload_dd_hint": "U kunt bestanden uploaden door te veslepen & lost te laten in de bestanden lijst",
+        "Upload not available": "Uploaden niet beschikbaar",
 		"Cut": "Knip",
         "n_items": "{n,plural, one{# item} other{# items}}",
         "good_bad": "{good} verplaatst, {bad} mislukt",
@@ -132,8 +145,6 @@
         "Paste": "Plakken",
         "clipboard_list": "Items in het klembord:",
     
-		"Menu": "Menu",
-		"enter_comment": "Opmerking voor {name}",
 		"Close": "Sluit",
 		"Folder": "Map",
 		"Web page": "Web pagina",
@@ -151,17 +162,27 @@
 		"Overwrite policy": "Overschrijf beleid",
 		"Rename to avoid overwriting": "Hernoem om overschrijven te vermijden",
 		"Overwrite existing files": "Overschrijf bestaande bestanden",
-		
-		"clipboard": "Klembord ({content})",
+        "Menu": "Menu",
+
+        "clipboard": "Klembord ({content})",
 		"to_clipboard_source_tooltip": "Ga naar de map waar de klembord inhoud is geplaatst",
 		"more_items": "{n} meer item(s)",
 		"Show details": "Laat details zien",
 		"upload_conflict": "bestaat al",
-		
+        "Logged in": "Ingelogd",
+        "Logged out": "Uitgelogd",
+
 		"Cancel": "Cancel",
 		"allow_session_ip_change": "Sta toe dat het IP-adres veranderd gedurende deze sessie",
 		
 		"focus_hint": "Zoek en selecteer elementen van de lijst door te typen op Uw toetsenbord.",
-		"copy_links": "Kopieer links"
-	}
+		"copy_links": "Kopieer links",
+
+        "Calculate": "Bereken",
+        "Creation": "Aanmaakdatum",
+        "creation": "aanmaak",
+        "required_change_password": "U dient uw wachtwoord te wijzigen",
+        "Wildcards": "Jokertekens",
+        "Considering resume": "Upload hervatten overwegen"
+    }
 }

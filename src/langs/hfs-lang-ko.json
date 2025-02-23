@@ -1,7 +1,7 @@
 {
     "author": "배서연, Hawk1335",
     "version": 1.1,
-    "hfs_version": "0.52.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "선택",
         "n_files": "{n,plural,one{1개의 파일} =2 =3{파일 #개} other{#개 파일}}",
@@ -163,6 +163,27 @@
         "Overwrite policy": "덮어쓰기 정책",
         "Rename to avoid overwriting": "덮어쓰지 않도록 이름 바꾸기",
         "Overwrite existing files": "기존 파일 덮어쓰기",
-        "Menu": "메뉴"
+        "Menu": "메뉴",
+
+        "clipboard": "클립보드 ({content})",
+        "to_clipboard_source_tooltip": "클립보드에 있는 항목의 원본 폴더로 이동",
+        "more_items": "추가 항목 {n}개",
+        "Show details": "자세히 보기",
+        "upload_conflict": "이미 존재합니다",
+        "Logged in": "로그인되었습니다",
+        "Logged out": "로그아웃되었습니다",
+
+        "Cancel": "취소",
+        "allow_session_ip_change": "이 세션 동안 IP 주소 변경 허용",
+
+        "focus_hint": "키보드로 입력하여 목록의 항목을 검색하고 선택할 수 있습니다.",
+        "copy_links": "링크 복사",
+
+        "Calculate": "계산",
+        "Creation": "생성일",
+        "creation": "생성일",
+        "required_change_password": "비밀번호를 변경해야 합니다.",
+        "Wildcards": "와일드카드",
+        "Considering resume": "업로드 재개 여부 확인 중"
     }
 }

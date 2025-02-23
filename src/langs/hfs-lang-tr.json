@@ -1,7 +1,7 @@
 {
     "author": "cbr00t",
     "version": 1.0,
-    "hfs_version": "0.53.0",
+    "hfs_version": "0.56.0",
     "translate": {
         "Select": "Seç",
         "n_files": "{n,plural,one{# dosya} other{# dosya}}",
@@ -171,6 +171,16 @@
         "Show details": "Detayları göster",
         "upload_conflict": "zaten var",
         "Logged in": "Oturum Açıldı",
-        "Logged out": "Oturum Kapandı"
+        "Logged out": "Oturum Kapandı",
+
+        "Cancel": "İptal",
+        "allow_session_ip_change": "Bu oturumda IP değişimine izin ver",
+
+        "focus_hint": "Klavyeden tuşlayarak liste öğelerini arayabilir ve odaklayabilirsiniz.",
+        "copy_links": "Bağlantıları kopyala",
+
+        "Calculate": "Hesapla",
+        "Creation": "Oluşturma",
+        "creation": "oluşturma"
     }
 }
