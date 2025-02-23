@@ -12,6 +12,7 @@ const INIT = {
     title: '',
     config: {} as Dict,
     selectedFiles: [] as VfsNode[],
+    accountsAsTree: false,
     movingFile: '',
     vfs: undefined as VfsNode | undefined,
     loginRequired: false as boolean | number,
@@ -30,7 +31,7 @@ const INIT = {
 Object.assign(INIT, JSON.parse(localStorage[STORAGE_KEY]||null))
 export const state = proxy(INIT)
 
-const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'monitorWithLog', 'customHtmlSection', 'darkTheme', 'dataTablePersistence']
+const SETTINGS_TO_STORE: (keyof typeof state)[] = ['onlinePluginsColumns', 'monitorOnlyFiles', 'monitorWithLog', 'customHtmlSection', 'darkTheme', 'dataTablePersistence', 'accountsAsTree']
 const storeSettings = _.debounce(() =>
     localStorage[STORAGE_KEY] = JSON.stringify(_.pick(state, SETTINGS_TO_STORE)), 500, { maxWait: 1000 })
 for (const k of SETTINGS_TO_STORE)

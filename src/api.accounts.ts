@@ -19,6 +19,7 @@ function prepareAccount(ac: Account | undefined) {
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
         invalidated: invalidateSessionBefore.get(ac.username),
+        directMembers: Object.values(accountsConfig.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
         members: with_(Object.values(accountsConfig.get()), accounts => {
             const ret = []
             let news = [ac.username]
