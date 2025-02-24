@@ -81,7 +81,7 @@ If you don't like this behavior, disable it in the Admin-panel or enter this con
 
 If your system is not Windows/Linux/Mac or you just don't want to run the binaries, you can try this alternative version:
 
-1. [install node.js](https://nodejs.org) version 18
+1. [install node.js](https://nodejs.org) version 18.20
 2. execute at command line `npx hfs@latest`
 
 The `@latest` part is optional, and ensures that you are always up to date.
@@ -132,7 +132,8 @@ If your language is missing, please consider [translating yourself](https://gith
 - Right-click on "check for updates" will let you input a URL of a version to install
 - Shift+click on a file will show & play
 - Type the name of a file/folder to focus it, and ctrl+backspace to go to parent folder
-- `--consoleFile PATH` will output all stdout and stderr also to a file 
+- `--consoleFile PATH` will output all stdout and stderr also to a file
+- env `DISABLE_UPDATE=1` (for containers)
 
 ## Contribute
 
