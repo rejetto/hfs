@@ -120,8 +120,8 @@
         "Operation successful": "Operatie succesvol",
         "Uploader": "Uploader",
         "Download counter": "Download teller",
-
-
+        "Switch zoom mode": "Zoommodus wisselen",
+        "Full screen": "Volledig scherm",
 
         "File Show help": "Bestand tonen hulp",
         "showHelpMain": "U kunt het toetsenbord gebruiken voor bepaalde acties:",
@@ -144,7 +144,7 @@
         "to_clipboard_source": "Naar map",
         "Paste": "Plakken",
         "clipboard_list": "Items in het klembord:",
-    
+
 		"Close": "Sluit",
 		"Folder": "Map",
 		"Web page": "Web pagina",
@@ -177,12 +177,12 @@
 		
 		"focus_hint": "Zoek en selecteer elementen van de lijst door te typen op Uw toetsenbord.",
 		"copy_links": "Kopieer links",
-
-        "Calculate": "Bereken",
-        "Creation": "Aanmaakdatum",
-        "creation": "aanmaak",
-        "required_change_password": "U dient uw wachtwoord te wijzigen",
-        "Wildcards": "Jokertekens",
-        "Considering resume": "Upload hervatten overwegen"
-    }
+		
+		"Calculate": "Bereken",
+		"Creation": "Gecreëerd",
+		"creation": "gecreëerd",
+		"required_change_password": "U bent verplicht Uw password te veranderen",
+		"Wildcards": "Wildcards",
+		"Considering resume": "Overweeg hervatten"
+	}
 }
