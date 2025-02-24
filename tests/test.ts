@@ -156,20 +156,23 @@ describe('basics', () => {
     it('folder size', reqApi('get_folder_size', { uri: 'f1/page' }, res => res.bytes === 6328 ))
     it('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
 
-    it('get_accounts', reqApi('get_accounts', {}, ({ list }) => _.find(list, { username}) && _.find(list, { username: 'admins' })))
+    it('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
 })
 
-describe('accounts', () => {
-    const username = 'test-Add'
-    it('accounts.add', reqApi('add_account', { username }, res => res?.username === username.toLowerCase()))
-    it('accounts.remove', reqApi('del_account', { username }, 200))
-})
-
+// do this before login, or max_dl_accounts config will override max_dl
 describe('limits', () => {
     const fn = ROOT + 'big'
     before(() => writeFile(fn, BIG_CONTENT))
     it('max_dl', () => testMaxDl('/' + fn, 1, 2))
     after(() => rm(fn))
+})
+
+describe('accounts', () => {
+    before(() => login(username))
+    it('get_accounts', reqApi('get_accounts', {}, ({ list }) => _.find(list, { username }) && _.find(list, { username: 'admins' })))
+    const add = 'test-Add'
+    it('accounts.add', reqApi('add_account', { username: add }, res => res?.username === add.toLowerCase()))
+    it('accounts.remove', reqApi('del_account', { username: add }, 200))
 })
 
 describe('after-login', () => {
