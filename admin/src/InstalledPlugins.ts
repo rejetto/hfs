@@ -2,7 +2,7 @@
 
 import { apiCall, useApiEx, useApiList } from './api'
 import { createElement as h, Fragment, useEffect } from 'react'
-import { Box, Breakpoint, Link, Paper, useTheme } from '@mui/material'
+import { Box, Breakpoint, Link, Paper, Table, TableCell, TableRow, useTheme } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
     Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
@@ -20,6 +20,7 @@ import { PLUGIN_ERRORS } from './PluginsPage'
 import { Btn, Flex, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
 import VfsPathField from './VfsPathField'
 
+// updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
     useEffect(() => {
@@ -37,6 +38,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
         fillFlex: true,
         initializing,
         disableColumnSelector: true,
+        getRowHeight: updates && (({ model }) => model.changelog ? 'auto' as const : 50),
         noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,
         columns: [
             {
@@ -46,12 +48,13 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 minWidth: 150,
                 renderCell: renderName,
                 valueGetter({ row }) { return row.repo || row.id },
-                mergeRender: { description: { fontSize: 'x-small' } }
+                mergeRender: { [updates ? 'changelog' : 'description']: { fontSize: 'x-small' } }
             },
             {
                 field: 'version',
                 width: 70,
                 hideUnder: 'sm',
+                mergeRender: { installedVersion: { fontSize: 'x-small' } }
             },
             themeField,
             {
@@ -59,6 +62,29 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 flex: 1,
                 hideUnder: 'sm',
             },
+            {
+                field: 'installedVersion',
+                hidden: true,
+                renderCell: ({ value }) => value && `Yours ${value}`
+            },
+            {
+                field: 'changelog',
+                headerName: "Change log",
+                flex: 2,
+                hideUnder: 'sm',
+                hidden: !updates,
+                sx: { flexDirection: 'column', alignItems: 'flex-start' },
+                renderCell({ value, row }) {
+                    if (!Array.isArray(value)) return null
+                    return h(Table, { sx: { td: { p: 0 } } },
+                        _.uniq(_.sortBy(value, 'version').filter(x => _.isString(x.message) && x.message && x.version > row.installedVersion))
+                            .map((x, i) => h(TableRow, { key: i },
+                                h(TableCell, {}, "• ", x.version, ': '),
+                                h(TableCell, {}, md(x.message))
+                            ))
+                    )
+                }
+            }
         ],
         footerSide: () => !updates && pauseButton,
         actions: ({ row, id }) => updates ? [

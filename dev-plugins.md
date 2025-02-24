@@ -93,8 +93,10 @@ All the following properties are optional unless otherwise specified.
       Note that in this example we are pointing to a github repo just for clarity. You are not supposed to use this
       complicated object form to link github, use the string form.
       Plugins with custom repos are not included in search results, but the update feature will still work.
+- `changelog: { version: number, message: string }[]` the UI will show only entries with version greater than currently installed.
+  You can use `md` syntax for the message.
 
-WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
+**WARNING:** All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
 
 - `init: (api: object) => void | object | function` described in the previous section. If an object is returned, 
@@ -780,7 +782,8 @@ If you want to override a text regardless of the language, use the special langu
 ## API version history
 
 - 12.0 (v0.57.0)
-    - backend event: finalizingLogin, httpsServerOptions 
+    - backend event: finalizingLogin, httpsServerOptions
+    - exports.changelog
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
