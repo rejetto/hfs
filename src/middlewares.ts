@@ -112,12 +112,14 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     updateConnectionForCtx(ctx)
     await next()
 
-    function urlLogin() {
+    async function urlLogin() {
         const { login }  = ctx.query
         if (!login) return
         const [u, p] = splitAt(':', String(login))
+        const a = await doLogin(u, p, 'url')
+        if (!a) return
         ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
-        return doLogin(u, p, 'url')
+        return a
     }
 
     function getHttpAccount() {
