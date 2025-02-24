@@ -126,7 +126,7 @@ describe('basics', () => {
     }))
 
     it('upload.need account', reqUpload( UPLOAD_DEST, 401))
-    it('upload.post', done => {
+    it('upload.post', done => { // this is also testing basic-auth
         const cmd = `curl -u ${username}:${password} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`;
         exec(cmd, (err, out) => {
             if (err) return done(err)
@@ -157,6 +157,9 @@ describe('basics', () => {
     it('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
 
     it('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
+    it('url login', done =>
+        exec(`curl -v "${BASE_URL}/for-admins/?login=${username}:${password}"`, (err, out) =>
+            done(err || (out?.includes('Redirect') ? null : "failed")) ) )
 })
 
 // do this before login, or max_dl_accounts config will override max_dl
