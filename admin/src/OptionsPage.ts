@@ -106,12 +106,12 @@ export default function OptionsPage() {
             }, sm ? "Config file" : "File"),
         ],
         defaults() {
-            return { sm: 6 }
+            return { xs: 6 }
         },
         fields: [
             h(Section, { title: "Networking" }),
-            { k: 'port', comp: PortField, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: PortField, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            { k: 'port', comp: PortField, xs: 12, sm: 6, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: PortField, xs: 12, sm: 6, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
                         void suggestMakingCert()
@@ -150,9 +150,9 @@ export default function OptionsPage() {
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
             },
-            { k: 'localhost_admin', comp: BoolField, label: "Unprotected admin on localhost",
+            { k: 'localhost_admin', comp: BoolField, label: "Unprotected Admin-panel on localhost",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
-                helperText: "Access Admin-panel without entering credentials"
+                helperText: "Access without entering credentials"
             },
 
             { k: 'proxies', comp: NumberField, sm: 4, md: 4, max: 9, label: "Number of HTTP proxies", placeholder: "none",
@@ -164,7 +164,7 @@ export default function OptionsPage() {
             { k: 'allowed_referer', comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
                 helperText: "In case another website is linking your files" },
 
-            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true, autoRowHeight: true,
+            { k: 'block', label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
                 fields: [
                     { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2,
                         $column: { mergeRender: { comment: {}, expire: {} } },
@@ -199,11 +199,11 @@ export default function OptionsPage() {
             { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
             { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
 
-            { k: 'invert_order', comp: BoolField, xs: 6, sm: 3 },
-            { k: 'folders_first', comp: BoolField, xs: 6, sm: 3 },
-            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 3, label: "Sort numeric names" },
-            { k: 'title_with_path', comp: BoolField, xs: 6, sm: 3 },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, sm: 12,
+            { k: 'invert_order', comp: BoolField, xs: 6, md: 3 },
+            { k: 'folders_first', comp: BoolField, xs: 6, md: 3 },
+            { k: 'sort_numerics', comp: BoolField, xs: 6, md: 3, label: "Sort numeric names" },
+            { k: 'title_with_path', comp: BoolField, xs: 6, md: 3 },
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12,
                 helperText: "The icon associated to your website" },
 
             h(Section, { title: "Uploads" }),
@@ -218,20 +218,24 @@ export default function OptionsPage() {
 
             h(Section, { title: "Others" }),
             { k: 'keep_session_alive', comp: BoolField, sm: 6, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
-            { k: 'session_duration', comp: NumberField, sm: 6, md: 3, min: 5, unit: "seconds", required: true },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 6, md: 3, unit: "seconds", required: true,
-                label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'session_duration', comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
+            { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 3, options: { 1000: false, 1024: true } },
 
-            { k: 'show_hidden_files', comp: BoolField, sm: 6, md: 3 },
-            { k: 'descript_ion', comp: BoolField, sm: 6, md: 3, label: "Enable comments", helperText: "In file DESCRIPT.ION" },
-            { k: 'descript_ion_encoding', sm: 6, md: 3, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+            { k: 'show_hidden_files', comp: BoolField, sm: 3 },
+            { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, md: 5, options: {
+                "in file DESCRIPT.ION": '',
+                "in file attributes": 'attr',
+                "in file attributes + load DESCRIPT.ION": 'attr+ion',
+            } },
+            { k: 'descript_ion_encoding', xs: 8, sm: 3, md: 4, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
                 options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
-            { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 6, md: 3, options: { 1000: false, 1024: true } },
 
-            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", sm: 4, md: 6,
+            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", xs: 12, sm: 6, md: 3,
                 helperText: "Browser is automatically launched with HFS"
             },
-            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, sm: 12, md: 6,
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, xs: 12, sm: 6, md: 3, unit: "seconds", required: true,
+                label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
                 fields: [
                     { k: 'v', label: "Mime type", placeholder: "auto", $width: 2, helperText: "Leave empty to get automatic value" },
                     { k: 'k', label: "File mask", helperText: h(WildcardsSupported), $width: 1, $column: {
@@ -247,7 +251,7 @@ export default function OptionsPage() {
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
             },
 
-            { k: 'server_code', comp: TextEditorField, lang: 'js', sm: 12,
+            { k: 'server_code', comp: TextEditorField, lang: 'js', xs: 12,
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
 

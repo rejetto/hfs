@@ -92,8 +92,9 @@ Configuration can be done in several ways
 - `base_url` URL to be used for links generation. Default is automatic.
 - `force_address` disconnect any request not made with one of the hosts specified in `roots` or `base_url`. Default is false.
 - `ignore_proxies` stop warning about detected proxies. Default is false. 
-- `descript_ion` enable reading and writing of comments in the old file format *DESCRIPT.ION*. Default is yes.
-- `descript_ion_encoding` text encoding to be used for file *DESCRIPT.ION*. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
+- `comments_storage` choose where to read/write comments. Default is in file `descript.ion`.
+  - You can set `attr` to use only file's attributes, or `attr+ion` to store in file's attributes but fall-back to `descript.ion` as read-only.` 
+- `descript_ion_encoding` text encoding to be used for file `descript.ion`. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
 - `server_code` javascript code that works similarly to [a plugin](dev-plugins.md). 
 - `tiles_size` starting value for frontend's tiles size. Default is 0.
 - `auto_play_seconds` starting value for frontend's auto_play_seconds (used in Show). Default is 5.

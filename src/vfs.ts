@@ -15,7 +15,7 @@ import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
 import { Stats } from 'node:fs'
 import fswin from 'fswin'
-import { DESCRIPT_ION, descriptIon } from './comments'
+import { DESCRIPT_ION, usingDescriptIon } from './comments'
 import { walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 
@@ -333,7 +333,7 @@ export async function* walkNode(parent: VfsNode, {
                         const {path} = entry
                         const isFolder = entry.isDirectory()
                         const name = prefixPath + (parent.rename?.[path] || path)
-                        if (descriptIon.get() && basename(name) === DESCRIPT_ION)
+                        if (usingDescriptIon() && basename(name) === DESCRIPT_ION)
                             return
                         if (taken?.has(normalizeFilename(name))) // taken by vfs node above
                             return false // false just in case it's a folder
