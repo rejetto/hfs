@@ -3,7 +3,7 @@
 import React, { createElement as h } from 'react'
 import { iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
-import { Icon } from './icons'
+import { Icon, IconProps } from './icons'
 import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, urlParams, useBatch } from '@hfs/shared'
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
@@ -26,7 +26,7 @@ export function err2msg(err: number | Error) {
         : (HTTP_MESSAGES[(err as any).code] || err.message || String(err))
 }
 
-export function hIcon(name: string, props?:any) {
+export function hIcon(name: string, props?: Omit<IconProps, 'name'>) {
     return h(Icon, { name, ...props })
 }
 

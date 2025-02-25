@@ -115,13 +115,17 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         setCurRow?.(_.find(rest.rows, { id }))
     })
     const sizeFooterSide = useGetSize()
-    const wrappedFooterSide = h(Box, { ...sizeFooterSide.props, className: 'footerSide', sx: { whiteSpace: 'nowrap' } }, footerSide?.(width))
+    const wrappedFooterSide = h(Box, {
+        ref: sizeFooterSide.refToPass,
+        className: 'footerSide',
+        sx: { whiteSpace: 'nowrap' }
+    }, footerSide?.(width))
     const [causingScrolling, setCausingScrolling] = useState(false)
-    useEffect(useCallback(_.debounce(() => {
+    const updateCausingScrolling = useCallback(_.debounce(() => {
         const el = sizeGrid.ref.current?.querySelector('.MuiTablePagination-root')
         setCausingScrolling(el && (el.scrollWidth > el.clientWidth) || false)
-    }, 500), [sizeGrid]),
-        [sizeGrid, width, sizeFooterSide.w]) // recalculate in case the footerSide changes
+    }, 500), [sizeGrid])
+    useEffect(updateCausingScrolling, [sizeGrid, width, sizeFooterSide.w]) // recalculate in case the footerSide changes
 
     return h(Fragment, {},
         error && h(Alert, { severity: 'error' }, error),
@@ -136,7 +140,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             columns: manipulatedColumns,
             apiRef,
             disableRowSelectionOnClick: true,
-            ...sizeGrid.props,
+            ref: sizeGrid.refToPass,
             ...rest,
             sx: {
                 ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex

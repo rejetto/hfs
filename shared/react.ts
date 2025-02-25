@@ -121,36 +121,37 @@ export function useIsMobile() {
     return useMediaQuery('(pointer:coarse)')
 }
 
-// calls back with [width, height]
+// returns props to assign to your component, and a copy of the ref; calls back with [width, height]
 export function useOnResize(cb: Callback<[number, number]>) {
     const observer = useMemo(() =>
-        new ResizeObserver(_.debounce(([{contentRect: r}]) => cb([r.width, r.height]), 10)),
+        new ResizeObserver(_.debounce(([{ contentRect: r, target }]) => {
+            const style = getComputedStyle(target)
+            const pw = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+            const ph = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+            cb([r.width + pw, r.height + ph])
+        }, 10)),
         [])
-
-    return useMemo(() => ({
-        ref(el: any) {
+    const ref = useRef<HTMLElement>()
+    return {
+        ref,
+        refToPass: useCallback((el: any) => {
             observer.disconnect()
             if (el)
                 observer.observe(el)
-        }
-    }), [observer])
+            ref.current = el
+        }, [observer])
+    }
 }
 
-export function useGetSize({ refProp='ref' }={}) {
+export function useGetSize() {
     const [size, setSize] = useState<[number,number]>()
-    const ref = useRef<HTMLElement>()
-    const props = useOnResize(setSize)
-    const propsRef = useCallback((el: any) => passRef(el, ref, props.ref), [props])
+    const { refToPass, ref } = useOnResize(setSize)
     return useMemo(() => ({
         w: size?.[0],
         h: size?.[1],
         ref,
-        props: {
-            ...props,
-            ...refProp !== 'ref' && { ref: undefined },
-            [refProp]: propsRef
-        }
-    }), [size, ref, propsRef])
+        refToPass
+    }), [size, ref])
 }
 
 export function useEffectOnce(cb: Callback, deps: any[]) {

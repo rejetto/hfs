@@ -16,7 +16,7 @@ Promise.race([documentComplete, document.fonts?.ready]).then(async () => {
     state.iconsReady = document.fonts.check(fontTester)
 })
 
-interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
+export interface IconProps { name:string, className?:string, alt?:string, [rest:string]: any }
 // name = null ? none : unicode ? unicode : "?" ? file_url : font_icon_class
 export const Icon = memo(({ name, alt, className='', ...props }: IconProps) => {
     if (!name) return null
