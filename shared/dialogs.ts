@@ -121,8 +121,13 @@ function Dialog(d: DialogOptions) {
         if (!el) return
         tabCycle(el) // focus first thing inside dialog. This makes JAWS behave
         if (!d.position) return
-        const rect = el.getBoundingClientRect()
-        setShiftY(Math.min(0, rect.top, window.innerHeight - rect.bottom))
+        // not the nicest of solutions, but short, effective, and used only by short-lived context menus
+        let y = 0
+        const t = setInterval(() => {
+            const rect = el.getBoundingClientRect()
+            setShiftY(y = Math.min(y, rect.top, window.innerHeight - rect.bottom + y))
+        }, 100)
+        return () => clearInterval(t)
     }, [])
     d = { closable: true, ...dialogsDefaults, ...d }
     if (d.Container)
