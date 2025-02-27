@@ -31,7 +31,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     const ref = useRef<HTMLFormElement>()
     const expired = Boolean(values.expire)
     const { members } = account
-    const pluginAuth = !isGroup && account.plugin && !account.hasPassword
+    const pluginAuth = account.plugin?.auth
     return h(Form, {
         formRef: ref,
         values,

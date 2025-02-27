@@ -25,7 +25,7 @@ export interface Account {
     allow_net?: string
     require_password_change?: boolean
     notes?: string
-    plugin?: { isGroup?: boolean, [rest: string]: unknown }
+    plugin?: { id?: string, auth?: boolean, [rest: string]: unknown }
 }
 interface Accounts { [username:string]: Account }
 
@@ -199,7 +199,7 @@ export function accountHasPassword(account: Account) {
 }
 
 export function accountCanLogin(account: Account) {
-    return (accountHasPassword(account) || account.plugin && !account.plugin.isGroup) && !allDisabled(account)
+    return (accountHasPassword(account) || account.plugin?.auth) && !allDisabled(account)
 }
 
 function allDisabled(account: Account): boolean {

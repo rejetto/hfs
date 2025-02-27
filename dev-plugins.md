@@ -285,18 +285,22 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `getAccount(username: string): Account | undefined` retrieve an account object, or undefined of not found.
   The `Account` object has the following properties:
-      `username: string` 
-      `srp?: string` if this value is not present, then it's a group
-      `belongs?: string[]` list of groups this account belongs to
-      `ignore_limits?: boolean` don't apply limits to this account
-      `disable_password_change?: boolean` don't allow password change
-      `admin?: boolean` allow access to admin-panel
-      `redirect?: string` redirect to this URL as soon as the user logs in
-      `disabled?: boolean` forbid login
-      `expire?: Date` account expiration date
-      `days_to_live?: number` set expiration date (after this many days) automatically at next login 
-      `allow_net?: string` allow login of this account only from this network mask
-      `require_password_change?: boolean` ask user to change password at next login
+    `username: string` 
+    `srp?: string` if this value is not present, then it's a group
+    `belongs?: string[]` list of groups this account belongs to
+    `ignore_limits?: boolean` don't apply limits to this account
+    `disable_password_change?: boolean` don't allow password change
+    `admin?: boolean` allow access to admin-panel
+    `redirect?: string` redirect to this URL as soon as the user logs in
+    `disabled?: boolean` forbid login
+    `expire?: Date` account expiration date
+    `days_to_live?: number` set expiration date (after this many days) automatically at next login 
+    `allow_net?: string` allow login of this account only from this network mask
+    `require_password_change?: boolean` ask user to change password at next login
+    `plugin?: object` this can contain any information needed by plugins. It's free-form, but some fields are standard:
+      - `id?: string` name of the plugin responsible for this account
+      - `auth?: true` if the plugin is responsible for this authentication.
+        It will cause HFS to fallback to `clearTextLogin`, and the plugin shall respond to its corresponding event. 
 
 - `getAccounts(): string[]` retrieve list of all usernames
 
@@ -310,6 +314,8 @@ The `api` object you get as parameter of the `init` contains the following:
 - `renameAccount(from: string, to: string): boolean` returns true if it succeeds.
 
 - `_` [lodash library](https://lodash.com/docs/)
+
+- `setInterval`, `setTimeout` same as standard js functions, but will automatically cancel if the plugin is unloaded. 
 
 ## Frontend specific
 
@@ -407,7 +413,6 @@ This is a list of available frontend-events, with respective object parameter an
     - `n: string` name of the entry, including relative path when searched in sub-folders.
     - `uri: string` relative url of the entry.
     - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
-    - `t?: Date` generic timestamp, combination of creation-time and modified-time.
     - `c?: Date` creation-time.
     - `m?: Date` modified-time.
     - `p?: string` permissions missing
@@ -563,6 +568,10 @@ This section is still partially documented, and you may need to have a look at t
   - async supported
   - preventable
 - `failedLogin`
+- `clearTextLogin` give plugins the chance to authenticate users
+  - parameters: { ctx, username, password, via: 'url' | 'header' }
+  - async supported
+  - return: `true` to consider authentication done
 - `finalizingLogin`
   - parameters: { ctx, username, inputs }
     - inputs: object
@@ -782,8 +791,11 @@ If you want to override a text regardless of the language, use the special langu
 ## API version history
 
 - 12.0 (v0.57.0)
-    - backend event: finalizingLogin, httpsServerOptions
+    - backend event: finalizingLogin, httpsServerOptions, clearTextLogin
     - exports.changelog
+    - automatic unload of api.events listeners
+    - removed DirEntry.t
+    - api.setInterval, setTimeout
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter

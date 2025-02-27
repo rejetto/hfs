@@ -157,7 +157,7 @@ export default function AccountsPage() {
             adminActualAccess: false,
             invalidated: undefined,
             canLogin: true,
-            isGroup: false,
+            isGroup: sel === 'new-group',
             members: [],
             directMembers: [],
         } satisfies Account

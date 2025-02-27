@@ -5,7 +5,7 @@ import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
 import {
     ADMIN_URI,
-    HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_FOUND, HTTP_FAILED_DEPENDENCY
+    HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED
 } from './const'
 import { ctxAdminAccess } from './adminApis'
 import { failAllowNet, sessionDuration } from './middlewares'
@@ -41,8 +41,8 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     const account = getAccount(username)
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
-    if (account && !account.srp && account.plugin) // tell client to do clear-text login, before firing attemptingLogin, before triggering anti-brute
-        return new ApiError(HTTP_FAILED_DEPENDENCY)
+    if (account?.plugin?.auth) // tell client to do clear-text login, before firing attemptingLogin, before triggering anti-brute
+        return new ApiError(HTTP_METHOD_NOT_ALLOWED)
     if ((await events.emitAsync('attemptingLogin', { ctx, username }))?.isDefaultPrevented()) return
     if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
         ctx.logExtra({ u: username })

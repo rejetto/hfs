@@ -5,7 +5,7 @@ import { state, useSnapState } from './state'
 import { alertDialog, newDialog, toast } from './dialog'
 import {
     getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth,
-    HTTP_CONFLICT, HTTP_UNAUTHORIZED, CFG, HTTP_FAILED_DEPENDENCY,
+    HTTP_CONFLICT, HTTP_UNAUTHORIZED, CFG, HTTP_METHOD_NOT_ALLOWED,
 } from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { reloadList } from './useFetchList'
@@ -17,7 +17,7 @@ const { t, useI18N } = i18n
 async function login(username:string, password:string, extra?: object) {
     const stopWorking = working()
     return srpClientSequence(username, password, apiCall, extra).catch(err => {
-        if (err.code == HTTP_FAILED_DEPENDENCY)
+        if (err.code == HTTP_METHOD_NOT_ALLOWED)
             return apiCall('login', { username, password, ...extra })
         throw err
     }).then(res => {
