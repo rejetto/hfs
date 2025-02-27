@@ -159,7 +159,7 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
         const { URL } = ctx
         const base = prepend === undefined && baseUrl.get()
             || URL.protocol + '//' + URL.host + ctx.state.revProxyPath
-        prepend = base + ctx.originalUrl.split('?')[0]! as string
+        prepend = base + pathEncode(decodeURI(ctx.path)) // redo the encoding our way, keeping unicode chars unchanged
     }
     const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth) })
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {
