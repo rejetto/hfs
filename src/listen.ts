@@ -26,7 +26,7 @@ interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
 let httpsSrv: undefined | http.Server & ServerExtra
 
-const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
+const openBrowserAtStart = defineConfig('open_browser_at_start', true)
 
 export const baseUrl = defineConfig(CFG.base_url, '',
     x => /(?<=\/\/)[^\/]+/.exec(x)?.[0]) // compiled is host only

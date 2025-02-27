@@ -125,7 +125,7 @@ export async function update(tagOrUrl: string='') {
         const asset = update.assets.find((x: any) => x.name.includes(assetSearch) && x.name.endsWith('.zip'))
             || update.assets.find((x: any) => x.name.endsWith(legacyAssetSearch))
         if (!asset)
-            throw "asset not found"
+            throw `asset not found: ${assetSearch}`
         url = asset.browser_download_url
     }
     if (url) {

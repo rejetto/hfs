@@ -22,7 +22,7 @@ try {
 }
 catch {}
 
-export const DEV = process.env.DEV || argv.dev ? 'DEV' : ''
+export const DEV = process.env.DEV ? 'DEV' : ''
 export const ORIGINAL_CWD = process.cwd()
 export const HFS_STARTED = new Date()
 const PKG_PATH = join(__dirname, '..', 'package.json')
@@ -40,7 +40,7 @@ export const CONFIG_FILE = 'config.yaml'
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
 if (DEV) console.clear()
-else console.debug = ()=>{}
+else if (!argv.debug) console.debug = ()=>{}
 console.log(`HFS ~ HTTP File Server`)
 console.log(`© Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt`)
 console.log('started', formatTimestamp(HFS_STARTED), DEV)
