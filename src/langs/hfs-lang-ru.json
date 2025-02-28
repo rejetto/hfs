@@ -1,6 +1,6 @@
 {
     "author": "Mefistofell, SanokKule, ItsNeverLight",
-    "version": 2.7,
+    "version": 2.71,
     "hfs_version": "0.56.0",
     "translate": {
         "Select": "Выбор",
@@ -9,8 +9,8 @@
         "filter_count": "{n,plural, one{# элемент} few{# элемента} many{# элементов}}",
         "select_count": "{n,plural, one{Выбран #} other{Выбрано #}}",
         "filter_placeholder": "Введите текст для фильтрации списка",
-        "Select some files": "Выделите файлы",
-        "zip_checkboxes": "Выделите нужные файлы и снова нажмите zip",
+        "Select some files": "Выбрать файлы",
+        "zip_checkboxes": "Выберите нужные файлы и снова нажмите zip",
         "zip_tooltip_selected": "Скачать выбранные элементы в zip-архиве",
         "zip_tooltip_whole": "Выбрать файлы для скачивания в zip-архиве. Если файлы не выбраны, то будет скачана вся папка",
         "zip_confirm_search": "Скачать все результаты поиска в одном zip-архиве",
@@ -20,7 +20,7 @@
         "delete_confirm": "Удалить {n,plural, one{# элемент} few{# элемента} many{# элементов}}?",
         "delete_completed": "{n,plural, one{Удалён} other{Удалено}} {n,plural, one{# элемент} few{# элемента} many{# элементов}}",
         "delete_failed": ", {n} неуспешно",
-        "delete_select": "Выделите элементы для удаления",
+        "delete_select": "Выберите элементы для удаления",
         "Delete": "Удалить",
         "Options": "Настройки",
         "Search": "Поиск",
@@ -85,7 +85,7 @@
         "home": "Домашняя папка",
 
         "Continue": "Продолжить",
-        "Confirm": "Подтвердить",
+        "Confirm": "Да",
         "Don't": "Нет",
         "Warning": "Внимание",
         "Error": "Ошибка",
@@ -119,7 +119,7 @@
         "Tiles mode:": "Плитки:",
         "off": "выключено",
         "Operation successful": "Операция успешна",
-        "Uploader": "Загрузчик",
+        "Uploader": "Загружено",
         "Download counter": "Счётчик загрузок",
         "Switch zoom mode": "Переключить увеличение",
         "Full screen": "Полный экран",
@@ -137,8 +137,8 @@
         "showHelp_F_body": "полноэкранный режим",
         "Destination": "Назначение",
         "in_queue": "{n} в очереди",
-        "enter_comment": "Комментарий для {name}",
-        "Comment": "Комментарий",
+        "enter_comment": "Комментарий для файла",
+        "Comment": "Комментировать",
         "upload_dd_hint": "Вы можете загрузить файлы перетащив их в список файлов",
         "Upload not available": "Загрузка недоступна",
         "Cut": "Вырезать",
@@ -146,10 +146,9 @@
         "good_bad": "{good} {good,plural, one{перемещён} other{перемещено}}, {bad} неуспешно",
         "after_cut": "Выбранное скопировано в буфер обмена.\nПерейдите в папку назначения для вставки.",
         "Cancel clipboard": "Отменить буфер обмена",
-        "to_clipboard_source": "В папку",
+        "to_clipboard_source": "Вернуться в исходную папку",
         "Paste": "Вставить",
         "clipboard_list": "Элементы в буфере обмена:",
-        
         "Close": "Закрыть",
         "Folder": "Папка",
         "Web page": "Веб адрес",
@@ -165,10 +164,10 @@
         "Invalid value": "Недействительное значение",
         "upload_skipped": "{n,plural, one{# пропущен} other{# пропущено}}",
         "Overwrite policy": "Правило перезаписи",
-        "Rename to avoid overwriting": "Переименовать для избежания перезаписи",
+        "Rename to avoid overwriting": "Переименовать во избежание перезаписи",
         "Overwrite existing files": "Перезаписать существующие файлы",
         "Menu": "Меню",
-
+		
         "clipboard": "Буфер обмена ({content})",
         "to_clipboard_source_tooltip": "Перейти в папку где находится содержимое из буфера обмена",
         "more_items": "Ещё {rest} элементов",
@@ -179,15 +178,21 @@
 
         "Cancel": "Отмена",
         "allow_session_ip_change": "Разрешить смену IP в этой сессии",
-
-        "focus_hint": "Набирая текст на клавиатуре, вы можете выполнять поиск и выбирать элементы из списка.",
-        "copy_links": "Копировать ссылки",
+		
+		"focus_hint": "Набирая текст на клавиатуре, вы можете выполнять поиск и выбирать элементы из списка.",
+        "copy_links": "Скопировать ссылки",
 
         "Calculate": "Рассчитать",
         "Creation": "Дата создания",
         "creation": "созданию",
         "required_change_password": "Вам необходимо изменить свой пароль",
         "Wildcards": "Шаблоны",
-        "Considering resume": "Оценка возобновления"
+        "Considering resume": "Оценка возобновления",
+		
+		
+        "_PLUGINS SECTION": "",
+        "_PLUGIN thumbnails":  "",
+        "Enable tiles mode": "Просмотр в режиме плиток",
+        "thumbnails_switchBack": "Изменить вид можно в настройках"		
     }
 }
