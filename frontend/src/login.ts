@@ -103,7 +103,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                             onKeyDown
                         }),
                     ),
-                    h('div', { style: { textAlign: 'right' } },
+                    h('div', { className: 'submit' },
                         h('button', { type: 'submit' }, t`Continue`)),
                     h('div', { id: 'login-options' },
                         h(Checkbox, { ref: ipRef, id: 'allow_session_ip_change' },

@@ -217,15 +217,20 @@ function searchDialog() {
         Content() {
             const style = { width: 0, minWidth: '100%', maxWidth: '100%', boxSizing: 'border-box' }
             return h(Fragment, {},
-                h('label', { htmlFor: 'name' }, t('search_msg', "Search this folder and sub-folders")),
-                h('input', { name: 'name', style, autoFocus: true, }),
-                h('label', { htmlFor: 'comment' }, t`Comment`),
-                h('input', { name: 'comment', style, }),
-                h('div', { style: { margin: '1em 0' } },
-                    h(Checkbox, { name: 'wild', defaultChecked: true }, t`Wildcards`), // uncontrolled
-                    h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info')),
+                t('search_msg', "Search this folder and sub-folders"),
+                h('div', { className: 'field name' },
+                    h('label', { htmlFor: 'name' }, t`Name`),
+                    h('input', { name: 'name', style, autoFocus: true, }),
                 ),
-                h('div', { style: { textAlign: 'right', marginTop: '.8em' } },
+                h('div', { className: 'field comment' },
+                    h('label', { htmlFor: 'comment' }, t`Comment`),
+                    h('input', { name: 'comment', style, }),
+                ),
+                h('div', { className: 'field wildcards' },
+                    h(Checkbox, { name: 'wild', defaultChecked: true }, t`Wildcards`,
+                        h('a', { href: `${WIKI_URL}Wildcards`, target: 'doc' }, hIcon('info'))), // uncontrolled
+                ),
+                h('div', { className: 'submit' },
                     h('button', {}, t`Continue`)),
             )
         }

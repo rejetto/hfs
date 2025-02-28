@@ -513,8 +513,14 @@ button .icon + .label {
         margin-bottom: .5em;
         margin-left: .1em;
     }
+    .submit { text-align: right; }
 }
-#search-dialog form label:not(:first-of-type) { display: block; margin-top: 1em }
+#search-dialog form {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    .submit { text-align: right; }
+}
 
 form label+input { margin-top: .2em; }
 
