@@ -103,6 +103,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                             onKeyDown
                         }),
                     ),
+                    h(CustomCode, { name: 'beforeLoginSubmit' }),
                     h('div', { className: 'submit' },
                         h('button', { type: 'submit' }, t`Continue`)),
                     h('div', { id: 'login-options' },

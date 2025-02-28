@@ -439,6 +439,9 @@ This is a list of available frontend-events, with respective object parameter an
 - `beforeLogin`
   - no parameter
   - output `Html`
+- `beforeLoginSubmit`
+  - no parameter
+  - output `Html`
 - `fileMenu`
   - add or manipulate entries of the menu. If you return something, that will be added to the menu.
     You can also delete or replace the content of the `menu` array.
@@ -792,6 +795,7 @@ If you want to override a text regardless of the language, use the special langu
 
 - 12.0 (v0.57.0)
     - backend event: finalizingLogin, httpsServerOptions, clearTextLogin
+    - frontend events: beforeLoginSubmit
     - exports.changelog
     - automatic unload of api.events listeners
     - removed DirEntry.t
