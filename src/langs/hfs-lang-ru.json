@@ -130,7 +130,7 @@
         "showHelp_↑/↓": "↑/↓",
         "showHelp_space": "пробел",
         "showHelp_←/→_body": "предыдущий/следующий файл",
-        "showHelp_↑/↓_body": "прокрутка высоких изображений",
+        "showHelp_↑/↓_body": "прокрутка по высоте",
         "showHelp_space_body": "выбрать файл",
         "showHelp_D_body": "скачать",
         "showHelp_Z_body": "переключение увеличения",
@@ -193,6 +193,7 @@
         "_PLUGINS SECTION": "",
         "_PLUGIN thumbnails":  "",
         "Enable tiles mode": "Просмотр в режиме плиток",
-        "thumbnails_switchBack": "Изменить вид можно в настройках"		
+        "thumbnails_switchBack": "Изменить вид можно в настройках",
+	"esc_again": "Для закрытия просмотра нажмите ESC ещё раз"
     }
 }
