@@ -68,17 +68,20 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             },
             !isGroup && !pluginAuth && { k: 'password2', xs: 6, md: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 getError: (x, { values }) => (x||'') !== (values.password||'') && "Enter same password" },
+
             { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 8,
                 helperText: !values.disabled && values.canLogin === false ? h(Box, { color: 'warning.main', component: 'span' }, "Login is prevented because all of its groups are disabled")
                     : "Login is prevented if account is disabled, or all its groups are disabled" },
-            { k: 'ignore_limits', comp: BoolField, xs: true,
+            { k: 'ignore_limits', comp: BoolField, xs: 12, sm: 6, lg: 4,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
-            { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: 6, lg: 4,
+
+            { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: isGroup ? 6 : 4, lg: isGroup ? 8 : 4,
                 helperText: "To access THIS interface you are using right now",
                 ...!account.admin && account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited. To disable it, act on the groups." },
             },
-            { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: true },
-            { k: 'require_password_change', comp: BoolField, xs: 12, lg: 4, helperText: "At first login" },
+            { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: 12, sm: 4 },
+            !isGroup && { k: 'require_password_change', comp: BoolField, xs: 12, sm: 4, helperText: "At first login" },
+
             !members ? null
                 : isGroup && !members.length ? h(Box, {}, "No members")
                     : members.length > 0 && h(Box, {}, `${members.length} members: `,

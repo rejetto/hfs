@@ -23,7 +23,7 @@ export interface Account {
     expire?: Date
     days_to_live?: number // this is not inherited, but it will affect sub-accounts via 'expire'
     allow_net?: string
-    require_password_change?: boolean
+    require_password_change?: boolean // not inherited
     notes?: string
     plugin?: { id?: string, auth?: boolean, [rest: string]: unknown }
 }
