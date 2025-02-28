@@ -84,7 +84,7 @@ export class SendListReadable<T> extends Readable {
         if (op === LIST.remove) return
         if (op === LIST.add || op === LIST.update)
             return Object.assign(found[op === LIST.add ? 1 : 2], change)
-        return this._push([LIST.update, search, change])
+        this._push([LIST.update, search, change])
     }
     ready() { // useful to indicate the end of an initial phase, but we leave open for updates
         this._push([LIST.ready])

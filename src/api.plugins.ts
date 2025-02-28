@@ -28,6 +28,7 @@ const apis: ApiHandlers = {
                 list.update({ id }, rest)
             },
             pluginUninstalled: id => list.remove({ id }),
+            pluginLog: id => list.update({ id }, { log: true }) // SendList is already capping frequency
         })
     },
 
@@ -190,6 +191,7 @@ function serialize(p: Readonly<Plugin> | AvailablePlugin) {
         : { ...p } // _.defaults mutates object, and we don't want that
     if (typeof o.repo === 'object') // custom repo
         o.repo = o.repo.web
+    o.log = 'log' in p && p.log?.length > 0
     o = produce(o, (o: any) => {
         _.each(o.config, x => x.showIf &&= String(x.showIf))
     })

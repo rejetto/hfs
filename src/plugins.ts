@@ -525,6 +525,7 @@ function watchPlugin(id: string, path: string) {
                         plugin.log.unshift({ ts: new Date, msg: args.map(x => x && typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ') })
                         plugin.log.length = Math.min(100, plugin.log.length) // truncate
                         events.emit('pluginLog:' + id, plugin.log[0])
+                        events.emit('pluginLog', id, plugin.log[0])
                     })
                 },
                 getConfig(cfgKey?: string) {

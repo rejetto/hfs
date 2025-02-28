@@ -119,10 +119,11 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 onClick: () => startPlugin(id),
             }),
             h(IconBtn, {
-                icon: row.config || !row.started ? Settings : ListAlt,
-                title: row.config ? "Options" : "Log",
+                icon: row.config || !row.started || !row.log ? Settings : ListAlt,
+                title: row.config || !row.log ? "Options" : "Log",
                 size,
-                disabled: !row.started && "Start plugin to access options",
+                disabled: !row.started && "Start plugin to access options"
+                    || !row.config && !row.log && "No options and no log for this plugin",
                 async onClick() {
                     const { config: lastSaved } = await apiCall('get_plugin', { id })
                     // support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
