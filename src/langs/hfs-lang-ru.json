@@ -137,7 +137,7 @@
         "showHelp_F_body": "полноэкранный режим",
         "Destination": "Назначение",
         "in_queue": "{n} в очереди",
-        "enter_comment": "Комментарий для файла",
+        "enter_comment": "Комментарий для {name}",
         "Comment": "Комментировать",
         "upload_dd_hint": "Вы можете загрузить файлы перетащив их в список файлов",
         "Upload not available": "Загрузка недоступна",
