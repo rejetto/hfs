@@ -329,9 +329,9 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             const partial = stringAfter('?', row.uri).includes('partial=')
             const upload = row.method === 'PUT' || extra?.ul
             if (upload)
-                row.length = extra?.size
+                row.length = extra?.size ?? 0
             row.notes = extra?.dl ? "full download " + (extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : '') // 'dl' here is not the '?dl' of the url, and has a different meaning
-                : upload ? `${partial ? "partial " : ""} upload ${extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : 0}`
+                : upload ? `${partial ? "partial " : ""} upload ${extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : ''}`
                     : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)
                         : _.map(extra?.params, (v, k) => `${k}: ${v}\n`).join('') + (row.notes || '')
         }
