@@ -1,7 +1,7 @@
 import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
-    HTTP_CONFLICT, HTTP_FOOL, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_BAD_REQUEST,
+    HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_BAD_REQUEST,
     UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
 } from './const'
 import { basename, dirname, extname, join } from 'path'
@@ -109,7 +109,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
             if (fullSize > free - (min || 0))
-                return fail(HTTP_PAYLOAD_TOO_LARGE)
+                return fail(HTTP_INSUFFICIENT_STORAGE)
         }
         catch(e: any) { // warn, but let it through
             console.warn("can't check disk size:", e.message || String(e))

@@ -34,6 +34,7 @@ export const HTTP_FAILED_DEPENDENCY = 424
 export const HTTP_TOO_MANY_REQUESTS = 429
 export const HTTP_SERVER_ERROR = 500
 export const HTTP_SERVICE_UNAVAILABLE = 503
+export const HTTP_INSUFFICIENT_STORAGE = 507
 
 export const HTTP_MESSAGES: Record<number, string> = {
     [HTTP_UNAUTHORIZED]: "Unauthorized",
