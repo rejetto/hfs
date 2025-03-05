@@ -115,10 +115,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     }
 
     function geoBox() {
-        const countryOptions = useMemo(() => _.sortBy(COUNTRIES, 'name').map(x => ({
-            value: x.code,
-            label: x.name,
-        })), [COUNTRIES])
+        const countryOptions = useMemo(() => COUNTRIES.map(x => ({ value: x.code, label: x.name })), [COUNTRIES])
         return h(TitleCard, { title: "Geo IP", icon: Public },
             h(ConfigForm<{
                 [CFG.geo_enable]: boolean

@@ -48,15 +48,14 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         stop?.()
         let body: any = await res.text()
         let data: any
-        try { data = options.skipParse ? undefined : JSON.parse(body) }
-        catch {}
-        const result = data ?? body
+        try { data = options.skipParse ? body : JSON.parse(body) }
+        catch { data = body }
         if (!options?.skipLog)
-            console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', result)
-        await options.onResponse?.(res, result)
+            console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', data)
+        await options.onResponse?.(res, data)
         if (!res.ok)
             throw new ApiError(res.status, data === undefined ? body : `Failed API ${cmd}: ${res.statusText}`, data)
-        return result as Awaited<T extends (...args: any[]) => infer R ? Awaited<R> : T>
+        return data as Awaited<T extends (...args: any[]) => infer R ? Awaited<R> : T>
     }, err => {
         stop?.()
         if (err?.message?.includes('fetch')) {
