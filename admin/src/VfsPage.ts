@@ -41,6 +41,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     }, [status, config])
     const single = selectedFiles?.length < 2 && (selectedFiles[0] as VfsNode || vfs)
     const accountsApi = useApiEx<{ list: Account[] }>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
+    const accounts = useMemo(() => _.sortBy(accountsApi?.data?.list, 'username'), [accountsApi.data])
 
     // this will take care of closing the dialog, for user's convenience, after "cut" button is pressed
     const closeDialogRef = useRef(_.noop)
@@ -72,7 +73,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
             statusApi,
             saved: () => closeDialogRef.current(),
-            accounts: accountsApi?.data?.list ?? [],
+            accounts: accounts ?? [],
             file: single  // it's actually Snapshot<VfsNode> but it's easier this way
         })
         : h(Fragment, {},
