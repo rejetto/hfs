@@ -113,10 +113,10 @@ export class DirEntry implements ServerDirEntry {
     public readonly key?: string
 
     constructor(n: string, rest?: any) {
-        Object.assign(this, rest) // we actually allow any custom property to be memorized
         this.isFolder = n.endsWith('/')
         if (this.isFolder)
             n = n.slice(0, -1)
+        Object.assign(this, rest) // we actually allow any custom property to be memorized
         this.n = n // must do it after 'rest' to avoid overwriting
         this.uri = rest?.url || ((n[0] === '/' ? '' : location.pathname) + pathEncode(n) + (this.isFolder ? '/' : ''))
         if (!this.isFolder) {
