@@ -181,7 +181,8 @@ export default function AccountsPage() {
             return alertDialog("Following elements couldn't be deleted: " + errors.join(', '), 'error')
     }
 
-    function account2icon(ac: Account, props={}) {
-        return h(ac.isGroup ? Group : Person, props)
-    }
+}
+
+export function account2icon(ac: Account, props={}) {
+    return h(ac.isGroup ? Group : Person, props)
 }

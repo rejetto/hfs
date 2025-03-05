@@ -27,10 +27,9 @@ import addFiles, { addLink, addVirtual } from './addFiles'
 import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
 import { hIcon } from '@hfs/frontend/src/misc'
 import { TextEditorField } from './TextEditor'
+import { Account, account2icon } from './AccountsPage'
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
-
-export interface Account { username: string }
 
 interface FileFormProps {
     file: VfsNode
@@ -282,7 +281,9 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
                 label: accounts?.length ? "Accounts for " + rest.label : "You didn't create any account yet",
                 value: thisValue,
                 onChange,
-                options: accounts?.map(a => ({ value: a.username, label: a.username })) || [],
+                options: accounts?.map(a => ({ value: a.username, label: a.username, a })) || [],
+                // show icon only for groups, to save space inside the field (not the list)
+                renderOption: (x: any) => h('span', {}, x.a.isGroup && account2icon(x.a), ' ', x.label),
             }) ),
         h(FormHelperText, {},
             helperText,
