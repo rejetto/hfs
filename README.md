@@ -27,7 +27,6 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 - https
 - easy certificate generation
-- unicode
 - virtual file system
 - mobile friendly
 - search
@@ -35,8 +34,8 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - resumable downloads & uploads
 - download folders as zip archive
 - delete, move and rename files
+- plug-ins (anti-brute-force, thumbnails, ldap, themes, and more)
 - simple website serving
-- plug-ins
 - real-time monitoring of connections
 - [show some files](https://github.com/rejetto/hfs/discussions/270)
 - speed throttler
@@ -44,7 +43,6 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - admin web interface
 - multi-language front-end
 - virtual hosting
-- anti-brute-force (plug-in)
 - [reverse-proxy support](https://github.com/rejetto/hfs/wiki/Reverse-proxy)
 - comments in file descript.ion
 - integrated media player
