@@ -175,6 +175,9 @@
         "creation": "creazione",
         "required_change_password": "È necessario cambiare la password",
         "Wildcards": "Caratteri jolly",
-        "Considering resume": "Ripristino upload"
+        "Considering resume": "Ripristino upload",
+
+        "Yes": "Sì",
+        "No":  "No"
     }
 }

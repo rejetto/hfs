@@ -183,7 +183,7 @@ export function confirmDialog(msg: ReactElement | string, options: ConfirmOption
                     href,
                     tabIndex: -1,
                     onClick() { dialog.close(true) },
-                }, h('button', {}, t`Confirm`, timeoutConfirm && missingText)),
+                }, h('button', {}, t`Yes`, timeoutConfirm && missingText)),
                 h('button', {
                     onClick() { dialog.close(false) },
                 }, t`Don't`, !timeoutConfirm && missingText),

@@ -188,6 +188,9 @@
         "creation": "creación",
         "required_change_password": "Debe cambiar su contraseña",
         "Wildcards": "Comodines",
-        "Considering resume": "Considerando reanudar"
+        "Considering resume": "Considerando reanudar",
+
+        "Yes": "Si",
+        "No":  "No"
     }
 }

@@ -184,6 +184,9 @@
         "creation": "креирање",
         "required_change_password": "Потребно је да промените лозинку",
         "Wildcards": "Џокер знакови",
-        "Considering resume": "Разматрам наставак"
+        "Considering resume": "Разматрам наставак",
+
+        "Yes": "Да",
+        "No":  "Не"
     } 
 }

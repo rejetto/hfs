@@ -184,6 +184,9 @@
         "creation": "إنشاء",
         "required_change_password": "يجب عليك تغيير كلمة المرور الخاصة بك",
         "Wildcards": "أحرف البدل",
-        "Considering resume": "جارٍ التحقق من استئناف الرفع"
+        "Considering resume": "جارٍ التحقق من استئناف الرفع",
+
+        "Yes": "نعم",
+        "No":  "لا"
     }
 }

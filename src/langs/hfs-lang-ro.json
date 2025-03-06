@@ -184,6 +184,9 @@
         "creation": "creare",
         "required_change_password": "Trebuie să-ți schimbi parola",
         "Wildcards": "Metacaractere",
-        "Considering resume": "Se încearcă reluarea"
+        "Considering resume": "Se încearcă reluarea",
+
+        "Yes": "Da",
+        "No":  "Nu"
     }
 }

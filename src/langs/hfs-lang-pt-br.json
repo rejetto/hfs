@@ -183,6 +183,9 @@
         "creation": "criação",
         "required_change_password": "Você precisa alterar sua senha",
         "Wildcards": "Curingas",
-        "Considering resume": "Considerando retomar"
+        "Considering resume": "Considerando retomar",
+
+        "Yes": "Sim",
+        "No":  "Nao"
     }
 }

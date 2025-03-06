@@ -188,6 +188,9 @@
         "creation": "luonti",
         "required_change_password": "Sinun täytyy vaihtaa salasanasi",
         "Wildcards": "Villimerkit",
-        "Considering resume": "Yritetään jatkaa"
+        "Considering resume": "Yritetään jatkaa",
+
+        "Yes": "Kyllä",
+        "No":  "Ei"
     }
 }

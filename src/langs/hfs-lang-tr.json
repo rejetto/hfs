@@ -181,6 +181,12 @@
 
         "Calculate": "Hesapla",
         "Creation": "Oluşturma",
-        "creation": "oluşturma"
+        "creation": "oluşturma",
+        "required_change_password": "Sifrenizi değiştirmeniz gerekiyor",
+        "Wildcards": "Metakarakterler",
+        "Considering resume": "Tekrarlama aranıyor",
+
+        "Yes": "Evet",
+        "No":  "Hayır"
     }
 }

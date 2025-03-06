@@ -184,6 +184,9 @@
         "creation": "建立",
         "required_change_password": "您必須更改密碼",
         "Wildcards": "萬用字元",
-        "Considering resume": "考慮繼續上傳"
+        "Considering resume": "考慮繼續上傳",
+
+        "Yes": "是",
+        "No":  "否"
     }
 }

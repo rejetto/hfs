@@ -183,6 +183,9 @@
         "creation": "creation",
         "required_change_password": "You are required to change your password",
         "Wildcards": "Wildcards",
-        "Considering resume": "Considering resume"
+        "Considering resume": "Considering resume",
+
+        "Yes": "Yes",
+        "No":  "No"
     }
 }

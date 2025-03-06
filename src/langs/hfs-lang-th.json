@@ -184,6 +184,9 @@
         "creation": "การสร้าง",
         "required_change_password": "คุณจำเป็นต้องเปลี่ยนรหัสผ่านของคุณ",
         "Wildcards": "อักขระตัวแทน",
-        "Considering resume": "กำลังพิจารณาดำเนินการต่อ"
+        "Considering resume": "กำลังพิจารณาดำเนินการต่อ",
+
+        "Yes": "ใช่",
+        "No":  "ไม่"
     }
 }

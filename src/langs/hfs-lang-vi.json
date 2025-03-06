@@ -189,6 +189,9 @@
         "creation": "ngày tạo",
         "required_change_password": "Bạn được yêu cầu đổi ngay cái password",
         "Wildcards": "Wildcards (nâng cao)",
-        "Considering resume": "Lỗi kết nối. Đang kết nối lại..."
+        "Considering resume": "Lỗi kết nối. Đang kết nối lại...",
+
+        "Yes": "Có",
+        "No":  "Không"
     }
 }

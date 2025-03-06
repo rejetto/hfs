@@ -183,6 +183,9 @@
 		"creation": "gecreëerd",
 		"required_change_password": "U bent verplicht Uw password te veranderen",
 		"Wildcards": "Wildcards",
-		"Considering resume": "Overweeg hervatten"
+		"Considering resume": "Overweeg hervatten",
+
+        "Yes": "Ja",
+        "No":  "Nee"
 	}
 }

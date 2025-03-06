@@ -184,6 +184,9 @@
         "creation": "생성일",
         "required_change_password": "비밀번호를 변경해야 합니다.",
         "Wildcards": "와일드카드",
-        "Considering resume": "업로드 재개 여부 확인 중"
+        "Considering resume": "업로드 재개 여부 확인 중",
+
+        "Yes": "영",
+        "No":  "안"
     }
 }

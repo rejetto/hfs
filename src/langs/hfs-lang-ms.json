@@ -145,6 +145,9 @@
         "creation": "penciptaan",
         "required_change_password": "Anda perlu menukar kata laluan anda",
         "Wildcards": "Kad bebas",
-        "Considering resume": "Mempertimbangkan sambungan semula"
+        "Considering resume": "Mempertimbangkan sambungan semula",
+
+        "Yes": "Ya",
+        "No":  "Tidak"
     }
 }

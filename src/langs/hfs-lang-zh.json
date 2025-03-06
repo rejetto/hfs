@@ -188,6 +188,9 @@
         "creation": "创建",
         "required_change_password": "您需要更改密码",
         "Wildcards": "通配符",
-        "Considering resume": "正在尝试恢复上传"
+        "Considering resume": "正在尝试恢复上传",
+
+        "Yes": "是",
+        "No":  "否"
     }
 }

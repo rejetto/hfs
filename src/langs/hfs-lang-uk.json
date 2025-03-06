@@ -178,6 +178,9 @@
         "creation": "створення",
         "required_change_password": "Вам необхідно змінити пароль",
         "Wildcards": "Шаблони",
-        "Considering resume": "Оцінка відновлення"
+        "Considering resume": "Оцінка відновлення",
+
+        "Yes": "Так",
+        "No":  "Ні"
     }
 }

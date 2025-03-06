@@ -184,6 +184,9 @@
         "creation": "作成日時",
         "required_change_password": "パスワードを変更する必要があります",
         "Wildcards": "ワイルドカード",
-        "Considering resume": "アップロード再開の確認中"
+        "Considering resume": "アップロード再開の確認中",
+
+        "Yes": "はい",
+        "No":  "いいえ"
     }
 }

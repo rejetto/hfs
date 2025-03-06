@@ -183,6 +183,9 @@
         "creation": "utworzenie",
         "required_change_password": "Musisz zmienić swoje hasło",
         "Wildcards": "Symbole wieloznaczne",
-        "Considering resume": "Rozważanie wznowienia"
+        "Considering resume": "Rozważanie wznowienia",
+
+        "Yes": "Tak",
+        "No":  "Nie"
     }
 }

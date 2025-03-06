@@ -189,6 +189,9 @@
         "creation": "létrehozás",
         "required_change_password": "Meg kell változtatnia a jelszavát",
         "Wildcards": "Helyettesítő karakterek",
-        "Considering resume": "Feltöltés folytatásának ellenőrzése"
+        "Considering resume": "Feltöltés folytatásának ellenőrzése",
+
+        "Yes": "Igen",
+        "No":  "Nem"
     }
 }

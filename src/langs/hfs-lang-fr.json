@@ -188,6 +188,9 @@
 		"creation": "création",
 		"required_change_password": "Vous devez changer votre mot de passe",
 		"Wildcards": "Caractères génériques",
-		"Considering resume": "Reprise en cours d'analyse"
+		"Considering resume": "Reprise en cours d'analyse",
+
+		"Yes": "Oui",
+		"No":  "Non"
 	}
 }
