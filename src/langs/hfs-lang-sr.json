@@ -187,6 +187,7 @@
         "Considering resume": "Разматрам наставак",
 
         "Yes": "Да",
-        "No":  "Не"
+        "No":  "Не",
+        "esc_again": "Пritisnite ESC два пута за затварање"
     } 
 }

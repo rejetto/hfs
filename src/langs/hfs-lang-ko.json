@@ -187,6 +187,7 @@
         "Considering resume": "업로드 재개 여부 확인 중",
 
         "Yes": "영",
-        "No":  "안"
+        "No":  "안",
+        "esc_again": "ESC 두번 페스하기"
     }
 }

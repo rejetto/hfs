@@ -178,6 +178,7 @@
         "Considering resume": "Ripristino upload",
 
         "Yes": "Sì",
-        "No":  "No"
+        "No":  "No",
+        "esc_again": "Premi ESC due volte per chiudere"
     }
 }

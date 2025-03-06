@@ -192,6 +192,7 @@
         "Considering resume": "Feltöltés folytatásának ellenőrzése",
 
         "Yes": "Igen",
-        "No":  "Nem"
+        "No":  "Nem",
+        "esc_again": "ESC megadva 2 alkalommal"
     }
 }

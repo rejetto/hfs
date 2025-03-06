@@ -191,6 +191,7 @@
         "Considering resume": "Yritetään jatkaa",
 
         "Yes": "Kyllä",
-        "No":  "Ei"
+        "No":  "Ei",
+        "esc_again": "Paina ESC kaksi kertaa sulkea"
     }
 }

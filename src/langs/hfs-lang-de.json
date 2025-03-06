@@ -177,6 +177,7 @@
         "Considering resume": "Prüfe Fortsetzen des Uploads",
 
         "Yes": "Ja",
-        "No":  "Nein"
+        "No":  "Nein",
+        "esc_again": "Drucken Sie ESC zwei Mal, um das Fenster zu schließen."
     }
 }

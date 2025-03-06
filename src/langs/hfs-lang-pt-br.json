@@ -186,6 +186,7 @@
         "Considering resume": "Considerando retomar",
 
         "Yes": "Sim",
-        "No":  "Nao"
+        "No":  "Nao",
+        "esc_again": "Pressione ESC duas vezes para fechar"
     }
 }

@@ -186,6 +186,7 @@
         "Considering resume": "Rozważanie wznowienia",
 
         "Yes": "Tak",
-        "No":  "Nie"
+        "No":  "Nie",
+        "esc_again": "Naciśnij ESC dwukrotnie do zamkniecia"
     }
 }

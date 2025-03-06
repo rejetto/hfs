@@ -187,6 +187,7 @@
         "Considering resume": "Tekrarlama aranıyor",
 
         "Yes": "Evet",
-        "No":  "Hayır"
+        "No":  "Hayır",
+        "esc_again": "ESC'i iki kere basarak kapat"
     }
 }

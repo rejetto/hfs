@@ -191,6 +191,7 @@
         "Considering resume": "正在尝试恢复上传",
 
         "Yes": "是",
-        "No":  "否"
+        "No":  "否",
+        "esc_again": "按 ESC 两次关闭"
     }
 }

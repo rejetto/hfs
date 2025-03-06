@@ -187,6 +187,7 @@
         "Considering resume": "アップロード再開の確認中",
 
         "Yes": "はい",
-        "No":  "いいえ"
+        "No":  "いいえ",
+        "esc_again": "ESCを2回押して閉じます"
     }
 }

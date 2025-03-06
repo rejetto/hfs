@@ -187,6 +187,7 @@
         "Considering resume": "Se încearcă reluarea",
 
         "Yes": "Da",
-        "No":  "Nu"
+        "No":  "Nu",
+        "esc_again": "Apasa ESC de doua ori pentru a inchide"
     }
 }

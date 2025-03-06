@@ -187,6 +187,7 @@
         "Considering resume": "考慮繼續上傳",
 
         "Yes": "是",
-        "No":  "否"
+        "No":  "否",
+        "esc_again": "按 ESC 兩次關閉"
     }
 }

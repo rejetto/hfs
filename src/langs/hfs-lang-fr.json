@@ -191,6 +191,7 @@
 		"Considering resume": "Reprise en cours d'analyse",
 
 		"Yes": "Oui",
-		"No":  "Non"
+		"No":  "Non",
+		"esc_again": "Appuyez ESC deux fois pour fermer"
 	}
 }

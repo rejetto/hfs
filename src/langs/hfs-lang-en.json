@@ -186,6 +186,7 @@
         "Considering resume": "Considering resume",
 
         "Yes": "Yes",
-        "No":  "No"
+        "No":  "No",
+        "esc_again": "Press ESC twice to close"
     }
 }

@@ -192,6 +192,7 @@
         "Considering resume": "Lỗi kết nối. Đang kết nối lại...",
 
         "Yes": "Có",
-        "No":  "Không"
+        "No":  "Không",
+        "esc_again": "Nâng câp ESC bằng cách nâng câp"
     }
 }
