@@ -71,10 +71,10 @@
         "folder_exists": "Trùng tên folder!",
 
         "Sort by": "Sắp xếp theo",
-        "name": "Tên",
-        "extension": "Phần mở rộng",
-        "size": "Kích cỡ",
-        "time": "Thời gian",
+        "name": "tên",
+        "extension": "phần mở rộng",
+        "size": "kích cỡ",
+        "time": "thời gian",
         "Invert order": "Đảo ngược thứ tự",
         "Folders first": "Folder trước",
         "Numeric names": "Tên số",
@@ -186,7 +186,7 @@
 		
         "Calculate": "Tính",
         "Creation": "Ngày tạo",
-        "creation": "Ngày tạo",
+        "creation": "ngày tạo",
         "required_change_password": "Bạn được yêu cầu đổi ngay cái password",
         "Wildcards": "Wildcards (nâng cao)",
         "Considering resume": "Lỗi kết nối. Đang kết nối lại..."
