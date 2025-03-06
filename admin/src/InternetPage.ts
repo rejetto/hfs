@@ -160,7 +160,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     function httpsBox() {
         const [values, setValues] = useState<any>()
         const cert = useApiEx('get_cert')
-        useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email', 'acme_renew'] }).then(setValues) } , [])
+        useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_renew'] }).then(setValues) } , [])
         const [saving, setSaving] = useState(false)
         if (!status || !values) return h(CircularProgress)
         const { https } = status.data ||{}
@@ -202,7 +202,6 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                         toField: x => x.replaceAll(',', '\n'),
                         helperText: md("Example: your.domain.com\nMultiple domains on separated lines")
                     },
-                    { k: 'acme_email', label: "E-mail for certificate", sm: true },
                     {
                         k: 'acme_renew',
                         label: "Automatic renew one month before expiration",
@@ -221,7 +220,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             return
                         if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
                         if (await stopOnCheckDomain(domain)) return
-                        await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
+                        await apiCall('make_cert', { domain, altNames }, { timeout: 20_000 })
                             .then(async () => {
                                 await alertDialog("Certificate created", 'success')
                                 if (disabled)

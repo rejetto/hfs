@@ -86,7 +86,6 @@ Configuration can be done in several ways
 - `keep_session_alive` keeps you logged in while the page is left open and the computer is on. Default is true.
 - `session_duration` after how many seconds should the login session expire. Default is a day.
 - `acme_domain` domain used for ACME certificate generation. Default is none. 
-- `acme_email` email used for ACME certificate generation. Default is none.
 - `acme_renew` automatically renew acme certificate close to expiration. Default is false.
 - `listen_interface` network interface to listen on, by specifying IP address. Default is any.
 - `base_url` URL to be used for links generation. Default is automatic.
