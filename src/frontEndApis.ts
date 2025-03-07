@@ -17,7 +17,7 @@ import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { getUploadMeta } from './upload'
-import { apiAssertTypes, deleteNode, popKey } from './misc'
+import { apiAssertTypes, popKey } from './misc'
 import { getCommentFor, setCommentFor } from './comments'
 import { SendListReadable } from './SendList'
 import { ctxAdminAccess } from './adminApis'
@@ -78,19 +78,6 @@ export const frontEndApis: ApiHandlers = {
         catch(e:any) {
             return new ApiError(e.code === 'EEXIST' ? HTTP_CONFLICT : HTTP_BAD_REQUEST, e)
         }
-    },
-
-    async delete({ uri }, ctx) {
-        apiAssertTypes({ string: { uri } })
-        const node = await urlToNode(uri, ctx)
-        if (!node)
-            throw new ApiError(HTTP_NOT_FOUND)
-        const res = await deleteNode(ctx, node, uri)
-        if (typeof res === 'number')
-            throw new ApiError(res)
-        if (res instanceof Error)
-            throw new ApiError(HTTP_SERVER_ERROR, res)
-        return res && {}
     },
 
     async rename({ uri, dest }, ctx) {

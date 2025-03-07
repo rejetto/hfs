@@ -21,6 +21,7 @@ interface ApiCallOptions {
     method?: string
     skipParse?: boolean
     skipLog?: boolean
+    restUri?: string
 }
 
 const defaultApiCallOptions: ApiCallOptions = {}
@@ -38,9 +39,10 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         controller.abort(aborted = 'timeout')
         console.debug('API TIMEOUT', cmd, params??'')
     }, ms)
+    const asRest = options.restUri
     // rebuilding the whole url makes it resistant to url-with-credentials
-    return Object.assign(fetch(`${location.origin}${getPrefixUrl()}${API_URL}${cmd}`, {
-        method: options.method || 'POST',
+    return Object.assign(fetch(`${location.origin}${getPrefixUrl()}${asRest || (API_URL + cmd)}`, {
+        method: asRest ? cmd : (options.method || 'POST'),
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         signal: controller.signal,
         body: params && JSON.stringify(params),

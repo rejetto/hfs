@@ -141,21 +141,3 @@ export function createStreamLimiter(limit: number) {
         }
     })
 }
-
-export async function deleteNode(ctx: Koa.Context, node: VfsNode, uri: string) {
-    const { source } = node
-    if (!source)
-        return HTTP_METHOD_NOT_ALLOWED
-    if (statusCodeForMissingPerm(node, 'can_delete', ctx))
-        return ctx.status
-    try {
-        if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
-            return null // stop
-        ctx.logExtra(null, { target: decodeURI(uri) })
-        await rm(source, { recursive: true })
-        void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
-        return true
-    } catch (e: any) {
-        return e
-    }
-}

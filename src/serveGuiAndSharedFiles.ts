@@ -5,7 +5,7 @@ import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
     ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
-    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI, HTTP_FAILED_DEPENDENCY
 } from './cross-const'
 import { uploadWriter } from './upload'
 import formidable from 'formidable'
@@ -17,7 +17,9 @@ import { allowAdmin, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, deleteNode, filterMapGenerator, pathEncode, try_ } from './misc'
+import { asyncGeneratorToReadable, filterMapGenerator, pathEncode, try_ } from './misc'
+import { rm } from 'fs/promises'
+import { setCommentFor } from './comments'
 import { basicWeb, detectBasicAgent } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
 import { getPluginInfo } from './plugins'
@@ -104,16 +106,21 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return
     }
     if (ctx.method === 'DELETE') {
-        const res = await deleteNode(ctx, node, ctx.path)
-        if (typeof res === 'number')
-            return ctx.status = res
-        if (res instanceof Error) {
-            ctx.body = res.message || String(res)
+        const { source } = node
+        if (!source)
+            return ctx.status = HTTP_METHOD_NOT_ALLOWED
+        if (statusCodeForMissingPerm(node, 'can_delete', ctx))
+            return
+        try {
+            if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
+                return ctx.status = HTTP_FAILED_DEPENDENCY
+            await rm(source, { recursive: true })
+            void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
+            return ctx.status = HTTP_OK
+        } catch (e: any) {
+            ctx.body = String(e)
             return ctx.status = HTTP_SERVER_ERROR
         }
-        if (res)
-            return ctx.status = HTTP_OK
-        return
     }
     const { get } = ctx.query
     if (node.default && path.endsWith('/') && !get) { // final/ needed on browser to make resource urls correctly with html pages

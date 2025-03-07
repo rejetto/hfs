@@ -194,7 +194,7 @@ export async function deleteFiles(uris: string[]) {
         return false
     const stop = working()
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
-        apiCall('delete', { uri }).then(() => null, err => ({ uri, err }))
+        apiCall('delete', {}, { restUri: uri }).then(() => null, err => ({ uri, err }))
     )))
     stop()
     reloadList()

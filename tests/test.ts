@@ -141,9 +141,8 @@ describe('basics', () => {
         })
     })
     it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
-    it('delete.no perm', reqApi('delete', { uri: '/for-admins/' }, 405))
-    it('delete.need account', reqApi('delete', { uri: UPLOAD_ROOT }, 401))
-    it('delete.need account.method', req(UPLOAD_ROOT, 401, { method: 'DELETE' }))
+    it('delete.no perm', req('/for-admins/', 405, { method: 'delete' }))
+    it('delete.need account', req(UPLOAD_ROOT, 401, { method: 'delete'}))
     it('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
     it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
     it('allow_net.canLogin', () => login('rejetto')) // localhost is normally resolved as ::1
@@ -230,11 +229,11 @@ describe('after-login', () => {
     })
     const renameTo = 'z'
     it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
-    it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
-    it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_DEST) + '/' + renameTo }, 200))
+    it('delete.miss renamed', req(UPLOAD_DEST, 404, { method: 'delete' }))
+    it('delete.ok', req(dirname(UPLOAD_DEST) + '/' + renameTo, 200, { method: 'delete' }))
     it('reupload', reqUpload(UPLOAD_DEST, 200))
     it('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
-    it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
+    it('delete.miss deleted', req(UPLOAD_DEST, 404, { method: 'delete' }))
     it('upload.too much', async () => {
         const fn = 'temp/tooMuch'
         const wrongSize = BIG_CONTENT.length / 2
