@@ -374,7 +374,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     data.upnp && h(Button, {
                         size: 'small',
                         onClick() {
-                            close();
+                            close()
                             mapPort(HIGHER_PORT).then(verifyAgain)
                         }
                     }, "Try " + HIGHER_PORT)),

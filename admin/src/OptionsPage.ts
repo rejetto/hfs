@@ -409,19 +409,13 @@ export async function suggestMakingCert() {
         async function makeCertAndSave() {
             if (!window.crypto.subtle)
                 return alertDialog("Retry this procedure on localhost", 'warning')
-            const stop = waitDialog()
-            try {
-                await wait(50) // give time to start animation before cpu intensive task
-                const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
-                stop()
-                if (loaded) // when undefined we are not in this page
-                    Object.assign(loaded, saved)
-                setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
-                Object.assign(state.config, saved)
-                close()
-                await alertDialog("Certificate saved", 'success')
-            }
-            finally { stop() }
+            close()
+            const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
+            if (loaded) // when undefined we are not in this page
+                Object.assign(loaded, saved)
+            setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
+            Object.assign(state.config, saved)
+            alertDialog("Certificate saved", 'success')
         }
     })
 }

@@ -449,8 +449,8 @@ export async function changeBaseUrl() {
                             async onClick() {
                                 if (v !== base_url)
                                     await apiCall('set_config', { values: { [CFG.base_url]: v.replace(/\/$/, '') } })
-                                resolve(v)
                                 close()
+                                resolve(v)
                             },
                         }) ),
                 )
