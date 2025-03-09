@@ -161,7 +161,12 @@ export const adminApis = {
         const optionals = _.pickBy({ expire, comment }, v => v !== undefined) // passing undefined-s would override values in merge
         addBlock({ ip, ...optionals }, merge)
         return {}
-    }
+    },
+
+    async geo_ip({ ip }) {
+        apiAssertTypes({ string: { ip } })
+        return { country: await ip2country(ip) }
+    },
 
 } satisfies ApiHandlers
 

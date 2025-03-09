@@ -1,7 +1,7 @@
 import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography } from '@mui/material'
 import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
-    Error as ErrorIcon, SvgIconComponent } from '@mui/icons-material'
+    Error as ErrorIcon, SvgIconComponent, Search } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
 import {
     closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
@@ -152,9 +152,22 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             options: { Allow: true, Block: false },
                         },
                     ]
-                ] })
+                ] }),
+                addToBar: [
+                    h(Box, { flex: 1 }),
+                    h(Btn, { icon: Search, onClick: lookup }, "Lookup IP")
+                ],
             })
         )
+    }
+
+    async function lookup() {
+        const ip = await promptDialog("Lookup IP")
+        if (!ip) return
+        const { country } = await apiCall('geo_ip', { ip })
+        if (!country)
+            return alertDialog("IP not found", 'error')
+        return alertDialog(h(Country, { code: country, long: true }), 'success')
     }
 
     function httpsBox() {
