@@ -141,6 +141,7 @@ export const frontEndApis: ApiHandlers = {
         return frontEndApis.move_files!(params, ctx, // same parameters
             (srcNode: VfsNode, dest: string) => // but override behavior
                 statusCodeForMissingPerm(srcNode, 'can_read', ctx)
+                    // .source is checked by move_files
                     || copyFile(srcNode.source!, dest, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE)
                         .catch(e => e.code || String(e))
         )
