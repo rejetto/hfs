@@ -238,13 +238,14 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 srv.error = String(e)
                 srv.busy = undefined
                 const { code } = e as any
-                if (code === 'EACCES' && port < 1024)
+                if (code)
+                    srv.busy = findProcess('port', port).then(
+                        res => res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '),
+                        () => '')
+                if (code === 'EACCES' && port < 1024 && !srv.busy) // on Windows, when port is used by a service, we get EACCESS
                     srv.error = `lacking permission on port ${port}, try with permission (${IS_WINDOWS ? 'administrator' : 'sudo'}) or port > 1024`
-                if (code === 'EADDRINUSE') {
-                    srv.busy = findProcess('port', port).then(res =>
-                        res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '), () => '')
+                if (code === 'EADDRINUSE' || srv.busy)
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
-                }
                 if (!silence)
                     console.error(srv.name, srv.error)
                 resolve(0)
