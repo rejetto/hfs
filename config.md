@@ -121,7 +121,6 @@ Configuration can be done in several ways
      Multiple URLs are supported, and you can specify one for each line.
 - `outbound_proxy` if you need outgoing http(s) requests to pass through an HTTP proxy. Default is none. 
 - `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
-- `allow_session_ip_change` should requests of the same login session be allowed from different IP addresses. Default is false, to prevent cookie stealing. You can set it `true` to always allow it, or `https` to allow only on https, where stealing the cookie is harder. No UI.   
 - `authorization_header` support Authentication HTTP header. Default is true. No UI.
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.
 - `disable_custom_html` disable the content of `custom_html`. Default is false.

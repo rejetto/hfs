@@ -5,7 +5,7 @@ import { state, useSnapState } from './state'
 import { alertDialog, newDialog, toast } from './dialog'
 import {
     getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth,
-    HTTP_CONFLICT, HTTP_UNAUTHORIZED, CFG, HTTP_METHOD_NOT_ALLOWED,
+    HTTP_CONFLICT, HTTP_UNAUTHORIZED, HTTP_METHOD_NOT_ALLOWED, ALLOW_SESSION_IP_CHANGE,
 } from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { reloadList } from './useFetchList'
@@ -107,8 +107,8 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     h('div', { className: 'submit' },
                         h('button', { type: 'submit' }, t`Continue`)),
                     h('div', { id: 'login-options' },
-                        h(Checkbox, { ref: ipRef, id: 'allow_session_ip_change' },
-                            t('allow_session_ip_change', "Allow IP change during this session")),
+                        h(Checkbox, { ref: ipRef, id: ALLOW_SESSION_IP_CHANGE },
+                            t(ALLOW_SESSION_IP_CHANGE, "Allow IP change during this session")),
                     ),
                 )
 
@@ -131,7 +131,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     going = true
                     try {
                         const res = await login(u, password, {
-                            [CFG.allow_session_ip_change]: ipRef.current?.checked,
+                            [ALLOW_SESSION_IP_CHANGE]: ipRef.current?.checked,
                             ...rest
                         })
                         await close(true)

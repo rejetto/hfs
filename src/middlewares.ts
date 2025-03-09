@@ -3,7 +3,7 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_FOOL } from './const'
-import { CFG, DAY, dirTraversal, isLocalHost, netMatches, splitAt, stream2string, tryJson } from './misc'
+import { ALLOW_SESSION_IP_CHANGE, DAY, dirTraversal, isLocalHost, netMatches, splitAt, stream2string, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount, getFromAccount } from './perm'
@@ -16,7 +16,6 @@ import session from 'koa-session'
 import { app } from './index'
 import events from './events'
 
-const allowSessionIpChange = defineConfig<boolean | 'https'>(CFG.allow_session_ip_change, false)
 const forceHttps = defineConfig('force_https', true)
 const ignoreProxies = defineConfig('ignore_proxies', false)
 const allowAuthorizationHeader = defineConfig('authorization_header', true)
@@ -52,8 +51,7 @@ export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
     const ss = ctx.session
-    const allowIpChange = ss?.[allowSessionIpChange.key()] ?? allowSessionIpChange.get() // session can override server setting
-    if (ss?.username && (!allowIpChange || !ctx.secure && allowIpChange === 'https'))
+    if (ss?.username && !ss?.[ALLOW_SESSION_IP_CHANGE])
         if (!ss.ip)
             ss.ip = ctx.ip
         else if (ss.ip !== ctx.ip) {
