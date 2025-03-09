@@ -51,11 +51,9 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 ## Installation
 
-For service installation instructions, [see our wiki](https://github.com/rejetto/hfs/wiki/Service-installation).
+If you need [Docker installation](https://github.com/damienzonly/hfs-docker) or [Service installation](https://github.com/rejetto/hfs/wiki/Service-installation), click the links.
 
-For Docker installation, [see dedicated repo](https://github.com/damienzonly/hfs-docker).
-
-NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of Node.js 18)
+NB: minimum Windows version required is 8.1 , Windows Server 2012 R2
 
 1. go to https://github.com/rejetto/hfs/releases
 2. click on `Assets`
@@ -64,6 +62,8 @@ NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of
      you can hold `control` key while clicking, then click `open`.
    - If you cannot find your system in the list, see next section [Other systems](#other-systems).
 4. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
+
+Got problems?
    - if a browser cannot be opened on the computer where you are installing HFS, 
      you should enter this command in the HFS console: `create-admin <PASSWORD>`
    - if you cannot access the console (like when you are running as a service), 
