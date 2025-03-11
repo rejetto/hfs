@@ -332,7 +332,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
         h('div', { className: 'entry-panel' },
             h(EntryDetails, { entry, midnight }),
-            showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
+            showingButton && !isLink && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
         ),
         h('div'),
     )
