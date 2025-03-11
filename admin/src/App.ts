@@ -118,7 +118,7 @@ function Routed() {
                     mainMenu.map((it,idx) =>
                         // @ts-ignore
                         h(Route, { key: idx, path: it.path, element: h(it.comp, { setTitleSide: set }) })),
-                    h(Route, { path: 'edit', element: h(ConfigFilePage) })
+                    h(Route, { path: 'config', element: h(ConfigFilePage) })
                 )
             ),
         )

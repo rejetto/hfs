@@ -61,7 +61,9 @@ export default function ConfigFilePage() {
     }
 
     function copy() {
-        const s = (text || '').replace(/^(\s*(\w*password(?!_change)\w*|srp):\s*).+\n/gm, '$1removed\n')
+        const s = (text || '')
+                .replace(/^(\s*(\w*password(?!_change)\w*|srp):\s*).+\n/gm, '$1removed\n')
+                .replace(/(:\/\/)[^/@\s]+@/g, '$1removed@')
             + 'custom_html: | # this is currently ignored by hfs, just here for reference\n' + data.customHtml.replace(/^/gm, '  ')
         if (!s) return
         copyTextToClipboard(s)

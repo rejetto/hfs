@@ -101,7 +101,7 @@ export default function OptionsPage() {
             }, "Reload"),
             h(Button, { // @ts-ignore
                 component: RouterLink,
-                to: "/edit",
+                to: "/config",
                 startIcon: h(EditNote),
             }, sm ? "Config file" : "File"),
         ],
