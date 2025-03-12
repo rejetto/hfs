@@ -2,13 +2,13 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
-    Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addAccount, delAccount, getAccount,
+    Account, accountCanLoginAdmin, accountHasPassword, accounts, addAccount, delAccount, getAccount,
     changeSrpHelper, updateAccount, accountCanLogin
 } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidateSessionBefore } from './auth'
-import { apiAssertTypes, onlyTruthy, with_ } from './misc'
+import { apiAssertTypes, objFromKeys, onlyTruthy, with_ } from './misc'
 
 function prepareAccount(ac: Account | undefined) {
     return ac && {
@@ -19,8 +19,8 @@ function prepareAccount(ac: Account | undefined) {
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
         invalidated: invalidateSessionBefore.get(ac.username),
-        directMembers: Object.values(accountsConfig.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
-        members: with_(Object.values(accountsConfig.get()), accounts => {
+        directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
+        members: with_(Object.values(accounts.get()), accounts => {
             const ret = []
             let news = [ac.username]
             while (news.length) {
@@ -35,7 +35,7 @@ function prepareAccount(ac: Account | undefined) {
 export default  {
 
     get_usernames() {
-        return { list: Object.keys(accountsConfig.get()) }
+        return { list: Object.keys(accounts.get()) }
     },
 
     get_account({ username }, ctx) {
@@ -44,11 +44,11 @@ export default  {
     },
 
     get_accounts() {
-        return { list: onlyTruthy(Object.values(accountsConfig.get()).map(prepareAccount)) }
+        return { list: onlyTruthy(Object.values(accounts.get()).map(prepareAccount)) }
     },
 
     get_admins() {
-        return { list: _.filter(accountsConfig.get(), accountCanLoginAdmin).map(ac => ac.username) }
+        return { list: _.filter(accounts.get(), accountCanLoginAdmin).map(ac => ac.username) }
     },
 
     async set_account({ username, changes }, ctx) {
@@ -75,8 +75,12 @@ export default  {
     },
 
     del_account({ username }) {
-        apiAssertTypes({ string: { username } })
-        return delAccount(username) ? {} : new ApiError(HTTP_BAD_REQUEST)
+        apiAssertTypes({ string_array: { username } })
+        if (Array.isArray(username)) {
+            const errors = objFromKeys(username, u => delAccount(u) ? undefined : HTTP_NOT_FOUND)
+            return _.isEmpty(errors) ? {} : { errors }
+        }
+        return delAccount(username) ? {} : new ApiError(HTTP_NOT_FOUND)
     },
 
     invalidate_sessions({ username }) {

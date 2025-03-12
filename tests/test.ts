@@ -173,7 +173,7 @@ describe('accounts', () => {
     before(() => login(username))
     it('get_accounts', reqApi('get_accounts', {}, ({ list }) => _.find(list, { username }) && _.find(list, { username: 'admins' })))
     const add = 'test-Add'
-    it('accounts.add', reqApi('add_account', { username: add }, res => res?.username === add.toLowerCase()))
+    it('accounts.add', reqApi('add_account', { username: add, overwrite: true }, res => res?.username === add.toLowerCase()))
     it('accounts.remove', reqApi('del_account', { username: add }, 200))
 })
 

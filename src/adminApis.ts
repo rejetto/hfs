@@ -17,7 +17,7 @@ import logApis from './api.log'
 import certApis from './api.cert'
 import { getConnections } from './connections'
 import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, typedEntries, waitFor } from './misc'
-import { accountCanLoginAdmin, accountsConfig } from './perm'
+import { accountCanLoginAdmin, accounts } from './perm'
 import Koa from 'koa'
 import { cloudflareDetected, getProxyDetected } from './middlewares'
 import { execFile } from 'child_process'
@@ -205,7 +205,7 @@ const frpDebounced = debounceAsync(async () => {
 }, { retain: 10_000 })
 
 export function anyAccountCanLoginAdmin() {
-    return Boolean(_.find(accountsConfig.get(), accountCanLoginAdmin))
+    return Boolean(_.find(accounts.get(), accountCanLoginAdmin))
 }
 
 export function allowAdmin(ctx: Koa.Context) {

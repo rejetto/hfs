@@ -232,7 +232,7 @@ export async function searchPlugins(text='', { skipRepos=[''] }={}) {
 }
 
 export const alerts = storedMap.singleSync<string[]>('alerts', [])
-const cachedCentralInfo = storedMap.singleSync('cachedCentralInfo', '')
+const cachedCentralInfo = storedMap.singleSync('cachedCentralInfo', '') // persisting it could also be useful for no-internet instances, so that you can provide a fresher copy
 export let blacklistedInstalledPlugins: string[] = []
 // centralized hosted information, to be used as little as possible
 const FN = 'central.json'

@@ -89,7 +89,8 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                         h(Btn, {
                             icon: Delete,
                             confirm: `Delete ${account.members.length} accounts?`,
-                            onClick: () => Promise.all(account.members.map(u => apiCall('del_account', { username: u }))).finally(reload)
+                            onClick: () => apiCall('del_account', { username: account.members }).then(reload),
+                            sx: { verticalAlign: 'text-top' }
                         }),
                 ),
             isGroup && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
