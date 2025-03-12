@@ -133,9 +133,10 @@ declare module "koa" {
 export function applyRange(ctx: Koa.Context, totalSize=ctx.response.length) {
     ctx.set('Accept-Ranges', 'bytes')
     const { range } = ctx.request.header
-    if (!range) {
+    if (!range || isNaN(totalSize)) {
         ctx.state.includesLastByte = true
-        ctx.response.length = totalSize
+        if (!isNaN(totalSize))
+            ctx.response.length = totalSize
         return
     }
     const [unit, ranges] = range.split('=')
