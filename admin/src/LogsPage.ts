@@ -6,15 +6,17 @@ import { Box, Tab, Tabs } from '@mui/material'
 import { API_URL, apiCall, useApi, useApiList } from './api'
 import { DataTable, DataTableColumn, DataTableProps } from './DataTable'
 import {
-    CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md,
-    typedKeys, _dbg, mapFilter, safeDecodeURIComponent, stringAfter, onlyTruthy, formatTimestamp, formatSpeed
+    CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md, typedKeys,
+    _dbg, mapFilter, safeDecodeURIComponent, stringAfter, onlyTruthy, formatTimestamp, formatSpeed, copyTextToClipboard
 } from '@hfs/shared'
 import {
     NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
     hTooltip, Btn, wikiLink
 } from './mui';
 import _ from 'lodash'
-import { AutoDelete, LinkOff, ClearAll, Delete, Download, Settings, SmartToy, Terminal } from '@mui/icons-material'
+import {
+    AutoDelete, LinkOff, ClearAll, Delete, Download, Settings, SmartToy, Terminal, ContentCopy
+} from '@mui/icons-material'
 import { ConfigForm } from './ConfigForm'
 import { BoolField, SelectField } from '@hfs/mui-grid-form'
 import { toast, useDialogBarColors } from './dialog'
@@ -117,7 +119,8 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
     const invert = true
     const [firstSight, setFirstSight] = useState(!hidden)
     useEffect(() => setFirstSight(x => x || !hidden), [hidden])
-    useApi(firstSight && LOGS_ON_FILE.includes(file) && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
+    const hasFile = LOGS_ON_FILE.includes(file)
+    useApi(firstSight && hasFile && 'get_log_file', { file, range: limited || !skipped ? -MAX : `0-${skipped}` }, {
         skipParse: true, skipLog: true,
         onResponse(res, body) {
             const lines = body.split('\n')
@@ -190,6 +193,11 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 title: `Delete all records up to ${formatTimestamp(row.ts)}`,
                 onClick: () => apiCall('delete_ips', { ts: row.ts }).then(res => toast(`${res.n} deleted`)).then(reload)
             }),
+            hasFile && h(Btn, {
+                icon: ContentCopy,
+                title: "Copy request",
+                onClick() { copyTextToClipboard(JSON.stringify(_.omit(row, 'id'), undefined, 2)) }
+            })
         ])),
         initialState: isIps ? { sorting: { sortModel: [{ field: 'ts', sort: 'desc' }] } } : undefined,
         ...rest,
