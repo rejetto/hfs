@@ -65,6 +65,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             {
                 field: 'installedVersion',
                 hidden: true,
+                dialogHidden: true,
                 renderCell: ({ value }) => value && `Yours ${value}`
             },
             {

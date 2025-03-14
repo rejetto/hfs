@@ -187,9 +187,9 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                             minWidth: 'max(16em, 40vw)',
                             sx: { opacity: curRow ? undefined : .5 },
                         }, showInDialog.map(col =>
-                            h(Box, { key: col.field, gridColumn: col.flex && '1/-1' },
+                            h(Box, { key: col.field, gridColumn: col.flex! >= 1 ? '1/-1' : undefined },
                                 h(Box, { bgcolor: '#0003', p: 1 }, col.headerName || col.field),
-                                h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word' },
+                                h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word', flexWrap: 'wrap' },
                                     renderCell(col, rowToShow) )
                             ) ))
                     }
