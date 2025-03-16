@@ -187,7 +187,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 warnOnce(`plugin ${id} is using deprecated API (return true on middleware) and may not work with future versions (check for an update to "${id}")`)
             }
             // don't just check ctx.isStopped, as the async plugin that called ctx.stop will reach here after sync ones
-            if (res === true && !ctx.pluginBlockedRequest)
+            if (ctx.isStopped && !ctx.pluginBlockedRequest)
                 console.debug("plugin blocked request", ctx.pluginBlockedRequest = id)
             if (typeof res === 'function')
                 after[id] = res
@@ -197,7 +197,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
         }
     }))
     // expose public plugins' files`
-    if (!ctx.pluginBlockedRequest) {
+    if (!ctx.isStopped) {
         const { path } = ctx
         if (path.startsWith(PLUGINS_PUB_URI)) {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
