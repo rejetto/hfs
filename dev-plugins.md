@@ -217,7 +217,7 @@ The `api` object you get as parameter of the `init` contains the following:
 - `setConfig(key: string, value: any)` set plugin's config value.
 
 - `subscribeConfig(key: string | string[], callback: (value: any) => void): Unsubscriber`
-  will call `callback` with initial value and then at each change.
+  will immediately call `callback` with initial value, and then at each change.
   Passing an array of keys, the `value` parameter becomes an object with the specified keys and respective values.
   Will be automatically unsubscribed at plugin's unload.
 
@@ -353,6 +353,9 @@ The HFS object contains many properties:
 - `Icon: ReactComponent` Properties:
     - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
 - `iconBtn(icon: string, onClick: function, props?: any)` render a React Icon Button. For icons, refer to `Icon` component.
+- `Btn: ReactComponent}` Properties:
+  - `icon?: string`, `label?: string`, `tooltip?: string`, `toggled?: boolean`, `onClick?: function`, 
+    `onClickAnimation?: boolean`, `asText?: boolean`, `successFeedback?: boolean`
 - `domOn(eventName: string, cb: function, { target }?): function` convenient alternative to addEventListener/removeEventListener.
   The default target is window. Returns a callback to remove the listener. 
 - `useBatch(worker, job): { data }` this is a bit complicated, please refer to source `shared/react.ts`. 
@@ -793,13 +796,14 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 12.0 (v0.57.0)
+- 12.1 (v0.57.0)
     - backend event: finalizingLogin, httpsServerOptions, clearTextLogin
     - frontend events: beforeLoginSubmit
     - exports.changelog
     - automatic unload of api.events listeners
     - removed DirEntry.t
     - api.setInterval, setTimeout
+    - HFS.Btn
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter

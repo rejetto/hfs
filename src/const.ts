@@ -9,7 +9,7 @@ import { formatTimestamp } from './cross'
 import { argv } from './argv'
 export * from './cross-const'
 
-export const API_VERSION = 12
+export const API_VERSION = 12.1
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
 
 // you can add arguments with this file, currently used for the update process on mac/linux
@@ -39,7 +39,10 @@ export const MIME_AUTO = 'auto'
 export const CONFIG_FILE = 'config.yaml'
 
 // we want this to be the first stuff to be printed, then we print it in this module, that is executed at the beginning
-if (DEV) console.clear()
+if (DEV) {
+    console.clear()
+    process.env.DEBUG = 'acme-client'
+}
 else if (!argv.debug) console.debug = ()=>{}
 console.log(`HFS ~ HTTP File Server`)
 console.log(`© Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt`)

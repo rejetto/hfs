@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import React, { createElement as h } from 'react'
-import { iconBtn, Spinner } from './components'
+import { Btn, iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
 import { Icon, IconProps } from './icons'
 import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, urlParams, useBatch } from '@hfs/shared'
@@ -96,7 +96,7 @@ export function formatTimestamp(x: number | string | Date, options?: Intl.DateTi
 
 Object.assign(getHFS(), {
     h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
-    toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry,
+    toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry, Btn,
     fileShowComponents: { Video, Audio },
     misc: { ...cross, ...shared },
     emit: hfsEvent,
