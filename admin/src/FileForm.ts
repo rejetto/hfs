@@ -283,7 +283,7 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
                 onChange,
                 options: accounts?.map(a => ({ value: a.username, label: a.username, a })) || [],
                 // show icon only for groups, to save space inside the field (not the list)
-                renderOption: (x: any) => h('span', {}, x.a.isGroup && account2icon(x.a), ' ', x.label),
+                renderOption: (x: any) => h('span', {}, x.a?.isGroup && account2icon(x.a), ' ', x.label),
             }) ),
         h(FormHelperText, {},
             helperText,
