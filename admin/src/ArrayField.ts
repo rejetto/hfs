@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
-import { Dict, isOrderedEqual, setHidden, swap } from './misc'
+import { callable, Dict, Functionable, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
 import { formDialog } from './dialog'
 import { GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
@@ -12,16 +12,16 @@ import _ from 'lodash'
 import { Center, Flex, IconBtn, useBreakpoint } from './mui'
 import { DataTable } from './DataTable'
 
-type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean, autoRowHeight?: boolean }
+type ArrayFieldProps<T> = FieldProps<T[]> & { fields: Functionable<FieldDescriptor[]>, height?: number, reorder?: boolean, prepend?: boolean, autoRowHeight?: boolean }
 export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight, ...rest }: ArrayFieldProps<T>) {
     if (!Array.isArray(value)) // avoid crash if non-array values are passed, especially developing plugins
         value = []
     const rows = useMemo(() => value!.map((x,$idx) =>
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
-    const form = {
-        fields: fields.map(({ $width, $column, $type, $hideUnder, ...rest }) => _.defaults(rest, byType[$type]?.field))
-    }
+    const form = (values: any) => ({
+        fields: callable(fields, values).map(({ $width, $column, $type, $hideUnder, showIf, ...rest }) => (!showIf || showIf(values)) && _.defaults(rest, byType[$type]?.field))
+    })
     setApi?.({ isEqual: isOrderedEqual }) // don't rely on stringify, as it wouldn't work with non-json values
     const [undo, setUndo] = useState<typeof value>()
     return h(Fragment, {},
@@ -50,7 +50,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                     }
                 },
                 columns: [
-                    ...fields.map(f => {
+                    ...callable(fields, false).map(f => {
                         const def = byType[f.$type]?.column
                         return {
                             field: f.k,
@@ -116,7 +116,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     showInMenu: reorder,
                                     onClick: ev => {
                                         ev.stopPropagation()
-                                        set(value!.filter((rec, i) => i !== $idx), ev)
+                                        set(value!.filter((_rec, i) => i !== $idx), ev)
                                     },
                                 }),
                                 reorder && $idx && h(GridActionsCellItem as any, {

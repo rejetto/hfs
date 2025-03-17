@@ -15,7 +15,6 @@ import {
 } from './github'
 import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 import { SendListReadable } from './SendList'
-import produce from 'immer'
 
 const apis: ApiHandlers = {
 
@@ -192,9 +191,7 @@ function serialize(p: Readonly<Plugin> | AvailablePlugin) {
     if (typeof o.repo === 'object') // custom repo
         o.repo = o.repo.web
     o.log = 'log' in p && p.log?.length > 0
-    o = produce(o, (o: any) => {
-        _.each(o.config, x => x.showIf &&= String(x.showIf))
-    })
+    o.config &&= JSON.stringify(o.config, (_k, v) => _.isFunction(v) ? String(v) : v) // allow simple functions
     return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
 }
 

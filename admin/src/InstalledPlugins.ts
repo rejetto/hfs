@@ -240,24 +240,23 @@ export function renderName({ row, value }: any) {
 
 function makeFields(config: any, values: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
-        let { type, defaultValue, fields, frontend, helperText, showIf, ...rest } = o
+        let { type, defaultValue, frontend, showIf, ...rest } = o
         try {
             if (typeof showIf === 'string') // compile once
-                o.showIf = showIf = eval(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
+                rest.showIf = showIf = eval(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
             if (showIf && !showIf(values))
                 return
         }
         catch {}
-        if (helperText)
-            helperText = md(helperText, { html: false })
+        rest.helperText &&= md(rest.helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
         if (comp === ArrayField) {
-            rest.valuesForAdd = newObj(fields, x => x.defaultValue)
-            fields = makeFields(fields, values)
+            rest.valuesForAdd = newObj(rest.fields, x => x.defaultValue)
+            rest.fields = makeFields(rest.fields, false)
         }
         if (defaultValue !== undefined && type === 'boolean')
             rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`
-        return { k, comp, fields, helperText, ...rest }
+        return { k, comp, ...rest }
     })
 }
 

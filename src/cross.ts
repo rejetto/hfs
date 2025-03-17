@@ -38,7 +38,7 @@ export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
-export type Functionable<T> = T | ((...args: any[]) => T)
+export type Functionable<T, Args extends any[] = any[]> = T | ((...args: Args) => T)
 export type Timeout = ReturnType<typeof setTimeout>
 export interface VfsPerms {
     can_see?: Who
