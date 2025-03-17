@@ -126,7 +126,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `onDirEntry: ({ entry: DirEntry, listUri: string, ctx, node: VfsNode  }) => Promisable<void | false>` 
   by providing this callback you can manipulate the record that is sent to the frontend (`entry`),
   or you can return false to exclude this entry from the results. Refer to source `frontend/src/state.ts`.
-- `config: { [key]: FieldDescriptor }` declare a set of admin-configurable values owned by the plugin
+- `config: { [key]: FieldDescriptor } | function` declare a set of admin-configurable values owned by the plugin
   that will be displayed inside Admin-panel for change. Each property is identified by its key,
   and the descriptor is another object with options about the field. 
 
@@ -144,6 +144,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 
   When necessary your plugin will read its value using `api.getConfig('message')` in the backend, 
   or `HFS.getPluginConfig('message')` in the frontend, but the latter must be enabled using the `frontend` flag in the config.
+  To handle more complex cases, you can pass a function to `config` instead of an object. The function will receive a parameter `values`.
   
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
 - `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to frontend.

@@ -8,7 +8,8 @@ import {
     Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
 import {
-    CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact
+    CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact,
+    callable, tryJson
 } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -22,7 +23,9 @@ import VfsPathField from './VfsPathField'
 
 // updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
-    const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
+    const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
+        map(x: any) { x.config &&= tryJson(x.config, s => eval('()=>('+s+')')()) }
+    })
     useEffect(() => {
         setList(list =>
             _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : 2) + treatPluginName(x.id)))
@@ -136,7 +139,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                         title: showOptions ? `Options for ${id}` : `Log for ${id}`,
                         form: values => ({
                             before: row.description && h(Box, { mx: 2, mb: 2 }, row.description),
-                            fields: makeFields(row.config || {}, values),
+                            fields: makeFields(callable(row.config, values) || {}, values),
                             save: showOptions ? { children: "Save and close" } : false,
                             barSx: { gap: 1 },
                             addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
@@ -240,6 +243,7 @@ export function renderName({ row, value }: any) {
 
 function makeFields(config: any, values: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
+        if (!o) return
         let { type, defaultValue, frontend, showIf, ...rest } = o
         try {
             if (typeof showIf === 'string') // compile once
@@ -251,8 +255,10 @@ function makeFields(config: any, values: any) {
         rest.helperText &&= md(rest.helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
         if (comp === ArrayField) {
-            rest.valuesForAdd = newObj(rest.fields, x => x.defaultValue)
-            rest.fields = makeFields(rest.fields, false)
+            const {fields} = rest
+            rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
+            rest.fields = !_.isFunction(fields) ? makeFields(fields, false)
+                : (values: unknown) => _.map(fields(values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
         }
         if (defaultValue !== undefined && type === 'boolean')
             rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`

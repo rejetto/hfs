@@ -191,7 +191,8 @@ function serialize(p: Readonly<Plugin> | AvailablePlugin) {
     if (typeof o.repo === 'object') // custom repo
         o.repo = o.repo.web
     o.log = 'log' in p && p.log?.length > 0
-    o.config &&= JSON.stringify(o.config, (_k, v) => _.isFunction(v) ? String(v) : v) // allow simple functions
+    o.config &&= _.isFunction(o.config) ? String(o.config)
+        : JSON.stringify(o.config, (_k, v) => _.isFunction(v) ? String(v) : v) // allow simple functions
     return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
 }
 

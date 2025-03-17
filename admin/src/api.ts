@@ -119,7 +119,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                             return
                         }
                         if (op === LIST.update) {
-                            const change = msg[2]
+                            const change = map?.(msg[2]) ?? msg[2]
                             const found = _.find(bufferAdd, par)
                             if (found)
                                 return Object.assign(found, change)
