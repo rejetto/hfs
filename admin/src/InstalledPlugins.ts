@@ -20,6 +20,7 @@ import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
 import { Btn, Flex, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
 import VfsPathField from './VfsPathField'
+import { DateTimeField } from './DateTimeField'
 
 // updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
@@ -254,6 +255,8 @@ function makeFields(config: any, values: any) {
         catch {}
         rest.helperText &&= md(rest.helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
+        if (values === false && type === 'date_time')
+            rest.$type = 'dateTime'
         if (comp === ArrayField) {
             const {fields} = rest
             rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
@@ -278,6 +281,7 @@ const type2comp = {
     username: UsernameField,
     color: ColorField,
     showHtml: ({ html }: any) => h(Html, {}, String(html)),
+    date_time: DateTimeField,
 }
 
 export async function startPlugin(id: string) {

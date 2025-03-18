@@ -162,7 +162,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 ### FieldDescriptor
 
 A FieldDescriptor is an object and can be empty. Currently, these optional properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color'` . Default is `string`.
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color' | 'date_time'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set. Default is undefined.
 - `helperText: string` extra text printed next to the field.
@@ -204,6 +204,7 @@ Based on `type`, other properties are supported:
     - `groups: undefined | boolean` true if you want only groups, false if you want only users. Default is undefined.
     - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
       and the resulting value will be array of strings, instead of a string. Default is false.
+- `date_time`
 - `showHtml`
     - `html: string` HTML code to display.
 
