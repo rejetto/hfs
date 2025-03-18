@@ -42,9 +42,10 @@ setInterval(() => { // twice a minute, check if any block has expired
 export function addBlock(rule: BlockingRule, merge?: Partial<BlockingRule>) {
     if (isIP(rule.ip) && isBlocked(rule.ip)) return // already
     block.set(was => {
-        const foundIdx = merge ? _.findIndex(was, merge) : -1
-        return foundIdx < 0 || was[foundIdx]?.disabled ? [...was, { ...merge, ...rule }] // add as new rule
-            : netMatches(rule.ip, was[foundIdx]!.ip) ? was // in case the rule is disabled, and isBlocked returned false
-                : was.map((x, i) => i === foundIdx ? { ...x, ...rule, ip: `${x.ip}|${rule.ip}` } : x)
+        const match = merge && _.matches(merge)
+        const foundIdx = match ? _.findIndex(was, v => match(v) && !v.disabled) : -1
+        // in case the rule is disabled, and isBlocked returned false
+        return foundIdx < 0 ? [...was, { ...merge, ...rule }] // add as new rule
+            : was.map((x, i) => i === foundIdx ? { ...x, ...rule, ip: `${x.ip}|${rule.ip}` } : x)
     })
 }
