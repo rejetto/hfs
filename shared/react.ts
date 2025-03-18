@@ -52,7 +52,7 @@ export function useRequestRender() {
 export function useBatch<Job=unknown,Result=unknown>(
     worker: Falsy | ((jobs: Job[]) => Promise<Result[]>),
     job: undefined | Job,
-    { delay=0 }={}
+    { delay=0, expireAfter=0 }={}
 ) {
     interface Env {
         batch: Set<Job>
@@ -78,6 +78,11 @@ export function useBatch<Job=unknown,Result=unknown>(
                         jobs.forEach((job, i) =>
                             env.cache.set(job, res[i] ?? null) )
                     }).finally(resolve)
+                    if (expireAfter)
+                        setTimeout(() => {
+                            for (const job of jobs)
+                                env.cache.delete(job)
+                        }, expireAfter)
                 }
                 finally {
                     env.waiter = undefined

@@ -6,7 +6,7 @@ import { Block } from '@mui/icons-material'
 import { useBatch } from '@hfs/shared'
 
 export function BlockIpBtn({ ip, comment, ...rest }: { ip: string, comment: string } & Partial<IconBtnProps>) {
-    const { data, refresh } = useBatch(isIpBlocked, ip, { delay: 100 })
+    const { data, refresh } = useBatch(isIpBlocked, ip, { delay: 100, expireAfter: 5_000 })
     return h(IconBtn, {
         icon: Block,
         title: "Block IP",
