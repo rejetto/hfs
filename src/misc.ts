@@ -12,13 +12,9 @@ export * from './debounceAsync'
 import { Readable, Transform } from 'stream'
 import { SocketAddress, BlockList } from 'node:net'
 import { ApiError } from './apiMiddleware'
-import { HTTP_BAD_REQUEST, HTTP_METHOD_NOT_ALLOWED } from './const'
+import { HTTP_BAD_REQUEST } from './const'
 import { isIpLocalHost, makeMatcher, try_ } from './cross'
 import { isIPv6 } from 'net'
-import { statusCodeForMissingPerm, VfsNode } from './vfs'
-import events from './events'
-import { rm } from 'fs/promises'
-import { setCommentFor } from './comments'
 import _ from 'lodash'
 
 export function pattern2filter(pattern: string){
@@ -43,7 +39,7 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         return () => emptyMaskReturns
     mask = mask.replaceAll(' ','')
     mask = mask.replace('localhost', '::1|127.0.0.1')
-    if (!mask.includes('/')) // for CIDR we use BlockList
+    if (!/\/|-(?![^\[]*\])/.test(mask)) // when no CIDR and no ranges are used, then we use standard matcher, otherwise BlockList. For "-" we must skip those inside []
         return makeMatcher(mask)
     const all = mask.split('|')
     const neg = all[0]?.[0] === '!'
@@ -51,8 +47,8 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         all[0] = all[0]!.slice(1)
     const bl = new BlockList()
     for (const x of all) {
-        const m = /^([.:\da-f]+)(?:\/(\d+)|-(.+)|)$/i.exec(x)
-        if (!m) {
+        const m = /^([.:\da-f]+)(?:\/(\d+)|-(.+)|)$/i.exec(x) // parse cidr or range
+        if (!m) { // we don't support wildcards in this case
             console.warn("error in network mask", x)
             continue
         }
