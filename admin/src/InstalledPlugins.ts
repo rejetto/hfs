@@ -258,10 +258,11 @@ function makeFields(config: any, values: any) {
         if (values === false && type === 'date_time')
             rest.$type = 'dateTime'
         if (comp === ArrayField) {
-            const {fields} = rest
+            let {fields} = rest
             rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
-            rest.fields = !_.isFunction(fields) ? makeFields(fields, false)
-                : (values: unknown) => _.map(fields(values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
+            if (typeof fields === 'string')
+                fields = eval(fields)
+            rest.fields = (values: unknown) => _.map(makeFields(callable(fields, values), values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
         }
         if (defaultValue !== undefined && type === 'boolean')
             rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`
