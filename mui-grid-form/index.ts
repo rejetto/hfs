@@ -218,10 +218,17 @@ export function Form<Values extends Dict>({
             if (!f || isValidElement(f) || !f.k) continue
             const { k } = f
             const v = values?.[k]
-            const err = await apis[k]?.getError?.(v, { values, fields })
-                || await f.getError?.(v, { values, fields })
-                || fieldExceptions[k]
-            errs[k] = err || false
+            let err: ReactNode
+            try {
+                err = await apis[k]?.getError?.(v, { values, fields })
+                    || await f.getError?.(v, { values, fields })
+                    || fieldExceptions[k]
+                    || false
+            }
+            catch(e) {
+                err = String(e) // keep exception as error
+            }
+            errs[k] = err
             if (!submitAfterValidation.current && k === validateUpTo.current) break
             if (!mounted.current) return // abort
         }
