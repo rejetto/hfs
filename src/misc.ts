@@ -39,37 +39,42 @@ export function makeNetMatcher(mask: string, emptyMaskReturns=false) {
         return () => emptyMaskReturns
     mask = mask.replaceAll(' ','')
     mask = mask.replace('localhost', '::1|127.0.0.1')
-    if (!/\/|-(?![^\[]*\])/.test(mask)) // when no CIDR and no ranges are used, then we use standard matcher, otherwise BlockList. For "-" we must skip those inside []
-        return makeMatcher(mask)
-    const all = mask.split('|')
-    const neg = all[0]?.[0] === '!'
-    if (neg)
-        all[0] = all[0]!.slice(1)
-    const bl = new BlockList()
-    for (const x of all) {
-        const m = /^([.:\da-f]+)(?:\/(\d+)|-(.+)|)$/i.exec(x) // parse cidr or range
-        if (!m) { // we don't support wildcards in this case
-            console.warn("error in network mask", x)
-            continue
+    try {
+        if (!/\/|-(?![^\[]*\])/.test(mask)) { // when no CIDR and no ranges are used, then we use standard matcher, otherwise BlockList. For "-" we must skip those inside []
+            if (/[^.:\da-fA-F*?|()!]/.test(mask))
+                throw mask
+            return makeMatcher(mask)
         }
-        const address = try_(() => parseAddress(m[1]!),
-            () => console.error("invalid address " + m[1]))
-        if (!address) continue
-        if (m[2])
-            try { bl.addSubnet(address, Number(m[2])) }
-            catch { console.error("invalid net mask " + x) }
-        else if (m[3])
-            try { bl.addRange(address, parseAddress(m[2]!)) }
-            catch { console.error("invalid address " + m[2]) }
-        else
-            bl.addAddress(address)
+        const all = mask.split('|')
+        const neg = all[0]?.[0] === '!'
+        if (neg)
+            all[0] = all[0]!.slice(1)
+        const bl = new BlockList()
+        for (const x of all) {
+            const m = /^([.:\da-f]+)(?:\/(\d+)|-([.:\da-f]+)|)$/i.exec(x) // parse cidr or range
+            if (!m) throw x // we don't support wildcards in this case
+            const address = try_(() => parseAddress(m[1]!),
+                () => { throw m[1] })
+            if (!address) continue
+            if (m[2])
+                try { bl.addSubnet(address, Number(m[2])) }
+                catch { throw x }
+            else if (m[3])
+                try { bl.addRange(address, parseAddress(m[2]!)) }
+                catch { throw m[2] }
+            else
+                bl.addAddress(address)
+        }
+        return (ip: string) => {
+            try { return neg !== bl.check(parseAddress(ip)) }
+            catch {
+                console.error("invalid address ", ip)
+                return false
+            }
+        }
     }
-    return (ip: string) => {
-        try { return neg !== bl.check(parseAddress(ip)) }
-        catch {
-            console.error("invalid address ", ip)
-            return false
-        }
+    catch(e: any) {
+        throw "error in net-mask: " + e
     }
 }
 

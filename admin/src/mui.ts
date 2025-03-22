@@ -277,9 +277,15 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
     return [state, el, setState] as const
 }
 
-export function NetmaskField(props: StringFieldProps) {
+export function NetmaskField({ setApi, helperText, ...props }: StringFieldProps) {
     const warned = useRef(false)
+    setApi?.({
+        getError() {
+            return props.value && apiCall('validate_net_mask', { mask: props.value }).then(x => !x.result && "Invalid mask")
+        }
+    })
     return h(StringField, {
+        helperText: h('span', {}, helperText, helperText && ' – ', wikiLink('Wildcards#network-masks', "Wildcards supported")),
         ...props,
         onTyping(v) {
             if (!warned.current && v?.includes('127.0.0.1') && !v.includes('::1')) {

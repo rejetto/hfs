@@ -99,8 +99,7 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     + (!isGroup ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
-            { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", helperText: h(WildcardsSupported), sm: 6,
-                placeholder: "Allow from any address" },
+            { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", sm: 6, placeholder: "Allow from any address" },
             { k: 'expire', label: "Expiration", xs: true, comp: DateTimeField, toField: x => x && new Date(x),
                 helperText: "When expired, login won't be allowed" },
             { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, disabled: expired, step: 'any', min: 1/1000, // 10 minutes

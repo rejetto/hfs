@@ -159,10 +159,13 @@ export function Form<Values extends Dict>({
                         field.helperText = h(Fragment, {}, ...field.helperText)
                     if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
                         field.helperText = !field.helperText ? errMsg
-                            : h(Fragment, {},
-                                h('span', { style: { borderBottom: '1px solid' } }, errMsg),
-                                h(Box, { color: 'text.primary', component: 'span', /*avoid console warning*/ display: 'block' },
-                                    field.helperText),
+                            : h(Box, { color: 'text.primary', component: 'span' },
+                                h(Box, {
+                                    color: 'error.main',
+                                    style: { borderBottom: '1px solid' },
+                                    component: 'span', display: 'block' // avoid console warning, but keep it on separate line
+                                }, errMsg),
+                                field.helperText,
                             )
                     if (field.label === undefined)
                         field.label = labelFromKey(k)

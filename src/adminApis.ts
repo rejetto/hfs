@@ -16,7 +16,7 @@ import netApis from './api.net'
 import logApis from './api.log'
 import certApis from './api.cert'
 import { getConnections } from './connections'
-import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, typedEntries, waitFor } from './misc'
+import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, try_, typedEntries, waitFor } from './misc'
 import { accountCanLoginAdmin, accounts } from './perm'
 import Koa from 'koa'
 import { cloudflareDetected, getProxyDetected } from './middlewares'
@@ -166,6 +166,11 @@ export const adminApis = {
     async geo_ip({ ip }) {
         apiAssertTypes({ string: { ip } })
         return { country: await ip2country(ip) }
+    },
+
+    validate_net_mask({ mask }) {
+        apiAssertTypes({ string: { mask } })
+        return { result: Boolean(try_(() => makeNetMatcher(mask))) }
     },
 
 } satisfies ApiHandlers

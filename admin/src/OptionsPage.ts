@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Box, Button, Divider, FormHelperText } from '@mui/material';
-import { createElement as h, Fragment, useEffect, useRef } from 'react';
+import { createElement as h, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
@@ -148,7 +148,7 @@ export default function OptionsPage() {
             { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
 
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
-                helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
+                helperText: "IP address of browser machine"
             },
             { k: 'localhost_admin', comp: BoolField, label: "Unprotected Admin-panel on localhost",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
@@ -169,7 +169,7 @@ export default function OptionsPage() {
                 fields: [
                     { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2, comp: NetmaskField,
                         $column: { mergeRender: { comment: {}, expire: {} } },
-                        helperText: h(Flex, { component: 'span' }, h(WildcardsSupported), "Be careful to not kick yourself out, by blocking also your IP."),
+                        helperText: "Be careful to not kick yourself out, by blocking also your IP",
                     },
                     { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, $hideUnder: 'sm',
                         helperText: "Leave empty for no expiration" },
