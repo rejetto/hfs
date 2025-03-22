@@ -400,6 +400,7 @@ Some frontend events can return HTML, which can be expressed in several ways:
 - as a ReactElement
 - as an array of ReactNode
 - `null`, `undefined`, `false`, and empty strings will be discarded
+- as a Promise for any of the above
 
 These events will receive a `def` property (in addition event's specific properties),
 with the default content that will be displayed if no callback return a valid output.

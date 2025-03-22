@@ -1,12 +1,12 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import {
-    Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix, noAriaTitle, formatBytes
+    Callback, getHFS, hfsEvent, hIcon, Html, isPrimitive, onlyTruthy, prefix, noAriaTitle, formatBytes, useStateMounted
 } from './misc'
 import {
     ButtonHTMLAttributes, ChangeEvent, createElement as h, CSSProperties, forwardRef, Fragment,
     HTMLAttributes, InputHTMLAttributes, isValidElement, MouseEventHandler, ReactNode, SelectHTMLAttributes,
-    useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes, useRef, ReactElement
+    useEffect, useMemo, useState, ComponentPropsWithoutRef, LabelHTMLAttributes, useRef, ReactElement
 } from 'react'
 import _ from 'lodash'
 import i18n from './i18n'
@@ -83,24 +83,36 @@ export function CustomCode({ name, children, render, ...props }: {
     render?: Callback<ReactNode, ReactNode>
     [k :string]: any,
 }) {
-    const result = useMemo(() => {
-        props.def = children // not using 'default' because user can have unexpected error destructuring object
-        let keep = true
-        const ret = onlyTruthy(hfsEvent(name, props)
-            .map((x, key) => isValidElement(x) ? h(Fragment, { key }, x)
+    const raw = useMemo(() => hfsEvent(name, Object.assign(props, { def: children })), // not using 'default' as key, because user can have unexpected error destructuring object
+        [name, children, ...props ? Object.values(props) : []])
+    const [out, setOut] = useStateMounted<null | ReactNode[]>([])
+    useEffect(() => {
+        if (raw.some(x => x === null)) // null means skip this
+            return setOut(null)
+        const worked: ReactNode[] = raw.map(toElement)
+        setOut(onlyTruthy(worked))
+        raw.forEach((x, i) => {
+            if (typeof x?.then === 'function') // thenable
+                x.then((resolved: any) => {
+                    worked[i] = toElement(resolved, i)
+                    setOut(onlyTruthy(worked))
+                }, () => {})
+        })
+        const html = getHFS().customHtml?.[name]
+        if (html?.trim?.()) {
+            worked.push(toElement(html, -1))
+            setOut(onlyTruthy(worked))
+        }
+
+        function toElement(x: unknown, key: number) {
+            return isValidElement(x) ? h(Fragment, { key }, x) // wrap to avoid console warnings
                 : x === 0 || x && isPrimitive(x) ? h(Html, { key }, String(x))
                     : _.isArray(x) ? h(Fragment, { key }, ...x)
-                        : x === null ? keep = false
-                            : null))
-        if (!keep)
-            return null
-        const html = getHFS().customHtml?.[name]
-        if (html?.trim?.())
-            ret.push(h(Html, { key: 'x' }, html))
-        return ret
-    }, [name, children, ...props ? Object.values(props) : []])
+                        : null
+        }
+    }, [raw])
     render ??= _.identity
-    return h(Fragment, {}, render(result && (result.length || !children ? result : children)) )
+    return h(Fragment, {}, render(out && (out?.length || !children ? out : children)) )
 }
 
 interface IconBtnOptions extends ButtonHTMLAttributes<any> { style?: any, title?: string }
