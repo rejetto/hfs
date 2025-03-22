@@ -334,9 +334,10 @@ The HFS object contains many properties:
 - `prefixUrl: string` normally an empty string, it will be set in case a [reverse-proxy wants to mount HFS on a path](https://github.com/rejetto/hfs/wiki/Reverse-proxy).
 - `state: StateObject` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
   - you'll find here some interesting values, like `username` and `loading`. 
-- `watchState(key: string, callback): function`
+- `watchState(key: string, callback, now?: boolean): function`
     - watch the `key` property of the state object above
     - `callback(newValue)` will be called at each change
+    - pass `true` for the third parameter to also call the callback immediately, with current value 
     - use returned callback to stop watching
 - `useSnapState(): StateObject` React hook version of the `state` object above 
 - `React` whole React object, as for `require('react')` (JSX syntax is not supported here)
@@ -409,9 +410,7 @@ This is a list of available frontend-events, with respective object parameter an
 
 - `additionalEntryDetails`
   - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
-  - parameter `{ entry: DirEntry }`
-
-    The `DirEntry` type is an object with the following properties:
+  - parameter `{ entry: DirEntry }` current entry. The `DirEntry` type is an object with the following properties:
     - `name: string` name of the entry.
     - `ext: string` just the extension part of the name, dot excluded and lowercase.
     - `isFolder: boolean` true if it's a folder.
@@ -806,6 +805,7 @@ If you want to override a text regardless of the language, use the special langu
     - removed DirEntry.t
     - api.setInterval, setTimeout
     - HFS.Btn
+    - HFS.watchState added third parameter
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter

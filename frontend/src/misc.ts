@@ -101,9 +101,12 @@ Object.assign(getHFS(), {
     misc: { ...cross, ...shared },
     emit: hfsEvent,
     onEvent: onHfsEvent,
-    watchState(k: string, cb: (v: any) => void) {
+    watchState(k: string, cb: (v: any) => void, callNow=false) {
         const up = k.split('upload.')[1]
-        return subscribeKey(up ? uploadState : state as any, up || k, cb, true)
+        const thisState = up ? uploadState : state as any
+        if (callNow)
+            cb(thisState[k])
+        return subscribeKey(thisState, up || k, cb, true)
     },
     customRestCall(name: string, ...rest: any[]) {
         return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)
