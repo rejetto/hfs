@@ -9,7 +9,7 @@ import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
     MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK,
-    Dict, md, wait, with_, try_, ipForUrl,
+    Dict, md, with_, try_, ipForUrl,
 } from './misc'
 import {
     iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported, Flex
@@ -17,7 +17,7 @@ import {
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
-import { alertDialog, confirmDialog, newDialog, toast, waitDialog } from './dialog'
+import { alertDialog, confirmDialog, newDialog, toast } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
@@ -165,8 +165,9 @@ export default function OptionsPage() {
                 helperText: "In case another website is linking your files" },
 
             { k: 'block', label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
+                form: { maxWidth: '30em' },
                 fields: [
-                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2,
+                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2, comp: NetmaskField,
                         $column: { mergeRender: { comment: {}, expire: {} } },
                         helperText: h(Flex, { component: 'span' }, h(WildcardsSupported), "Be careful to not kick yourself out, by blocking also your IP."),
                     },

@@ -140,7 +140,7 @@ export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="
     }
 }
 
-type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
+export type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
     & Partial<Pick<FormProps<T>, 'save'>>
     & {
         onChange?: (values:Partial<T>, extra: { setValues: Dispatch<SetStateAction<Partial<T>>> }) => void,

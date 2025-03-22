@@ -172,9 +172,8 @@ function Connections() {
                         },
                         {
                             field: 'country',
-                            hidden: config.data?.[CFG.geo_enable] !== true,
                             headerName: "Country",
-                            hideUnder: 'md',
+                            hideUnder: config.data?.[CFG.geo_enable] !== true || 'md',
                             renderCell: ({ value, row }) => h(Country, { code: value, ip: row.ip }),
                         },
                         {

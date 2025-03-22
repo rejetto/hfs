@@ -12,8 +12,7 @@ import { useDebounce } from 'usehooks-ts'
 const ACTIONS = 'Actions'
 
 export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
-    hidden?: boolean
-    hideUnder?: Breakpoint | number
+    hideUnder?: Breakpoint | number | boolean
     dialogHidden?: boolean
     sx?: SxProps | Callback<GridRenderCellParams, SxProps>
     mergeRender?: { [other: string]: false | { override?: Partial<GridColDef<R>> } & BoxProps }
@@ -30,8 +29,9 @@ export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<Da
     footerSide?: (width: number) => ReactNode
     fillFlex?: boolean
     persist?: string
+    details?: boolean
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, persist, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, persist, details, ...rest }: DataTableProps) {
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
@@ -98,8 +98,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     const sizeGrid = useGetSize()
     const width = useDebounce(sizeGrid.w || 0, 500) // stabilize width
     const hideCols = useMemo(() => {
-        const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder, hidden }) =>
-            (hidden || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
+        const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder }) =>
+            (hideUnder === true || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
             && field))
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
@@ -163,7 +163,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 },
             },
             onCellClick({ field, row }) {
-                if (field === ACTIONS) return
+                if (field === ACTIONS || details === false) return
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
                 const visibleInList = merged + apiRef.current.getVisibleColumns().length
                 const showInDialog = manipulatedColumns.filter(x =>

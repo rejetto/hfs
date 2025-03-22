@@ -10,7 +10,7 @@ import {
     _dbg, mapFilter, safeDecodeURIComponent, stringAfter, onlyTruthy, formatTimestamp, formatSpeed, copyTextToClipboard
 } from '@hfs/shared'
 import {
-    NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, WildcardsSupported, Country,
+    NetmaskField, Flex, IconBtn, useBreakpoint, usePauseButton, useToggleButton, Country,
     hTooltip, Btn, wikiLink
 } from './mui';
 import _ from 'lodash'
@@ -235,14 +235,12 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 headerName: "Country",
                 field: 'country',
                 flex: 1,
-                hidden: !showCountry,
-                hideUnder: 'md',
+                hideUnder: !showCountry || 'md',
                 valueGetter: ({ value }) => _.find(COUNTRIES, { code: value })?.name || value,
                 renderCell: ({ row }) => h(Country, { code: row.country, long: true, def: '-' }),
             },
             {
-                hidden: isIps,
-                field: 'msg',
+                field: 'isIps || msg',
                 headerName: "Message",
                 flex: 4,
             }
@@ -252,8 +250,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 headerName: "Country",
                 field: 'country',
                 valueGetter: ({ row }) => row.extra?.country,
-                hidden: !showCountry,
-                hideUnder: 'xl',
+                hideUnder: !showCountry || 'xl',
                 renderCell: ({ value }) => h(Country, { code: value, def: '-' }),
             },
             {
@@ -288,10 +285,9 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
             },
             {
                 headerName: "Agent",
-                hideUnder: 'md',
                 field: 'ua',
                 width: 60,
-                hidden: !showAgent,
+                hideUnder: !showAgent || 'md',
                 valueGetter: ({ row }) => row.extra?.ua,
                 renderCell: ({ value }) => agentIcons(value),
             },

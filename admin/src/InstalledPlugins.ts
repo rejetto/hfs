@@ -68,7 +68,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
             },
             {
                 field: 'installedVersion',
-                hidden: true,
+                hideUnder: true,
                 dialogHidden: true,
                 renderCell: ({ value }) => value && `Yours ${value}`
             },
@@ -76,8 +76,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 field: 'changelog',
                 headerName: "Change log",
                 flex: 2,
-                hideUnder: 'sm',
-                hidden: !updates,
+                hideUnder: !updates || 'sm',
                 sx: { flexDirection: 'column', alignItems: 'flex-start' },
                 renderCell({ value, row }) {
                     if (!Array.isArray(value)) return null
@@ -262,6 +261,7 @@ function makeFields(config: any, values: any) {
             rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
             if (typeof fields === 'string')
                 fields = eval(fields)
+            rest.details ??= false
             rest.fields = (values: unknown) => _.map(makeFields(callable(fields, values), values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
         }
         if (defaultValue !== undefined && type === 'boolean')
@@ -341,7 +341,7 @@ export const descriptionField: DataTableColumn = {
 export const themeField: DataTableColumn = {
     field: 'isTheme',
     headerName: "is theme",
-    hidden: true,
+    hideUnder: true,
     dialogHidden: true,
     type: 'boolean',
     renderCell({ value }) {
