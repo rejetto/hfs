@@ -149,7 +149,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
 - `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to frontend.
 - `customHtml: object | () => object` return custom-html sections programmatically.
-- `customRest: { [name]: (parameters: object) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
+- `customRest: { [name]: (parameters: object, ctx) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
   E.g. 
   ```js
   exports.customRest = {
@@ -415,7 +415,7 @@ This is a list of available frontend-events, with respective object parameter an
     - `ext: string` just the extension part of the name, dot excluded and lowercase.
     - `isFolder: boolean` true if it's a folder.
     - `n: string` name of the entry, including relative path when searched in sub-folders.
-    - `uri: string` relative url of the entry.
+    - `uri: string` absolute uri of the entry.
     - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
     - `c?: Date` creation-time.
     - `m?: Date` modified-time.
