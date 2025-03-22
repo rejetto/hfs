@@ -18,7 +18,7 @@ import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectFiel
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
-import { Btn, Flex, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
+import { Btn, Flex, hTooltip, IconBtn, iconTooltip, NetmaskField, usePauseButton } from './mui'
 import VfsPathField from './VfsPathField'
 import { DateTimeField } from './DateTimeField'
 
@@ -283,6 +283,7 @@ const type2comp = {
     color: ColorField,
     showHtml: ({ html }: any) => h(Html, {}, String(html)),
     date_time: DateTimeField,
+    net_mask: NetmaskField,
 }
 
 export async function startPlugin(id: string) {

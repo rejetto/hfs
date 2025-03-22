@@ -205,6 +205,7 @@ Based on `type`, other properties are supported:
     - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
       and the resulting value will be array of strings, instead of a string. Default is false.
 - `date_time`
+- `net_mask`
 - `showHtml`
     - `html: string` HTML code to display.
 
@@ -808,6 +809,7 @@ If you want to override a text regardless of the language, use the special langu
     - HFS.Btn
     - HFS.watchState added third parameter
     - frontend events: async for fileMenu and html-producers
+    - config.type: date_time, net_mask
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
