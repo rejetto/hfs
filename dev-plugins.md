@@ -451,7 +451,7 @@ This is a list of available frontend-events, with respective object parameter an
   - add or manipulate entries of the menu. If you return something, that will be added to the menu.
     You can also delete or replace the content of the `menu` array.
   - parameter `{ entry: DirEntry, menu: FileMenuEntry[], props: FileMenuProp[] }`
-  - output `undefined | FileMenuEntry | FileMenuEntry[]`
+  - output `Promisable<undefined | FileMenuEntry | FileMenuEntry[]>`
     ```typescript
     interface FileMenuEntry {
       id?: string, 
@@ -807,6 +807,7 @@ If you want to override a text regardless of the language, use the special langu
     - api.setInterval, setTimeout
     - HFS.Btn
     - HFS.watchState added third parameter
+    - frontend events: async for fileMenu and html-producers
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
