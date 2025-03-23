@@ -141,7 +141,7 @@ declare module "koa" {
     interface DefaultState {
         params: Record<string, any>
         account?: Account // user logged in
-        revProxyPath: string
+        revProxyPath: string // must not have final slash
         connection: Connection
     }
 }

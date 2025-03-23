@@ -12,7 +12,8 @@ import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
 import {
-    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFileContent
+    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFileContent,
+    enforceStarting
 } from './misc'
 import { favicon, title } from './adminApis'
 import { customHtml, getAllSections, getSection } from './customHtml'
@@ -84,7 +85,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const plugins = Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
         let configs = newObj(getPluginConfigFields(name), (v, k, skip) =>
             !v.frontend ? skip() :
-                (pluginsConfig.get()?.[name]?.[k] ?? pl.getData().config?.[k]?.defaultValue)
+                adjustValueByConfig(pluginsConfig.get()?.[name]?.[k], pl.getData().config?.[k])
         )
         configs = getPluginInfo(name).onFrontendConfig?.(configs) || configs
         return !_.isEmpty(configs) && [name, configs]
@@ -150,6 +151,26 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 return getSection('bottom') + all
             return all // unchanged
         })
+
+    function adjustValueByConfig(v: any, cfg: any) {
+        v ??= cfg.defaultValue
+        const {type} = cfg
+        if (v && type === 'vfs_path') {
+            v = enforceStarting('/', v)
+            const { root } = ctx.state
+            if (root)
+                if (v.startsWith(root))
+                    v = v.slice(root.length - 1)
+                else
+                    return
+            if (ctx.state.revProxyPath)
+                v = ctx.state.revProxyPath + v
+        }
+        else if (type === 'array' && Array.isArray(v))
+            v = v.map(x => objSameKeys(x, (xv, xk) => adjustValueByConfig(xv, cfg.fields[xk])))
+        return v
+    }
+
 }
 
 function serializeCss(v: any) {

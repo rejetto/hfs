@@ -210,7 +210,11 @@ Based on `type`, other properties are supported:
 - `vfs_path` path to VFS
     - `folders: boolean` set false to forbid selection of folders. Default is true.
     - `files: boolean | string` set force to forbid selection of files. If you set a string, it will be used as a file-mask. 
-       E.g. `*.jpg|*.png` Default is true. 
+       E.g. `*.jpg|*.png` Default is true.
+    Note: the path you configure inside the admin-panel may differ to what the frontend sees, because:
+    - a "root" is applied to the specific host/domain;
+    - a reverse-proxy may add something in front.
+    For this reason, if your config is marked with `frontend: true`, the value that will be actually sent to the frontend may be adjusted if necessary.  
 - `username`
     - `groups: undefined | boolean` true if you want only groups, false if you want only users. Default is undefined.
     - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 

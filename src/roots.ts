@@ -1,5 +1,8 @@
 import { defineConfig, getConfig } from './config'
-import { ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI, try_ } from './misc'
+import {
+    ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI, try_,
+    enforceFinal, enforceStarting
+} from './misc'
 import Koa from 'koa'
 import { disconnect } from './connections'
 import { baseUrl } from './listen'
@@ -8,7 +11,7 @@ import _ from 'lodash'
 export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string }, map => {
     const list = Object.keys(map)
     const matchers = list.map(hostMask => makeMatcher(hostMask))
-    const values = Object.values(map)
+    const values = Object.values(map).map(x => enforceFinal('/', enforceStarting('/', x)))
     return (host: string) => values[matchers.findIndex(m => m(host))]
 })
 const forceAddress = defineConfig(CFG.force_address, false)
@@ -29,7 +32,7 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
             if (referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))) return // exclude apis for admin-panel
         }
         if (_.isEmpty(roots.get())) return
-        const root = roots.compiled()?.(ctx.host)
+        const root = ctx.state.root = roots.compiled()?.(ctx.host)
         if (!ctx.state.skipFilters && forceAddress.get())
             if (root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled()) {
                 disconnect(ctx, forceAddress.key())
@@ -51,5 +54,6 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
 declare module "koa" {
     interface DefaultState {
         originalPath: string // before roots is applied
+        root?: string
     }
 }
