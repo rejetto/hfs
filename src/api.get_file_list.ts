@@ -115,7 +115,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             return name ? { n: name, url, target: node.target } : null
         const isFolder = await nodeIsDirectory(node)
         try {
-            const st = source ? node.stats || await stat(source) : undefined
+            const st = source && !isFolder ? node.stats || await stat(source) : undefined
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'
                 : ''

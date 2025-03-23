@@ -303,7 +303,7 @@ export async function* walkNode(parent: VfsNode, {
                 taken?.add(normalizeFilename(name))
                 const item = { ...child, name }
                 if (await cantSee(item)) continue
-                if (item.source) // real items must be accessible
+                if (item.source && !item.children?.length) // real items must be accessible, unless there's more to it
                     try { await fs.access(item.source) }
                     catch { continue }
                 const isFolder = await nodeIsDirectory(child)
