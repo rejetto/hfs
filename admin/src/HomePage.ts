@@ -87,7 +87,7 @@ export default function HomePage() {
                 : entry('', md("This is the Admin-panel, where you manage your server. Access your files on "),
                     h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
 
-        with_(proxyWarning(cfg, status), x => x && entry('warning', x,
+        with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure and you can ", h(Btn, {
                     variant: 'outlined',
@@ -235,6 +235,6 @@ function cfgLink(text=`Options page`) {
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return cfg.data && !cfg.data.proxies && status?.proxyDetected
+    return cfg && !cfg.proxies && status?.proxyDetected
         ? "A proxy was detected but none is configured" : ''
 }
