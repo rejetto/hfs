@@ -150,16 +150,16 @@ export default function OptionsPage() {
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
                 helperText: "IP address of browser machine"
             },
-            { k: 'localhost_admin', comp: BoolField, label: "Unprotected Admin-panel on localhost",
+            { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Unprotected Admin-panel on localhost",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
                 helperText: "Access without entering credentials"
             },
 
-            { k: 'proxies', comp: NumberField, sm: 4, md: 4, max: 9, label: "Number of HTTP proxies", placeholder: "none",
+            { k: 'proxies', comp: NumberField, xs: 12, sm: 4, md: 4, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP"
             },
-            { k: 'outbound_proxy', sm: 5, md: 4, placeholder: "none", helperText: "URL form",
+            { k: 'outbound_proxy', xs: 12, sm: 5, md: 4, placeholder: "none", helperText: "URL form",
                 getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
             { k: 'allowed_referer', comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
                 helperText: "In case another website is linking your files" },
