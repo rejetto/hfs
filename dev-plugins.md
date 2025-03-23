@@ -28,6 +28,15 @@ The list above may become outdated, but you can always find an updated version a
 
 For example, put a file "login.png" into "icons" to customize that icon.
 
+## Definitions
+
+In this document we define some types using pseudo-typescript syntax.
+We use some predefined types for brevity:
+
+`Promisable<Type> = Type | Promise<Type>` where Type can be wrapped in a promise or not (direct).
+
+`Functionable<Type, Arguments> = Type | ((...args: Arguments) => Type)` where Type can be returned by a function or not (direct).
+
 ## Exported object
 
 `plugin.js` is a javascript module (executed by Node.js), and its main way to communicate with HFS is by exporting things.
@@ -99,7 +108,7 @@ All the following properties are optional unless otherwise specified.
 **WARNING:** All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
 
-- `init: (api: object) => void | object | function` described in the previous section. If an object is returned, 
+- `init: (api: object) => (void | object | function)` described in the previous section. If an object is returned, 
   it will be merged with other "exported" properties described in this section, so you can return `{ unload }` for example.
   If you return a function, this is just a shorter way to return the `unload`.
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
@@ -126,7 +135,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `onDirEntry: ({ entry: DirEntry, listUri: string, ctx, node: VfsNode  }) => Promisable<void | false>` 
   by providing this callback you can manipulate the record that is sent to the frontend (`entry`),
   or you can return false to exclude this entry from the results. Refer to source `frontend/src/state.ts`.
-- `config: { [key]: FieldDescriptor } | function` declare a set of admin-configurable values owned by the plugin
+- `config: Functionable<{ [key]: FieldDescriptor }, values:object>` declare a set of admin-configurable values owned by the plugin
   that will be displayed inside Admin-panel for change. Each property is identified by its key,
   and the descriptor is another object with options about the field. 
 
@@ -147,7 +156,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
   To handle more complex cases, you can pass a function to `config` instead of an object. The function will receive a parameter `values`.
   
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
-- `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to frontend.
+- `onFrontendConfig: (config: object) => (void | object)` manipulate config values exposed to frontend.
 - `customHtml: object | () => object` return custom-html sections programmatically.
 - `customRest: { [name]: (parameters: object, ctx) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
   E.g. 
@@ -169,9 +178,11 @@ A FieldDescriptor is an object and can be empty. Currently, these optional prope
 - `showIf: (values: object) => boolean` only show this field if the function returns truthy. 
   Must not reference variables of the outer scope. [See example](https://github.com/rejetto/rich-folder/blob/main/dist/plugin.js).
 - `frontend: boolean` expose this setting on the frontend, so that javascript can access it 
-   using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`.
-   Hint: if you need to use a numeric config in CSS but you need to add a unit (like `em`),
-   the trick is to use something like this `calc(var(--plugin-something) * 1em)`.
+  using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`.
+  Hint: if you need to use a numeric config in CSS but you need to add a unit (like `em`),
+  the trick is to use something like this `calc(var(--plugin-something) * 1em)`.
+- `getError: (value: any, { values: object, fields: object }) => (boolean | string)` a validator for the field. 
+  Return false if value is valid, true for generic error, or a string for specific error.
 
 Based on `type`, other properties are supported:
 - `string`
@@ -810,6 +821,7 @@ If you want to override a text regardless of the language, use the special langu
     - HFS.watchState added third parameter
     - frontend events: async for fileMenu and html-producers
     - config.type: date_time, net_mask
+    - config.getError
 - 11.6 (v0.56.0)
     - api.setError 
     - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
