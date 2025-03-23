@@ -91,8 +91,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
 export function getProxyDetected() {
     if (proxyDetected?.state.whenProxyDetected < Date.now() - DAY)
         proxyDetected = undefined
-    return !ignoreProxies.get() && proxyDetected
-        && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
+    return proxyDetected && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
