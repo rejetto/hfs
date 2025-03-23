@@ -282,7 +282,8 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
                             comp: ArrayField,
                             fields: [
-                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com" },
+                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com",
+                                    getError: (v?: string) => v?.includes('/') && "No URLs or paths here!" },
                                 { k: 'root', label: "Home/Root", comp: VfsPathField, files: false, placeholder: "default", helperText: "Root path in VFS",
                                     $column: { renderCell({ value }: any) { return value || h('i', {}, 'default') } } },
                             ],
