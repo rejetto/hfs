@@ -25,7 +25,7 @@ const UPLOAD_ROOT = '/for-admins/upload/'
 const UPLOAD_RELATIVE = 'temp/gpl.png'
 const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to saturate buffers
-const throttle = BIG_CONTENT.length /1000 /0.5 // KB, finish in 0.5s, quick but still overlapping downloads
+const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 let defaultBaseUrl = BASE_URL
 
@@ -284,7 +284,7 @@ async function testMaxDl(uri: string, good: number, bad: number) {
     const reqs = []
     while (good--)
         reqs.push( req(uri + '?' + (++i), 200, { throttle })() )
-    await wait(10) // ensure it the slots are taken
+    await wait(1) // ensure the requests are worked by hfs before the next ones, and slots are taken. This is subject to race conditions: if the operations take less than this, the test will fail
     while (bad--)
         reqs.push( req(uri + '?' + (++i), 429, { throttle })() )
     await Promise.all(reqs)
