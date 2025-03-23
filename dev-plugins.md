@@ -335,13 +335,23 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `setInterval`, `setTimeout` same as standard js functions, but will automatically cancel if the plugin is unloaded. 
 
-## Frontend specific
+## Frontend JS
 
-The following information applies to the default frontend, and may not apply to a custom one.
+The following information applies to the frontend bundled with HFS.
 
-Once your script is loaded into the frontend (via `frontend_js`), you will have access to the `HFS` object in the global scope.
+Once your script is loaded into the frontend (via `frontend_js`, refer above), it will be executed as any other script in the browser.
 
-The HFS object contains many properties:
+To avoid conflicts with other plugins, we suggest to wrap all your code like this:
+```js
+'use strict';{
+    // your code here
+    console.log('hi')
+}    
+```
+
+### HFS object
+
+In frontend you will have access to the `HFS` object of the global scope, which has many properties:
 - `onEvent` this is the main API function inside the frontend. Refer to dedicated section below.
 - `apiCall`
 - `useApi`
