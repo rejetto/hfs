@@ -12,7 +12,7 @@ import {
     Dict, md, with_, try_, ipForUrl,
 } from './misc'
 import {
-    iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported, Flex
+    iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
 } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
@@ -306,7 +306,8 @@ export default function OptionsPage() {
 }
 
 function Section({ title, subtitle }: { title: string, subtitle?: string }) {
-    return h(Divider, {}, h('h3', { style: { margin: 0 } }, title), h(Box, { fontSize: 'small' }, subtitle))
+    return h(Divider, { role: 'heading', sx: { fontSize: 'larger', fontWeight: 'bold' } }, title,
+        h(Box, { fontSize: 'small', fontWeight: 'normal' }, subtitle))
 }
 
 function recalculateChanges() {
