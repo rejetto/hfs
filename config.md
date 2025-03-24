@@ -4,8 +4,10 @@ This file contains details about the configuration files.
 
 Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
 
-These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
-if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
+These files are kept in the same folder of `hfs.exe` if you are using this kind of distribution on Windows, 
+or `$HOME/.hfs` on other systems, where *$HOME* varies with the system and is the user's home folder.
+Anyway, the current working directory (CWD) is printed by HFS in the first lines of the console.
+
 Many things are stored in the CWD, like the plugins you install.
 You can decide a different CWD passing `--cwd SOME_FOLDER` parameter at command line.
 

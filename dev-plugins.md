@@ -423,10 +423,10 @@ HFS object is the same you access globally. Here just for legacy, consider it de
 Some frontend events can return HTML, which can be expressed in several ways:
 - as a string containing markup
 - as DOM Nodes, using methods like `document.createElement()`
-- as a ReactElement
-- as an array of ReactNode
-- `null`, `undefined`, `false`, and empty strings will be discarded
+- as a ReactNode or an array of them
 - as a Promise for any of the above
+
+So when referring to type `Html`, below, we are actually meaning `Promisable<string | Element | ReactNode | ReactNode[]>`.
 
 These events will receive a `def` property (in addition event's specific properties),
 with the default content that will be displayed if no callback return a valid output.
@@ -455,7 +455,8 @@ This is a list of available frontend-events, with respective object parameter an
 - `entry`
   - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
-  - output `Html | null` return null if you want to hide this entry
+  - output `Html` 
+    - return null if you want to hide this entry, or undefined to leave it unchanged
 - `afterEntryName`
   - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
@@ -470,9 +471,11 @@ This is a list of available frontend-events, with respective object parameter an
 - `beforeLogin`
   - no parameter
   - output `Html`
+  - you can generate inputs with a name, and they will be sent to the login API
 - `beforeLoginSubmit`
   - no parameter
   - output `Html`
+  - you can generate inputs with a name, and they will be sent to the login API
 - `fileMenu`
   - add or manipulate entries of the menu. If you return something, that will be added to the menu.
     You can also delete or replace the content of the `menu` array.
@@ -610,6 +613,7 @@ This section is still partially documented, and you may need to have a look at t
   - parameters: { ctx, username, inputs }
     - inputs: object
       - merge of all inputs both from body and URL
+      - all fields with a `name` attribute in the form, included those added by plugins, are included 
   - async supported
 - `config ready`
 - `config.KEY` where KEY is the key of a config that has changed

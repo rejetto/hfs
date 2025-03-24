@@ -2,7 +2,8 @@ This file is mostly aimed to developers.
 
 # Building instructions
 
-0. Install [Node.js](https://nodejs.org/) 18+
+0. Install [Node.js](https://nodejs.org/) 18.15+
+   - 18.15 is required for statfs function 
 1. Install Typescript: launch `npm -g i typescript`
 3. Launch `npm run build-all` in the root
 
