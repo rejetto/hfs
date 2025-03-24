@@ -382,6 +382,7 @@ function AgentIcon({ k, map, altText }: { k: string, map: Dict<string>, altText?
     const [err, setErr] = useState(alreadyFailed[k])
     return !src || err ? h(Fragment, {}, altText ? k : null) : h('img', {
         src,
+        alt: k + " icon",
         style: { height: '1.2em', verticalAlign: 'bottom', marginRight: '.2em' },
         onError() { setErr(alreadyFailed[k] = true) }
     })
