@@ -507,6 +507,7 @@ This is a list of available frontend-events, with respective object parameter an
   - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
   - output `Html` 
+    - return null if you want to hide this entry, or undefined to leave it unchanged
 - `afterEntryName`
   - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
