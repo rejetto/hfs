@@ -322,7 +322,7 @@ async function ip2countryBatch(ips: string[]) {
 // force you to think of aria when adding a tooltip
 export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
     return h(Tooltip, { title, children,
-        ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel },
+        ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel || _.isString(title) && title || undefined },
         componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } },
         ...props
     })

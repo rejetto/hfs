@@ -65,7 +65,7 @@ export default function CustomHtmlPage({ setTitleSide }: PageProps) {
                 modified: anyChange,
                 onClick: save,
             }),
-            hTooltip("Enable / Disable", undefined, switchBtn(enabled, async v => {
+            hTooltip("Enable all sections", undefined, switchBtn(enabled, async v => {
                 await apiCall('set_config', { values: { [CFG.disable_custom_html]: !v } })
                 setEnabled(v)
             })),
