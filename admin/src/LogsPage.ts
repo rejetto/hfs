@@ -238,7 +238,7 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
                 renderCell: ({ row }) => h(Country, { code: row.country, long: true, def: '-' }),
             },
             {
-                field: 'isIps || msg',
+                field: 'msg',
                 headerName: "Message",
                 flex: 4,
             }
