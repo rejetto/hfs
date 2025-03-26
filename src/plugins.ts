@@ -9,7 +9,7 @@ import {
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, objSameKeys, onlyTruthy,
+    adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, objSameKeys, onlyTruthy, prefix,
     PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
@@ -580,7 +580,7 @@ function watchPlugin(id: string, path: string) {
             await markItAvailable()
             const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
             const where = parsed?.length > 1 ? `\n${parsed[0]}` : ''
-            e = e.message + where || String(e)
+            e = prefix('', e.message, where) || String(e)
             setError(id, e)
         }
         finally {
