@@ -111,6 +111,7 @@ describe('basics', () => {
 
     it('protectFromAbove', req('/protectFromAbove/child/alfa.txt', 403))
     it('protectFromAbove.list', reqList('/protectFromAbove/child/', { inList:['alfa.txt'] }))
+    it('inheritNegativeMask', reqList('/tests/page', { outList: ['index.html'] }))
 
     const zipSize = 13010
     const zipOfs = 0x1359
@@ -327,7 +328,9 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
         const data = await stream2string(stream)
         const obj = tryJson(data)
         if (typeof test === 'object') {
-            const { status, mime, re, inList, outList, length, permInList } = test
+            let { status, mime, re, inList, outList, length, permInList } = test
+            if (inList || outList)
+                status ||= 200
             const gotMime = res.headers?.['content-type']
             const gotStatus = res.statusCode
             const gotLength = res.headers?.['content-length']

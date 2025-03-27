@@ -399,6 +399,7 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
 }
 
 export function parentMaskApplier(parent: VfsNode) {
+    // rules are met in the parent.masks object from nearest to farthest, but since we finally apply with _.defaults, the nearest has precedence in the final result
     const matchers = onlyTruthy(_.map(parent.masks, (mods, k) => {
         if (!mods) return
         const mustBeFolder = (() => { // undefined if no restriction is requested
@@ -409,7 +410,8 @@ export function parentMaskApplier(parent: VfsNode) {
             k = k.slice(0, i) // remove
             return type === 'folders'
         })()
-        k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : '' // ** globstar matches also zero subfolders, so this mask must be applied here too
+        const m = /^(!?)\*\*\//.exec(k) // ** globstar matches also zero subfolders, so this mask must be applied here too
+        k = m ? m[1] + k.slice(m[0].length) : !k.includes('/') ? k : ''
         return k && { mods, matcher: makeMatcher(k), mustBeFolder }
     }))
     return async (item: VfsNode, virtualBasename=basename(getNodeName(item))) => { // we basename for depth>0

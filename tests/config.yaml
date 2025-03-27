@@ -49,6 +49,9 @@ vfs:
       can_list:
         - disabled_account
     - source: tests
+      masks:
+        "!**/*.png|files|":
+          can_see: false
     - name: renameChild
       children:
         - source: tests
