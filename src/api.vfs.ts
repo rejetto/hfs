@@ -187,7 +187,7 @@ const apis: ApiHandlers = {
 
     get_disk_spaces: getDiskSpaces,
 
-    get_ls({ path, files=true, fileMask }, ctx) {
+    get_ls({ path, files, fileMask }, ctx) {
         return new SendListReadable<LsEntry>({
             async doAtStart(list) {
                 if (!path && IS_WINDOWS) {
