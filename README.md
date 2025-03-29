@@ -53,7 +53,7 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 If you need [Docker installation](https://github.com/damienzonly/hfs-docker) or [Service installation](https://github.com/rejetto/hfs/wiki/Service-installation), click the links.
 
-NB: minimum Windows version required is 8.1 , Windows Server 2012 R2
+Minimum Windows version required is 10 or Server 2019. If you have a previous version, you can still follow instructions for [Other systems](#other-systems)  
 
 1. go to https://github.com/rejetto/hfs/releases
 2. click on `Assets`

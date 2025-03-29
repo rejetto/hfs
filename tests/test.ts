@@ -235,15 +235,7 @@ describe('after-login', () => {
     it('reupload', reqUpload(UPLOAD_DEST, 200))
     it('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
     it('delete.miss deleted', req(UPLOAD_DEST, 404, { method: 'delete' }))
-    it('upload.too much', async () => {
-        const fn = 'temp/tooMuch'
-        const wrongSize = BIG_CONTENT.length / 2
-        // the 200 is the result when nodejs doesn't intercept the mismatch (sending 400), and the case is handled by the application layer. Nodejs intervention can vary with the version and the declared size.
-        await reqUpload(UPLOAD_ROOT + fn, 200, BIG_CONTENT, wrongSize)()
-        const { size } = statSync(ROOT + fn)
-        if (size !== wrongSize)
-            throw Error(`wrote ${size}`)
-    })
+    it('upload.too much', reqUpload(UPLOAD_ROOT + 'temp/tooMuch', 400, BIG_CONTENT, BIG_CONTENT.length / 2)) // 400 is caused by nodejs itself, intercepting the mismatch
     it('max_dl.account', async () => {
         const uri = UPLOAD_ROOT + 'temp/big'
         await reqUpload(uri, 200, BIG_CONTENT)()

@@ -115,7 +115,7 @@ export function getPluginConfigFields(id: string) {
 
 async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>) {
     const undoEvents: any[] = []
-    const timeouts: NodeJS.Timer[] = []
+    const timeouts: NodeJS.Timeout[] = []
     const res = await pl.init?.({
         Const,
         require,

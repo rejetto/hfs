@@ -25,10 +25,10 @@
     "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-mac && npm run dist-bin-mac-arm",
     "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && cd .. && node prune_modules",
     "dist-pre": "cd dist && rm -rf node_modules/@node-rs/crc32-*",
-    "dist-bin-win": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc && pkg . --public -C gzip -t node18-win-x64 && npx resedit-cli --in hfs.exe --icon 1,../hfs.ico --out hfs.exe && zip hfs-windows-x64-$(jq -r .version ../package.json).zip hfs.exe -r plugins && cd ..",
-    "dist-bin-mac-arm": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-arm64 && pkg . --public -C gzip -t node18-macos-arm64 && zip hfs-mac-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
-    "dist-bin-mac": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-x64 && pkg . --public -C gzip -t node18-macos-x64 && zip hfs-mac-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
-    "dist-bin-linux": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-linux-x64-gnu && pkg . --public -C gzip -t node18-linux-x64 && zip hfs-linux-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
+    "dist-bin-win": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-win32-x64-msvc && pkg . --public -C gzip -t node20-win-x64 && npx resedit-cli --in hfs.exe --icon 1,../hfs.ico --out hfs.exe && zip hfs-windows-x64-$(jq -r .version ../package.json).zip hfs.exe -r plugins && cd ..",
+    "dist-bin-mac-arm": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-arm64 && pkg . --public -C gzip -t node20-macos-arm64 && zip hfs-mac-arm64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
+    "dist-bin-mac": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-darwin-x64 && pkg . --public -C gzip -t node20-macos-x64 && zip hfs-mac-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
+    "dist-bin-linux": "npm run dist-pre && cd dist && npm i -f --no-save --omit=dev @node-rs/crc32-linux-x64-gnu && pkg . --public -C gzip -t node20-linux-x64 && zip hfs-linux-x64-$(jq -r .version ../package.json).zip hfs -r plugins && cd ..",
     "dist-win": "npm run dist-modules && npm run dist-bin-win",
     "dist-mac-arm": "npm run dist-modules && npm run dist-bin-mac-arm",
     "dist-mac": "npm run dist-modules && npm run dist-bin-mac",
@@ -61,10 +61,10 @@
       "**/node_modules/axios/dist/node/*"
     ],
     "targets": [
-      "node18-win-x64",
-      "node18-mac-x64",
-      "node18-mac-arm64",
-      "node18-linux-x64"
+      "node20-win-x64",
+      "node20-mac-x64",
+      "node20-mac-arm64",
+      "node20-linux-x64"
     ]
   },
   "dependencies": {
@@ -111,12 +111,12 @@
     "@types/mime-types": "^2.1.1",
     "@types/minimist": "^1.2.2",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^18.17.14",
+    "@types/node": "^20.17.30",
     "@types/node-forge": "^1.3.11",
     "@types/picomatch": "^2.3.3",
     "@types/tough-cookie": "^4.0.2",
     "@types/unzipper": "^0.10.5",
-    "@yao-pkg/pkg": "^5.15.0",
+    "@yao-pkg/pkg": "^6.3.2",
     "cross-env": "^7.0.3",
     "koa-better-http-proxy": "^0.2.9",
     "mocha": "^10.8.2",
