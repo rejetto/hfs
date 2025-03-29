@@ -19,7 +19,9 @@ import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Add, Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save } from '@mui/icons-material'
+import {
+    Add, Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save, RestartAlt
+} from '@mui/icons-material'
 import { moveVfs } from './VfsTree'
 import QrCreator from 'qr-creator';
 import MenuButton from './MenuButton'
@@ -78,13 +80,16 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
     }
     const defaultIcon = !values.icon
     const embeddedIcon = values.icon && !values.icon.includes('.')
+    const nameFromSource = source && basename(source)
+    const nameIsDerivedFromSource = nameFromSource === values.name
     return h(Form, {
         values,
         set(v, k) {
             setValues(values => {
-                const nameIsVirtual = k === 'source' && values.name && values.source?.endsWith(values.name)
-                const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
-                return { ...values, name, [k]: v }
+                // updating the source, if the name is virtual, we must update that too
+                if (k === 'source' && nameIsDerivedFromSource)
+                    values.name = basename(v)
+                return { ...values, [k]: v }
             })
         },
         barSx: { gap: 2, width: '100%', ...barColors },
@@ -150,7 +155,9 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
         fields: [
             isRoot ? h(Alert, { severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : isDir && hasSource && h(Alert, { severity: 'info' }, `To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"`),
-            !isRoot && { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
+            !isRoot && { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk",
+                end: nameFromSource && !nameIsDerivedFromSource && h(Btn, { icon: RestartAlt, title: "Reset", onClick: () => setValues({ ...values, name: nameFromSource }) }),
+            },
             isLink ? { k: 'url', label: "URL", lg: 12, required: true }
                 : { k: 'source', label: "Disk source", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
                     placeholder: "none",

@@ -1,6 +1,6 @@
 import { defineConfig } from './config'
-import { dirname, join } from 'path'
-import { basename, CFG } from './cross'
+import { dirname, basename, join } from 'path'
+import { CFG } from './cross'
 import { parseFileContent, parseFileCache } from './util-files'
 import { createWriteStream } from 'fs'
 import { loadFileAttr, singleWorkerFromBatchWorker, storeFileAttr } from './misc'

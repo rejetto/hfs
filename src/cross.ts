@@ -141,6 +141,10 @@ export function enforceFinal(sub:string, s:string, evenEmpty=false) {
     return (s ? !s.endsWith(sub) : evenEmpty) ? s + sub : s
 }
 
+export function removeFinal(sub:string, s:string) {
+    return s.endsWith(sub) ? s.slice(0, -sub.length) : s
+}
+
 export function enforceStarting(sub:string, s:string, evenEmpty=false) {
     return (s ? !s.startsWith(sub) : evenEmpty) ? sub + s : s
 }
@@ -221,7 +225,7 @@ export function pendingPromise<T>() {
 }
 
 export function basename(path: string) {
-    return path.slice(path.lastIndexOf('/') + 1 || path.lastIndexOf('\\') + 1)
+    return path.match(/([^\\/]+)[\\/]*$/)?.[1] || ''
 }
 
 export function dirname(path: string) {
