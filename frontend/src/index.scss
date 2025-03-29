@@ -740,6 +740,7 @@ form label+input { margin-top: .2em; }
         text-align: center;
         display: flex;
         justify-content: center;
+        text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000;
         &>div { position: absolute;
             margin: 1em;
         }
@@ -789,7 +790,7 @@ form label+input { margin-top: .2em; }
         user-select: none;
         transition: opacity .3s;
         &:hover { opacity: .7; }
-        &.nav-hidden:not(:hover) { opacity: 0 }
+        &.nav-hidden:not(:hover) { opacity: .3 }
     }
     .bar {
         padding: .5em min(2vw, 1em);
@@ -877,5 +878,6 @@ form label+input { margin-top: .2em; }
 }
 
 @media (pointer: coarse) {
+    .file-show .nav { height: 1.6em; } // correct centering on android
     #root>.tiles-mode .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
 }
