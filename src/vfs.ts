@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
-    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
+    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -432,14 +432,15 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
     const { masks } = parent
     if (!masks) return
     const o: Masks = {}
-    const prefix = virtualBasename + '/'
     for (const [k,v] of Object.entries(masks)) {
-        if (k.startsWith('**'))
+        if (k.startsWith('**')) {
             o[k] = v
-        else if (k.startsWith('*/'))
-            o[k.slice(2)] = v
-        else if (k.startsWith(prefix))
-            o[k.slice(prefix.length)] = v
+            continue
+        }
+        const i = k.indexOf('/')
+        if (i < 0) continue
+        if (!matches(virtualBasename, k.slice(0, i))) continue
+        o[k.slice(i + 1)] = v
     }
     if (Object.keys(o).length)
         item.masks = Object.assign(o, item.masks) // don't change item.masks object as it is the same object of item.original
