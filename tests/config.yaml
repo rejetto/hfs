@@ -4,7 +4,7 @@ allowed_referer: x.com
 localhost_admin: false
 vfs:
   masks:
-    "!tests/page/*.png":
+    tests/page/!*.png:
       mime: text/plain
     protectFromAbove/child/*.txt:
       can_read: false
@@ -50,7 +50,7 @@ vfs:
         - disabled_account
     - source: tests
       masks:
-        "!**/*.png|files|":
+        "**/!*.png|files|":
           can_see: false
     - name: renameChild
       children:

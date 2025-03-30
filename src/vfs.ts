@@ -432,21 +432,17 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
     const { masks } = parent
     if (!masks) return
     const o: Masks = {}
+    const prefix = virtualBasename + '/'
     for (const [k,v] of Object.entries(masks)) {
-        const neg = k[0] === '!' && k[1] !== '(' ? '!' : ''
-        let withoutNeg = neg ? k.slice(1) : k
-        if (withoutNeg.startsWith('**')) {
+        if (k.startsWith('**'))
             o[k] = v
-            if (withoutNeg[2] === '/')
-                withoutNeg = withoutNeg.slice(3) // this mask will apply also at the current level
-        }
-        if (withoutNeg.startsWith('*/'))
-            o[neg + withoutNeg.slice(2)] = v
-        else if (withoutNeg.startsWith(virtualBasename + '/'))
-            o[neg + withoutNeg.slice(virtualBasename.length + 1)] = v
+        else if (k.startsWith('*/'))
+            o[k.slice(2)] = v
+        else if (k.startsWith(prefix))
+            o[k.slice(prefix.length)] = v
     }
     if (Object.keys(o).length)
-        item.masks = _.defaults(item.masks, o)
+        item.masks = Object.assign(o, item.masks) // don't change item.masks object as it is the same object of item.original
 }
 
 function renameUnderPath(rename:undefined | Record<string,string>, path: string) {
