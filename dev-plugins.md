@@ -428,9 +428,11 @@ Some frontend events can return HTML, which can be expressed in several ways:
 
 So when referring to type `Html`, below, we are actually meaning `Promisable<string | Element | ReactNode | ReactNode[]>`.
 
-These events will receive a `def` property (in addition event's specific properties),
-with the default content that will be displayed if no callback return a valid output.
-You can decide to embed such default content inside your content.
+These events will receive, in addition event's specific properties, a `def` property
+with the *default* content that will be displayed if no callback return a valid output.
+It is useful if you want to embed such default content inside your content.
+Most events have this `def` undefined as they have no default content and are designed for custom insertions,
+but when this is not the case, you can replace the default content with nothing by returning `null`.
 You can produce output for such events also by adding sections (with same name as the event) to file `custom.html`.
 
 This is a list of available frontend-events, with respective object parameter and output.
@@ -456,7 +458,6 @@ This is a list of available frontend-events, with respective object parameter an
   - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
   - output `Html` 
-    - return null if you want to hide this entry, or undefined to leave it unchanged
 - `afterEntryName`
   - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
@@ -476,6 +477,12 @@ This is a list of available frontend-events, with respective object parameter an
   - no parameter
   - output `Html`
   - you can generate inputs with a name, and they will be sent to the login API
+- `loginUsernameField`
+  - no parameter
+  - output `Html`
+- `loginPasswordField`
+  - no parameter
+  - output `Html`
 - `fileMenu`
   - add or manipulate entries of the menu. If you return something, that will be added to the menu.
     You can also delete or replace the content of the `menu` array.
@@ -777,8 +784,9 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 ## React developers
 
+Using React is a good option to create a frontend parts for your plugin.
 Most React developers are used to JSX, which is not (currently) supported here.
-If you want, you can try solutions to JSX support, like transpiling.
+If you want, you can try solutions to support JSX, like transpiling.
 Anyway, React is not JSX, and can be easily used without.
 
 Any time in JSX you do
@@ -824,13 +832,13 @@ HFS._.set(HFS.lang, 'en.translate.Options', 'Settings')
 This works because all translations are stored inside `HFS.lang`.
 Using `HFS._.set` is not necessary, but in this case is convenient, because the language-code key may not exist.
 
-If you want to override a text regardless of the language, use the special language-code `all`.
+If you want to override a text regardless of the language, use the special language-code `all`. 
 
 ## API version history
 
-- 12.1 (v0.57.0)
+- 12.2 (v0.57.0)
     - backend event: finalizingLogin, httpsServerOptions, clearTextLogin
-    - frontend events: beforeLoginSubmit
+    - frontend events: beforeLoginSubmit, loginUsernameField, loginPasswordField
     - exports.changelog
     - automatic unload of api.events listeners
     - removed DirEntry.t

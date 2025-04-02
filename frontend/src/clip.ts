@@ -45,7 +45,7 @@ export function ClipBar() {
     }
 
     function paste() {
-        if (hfsEvent('paste', { from: state.clip, to: here }).isDefaultPrevent()) return
+        if (hfsEvent('paste', { from: state.clip, to: here }).isDefaultPrevented()) return
         return apiCall('move_files', {
             uri_from: clip.map(x => x.uri),
             uri_to: here,

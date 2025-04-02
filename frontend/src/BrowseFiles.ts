@@ -309,7 +309,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
             'aria-labelledby': ariaId,
             value: selected[uri] || false,
             onChange(v) {
-                if (hfsEvent('entryToggleSelection', { entry }).isDefaultPrevent()) return
+                if (hfsEvent('entryToggleSelection', { entry }).isDefaultPrevented()) return
                 if (v)
                     return state.selected[uri] = true
                 delete state.selected[uri]

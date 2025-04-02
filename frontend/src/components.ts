@@ -87,7 +87,7 @@ export function CustomCode({ name, children, render, ...props }: {
         [name, children, ...props ? Object.values(props) : []])
     const [out, setOut] = useStateMounted<null | ReactNode[]>([])
     useEffect(() => {
-        if (raw.some(x => x === null)) // null means skip this
+        if (raw.isDefaultPrevented() || raw.some(x => x === null)) // null means skip this
             return setOut(null)
         const worked: ReactNode[] = raw.map(toElement)
         setOut(onlyTruthy(worked))

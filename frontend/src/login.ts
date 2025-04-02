@@ -11,13 +11,14 @@ import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { reloadList } from './useFetchList'
 import { Checkbox, CustomCode } from './components'
 import { changePassword } from './UserPanel'
+import _ from 'lodash'
 import i18n from './i18n'
 const { t, useI18N } = i18n
 
 async function login(username:string, password:string, extra?: object) {
     const stopWorking = working()
     return srpClientSequence(username, password, apiCall, extra).catch(err => {
-        if (err.code == HTTP_METHOD_NOT_ALLOWED)
+        if (err.code == HTTP_METHOD_NOT_ALLOWED || !password) // allow alternative authentications without a password
             return apiCall('login', { username, password, ...extra })
         throw err
     }).then(res => {
@@ -80,7 +81,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     }
                 },
                     h(CustomCode, { name: 'beforeLogin' }),
-                    h('div', { className: 'field' },
+                    h(CustomCode, { name: 'loginUsernameField' }, h('div', { className: 'field' },
                         h('label', { htmlFor: 'login_username' }, t`Username`),
                         h('input', {
                             ref: usrRef,
@@ -90,8 +91,8 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                             required: true,
                             onKeyDown
                         }),
-                    ),
-                    h('div', { className: 'field' },
+                    )),
+                    h(CustomCode, { name: 'loginPasswordField' }, h('div', { className: 'field' },
                         h('label', { htmlFor: 'login_password' }, t`Password`),
                         h('input', {
                             ref: pwdRef,
@@ -102,7 +103,7 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                             required: true,
                             onKeyDown
                         }),
-                    ),
+                    )),
                     h(CustomCode, { name: 'beforeLoginSubmit' }),
                     h('div', { className: 'submit' },
                         h('button', { type: 'submit' }, t`Continue`)),
@@ -124,10 +125,9 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     const form = ev.target instanceof HTMLElement && ev.target.closest('form')
                     if (!form) return
                     ev.stopPropagation()
-                    const { username, password, ...rest } = Object.fromEntries(Array.from(form.querySelectorAll('[name]'))
-                        .map(el => el instanceof HTMLInputElement ? [el.name, el.value] : []))
+                    const { username, password, ...rest } = _.pickBy(Object.fromEntries(new FormData(form).entries()), _.isString) // skip files
                     const u = username.trim()
-                    if (going || !u || !password) return
+                    if (going || !u) return
                     going = true
                     try {
                         const res = await login(u, password, {

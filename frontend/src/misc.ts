@@ -60,7 +60,7 @@ export function hfsEvent(name: string, params?:Dict) {
     document.dispatchEvent(ev)
     const sortedOutput = order.length && _.sortBy(output.map((x, i) => [order[i] || 0, x]), '0').map(x => x[1])
     return Object.assign(sortedOutput || output, {
-        isDefaultPrevent: () => ev.defaultPrevented,
+        isDefaultPrevented: () => ev.defaultPrevented,
     })
 }
 
