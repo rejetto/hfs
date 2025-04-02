@@ -607,7 +607,7 @@ function setError(id: string, error: string) {
     info.error = error
     events.emit('pluginUpdated', info)
     if (!error) return
-    console.log(`plugin error: ${id}:`, error)
+    console.warn(`plugin error: ${id}:`, error)
     return true
 }
 
