@@ -507,6 +507,7 @@ function watchPlugin(id: string, path: string) {
             const openDbs: KvStorage[] = []
             const subbedConfigs: Callback[] = []
             const pluginReady = pendingPromise()
+            const MAX_LOG = 100
             await initPlugin(pluginData, { // following properties are not available in server_code
                 id,
                 srcDir: __dirname,
@@ -522,10 +523,12 @@ function watchPlugin(id: string, path: string) {
                     console.log('plugin', id+':', ...args)
                     pluginReady.then(() => { // log() maybe invoked during init(), while plugin is undefined
                         if (!plugin) return
-                        plugin.log.unshift({ ts: new Date, msg: args.map(x => x && typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ') })
-                        plugin.log.length = Math.min(100, plugin.log.length) // truncate
-                        events.emit('pluginLog:' + id, plugin.log[0])
-                        events.emit('pluginLog', id, plugin.log[0])
+                        const msg = { ts: new Date, msg: args.map(x => x && typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ') }
+                        plugin.log.push(msg)
+                        if (plugin.log.length > MAX_LOG)
+                            plugin.log.splice(0, 10) // truncate
+                        events.emit('pluginLog:' + id, msg)
+                        events.emit('pluginLog', id, msg)
                     })
                 },
                 getConfig(cfgKey?: string) {

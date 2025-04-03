@@ -151,7 +151,6 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                         ),
                         Wrapper({ children }: any) {
                             const { list } = useApiList('get_plugin_log', { id }, {
-                                invert: true,
                                 map(x) { x.ts = new Date(x.ts) }
                             })
                             let lastDate: any
@@ -167,19 +166,18 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                                             }
                                         }, list.map(x => {
                                             formatDate(x.ts)
-                                                const thisDate = formatDate(x.ts)
-                                                return h(Fragment, { key: x.id },
-                                                    thisDate !== lastDate && (lastDate = thisDate),
-                                                    h(Box, {},
-                                                        h(Box, { title: thisDate, display: 'inline', color: 'text.secondary', mr: 1 }, formatTime(x.ts)),
-                                                        replaceStringToReact(x.msg, /https?:\/\/\S+/, m => h(Link, {
-                                                            href: m[0],
-                                                            target: '_blank'
-                                                        }, m[0])) // make links clickable
-                                                    )
+                                            const thisDate = formatDate(x.ts)
+                                            return h(Fragment, { key: x.id },
+                                                thisDate !== lastDate && (lastDate = thisDate),
+                                                h(Box, {},
+                                                    h(Box, { title: thisDate, display: 'inline', color: 'text.secondary', mr: 1 }, formatTime(x.ts)),
+                                                    replaceStringToReact(x.msg, /https?:\/\/\S+/, m => h(Link, {
+                                                        href: m[0],
+                                                        target: '_blank'
+                                                    }, m[0])) // make links clickable
                                                 )
-                                            }
-                                        ))
+                                            )
+                                        }))
                                     )
                                 ) : showOptions ? null : h(Box, { p: '1em', pt: 0 }, "Log is empty")
                             )
