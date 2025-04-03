@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiEx, useApiList } from './api'
-import { createElement as h, Fragment, useEffect } from 'react'
+import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { Box, Breakpoint, Link, Paper, Table, TableCell, TableRow, useTheme } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
@@ -9,7 +9,7 @@ import {
 } from '@mui/icons-material'
 import {
     CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact,
-    callable, tryJson
+    callable, tryJson, useAutoScroll
 } from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
@@ -153,12 +153,16 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                             const { list } = useApiList('get_plugin_log', { id }, {
                                 map(x) { x.ts = new Date(x.ts) }
                             })
+                            const autoScroll = useAutoScroll(list)
                             let lastDate: any
                             return h(Flex, { alignItems: 'stretch', justifyContent: 'center', flexWrap: 'wrap', flexDirection: showOptions ? undefined : 'column' },
                                 h(Box, { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ }, children),
                                 list.length > 0 ? h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
-                                    h(Box, { my: .5, pb: .5, borderBottom: '1px solid' }, "Output (last on top)"),
-                                    h(Box, { position: 'absolute', bottom: 0, top: '1.8em', left: 0, right: 0, sx: { overflowY: 'auto' } },
+                                    h(Box, { my: .5, pb: .5, borderBottom: '1px solid' }, "Output"),
+                                    h(Box, {
+                                        position: 'absolute', bottom: 0, top: '1.8em', left: 0, right: 0, sx: { overflowY: 'auto' },
+                                        ref: autoScroll,
+                                    },
                                         h(Box, {
                                             sx: {
                                                 textIndent: '-1em', pl: '1em',

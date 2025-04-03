@@ -5,7 +5,7 @@ import {
     useCallback, useEffect, useMemo, useRef, useState
 } from 'react'
 import { useIsMounted, useWindowSize, useMediaQuery } from 'usehooks-ts'
-import { Callback, Falsy } from '.'
+import { Callback, domOn, Falsy } from '.'
 import _ from 'lodash'
 
 export function useStateMounted<T>(init: T) {
@@ -191,4 +191,25 @@ export function noAriaTitle(title: string) {
 export const isMac = navigator.platform.match('Mac')
 export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
+}
+
+export function useAutoScroll(dependency: any) {
+    const ref = useRef<any>()
+    const lastScrollListenerRef = useRef<any>()
+    const [goBottom, setGoBottom] = useState(true)
+    useEffect(() => {
+        const { current: el } = ref
+        if (goBottom)
+            el?.scrollTo(0, el.scrollHeight)
+    }, [goBottom, dependency])
+    return useCallback((el: any) => {
+        ref.current = el
+        // reinstall listener
+        lastScrollListenerRef.current?.()
+        lastScrollListenerRef.current = domOn('scroll', ev => {
+            const el = ev.target as HTMLDivElement
+            if (!el) return
+            setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 3)
+        }, { target: el })
+    }, [])
 }
