@@ -134,7 +134,7 @@ export function createStreamLimiter(limit: number) {
             const left = limit - got
             got += chunk.length
             if (left > 0) {
-                this.push(chunk.length >= left ? chunk.slice(0, left) : chunk)
+                this.push(chunk.length > left ? chunk.slice(0, left) : chunk)
                 if (got >= limit)
                     this.end()
             }

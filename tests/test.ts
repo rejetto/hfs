@@ -238,6 +238,7 @@ describe('after-login', () => {
     it('upload.too much', async () => {
         const fn = 'temp/tooMuch'
         const wrongSize = BIG_CONTENT.length / 2
+        // the 200 is the result when nodejs doesn't intercept the mismatch (sending 400), and the case is handled by the application layer. Nodejs intervention can vary with the version and the declared size.
         await reqUpload(UPLOAD_ROOT + fn, 200, BIG_CONTENT, wrongSize)()
         const { size } = statSync(ROOT + fn)
         if (size !== wrongSize)

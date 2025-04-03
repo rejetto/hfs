@@ -70,7 +70,10 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             })
             ctx.req.on('close', () => dest.end())
             const uri = await dest.lockMiddleware  // we need to wait more than just the stream
-            ctx.body = { uri }
+            if (uri) // falsy = aborted
+                ctx.body = { uri }
+            else
+                ctx.status = 400 // nodejs already sent 400, but koa ignores it (ctx.headersSent is false and ctx.status is 404), so we adjust to have correct data in the log
         }
         return
     }
