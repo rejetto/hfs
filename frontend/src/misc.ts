@@ -94,11 +94,12 @@ export function formatTimestamp(x: number | string | Date, options?: Intl.DateTi
     return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString(cached, options)
 }
 
+import * as thisModule from './misc'
 Object.assign(getHFS(), {
     h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
     toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry, Btn,
     fileShowComponents: { Video, Audio },
-    misc: { ...cross, ...shared },
+    misc: { ...cross, ...shared, ...thisModule },
     emit: hfsEvent,
     onEvent: onHfsEvent,
     watchState(k: string, cb: (v: any) => void, callNow=false) {
