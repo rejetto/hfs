@@ -264,28 +264,31 @@ export function findDefined<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string
     }
 }
 
+// create new object with values returned by callback. Keys are kept the same unless you call `setK('myKey')`. Calling `setK` without parameters, which implies `undefined`, will remove the key.
 export function newObj<S extends (object | undefined | null),VR=unknown>(
     src: S,
     returnNewValue: (value: S[keyof S], key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true, depth: number) => any,
-    recur: boolean | number=false
+    recur: boolean | number=false // recur on the returned value, if it's an object
 ) {
-    const pairs = Object.entries(src || {}).map( ([k,v]) => {
-        if (typeof k === 'symbol') return
-        let _k: undefined | typeof k = k
+    let _k: undefined | string
+    const entries = Object.entries(src || {}).map( ([k,v]) => {
         const curDepth = typeof recur === 'number' ? recur : 0
-        let newV = returnNewValue(v, k as Exclude<keyof S, symbol>, (newK) => {
-            _k = newK
-            return true // for convenient expression concatenation
-        }, curDepth)
+        _k = k
+        let newV = returnNewValue(v, k as Exclude<keyof S, symbol>, setK, curDepth)
         if ((recur !== false || returnNewValue.length === 4) // if callback is using depth parameter, then it wants recursion
             && _.isPlainObject(newV)) // is it recurrable?
             newV = newObj(newV, returnNewValue, curDepth + 1)
         return _k !== undefined && [_k, newV]
     })
-    return Object.fromEntries(onlyTruthy(pairs)) as S extends undefined | null ? S : { [K in keyof S]:VR }
+    return Object.fromEntries(onlyTruthy(entries)) as S extends undefined | null ? S : { [K in keyof S]:VR }
+
+    function setK(newK: typeof _k) { // declare once (optimization)
+        _k = newK
+        return true as const // for convenient expression concatenation: setK('newK') && 'newValue'
+    }
 }
 
-// returns undefined if timeout is reached
+// returns undefined if timeout is reached, otherwise the value returned by the callback
 export async function waitFor<T>(cb: ()=> Promisable<T>, { interval=200, timeout=Infinity }={}) {
     const started = Date.now()
     while (1) {
