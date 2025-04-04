@@ -125,12 +125,13 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 : ''
             const pd = Boolean(can_delete) === hasPermission(node, 'can_delete', ctx) ? '' : can_delete ? 'd' : 'D'
             const pa = Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
+            const pu = !isFolder || Boolean(can_upload) === hasPermission(node, 'can_upload', ctx) ? '' : can_upload ? 'u' : 'U'
             return {
                 n: name + (isFolder ? '/' : ''),
                 c: st?.birthtime,
                 m: !st || Math.abs(st.mtimeMs - st.birthtimeMs) < 1000 ? undefined : st.mtime,
                 s: isFolder ? undefined : st?.size,
-                p: (pr + pl + pd + pa) || undefined,
+                p: (pr + pl + pd + pa + pu) || undefined,
                 order: node.order,
                 comment: node.comment ?? await getCommentFor(source),
                 icon: getNodeIcon(node),

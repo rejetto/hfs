@@ -156,6 +156,9 @@ export class DirEntry implements ServerDirEntry {
     canDelete() {
         return this.p?.includes('D') || state.props?.can_delete && !this.p?.includes('d')
     }
+    canUpload() {
+        return this.isFolder && (this.p?.includes('U') || state.props?.can_upload && !this.p?.includes('u'))
+    }
     canSelect() {
         if (this.url) return false
         return this.canArchive() || this.canDelete() // selection is used only by zip and delete, but consider custom logic from plugins

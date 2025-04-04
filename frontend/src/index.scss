@@ -204,6 +204,9 @@ kbd {
     white-space: nowrap;
     margin-right: .5em;
 }
+.drop-over {
+    box-shadow: 0 0 .3em .3em var(--warning);
+}
 
 .before-sliding {
     width: 0 !important;

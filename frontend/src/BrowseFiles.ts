@@ -20,6 +20,7 @@ import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
 import { fileShow, getShowComponent } from './show'
 import i18n from './i18n'
+import { dragFilesSource } from './dragFiles'
 const { t, useI18N } = i18n
 
 export const MISSING_PERM = "Missing permission"
@@ -300,6 +301,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
     const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
+    const dragProps = dragFilesSource(entry)
     return h(CustomCode, {
         name: 'entry',
         entry,
@@ -318,14 +320,20 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
             // we treat webpages as folders, with menu to comment
             isFolder ? h(Fragment, {}, // internal navigation, use Link component
-                h(Link, { to: uri, reloadDocument: entry.web, onClick, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                h(Link, {
+                    to: uri,
+                    onClick,
+                    reloadDocument: entry.web, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                    ...dragProps,
+                    ...ariaProps,
+                },
                     ico, h('span', { className: 'container-folder' }, containerName), name), // don't use name, as we want to include whole path in case of search
                 // popup button is here to be able to detect link-wrapper:hover
                 file_menu_on_link && !showingButton && h('button', {
                     className: 'popup-menu-button',
                     onClick: fileMenu
                 }, hIcon('menu'), t`Menu`)
-            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps },
+            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps, ...dragProps },
                 ico, h('span', { className: 'container-folder' }, containerName), name ),
         ),
         h(CustomCode, { name: 'afterEntryName', entry }),

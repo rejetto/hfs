@@ -7,6 +7,7 @@ import { DirEntry, state, useSnapState } from './state'
 import { usePath, reloadList } from './useFetchList'
 import { openFileMenu } from './fileMenu'
 import { createFolder } from './upload'
+import { dragFilesDestination } from './dragFiles'
 import i18n from './i18n'
 const { useI18N } = i18n
 
@@ -43,6 +44,7 @@ function Breadcrumb({ path, label, current, ...rest }: { current?: boolean, path
     return h(Link, {
         className: 'breadcrumb',
         to: path || '/',
+        ...!current && dragFilesDestination, // we don't really know if this folder allows upload, but in the worst case the user will get an error
         ...rest,
         async onClick(ev) {
             if (!current) return
