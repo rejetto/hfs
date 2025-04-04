@@ -366,15 +366,18 @@ export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
     }
 }
 
-export function formatTimestamp(x: number | string | Date) {
+export function formatTimestamp(x: number | string | Date, includeSeconds=true) {
     if (!x) return ''
     if (!(x instanceof Date))
         x = new Date(x)
-    return formatDate(x) + ' ' + formatTime(x)
+    return formatDate(x) + ' ' + formatTime(x, includeSeconds)
 }
 
-export function formatTime(d: Date) {
-    return [d.getHours(), d.getMinutes(), d.getSeconds()].map(x => x.toString().padStart(2, '0')).join(':') // bundled nodejs doesn't have locales
+export function formatTime(d: Date, includeSeconds=true) {
+// bundled nodejs doesn't have locales
+    return String(d.getHours()).padStart(2, '0')
+        + ':' + String(d.getMinutes()).padStart(2, '0')
+        + (includeSeconds ? ':' + String(d.getSeconds()).padStart(2, '0') : '')
 }
 
 export function formatDate(d: Date) {
