@@ -67,8 +67,8 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                 }
             return x
         }),
-        state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
-        state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
+        entry.canDelete() && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
+        entry.canDelete() && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
         isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
     ].filter(Boolean)
     const folder = entry.n.slice(0, -1 - entry.name.length)
