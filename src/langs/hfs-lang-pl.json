@@ -138,7 +138,7 @@
         "Upload not available": "Przesyłanie niedostępne",
         "Cut": "Wytnij",
         "n_items": "{n,plural,one{# pozycję} other{# pozycje}}",
-        "good_bad": "{good} przeniesiono, {bad} nieudanych",
+        "move_results": "{good} przeniesiono, {bad} nieudanych",
         "after_cut": "Twoje zaznaczenie jest teraz w schowku.\nPrzejdź do folderu docelowego, aby wkleić.",
         "Cancel clipboard": "Anuluj schowek",
         "to_clipboard_source": "Powrót do folderu źródłowego",

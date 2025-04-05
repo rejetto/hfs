@@ -138,7 +138,7 @@
         "Upload not available": "Uploaden niet beschikbaar",
 		"Cut": "Knip",
         "n_items": "{n,plural, one{# item} other{# items}}",
-        "good_bad": "{good} verplaatst, {bad} mislukt",
+        "move_results": "{good} verplaatst, {bad} mislukt",
         "after_cut": "Uw selectie is nu naar het klembord gekopieerd.\nGa naar de bestemmings map om te plakken.",
         "Cancel clipboard": "Cancel clipboard",
         "to_clipboard_source": "Naar map",

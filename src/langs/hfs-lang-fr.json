@@ -143,7 +143,7 @@
         "Upload not available": "Télé-versement non disponible",
 		 "Cut": "Couper",
         "n_items": "{n,plural, one{# élément dans le presse-papiers} other{# éléments dans le presse-papiers}}",
-        "good_bad": "{good} transféré, {bad} en échec",
+        "move_results": "{good} transféré, {bad} en échec",
         "after_cut": "Votre sélection est maintenant dans le presse-papiers.\nAllez dans le dossier de destination pour coller.",
         "Cancel clipboard": "Annuler le presse-papiers",
         "to_clipboard_source": "Retour au dossier source",

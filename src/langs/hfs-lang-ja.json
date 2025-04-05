@@ -139,7 +139,7 @@
         "Upload not available": "アップロード不可",
         "Cut": "切り取り",
         "n_items": "{n,plural, one{# item} other{# items}}",
-        "good_bad": "{good} 完了, {bad} 失敗",
+        "move_results": "{good} 完了, {bad} 失敗",
         "after_cut": "選択したファイルがクリップボードにあります。\n宛先のフォルダに貼付けすることができます。",
         "Cancel clipboard": "クリップボードを清掃",
         "to_clipboard_source": "元のフォルダに移動",

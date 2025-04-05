@@ -139,7 +139,7 @@
         "Upload not available": "الرفع غير متاح",
         "Cut": "قص",
         "n_items": "{n,plural, one{# item} other{# items}}",
-        "good_bad": "{good} تم نقلهم، {bad} فشلوا",
+        "move_results": "{good} تم نقلهم، {bad} فشلوا",
         "after_cut": "تم وضع التحديد الآن في الحافظة. انتقل إلى المجلد الوجهة للصق.",
         "Cancel clipboard": "إلغاء الحافظة",
         "to_clipboard_source": "العودة إلى المجلد المصدر",

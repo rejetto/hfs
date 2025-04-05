@@ -51,7 +51,7 @@ export function ClipBar() {
             uri_to: here,
         }).then(res => {
             const bad = _.sumBy(res.errors, x => x ? 1 : 0)
-            const msg = t('good_bad', { bad, good: clip.length - bad }, "{good} moved, {bad} failed")
+            const msg = t(['move_results', 'good_bad'], { bad, good: clip.length - bad }, "{good} moved{bad,plural, =0{} other{, # failed}}")
             if (!bad)
                 toast(msg, 'success')
             else

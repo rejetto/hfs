@@ -139,7 +139,7 @@
         "Upload not available": "ไม่สามารถอัปโหลดได้",
         "Cut": "ตัด",
         "n_items": "{n,plural, one{# item} other{# items}}",
-        "good_bad": "{good} ย้าย, {bad} ล้มเหลว",
+        "move_results": "{good} ย้าย, {bad} ล้มเหลว",
         "after_cut": "การเลือกของคุณอยู่ในคลิปบอร์ดแล้ว\nไปยังโฟลเดอร์ปลายทางเพื่อวาง",
         "Cancel clipboard": "ยกเลิกคลิปบอร์ด",
         "to_clipboard_source": "กลับไปยังโฟลเดอร์ต้นทาง",

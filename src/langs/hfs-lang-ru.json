@@ -143,7 +143,7 @@
         "Upload not available": "Загрузка недоступна",
         "Cut": "Вырезать",
         "n_items": "{n,plural, one{# элемент} few{# элемента} many{# элементов}}",
-        "good_bad": "{good} {good,plural, one{перемещён} other{перемещено}}, {bad} неуспешно",
+        "move_results": "{good} {good,plural, one{перемещён} other{перемещено}}, {bad} неуспешно",
         "after_cut": "Выбранное скопировано в буфер обмена.\nПерейдите в папку назначения для вставки.",
         "Cancel clipboard": "Отменить",
         "to_clipboard_source": "Вернуться в исходную папку",

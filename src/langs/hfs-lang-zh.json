@@ -143,7 +143,7 @@
         "Upload not available": "上传不可用",
         "Cut": "剪切",
         "n_items": "{n,plural, other{# 个项目}}",
-        "good_bad": "{good} 个已移动，{bad} 个失败",
+        "move_results": "{good} 个已移动，{bad} 个失败",
         "after_cut": "您的选择已成功添加到剪贴板，请前往目标文件夹粘贴。",
         "Cancel clipboard": "取消剪贴板",
         "to_clipboard_source": "返回源文件夹",

@@ -139,7 +139,7 @@
         "Upload not available": "無法上傳",
         "Cut": "剪下",
         "n_items": "{n,plural, one{# 項} other{# 項}}",
-        "good_bad": "{good} 個已移動, {bad} 個失敗",
+        "move_results": "{good} 個已移動, {bad} 個失敗",
         "after_cut": "您的選擇現在已在剪貼簿中\n到目標資料夾貼上",
         "Cancel clipboard": "取消剪貼簿",
         "to_clipboard_source": "返回來源資料夾",

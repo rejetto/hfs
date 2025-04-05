@@ -138,7 +138,7 @@
         "Upload not available": "Enviar não disponível",
         "Cut": "Recortar",
         "n_items": "{n,plural, one{# item} other{# itens}}",
-        "good_bad": "{good} movidos, {bad} falharam",
+        "move_results": "{good} movidos, {bad} falharam",
         "after_cut": "Sua seleção está agora na área de transferência.\nVá para a pasta de destino para colar.",
         "Cancel clipboard": "Cancelar área de transferência",
         "to_clipboard_source": "Voltar para pasta de origem",
