@@ -37,7 +37,7 @@ const apis: ApiHandlers = {
         async function recur(node=vfs): Promise<VfsNodeAdminSend> {
             const { source } = node
             const stats = !source ? undefined : (node.stats || await stat(source!).catch(() => undefined))
-            const isDir = !nodeIsLink(node) && (!source || (stats?.isDirectory() ?? node.children?.length! > 0))
+            const isDir = !nodeIsLink(node) && (!source || (stats?.isDirectory() ?? (source.endsWith('/') || node.children?.length! > 0)))
             const copyStats: Pick<VfsNodeAdminSend, 'size' | 'birthtime' | 'mtime'> = stats ? _.pick(stats, ['size', 'birthtime', 'mtime'])
                 : { size: source ? -1 : undefined }
             if (copyStats.mtime && (stats?.mtimeMs! - stats?.birthtimeMs!) < 1000)
