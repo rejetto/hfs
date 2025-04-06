@@ -285,10 +285,12 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
         }),
         h(Collapse, { in: arrayMode, timeout },
             arrayMode && h(MultiSelectField as Field<string[]>, {
-                label: accounts?.length ? "Accounts for " + rest.label : "You didn't create any account yet",
+                label: accounts?.length ? "Accounts " + rest.label : "You didn't create any account yet",
                 value: thisValue,
                 onChange,
                 options: accounts?.map(a => ({ value: a.username, label: a.username, a })) || [],
+                placeholder: "none",
+                ...thisValue.length === 0 && { helperText: "Select some account", error: true },
                 // show icon only for groups, to save space inside the field (not the list)
                 renderOption: (x: any) => h('span', {}, x.a?.isGroup && account2icon(x.a), ' ', x.label),
             }) ),

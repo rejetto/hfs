@@ -70,6 +70,7 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
         h(Select<string[]>, {
             ...commonSelectProps(props),
             multiple: true,
+            displayEmpty: true,
             value: valueAsJsons,
             onChange: event => {
                 let { value: v } = event.target
@@ -79,14 +80,14 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
             },
             sx: { '& .MuiSelect-select': { maxHeight: '15em', overflowY: 'auto' } },
             input: h(FilledInput, {
-                placeholder,
                 hiddenLabel: !label,
                 'aria-describedby': helperId,
             }),
             renderValue: () => h('div', {
                 'aria-label': label + ': ' + valueAsOptions.map(x => x.label ?? String(x.value)),
                 style: { overflow: "hidden", display: "flex", flexWrap: "wrap", gap: ".5em" },
-                children: valueAsOptions.map((x, i) => h('span', { key: i }, renderOption!(x), i < valueAsOptions.length - 1 && valueSeparator)),
+                children: isEmpty ? h(Box, { position: 'relative', top: '.3em', fontSize: 'small', fontStyle: 'italic', color: 'text.secondary' }, placeholder)
+                    : valueAsOptions.map((x, i) => h('span', { key: i }, renderOption!(x), i < valueAsOptions.length - 1 && valueSeparator)),
             }),
             ...rest,
         },
