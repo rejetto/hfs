@@ -115,7 +115,10 @@ export async function formDialog({ ...rest }: DialogOptions): Promise<any> {
 
 export type AlertType = 'error' | 'warning' | 'info'
 
+let lastMsg: any
 export function alertDialog(msg: ReactElement | string | Error, type:AlertType='info', title='') {
+    if (msg === lastMsg) return
+    lastMsg = msg
     if (msg instanceof Error)
         type = 'error'
     const ret = pendingPromise()

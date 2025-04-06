@@ -226,7 +226,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (uploadState.errors.push(toUpload)) return
         const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
         closeLastDialog?.()
-        closeLastDialog = alertDialog(msg, 'error').close
+        closeLastDialog = alertDialog(msg, 'error')?.close
     }
 
     function next() {

@@ -178,7 +178,7 @@ async function rename(entry: DirEntry) {
     await apiCall('rename', { uri, dest }, { modal: working })
     const MSG = t`Operation successful`
     if (uri === location.pathname) //current folder
-        return alertDialog(MSG).then(() =>
+        return alertDialog(MSG)?.then(() =>
             getHFS().navigate(uri + '../' + pathEncode(dest) + '/') )
     // update state instead of re-getting the list
     const newN = n.replace(/(.*?)[^/]+$/, (_,before) => before + dest)
