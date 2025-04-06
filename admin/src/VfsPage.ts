@@ -175,7 +175,9 @@ export async function deleteFiles() {
     if (!f.length) return
     if (!await confirmDialog(`Delete ${f.length} item(s)?`)) return
     try {
-        const uris = f.map(x => x.id)
+        const uris = f.map(x => x.id).sort()
+        _.remove(uris, (x, i) => i // exclude first, but remove descendants as they are both redundant and would cause errors
+            && _.findLastIndex(uris, y => x.startsWith(y), i - 1) !== -1) // search backward among previous elements, as they array is sorted
         _.pull(uris, '/')
         const { errors } = await apiCall('del_vfs', { uris })
         const urisThatFailed = uris.filter((uri, idx) => errors[idx])
