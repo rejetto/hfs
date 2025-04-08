@@ -146,7 +146,7 @@ function Connections() {
                     persist: 'connections',
                     error,
                     rows,
-                    noRows: monitorOnlyFiles && "No downloads at the moment",
+                    noRows: monitorOnlyFiles && "No downloads/uploads at the moment",
                     footerSide: () => h(Flex, {},
                         pauseButton,
                         h(Btn, {
