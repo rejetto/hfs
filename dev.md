@@ -30,10 +30,8 @@ been built, so their files are available in `dist` folder.
 
 To run tests
 - `npm run build-all`
-- `npm run server-for-test` and leave it running.
-- `npm test`
-
-Alternatively you can run a development server, just be sure to load config from `tests` folder.
+- `npm run test-with-server` (backend tests)
+- `npx playwright test` (these are UI tests)
 
 # File organization
 
@@ -47,6 +45,7 @@ Additionally, you have the following folders:
 - plugins: a collection of plugins that are pre-installed 
 - shared: code shared between Frontend and Admin
 - tests: automated tests with related resources
+- e2e: automated UI tests (first execution will give an error because it's creating screenshots)
 
 # Known problems
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open

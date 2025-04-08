@@ -49,6 +49,7 @@ export function BrowseFiles() {
         return h(CustomCode, { name: 'unauthorized' }, h('h1', { className: 'unauthorized' }, t`Unauthorized`) )
     return h('div', propsDropFiles, // element dedicated to drop-files to cover full screen
         h('div', {
+            uri: path, // used by UI tests
             className: 'list-wrapper ' + (tile_size ? 'tiles-mode' : 'list-mode'),
             style: { '--tile-size': tile_size },
         },

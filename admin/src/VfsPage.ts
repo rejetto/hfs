@@ -59,7 +59,8 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         severity: 'info',
         children: [
             "Your shared files can be browsed from ",
-            reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href)))
+            h('span', { className: 'hideInTests', key: 0 },
+                reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href))) )
         ]
     }, [anythingShared, urls])
 

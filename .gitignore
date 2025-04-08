@@ -14,3 +14,10 @@ accounts.yaml
 .DS_Store
 storage
 *.kv
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+e2e/frontend.spec.ts-snapshots

@@ -307,7 +307,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const direct = publicIps.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
-                below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
+                below: port && h(Box, { fontSize: 'smaller', className: 'port' }, "port ", port),
             }),
             !direct && h(DataLine),
             !direct && h(Device, {
@@ -462,7 +462,7 @@ function Device({ name, icon, color, ip, below }: any) {
     return h(Box, { display: 'inline-block', textAlign: 'center' },
         h(icon, { color, sx: { fontSize, mb: '-0.1em' } }),
         h(Box, { fontSize: 'larger' }, name),
-        h(Box, { fontSize: 'smaller', whiteSpace: 'pre-wrap' }, wantArray(ip).join('\n') || "unknown"),
+        h(Box, { fontSize: 'smaller', whiteSpace: 'pre-wrap', className: 'ip' }, wantArray(ip).join('\n') || "unknown"),
         below,
     )
 }

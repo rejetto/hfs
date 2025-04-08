@@ -362,6 +362,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
+            className: 'maskInTests',
             value: link || `outside of configured main address (${baseHost})`,
             error,
             InputProps: link ? { inputComponent: RenderLink } : undefined,
