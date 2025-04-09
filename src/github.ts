@@ -80,7 +80,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
 
         async function go(url: string, folder: string, zipRoot: string) {
             const installPath = PLUGINS_PATH + '/' + folder
-            const tempInstallPath = installPath + '--' + DISABLING_SUFFIX
+            const tempInstallPath = installPath + '-' + DISABLING_SUFFIX
             const foldersToCopy = [ // from longer to shorter, so we first test the longer
                 zipRoot + '-' + process.platform + '-' + process.arch,
                 zipRoot + '-' + process.platform,

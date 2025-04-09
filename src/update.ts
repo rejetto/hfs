@@ -83,7 +83,7 @@ export async function getUpdates(strict=false) {
     const stable: Release = prepareRelease(await getRepoInfo(HFS_REPO + '/releases/latest'))
     const res = await getVersions(r => r.versionScalar < stable.versionScalar) // we don't consider betas before stable
     const ret = res.filter(x => x.prerelease && (strict ? x.isNewer : (x.versionScalar !== curV)) )
-    if (stable.isNewer || RUNNING_BETA)
+    if (stable.isNewer || RUNNING_BETA && !strict)
         ret.push(stable)
     return ret
 }
