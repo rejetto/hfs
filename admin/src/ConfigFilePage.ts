@@ -3,13 +3,12 @@
 import { createElement as h, Fragment, useEffect, useState } from 'react';
 import { apiCall, useApiEx } from './api'
 import { Alert, Box } from '@mui/material'
-import { copyTextToClipboard, focusSelector, isCtrlKey, KeepInScreen, md } from './misc'
+import { downloadFileWithContent, focusSelector, isCtrlKey, KeepInScreen } from './misc'
 import { Btn, Flex, IconBtn, reloadBtn } from './mui';
-import { Save, ContentCopy, Edit } from '@mui/icons-material'
+import { Save, Edit, Download } from '@mui/icons-material'
 import { TextEditor } from './TextEditor';
 import { state } from './state';
 import { DisplayField } from '@hfs/mui-grid-form'
-import { toast } from './dialog';
 
 export default function ConfigFilePage() {
     state.title = "Config file"
@@ -21,7 +20,7 @@ export default function ConfigFilePage() {
     useEffect(() => { saved !== undefined && setText(saved || '') }, [saved])
     return h(Fragment, {},
         h(Flex, { flexWrap: 'wrap', justifyContent: 'space-between' },
-            h(Btn, { icon: ContentCopy, onClick: copy }, "Copy without passwords"),
+            h(Btn, { icon: Download, onClick: exportConfig }, "Export without passwords"),
             edit ? h(Fragment, {},
                 reloadBtn(reload),
                 h(IconBtn, {
@@ -60,13 +59,12 @@ export default function ConfigFilePage() {
         return apiCall('set_config_text', { text }).then(() => setSaved(text))
     }
 
-    function copy() {
+    function exportConfig() {
         const s = (text || '')
                 .replace(/^(\s*(\w*password(?!_change)\w*|srp):\s*).+\n/gm, '$1removed\n')
                 .replace(/(:\/\/)[^/@\s]+@/g, '$1removed@')
             + 'custom_html: | # this is currently ignored by hfs, just here for reference\n' + data.customHtml.replace(/^/gm, '  ')
         if (!s) return
-        copyTextToClipboard(s)
-        toast(md`Copied!\ncustom.html included`)
+        downloadFileWithContent('config_no_passwords.yaml', s)
     }
 }

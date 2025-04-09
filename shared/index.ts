@@ -190,7 +190,18 @@ export function copyTextToClipboard(text: string) {
     d.body.removeChild(ta)
 }
 
+export function downloadFileWithContent(name: string, content: Blob | string) {
+    const blob = content instanceof Blob ? content : new Blob([content], {type: 'text/plain'})
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = name
+    a.style.display = 'none'
+    document.body.append(a)
+    a.click()
+    setTimeout(() => a.remove(), 100) // Chrome needs this timeout
+}
+
 Element.prototype.replaceChildren ||= function(this:Element, addNodes) { // polyfill
-    while (this.lastChild) this.removeChild(this.lastChild);
+    while (this.lastChild) this.removeChild(this.lastChild)
     if (addNodes !== undefined) this.append(addNodes);
 }
