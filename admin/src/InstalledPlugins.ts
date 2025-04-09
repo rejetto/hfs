@@ -83,7 +83,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                     return h(Table, { sx: { td: { p: 0 } } },
                         _.uniq(_.sortBy(value, 'version').filter(x => _.isString(x.message) && x.message && x.version > row.installedVersion))
                             .map((x, i) => h(TableRow, { key: i },
-                                h(TableCell, {}, "• ", x.version, ': '),
+                                h(TableCell, { sx: { whiteSpace: 'pre', verticalAlign: 'top' } }, `• ${x.version}: `),
                                 h(TableCell, {}, md(x.message))
                             ))
                     )
