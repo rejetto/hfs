@@ -6,7 +6,7 @@ import {
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginRunning, mapPlugins,
-    parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER
+    parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER, DELETE_ME_SUFFIX
 } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
@@ -105,10 +105,10 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
                 if (await res.then(() => true, e => e.code === 'ENOENT')) break
                 await wait(1000)
             }
-            // delete old
-            await rm(installPath, { recursive: true }).catch(e => {
-                if (e.code !== 'ENOENT') throw e
-            })
+            // delete old folder, but it may fail in the presence of .node files, so we rename it first as a precaution (clearing require.cache doesn't help)
+            const deleteMe = installPath + DELETE_ME_SUFFIX
+            await rename(installPath, deleteMe)
+            await rm(deleteMe, { recursive: true, force: true }).catch(e => console.warn(String(e)))
             // final replace
             await rename(tempInstallPath, installPath)
                 .catch(e => { throw e.code !== 'ENOENT' ? e : new ApiError(HTTP_NOT_ACCEPTABLE, "missing main file") })

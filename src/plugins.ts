@@ -18,7 +18,7 @@ import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
-import { mkdir, readFile, rename } from 'fs/promises'
+import { mkdir, readdir, readFile, rename, rm } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
@@ -36,7 +36,14 @@ import { CustomizedIcons, watchIconsFolder } from './icons'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
+export const DELETE_ME_SUFFIX = '-delete_me' + DISABLING_SUFFIX
 export const STORAGE_FOLDER = 'storage'
+
+setTimeout(async () => { // delete leftovers, if any
+    for (const x of await readdir(PATH))
+        if (x.endsWith(DELETE_ME_SUFFIX))
+            await rm(join(PATH, x), { recursive: true, force: true }).catch(() => {})
+}, 1000)
 
 const plugins = new Map<string, Plugin>() // now that we care about the order, a simple object wouldn't do, because numbers are always at the beginning
 
