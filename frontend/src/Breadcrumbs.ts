@@ -19,19 +19,18 @@ export function Breadcrumbs() {
     const breadcrumbs = currentPath ? currentPath.split('/').map(x => [prev += x + '/', decodeURIComponent(x)]) : []
     const {t} = useI18N()
     return h(Fragment, {},
-        h(Breadcrumb, { id: 'breadcrumb-parent', label: hIcon('parent', { alt: t`parent folder` }), path: parent }),
-        h(Breadcrumb, { id: 'breadcrumb-home', label: hIcon('home', { alt: t`home` }), path: base, current: !currentPath }),
+        h(Breadcrumb, { id: 'breadcrumb-parent', path: parent, label: hIcon('parent', { alt: t`parent folder` }) }),
+        h(Breadcrumb, { id: 'breadcrumb-home', path: base, ...currentLabel(!currentPath, hIcon('home', { alt: t`home` })) }),
         breadcrumbs.map(([path,label], i) =>
-            h(Breadcrumb, {
-                key: path,
-                path,
-                label,
-                ...i === breadcrumbs.length - 1 && {
-                    current: true,
-                    label: h(Fragment, {}, label, hIcon('menu', { style: { position: 'relative', top: 1, marginLeft: '.3em' } }))
-                },
-            }) )
+            h(Breadcrumb, { key: path, path, ...currentLabel(i === breadcrumbs.length - 1, label) }) )
     )
+
+    function currentLabel(isCurrent: boolean, label: string | ReactElement) {
+        return !isCurrent ? { label } : {
+            current: true,
+            label: h(Fragment, {}, label, hIcon('menu', { style: { position: 'relative', top: 1 } }))
+        }
+    }
 }
 
 function Breadcrumb({ path, label, current, ...rest }: { current?: boolean, path: string, label?: string | ReactElement } & Omit<LinkProps,'to'>) {
