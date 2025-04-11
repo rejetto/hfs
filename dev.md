@@ -50,6 +50,7 @@ Additionally, you have the following folders:
 
 # Known problems
 - vite's proxying server (but also CRA's) doesn't play nicely with SSE, leaving sockets open
+- automatic tests max_dl* are subject to race conditions and may occasionally fail
 
 # Guidelines
 
