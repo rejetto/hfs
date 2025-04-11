@@ -4,13 +4,19 @@ import { consoleLog } from './consoleLog'
 import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
 import { apiAssertTypes } from './misc'
 import events from './events'
-import { loggers } from './log'
+import { getRotatedFiles, loggers } from './log'
+import { stat } from 'fs/promises'
 import { SendListReadable } from './SendList'
 import { forceDownload, serveFile } from './serveFile'
 import { ips } from './ips'
 import { disconnectionsLog } from './connections'
 
 export default {
+    async get_log_info() {
+        const current = Object.fromEntries(await Promise.all(loggers.map(async x => [x.name, await stat(x.path).then(s => s.size)])))
+        return { current, rotated: await getRotatedFiles() }
+    },
+
     async get_log_file({ file = 'log', range = '' }, ctx) { // this is limited to logs on file, and serves the file instead of a list of records
         const log = _.find(loggers, { name: file })
         if (!log)

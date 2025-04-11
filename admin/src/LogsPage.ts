@@ -3,10 +3,11 @@
 import { createElement as h, Fragment, ReactNode, useEffect, useMemo, useState } from 'react'
 import httpCodes from './httpCodes'
 import { Box, Tab, Tabs } from '@mui/material'
-import { API_URL, apiCall, useApi, useApiList } from './api'
+import { PageProps } from './App'
+import { API_URL, apiCall, useApi, useApiEx, useApiList } from './api'
 import { DataTable, DataTableColumn, DataTableProps } from './DataTable'
 import {
-    CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md, typedKeys,
+    CFG, Dict, formatBytes, HTTP_UNAUTHORIZED, newDialog, prefix, shortenAgent, splitAt, tryJson, md, typedKeys, with_,
     _dbg, mapFilter, safeDecodeURIComponent, stringAfter, onlyTruthy, formatTimestamp, formatSpeed, copyTextToClipboard
 } from '@hfs/shared'
 import {
@@ -33,12 +34,23 @@ const logLabels = {
 
 let reloadIps: any
 
-export default function LogsPage() {
+export default function LogsPage({ setTitleSide }: PageProps) {
     const [tab, setTab] = useState(0)
     const files = typedKeys(logLabels)
     const shorterLabels = !useBreakpoint('sm') && { error_log: "Not", console: h(Terminal), disconnections: h(LinkOff) }
     const file = files[tab]
     const fileAvailable = file.endsWith('log')
+
+    const logInfo = useApiEx('get_log_info')
+    setTitleSide(useMemo(() => fileAvailable && (logInfo.element || with_(logInfo.data, data =>
+        h(Box, { fontSize: 'smaller' },
+            `Current: ${formatBytes(_.sum(Object.values(data.current)))}`,
+            h('br'),
+            with_(Object.values(data.rotated).flat(), rotatedAsArray =>
+                `Archived: ${formatBytes(_.sumBy(rotatedAsArray, 'size'))} / ${rotatedAsArray.length} files`)
+        )
+    )), [logInfo.element, logInfo.data, fileAvailable]))
+
     return h(Fragment, {},
         h(Flex, { gap: 0  },
             h(Tabs, { value: tab, onChange(ev,i){ setTab(i) } },

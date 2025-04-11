@@ -15,6 +15,7 @@ import events from './events'
 import { getConnection } from './connections'
 import { app } from './index'
 import { logGui } from './serveGuiFiles'
+import glob from 'fast-glob'
 
 class Logger {
     stream?: Writable
@@ -170,6 +171,13 @@ events.once('app', () => { // wait for app to be set
 
 function doubleDigit(n: number) {
     return n > 9 ? n : '0'+n
+}
+
+export async function getRotatedFiles() {
+    return Object.fromEntries(await Promise.all(loggers.map(async x => {
+        const mask = strinsert(x.path, x.path.length - extname(x.path).length, '-2*') // including 2, initial digit of the year, will only take rotated files and not "-error"
+        return [x.name, (await glob(mask, { stats: true })).map(x => ({ path: x.path, size: x.stats?.size }))]
+    })))
 }
 
 // dump console.error to file
