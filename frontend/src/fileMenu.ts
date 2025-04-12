@@ -26,7 +26,7 @@ interface FileMenuEntry {
     href?: string
     icon?: string
     toggled?: boolean
-    onClick?: (ev:MouseEvent<Element>) => any
+    onClick?: (ev:MouseEvent) => any
 }
 
 export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy | FileMenuEntry | 'open' | 'delete' | 'show')[]) {
@@ -111,9 +111,9 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
                     dontBotherWithKeys(showProps.map(prop => isValidElement(prop) ? prop
                         : _.isPlainObject(prop) ? h('div', { id: `menu-prop-${prop.id}` }, h('dt', {}, prop.label), h('dd', {}, prop.value))
                             : null
-                    ))
+                    )),
+                    entry.cantOpen && h('div', {}, hIcon('password', { style: { marginRight: '.5em', marginTop: '.5em' } }), t(MISSING_PERM)),
                 ),
-                entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em', marginTop: '.5em' } }), t(MISSING_PERM)),
                 h('div', { className: 'file-menu' },
                     dontBotherWithKeys(menu.map((entry: FileMenuEntry, i) => // render menu entries
                         isValidElement(entry) ? entry

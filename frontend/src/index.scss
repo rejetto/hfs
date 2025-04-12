@@ -862,7 +862,7 @@ form label+input { margin-top: .2em; }
     }
 }
 
-@media (max-height: 600px) {
+@media (max-height: 600px) and (orientation: landscape) {
     .file-dialog {
         .dialog-content {
             display: flex;
