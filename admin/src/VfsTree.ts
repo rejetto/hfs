@@ -104,7 +104,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
             ev.preventDefault()
             ev.stopPropagation()
         }
-    }, [setExpanded])
+    }, [setExpanded, statusApi.data])
     const ref = useRef<HTMLUListElement>(null)
     const [expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({
         icon: exp ? UnfoldLess : UnfoldMore,
