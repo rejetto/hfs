@@ -13,7 +13,7 @@ export const dragFilesSource = (de: DirEntry) => de.canDelete() ? {
         entry = (ev.target as HTMLElement).getAttribute('href') || ''
     },
     ...de.canUpload() && dragFilesDestination,
-} : { draggable: false} // avoid showing translucent dom elements, that is the default behavior when dragging
+} : null
 
 export const dragFilesDestination = {
     onDragOver(ev: DragEvent) {
