@@ -7,6 +7,7 @@ import { isIPv6 } from 'net'
 import { VERSION } from './const'
 import events from './events'
 import { getPublicIps } from './nat'
+import { Readable } from 'node:stream'
 
 // optionally you can append '>' and a regular expression to determine what body is considered successful
 const dynamicDnsUrl = defineConfig(CFG.dynamic_dns_url, '')
@@ -57,10 +58,19 @@ dynamicDnsUrl.sub(v => {
     }, { callNow: true })
 })
 
-export async function* get_dynamic_dns_error() {
-    if (last) yield last
-    while (1) {
-        const res = await events.once('dynamicDnsError')
-        yield res[0]
-    }
+export async function get_dynamic_dns_error() {
+    let unsub: any
+    return new Readable({
+        objectMode: true,
+        async read() {
+            if (unsub) return
+            if (last)
+                this.push(last) // start by sending current state
+            unsub = events.on('dynamicDnsError', x => this.push(x)) // send updates, if any. This simplified way to manage the data stream is acceptable for this case of extremely low throughput
+        },
+        async destroy() {
+            unsub()
+            this.push(null)
+        }
+    })
 }
