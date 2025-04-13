@@ -77,11 +77,13 @@ let waitClosing = Promise.resolve()
 let ignorePopState = false
 async function back() {
     ignorePopState = true
-    let was = history.state
-    history.back()
-    return waitClosing = waitClosing.then(() => new Promise<void>(res => {
-        const h = setInterval(() => was !== history.state && res() , 10)
-        setTimeout(() => clearTimeout(h), 500)
+    const was = history.state
+    return waitClosing = waitClosing.then(() => new Promise<void>(async res => {
+        await wait(10) // this is necessary for safari in case we close a dialog while it is processing a change of url (after clicking a file to download). This could be avoided by adding a target=_blank on the link, but we want to be agnostic about it. In my tests, 2ms is the minimum necessary, but 10 is safer.
+        history.back()
+        // wait for history.back to change history.state, up to 500ms. Events popstate and pageshow have no consistent behavior, so polling is necessary.
+        const t = setInterval(() => was !== history.state && res(), 10)
+        setTimeout(() => clearTimeout(t), 500)
     }))
 }
 
