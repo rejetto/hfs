@@ -2,8 +2,9 @@
 
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait,
-    buildUrlQueryString, } from '.'
+import {
+    Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait, buildUrlQueryString, Jsonify,
+} from '.'
 import { BetterEventEmitter } from '../src/events'
 
 export const API_URL = '/~/api/'
@@ -84,7 +85,7 @@ export class ApiError extends Error {
 
 export type UseApi<T=unknown> = ReturnType<typeof useApi<T>>
 export function useApi<T=any>(cmd: string | Falsy, params?: object, options: ApiCallOptions={}) {
-    const [data, setData, getData] = useStateMounted<Awaited<ReturnType<typeof apiCall<T>>> | undefined>(undefined)
+    const [data, setData, getData] = useStateMounted<Jsonify<Awaited<ReturnType<typeof apiCall<T>>>> | undefined>(undefined)
     const [error, setError] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const [loading, setLoading, getLoading] = useStateMounted<undefined | ReturnType<typeof apiCall>>(undefined)

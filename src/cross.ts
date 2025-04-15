@@ -59,6 +59,11 @@ export type Who = typeof WHO_ANYONE
     | WhoObject
     | AccountList // use false instead of empty array to keep the type boolean-able
 export interface WhoObject { this?: Who, children?: Who }
+export type Jsonify<T> = T extends string | number | boolean | null | undefined ? T : // undefined is necessary to preserve union types, like number|undefined
+    T extends Date ? string :
+    T extends (infer U)[] ? Jsonify<U>[] :
+    T extends object ? { [K in keyof T]: Jsonify<T[K]> } :
+    never
 
 export const defaultPerms: Required<VfsPerms> = {
     can_see: 'can_read',

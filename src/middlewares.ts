@@ -17,7 +17,7 @@ import { app } from './index'
 import events from './events'
 
 const forceHttps = defineConfig('force_https', true)
-const ignoreProxies = defineConfig('ignore_proxies', false)
+defineConfig('ignore_proxies', false)
 const allowAuthorizationHeader = defineConfig('authorization_header', true)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)

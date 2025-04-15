@@ -6,7 +6,7 @@ import { Alert, Box, Card, CardContent, Grid, List, ListItem, ListItemText, Typo
 import {
     AccountTree, ChevronRight, Close, Delete, DoNotDisturb, ExpandMore, Group, MilitaryTech, Person, PersonAdd, Schedule
 } from '@mui/icons-material'
-import { newDialog, with_, md } from './misc'
+import { newDialog, with_, md, Jsonify } from './misc'
 import { Btn, Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint, useToggleButton } from './mui'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
@@ -17,7 +17,7 @@ import { state, useSnapState } from './state'
 import { importAccountsCsv } from './importAccountsCsv'
 import apiAccounts from '../../src/api.accounts'
 
-export type Account = ReturnType<typeof apiAccounts.get_accounts>['list'][0]
+export type Account = Jsonify<ReturnType<typeof apiAccounts.get_accounts>['list'][0]>
 
 export default function AccountsPage() {
     const { username, accountsAsTree } = useSnapState()

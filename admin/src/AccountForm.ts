@@ -69,8 +69,11 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                 getError: (x, { values }) => (x||'') !== (values.password||'') && "Enter same password" },
 
             { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 8,
-                helperText: !values.disabled && values.canLogin === false ? h(Box, { color: 'warning.main', component: 'span' }, "Login is prevented because all of its groups are disabled")
-                    : "Login is prevented if account is disabled, or all its groups are disabled" },
+                helperText:  values.disabled || values.canLogin !== false ? "Login is prevented if account is disabled, or all its groups are disabled"
+                    : h(Box, { color: 'warning.main', component: 'span' },
+                        new Date(account.expire!) < new Date() ? "Login is prevented because account is expired" // use account instead of values, so to use the value currently applied
+                            : "Login is prevented because all of its groups are disabled")
+            },
             { k: 'ignore_limits', comp: BoolField, xs: 12, sm: 6, lg: 4,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
 
