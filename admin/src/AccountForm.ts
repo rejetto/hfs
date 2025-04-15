@@ -29,7 +29,6 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
     const add = !account.username
     const { isGroup } = values
     const ref = useRef<HTMLFormElement>()
-    const expired = Boolean(values.expire)
     const { members } = account
     const pluginAuth = account.plugin?.auth
     return h(Form, {
@@ -100,10 +99,10 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
             { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", sm: 6, placeholder: "Allow from any address" },
-            { k: 'expire', label: "Expiration", xs: true, comp: DateTimeField, toField: x => x && new Date(x),
+            { k: 'expire', label: "Expiration", xs: values.expire ? 12 : 6, comp: DateTimeField, toField: x => x && new Date(x),
                 helperText: "When expired, login won't be allowed" },
-            { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, disabled: expired, step: 'any', min: 1/1000, // 10 minutes
-                helperText: "Used to set expiration on first login" + (expired ? " (already expired)" : '') },
+            !values.expire && { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, step: 'any', min: 1/1000, // 10 minutes
+                helperText: "Used to set expiration on first login" },
             { k: 'redirect', comp: VfsPathField, placeholder: "no", sm: 6,
                 helperText: "If you want this account to be redirected to a specific folder/address (or even file) at login time" },
             { k: 'notes', multiline: true, sm: 6 },
