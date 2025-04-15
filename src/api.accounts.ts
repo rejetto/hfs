@@ -9,6 +9,7 @@ import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidateSessionBefore } from './auth'
 import { apiAssertTypes, objFromKeys, onlyTruthy, with_ } from './misc'
+import { pickProps } from './api.vfs'
 
 function prepareAccount(ac: Account | undefined) {
     return ac && {
@@ -31,6 +32,9 @@ function prepareAccount(ac: Account | undefined) {
         })
     }
 }
+
+const ALLOWED_KEYS: (keyof Account)[] = ['admin', 'allow_net', 'belongs', 'days_to_live', 'disable_password_change',
+    'disabled', 'expire', 'ignore_limits', 'notes', 'password', 'redirect', 'require_password_change', 'username']
 
 export default  {
 
@@ -56,7 +60,7 @@ export default  {
         const acc = getAccount(username)
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
-        await updateAccount(acc, changes)
+        await updateAccount(acc, pickProps(changes, ALLOWED_KEYS))
         if (changes.username && ctx.session?.username === username)
             ctx.session!.username = changes.username
         return _.pick(acc, 'username')
@@ -65,6 +69,7 @@ export default  {
     async add_account({ overwrite, username, ...rest }) {
         apiAssertTypes({ string: { username } })
         const existing = getAccount(username)
+        rest = pickProps(rest, ALLOWED_KEYS)
         if (existing) {
             if (!overwrite) return new ApiError(HTTP_CONFLICT)
             await updateAccount(existing, rest)
