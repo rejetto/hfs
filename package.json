@@ -19,7 +19,7 @@
     "server-for-test": "node dist/src --cwd . --config tests --debug && rm custom.html",
     "server-for-test-dev": "cross-env DEV=1 FRONTEND_PROXY=3005 ADMIN_PROXY=3006 nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src -- --cwd . --config tests",
     "test": "mocha -r ts-node/register 'tests/**/*.ts'",
-    "test-with-server": "node dist/src --cwd . --config tests & pid=$! && mocha -r ts-node/register 'tests/**/*.ts'; mocha_exit=$?; kill $pid; exit $mocha_exit",
+    "test-with-server": "node dist/src --cwd . --config tests & pid=$! && sleep 2 && mocha -r ts-node/register 'tests/**/*.ts'; mocha_exit=$?; kill $pid; exit $mocha_exit",
     "test-ui": "npx playwright test --ui",
     "pub": "cd dist && npm publish",
     "dist": "npm run build-all && npx playwright test && npm run dist-bin",
