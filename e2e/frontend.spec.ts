@@ -203,19 +203,21 @@ test('admin1', async ({ page }) => {
   }
 
   await clickMenu('Shared files')
+  await expect(page.getByText('cantListBut')).toBeVisible(); // wait for data
   await screenshot(page)
   await clickMenu('Accounts');
+  await expect(page.getByText('admins', { exact: true })).toBeVisible(); // wait for data
   await screenshot(page)
   await page.getByText('rejetto(admins,').click();
   await screenshot(page)
   await closePhoneDialog();
   await clickMenu('Options');
-  await expect(page.getByText('Correctly working on port')).toBeVisible(); // wait for loading to be done
+  await expect(page.getByText('Correctly working on port')).toBeVisible(); // wait for data
   await page.mouse.click(1, 1); // avoid focus inconsistencies
   await screenshot(page)
 
   await clickMenu('Internet');
-  await expect(page.getByRole('button', { name: 'Verify' })).toBeVisible(); // first data is slow on this page, be sure to wait
+  await expect(page.getByRole('button', { name: 'Verify' })).toBeVisible(); // wait for data
   await page.mouse.click(1, 1); // avoid focus inconsistencies
   await screenshot(page, '.ip,.port')
   await clickMenu('Logs');
@@ -230,6 +232,7 @@ test('admin1', async ({ page }) => {
   await clickMenu('Language');
   await screenshot(page, '.MuiDataGrid-virtualScrollerRenderZone');
   await clickMenu('Plugins');
+  await expect(page.getByText('antibrute')).toBeVisible(); // wait for data
   await screenshot(page);
   await page.getByRole('tab', { name: 'Search' }).click();
   await page.getByRole('tab', { name: 'updates' }).click();
