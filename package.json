@@ -8,7 +8,7 @@
   "author": "Massimo Melina <a@rejetto.com>",
   "workspaces": [ "admin", "frontend", "shared", "mui-grid-form" ],
   "scripts": {
-    "watch-server": "cross-env DEV=1 nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src",
+    "watch-server": "cross-env DEV=1 nodemon --ignore tests/ --watch src -e ts,tsx --exec tsx src",
     "watch-server-proxied": "cross-env FRONTEND_PROXY=3005 ADMIN_PROXY=3006 npm run watch-server",
     "start-frontend": "npm run start --workspace=frontend",
     "start-admin": "npm run start --workspace=admin",
@@ -17,9 +17,9 @@
     "build-frontend": "npm run build --workspace=frontend",
     "build-admin": "npm run build --workspace=admin",
     "server-for-test": "node dist/src --cwd . --config tests --debug && rm custom.html",
-    "server-for-test-dev": "cross-env DEV=1 FRONTEND_PROXY=3005 ADMIN_PROXY=3006 nodemon --ignore tests/ --watch src -e ts,tsx --exec ts-node src -- --cwd . --config tests",
-    "test": "mocha -r ts-node/register 'tests/**/*.ts'",
-    "test-with-server": "node dist/src --cwd . --config tests & pid=$! && sleep 2 && mocha -r ts-node/register 'tests/**/*.ts'; mocha_exit=$?; kill $pid; exit $mocha_exit",
+    "server-for-test-dev": "cross-env DEV=1 FRONTEND_PROXY=3005 ADMIN_PROXY=3006 nodemon --ignore tests/ --watch src -e ts,tsx --exec tsx src -- --cwd . --config tests",
+    "test": "node --import tsx --test tests/test.ts",
+    "test-with-server": "node dist/src --cwd . --config tests & pid=$! && sleep 2 && node --import tsx --test tests/test.ts; _exit=$?; kill $pid; exit $_exit",
     "test-ui": "npx playwright test --ui",
     "pub": "cd dist && npm publish",
     "dist": "npm run build-all && npx playwright test && npm run dist-bin",
@@ -112,7 +112,6 @@
     "@types/lodash": "^4.14.178",
     "@types/mime-types": "^2.1.1",
     "@types/minimist": "^1.2.2",
-    "@types/mocha": "^10.0.10",
     "@types/node": "^20.17.30",
     "@types/node-forge": "^1.3.11",
     "@types/picomatch": "^2.3.3",
@@ -121,10 +120,10 @@
     "@yao-pkg/pkg": "^6.4.0",
     "cross-env": "^7.0.3",
     "koa-better-http-proxy": "^0.2.9",
-    "mocha": "^10.8.2",
     "nm-prune": "^5.0.0",
     "nodemon": "^3.1.9",
     "tough-cookie": "^4.0.0",
-    "ts-node": "^10.4.0"
+    "tsx": "^4.19.3",
+    "typescript": "4.9.5"
   }
 }
