@@ -118,7 +118,7 @@
     "@types/picomatch": "^2.3.3",
     "@types/tough-cookie": "^4.0.2",
     "@types/unzipper": "^0.10.5",
-    "@yao-pkg/pkg": "^6.3.2",
+    "@yao-pkg/pkg": "^6.4.0",
     "cross-env": "^7.0.3",
     "koa-better-http-proxy": "^0.2.9",
     "mocha": "^10.8.2",
