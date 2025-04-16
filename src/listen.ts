@@ -11,7 +11,7 @@ import open from 'open'
 import {
     CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate
 } from './misc'
-import { PORT_DISABLED, ADMIN_URI, DEV, IS_WINDOWS } from './const'
+import { PORT_DISABLED, ADMIN_URI, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'

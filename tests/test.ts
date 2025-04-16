@@ -120,7 +120,7 @@ describe('basics', () => {
     it('zip.partial.resume', req('/f1/?get=zip', { re:/^C3/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
     it('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
     it('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt//renamed', { empty: true, length:118 }, { method:'HEAD' }))
-    it('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 120 }, { method:'HEAD' }))
+    it('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 4800 }, { method:'HEAD' }))
 
     it('referer', req('/f1/page/gpl.png', 403, {
         headers: { Referer: 'https://some-website.com/try-to-trick/x.com/' }

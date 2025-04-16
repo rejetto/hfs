@@ -1,6 +1,6 @@
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId, err2msg
+    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId, err2msg, HIDE_IN_TESTS
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode, useState } from 'react'
 import { Btn, Bytes, Spinner } from './components'
@@ -75,7 +75,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
     const props = [
         { id: 'name', label: t`Name`, value: entry.name },
         typeof s === 'number' && { id: 'size', label: t`Size`,
-            value: h(Fragment, {}, formatBytes(s), h('small', {}, prefix(' (', s > getHFS().kb && s.toLocaleString(), ')')) ) },
+            value: h(Fragment, {}, formatBytes(s), h('small', { className: HIDE_IN_TESTS }, prefix(' (', s > getHFS().kb && s.toLocaleString(), ')')) ) },
         entry.m && { id: 'timestamp', label: t`Timestamp`, value: entry.m.toLocaleString() },
         entry.c && { id: 'creation', label: t`Creation`, value: entry.c.toLocaleString() },
         folder && {

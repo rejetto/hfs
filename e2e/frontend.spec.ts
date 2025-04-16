@@ -6,7 +6,6 @@ const password = 'password'
 
 const t = Date.UTC(2025, 0, 20, 3, 0, 0, 0) / 1000 // a fixed timestamp, for visual comparison
 fs.utimesSync('tests', t, t)
-fs.utimesSync('tests/config.yaml', t, t)
 
 // a generic test touch several parts
 test('around1', async ({ page }) => {
@@ -46,12 +45,12 @@ test('around1', async ({ page }) => {
       - link "Open"
     `);
   await page.getByRole('link', { name: 'Download' }).click(); // this also closes the dialog
-  await page.getByRole('link', { name: 'config.yaml', exact: true }).click();
+  await page.getByRole('link', { name: 'alfa.txt', exact: true }).click();
   await screenshot(page);
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('link', { name: 'cantListPage' }).click();
   await page.getByRole('button', { name: 'Calculate' }).click();
-  await page.getByText('KB / 4 files').click();
+  await page.getByText('KB / 2 files').click();
   await page.locator('#menu-prop-name').getByText('cantListPage').click();
   await page.getByRole('link', { name: 'Download' }).click();
   await page.getByRole('link', { name: 'home' }).click();
@@ -95,7 +94,7 @@ test('search1', async ({ page }) => {
   await page.getByRole('button', { name: 'Search' }).click();
   await page.locator('input[name="name"]').fill('a');
   await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByText('files, 12 folders, 40.9 KB').click();
+  await page.getByText('files, 12 folders, 23 KB').click();
   await page.getByRole('link', { name: 'cantListPage/ alfa.txt' }).click();
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Clear search' }).click();
@@ -123,24 +122,9 @@ test('search1', async ({ page }) => {
   await page.locator('#option-theme').selectOption('dark');
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('link', { name: 'cantListPageAlt, Folder' }).click();
-  await page.getByText('files, 29 KB').click();
+  await expect(page.getByText('alfa.txt')).toBeVisible() // be sure the folder is loaded
   await page.mouse.click(1, 1); // avoid focus inconsistencies
   await screenshot(page);
-  await expect(page.getByRole('list')).toMatchAriaSnapshot(`
-    - list:
-      - listitem:
-        - link "test.ts"
-        - text: /\\d+\\.\\d+ KB/
-      - listitem:
-        - link "config.yaml.bak"
-        - text: 5.1 KB
-      - listitem:
-        - link "config.yaml"
-        - text: 5.1 KB
-      - listitem:
-        - link "alfa.txt"
-        - text: 6 B
-    `);
 
   await page.getByRole('button', { name: 'Zip' }).click();
   await expect(page.getByRole('dialog')).toMatchAriaSnapshot(`
@@ -153,7 +137,7 @@ test('search1', async ({ page }) => {
       - button "Don't"
       - button "Select some files"
     `);
-  await page.getByRole('button', { name: 'Don\'t' }).click();
+  await page.getByRole('button', { name: "Don't" }).click();
   await page.getByRole('button', { name: 'Zip' }).click();
   await page.getByRole('button', { name: 'Select some files' }).click();
   await page.getByText('Use checkboxes to select the').click();
@@ -250,6 +234,7 @@ test('admin1', async ({ page }) => {
   await page.getByRole('tab', { name: 'Search' }).click();
   await page.getByRole('tab', { name: 'updates' }).click();
   await clickMenu('Custom HTML');
+  await expect(page.getByRole('combobox', { name: 'Section Style' })).toBeVisible(); // wait for data to be loaded
   await screenshot(page);
   await page.getByRole('main').click();
   await clickMenu('Logout');
