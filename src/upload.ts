@@ -118,7 +118,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT, 'exists')
     if (uploadingFiles.has(fullPath))
-        return fail(HTTP_CONFLICT, 'uploading')
+        return fail(HTTP_CONFLICT, 'already uploading')
     uploadingFiles.add(fullPath)
     let overwriteRequestedButForbidden = false
     try {

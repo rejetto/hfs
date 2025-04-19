@@ -361,10 +361,10 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
 
 export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
     let stop = false
-    setTimeout(async () => {
+    ;(async () => {
         while (!stop && await Promise.allSettled([cb(stopIt)]))
             await wait(everyMs)
-    })
+    })()
     return stopIt
     function stopIt() {
         stop = true
