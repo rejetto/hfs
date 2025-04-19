@@ -27,7 +27,7 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
         if (ctx.path.startsWith(SPECIAL_URI)) { // special uris should be excluded...
             if (!ctx.path.startsWith(API_URI)) return // ...unless it's an api
             params = ctx.state.params || ctx.query // for api we'll translate params
-            changeUriParams(v => removeStarting(ctx.state.revProxyPath, v))  // removal must be done before adding the root
+            changeUriParams(v => removeStarting(ctx.state.revProxyPath, v))  // this removal must be done before adding the root; this operation doesn't conceptually belong to "roots", and it may be placed in different middleware, but it's convenient to do it here
             const { referer } = ctx.headers
             if (referer && try_(() => new URL(referer).pathname.startsWith(ctx.state.revProxyPath + ADMIN_URI))) return // exclude apis for admin-panel
         }

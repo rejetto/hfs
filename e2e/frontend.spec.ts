@@ -212,6 +212,7 @@ test('admin1', async ({ page }) => {
       await page.getByRole('button', { name: 'Close' }).click();
   }
 
+  await clickMenu('Internet'); // initiate get_nat process, so we'll have to wait less later
   await clickMenu('Shared files')
   await expect(page.getByText('cantListBut')).toBeVisible(); // wait for data
   await screenshot(page)
@@ -223,13 +224,11 @@ test('admin1', async ({ page }) => {
   await closePhoneDialog();
   await clickMenu('Options');
   await expect(page.getByText('Correctly working on port')).toBeVisible(); // wait for data
+  if (!isPhone)
+    await expect(page.getByText('Expire', { exact: true })).toBeVisible(); // wait for layout of 'block' table
   await page.mouse.click(1, 1); // avoid focus inconsistencies
   await screenshot(page)
 
-  await clickMenu('Internet');
-  await expect(page.getByRole('button', { name: 'Verify' })).toBeVisible(); // wait for data
-  await page.mouse.click(1, 1); // avoid focus inconsistencies
-  await screenshot(page, '.ip,.port')
   await clickMenu('Logs');
   await screenshot(page, '.MuiDataGrid-virtualScrollerRenderZone');
   await page.getByRole('tab').nth(2).click();
@@ -250,6 +249,10 @@ test('admin1', async ({ page }) => {
   await expect(page.getByRole('combobox', { name: 'Section Style' })).toBeVisible(); // wait for data to be loaded
   await screenshot(page);
   await page.getByRole('main').click();
+  await clickMenu('Internet');
+  await expect(page.getByRole('button', { name: 'Verify' })).toBeVisible({ timeout: 10000 }); // wait for data (get_nat can be very slow)
+  await page.mouse.click(1, 1); // avoid focus inconsistencies
+  await screenshot(page, '.ip,.port')
   await clickMenu('Logout');
   await screenshot(page);
 });

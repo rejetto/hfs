@@ -16,7 +16,7 @@ const timeoutByApi: Dict = {
 }
 
 interface ApiCallOptions {
-    timeout?: number | false
+    timeout?: number | false // seconds
     modal?: undefined | ((cmd: string, params?: Dict) => (() => unknown))
     onResponse?: (res: Response, body: any) => any
     method?: string
