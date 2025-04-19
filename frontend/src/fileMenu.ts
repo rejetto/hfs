@@ -36,7 +36,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
     const forbidden = entry.cantOpen === DirEntry.FORBIDDEN
     const cantDownload = forbidden || isFolder && !(canRead && entry.canArchive() && canList) // folders needs list+read+archive
     const menu = [
-        !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+        !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download', target: '_blank' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
             if (x === 'open') {
@@ -69,7 +69,7 @@ export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (
         }),
         entry.canDelete() && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
         entry.canDelete() && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
-        isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
+        isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list', target: '_blank' },
     ].filter(Boolean)
     const folder = entry.n.slice(0, -1 - entry.name.length)
     const props = [

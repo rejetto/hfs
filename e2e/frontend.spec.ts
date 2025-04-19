@@ -48,11 +48,21 @@ test('around1', async ({ page }) => {
   await page.getByRole('link', { name: 'alfa.txt', exact: true }).click();
   await screenshot(page);
   await page.getByRole('button', { name: 'Close' }).click();
+
   await page.getByRole('link', { name: 'cantListPage' }).click();
   await page.getByRole('button', { name: 'Calculate' }).click();
   await page.getByText('KB / 2 files').click();
   await page.locator('#menu-prop-name').getByText('cantListPage').click();
+  const downloadPromise = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Download' }).click();
+  await downloadPromise;
+  await page.getByRole('link', { name: 'cantListPage' }).click();
+  const pageListPromise = page.waitForEvent('popup');
+  await page.getByRole('link', { name: 'Get list' }).click();
+  const pageList = await pageListPromise;
+  await expect(pageList.getByText('localhost')).toBeVisible();
+  await pageList.close()
+
   await page.getByRole('link', { name: 'home' }).click();
   await page.getByRole('button', { name: 'Select' }).click();
   await page.getByRole('textbox', { name: 'Type here to filter the list' }).click();
