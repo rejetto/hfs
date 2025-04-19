@@ -272,17 +272,23 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
 }
 
 async function testMaxDl(uri: string, good: number, bad: number) {
-    let i = 0
-    const reqs = []
-    while (good--)
-        reqs.push( req(uri + '?' + (++i), 200, { throttle })() )
-    await wait(1) // ensure the requests are worked by hfs before the next ones, and slots are taken. This is subject to race conditions: if the operations take less than this, the test will fail
-    while (bad--)
-        reqs.push( req(uri + '?' + (++i), 429, { throttle })() )
-    await Promise.all(reqs)
+    // make good+bad requests, and check results
+    await Promise.all(_.range(good + bad).map(i => req(uri + '?' + i, (_data, res) => {
+        if (res.statusCode === 429) {
+            if (!bad--)
+                throw "too many refused"
+            return
+        }
+        if (res.statusCode === 200) {
+            if (!good--)
+                throw "too many accepted"
+            return
+        }
+        throw "unexpected status " + res.statusCode
+    }, { throttle })() )) // slow down to ensure the attempted downloads are all concurrent
 }
 
-type TesterFunction = ((data: any, fullResponse: any) => boolean)
+type TesterFunction = ((data: any, fullResponse: any) => boolean | void)
 type Tester = number
     | TesterFunction
     | RegExp
@@ -344,7 +350,7 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
                 throw Error(err)
         }
         if (typeof test === 'function')
-            if (!test(obj ?? data, res))
+            if (test(obj ?? data, res) === false)
                 throw Error("failed test: " + test)
         return obj ?? data
     }
