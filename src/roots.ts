@@ -22,6 +22,8 @@ forceAddress.sub((v, { version }) => { // convert from legacy configs
 
 export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
     (() => {
+        if (!ctx.path) // it was once reported "Cannot read properties of null (reading 'startsWith')" but I can't reproduce it, and it shouldn't happen anyway
+            return disconnect(ctx, 'no path') // let's assume that such requests can't be served anyway. This will leave a trace with an ip, anyway
         ctx.state.originalPath = ctx.path
         let params: undefined | typeof ctx.state.params | typeof ctx.query // undefined if we are not going to work on api parameters
         if (ctx.path.startsWith(SPECIAL_URI)) { // special uris should be excluded...
@@ -33,11 +35,9 @@ export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
         }
         if (_.isEmpty(roots.get())) return
         const root = ctx.state.root = roots.compiled()?.(ctx.host)
-        if (!ctx.state.skipFilters && forceAddress.get())
-            if (root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled()) {
-                disconnect(ctx, forceAddress.key())
-                return true // true will avoid calling next
-            }
+        if (!ctx.state.skipFilters && forceAddress.get()
+        && root === undefined && !isLocalHost(ctx) && ctx.host !== baseUrl.compiled())
+            return disconnect(ctx, forceAddress.key()) // returning truthy will not call next
         if (!root || root === '/') return // no transformation is required
         changeUriParams(v => join(root, v))
         if (!params)
