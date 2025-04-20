@@ -70,9 +70,9 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
     if (typeof parent.mime === 'object' && typeof child.mime === 'object')
         _.defaults(child.mime, parent.mime)
     else
-        child.mime ??= parent.mime
-    child.accept ??= parent.accept
-    child.default ??= parent.default
+        if (parent.mime) child.mime ??= parent.mime
+    if (parent.accept) child.accept ??= parent.accept
+    if (parent.default) child.default ??= parent.default
     return child
 }
 
