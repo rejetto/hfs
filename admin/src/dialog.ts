@@ -215,7 +215,7 @@ export function waitDialog() {
     return newDialog({ Content: () => h(CircularProgress, { size: '20vw'}), noFrame: true, closable: false }).close
 }
 
-export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info', options?: Partial<DialogOptions>) {
+export function toast(msg: string | ReactElement, type: AlertType | ReactElement<unknown>='info', options?: Partial<DialogOptions>) {
     const ms = 3000
     const dialog = newDialog({
         ...options,

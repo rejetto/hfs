@@ -129,7 +129,7 @@ export const IconBtn = forwardRef((props: IconBtnProps, ref: ForwardedRef<HTMLBu
     h(Btn, { ref, ...props }))
 
 export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
-    icon?: SvgIconComponent | ReactElement
+    icon?: SvgIconComponent | ReactElement<unknown>
     title?: ReactNode
     disabled?: boolean | string
     progress?: boolean | number

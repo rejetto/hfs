@@ -54,7 +54,7 @@ export interface FieldProps<T> {
 type Dict<T=any> = Record<string,T>
 
 export interface FormProps<Values> extends Partial<BoxProps> {
-    fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
+    fields: (FieldDescriptor | ReactElement<unknown> | null | undefined | false)[]
     defaults?: (f:FieldDescriptor) => Partial<FieldDescriptor>
     values: Values
     set: (v: any, fieldK: keyof Values) => void

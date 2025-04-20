@@ -126,7 +126,7 @@ export function iconBtn(icon: string, onClick: MouseEventHandler, { title, ...pr
 }
 
 export interface BtnProps extends ComponentPropsWithoutRef<"button"> {
-    icon?: string | ReactElement,
+    icon?: string | ReactElement<unknown>,
     label: string,
     tooltip?: string,
     toggled?: boolean,
