@@ -2,18 +2,9 @@ node_modules
 .idea
 .vscode
 dist
-shared/lib
-mui-grid-form/lib
-#produced by running
-counters.yaml
-*.log*
-self.*
-config.yaml*
-custom.html
-accounts.yaml
 .DS_Store
-storage
-*.kv
+#produced by running
+tests/work
 
 # Playwright
 /test-results/
