@@ -142,7 +142,7 @@ export async function nodeStats(ret: VfsNode) {
 
 async function isHiddenFile(path: string) {
     return IS_WINDOWS ? new Promise(res => fswin.getAttributes(path, x => res(x?.IS_HIDDEN)))
-        : path[0] === '.'
+        : path[path.lastIndexOf('/') + 1] === '.'
 }
 
 export async function getNodeByName(name: string, parent: VfsNode) {
