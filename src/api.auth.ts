@@ -24,7 +24,7 @@ export const login: ApiHandler = async ({ username, password }, ctx) => {
     try {
         const account = await clearTextLogin(ctx, username, password, 'api')
         if (!account)
-            return new ApiError(HTTP_UNAUTHORIZED, 'wrong')
+            return new ApiError(HTTP_UNAUTHORIZED)
     }
     catch (e) {
         return new ApiError(HTTP_UNAUTHORIZED, String(e))
@@ -76,7 +76,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         return new ApiError(HTTP_NOT_FOUND)
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
-            .catch(() => { throw 'wrong' })
+            .catch(() => { throw '' })
         await setLoggedIn(ctx, username)
         return {
             proof: String(M2),
@@ -88,7 +88,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         ctx.logExtra({ u: username })
         ctx.state.dontLog = false // log even if log_api is false
         events.emit('failedLogin', ctx, { username })
-        return new ApiError(HTTP_UNAUTHORIZED, String(e))
+        return new ApiError(HTTP_UNAUTHORIZED, e ? String(e) : undefined)
     }
     finally {
         delete ongoingLogins[sid]

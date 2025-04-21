@@ -26,11 +26,10 @@ async function login(username:string, password:string, extra?: object) {
         state.loginRequired = false
         return res
     }, err => {
-        throw Error(err.message === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
-            : err.message === 'wrong' ? t('login_bad_credentials', "Invalid credentials")
-                : err.code === HTTP_UNAUTHORIZED ? t(err.message) // plugin's custom error
-                    : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")
-                        : t(err.message || String(err)) )
+        throw Error(err.data === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
+            : err.code === HTTP_UNAUTHORIZED && !err.data ? t('login_bad_credentials', "Invalid credentials") // err.data is empty on standard errors, but a plugin may want to show differently
+                : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")
+                    : t(err.message || String(err)) )
     }).finally(stopWorking)
 }
 

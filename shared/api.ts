@@ -57,7 +57,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
             console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', data)
         await options.onResponse?.(res, data)
         if (!res.ok)
-            throw new ApiError(res.status, data === undefined ? body : `Failed API ${cmd}: ${res.statusText}`, data)
+            throw new ApiError(res.status, data === body ? body : `Failed API ${cmd}: ${res.statusText}`, data)
         return data as Awaited<T extends (...args: any[]) => infer R ? Awaited<R> : T>
     }, err => {
         stop?.()
