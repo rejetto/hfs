@@ -65,7 +65,8 @@ function errorHandler(err:Error & { code:string, path:string }) {
 
 process.on('uncaughtException', (err: any) => {
     if (err.syscall !== 'watch' && err.code !== 'ECONNRESET')
-        console.error("uncaught:", err)
+        try { console.error("uncaught:", err) }
+        catch {} // in case we are writing to a closed terminal, we may throw with "write eio at afterwritedispatched", causing an infinite loop
 })
 // this warning is scaring users, and has been removed in node 20.12.0 https://github.com/nodejs/node/pull/51204
 const original = process.emitWarning
