@@ -5,10 +5,10 @@ const username = 'rejetto'
 const password = 'password'
 
 const t = Date.UTC(2025, 0, 20, 3, 0, 0, 0) / 1000 // a fixed timestamp, for visual comparison
-fs.utimesSync('tests', t, t)
 
 // a generic test touch several parts
 test('around1', async ({ page }) => {
+  fs.utimesSync('tests', t, t);
   await page.goto('http://localhost:81/');
   await expect(page).toHaveTitle(/File server/);
   await screenshot(page);
@@ -100,6 +100,7 @@ test('around1', async ({ page }) => {
 });
 
 test('search1', async ({ page }) => {
+  fs.utimesSync('tests', t, t)
   await page.goto('http://localhost:81/');
   await page.getByRole('button', { name: 'Search' }).click();
   await page.locator('input[name="name"]').fill('a');
@@ -195,6 +196,7 @@ test('frontend-admin', async ({ page }) => {
 })
 
 test('admin1', async ({ page }) => {
+  await fs.promises.rm('tests/work/logs', {force: true, recursive: true}); // clear logs to have consistent screenshots
   await page.goto('http://localhost:81/~/admin/');
   await page.getByRole('textbox', { name: 'Username' }).fill(username);
   await page.getByRole('textbox', { name: 'Password' }).fill(password);
@@ -212,7 +214,12 @@ test('admin1', async ({ page }) => {
       await page.getByRole('button', { name: 'Close' }).click();
   }
 
-  await clickMenu('Internet'); // initiate get_nat process, so we'll have to wait less later
+  function dataTableLoading() {
+    return expect(page.getByRole('grid').getByRole('img')).toBeVisible({ visible: false });
+  }
+//  const dataTableContent = '.MuiDataGrid-overlayWrapperInner,.MuiDataGrid-virtualScroller'
+
+  await clickMenu('Internet'); // initiate the get_nat process, so we'll have to wait less, later
   await clickMenu('Shared files')
   await expect(page.getByText('cantListBut')).toBeVisible(); // wait for data
   await screenshot(page)
@@ -230,7 +237,8 @@ test('admin1', async ({ page }) => {
   await screenshot(page)
 
   await clickMenu('Logs');
-  await screenshot(page, '.MuiDataGrid-virtualScrollerRenderZone');
+  await dataTableLoading()
+  await screenshot(page);
   await page.getByRole('tab').nth(2).click();
   await page.getByRole('tab').nth(3).click();
   await page.getByRole('tab').nth(4).click();
@@ -239,7 +247,10 @@ test('admin1', async ({ page }) => {
   await page.getByRole('button', { name: '(Close)' }).click();
   await expect(page.getByText('LogsServedNot')).toBeVisible();
   await clickMenu('Language');
-  await screenshot(page, '.MuiDataGrid-virtualScrollerRenderZone');
+  await dataTableLoading()
+  if (!isPhone)
+    await expect(page.getByText('author', { exact: true })).toBeVisible(); // wait for layout to be stable
+  await screenshot(page);
   await clickMenu('Plugins');
   await expect(page.getByText('antibrute')).toBeVisible(); // wait for data
   await screenshot(page);
