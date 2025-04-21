@@ -13,7 +13,7 @@ import { disconnectionsLog } from './connections'
 
 export default {
     async get_log_info() {
-        const current = Object.fromEntries(await Promise.all(loggers.map(async x => [x.name, await stat(x.path).then(s => s.size)])))
+        const current = Object.fromEntries(await Promise.all(loggers.map(async x => [x.name, await stat(x.path).then(s => s.size, () => 0)])))
         return { current, rotated: await getRotatedFiles() }
     },
 
