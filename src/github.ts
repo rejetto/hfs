@@ -80,7 +80,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
 
         async function go(url: string, folder: string, zipRoot: string) {
             const installPath = PLUGINS_PATH + '/' + folder
-            const tempInstallPath = installPath + '-' + DISABLING_SUFFIX
+            const tempInstallPath = installPath + '-installing' + DISABLING_SUFFIX
             const foldersToCopy = [ // from longer to shorter, so we first test the longer
                 zipRoot + '-' + process.platform + '-' + process.arch,
                 zipRoot + '-' + process.platform,
@@ -107,7 +107,7 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
             }
             // delete old folder, but it may fail in the presence of .node files, so we rename it first as a precaution (clearing require.cache doesn't help)
             const deleteMe = installPath + DELETE_ME_SUFFIX
-            await rename(installPath, deleteMe)
+            await rename(installPath, deleteMe).catch(() => {})
             await rm(deleteMe, { recursive: true, force: true }).catch(e => console.warn(String(e)))
             // final replace
             await rename(tempInstallPath, installPath)
