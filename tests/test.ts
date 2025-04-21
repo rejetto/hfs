@@ -203,6 +203,7 @@ describe('after-login', () => {
             const r = reqUpload(UPLOAD_DEST, 0, makeReadableThatTakes(neededTime))()
             setTimeout(r.abort, afterMs)
             return r.catch(() => {}) // wait for it to fail
+                .then(() => wait(1)) // aborted requests don't guarantee that the server has finished and released the file, so we wait some arbitrary time
         }
         const timeFirstRequest = neededTime * .5 // not enough to finish
         await makeAbortedRequest(timeFirstRequest)
