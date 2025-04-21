@@ -483,7 +483,8 @@ function watchPlugin(id: string, path: string) {
         const p = plugins.get(id)
         if (!p) return
         await p.unload()
-        await markItAvailable()
+        await markItAvailable().catch(() =>
+            events.emit('pluginUninstalled', id)) // when a running plugin is deleted, avoid error and report
         events.emit('pluginStopped', p)
     }
 
