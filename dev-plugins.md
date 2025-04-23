@@ -218,10 +218,10 @@ Based on `type`, other properties are supported:
 - `username`
     - `groups: undefined | boolean` true if you want only groups, false if you want only users. Default is undefined.
     - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
-      and the resulting value will be array of strings, instead of a string. Default is false.
-- `date_time`
-- `net_mask`
-- `showHtml`
+      and the resulting value will be an array of strings, instead of a string. Default is false.
+- `date_time` a string in the form yyyy-mm-ddThh:mm:ss.cccZ 
+- `net_mask` a string
+- `showHtml` not a real field, but let you display some static content
     - `html: string` HTML code to display.
 
 ## api object
@@ -836,131 +836,131 @@ If you want to override a text regardless of the language, use the special langu
 
 ## API version history
 
-- 12.2 (v0.57.0)
-    - backend event: finalizingLogin, httpsServerOptions, clearTextLogin
-    - frontend events: beforeLoginSubmit, loginUsernameField, loginPasswordField
-    - exports.changelog
-    - automatic unload of api.events listeners
-    - removed DirEntry.t
-    - api.setInterval, setTimeout
-    - HFS.Btn
-    - HFS.watchState added third parameter
-    - frontend events: async for fileMenu and html-producers
-    - config.type: date_time, net_mask
-    - config.getError
-- 11.6 (v0.56.0)
-    - api.setError 
-    - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
-    - config.type.vfs_path: folders, files
-    - api.subscribeConfig supports multiple keys
-    - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
-    - automatic unload of api.subscribeConfig
-    - api._
-    - config.type=showHtml
-- 10.3 (v0.55.0)
-    - HFS.copyTextToClipboard
-    - HFS.urlParams
-    - exports.beforePlugin + afterPlugin
-    - config.type: color
-    - config.showIf
-    - init can now return directly the unload function
-    - api.i18n
-    - frontend event: newListEntries
-    - HFS.fileShowComponents
-    - api.ctxBelongsTo
-    - api.getCurrentUsername
-- 9.6 (v0.54.0)
-    - frontend event: showPlay
-    - api.addBlock 
-    - api.misc
-    - frontend event: paste
-    - exports.customRest + HFS.customRestCall
-    - config.type: vfs_path
-    - frontend event: sortCompare
-    - HFS.userBelongsTo
-    - HFS.DirEntry
-    - frontend event: appendMenuBar
-    - config.helperText: basic md formatting
-    - HFS.onEvent.setOrder
-    - backend event: newSocket
-- 8.891 (v0.53.0)
-    - api.openDb
-    - frontend event: menuZip
-    - config.type:username
-    - api.events class has changed
-    - frontend event "fileMenu": changed props format
-    - api.getConfig() without parameters
-    - api.notifyClient + HFS.getNotifications
-    - HFS.html
-    - HFS.useSnapState
-    - HFS.debounceAsync
-    - HFS.loadScript
-    - HFS.iconBtn
-    - middleware: ctx.stop()
-      - the old way of returning true is now deprecated
-    - exports.customHtml
-    - more functions in HFS.misc
-    - frontend event 'entry' can now ask to skip an entry
-    - backend events: login attemptingLogin failedLogin
-- 8.72 (v0.52.0)
-    - HFS.toast
-    - HFS.misc functions
-    - HFS.state.uri
-    - ~~frontend event: uriChanged~~
-- 8.65 (v0.51.0)
-    - plugin's own hfs-lang files
-    - HFS.state.props.can_overwrite
-    - ctx.state.considerAsGui
-    - frontend event: userPanelAfterInfo
-    - breaking: moved custom properties from ctx to ctx.state
-    - HFS.navigate
-    - internationalization
-- 8.5 (v0.49.0)
-    - frontend event: entry
-    - exports.onDirEntry: entry.icon
-    - customApiCall supports any number of parameters
-- 8.4 (v0.48.2)
-    - HFS.fileShow
-    - api.Const (api.const is now deprecated)
-- 8.3 (v0.47.0)
-    - HFS.useBatch
-    - FileMenuEntry.id, .subLabel
-- 8.23 (v0.46.0)
-    - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
-    - platform-dependent distribution
-    - HFS.watchState, emit, useApi
-    - api.storageDir, customApiCall
-    - exports.depend
-    - frontend event: fileShow
-- 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
-    - full URL support for frontend_js and frontend_css
-    - custom.html
-    - entry.cantOpen, ext, isFolder
-    - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
-    - second parameter of onEvent is now deprecated
-    - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
-    - frontend event: entryIcon
-- 8 (v0.43.0)
-    - entry.name & .uri
-    - tools.dialogLib
-    - HFS.getPluginConfig()
-- 7 (v0.42.0)
-    - frontend event: fileMenu
-    - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
-- 6 (v0.38.0)
-    - config.frontend
-- 5 (v0.33.0)
-    - frontend event: afterEntryName
-- 4.1 (v0.23.4)
-    - config.type:array added $width, $column and fixed height
-- 4 (v0.23.0)
-    - config.type:real_path
-    - api.subscribeConfig
-    - api.setConfig
-    - api.getHfsConfig
-- 3 (v0.21.0)
-    - config.defaultValue
-    - async for init/unload
-    - api.log
 - 2
-    - config.type:array
+  - config.type:array
+- 3 (v0.21.0)
+  - config.defaultValue
+  - async for init/unload
+  - api.log
+- 4 (v0.23.0)
+  - config.type:real_path
+  - api.subscribeConfig
+  - api.setConfig
+  - api.getHfsConfig
+- 4.1 (v0.23.4)
+  - config.type:array added $width, $column and fixed height
+- 5 (v0.33.0)
+  - frontend event: afterEntryName
+- 6 (v0.38.0)
+  - config.frontend
+- 7 (v0.42.0)
+  - frontend event: fileMenu
+  - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
+- 8 (v0.43.0)
+  - entry.name & .uri
+  - tools.dialogLib
+  - HFS.getPluginConfig()
+- 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
+  - full URL support for frontend_js and frontend_css
+  - custom.html
+  - entry.cantOpen, ext, isFolder
+  - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
+  - second parameter of onEvent is now deprecated
+  - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
+  - frontend event: entryIcon
+- 8.23 (v0.46.0)
+  - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
+  - platform-dependent distribution
+  - HFS.watchState, emit, useApi
+  - api.storageDir, customApiCall
+  - exports.depend
+  - frontend event: fileShow
+- 8.3 (v0.47.0)
+  - HFS.useBatch
+  - FileMenuEntry.id, .subLabel
+- 8.4 (v0.48.2)
+  - HFS.fileShow
+  - api.Const (api.const is now deprecated)
+- 8.5 (v0.49.0)
+  - frontend event: entry
+  - exports.onDirEntry: entry.icon
+  - customApiCall supports any number of parameters
+- 8.65 (v0.51.0)
+  - plugin's own hfs-lang files
+  - HFS.state.props.can_overwrite
+  - ctx.state.considerAsGui
+  - frontend event: userPanelAfterInfo
+  - breaking: moved custom properties from ctx to ctx.state
+  - HFS.navigate
+  - internationalization
+- 8.72 (v0.52.0)
+  - HFS.toast
+  - HFS.misc functions
+  - HFS.state.uri
+  - ~~frontend event: uriChanged~~
+- 8.891 (v0.53.0)
+  - api.openDb
+  - frontend event: menuZip
+  - config.type:username
+  - api.events class has changed
+  - frontend event "fileMenu": changed props format
+  - api.getConfig() without parameters
+  - api.notifyClient + HFS.getNotifications
+  - HFS.html
+  - HFS.useSnapState
+  - HFS.debounceAsync
+  - HFS.loadScript
+  - HFS.iconBtn
+  - middleware: ctx.stop()
+    - the old way of returning true is now deprecated
+  - exports.customHtml
+  - more functions in HFS.misc
+  - frontend event 'entry' can now ask to skip an entry
+  - backend events: login attemptingLogin failedLogin
+- 9.6 (v0.54.0)
+  - frontend event: showPlay
+  - api.addBlock
+  - api.misc
+  - frontend event: paste
+  - exports.customRest + HFS.customRestCall
+  - config.type: vfs_path
+  - frontend event: sortCompare
+  - HFS.userBelongsTo
+  - HFS.DirEntry
+  - frontend event: appendMenuBar
+  - config.helperText: basic md formatting
+  - HFS.onEvent.setOrder
+  - backend event: newSocket
+- 10.3 (v0.55.0)
+  - HFS.copyTextToClipboard
+  - HFS.urlParams
+  - exports.beforePlugin + afterPlugin
+  - config.type: color
+  - config.showIf
+  - init can now return directly the unload function
+  - api.i18n
+  - frontend event: newListEntries
+  - HFS.fileShowComponents
+  - api.ctxBelongsTo
+  - api.getCurrentUsername
+- 11.6 (v0.56.0)
+  - api.setError 
+  - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
+  - config.type.vfs_path: folders, files
+  - api.subscribeConfig supports multiple keys
+  - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
+  - automatic unload of api.subscribeConfig
+  - api._
+  - config.type=showHtml
+- 12.2 (v0.57.0)
+  - backend event: finalizingLogin, httpsServerOptions, clearTextLogin
+  - frontend events: beforeLoginSubmit, loginUsernameField, loginPasswordField
+  - exports.changelog
+  - automatic unload of api.events listeners
+  - removed DirEntry.t
+  - api.setInterval, setTimeout
+  - HFS.Btn
+  - HFS.watchState added third parameter
+  - frontend events: async for fileMenu and html-producers
+  - config.type: date_time, net_mask
+  - config.getError

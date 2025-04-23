@@ -359,11 +359,15 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
     return ret
 }
 
+// like setInterval but: async executions don't overlap AND the first execution is immediate
 export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
     let stop = false
     ;(async () => {
-        while (!stop && await Promise.allSettled([cb(stopIt)]))
+        while (!stop) {
+            try { await cb(stopIt) } // you can use stopIt passed as a parameter or the returned value, whatever makes you happy
+            catch {}
             await wait(everyMs)
+        }
     })()
     return stopIt
     function stopIt() {

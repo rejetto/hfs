@@ -61,6 +61,8 @@ Additionally, you have the following folders:
 - All parameters that contain a *uri* should have a name that starts with `uri`.
 - React parts don't use JSX. I used JSX for a couple of years before deciding that it is not good enough to pay the
   price of using an extra language that is also necessary to switched in and out multiple times when stuff is nested.  
+- All calls to async functions that don't want/need to "await" should be using the "void" operator to clarify it's 
+  intentional and not that you just forgot to await. Don't confuse the void operator with the void type.
 
 # Project design
 
