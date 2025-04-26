@@ -11,7 +11,7 @@ import open from 'open'
 import {
     CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate
 } from './misc'
-import { PORT_DISABLED, ADMIN_URI, DEV, IS_WINDOWS } from './const'
+import { PORT_DISABLED, ADMIN_URI, IS_WINDOWS } from './const'
 import findProcess from 'find-process'
 import { anyAccountCanLoginAdmin } from './adminApis'
 import _ from 'lodash'
@@ -26,7 +26,7 @@ interface ServerExtra { name: string, error?: string, busy?: Promise<string> }
 let httpSrv: undefined | http.Server & ServerExtra
 let httpsSrv: undefined | http.Server & ServerExtra
 
-const openBrowserAtStart = defineConfig('open_browser_at_start', !DEV)
+const openBrowserAtStart = defineConfig('open_browser_at_start', true)
 
 export const baseUrl = defineConfig(CFG.base_url, '',
     x => /(?<=\/\/)[^\/]+/.exec(x)?.[0]) // compiled is host only
@@ -101,8 +101,9 @@ const considerHttps = debounceAsync(async () => {
     defaultBaseUrl.port = getCurrentPort(httpSrv) ?? 0
     let port = httpsPortCfg.get()
     try {
+        const moreOptions = Object.assign({}, ...await events.emitAsync('httpsServerOptions') || [])
         httpsSrv = Object.assign(
-            https.createServer(port === PORT_DISABLED ? {} : { ...commonServerOptions, key: httpsOptions.private_key, cert: httpsOptions.cert }, app.callback()),
+            https.createServer(port === PORT_DISABLED ? {} : { ...commonServerOptions, key: httpsOptions.private_key, cert: httpsOptions.cert, ...moreOptions }, app.callback()),
             { name: 'https' },
             commonServerAssign
         )
@@ -237,13 +238,14 @@ export function startServer(srv: typeof httpSrv, { port, host }: StartServer) {
                 srv.error = String(e)
                 srv.busy = undefined
                 const { code } = e as any
-                if (code === 'EACCES' && port < 1024)
+                if (code)
+                    srv.busy = findProcess('port', port).then(
+                        res => res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '),
+                        () => '')
+                if (code === 'EACCES' && port < 1024 && !srv.busy) // on Windows, when port is used by a service, we get EACCESS
                     srv.error = `lacking permission on port ${port}, try with permission (${IS_WINDOWS ? 'administrator' : 'sudo'}) or port > 1024`
-                if (code === 'EADDRINUSE') {
-                    srv.busy = findProcess('port', port).then(res =>
-                        res?.map(x => prefix("Service", x.name === 'svchost.exe' && x.cmd.split(x.name)[1]?.trim()) || x.name).join(' + '), () => '')
+                if (code === 'EADDRINUSE' || srv.busy)
                     srv.error = `port ${port} busy: ${await srv.busy || "unknown process"}`
-                }
                 if (!silence)
                     console.error(srv.name, srv.error)
                 resolve(0)

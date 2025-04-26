@@ -10,7 +10,8 @@ import { Flex, useBreakpoint } from './mui'
 import { reactJoin } from '@hfs/shared'
 import _ from 'lodash'
 import { AlertProps } from '@mui/material/Alert/Alert'
-import FileForm, { Account } from './FileForm'
+import { Account } from './AccountsPage'
+import FileForm from './FileForm'
 import { Delete } from '@mui/icons-material'
 import { alertDialog, confirmDialog } from './dialog'
 import { PageProps } from './App'
@@ -41,6 +42,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
     }, [status, config])
     const single = selectedFiles?.length < 2 && (selectedFiles[0] as VfsNode || vfs)
     const accountsApi = useApiEx<{ list: Account[] }>('get_accounts') // load accounts once and for all, or !isSideBreakpoint will cause a call for each selection
+    const accounts = useMemo(() => _.sortBy(accountsApi?.data?.list, 'username'), [accountsApi.data])
 
     // this will take care of closing the dialog, for user's convenience, after "cut" button is pressed
     const closeDialogRef = useRef(_.noop)
@@ -57,7 +59,8 @@ export default function VfsPage({ setTitleSide }: PageProps) {
         severity: 'info',
         children: [
             "Your shared files can be browsed from ",
-            reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href)))
+            h('span', { className: 'hideInTests', key: 0 },
+                reactJoin(" or ", urls.slice(0,3).map(href => h(Link, { href, target: 'frontend' }, href))) )
         ]
     }, [anythingShared, urls])
 
@@ -72,7 +75,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             addToBar: isSideBreakpoint && h(Box, { flex: 1, textAlign: 'right', mr: 1, color: '#8883' }, vfsNodeIcon(single)),
             statusApi,
             saved: () => closeDialogRef.current(),
-            accounts: accountsApi?.data?.list ?? [],
+            accounts: accounts ?? [],
             file: single  // it's actually Snapshot<VfsNode> but it's easier this way
         })
         : h(Fragment, {},
@@ -143,6 +146,7 @@ export default function VfsPage({ setTitleSide }: PageProps) {
             node.id = node.isRoot ? '/' : prefix(pre, pathEncode(node.name), node.type === 'folder' ? '/' : '')
             id2node.set(node.id, node)
             if (!node.children) return
+            node.children = _.sortBy(node.children, ['type', x => x.name?.toLocaleLowerCase()])
             for (const n of node.children)
                 recur(n, node.id, node)
         }
@@ -172,7 +176,9 @@ export async function deleteFiles() {
     if (!f.length) return
     if (!await confirmDialog(`Delete ${f.length} item(s)?`)) return
     try {
-        const uris = f.map(x => x.id)
+        const uris = f.map(x => x.id).sort()
+        _.remove(uris, (x, i) => i // exclude first, but remove descendants as they are both redundant and would cause errors
+            && _.findLastIndex(uris, y => x.startsWith(y), i - 1) !== -1) // search backward among previous elements, as they array is sorted
         _.pull(uris, '/')
         const { errors } = await apiCall('del_vfs', { uris })
         const urisThatFailed = uris.filter((uri, idx) => errors[idx])

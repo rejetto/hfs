@@ -12,6 +12,8 @@ export const UPLOAD_RESUMABLE = 'upload.resumable'
 export const UPLOAD_RESUMABLE_HASH = 'upload.hash'
 export const UPLOAD_REQUEST_STATUS = 'upload.status'
 export const PREVIOUS_TAG = 'previous'
+export const ALLOW_SESSION_IP_CHANGE = 'allow_session_ip_change'
+export const HIDE_IN_TESTS = 'hideInTests'
 
 export const HTTP_OK = 200
 export const HTTP_NO_CONTENT = 204
@@ -34,6 +36,7 @@ export const HTTP_FAILED_DEPENDENCY = 424
 export const HTTP_TOO_MANY_REQUESTS = 429
 export const HTTP_SERVER_ERROR = 500
 export const HTTP_SERVICE_UNAVAILABLE = 503
+export const HTTP_INSUFFICIENT_STORAGE = 507
 
 export const HTTP_MESSAGES: Record<number, string> = {
     [HTTP_UNAUTHORIZED]: "Unauthorized",

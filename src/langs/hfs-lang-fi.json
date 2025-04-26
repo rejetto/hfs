@@ -143,7 +143,7 @@
         "Upload not available": "Lähettäminen ei ole mahdollista",
         "Cut": "Leikkaa",
         "n_items": "{n,plural, one{# tiedosto / hakemisto leikepöydällä} other{# tiedostoa / hakemistoa leikepöydällä}}",
-        "good_bad": "{good} siirretty, {bad} epäonnistui",
+        "move_results": "{good} siirretty, {bad} epäonnistui",
         "after_cut": "Valintasi on nyt leikepöydällä.\nMene kohdekansioon liittääksesi.",
         "Cancel clipboard": "Sulje leikepöytä",
         "to_clipboard_source": "Palaa lähdekansioon",
@@ -188,6 +188,10 @@
         "creation": "luonti",
         "required_change_password": "Sinun täytyy vaihtaa salasanasi",
         "Wildcards": "Villimerkit",
-        "Considering resume": "Yritetään jatkaa"
+        "Considering resume": "Yritetään jatkaa",
+
+        "Yes": "Kyllä",
+        "No":  "Ei",
+        "esc_again": "Paina ESC kaksi kertaa sulkea"
     }
 }

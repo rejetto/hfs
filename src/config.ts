@@ -216,6 +216,8 @@ Most common configurations:
     --consoleFile <path>
 
 For a description of each configuration, please refer to https://rejetto.com/hfs-config
+Other options:
+    --debug will print extra information
     `)
     process.exit(0)
 })

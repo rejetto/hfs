@@ -9,8 +9,8 @@ import {
 import * as Const from './const'
 import Koa from 'koa'
 import {
-    adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, getOrSet, objSameKeys, onlyTruthy,
-    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys
+    adjustStaticPathForGlob, callable, Callback, CFG, debounceAsync, Dict, objSameKeys, onlyTruthy, prefix,
+    PendingPromise, pendingPromise, Promisable, same, tryJson, wait, waitFor, wantArray, watchDir, objFromKeys, patchKey
 } from './misc'
 import * as misc from './misc'
 import { defineConfig, getConfig } from './config'
@@ -18,7 +18,7 @@ import { DirEntry } from './api.get_file_list'
 import { VfsNode } from './vfs'
 import { serveFile } from './serveFile'
 import events from './events'
-import { mkdir, readFile, rename } from 'fs/promises'
+import { mkdir, readdir, readFile, rename, rm } from 'fs/promises'
 import { existsSync, mkdirSync } from 'fs'
 import { getConnections } from './connections'
 import { dirname, join, resolve } from 'path'
@@ -36,7 +36,14 @@ import { CustomizedIcons, watchIconsFolder } from './icons'
 
 export const PATH = 'plugins'
 export const DISABLING_SUFFIX = '-disabled'
+export const DELETE_ME_SUFFIX = '-delete_me' + DISABLING_SUFFIX
 export const STORAGE_FOLDER = 'storage'
+
+setTimeout(async () => { // delete leftovers, if any
+    for (const x of await readdir(PATH))
+        if (x.endsWith(DELETE_ME_SUFFIX))
+            await rm(join(PATH, x), { recursive: true, force: true }).catch(() => {})
+}, 1000)
 
 const plugins = new Map<string, Plugin>() // now that we care about the order, a simple object wouldn't do, because numbers are always at the beginning
 
@@ -114,14 +121,33 @@ export function getPluginConfigFields(id: string) {
 }
 
 async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>) {
+    const undoEvents: any[] = []
+    const timeouts: NodeJS.Timeout[] = []
     const res = await pl.init?.({
         Const,
         require,
         getConnections,
-        events,
+        // intercept all subscriptions, so to be able to undo them on unload
+        events: Object.create(events, objFromKeys(['on', 'once', 'multi'], k => ({
+            value() {
+                const ret = (events[k] as any)(...arguments)
+                undoEvents.push(ret)
+                return ret
+            }
+        }))),
         log: console.log,
         setError(msg: string) { setError(morePassedToInit?.id || 'server_code', msg) },
         getHfsConfig: getConfig,
+        setInterval() { // @ts-ignore
+            const ret = setInterval(...arguments)
+            timeouts.push(ret) // intervals can be canceled by clearTimeout (source: MDN)
+            return ret
+        },
+        setTimeout() { // @ts-ignore
+            const ret = setTimeout(...arguments)
+            timeouts.push(ret)
+            return ret
+        },
         customApiCall,
         notifyClient,
         addBlock,
@@ -133,6 +159,12 @@ async function initPlugin(pl: any, morePassedToInit?: { id: string } & Dict<any>
         ...morePassedToInit
     })
     Object.assign(pl, typeof res === 'function' ? { unload: res } : res)
+    patchKey(pl, 'unload', was => () => {
+        for (const x of timeouts) clearTimeout(x)
+        for (const cb of undoEvents) cb()
+        if (typeof was === 'function')
+            return was(...arguments)
+    })
     events.emit('pluginInitialized', pl)
     return pl
 }
@@ -162,7 +194,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
                 warnOnce(`plugin ${id} is using deprecated API (return true on middleware) and may not work with future versions (check for an update to "${id}")`)
             }
             // don't just check ctx.isStopped, as the async plugin that called ctx.stop will reach here after sync ones
-            if (res === true && !ctx.pluginBlockedRequest)
+            if (ctx.isStopped && !ctx.pluginBlockedRequest)
                 console.debug("plugin blocked request", ctx.pluginBlockedRequest = id)
             if (typeof res === 'function')
                 after[id] = res
@@ -172,7 +204,7 @@ export const pluginsMiddleware: Koa.Middleware = async (ctx, next) => {
         }
     }))
     // expose public plugins' files`
-    if (!ctx.pluginBlockedRequest) {
+    if (!ctx.isStopped) {
         const { path } = ctx
         if (path.startsWith(PLUGINS_PUB_URI)) {
             const a = path.substring(PLUGINS_PUB_URI.length).split('/')
@@ -214,10 +246,12 @@ type OnDirEntry = (params:OnDirEntryParams) => void | false
 export class Plugin implements CommonPluginInterface {
     started: Date | null = new Date()
     icons: CustomizedIcons
+    log: { ts: Date, msg: string }[]
 
     constructor(readonly id:string, readonly folder:string, private readonly data:any, private onUnload:()=>unknown){
         if (!data) throw 'invalid data'
 
+        this.log = []
         this.data = data = { ...data } // clone to make object modifiable. Objects coming from import are not.
         // some validation
         for (const k of ['frontend_css', 'frontend_js']) {
@@ -344,6 +378,7 @@ export interface CommonPluginInterface {
     depend?: Depend
     isTheme?: boolean | 'light' | 'dark'
     preview?: string | string[]
+    changelog?: unknown
 }
 export interface AvailablePlugin extends CommonPluginInterface {
     branch?: string
@@ -448,7 +483,8 @@ function watchPlugin(id: string, path: string) {
         const p = plugins.get(id)
         if (!p) return
         await p.unload()
-        await markItAvailable()
+        await markItAvailable().catch(() =>
+            events.emit('pluginUninstalled', id)) // when a running plugin is deleted, avoid error and report
         events.emit('pluginStopped', p)
     }
 
@@ -478,6 +514,8 @@ function watchPlugin(id: string, path: string) {
             await mkdir(storageDir, { recursive: true })
             const openDbs: KvStorage[] = []
             const subbedConfigs: Callback[] = []
+            const pluginReady = pendingPromise()
+            const MAX_LOG = 100
             await initPlugin(pluginData, { // following properties are not available in server_code
                 id,
                 srcDir: __dirname,
@@ -491,6 +529,15 @@ function watchPlugin(id: string, path: string) {
                 },
                 log(...args: any[]) {
                     console.log('plugin', id+':', ...args)
+                    pluginReady.then(() => { // log() maybe invoked during init(), while plugin is undefined
+                        if (!plugin) return
+                        const msg = { ts: new Date, msg: args.map(x => x && typeof x === 'object' ? JSON.stringify(x) : String(x)).join(' ') }
+                        plugin.log.push(msg)
+                        if (plugin.log.length > MAX_LOG)
+                            plugin.log.splice(0, 10) // truncate
+                        events.emit('pluginLog:' + id, msg)
+                        events.emit('pluginLog', id, msg)
+                    })
                 },
                 getConfig(cfgKey?: string) {
                     const cur = pluginsConfig.get()?.[id]
@@ -530,6 +577,7 @@ function watchPlugin(id: string, path: string) {
                 await Promise.allSettled(openDbs.map(x => x.close()))
                 openDbs.length = 0
             })
+            pluginReady.resolve()
             if (alreadyRunning)
                 events.emit('pluginUpdated', Object.assign(_.pick(plugin, 'started'), getPluginInfo(id)))
             else {
@@ -543,7 +591,7 @@ function watchPlugin(id: string, path: string) {
             await markItAvailable()
             const parsed = e.stack?.split('\n\n') // this form is used by syntax-errors inside the plugin, which is useful to show
             const where = parsed?.length > 1 ? `\n${parsed[0]}` : ''
-            e = e.message + where || String(e)
+            e = prefix('', e.message, where) || String(e)
             setError(id, e)
         }
         finally {
@@ -570,7 +618,7 @@ function setError(id: string, error: string) {
     info.error = error
     events.emit('pluginUpdated', info)
     if (!error) return
-    console.log(`plugin error: ${id}:`, error)
+    console.warn(`plugin error: ${id}:`, error)
     return true
 }
 
@@ -581,7 +629,7 @@ function deleteModule(id: string) {
     for (const k in cache)
         if (k !== id)
             for (const child of wantArray(cache[k]?.children))
-                getOrSet(requiredBy, child.id, ()=> [] as string[]).push(k)
+                (requiredBy[child.id] ||= []).push(k)
     const deleted: string[] = []
     ;(function deleteCache(id: string) {
         const mod = cache[id]
@@ -605,9 +653,10 @@ export function parsePluginSource(id: string, source: string) {
     pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
     pl.isTheme = tryJson(/exports.isTheme *= *(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
     pl.preview = tryJson(/exports.preview *= *(.+)/.exec(source)?.[1]) ?? undefined
-    pl.depend = tryJson(/exports.depend *= *(\[.*])/m.exec(source)?.[1])?.filter((x: any) =>
+    pl.depend = tryJson(/exports.depend *= *(\[[\s\S]*?])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("plugin dependency discarded", x) )
+    pl.changelog = tryJson(/exports.changelog *= *(\[[\s\S]*?])/m.exec(source)?.[1])
     if (Array.isArray(pl.apiRequired) && (pl.apiRequired.length !== 2 || !pl.apiRequired.every(_.isFinite))) // validate [from,to] form
         pl.apiRequired = undefined
     calculateBadApi(pl)

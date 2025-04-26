@@ -83,7 +83,7 @@ export async function getUpdates(strict=false) {
     const stable: Release = prepareRelease(await getRepoInfo(HFS_REPO + '/releases/latest'))
     const res = await getVersions(r => r.versionScalar < stable.versionScalar) // we don't consider betas before stable
     const ret = res.filter(x => x.prerelease && (strict ? x.isNewer : (x.versionScalar !== curV)) )
-    if (stable.isNewer || RUNNING_BETA)
+    if (stable.isNewer || RUNNING_BETA && !strict)
         ret.push(stable)
     return ret
 }
@@ -125,7 +125,7 @@ export async function update(tagOrUrl: string='') {
         const asset = update.assets.find((x: any) => x.name.includes(assetSearch) && x.name.endsWith('.zip'))
             || update.assets.find((x: any) => x.name.endsWith(legacyAssetSearch))
         if (!asset)
-            throw "asset not found"
+            throw `asset not found: ${assetSearch}`
         url = asset.browser_download_url
     }
     if (url) {

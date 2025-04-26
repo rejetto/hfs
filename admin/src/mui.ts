@@ -129,7 +129,7 @@ export const IconBtn = forwardRef((props: IconBtnProps, ref: ForwardedRef<HTMLBu
     h(Btn, { ref, ...props }))
 
 export interface BtnProps extends Omit<ButtonProps & IconButtonProps,'disabled'|'title'|'onClick'> {
-    icon?: SvgIconComponent | ReactElement
+    icon?: SvgIconComponent | ReactElement<unknown>
     title?: ReactNode
     disabled?: boolean | string
     progress?: boolean | number
@@ -277,9 +277,15 @@ export function useToggleButton(onTitle: string, offTitle: undefined | string, i
     return [state, el, setState] as const
 }
 
-export function NetmaskField(props: StringFieldProps) {
+export function NetmaskField({ setApi, helperText, ...props }: StringFieldProps) {
     const warned = useRef(false)
+    setApi?.({
+        getError() {
+            return props.value && apiCall('validate_net_mask', { mask: props.value }).then(x => !x.result && "Invalid mask")
+        }
+    })
     return h(StringField, {
+        helperText: h('span', {}, helperText, helperText && ' – ', wikiLink('Wildcards#network-masks', "Wildcards supported")),
         ...props,
         onTyping(v) {
             if (!warned.current && v?.includes('127.0.0.1') && !v.includes('::1')) {
@@ -316,7 +322,7 @@ async function ip2countryBatch(ips: string[]) {
 // force you to think of aria when adding a tooltip
 export function hTooltip(title: ReactNode, ariaLabel: string | undefined, children: ReactElement, props?: Omit<TooltipProps, 'title' | 'children'> & { key?: any }) {
     return h(Tooltip, { title, children,
-        ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel },
+        ...ariaLabel === '' ? { 'aria-hidden': true } : { 'aria-label': ariaLabel || _.isString(title) && title || undefined },
         componentsProps: { popper: { sx: { whiteSpace: 'pre-wrap', ...props?.sx } } },
         ...props
     })

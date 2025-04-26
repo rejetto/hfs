@@ -1,9 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import React, { createElement as h } from 'react'
-import { iconBtn, Spinner } from './components'
+import { Btn, iconBtn, Spinner } from './components'
 import { newDialog, toast } from './dialog'
-import { Icon } from './icons'
+import { Icon, IconProps } from './icons'
 import { Callback, Dict, domOn, getHFS, getOrSet, Html, HTTP_MESSAGES, urlParams, useBatch } from '@hfs/shared'
 import * as cross from '../../src/cross'
 import * as shared from '@hfs/shared'
@@ -26,7 +26,7 @@ export function err2msg(err: number | Error) {
         : (HTTP_MESSAGES[(err as any).code] || err.message || String(err))
 }
 
-export function hIcon(name: string, props?:any) {
+export function hIcon(name: string, props?: Omit<IconProps, 'name'>) {
     return h(Icon, { name, ...props })
 }
 
@@ -60,7 +60,7 @@ export function hfsEvent(name: string, params?:Dict) {
     document.dispatchEvent(ev)
     const sortedOutput = order.length && _.sortBy(output.map((x, i) => [order[i] || 0, x]), '0').map(x => x[1])
     return Object.assign(sortedOutput || output, {
-        isDefaultPrevent: () => ev.defaultPrevented,
+        isDefaultPrevented: () => ev.defaultPrevented,
     })
 }
 
@@ -94,16 +94,20 @@ export function formatTimestamp(x: number | string | Date, options?: Intl.DateTi
     return !x ? '' : (x instanceof Date ? x : new Date(x)).toLocaleString(cached, options)
 }
 
+import * as thisModule from './misc'
 Object.assign(getHFS(), {
     h, React, state, t, _, dialogLib, apiCall, useApi, reloadList, logout, Icon, hIcon, iconBtn, useBatch, fileShow,
-    toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry,
+    toast, domOn, getNotifications, debounceAsync, useSnapState, DirEntry, Btn,
     fileShowComponents: { Video, Audio },
-    misc: { ...cross, ...shared },
+    misc: { ...cross, ...shared, ...thisModule },
     emit: hfsEvent,
     onEvent: onHfsEvent,
-    watchState(k: string, cb: (v: any) => void) {
+    watchState(k: string, cb: (v: any) => void, callNow=false) {
         const up = k.split('upload.')[1]
-        return subscribeKey(up ? uploadState : state as any, up || k, cb, true)
+        const thisState = up ? uploadState : state as any
+        if (callNow)
+            cb(thisState[k])
+        return subscribeKey(thisState, up || k, cb, true)
     },
     customRestCall(name: string, ...rest: any[]) {
         return apiCall(cross.PLUGIN_CUSTOM_REST_PREFIX + name, ...rest)

@@ -73,7 +73,6 @@ export async function zipStreamFromFolder(node: VfsNode, ctx: Koa.Context) {
     const zip = new QuickZipStream(mappedWalker)
     const time = 1000 * zipSeconds.get()
     const size = await zip.calculateSize(time)
-    ctx.response.length = size
     const range = applyRange(ctx, size) // keep var size as ctx.response.length won't preserve a NaN
     if (ctx.status >= 400)
         return

@@ -20,6 +20,7 @@ import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
 import { fileShow, getShowComponent } from './show'
 import i18n from './i18n'
+import { dragFilesSource } from './dragFiles'
 const { t, useI18N } = i18n
 
 export const MISSING_PERM = "Missing permission"
@@ -48,6 +49,7 @@ export function BrowseFiles() {
         return h(CustomCode, { name: 'unauthorized' }, h('h1', { className: 'unauthorized' }, t`Unauthorized`) )
     return h('div', propsDropFiles, // element dedicated to drop-files to cover full screen
         h('div', {
+            uri: path, // used by UI tests
             className: 'list-wrapper ' + (tile_size ? 'tiles-mode' : 'list-mode'),
             style: { '--tile-size': tile_size },
         },
@@ -288,7 +290,7 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const { uri, isFolder, name, n } = entry
     const { showFilter, selected, file_menu_on_link } = useSnapState()
     const isLink = Boolean(entry.url)
-    const containerName = n.slice(0, -name.length - (isFolder ? 1 : 0)).replaceAll('/', '/ ')
+    const containerName = n.slice(0, -name.length).replaceAll('/', '/ ')
     let className = isFolder ? 'folder' : 'file'
     if (entry.cantOpen)
         className += ' cant-open'
@@ -300,16 +302,17 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
     const showingButton = !file_menu_on_link || isFolder && !hasHover
     const ariaId = useId()
     const ariaProps = { id: ariaId, 'aria-label': prefix(name + ', ', isFolder ? t`Folder` : entry.web ? t`Web page` : isLink ? t`Link` : '') }
+    const dragProps = dragFilesSource(entry)
     return h(CustomCode, {
         name: 'entry',
         entry,
-        render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null
+        render: x => x ? h('li', { className, label: separator }, x) : _.remove(state.list, { n }) && null // custom-code wants us to skip this entry
     }, showFilter && h(Checkbox, {
             disabled: !entry.canSelect(),
             'aria-labelledby': ariaId,
             value: selected[uri] || false,
             onChange(v) {
-                if (hfsEvent('entryToggleSelection', { entry }).isDefaultPrevent()) return
+                if (hfsEvent('entryToggleSelection', { entry }).isDefaultPrevented()) return
                 if (v)
                     return state.selected[uri] = true
                 delete state.selected[uri]
@@ -318,21 +321,27 @@ const Entry = ({ entry, midnight, separator }: EntryProps) => {
         h('span', { className: 'link-wrapper' }, // container to handle mouse over for both children
             // we treat webpages as folders, with menu to comment
             isFolder ? h(Fragment, {}, // internal navigation, use Link component
-                h(Link, { to: uri, reloadDocument: entry.web, onClick, ...ariaProps }, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                h(Link, {
+                    to: uri,
+                    onClick,
+                    reloadDocument: entry.web, // without reloadDocument, once you enter the web page, the back button won't bring you back to the frontend
+                    ...dragProps,
+                    ...ariaProps,
+                },
                     ico, h('span', { className: 'container-folder' }, containerName), name), // don't use name, as we want to include whole path in case of search
                 // popup button is here to be able to detect link-wrapper:hover
                 file_menu_on_link && !showingButton && h('button', {
                     className: 'popup-menu-button',
                     onClick: fileMenu
                 }, hIcon('menu'), t`Menu`)
-            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps },
+            ) : h('a', { href: uri, onClick, target: entry.target, ...ariaProps, ...dragProps },
                 ico, h('span', { className: 'container-folder' }, containerName), name ),
         ),
         h(CustomCode, { name: 'afterEntryName', entry }),
         entry.comment && h('div', { className: 'entry-comment' }, entry.comment),
         h('div', { className: 'entry-panel' },
             h(EntryDetails, { entry, midnight }),
-            showingButton && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
+            showingButton && !isLink && iconBtn('menu', fileMenu, { className: 'file-menu-button' }),
         ),
         h('div'),
     )
@@ -359,7 +368,7 @@ export function getEntryIcon(entry: DirEntry) {
 
 export const EntryDetails = memo(({ entry, midnight }: { entry: DirEntry, midnight: Date }) => {
     const { sort_by } = useSnapState()
-    const time = sort_by === 'creation' ? entry.c : entry.t
+    const time = sort_by === 'creation' ? entry.c : entry.m
     const today = time && time > midnight
     const shortTs = useWindowSize().width < 800
     const {t} = useI18N()

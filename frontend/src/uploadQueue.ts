@@ -226,7 +226,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         if (uploadState.errors.push(toUpload)) return
         const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
         closeLastDialog?.()
-        closeLastDialog = alertDialog(msg, 'error').close
+        closeLastDialog = alertDialog(msg, 'error')?.close
     }
 
     function next() {
@@ -320,7 +320,7 @@ async function calcHash(file: File, limit=Infinity) {
             const res = await reader.read()
             if (res.done) break
             const chunk = res.value.slice(0, left)
-            hash.update(chunk)
+            hash.update(chunk.buffer)
             left -= chunk.length
             updateUI()
             await wait(1) // cooperative: without this, the browser may freeze
@@ -348,7 +348,7 @@ async function calcHash(file: File, limit=Infinity) {
         //if (BigInt !== Number && BigInt) return (await (await import('xxhash-wasm')).default()).create64() // at 32bit, a 9% difference is not worth having 2 libs, but 64bit is terrible without wasm
         const ret = (await import('xxhashjs')).h32()
         const original = ret.update
-        ret.update = (x: Uint8Array) => original.call(ret, x.buffer) // xxhashjs only works with ArrayBuffer, not UInt8Array
+        ret.update = (x: Buffer) => original.call(ret, x) // xxhashjs only works with ArrayBuffer, not UInt8Array
         return ret
     }
 }

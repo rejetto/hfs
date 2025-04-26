@@ -18,15 +18,19 @@ const FN = 'file-attr.kv'
 if (existsSync(FN))
     fileAttrDb.open(FN)
 const FILE_ATTR_PREFIX = 'user.hfs.' // user. prefix to be linux compatible
+
+/* @param v must be JSON-able or undefined */
 export async function storeFileAttr(path: string, k: string, v: any) {
-    const s = await stat(path)
-    if (await fsx?.set(path, FILE_ATTR_PREFIX + k, JSON.stringify(v)).then(() => 1, () => 0)) {
-        if (IS_WINDOWS) utimes(path, s.atime, s.mtime) // restore timestamps, necessary only on Windows
+    const s = await stat(path).catch(() => null)
+    // since we don't have fsx.remove, we simulate it with an empty string
+    if (await fsx?.set(path, FILE_ATTR_PREFIX + k, v === undefined ? '' : JSON.stringify(v)).then(() => 1, () => 0)) {
+        if (s && IS_WINDOWS) utimes(path, s.atime, s.mtime) // restore timestamps, necessary only on Windows
         return true
     }
     // fallback to our kv-storage
     if (!fileAttrDb.isOpen())
-        await fileAttrDb.open(FN)
+        if (!s && !v) return // file was probably deleted, and we were asked to remove a possible attribute, but there's no fileAttrDb, so we are done, don't create the db file for nothing
+        else await fileAttrDb.open(FN)
     // pipe should be a safe separator
     return await fileAttrDb.put(`${path}|${k}`, v)?.catch((e: any) => {
         console.error("couldn't store metadata on", path, String(e.message || e))
@@ -36,8 +40,8 @@ export async function storeFileAttr(path: string, k: string, v: any) {
 
 export async function loadFileAttr(path: string, k: string) {
     return await fsx?.get(path, FILE_ATTR_PREFIX + k)
-            .then((x: any) => x && tryJson(String(x)), () => {})
-            .then((x: any) => x ?? (fileAttrDb.isOpen() ? fileAttrDb.get(`${path}|${k}`) : null))
+            .then((x: any) => x === '' ? undefined : tryJson(String(x)),
+                () => fileAttrDb.isOpen() ? fileAttrDb.get(`${path}|${k}`) : null)
         ?? undefined // normalize, as we get null instead of undefined on windows
 }
 

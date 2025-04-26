@@ -1,3 +1,5 @@
+import test, { describe, before, after } from 'node:test';
+import { promisify } from 'util'
 import { srpClientSequence } from '../src/srp'
 import { createReadStream, statSync } from 'fs'
 import { basename, dirname, resolve } from 'path'
@@ -25,7 +27,7 @@ const UPLOAD_ROOT = '/for-admins/upload/'
 const UPLOAD_RELATIVE = 'temp/gpl.png'
 const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
 const BIG_CONTENT = _.repeat(randomId(10), 200_000) // 2MB, big enough to saturate buffers
-const throttle = BIG_CONTENT.length /1000 /0.5 // KB, finish in 0.5s, quick but still overlapping downloads
+const throttle = BIG_CONTENT.length /1000 /0.8 // KB, finish in 0.8s, quick but still overlapping downloads
 const SAMPLE_FILE_PATH = resolve(__dirname, 'page/gpl.png')
 let defaultBaseUrl = BASE_URL
 
@@ -45,159 +47,155 @@ function makeReadableThatTakes(ms: number) {
 
 describe('basics', () => {
     //before(async () => appStarted)
-    it('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
-    it('force slash', req('/f1', 302, { noRedirect: true }))
-    it('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
-    it('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
-    it('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
-    it('download.mime', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
-    it('download.partial', req('/f1/f2/alfa.txt', /a[^d]+$/, { // only "abc" is expected
+    test('frontend', req('/', /<body>/, { headers: { accept: '*/*' } })) // workaround: 'accept' is necessary when running server-for-test-dev, still don't know why
+    test('force slash', req('/f1', 302, { noRedirect: true }))
+    test('list', reqList('/f1/', { inList:['f2/', 'page/'] }))
+    test('search', reqList('f1', { inList:['f2/'], outList:['page'] }, { search:'2' }))
+    test('search root', reqList('/', { inList:['cantListPage/'], outList:['cantListPage/page/'] }, { search:'page' }))
+    test('download.mime', req('/f1/f2/alfa.txt', { re:/abcd/, mime:'text/plain' }))
+    test('download.partial', req('/f1/f2/alfa.txt', /a[^d]+$/, { // only "abc" is expected
         headers: { Range: 'bytes=0-2' }
     }))
-    it('bad range', req('/f1/f2/alfa.txt', 416, {
+    test('bad range', req('/f1/f2/alfa.txt', 416, {
         headers: { Range: 'bytes=7-' }
     }))
-    it('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL.replace('localhost', '127.0.0.1') })) // host 127.0.0.1 is rooted in /f1
-    it('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
-    it('traversal', req('/f1/page/.%2e/.%2e/README.md', 418))
-    it('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
-    it('name encoding', req('/x%25%23x', 200))
+    test('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL.replace('localhost', '127.0.0.1') })) // host 127.0.0.1 is rooted in /f1
+    test('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
+    test('traversal', req('/f1/page/.%2e/.%2e/README.md', 418))
+    test('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
+    test('name encoding', req('/x%25%23x', 200))
 
-    it('missing perm', reqList('/for-admins/', 401))
-    it('missing perm.file', req('/for-admins/alfa.txt', 401))
+    test('missing perm', reqList('/for-admins/', 401))
+    test('missing perm.file', req('/for-admins/alfa.txt', 401))
 
-    it('forbidden list', req('/cantListPage/page/', 403))
-    it('forbidden list.api', reqList('/cantListPage/page/', 403))
-    it('forbidden list.cant see', reqList('/cantListPage/', { outList:['page/'] }))
-    it('forbidden list.but readable file', req('/cantListPage/page/gpl.png', 200))
-    it('forbidden list.alternative method', reqList('/cantListPageAlt/page/', 403))
-    it('forbidden list.match **', req('/cantListPageAlt/page/gpl.png', 401))
+    test('forbidden list', req('/cantListPage/page/', 403))
+    test('forbidden list.api', reqList('/cantListPage/page/', 403))
+    test('forbidden list.cant see', reqList('/cantListPage/', { outList:['page/'] }))
+    test('forbidden list.but readable file', req('/cantListPage/page/gpl.png', 200))
+    test('forbidden list.alternative method', reqList('/cantListPageAlt/page/', 403))
+    test('forbidden list.match **', req('/cantListPageAlt/page/gpl.png', 401))
 
-    it('cantListBut', reqList('/cantListBut/', 403))
-    it('cantListBut.zip', req('/cantListBut/?get=zip', 403))
-    it('cantListBut.parent', reqList('/', { permInList: { 'cantListBut/': 'l' } }))
-    it('cantListBut.child masked', reqList('/cantListBut/page', 200))
-    it('cantSearchForMasks', reqList('/', { outList: ['cantSearchForMasks/page/gpl.png'] }, { search: 'gpl' }))
-    it('cantReadBut', reqList('/cantReadBut/', 403))
-    it('cantReadBut.can', req('/cantReadBut/alfa.txt', 200))
-    it('cantReadBut.parent', reqList('/', { permInList: { 'cantReadBut/': '!r' } }))
-    it('cantReadButChild', req('/cantReadButChild/alfa.txt', 401))
-    it('cantReadButChild.parent', reqList('/', { permInList: { 'cantReadButChild/': 'R' } }))
+    test('cantListBut', reqList('/cantListBut/', 403))
+    test('cantListBut.zip', req('/cantListBut/?get=zip', 403))
+    test('cantListBut.parent', reqList('/', { permInList: { 'cantListBut/': 'l' } }))
+    test('cantListBut.child masked', reqList('/cantListBut/page', 200))
+    test('cantSearchForMasks', reqList('/', { outList: ['cantSearchForMasks/page/gpl.png'] }, { search: 'gpl' }))
+    test('cantReadBut', reqList('/cantReadBut/', 403))
+    test('cantReadBut.can', req('/cantReadBut/alfa.txt', 200))
+    test('cantReadBut.parent', reqList('/', { permInList: { 'cantReadBut/': '!r' } }))
+    test('cantReadButChild', req('/cantReadButChild/alfa.txt', 401))
+    test('cantReadButChild.parent', reqList('/', { permInList: { 'cantReadButChild/': 'R' } }))
 
-    it('cantReadPage', reqList('/cantReadPage/page', 403))
-    it('cantReadPage.zip', req('/cantReadPage/page/?get=zip', 403, { method:'HEAD' }))
-    it('cantReadPage.file', req('/cantReadPage/page/gpl.png', 403))
-    it('cantReadPage.parent', reqList('/cantReadPage', { permInList: { 'page/': 'lr' } }))
-    it('cantReadRealFolder', reqList('/cantReadRealFolder', 403))
-    it('cantReadRealFolder.file', req('/cantReadRealFolder/page/gpl.png', 403))
+    test('cantReadPage', reqList('/cantReadPage/page', 403))
+    test('cantReadPage.zip', req('/cantReadPage/page/?get=zip', 403, { method:'HEAD' }))
+    test('cantReadPage.file', req('/cantReadPage/page/gpl.png', 403))
+    test('cantReadPage.parent', reqList('/cantReadPage', { permInList: { 'page/': 'lr' } }))
+    test('cantReadRealFolder', reqList('/cantReadRealFolder', 403))
+    test('cantReadRealFolder.file', req('/cantReadRealFolder/page/gpl.png', 403))
 
-    it('renameChild', reqList('/renameChild/tests', { inList:['renamed1'] }))
-    it('renameChild.get', req('/renameChild/tests/renamed1', /abc/))
-    it('renameChild.deeper', reqList('/renameChild/tests/page', { inList:['renamed2'] }))
-    it('renameChild.get deeper', req('/renameChild/tests/page/renamed2', /PNG/))
+    test('renameChild', reqList('/renameChild/tests', { inList:['renamed1'] }))
+    test('renameChild.get', req('/renameChild/tests/renamed1', /abc/))
+    test('renameChild.deeper', reqList('/renameChild/tests/page', { inList:['renamed2'] }))
+    test('renameChild.get deeper', req('/renameChild/tests/page/renamed2', /PNG/))
 
-    it('cantSeeThis', reqList('/', { outList:['cantSeeThis/'] }))
-    it('cantSeeThis.children', reqList('/cantSeeThis', { outList:['hi/'] }))
-    it('cantSeeThisButChildren', reqList('/', { outList:['cantSeeThisButChildren/'] }))
-    it('cantSeeThisButChildren.children', reqList('/cantSeeThisButChildren', { inList:['hi/'] }))
-    it('cantZipFolder', req('/cantSeeThisButChildren/?get=zip', 403))
-    it('cantZipFolder.butChildren', req('/cantSeeThisButChildren/hi/?get=zip', 200))
-    it('cantSeeThisButChildrenMasks', reqList('/', { outList:['cantSeeThisButChildrenMasks/'] }))
-    it('cantSeeThisButChildrenMasks.children', reqList('/cantSeeThisButChildrenMasks', { inList:['hi/'] }))
+    test('cantSeeThis', reqList('/', { outList:['cantSeeThis/'] }))
+    test('cantSeeThis.children', reqList('/cantSeeThis', { outList:['hi/'] }))
+    test('cantSeeThisButChildren', reqList('/', { outList:['cantSeeThisButChildren/'] }))
+    test('cantSeeThisButChildren.children', reqList('/cantSeeThisButChildren', { inList:['hi/'] }))
+    test('cantZipFolder', req('/cantSeeThisButChildren/?get=zip', 403))
+    test('cantZipFolder.butChildren', req('/cantSeeThisButChildren/hi/?get=zip', 200))
+    test('cantSeeThisButChildrenMasks', reqList('/', { outList:['cantSeeThisButChildrenMasks/'] }))
+    test('cantSeeThisButChildrenMasks.children', reqList('/cantSeeThisButChildrenMasks', { inList:['hi/'] }))
 
-    it('masks.only', reqList('/cantSeeThisButChildren/hi', { inList:['page/'] }))
-    it('masks.only.fromDisk', reqList('/cantSeeThisButChildren/hi/page', 403))
-    it('masks.only.fromDisk.file', req('/cantSeeThisButChildren/hi/page/gpl.png', 403))
+    test('masks.only', reqList('/cantSeeThisButChildren/hi', { inList:['page/'] }))
+    test('masks.only.fromDisk', reqList('/cantSeeThisButChildren/hi/page', 403))
+    test('masks.only.fromDisk.file', req('/cantSeeThisButChildren/hi/page/gpl.png', 403))
 
-    it('protectFromAbove', req('/protectFromAbove/child/alfa.txt', 403))
-    it('protectFromAbove.list', reqList('/protectFromAbove/child/', { inList:['alfa.txt'] }))
+    test('protectFromAbove', req('/protectFromAbove/child/alfa.txt', 403))
+    test('protectFromAbove.list', reqList('/protectFromAbove/child/', { inList:['alfa.txt'] }))
+    test('inheritNegativeMask', reqList('/tests/page', { outList: ['index.html'] }))
 
     const zipSize = 13010
     const zipOfs = 0x1359
-    it('zip.head', req('/f1/?get=zip', { empty:true, length:zipSize }, { method:'HEAD' }) )
-    it('zip.partial', req('/f1/?get=zip', { re:/^C3$/, length: 2 }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+1}` } }) )
-    it('zip.partial.resume', req('/f1/?get=zip', { re:/^C3/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
-    it('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
-    it('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt//renamed', { empty: true, length:118 }, { method:'HEAD' }))
-    it('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 120 }, { method:'HEAD' }))
+    test('zip.head', req('/f1/?get=zip', { empty:true, length:zipSize }, { method:'HEAD' }) )
+    test('zip.partial', req('/f1/?get=zip', { re:/^C3$/, length: 2 }, { headers: { Range: `bytes=${zipOfs}-${zipOfs+1}` } }) )
+    test('zip.partial.resume', req('/f1/?get=zip', { re:/^C3/, length:zipSize-zipOfs }, { headers: { Range: `bytes=${zipOfs}-` } }) )
+    test('zip.partial.end', req('/f1/f2/?get=zip', { re:/^6/, length:10 }, { headers: { Range: 'bytes=-10' } }) )
+    test('zip.alfa is forbidden', req('/protectFromAbove/child/?get=zip&list=alfa.txt//renamed', { empty: true, length:118 }, { method:'HEAD' }))
+    test('zip.cantReadPage', req('/cantReadPage/?get=zip', { length: 4800 }, { method:'HEAD' }))
 
-    it('referer', req('/f1/page/gpl.png', 403, {
+    test('referer', req('/f1/page/gpl.png', 403, {
         headers: { Referer: 'https://some-website.com/try-to-trick/x.com/' }
     }))
 
-    it('upload.need account', reqUpload( UPLOAD_DEST, 401))
-    it('upload.post', done => { // this is also testing basic-auth
-        const cmd = `curl -u ${username}:${password} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`;
-        exec(cmd, (err, out) => {
-            if (err) return done(err)
-            const fn = resolve(__dirname, basename(decodeURI(tryJson(out)?.uris?.[0])))
-            if (!fn) return done("unexpected output " + out)
-            try {
-                const stats = statSync(fn)
-                rm(fn).catch(() => {}) // clear
-                done(stats?.size !== statSync(SAMPLE_FILE_PATH).size && "unexpected size for " + fn)
-            }
-            catch (e) { done(e) }
-        })
-    })
-    it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
-    it('delete.no perm', reqApi('delete', { uri: '/for-admins/' }, 405))
-    it('delete.need account', reqApi('delete', { uri: UPLOAD_ROOT }, 401))
-    it('delete.need account.method', req(UPLOAD_ROOT, 401, { method: 'DELETE' }))
-    it('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
-    it('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => 0))
-    it('allow_net.canLogin', () => login('rejetto')) // localhost is normally resolved as ::1
-    it('allow_net.cantLogin', () => {
+    test('upload.need account', reqUpload( UPLOAD_DEST, 401))
+    test('upload.post', () => // this is also testing basic-auth
+        promisify(exec)(`curl -u ${username}:${password} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`).then(x => {
+            const fn = resolve(__dirname, basename(decodeURI(tryJson(x.stdout)?.uris?.[0])))
+            if (!fn) throw "unexpected output " + (x.stdout || x.stderr)
+            const stats = statSync(fn)
+            rm(fn).catch(() => {}) // clear
+            if (stats?.size !== statSync(SAMPLE_FILE_PATH).size)
+                throw "unexpected size for " + fn
+        }))
+    test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
+    test('delete.no perm', req('/for-admins/', 405, { method: 'delete' }))
+    test('delete.need account', req(UPLOAD_ROOT, 401, { method: 'delete'}))
+    test('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
+    test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => {}))
+    test('allow_net.canLogin', () => login('rejetto')) // localhost is normally resolved as ::1
+    test('allow_net.cantLogin', () => {
         defaultBaseUrl = BASE_URL.replace('localhost', '127.0.0.1')
-        return login('rejetto').then(() => { throw Error('logged in') }, () => 0)
+        return login('rejetto').then(() => { throw Error('logged in') }, () => {})
             .finally(() => defaultBaseUrl = BASE_URL)
     })
 
-    it('folder size', reqApi('get_folder_size', { uri: 'f1/page' }, res => res.bytes === 6328 ))
-    it('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
+    test('folder size', reqApi('get_folder_size', { uri: 'f1/page' }, res => res.bytes === 6328 ))
+    test('folder size.cant', reqApi('get_folder_size', { uri: 'for-admins' }, 401))
 
-    it('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
-    it('url login', done =>
-        exec(`curl -v "${BASE_URL}/for-admins/?login=${username}:${password}"`, (err, out) =>
-            done(err || (out?.includes('Redirect') ? null : "failed")) ) )
+    test('get_accounts', reqApi('get_accounts', {}, 401)) // admin api requires login
+    test('url login', () => promisify(exec)(`curl -v "${BASE_URL}/for-admins/?login=${username}:${password}"`).then(x => {
+        if (!x.stdout?.includes('Redirect'))
+            throw x.stderr || "failed"
+    }))
 })
 
 // do this before login, or max_dl_accounts config will override max_dl
 describe('limits', () => {
     const fn = ROOT + 'big'
     before(() => writeFile(fn, BIG_CONTENT))
-    it('max_dl', () => testMaxDl('/' + fn, 1, 2))
+    test('max_dl', () => testMaxDl('/' + fn, 1, 2))
     after(() => rm(fn))
 })
 
 describe('accounts', () => {
     before(() => login(username))
-    it('get_accounts', reqApi('get_accounts', {}, ({ list }) => _.find(list, { username }) && _.find(list, { username: 'admins' })))
+    test('get_accounts', reqApi('get_accounts', {}, ({ list }) => _.find(list, { username }) && _.find(list, { username: 'admins' })))
     const add = 'test-Add'
-    it('accounts.add', reqApi('add_account', { username: add }, res => res?.username === add.toLowerCase()))
-    it('accounts.remove', reqApi('del_account', { username: add }, 200))
+    test('accounts.add', reqApi('add_account', { username: add, overwrite: true }, res => res?.username === add.toLowerCase()))
+    test('accounts.remove', reqApi('del_account', { username: add }, 200))
 })
 
 describe('after-login', () => {
     before(() => login(username))
-    it('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 200))
-    it('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
-    it('inherit.disabled', reqList('/for-disabled/', 401))
-    it('upload.never', reqUpload('/random', 403))
-    it('upload.ok', reqUpload(UPLOAD_DEST, 200))
-    it('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 418))
-    it('upload.overlap', async () => {
+    test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 200))
+    test('inherit.perm', reqList('/for-admins/', { inList:['alfa.txt'] }))
+    test('inherit.disabled', reqList('/for-disabled/', 401))
+    test('upload.never', reqUpload('/random', 403))
+    test('upload.ok', reqUpload(UPLOAD_DEST, 200))
+    test('upload.crossing', reqUpload(UPLOAD_DEST.replace('temp', '../..'), 418))
+    test('upload.overlap', async () => {
         const ms = 300
         const first = reqUpload(UPLOAD_DEST, 200, makeReadableThatTakes(ms))()
         await wait(ms/3)
         await reqUpload(UPLOAD_DEST, 409)() // should conflict
         await first
     })
-    it('upload.concurrent', () => Promise.all([
+    test('upload.concurrent', { timeout: 5000 }, () => Promise.all([
         reqUpload(UPLOAD_DEST, 200, new StringRepeaterStream(BIG_CONTENT, 150))(), // 300MB
         ..._.range(3).map(i =>  reqUpload(UPLOAD_DEST + i, 200, new StringRepeaterStream(BIG_CONTENT, 50))()) // 3 x 100MB
-    ])).timeout(5000)
-    it('upload.interrupted', async () => {
+    ]).then(() => {}))
+    test('upload.interrupted', async () => {
         const fn = resolve(__dirname, UPLOAD_RELATIVE.replace('/', '/hfs$upload-'))
         await rm(fn, {force: true})
         const neededTime = 300
@@ -205,6 +203,7 @@ describe('after-login', () => {
             const r = reqUpload(UPLOAD_DEST, 0, makeReadableThatTakes(neededTime))()
             setTimeout(r.abort, afterMs)
             return r.catch(() => {}) // wait for it to fail
+                .then(() => wait(1)) // aborted requests don't guarantee that the server has finished and released the file, so we wait some arbitrary time
         }
         const timeFirstRequest = neededTime * .5 // not enough to finish
         await makeAbortedRequest(timeFirstRequest)
@@ -229,21 +228,14 @@ describe('after-login', () => {
         await reqUpload(UPLOAD_DEST, 200, Readable.from(BIG_CONTENT.slice(partial)), BIG_CONTENT.length, partial)()
     })
     const renameTo = 'z'
-    it('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
-    it('delete.miss renamed', reqApi('delete', { uri: UPLOAD_DEST }, 404))
-    it('delete.ok', reqApi('delete', { uri: dirname(UPLOAD_DEST) + '/' + renameTo }, 200))
-    it('reupload', reqUpload(UPLOAD_DEST, 200))
-    it('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
-    it('delete.miss deleted', reqApi('delete', { uri: UPLOAD_DEST }, 404))
-    it('upload.too much', async () => {
-        const fn = 'temp/tooMuch'
-        const wrongSize = BIG_CONTENT.length / 2
-        await reqUpload(UPLOAD_ROOT + fn, 200, BIG_CONTENT, wrongSize)()
-        const { size } = statSync(ROOT + fn)
-        if (size !== wrongSize)
-            throw Error(`wrote ${size}`)
-    })
-    it('max_dl.account', async () => {
+    test('rename.ok', reqApi('rename', { uri: UPLOAD_DEST, dest: renameTo }, 200))
+    test('delete.miss renamed', req(UPLOAD_DEST, 404, { method: 'delete' }))
+    test('delete.ok', req(dirname(UPLOAD_DEST) + '/' + renameTo, 200, { method: 'delete' }))
+    test('reupload', reqUpload(UPLOAD_DEST, 200))
+    test('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
+    test('delete.miss deleted', req(UPLOAD_DEST, 404, { method: 'delete' }))
+    test('upload.too much', reqUpload(UPLOAD_ROOT + 'temp/tooMuch', 400, BIG_CONTENT, BIG_CONTENT.length / 2)) // 400 is caused by nodejs itself, intercepting the mismatch
+    test('max_dl.account', async () => {
         const uri = UPLOAD_ROOT + 'temp/big'
         await reqUpload(uri, 200, BIG_CONTENT)()
         await testMaxDl(uri, 2, 1)
@@ -281,17 +273,23 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
 }
 
 async function testMaxDl(uri: string, good: number, bad: number) {
-    let i = 0
-    const reqs = []
-    while (good--)
-        reqs.push( req(uri + '?' + (++i), 200, { throttle })() )
-    await wait(10) // ensure it the slots are taken
-    while (bad--)
-        reqs.push( req(uri + '?' + (++i), 429, { throttle })() )
-    await Promise.all(reqs)
+    // make good+bad requests, and check results
+    await Promise.all(_.range(good + bad).map(i => req(uri + '?' + i, (_data, res) => {
+        if (res.statusCode === 429) {
+            if (!bad--)
+                throw "too many refused"
+            return
+        }
+        if (res.statusCode === 200) {
+            if (!good--)
+                throw "too many accepted"
+            return
+        }
+        throw "unexpected status " + res.statusCode
+    }, { throttle })() )) // slow down to ensure the attempted downloads are all concurrent
 }
 
-type TesterFunction = ((data: any, fullResponse: any) => boolean)
+type TesterFunction = ((data: any, fullResponse: any) => boolean | void)
 type Tester = number
     | TesterFunction
     | RegExp
@@ -328,7 +326,9 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
         const data = await stream2string(stream)
         const obj = tryJson(data)
         if (typeof test === 'object') {
-            const { status, mime, re, inList, outList, length, permInList } = test
+            let { status, mime, re, inList, outList, length, permInList } = test
+            if (inList || outList)
+                status ||= 200
             const gotMime = res.headers?.['content-type']
             const gotStatus = res.statusCode
             const gotLength = res.headers?.['content-length']
@@ -351,7 +351,7 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
                 throw Error(err)
         }
         if (typeof test === 'function')
-            if (!test(obj ?? data, res))
+            if (test(obj ?? data, res) === false)
                 throw Error("failed test: " + test)
         return obj ?? data
     }

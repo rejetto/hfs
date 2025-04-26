@@ -3,15 +3,37 @@
 import { Account, accountCanLogin, changeSrpHelper, expandUsername, getAccount, getFromAccount } from './perm'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
-import { ADMIN_URI, HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
+import {
+    ADMIN_URI,
+    HTTP_UNAUTHORIZED, HTTP_BAD_REQUEST, HTTP_SERVER_ERROR, HTTP_CONFLICT, HTTP_NOT_FOUND, HTTP_METHOD_NOT_ALLOWED
+} from './const'
 import { ctxAdminAccess } from './adminApis'
 import { failAllowNet, sessionDuration } from './middlewares'
-import { getCurrentUsername, setLoggedIn, srpServerStep1 } from './auth'
+import { clearTextLogin, getCurrentUsername, setLoggedIn, srpServerStep1 } from './auth'
 import { defineConfig } from './config'
 import events from './events'
 
 const ongoingLogins:Record<string,SRPServerSessionStep1> = {} // store data that doesn't fit session object
 const keepSessionAlive = defineConfig('keep_session_alive', true)
+
+export const login: ApiHandler = async ({ username, password }, ctx) => {
+    if (!username)
+        return new ApiError(HTTP_BAD_REQUEST)
+    if (!ctx.session)
+        return new ApiError(HTTP_SERVER_ERROR)
+    try {
+        const account = await clearTextLogin(ctx, username, password, 'api')
+        if (!account)
+            return new ApiError(HTTP_UNAUTHORIZED)
+    }
+    catch (e) {
+        return new ApiError(HTTP_UNAUTHORIZED, String(e))
+    }
+    return {
+        redirect: ctx.state.account?.redirect,
+        ...await refresh_session({},ctx)
+    }
+}
 
 export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     if (!username)
@@ -19,6 +41,8 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     const account = getAccount(username)
     if (!ctx.session)
         return new ApiError(HTTP_SERVER_ERROR)
+    if (account?.plugin?.auth) // tell client to do clear-text login, before firing attemptingLogin, before triggering anti-brute
+        return new ApiError(HTTP_METHOD_NOT_ALLOWED)
     if ((await events.emitAsync('attemptingLogin', { ctx, username }))?.isDefaultPrevented()) return
     if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
         ctx.logExtra({ u: username })
@@ -52,6 +76,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         return new ApiError(HTTP_NOT_FOUND)
     try {
         const M2 = await step1.step2(BigInt(pubKey), BigInt(proof))
+            .catch(() => { throw '' })
         await setLoggedIn(ctx, username)
         return {
             proof: String(M2),
@@ -63,7 +88,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
         ctx.logExtra({ u: username })
         ctx.state.dontLog = false // log even if log_api is false
         events.emit('failedLogin', ctx, { username })
-        return new ApiError(HTTP_UNAUTHORIZED, String(e))
+        return new ApiError(HTTP_UNAUTHORIZED, e ? String(e) : undefined)
     }
     finally {
         delete ongoingLogins[sid]

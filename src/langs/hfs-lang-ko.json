@@ -139,7 +139,7 @@
         "Upload not available": "업로드할 수 없습니다.",
         "Cut": "잘라내기",
         "n_items": "{n} 항목",
-        "good_bad": "{good} 항목 이동됨, {bad} 항목 실패",
+        "move_results": "{good} 항목 이동됨, {bad} 항목 실패",
         "after_cut": "이제 선택한 항목이 클립보드에 있습니다.\n붙여넣으려면 대상 폴더로 이동하세요.",
         "Cancel clipboard": "클립보드 취소",
         "to_clipboard_source": "원본 폴더로 돌아가기",
@@ -184,6 +184,10 @@
         "creation": "생성일",
         "required_change_password": "비밀번호를 변경해야 합니다.",
         "Wildcards": "와일드카드",
-        "Considering resume": "업로드 재개 여부 확인 중"
+        "Considering resume": "업로드 재개 여부 확인 중",
+
+        "Yes": "영",
+        "No":  "안",
+        "esc_again": "ESC 두번 페스하기"
     }
 }

@@ -139,7 +139,7 @@
         "Upload not available": "Încărcarea nu este disponibilă",
         "Cut": "Decupează",
         "n_items": "{n,plural, one{# element} other{# elemente}}",
-        "good_bad": "{good} mutat, {bad} eșuat",
+        "move_results": "{good} mutat, {bad} eșuat",
         "after_cut": "Selecția ta este acum în clipboard.\nMergi în folderul destinație pentru a lipi.",
         "Cancel clipboard": "Anulează clipboard",
         "to_clipboard_source": "Înapoi la folderul sursă",
@@ -184,6 +184,10 @@
         "creation": "creare",
         "required_change_password": "Trebuie să-ți schimbi parola",
         "Wildcards": "Metacaractere",
-        "Considering resume": "Se încearcă reluarea"
+        "Considering resume": "Se încearcă reluarea",
+
+        "Yes": "Da",
+        "No":  "Nu",
+        "esc_again": "Apasa ESC de doua ori pentru a inchide"
     }
 }

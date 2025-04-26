@@ -2,23 +2,26 @@
 
 import { ApiError, ApiHandlers } from './apiMiddleware'
 import {
-    Account, accountCanLoginAdmin, accountHasPassword, accountsConfig, addAccount, delAccount, getAccount,
+    Account, accountCanLoginAdmin, accountHasPassword, accounts, addAccount, delAccount, getAccount,
     changeSrpHelper, updateAccount, accountCanLogin
 } from './perm'
 import _ from 'lodash'
 import { HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_NOT_FOUND } from './const'
 import { getCurrentUsername, invalidateSessionBefore } from './auth'
-import { apiAssertTypes, onlyTruthy, with_ } from './misc'
+import { apiAssertTypes, objFromKeys, onlyTruthy, with_ } from './misc'
+import { pickProps } from './api.vfs'
 
 function prepareAccount(ac: Account | undefined) {
     return ac && {
         ..._.omit(ac, ['password','hashed_password','srp']),
         username: ac.username, // omit won't copy it because it's a hidden prop
         hasPassword: accountHasPassword(ac),
+        isGroup: !ac.plugin?.auth && !accountHasPassword(ac),
         adminActualAccess: accountCanLoginAdmin(ac),
         canLogin: accountHasPassword(ac) ? accountCanLogin(ac) : undefined,
         invalidated: invalidateSessionBefore.get(ac.username),
-        members: with_(Object.values(accountsConfig.get()), accounts => {
+        directMembers: Object.values(accounts.get()).filter(a => a.belongs?.includes(ac.username)).map(x => x.username),
+        members: with_(Object.values(accounts.get()), accounts => {
             const ret = []
             let news = [ac.username]
             while (news.length) {
@@ -30,10 +33,13 @@ function prepareAccount(ac: Account | undefined) {
     }
 }
 
+const ALLOWED_KEYS: (keyof Account)[] = ['admin', 'allow_net', 'belongs', 'days_to_live', 'disable_password_change',
+    'disabled', 'expire', 'ignore_limits', 'notes', 'password', 'redirect', 'require_password_change', 'username']
+
 export default  {
 
     get_usernames() {
-        return { list: Object.keys(accountsConfig.get()) }
+        return { list: Object.keys(accounts.get()) }
     },
 
     get_account({ username }, ctx) {
@@ -42,11 +48,11 @@ export default  {
     },
 
     get_accounts() {
-        return { list: onlyTruthy(Object.values(accountsConfig.get()).map(prepareAccount)) }
+        return { list: onlyTruthy(Object.values(accounts.get()).map(prepareAccount)) }
     },
 
     get_admins() {
-        return { list: _.filter(accountsConfig.get(), accountCanLoginAdmin).map(ac => ac.username) }
+        return { list: _.filter(accounts.get(), accountCanLoginAdmin).map(ac => ac.username) }
     },
 
     async set_account({ username, changes }, ctx) {
@@ -54,7 +60,7 @@ export default  {
         const acc = getAccount(username)
         if (!acc)
             return new ApiError(HTTP_BAD_REQUEST)
-        await updateAccount(acc, changes)
+        await updateAccount(acc, pickProps(changes, ALLOWED_KEYS))
         if (changes.username && ctx.session?.username === username)
             ctx.session!.username = changes.username
         return _.pick(acc, 'username')
@@ -63,6 +69,7 @@ export default  {
     async add_account({ overwrite, username, ...rest }) {
         apiAssertTypes({ string: { username } })
         const existing = getAccount(username)
+        rest = pickProps(rest, ALLOWED_KEYS)
         if (existing) {
             if (!overwrite) return new ApiError(HTTP_CONFLICT)
             await updateAccount(existing, rest)
@@ -73,8 +80,12 @@ export default  {
     },
 
     del_account({ username }) {
-        apiAssertTypes({ string: { username } })
-        return delAccount(username) ? {} : new ApiError(HTTP_BAD_REQUEST)
+        apiAssertTypes({ string_array: { username } })
+        if (Array.isArray(username)) {
+            const errors = objFromKeys(username, u => delAccount(u) ? undefined : HTTP_NOT_FOUND)
+            return _.isEmpty(errors) ? {} : { errors }
+        }
+        return delAccount(username) ? {} : new ApiError(HTTP_NOT_FOUND)
     },
 
     invalidate_sessions({ username }) {

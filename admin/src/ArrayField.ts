@@ -1,27 +1,46 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { createElement as h, Fragment, useMemo, useState } from 'react'
-import { Dict, isOrderedEqual, setHidden, swap } from './misc'
+import { callable, DialogOptions, Dict, Functionable, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
-import { formDialog } from './dialog'
+import { FormDialog, formDialog } from './dialog'
 import { GridActionsCellItem, GridAlignment, GridColDef } from '@mui/x-data-grid'
 import { BoolField, FieldDescriptor, FieldProps, labelFromKey } from '@hfs/mui-grid-form'
 import { Box, FormHelperText, FormLabel } from '@mui/material'
 import { DateTimeField } from './DateTimeField'
 import _ from 'lodash'
 import { Center, Flex, IconBtn, useBreakpoint } from './mui'
-import { DataTable } from './DataTable'
+import { DataTable, DataTableColumn } from './DataTable'
 
-type ArrayFieldProps<T> = FieldProps<T[]> & { fields: FieldDescriptor[], height?: number, reorder?: boolean, prepend?: boolean, autoRowHeight?: boolean }
-export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight, ...rest }: ArrayFieldProps<T>) {
+type ArrayFieldProps<T> = FieldProps<T[]> & {
+    fields: Functionable<FieldDescriptor[] & {
+        $width?: number,
+        $column?: Partial<DataTableColumn>,
+        $type?: string
+        $hideUnder?: DataTableColumn['hideUnder'],
+        showIf: (values: any) => unknown, // truthy
+        $render?: GridColDef['renderCell'],
+        $mergeRender: DataTableColumn['mergeRender'],
+    }>,
+    height?: number,
+    reorder?: boolean,
+    prepend?: boolean,
+    autoRowHeight?: boolean,
+    form?: Partial<FormDialog<any>>,
+    dialog?: Partial<DialogOptions>,
+    details?: boolean
+}
+export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight, dialog, form, details, ...rest }: ArrayFieldProps<T>) {
     if (!Array.isArray(value)) // avoid crash if non-array values are passed, especially developing plugins
         value = []
     const rows = useMemo(() => value!.map((x,$idx) =>
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(value)]) //eslint-disable-line
-    const form = {
-        fields: fields.map(({ $width, $column, $type, $hideUnder, ...rest }) => _.defaults(rest, byType[$type]?.field))
-    }
+    const formProp = (values: any) => ({
+        fields: callable(fields, values).map(({ $width, $column, $type, $hideUnder, showIf, $render, $mergeRender, ...rest }) =>
+            (!showIf || showIf(values)) && _.defaults(rest, byType[$type]?.field)),
+        ...form,
+    })
     setApi?.({ isEqual: isOrderedEqual }) // don't rely on stringify, as it wouldn't work with non-json values
     const [undo, setUndo] = useState<typeof value>()
     return h(Fragment, {},
@@ -32,6 +51,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
         h(Box, { ...rest },
             h(DataTable, {
                 rows,
+                details,
                 ...autoRowHeight && { getRowHeight: () => 'auto' as const },
                 ...!useBreakpoint('sm') && { compact: true },
                 sx: {
@@ -50,20 +70,21 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                     }
                 },
                 columns: [
-                    ...fields.map(f => {
+                    ...callable(fields, false).map(f => {
                         const def = byType[f.$type]?.column
-                        return {
+                        return _.defaults({
                             field: f.k,
                             headerName: f.headerName ?? (typeof f.label === 'string' ? f.label : labelFromKey(f.k)),
                             disableColumnMenu: true,
                             valueGetter({ value }: any) {
                                 return (f.toField || _.identity)(value)
                             },
-                            ...def,
                             ...f.$width ? { [f.$width >= 8 ? 'width' : 'flex']: f.$width } : (!def?.width && !def?.flex && { flex: 1 }),
+                            renderCell: f.$render,
+                            mergeRender: f.$mergeRender,
                             hideUnder: f.$hideUnder,
                             ...f.$column,
-                        }
+                        }, def)
                     }),
                     {
                         field: '',
@@ -78,7 +99,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     title,
                                     size: 'small',
                                     onClick: ev =>
-                                        formDialog<T>({ form, title, values: valuesForAdd }).then(x => {
+                                        formDialog<T>({ form: formProp, title, values: valuesForAdd, dialogProps: dialog }).then(x => {
                                             if (!x) return
                                             const newValue = value?.slice() || []
                                             if (prepend) newValue.unshift(x)
@@ -102,12 +123,16 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     icon: h(Edit),
                                     label: title,
                                     title,
-                                    onClick(ev: MouseEvent) {
+                                    async onClick(ev: MouseEvent) {
                                         ev.stopPropagation()
-                                        formDialog<T>({ values: row as any, form, title: h(Fragment, {}, title, label && ' - ', label) }).then(x => {
-                                            if (x)
-                                                set(value!.map((oldRec, i) => i === $idx ? x : oldRec), ev)
+                                        const res = await formDialog<T>({
+                                            values: row as any,
+                                            form: formProp,
+                                            title: h(Fragment, {}, title, label && ' - ', label),
+                                            dialogProps: dialog
                                         })
+                                        if (res)
+                                            set(value!.map((oldRec, i) => i === $idx ? res : oldRec), ev)
                                     }
                                 }),
                                 h(GridActionsCellItem as any, {
@@ -116,7 +141,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     showInMenu: reorder,
                                     onClick: ev => {
                                         ev.stopPropagation()
-                                        set(value!.filter((rec, i) => i !== $idx), ev)
+                                        set(value!.filter((_rec, i) => i !== $idx), ev)
                                     },
                                 }),
                                 reorder && $idx && h(GridActionsCellItem as any, {
@@ -160,9 +185,8 @@ const byType: Dict<{ field?: Partial<FieldDescriptor>, column?: Partial<GridColD
     dateTime: {
         field: { comp: DateTimeField },
         column: {
-            type: 'dateTime', minWidth: 96, flex: 0.5,
-            valueGetter: ({ value }) => value && new Date(value),
-            renderCell: ({ value }) => value && h(Box, {}, value.toLocaleDateString(), h('br'), value.toLocaleTimeString())
+            minWidth: 96, flex: 0.5,
+            renderCell: ({ value }) => value && new Date(value).toLocaleString(),
         }
     }
 }

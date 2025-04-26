@@ -167,7 +167,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
                             }),
                         ),
                         iconBtn('menu', ev => openFileMenu(cur, ev, [
-                            'open','delete',
+                            'open', 'delete',
                             { id: 'zoom', icon: 'zoom', label: t`Switch zoom mode`, onClick: switchZoomMode },
                             { id: 'fullscreen', icon: 'fullscreen', label: t`Full screen`, onClick: toggleFullScreen },
                             { id: 'shuffle', icon: 'shuffle', label: t`Shuffle`, toggled: Boolean(shuffle), onClick: () => toggleShuffle() },

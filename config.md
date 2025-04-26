@@ -4,8 +4,10 @@ This file contains details about the configuration files.
 
 Configuration is stored in the file `config.yaml`, exception made for custom HTML which is stored in `custom.html`.
 
-These files are kept in the Current Working Directory (cwd), which is by default the same folder of `hfs.exe`
-if you are using this kind of distribution on Windows, or `USER_FOLDER/.hfs` on other systems.
+These files are kept in the same folder of `hfs.exe` if you are using this kind of distribution on Windows, 
+or `$HOME/.hfs` on other systems, where *$HOME* varies with the system and is the user's home folder.
+Anyway, the current working directory (CWD) is printed by HFS in the first lines of the console.
+
 Many things are stored in the CWD, like the plugins you install.
 You can decide a different CWD passing `--cwd SOME_FOLDER` parameter at command line.
 
@@ -63,7 +65,7 @@ Configuration can be done in several ways
 - `https_port` listen on a specific port. Default is 443.
 - `cert` use this file for https certificate. Minimum to start https is to give a cert and a private_key. Default is none.
 - `private_key` use this file for https private key. Default is none.
-- `allowed_referer` you can decide what domains can link to your files. Wildcards supported. Default is empty, meaning any.
+- `allowed_referer` you can decide what domains can link to your files. Wildcards supported. Default is any.
 - `block` a list of rules that will block connections. E.g.:
     ```
     block:
@@ -86,14 +88,14 @@ Configuration can be done in several ways
 - `keep_session_alive` keeps you logged in while the page is left open and the computer is on. Default is true.
 - `session_duration` after how many seconds should the login session expire. Default is a day.
 - `acme_domain` domain used for ACME certificate generation. Default is none. 
-- `acme_email` email used for ACME certificate generation. Default is none.
 - `acme_renew` automatically renew acme certificate close to expiration. Default is false.
 - `listen_interface` network interface to listen on, by specifying IP address. Default is any.
 - `base_url` URL to be used for links generation. Default is automatic.
 - `force_address` disconnect any request not made with one of the hosts specified in `roots` or `base_url`. Default is false.
 - `ignore_proxies` stop warning about detected proxies. Default is false. 
-- `descript_ion` enable reading and writing of comments in the old file format *DESCRIPT.ION*. Default is yes.
-- `descript_ion_encoding` text encoding to be used for file *DESCRIPT.ION*. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
+- `comments_storage` choose where to read/write comments. Default is in file `descript.ion`.
+  - You can set `attr` to use only file's attributes, or `attr+ion` to store in file's attributes but fall-back to `descript.ion` as read-only.` 
+- `descript_ion_encoding` text encoding to be used for file `descript.ion`. [List of supported values](https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings). Default is `utf8`.
 - `server_code` javascript code that works similarly to [a plugin](dev-plugins.md). 
 - `tiles_size` starting value for frontend's tiles size. Default is 0.
 - `auto_play_seconds` starting value for frontend's auto_play_seconds (used in Show). Default is 5.
@@ -114,16 +116,16 @@ Configuration can be done in several ways
 - `max_downloads_per_account` limit the number of concurrent downloads for each account. This is enforced only for connections that are logged in, and will override other similar settings. Default is unlimited.
 - `geo_enable` when enabled, country is determined for each request/connection. Necessary database will be downloaded every month (2MB).
 - `geo_allow` set true if `geo_list` should be treated as white-list, set false for black-list. Default will ignore the list.
-- `geo_list` list of country codes to be used as white-list or black-list. Default is empty.
+- `geo_list` list of country codes to be used as white-list or black-list. Default is none.
 - `geo_allow_unknown` set false to disconnect connections for which country cannot be determined. Works only if `geo_allow` is set. Default is true. 
 - `dynamic_dns_url` URL to be requested to keep a domain updated with your latest IP address.
      Optionally, you can append “>” followed by a regular expression to determine a successful answer, otherwise status code will be used.
-     Multiple URLs are supported and you can specify one for each line.
-- `outbound_proxy` if you need outgoing http(s) requests to pass through an http proxy. Default is none. 
-- `auto_basic` automatically detect (based on user-agent) when the basic web inteface should be served, to support legacy browsers. Default is true. No UI.
-- `allow_session_ip_change` should requests of the same login session be allowed from different IP addresses. Default is false, to prevent cookie stealing. You can set it `true` to always allow it, or `https` to allow only on https, where stealing the cookie is harder. No UI.   
+     Multiple URLs are supported, and you can specify one for each line.
+- `outbound_proxy` if you need outgoing http(s) requests to pass through an HTTP proxy. Default is none. 
+- `auto_basic` automatically detect (based on user-agent) when the basic web interface should be served, to support legacy browsers. Default is true. No UI.
 - `authorization_header` support Authentication HTTP header. Default is true. No UI.
 - `cache_control_disk_files` number of seconds after which the browser should bypass the cache and check the server for an updated version of the file. Default is 5. No UI.
+- `disable_custom_html` disable the content of `custom_html`. Default is false.
 - `create-admin` special entry to quickly create an admin account. The value will be set as password. As soon as the account is created, this entry is removed. 
 
 #### Virtual File System (VFS)
@@ -144,8 +146,10 @@ Valid keys in a node are:
    A positive number for the top, negative for the bottom. If you set "1" for an entry and "2" for another, the "2" will be the topmost.
 - `target`: optional, for links only, used to [open the link in a new browser](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target). E.g. `_blank`
 - `accept`:  valid only on upload folders, used to restrict the type of files you can upload. E.g. `.zip,.rar`
-- `default`: to be used with a folder where you want to serve a default html. E.g.: "index.html". Using this will make `mime` default to "auto".
-  The value must be an absolute or relative path in the VFS, not a path on disk. It works also with other type of files.  
+- `default`: use this with a folder where you want to serve a file, instead of the standard page with the list of files.
+  The value must be the name of the file to serve. E.g.: `index.html`. 
+  The value must be an absolute or relative path in the VFS, not a path on disk. It works also with other type of files.
+  Using this will make `mime` default to "auto".
 - `can_read`: specify who can download this entry. Value is a `WhoCan` descriptor, which is one of these values
     - `true`: anyone can, even people who didn't log in. This is normally the default value.
     - `false`: no one can.
@@ -210,8 +214,8 @@ For each account entries, this is the list of properties you can have:
 - `redirect` provide a URL if you want the user to be redirected upon login. Default is none.
 - `admin` set `true` if you want to let this account log in to the Admin-panel. Default is `false`.
 - `belongs` an array of usernames of other accounts from which to inherit their permissions. Default is none.
-- `srp` encrypted password
-- `password` a temporary unencrypted password, transformed into `srp` ASAP
+- `password` a temporary unencrypted password, transformed into `srp` ASAP (and removed).
+- `srp` encrypted password. Don't modify this, HFS will create it from `password` field.
 - `disabled` prevents using this account. Default is false.
 - `expire` account won't work once the time has passed this timestamp. Use JSON timestamp syntax. Default is none.
 - `days_to_live` used to set `expire` on first login. Default is none.

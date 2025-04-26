@@ -30,7 +30,7 @@ export default function HomePage() {
     const { data: status, reload: reloadStatus, element: statusEl } = useApiEx<typeof adminApis.get_status>('get_status')
     const { data: vfs } = useApiEx<{ root?: VfsNode }>('get_vfs')
     const { data: account } = useApiEx<Account>(username && 'get_account')
-    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies'] })
+    const cfg = useApiEx('get_config', { only: ['https_port', 'cert', 'private_key', 'proxies', 'ignore_proxies'] })
     const { list: plugins } = useApiList('get_plugins')
     const [checkPlugins, setCheckPlugins] = useState(false)
     const { list: pluginUpdates} = useApiList(checkPlugins && 'get_plugin_updates')
@@ -87,7 +87,7 @@ export default function HomePage() {
                 : entry('', md("This is the Admin-panel, where you manage your server. Access your files on "),
                     h(Link, { target:'frontend', href: '../..' }, "Front-end", h(Launch, { sx: { verticalAlign: 'sub', ml: '.2em' } }))),
 
-        with_(proxyWarning(cfg, status), x => x && entry('warning', x,
+        with_(proxyWarning(cfg.data, status), x => x && entry('warning', x,
                 SOLUTION_SEP, cfgLink("set the number of proxies"),
                 SOLUTION_SEP, "unless you are sure and you can ", h(Btn, {
                     variant: 'outlined',
@@ -109,7 +109,7 @@ export default function HomePage() {
         !updates && with_(status.autoCheckUpdateResult, x => x?.isNewer && h(Update, { info: x, bodyCollapsed: true, title: "An update has been found" })),
         pluginUpdates.length > 0 && entry('success', "Updates available for plugin(s): " + pluginUpdates.map(p => p.id).join(', ')),
         h(ConfigForm, {
-            gridProps: { sx: { columns: '15em 3', gap: 0, display: 'block', mt: 0, '&>div.MuiGrid-item': { pt: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
+            gridProps: { sx: { mt: 1, display: 'flex', columnGap: 1, alignitems: 'center', '&>div.MuiGrid2-root': { width: 'auto', px: .5, py: 0 }, '.MuiCheckbox-root': { pl: '2px' } } },
             saveOnChange: true,
             form: {
                 fields: [
@@ -235,6 +235,7 @@ function cfgLink(text=`Options page`) {
 }
 
 export function proxyWarning(cfg: any, status: any) {
-    return cfg.data && !cfg.data.proxies && status?.proxyDetected
-        ? "A proxy was detected but none is configured" : ''
+    return status && cfg && !cfg.ignore_proxies && (!cfg.proxies && status.proxyDetected ? "A proxy was detected but none is configured"
+        : cfg.proxies && !status.proxyDetected && (Date.now() - +new Date(status.started) > DAY) ? `Proxies is set to ${cfg.proxies} but none was detected recently. Consider setting it zero`
+        : '')
 }

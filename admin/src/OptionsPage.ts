@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { Box, Button, Divider, FormHelperText } from '@mui/material';
-import { createElement as h, Fragment, useEffect, useRef } from 'react';
+import { createElement as h, useEffect, useRef } from 'react';
 import { apiCall, useApiEx } from './api'
 import { state, useSnapState } from './state'
 import { Link as RouterLink } from 'react-router-dom'
@@ -9,15 +9,15 @@ import { CardMembership, EditNote, Refresh, Warning } from '@mui/icons-material'
 import { adminApis } from '../../src/adminApis'
 import {
     MAX_TILE_SIZE, REPO_URL, SORT_BY_OPTIONS, THEME_OPTIONS, CFG, IMAGE_FILEMASK,
-    Dict, md, wait, with_, try_, ipForUrl,
+    Dict, md, with_, try_, ipForUrl,
 } from './misc'
 import {
-    iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported, Flex
+    iconTooltip, InLink, LinkBtn, propsForModifiedValues, wikiLink, useBreakpoint, NetmaskField, WildcardsSupported,
 } from './mui'
 import { Form, BoolField, NumberField, SelectField, FieldProps, Field, StringField } from '@hfs/mui-grid-form';
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
-import { alertDialog, confirmDialog, newDialog, toast, waitDialog } from './dialog'
+import { alertDialog, confirmDialog, newDialog, toast } from './dialog'
 import { proxyWarning } from './HomePage'
 import _ from 'lodash';
 import { proxy, subscribe, useSnapshot } from 'valtio'
@@ -101,17 +101,17 @@ export default function OptionsPage() {
             }, "Reload"),
             h(Button, { // @ts-ignore
                 component: RouterLink,
-                to: "/edit",
+                to: "/config",
                 startIcon: h(EditNote),
             }, sm ? "Config file" : "File"),
         ],
         defaults() {
-            return { sm: 6 }
+            return { xs: 6 }
         },
         fields: [
             h(Section, { title: "Networking" }),
-            { k: 'port', comp: PortField, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
-            { k: 'https_port', comp: PortField, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
+            { k: 'port', comp: PortField, xs: 12, sm: 6, label:"HTTP port", status: status?.http||true, suggestedPort: 80 },
+            { k: 'https_port', comp: PortField, xs: 12, sm: 6, label: "HTTPS port", status: status?.https||true, suggestedPort: 443,
                 onChange(v: number) {
                     if (v >= 0 && !httpsEnabled && !values.cert)
                         void suggestMakingCert()
@@ -148,27 +148,28 @@ export default function OptionsPage() {
             { k : CFG.max_downloads_per_account, ...maxDownloadsDefaults, label: "Max downloads per-account", helperText: "Overrides other limits" },
 
             { k: 'admin_net', comp: NetmaskField, label: "Admin-panel accessible from", placeholder: "any address",
-                helperText: h(Fragment, {}, "IP address of browser machine. ", h(WildcardsSupported))
+                helperText: "IP address of browser machine"
             },
-            { k: 'localhost_admin', comp: BoolField, label: "Unprotected admin on localhost",
+            { k: 'localhost_admin', comp: BoolField, xs: 12, sm: 6, label: "Unprotected Admin-panel on localhost",
                 getError: x => !x && admins?.length===0 && "First create at least one admin account",
-                helperText: "Access Admin-panel without entering credentials"
+                helperText: "Access without entering credentials"
             },
 
-            { k: 'proxies', comp: NumberField, sm: 4, md: 4, max: 9, label: "Number of HTTP proxies", placeholder: "none",
+            { k: 'proxies', comp: NumberField, xs: 12, sm: 4, md: 4, max: 9, label: "Number of incoming HTTP proxies", placeholder: "none",
                 error: proxyWarning(values, status),
                 helperText: "Wrong number will prevent detection of users' IP"
             },
-            { k: 'outbound_proxy', sm: 5, md: 4, placeholder: "none", helperText: "URL form",
+            { k: 'outbound_proxy', xs: 12, sm: 5, md: 4, placeholder: "none", helperText: "URL form",
                 getError: x => try_(() => x && new URL(x) && '', () => "Invalid URL") },
             { k: 'allowed_referer', comp: AllowedReferer, sm: 3, md: 4, placeholder: "any", label: "Links from other websites",
                 helperText: "In case another website is linking your files" },
 
-            { k: 'block', label: false, comp: ArrayField, prepend: true, sm: true, autoRowHeight: true,
+            { k: 'block', label: false, comp: ArrayField, xs: 12, prepend: true, sm: true, autoRowHeight: true,
+                form: { maxWidth: '30em' },
                 fields: [
-                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2,
+                    { k: 'ip', label: "Blocked IP", sm: 12, required: true, wrap: true, $width: 2, comp: NetmaskField,
                         $column: { mergeRender: { comment: {}, expire: {} } },
-                        helperText: h(Flex, { component: 'span' }, h(WildcardsSupported), "Be careful to not kick yourself out, by blocking also your IP."),
+                        helperText: "Be careful to not kick yourself out, by blocking also your IP",
                     },
                     { k: 'expire', $type: 'dateTime', minDate: new Date(), sm: 6, $hideUnder: 'sm',
                         helperText: "Leave empty for no expiration" },
@@ -199,11 +200,11 @@ export default function OptionsPage() {
             { k: 'theme', comp: SelectField, xs: 6, sm: 3, options: THEME_OPTIONS },
             { k: 'sort_by', comp: SelectField, xs: 6, sm: 3, options: SORT_BY_OPTIONS },
 
-            { k: 'invert_order', comp: BoolField, xs: 6, sm: 3 },
-            { k: 'folders_first', comp: BoolField, xs: 6, sm: 3 },
-            { k: 'sort_numerics', comp: BoolField, xs: 6, sm: 3, label: "Sort numeric names" },
-            { k: 'title_with_path', comp: BoolField, xs: 6, sm: 3 },
-            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, sm: 12,
+            { k: 'invert_order', comp: BoolField, xs: 6, md: 3 },
+            { k: 'folders_first', comp: BoolField, xs: 6, md: 3 },
+            { k: 'sort_numerics', comp: BoolField, xs: 6, md: 3, label: "Sort numeric names" },
+            { k: 'title_with_path', comp: BoolField, xs: 6, md: 3 },
+            { k: 'favicon', comp: FileField, placeholder: "None", fileMask: '*.ico|' + IMAGE_FILEMASK, xs: 12,
                 helperText: "The icon associated to your website" },
 
             h(Section, { title: "Uploads" }),
@@ -218,20 +219,24 @@ export default function OptionsPage() {
 
             h(Section, { title: "Others" }),
             { k: 'keep_session_alive', comp: BoolField, sm: 6, md: 6, helperText: "Keeps you logged in while the page is left open and the computer is on" },
-            { k: 'session_duration', comp: NumberField, sm: 6, md: 3, min: 5, unit: "seconds", required: true },
-            { k: 'zip_calculate_size_for_seconds', comp: NumberField, sm: 6, md: 3, unit: "seconds", required: true,
-                label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'session_duration', comp: NumberField, sm: 3, md: 3, min: 5, unit: "seconds", required: true },
+            { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 3, options: { 1000: false, 1024: true } },
 
-            { k: 'show_hidden_files', comp: BoolField, sm: 6, md: 3 },
-            { k: 'descript_ion', comp: BoolField, sm: 6, md: 3, label: "Enable comments", helperText: "In file DESCRIPT.ION" },
-            { k: 'descript_ion_encoding', sm: 6, md: 3, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
+            { k: 'show_hidden_files', comp: BoolField, sm: 3 },
+            { k: CFG.comments_storage, comp: SelectField, xs: 12, sm: 6, md: 5, options: {
+                "in file DESCRIPT.ION": '',
+                "in file attributes": 'attr',
+                "in file attributes + load DESCRIPT.ION": 'attr+ion',
+            } },
+            { k: 'descript_ion_encoding', xs: 8, sm: 3, md: 4, label: "Encoding of file DESCRIPT.ION", comp: SelectField, disabled: !values.descript_ion,
                 options: ['utf8',720,775,819,850,852,862,869,874,808, ..._.range(1250,1257),10029,20866,21866] },
-            { k: CFG.size_1024, label: "KB size", comp: SelectField, sm: 6, md: 3, options: { 1000: false, 1024: true } },
 
-            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", sm: 4, md: 6,
+            { k: 'open_browser_at_start', comp: BoolField, label: "Open Admin-panel at start", xs: 12, sm: 6, md: 3,
                 helperText: "Browser is automatically launched with HFS"
             },
-            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, sm: 12, md: 6,
+            { k: 'zip_calculate_size_for_seconds', comp: NumberField, xs: 12, sm: 6, md: 3, unit: "seconds", required: true,
+                label: "Calculate ZIP size for", helperText: "If time is not enough, the browser will not show download percentage" },
+            { k: 'mime', comp: ArrayField, label: false, reorder: true, prepend: true, xs: 12, sm: 12, md: 6,
                 fields: [
                     { k: 'v', label: "Mime type", placeholder: "auto", $width: 2, helperText: "Leave empty to get automatic value" },
                     { k: 'k', label: "File mask", helperText: h(WildcardsSupported), $width: 1, $column: {
@@ -247,7 +252,7 @@ export default function OptionsPage() {
                 fromField: x => Object.fromEntries(x.map((row: any) => [row.k, row.v || 'auto'])),
             },
 
-            { k: 'server_code', comp: TextEditorField, lang: 'js', sm: 12,
+            { k: 'server_code', comp: TextEditorField, lang: 'js', xs: 12,
                 helperText: md(`This code works similarly to [a plugin](${REPO_URL}blob/main/dev-plugins.md) (with some limitations)`)
             },
 
@@ -301,7 +306,8 @@ export default function OptionsPage() {
 }
 
 function Section({ title, subtitle }: { title: string, subtitle?: string }) {
-    return h(Divider, {}, h('h3', { style: { margin: 0 } }, title), h(Box, { fontSize: 'small' }, subtitle))
+    return h(Divider, { role: 'heading', sx: { fontSize: 'larger', fontWeight: 'bold' } }, title,
+        h(Box, { fontSize: 'small', fontWeight: 'normal' }, subtitle))
 }
 
 function recalculateChanges() {
@@ -405,19 +411,13 @@ export async function suggestMakingCert() {
         async function makeCertAndSave() {
             if (!window.crypto.subtle)
                 return alertDialog("Retry this procedure on localhost", 'warning')
-            const stop = waitDialog()
-            try {
-                await wait(50) // give time to start animation before cpu intensive task
-                const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
-                stop()
-                if (loaded) // when undefined we are not in this page
-                    Object.assign(loaded, saved)
-                setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
-                Object.assign(state.config, saved)
-                close()
-                await alertDialog("Certificate saved", 'success')
-            }
-            finally { stop() }
+            close()
+            const saved = await apiCall('make_self_signed_cert', { fileName: 'self' })
+            if (loaded) // when undefined we are not in this page
+                Object.assign(loaded, saved)
+            setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
+            Object.assign(state.config, saved)
+            alertDialog("Certificate saved", 'success')
         }
     })
 }

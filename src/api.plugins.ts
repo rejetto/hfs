@@ -15,7 +15,6 @@ import {
 } from './github'
 import { HTTP_FAILED_DEPENDENCY, HTTP_NOT_FOUND, HTTP_SERVER_ERROR } from './const'
 import { SendListReadable } from './SendList'
-import produce from 'immer'
 
 const apis: ApiHandlers = {
 
@@ -28,6 +27,7 @@ const apis: ApiHandlers = {
                 list.update({ id }, rest)
             },
             pluginUninstalled: id => list.remove({ id }),
+            pluginLog: id => list.update({ id }, { log: true }) // SendList is already capping frequency
         })
     },
 
@@ -53,6 +53,7 @@ const apis: ApiHandlers = {
                         if (online.version === disk.version) return // different, not just newer ones, in case a version was retired
                         list.add(Object.assign(online, {
                             id: disk.id, // id is installation-dependant, and online cannot know
+                            installedVersion: disk.version,
                             repo: serialize(disk).repo, // show the user the current repo we are getting this update from, not a possibly-changed future one
                             downgrade: online.version! < disk.version,
                             downloading: _.isString(online.repo) && downloading[online.repo],
@@ -170,6 +171,16 @@ const apis: ApiHandlers = {
         return {}
     },
 
+    get_plugin_log({ id }, ctx) {
+        const p = getPluginInfo(id)
+        if (!p)
+            return new ApiError(HTTP_NOT_FOUND)
+        const list = new SendListReadable({ addAtStart: p.log })
+        return list.events(ctx, {
+            ['pluginLog:' + id]: x => list.add(x)
+        })
+    },
+
 }
 
 export default apis
@@ -179,9 +190,9 @@ function serialize(p: Readonly<Plugin> | AvailablePlugin) {
         : { ...p } // _.defaults mutates object, and we don't want that
     if (typeof o.repo === 'object') // custom repo
         o.repo = o.repo.web
-    o = produce(o, (o: any) => {
-        _.each(o.config, x => x.showIf &&= String(x.showIf))
-    })
+    o.log = 'log' in p && p.log?.length > 0
+    o.config &&= _.isFunction(o.config) ? String(o.config)
+        : JSON.stringify(o.config, (_k, v) => _.isFunction(v) ? String(v) : v) // allow simple functions
     return _.defaults(o, { started: null, badApi: null }) // nulls should be used to be sure to overwrite previous values,
 }
 

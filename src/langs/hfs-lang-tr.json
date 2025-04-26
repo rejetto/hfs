@@ -139,7 +139,7 @@
         "Upload not available": "Upload imkanı yok",
         "Cut": "Kes",
         "n_items": "{n,plural, one{# öğe} other{# öğe}}",
-        "good_bad": "{good} taşındı, {bad} başarısız",
+        "move_results": "{good} taşındı, {bad} başarısız",
         "after_cut": "Seçim şuan Panoda (Clipboard). \nHedef Klasöre gidin ve Yapıştır (Paste) yapın.",
         "Cancel clipboard": "Panoyu (Clipboard) Temizle",
         "to_clipboard_source": "Kaynak Klasöre Geri Dön",
@@ -181,6 +181,13 @@
 
         "Calculate": "Hesapla",
         "Creation": "Oluşturma",
-        "creation": "oluşturma"
+        "creation": "oluşturma",
+        "required_change_password": "Sifrenizi değiştirmeniz gerekiyor",
+        "Wildcards": "Metakarakterler",
+        "Considering resume": "Tekrarlama aranıyor",
+
+        "Yes": "Evet",
+        "No":  "Hayır",
+        "esc_again": "ESC'i iki kere basarak kapat"
     }
 }

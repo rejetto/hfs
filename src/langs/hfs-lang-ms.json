@@ -100,7 +100,7 @@
         "Upload not available": "Muat naik tidak tersedia",
         "Cut": "Potong",
         "n_items": "{n,plural, one{# item} other{# item}}",
-        "good_bad": "{good} berjaya dipindah, {bad} gagal",
+        "move_results": "{good} berjaya dipindah, {bad} gagal",
         "after_cut": "Pilihan anda kini berada dalam papan klip.\nPergi ke folder destinasi untuk tampal.",
         "Cancel clipboard": "Batal papan klip",
         "to_clipboard_source": "Kembali ke folder asal",
@@ -145,6 +145,10 @@
         "creation": "penciptaan",
         "required_change_password": "Anda perlu menukar kata laluan anda",
         "Wildcards": "Kad bebas",
-        "Considering resume": "Mempertimbangkan sambungan semula"
+        "Considering resume": "Mempertimbangkan sambungan semula",
+
+        "Yes": "Ya",
+        "No":  "Tidak",
+        "esc_again": "Tekan ESC dua kali untuk menutup"
     }
 }

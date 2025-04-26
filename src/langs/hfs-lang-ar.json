@@ -139,7 +139,7 @@
         "Upload not available": "الرفع غير متاح",
         "Cut": "قص",
         "n_items": "{n,plural, one{# item} other{# items}}",
-        "good_bad": "{good} تم نقلهم، {bad} فشلوا",
+        "move_results": "{good} تم نقلهم، {bad} فشلوا",
         "after_cut": "تم وضع التحديد الآن في الحافظة. انتقل إلى المجلد الوجهة للصق.",
         "Cancel clipboard": "إلغاء الحافظة",
         "to_clipboard_source": "العودة إلى المجلد المصدر",
@@ -184,6 +184,10 @@
         "creation": "إنشاء",
         "required_change_password": "يجب عليك تغيير كلمة المرور الخاصة بك",
         "Wildcards": "أحرف البدل",
-        "Considering resume": "جارٍ التحقق من استئناف الرفع"
+        "Considering resume": "جارٍ التحقق من استئناف الرفع",
+
+        "Yes": "نعم",
+        "No":  "لا",
+        "esc_again": "انقر على ESC ثانية لاغلاق"
     }
 }

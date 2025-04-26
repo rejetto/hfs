@@ -4,7 +4,7 @@ import Koa from 'koa'
 import createSSE from './sse'
 import { Readable } from 'stream'
 import { asyncGeneratorToReadable, CFG, Promisable } from './misc'
-import { HTTP_BAD_REQUEST, HTTP_FOOL, HTTP_NOT_FOUND, PLUGIN_CUSTOM_REST_PREFIX } from './const'
+import { HTTP_BAD_REQUEST, HTTP_FOOL, PLUGIN_CUSTOM_REST_PREFIX } from './const'
 import { defineConfig } from './config'
 import { firstPlugin } from './plugins'
 
@@ -37,7 +37,7 @@ export function apiMiddleware(apis: ApiHandlers) : Koa.Middleware {
         const apiFun = customApiRest && firstPlugin(pl => pl.getData().customRest?.[customApiRest])
             || apis.hasOwnProperty(apiName) && apis[apiName]!
         if (!apiFun)
-            return send(HTTP_NOT_FOUND, 'invalid api')
+            return send(HTTP_BAD_REQUEST, 'invalid api')
         // we don't rely on SameSite cookie option because it's https-only
         let res
         try {

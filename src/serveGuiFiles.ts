@@ -4,7 +4,7 @@ import Koa from 'koa'
 import fs from 'fs/promises'
 import {
     API_VERSION, MIME_AUTO, FRONTEND_URI, HTTP_METHOD_NOT_ALLOWED, HTTP_NO_CONTENT, HTTP_NOT_FOUND,
-    PLUGINS_PUB_URI, VERSION, SPECIAL_URI, ICONS_URI
+    PLUGINS_PUB_URI, VERSION, SPECIAL_URI, ICONS_URI, DEV
 } from './const'
 import { serveFile } from './serveFile'
 import { getPluginConfigFields, getPluginInfo, mapPlugins, pluginsConfig } from './plugins'
@@ -12,7 +12,8 @@ import { refresh_session } from './api.auth'
 import { ApiError } from './apiMiddleware'
 import { join, extname } from 'path'
 import {
-    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFileContent
+    CFG, debounceAsync, formatBytes, FRONTEND_OPTIONS, isPrimitive, newObj, objSameKeys, onlyTruthy, parseFileContent,
+    enforceStarting
 } from './misc'
 import { favicon, title } from './adminApis'
 import { customHtml, getAllSections, getSection } from './customHtml'
@@ -27,11 +28,8 @@ const splitUploads = defineConfig(CFG.split_uploads, 0)
 export const logGui = defineConfig(CFG.log_gui, false)
 _.each(FRONTEND_OPTIONS, (v,k) => defineConfig(k, v)) // define default values
 
-// in case of dev env we have our static files within the 'dist' folder'
-const DEV_STATIC = process.env.DEV ? 'dist/' : ''
-
 function serveStatic(uri: string): Koa.Middleware {
-    const folder = uri.slice(2,-1) // we know folder is very similar to uri
+    const folder = (DEV ? 'dist/' : '') + uri.slice(2,-1) // we know folder is very similar to uri
     let cache: Record<string, Promise<string>> = {}
     customHtml.emitter.on('change', () => cache = {}) // reset cache at every change
     return async ctx => {
@@ -45,7 +43,7 @@ function serveStatic(uri: string): Koa.Middleware {
         if (ctx.method !== 'GET')
             return ctx.status = HTTP_METHOD_NOT_ALLOWED
         const serveApp = shouldServeApp(ctx)
-        const fullPath = join(__dirname, '..', DEV_STATIC, folder, serveApp ? '/index.html': ctx.path)
+        const fullPath = join(__dirname, '..', folder, serveApp ? '/index.html': ctx.path)
         const content = await parseFileContent(fullPath,
             raw => serveApp || !raw.length ? raw : adjustBundlerLinks(ctx, uri, raw) )
             .catch(() => null)
@@ -87,7 +85,7 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
     const plugins = Object.fromEntries(onlyTruthy(mapPlugins((pl,name) => {
         let configs = newObj(getPluginConfigFields(name), (v, k, skip) =>
             !v.frontend ? skip() :
-                (pluginsConfig.get()?.[name]?.[k] ?? pl.getData().config?.[k]?.defaultValue)
+                adjustValueByConfig(pluginsConfig.get()?.[name]?.[k], pl.getData().config?.[k])
         )
         configs = getPluginInfo(name).onFrontendConfig?.(configs) || configs
         return !_.isEmpty(configs) && [name, configs]
@@ -153,6 +151,26 @@ async function treatIndex(ctx: Koa.Context, filesUri: string, body: string) {
                 return getSection('bottom') + all
             return all // unchanged
         })
+
+    function adjustValueByConfig(v: any, cfg: any) {
+        v ??= cfg.defaultValue
+        const {type} = cfg
+        if (v && type === 'vfs_path') {
+            v = enforceStarting('/', v)
+            const { root } = ctx.state
+            if (root)
+                if (v.startsWith(root))
+                    v = v.slice(root.length - 1)
+                else
+                    return
+            if (ctx.state.revProxyPath)
+                v = ctx.state.revProxyPath + v
+        }
+        else if (type === 'array' && Array.isArray(v))
+            v = v.map(x => objSameKeys(x, (xv, xk) => adjustValueByConfig(xv, cfg.fields[xk])))
+        return v
+    }
+
 }
 
 function serializeCss(v: any) {

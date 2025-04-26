@@ -79,11 +79,10 @@ async function back() {
     ignorePopState = true
     let was = history.state
     history.back()
-    await waitClosing
-    return waitClosing = new Promise<void>(res => {
+    return waitClosing = waitClosing.then(() => new Promise<void>(res => {
         const h = setInterval(() => was !== history.state && res() , 10)
         setTimeout(() => clearTimeout(h), 500)
-    })
+    }))
 }
 
 ;(async () => {
@@ -192,7 +191,7 @@ export function newDialog(options: DialogOptions) {
     const $id = Math.random()
     const ts = performance.now()
     const d: Dialog = Object.assign(objSameKeys(options, x => isValidElement(x) ? ref(x) : x) as typeof options, { // encapsulate elements as React will try to write, but valtio makes them readonly
-        close, ts, $id, // object identity is not working because it's proxied (valtio). This is a possible workaroundu
+        close, ts, $id, // object identity is not working on dialog object because it's proxied (valtio). This is a possible workaround
         restoreFocus: options.restoreFocus ?? ref(document.activeElement || {}),
     })
     let cancelOpening = false

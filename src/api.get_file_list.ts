@@ -96,12 +96,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 --offset
                 continue
             }
-            if (c === 'no') { // allow excluding c for smaller payload
-                if (!entry.m)
-                    entry.m = entry.c
-                if (entry.c)
-                    entry.c = undefined
-            }
+            if (c === 'no' && entry.c) // allow excluding c for smaller payload
+                entry.c = undefined
             yield entry
             if (limit && !--limit)
                 break
@@ -119,7 +115,10 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             return name ? { n: name, url, target: node.target } : null
         const isFolder = await nodeIsDirectory(node)
         try {
-            const st = source ? node.stats || await stat(source) : undefined
+            const st = source ? node.stats || await stat(source).catch(e => {
+                if (!isFolder || !node.children?.length) // folders with virtual children, keep them
+                    throw e
+            }) : undefined
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'
                 : ''
@@ -129,12 +128,13 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 : ''
             const pd = Boolean(can_delete) === hasPermission(node, 'can_delete', ctx) ? '' : can_delete ? 'd' : 'D'
             const pa = Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
+            const pu = !isFolder || Boolean(can_upload) === hasPermission(node, 'can_upload', ctx) ? '' : can_upload ? 'u' : 'U'
             return {
                 n: name + (isFolder ? '/' : ''),
                 c: st?.birthtime,
                 m: !st || Math.abs(st.mtimeMs - st.birthtimeMs) < 1000 ? undefined : st.mtime,
                 s: isFolder ? undefined : st?.size,
-                p: (pr + pl + pd + pa) || undefined,
+                p: (pr + pl + pd + pa + pu) || undefined,
                 order: node.order,
                 comment: node.comment ?? await getCommentFor(source),
                 icon: getNodeIcon(node),

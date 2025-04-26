@@ -49,7 +49,7 @@ export function httpStream(url: string, { body, jar, noRedirect, httpThrow, prox
         if (jar)
             options.headers.cookie = _.map(jar, (v,k) => `${k}=${v}; `).join('')
                 + (options.headers.cookie || '') // preserve parameter
-        Object.assign(options, _.pick(parse(proxy || url), ['hostname', 'port', 'path', 'protocol']))
+        Object.assign(options, _.pick(parse(proxy || url), ['hostname', 'port', 'path', 'protocol', 'auth']))
         if (proxy) {
             options.path = url
             options.headers.host ??= parse(url).host || undefined

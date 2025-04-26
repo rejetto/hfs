@@ -15,6 +15,7 @@ import events from './events'
 import { getConnection } from './connections'
 import { app } from './index'
 import { logGui } from './serveGuiFiles'
+import glob from 'fast-glob'
 
 class Logger {
     stream?: Writable
@@ -71,7 +72,7 @@ const logSpam = defineConfig(CFG.log_spam, false)
 const debounce = _.debounce(cb => cb(), 1000) // with this technique, i'll be able to debounce some code respecting the references in its closure
 
 export const logMw: Koa.Middleware = async (ctx, next) => {
-    const now = new Date()
+    const now = new Date() // request start
     // do it now so it's available for returning plugins
     ctx.state.completed = Promise.race([ once(ctx.res, 'finish'), once(ctx.res, 'close') ])
     await next()
@@ -118,8 +119,15 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         const user = getCurrentUsername(ctx)
         const length = ctx.state.length ?? ctx.length
         const uri = ctx.originalUrl
-        ctx.logExtra(ctx.state.includesLastByte && ctx.vfsNode && ctx.res.finished && { dl: 1 }
-            || ctx.state.uploadPath && { size: ctx.state.opTotal, ul: ctx.state.uploads })
+        const duration = (Date.now() - Number(now)) / 1000
+        ctx.logExtra(ctx.vfsNode && {
+            speed: Math.round(length / duration),
+            ...ctx.state.includesLastByte && ctx.res.finished && { dl: 1 }
+        } || ctx.state.uploadPath && {
+            ul: ctx.state.uploads,
+            size: ctx.state.opTotal,
+            speed: Math.round((ctx.state.opTotal! - (ctx.state.opOffset || 0)) / duration)
+        })
         if (conn?.country)
             ctx.logExtra({ country: conn.country })
         if (logUA.get())
@@ -163,6 +171,13 @@ events.once('app', () => { // wait for app to be set
 
 function doubleDigit(n: number) {
     return n > 9 ? n : '0'+n
+}
+
+export async function getRotatedFiles() {
+    return Object.fromEntries(await Promise.all(loggers.map(async x => {
+        const mask = strinsert(x.path, x.path.length - extname(x.path).length, '-2*') // including 2, initial digit of the year, will only take rotated files and not "-error"
+        return [x.name, (await glob(mask, { stats: true })).map(x => ({ path: x.path, size: x.stats?.size }))]
+    })))
 }
 
 // dump console.error to file

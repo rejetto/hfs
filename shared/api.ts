@@ -2,24 +2,27 @@
 
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait,
-    buildUrlQueryString, } from '.'
+import {
+    Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait, buildUrlQueryString, Jsonify,
+} from '.'
 import { BetterEventEmitter } from '../src/events'
 
 export const API_URL = '/~/api/'
 
 const timeoutByApi: Dict = {
     loginSrp1: 90, // support antibrute
+    login: 90,
     get_status: 20, // can be lengthy on slow machines because of the find-process-on-busy-port feature
 }
 
 interface ApiCallOptions {
-    timeout?: number | false
+    timeout?: number | false // seconds
     modal?: undefined | ((cmd: string, params?: Dict) => (() => unknown))
     onResponse?: (res: Response, body: any) => any
     method?: string
     skipParse?: boolean
     skipLog?: boolean
+    restUri?: string
 }
 
 const defaultApiCallOptions: ApiCallOptions = {}
@@ -37,9 +40,10 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         controller.abort(aborted = 'timeout')
         console.debug('API TIMEOUT', cmd, params??'')
     }, ms)
+    const asRest = options.restUri
     // rebuilding the whole url makes it resistant to url-with-credentials
-    return Object.assign(fetch(`${location.origin}${getPrefixUrl()}${API_URL}${cmd}`, {
-        method: options.method || 'POST',
+    return Object.assign(fetch(`${location.origin}${getPrefixUrl()}${asRest || (API_URL + cmd)}`, {
+        method: asRest ? cmd : (options.method || 'POST'),
         headers: { 'content-type': 'application/json', 'x-hfs-anti-csrf': '1' },
         signal: controller.signal,
         body: params && JSON.stringify(params),
@@ -47,15 +51,14 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         stop?.()
         let body: any = await res.text()
         let data: any
-        try { data = options.skipParse ? undefined : JSON.parse(body) }
-        catch {}
-        const result = data ?? body
+        try { data = options.skipParse ? body : JSON.parse(body) }
+        catch { data = body }
         if (!options?.skipLog)
-            console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', result)
-        await options.onResponse?.(res, result)
+            console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', data)
+        await options.onResponse?.(res, data)
         if (!res.ok)
-            throw new ApiError(res.status, data === undefined ? body : `Failed API ${cmd}: ${res.statusText}`, data)
-        return result as Awaited<T extends (...args: any[]) => infer R ? Awaited<R> : T>
+            throw new ApiError(res.status, data === body ? body : `Failed API ${cmd}: ${res.statusText}`, data)
+        return data as Awaited<T extends (...args: any[]) => infer R ? Awaited<R> : T>
     }, err => {
         stop?.()
         if (err?.message?.includes('fetch')) {
@@ -82,7 +85,7 @@ export class ApiError extends Error {
 
 export type UseApi<T=unknown> = ReturnType<typeof useApi<T>>
 export function useApi<T=any>(cmd: string | Falsy, params?: object, options: ApiCallOptions={}) {
-    const [data, setData, getData] = useStateMounted<Awaited<ReturnType<typeof apiCall<T>>> | undefined>(undefined)
+    const [data, setData, getData] = useStateMounted<Jsonify<Awaited<ReturnType<typeof apiCall<T>>>> | undefined>(undefined)
     const [error, setError] = useStateMounted<Error | undefined>(undefined)
     const [forcer, setForcer] = useStateMounted(0)
     const [loading, setLoading, getLoading] = useStateMounted<undefined | ReturnType<typeof apiCall>>(undefined)

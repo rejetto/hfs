@@ -1,7 +1,7 @@
 import { createElement as h, ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, LinearProgress, Link, Typography } from '@mui/material'
 import { CardMembership, Check, Dns, HomeWorkTwoTone, Lock, Public, PublicTwoTone, RouterTwoTone, Send, Storage,
-    Error as ErrorIcon, SvgIconComponent } from '@mui/icons-material'
+    Error as ErrorIcon, SvgIconComponent, Search } from '@mui/icons-material'
 import { apiCall, useApiEvents, useApiEx } from './api'
 import {
     closeDialog, DAY, formatTimestamp, wait, wantArray, with_, PORT_DISABLED, isIP, CFG, md,
@@ -115,10 +115,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
     }
 
     function geoBox() {
-        const countryOptions = useMemo(() => _.sortBy(COUNTRIES, 'name').map(x => ({
-            value: x.code,
-            label: x.name,
-        })), [COUNTRIES])
+        const countryOptions = useMemo(() => COUNTRIES.map(x => ({ value: x.code, label: x.name })), [COUNTRIES])
         return h(TitleCard, { title: "Geo IP", icon: Public },
             h(ConfigForm<{
                 [CFG.geo_enable]: boolean
@@ -155,15 +152,28 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             options: { Allow: true, Block: false },
                         },
                     ]
-                ] })
+                ] }),
+                addToBar: [
+                    h(Box, { flex: 1 }),
+                    h(Btn, { icon: Search, onClick: lookup }, "Lookup IP")
+                ],
             })
         )
+    }
+
+    async function lookup() {
+        const ip = await promptDialog("Lookup IP")
+        if (!ip) return
+        const { country } = await apiCall('geo_ip', { ip })
+        if (!country)
+            return alertDialog("IP not found", 'error')
+        return alertDialog(h(Country, { code: country, long: true }), 'success')
     }
 
     function httpsBox() {
         const [values, setValues] = useState<any>()
         const cert = useApiEx('get_cert')
-        useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_email', 'acme_renew'] }).then(setValues) } , [])
+        useEffect(() => { apiCall('get_config', { only: ['acme_domain', 'acme_renew'] }).then(setValues) } , [])
         const [saving, setSaving] = useState(false)
         if (!status || !values) return h(CircularProgress)
         const { https } = status.data ||{}
@@ -205,7 +215,6 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                         toField: x => x.replaceAll(',', '\n'),
                         helperText: md("Example: your.domain.com\nMultiple domains on separated lines")
                     },
-                    { k: 'acme_email', label: "E-mail for certificate", sm: true },
                     {
                         k: 'acme_renew',
                         label: "Automatic renew one month before expiration",
@@ -224,7 +233,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             return
                         if (!await confirmDialog("HFS must temporarily serve HTTP on public port 80, and your router must be configured or this operation will fail")) return
                         if (await stopOnCheckDomain(domain)) return
-                        await apiCall('make_cert', { domain, altNames, email: values.acme_email }, { timeout: 20_000 })
+                        await apiCall('make_cert', { domain, altNames }, { timeout: 20_000 })
                             .then(async () => {
                                 await alertDialog("Certificate created", 'success')
                                 if (disabled)
@@ -273,7 +282,8 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                             helperText: "You can decide different home-folders (in the VFS) for different domains, a bit like virtual hosts. If none is matched, the default home will be used.",
                             comp: ArrayField,
                             fields: [
-                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com" },
+                                { k: 'host', label: "Domain/Host", helperText: "Wildcards supported: *.domain.com|other.com",
+                                    getError: (v?: string) => v?.includes('/') && "No URLs or paths here!" },
                                 { k: 'root', label: "Home/Root", comp: VfsPathField, files: false, placeholder: "default", helperText: "Root path in VFS",
                                     $column: { renderCell({ value }: any) { return value || h('i', {}, 'default') } } },
                             ],
@@ -297,7 +307,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
         const direct = publicIps.includes(data?.localIp!)
         return h(Flex, { justifyContent: 'space-around' },
             h(Device, { name: "Server", icon: direct ? Storage : HomeWorkTwoTone, color: localColor, ip: data?.localIp,
-                below: port && h(Box, { fontSize: 'smaller' }, "port ", port),
+                below: port && h(Box, { fontSize: 'smaller', className: 'port' }, "port ", port),
             }),
             !direct && h(DataLine),
             !direct && h(Device, {
@@ -378,7 +388,7 @@ export default function InternetPage({ setTitleSide }: PageProps) {
                     data.upnp && h(Button, {
                         size: 'small',
                         onClick() {
-                            close();
+                            close()
                             mapPort(HIGHER_PORT).then(verifyAgain)
                         }
                     }, "Try " + HIGHER_PORT)),
@@ -452,7 +462,7 @@ function Device({ name, icon, color, ip, below }: any) {
     return h(Box, { display: 'inline-block', textAlign: 'center' },
         h(icon, { color, sx: { fontSize, mb: '-0.1em' } }),
         h(Box, { fontSize: 'larger' }, name),
-        h(Box, { fontSize: 'smaller', whiteSpace: 'pre-wrap' }, wantArray(ip).join('\n') || "unknown"),
+        h(Box, { fontSize: 'smaller', whiteSpace: 'pre-wrap', className: 'ip' }, wantArray(ip).join('\n') || "unknown"),
         below,
     )
 }

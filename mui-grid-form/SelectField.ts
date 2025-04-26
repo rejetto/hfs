@@ -2,9 +2,12 @@
 
 import { createElement as h, Fragment, ReactNode, useId, useMemo } from 'react'
 import { FieldProps } from '.'
-import { FormControl, FormControlLabel, FormLabel, MenuItem, Radio, InputLabel, Select, LinearProgress,
-    ListItemText, Checkbox, FilledInput, RadioGroup, TextField, FormHelperText, Button } from '@mui/material'
+import {
+    FormControl, FormControlLabel, FormLabel, MenuItem, Radio, InputLabel, Select, LinearProgress,
+    ListItemText, Checkbox, FilledInput, RadioGroup, TextField, FormHelperText, Button, Box
+} from '@mui/material'
 import { SxProps } from '@mui/system'
+import { useIsMobile } from '@hfs/shared'
 
 type SelectOptions<T> = { [label:string]: T } | SelectOption<T>[]
 type SelectOption<T> = SelectOptionNormalized<T> | (T extends string | number ? T : never)
@@ -54,9 +57,10 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
             : value.map(x => normalizedOptions?.find(o => o.value === x) || { value: x, label: String(x) }),
         [value, normalizedOptions])
     const valueAsJsons = useMemo(() => value?.map(x => JSON.stringify(x)) || [], [value])
+    const isMobile = useIsMobile()
     const labelId = useId()
     const helperId = useId()
-    const showClear = valueAsOptions.length > 0
+    const isEmpty = !valueAsOptions.length
     renderOption ??= x => x.label ?? String(x.value)
     return h(FormControl, { fullWidth: true, variant: 'filled', hiddenLabel: !label },
         h(InputLabel, {
@@ -66,6 +70,7 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
         h(Select<string[]>, {
             ...commonSelectProps(props),
             multiple: true,
+            displayEmpty: true,
             value: valueAsJsons,
             onChange: event => {
                 let { value: v } = event.target
@@ -73,15 +78,16 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
                 v = v.map(x => x && JSON.parse(x)) // x can be undefined because of the clear-button
                 onChange(v as any, { was: value, event })
             },
+            sx: { '& .MuiSelect-select': { maxHeight: '15em', overflowY: 'auto' } },
             input: h(FilledInput, {
-                placeholder,
                 hiddenLabel: !label,
                 'aria-describedby': helperId,
             }),
             renderValue: () => h('div', {
                 'aria-label': label + ': ' + valueAsOptions.map(x => x.label ?? String(x.value)),
                 style: { overflow: "hidden", display: "flex", flexWrap: "wrap", gap: ".5em" },
-                children: valueAsOptions.map((x, i) => h('span', { key: i }, renderOption!(x), i < valueAsOptions.length - 1 && valueSeparator)),
+                children: isEmpty ? h(Box, { position: 'relative', top: '.3em', fontSize: 'small', fontStyle: 'italic', color: 'text.secondary' }, placeholder)
+                    : valueAsOptions.map((x, i) => h('span', { key: i }, renderOption!(x), i < valueAsOptions.length - 1 && valueSeparator)),
             }),
             ...rest,
         },
@@ -90,13 +96,18 @@ export function MultiSelectField<T>({ renderOption, ...props }: MultiSelectField
                     sx: { fontStyle: 'italic', ml: 1 },
                     onClickCapture(ev) { ev.stopPropagation() }
                 }, "No options available")),
+            !isMobile && normalizedOptions?.length! > 20 && h(Box, {
+                sx: { float: 'right' }, fontSize: 'small', width: '8em', textAlign: 'right', marginRight: '.5em'
+            }, "ⓘ You can type the name"),
             normalizedOptions?.length! > 1 && h(Button, {
-                ref: x => x && Object.assign(x, { role: undefined }), // cancel the role=option on this
+                size: 'small',
+                sx: { ml: 1 },
+                ref: x => x && Object.assign(x, { role: undefined }) && setTimeout(() => x.focus()), // cancel the role=option on this
                 onClickCapture(event) {
                     event.stopPropagation()
-                    onChange(showClear ? [] : normalizedOptions!.map(x => x.value), { was: value, event })
+                    onChange(isEmpty ? normalizedOptions!.map(x => x.value) : [], { was: value, event })
                 },
-            }, showClear ? "Unselect all" : "Select all"),
+            }, isEmpty ? "Select all" : "Unselect all"),
             ...normalizedOptions?.map(o => h(MenuItem, { value: JSON.stringify(o?.value) }, // encode, as this supports only string|number
                 h(Checkbox, { checked: value?.includes(o.value) || false }),
                 h(ListItemText, { primary: renderOption!(o) })

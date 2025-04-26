@@ -12,8 +12,7 @@ import { useDebounce } from 'usehooks-ts'
 const ACTIONS = 'Actions'
 
 export type DataTableColumn<R extends GridValidRowModel=any> = GridColDef<R> & {
-    hidden?: boolean
-    hideUnder?: Breakpoint | number
+    hideUnder?: Breakpoint | number | boolean
     dialogHidden?: boolean
     sx?: SxProps | Callback<GridRenderCellParams, SxProps>
     mergeRender?: { [other: string]: false | { override?: Partial<GridColDef<R>> } & BoxProps }
@@ -30,8 +29,9 @@ export interface DataTableProps<R extends GridValidRowModel=any> extends Omit<Da
     footerSide?: (width: number) => ReactNode
     fillFlex?: boolean
     persist?: string
+    details?: boolean
 }
-export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, persist, ...rest }: DataTableProps) {
+export function DataTable({ columns, initialState={}, actions, actionsProps, initializing, noRows, error, compact, footerSide, fillFlex, persist, details, ...rest }: DataTableProps) {
     const theme = useTheme()
     const apiRef = useGridApiRef()
     const [actionsLength, setActionsLength] = useState(0)
@@ -98,8 +98,8 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
     const sizeGrid = useGetSize()
     const width = useDebounce(sizeGrid.w || 0, 500) // stabilize width
     const hideCols = useMemo(() => {
-        const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder, hidden }) =>
-            (hidden || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
+        const fields = onlyTruthy(manipulatedColumns.map(({ field, hideUnder }) =>
+            (hideUnder === true || hideUnder && width < (typeof hideUnder === 'number' ? hideUnder : theme.breakpoints.values[hideUnder]))
             && field))
         const o = Object.fromEntries(fields.map(x => [x, false]))
         _.merge(initialState, { columns: { columnVisibilityModel: o } })
@@ -115,13 +115,17 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
         setCurRow?.(_.find(rest.rows, { id }))
     })
     const sizeFooterSide = useGetSize()
-    const wrappedFooterSide = h(Box, { ...sizeFooterSide.props, className: 'footerSide', sx: { whiteSpace: 'nowrap' } }, footerSide?.(width))
+    const wrappedFooterSide = h(Box, {
+        ref: sizeFooterSide.refToPass,
+        className: 'footerSide',
+        sx: { whiteSpace: 'nowrap' }
+    }, footerSide?.(width))
     const [causingScrolling, setCausingScrolling] = useState(false)
-    useEffect(useCallback(_.debounce(() => {
+    const updateCausingScrolling = useCallback(_.debounce(() => {
         const el = sizeGrid.ref.current?.querySelector('.MuiTablePagination-root')
         setCausingScrolling(el && (el.scrollWidth > el.clientWidth) || false)
-    }, 500), [sizeGrid]),
-        [sizeGrid, width, sizeFooterSide.w]) // recalculate in case the footerSide changes
+    }, 500), [sizeGrid])
+    useEffect(updateCausingScrolling, [sizeGrid, width, sizeFooterSide.w]) // recalculate in case the footerSide changes
 
     return h(Fragment, {},
         error && h(Alert, { severity: 'error' }, error),
@@ -136,7 +140,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             columns: manipulatedColumns,
             apiRef,
             disableRowSelectionOnClick: true,
-            ...sizeGrid.props,
+            ref: sizeGrid.refToPass,
             ...rest,
             sx: {
                 ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex
@@ -159,7 +163,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                 },
             },
             onCellClick({ field, row }) {
-                if (field === ACTIONS) return
+                if (field === ACTIONS || details === false) return
                 if (window.getSelection()?.type === 'Range') return // not a click but a drag
                 const visibleInList = merged + apiRef.current.getVisibleColumns().length
                 const showInDialog = manipulatedColumns.filter(x =>
@@ -183,9 +187,9 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
                             minWidth: 'max(16em, 40vw)',
                             sx: { opacity: curRow ? undefined : .5 },
                         }, showInDialog.map(col =>
-                            h(Box, { key: col.field, gridColumn: col.flex && '1/-1' },
+                            h(Box, { key: col.field, gridColumn: col.flex! >= 1 ? '1/-1' : undefined },
                                 h(Box, { bgcolor: '#0003', p: 1 }, col.headerName || col.field),
-                                h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word' },
+                                h(Flex, { minHeight: '2.5em', px: 1, wordBreak: 'break-word', flexWrap: 'wrap' },
                                     renderCell(col, rowToShow) )
                             ) ))
                     }

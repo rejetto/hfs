@@ -139,7 +139,7 @@
         "Upload not available": "Отпремање није доступно",
         "Cut": "Исеци",
         "n_items": "{n,plural, one{# ставка} other{# ставке}}",
-        "good_bad": "{good} премештено, {bad} неуспешно",
+        "move_results": "{good} премештено, {bad} неуспешно",
         "after_cut": "Ваш избор је сада у клипборду.\nИдите у одредишни фолдер за лепљење.",
         "Cancel clipboard": "Откажи клипборд",
         "to_clipboard_source": "Назад у изворни фолдер",
@@ -184,6 +184,10 @@
         "creation": "креирање",
         "required_change_password": "Потребно је да промените лозинку",
         "Wildcards": "Џокер знакови",
-        "Considering resume": "Разматрам наставак"
+        "Considering resume": "Разматрам наставак",
+
+        "Yes": "Да",
+        "No":  "Не",
+        "esc_again": "Пritisnite ESC два пута за затварање"
     } 
 }

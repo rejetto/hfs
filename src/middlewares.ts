@@ -3,12 +3,12 @@
 import compress from 'koa-compress'
 import Koa from 'koa'
 import { API_URI, DEV, HTTP_FOOL } from './const'
-import { CFG, DAY, dirTraversal, isLocalHost, netMatches, splitAt, stream2string, tryJson } from './misc'
+import { ALLOW_SESSION_IP_CHANGE, DAY, dirTraversal, isLocalHost, netMatches, splitAt, stream2string, tryJson } from './misc'
 import { Readable } from 'stream'
 import { applyBlock } from './block'
 import { Account, accountCanLogin, getAccount, getFromAccount } from './perm'
 import { Connection, normalizeIp, socket2connection, updateConnectionForCtx } from './connections'
-import { invalidateSessionBefore, setLoggedIn, srpCheck } from './auth'
+import { clearTextLogin, invalidateSessionBefore } from './auth'
 import { constants } from 'zlib'
 import { getHttpsWorkingPort } from './listen'
 import { defineConfig } from './config'
@@ -16,9 +16,8 @@ import session from 'koa-session'
 import { app } from './index'
 import events from './events'
 
-const allowSessionIpChange = defineConfig<boolean | 'https'>(CFG.allow_session_ip_change, false)
 const forceHttps = defineConfig('force_https', true)
-const ignoreProxies = defineConfig('ignore_proxies', false)
+defineConfig('ignore_proxies', false)
 const allowAuthorizationHeader = defineConfig('authorization_header', true)
 export const sessionDuration = defineConfig('session_duration', Number(process.env.SESSION_DURATION) || DAY/1000,
     v => v * 1000)
@@ -52,8 +51,7 @@ export let cloudflareDetected: undefined | Date
 export const someSecurity: Koa.Middleware = (ctx, next) => {
     ctx.request.ip = normalizeIp(ctx.ip)
     const ss = ctx.session
-    const allowIpChange = ss?.[allowSessionIpChange.key()] ?? allowSessionIpChange.get() // session can override server setting
-    if (ss?.username && (!allowIpChange || !ctx.secure && allowIpChange === 'https'))
+    if (ss?.username && !ss?.[ALLOW_SESSION_IP_CHANGE])
         if (!ss.ip)
             ss.ip = ctx.ip
         else if (ss.ip !== ctx.ip) {
@@ -93,8 +91,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
 export function getProxyDetected() {
     if (proxyDetected?.state.whenProxyDetected < Date.now() - DAY)
         proxyDetected = undefined
-    return !ignoreProxies.get() && proxyDetected
-        && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
+    return proxyDetected && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
@@ -112,14 +109,12 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
     updateConnectionForCtx(ctx)
     await next()
 
-    async function urlLogin() {
+    function urlLogin() {
         const { login }  = ctx.query
         if (!login) return
         const [u, p] = splitAt(':', String(login))
-        const a = await doLogin(u, p, 'url')
-        if (!a) return
         ctx.redirect(ctx.originalUrl.slice(0, -ctx.querystring.length-1)) // redirect to hide credentials
-        return a
+        return u && clearTextLogin(ctx, u, p, 'url')
     }
 
     function getHttpAccount() {
@@ -127,22 +122,10 @@ export const prepareState: Koa.Middleware = async (ctx, next) => {
         if (!b64) return
         try {
             const [u, p] = atob(b64).split(':')
-            return doLogin(u!, p||'', 'header')
+            if (!u || u === ctx.session?.username) return // providing credentials, but not needed
+            return clearTextLogin(ctx, u, p||'', 'header')
         }
         catch {}
-    }
-
-    async function doLogin(u: string, p: string, via: string) {
-        if (!u || u === ctx.session?.username) return // providing credentials, but not needed
-        if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
-        const a = await srpCheck(u, p)
-        if (a) {
-            await setLoggedIn(ctx, a.username)
-            ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
-        }
-        else if (u)
-            events.emit('failedLogin', ctx, { username: u, via })
-        return a
     }
 }
 
@@ -158,7 +141,7 @@ declare module "koa" {
     interface DefaultState {
         params: Record<string, any>
         account?: Account // user logged in
-        revProxyPath: string
+        revProxyPath: string // must not have final slash
         connection: Connection
     }
 }

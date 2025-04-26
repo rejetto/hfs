@@ -27,17 +27,18 @@ export const FRONTEND_OPTIONS = {
 }
 export const SORT_BY_OPTIONS = ['name', 'extension', 'size', 'time', 'creation']
 export const THEME_OPTIONS = { auto: '', light: 'light', dark: 'dark' }
+// had found an interesting way to infer a type from all the calls to defineConfig (by the literals passed), but would not be usable also by admin-panel
 export const CFG = constMap(['geo_enable', 'geo_allow', 'geo_list', 'geo_allow_unknown', 'dynamic_dns_url',
     'log', 'error_log', 'log_rotation', 'dont_log_net', 'log_gui', 'log_api', 'log_ua', 'log_spam', 'track_ips',
     'max_downloads', 'max_downloads_per_ip', 'max_downloads_per_account', 'roots', 'force_address', 'split_uploads',
-    'allow_session_ip_change', 'force_lang', 'suspend_plugins', 'base_url', 'size_1024'])
+    'force_lang', 'suspend_plugins', 'base_url', 'size_1024', 'disable_custom_html', 'comments_storage'])
 export const LIST = { add: '+', remove: '-', update: '=', props: 'props', ready: 'ready', error: 'e' }
 export type Dict<T=any> = Record<string, T>
 export type Falsy = false | null | undefined | '' | 0
 type Truthy<T> = T extends false | '' | 0 | null | undefined | void ? never : T
 export type Callback<IN=void, OUT=void> = (x:IN) => OUT
 export type Promisable<T> = T | Promise<T>
-export type Functionable<T> = T | ((...args: any[]) => T)
+export type Functionable<T, Args extends any[] = any[]> = T | ((...args: Args) => T)
 export type Timeout = ReturnType<typeof setTimeout>
 export interface VfsPerms {
     can_see?: Who
@@ -58,6 +59,11 @@ export type Who = typeof WHO_ANYONE
     | WhoObject
     | AccountList // use false instead of empty array to keep the type boolean-able
 export interface WhoObject { this?: Who, children?: Who }
+export type Jsonify<T> = T extends string | number | boolean | null | undefined ? T : // undefined is necessary to preserve union types, like number|undefined
+    T extends Date ? string :
+    T extends (infer U)[] ? Jsonify<U>[] :
+    T extends object ? { [K in keyof T]: Jsonify<T[K]> } :
+    never
 
 export const defaultPerms: Required<VfsPerms> = {
     can_see: 'can_read',
@@ -103,7 +109,7 @@ export function formatBytes(n: number, { post='B', k=0, digits=NaN, sep=' ' }={}
     return nAsString + sep + (MULTIPLIERS[i]||'') + post
 } // formatBytes
 
-export function formatSpeed(n: number, options: { digits?: number }={}) {
+export function formatSpeed(n: number, options: Parameters<typeof formatBytes>[1]={}) {
     return formatBytes(n, { post: 'B/s', ...options })
 }
 
@@ -138,6 +144,10 @@ export function objFromKeys<K extends string, VR=unknown>(src: K[], getValue: (v
 
 export function enforceFinal(sub:string, s:string, evenEmpty=false) {
     return (s ? !s.endsWith(sub) : evenEmpty) ? s + sub : s
+}
+
+export function removeFinal(sub:string, s:string) {
+    return s.endsWith(sub) ? s.slice(0, -sub.length) : s
 }
 
 export function enforceStarting(sub:string, s:string, evenEmpty=false) {
@@ -220,7 +230,7 @@ export function pendingPromise<T>() {
 }
 
 export function basename(path: string) {
-    return path.slice(path.lastIndexOf('/') + 1 || path.lastIndexOf('\\') + 1)
+    return path.match(/([^\\/]+)[\\/]*$/)?.[1] || ''
 }
 
 export function dirname(path: string) {
@@ -259,28 +269,31 @@ export function findDefined<I, O>(a: I[] | Record<string, I>, cb:(v:I, k: string
     }
 }
 
+// create new object with values returned by callback. Keys are kept the same unless you call `setK('myKey')`. Calling `setK` without parameters, which implies `undefined`, will remove the key.
 export function newObj<S extends (object | undefined | null),VR=unknown>(
     src: S,
     returnNewValue: (value: S[keyof S], key: Exclude<keyof S, symbol>, setK:(newK?: string)=>true, depth: number) => any,
-    recur: boolean | number=false
+    recur: boolean | number=false // recur on the returned value, if it's an object
 ) {
-    const pairs = Object.entries(src || {}).map( ([k,v]) => {
-        if (typeof k === 'symbol') return
-        let _k: undefined | typeof k = k
+    let _k: undefined | string
+    const entries = Object.entries(src || {}).map( ([k,v]) => {
         const curDepth = typeof recur === 'number' ? recur : 0
-        let newV = returnNewValue(v, k as Exclude<keyof S, symbol>, (newK) => {
-            _k = newK
-            return true // for convenient expression concatenation
-        }, curDepth)
+        _k = k
+        let newV = returnNewValue(v, k as Exclude<keyof S, symbol>, setK, curDepth)
         if ((recur !== false || returnNewValue.length === 4) // if callback is using depth parameter, then it wants recursion
             && _.isPlainObject(newV)) // is it recurrable?
             newV = newObj(newV, returnNewValue, curDepth + 1)
         return _k !== undefined && [_k, newV]
     })
-    return Object.fromEntries(onlyTruthy(pairs)) as S extends undefined | null ? S : { [K in keyof S]:VR }
+    return Object.fromEntries(onlyTruthy(entries)) as S extends undefined | null ? S : { [K in keyof S]:VR }
+
+    function setK(newK: typeof _k) { // declare once (optimization)
+        _k = newK
+        return true as const // for convenient expression concatenation: setK('newK') && 'newValue'
+    }
 }
 
-// returns undefined if timeout is reached
+// returns undefined if timeout is reached, otherwise the value returned by the callback
 export async function waitFor<T>(cb: ()=> Promisable<T>, { interval=200, timeout=Infinity }={}) {
     const started = Date.now()
     while (1) {
@@ -346,27 +359,34 @@ export async function asyncGeneratorToArray<T>(generator: AsyncIterable<T>): Pro
     return ret
 }
 
+// like setInterval but: async executions don't overlap AND the first execution is immediate
 export function repeat(everyMs: number, cb: Callback<Callback>): Callback {
     let stop = false
-    setTimeout(async () => {
-        while (!stop && await Promise.allSettled([cb(stopIt)]))
+    ;(async () => {
+        while (!stop) {
+            try { await cb(stopIt) } // you can use stopIt passed as a parameter or the returned value, whatever makes you happy
+            catch {}
             await wait(everyMs)
-    })
+        }
+    })()
     return stopIt
     function stopIt() {
         stop = true
     }
 }
 
-export function formatTimestamp(x: number | string | Date) {
+export function formatTimestamp(x: number | string | Date, includeSeconds=true) {
     if (!x) return ''
     if (!(x instanceof Date))
         x = new Date(x)
-    return formatDate(x) + ' ' + formatTime(x)
+    return formatDate(x) + ' ' + formatTime(x, includeSeconds)
 }
 
-export function formatTime(d: Date) {
-    return [d.getHours(), d.getMinutes(), d.getSeconds()].map(x => x.toString().padStart(2, '0')).join(':') // bundled nodejs doesn't have locales
+export function formatTime(d: Date, includeSeconds=true) {
+// bundled nodejs doesn't have locales
+    return String(d.getHours()).padStart(2, '0')
+        + ':' + String(d.getMinutes()).padStart(2, '0')
+        + (includeSeconds ? ':' + String(d.getSeconds()).padStart(2, '0') : '')
 }
 
 export function formatDate(d: Date) {
@@ -465,8 +485,10 @@ export function makeMatcher(mask: string, emptyMaskReturns=false) {
         : () => emptyMaskReturns
 }
 
+// this is caching all matchers, so don't use it with frequently changing masks. Benchmarks revealed that _.memoize make it slower than not using it, while this simple cache can speed up to 30x
 export function matches(s: string, mask: string, emptyMaskReturns=false) {
-    return makeMatcher(mask, emptyMaskReturns)(s)
+    const cache = (matches as any).cache ||= {}
+    return (cache[mask + (emptyMaskReturns ? '1' : '0')] ||= makeMatcher(mask, emptyMaskReturns))(s)
 }
 
 // if delimiter is specified, it is prefixed to symbols. If it contains a space, the part after the space is considered as suffix.
@@ -507,6 +529,11 @@ export function popKey(o: any, k: string) {
     const x = o[k]
     delete o[k]
     return x
+}
+
+export function patchKey(o: any, k: string, replacer: (was: unknown) => unknown) {
+    o[k] = replacer(o[k])
+    return o
 }
 
 export function shortenAgent(agent: string) {

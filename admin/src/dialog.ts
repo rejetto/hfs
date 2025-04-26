@@ -140,16 +140,17 @@ export function confirmDialog(msg: ReactNode, { href, trueText="Go", falseText="
     }
 }
 
-type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
+export type FormDialog<T> = Omit<FormProps<T>, 'values' | 'save' | 'set'>
     & Partial<Pick<FormProps<T>, 'save'>>
     & {
         onChange?: (values:Partial<T>, extra: { setValues: Dispatch<SetStateAction<Partial<T>>> }) => void,
         before?: any
     }
 export async function formDialog<T>(
-    { form, values, ...options }: Omit<DialogOptions, 'Content'> & {
+    { form, values, Wrapper, ...options }: Omit<DialogOptions, 'Content'> & {
         values?: Partial<T>,
         form: FormDialog<T> | ((values: Partial<T>) => FormDialog<T>), // allow callback form
+        Wrapper?: FC
     },
 ) : Promise<T> {
     return new Promise(resolve => {
@@ -160,7 +161,7 @@ export async function formDialog<T>(
             Content() {
                 const [curValues, setCurValues] = useState<Partial<T>>(values||{})
                 const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
-                return h(Fragment, {},
+                return h(Wrapper || Fragment, {},
                     before,
                     h(Form, {
                         ...props,
@@ -214,7 +215,7 @@ export function waitDialog() {
     return newDialog({ Content: () => h(CircularProgress, { size: '20vw'}), noFrame: true, closable: false }).close
 }
 
-export function toast(msg: string | ReactElement, type: AlertType | ReactElement='info', options?: Partial<DialogOptions>) {
+export function toast(msg: string | ReactElement, type: AlertType | ReactElement<unknown>='info', options?: Partial<DialogOptions>) {
     const ms = 3000
     const dialog = newDialog({
         ...options,

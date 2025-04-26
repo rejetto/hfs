@@ -144,7 +144,7 @@
         "upload_dd_hint": "Có thể upload file = kéo thả lên đây:",
         "Upload not available": "Upload không có sẵn",
         "Cut": "Cắt",
-        "good_bad": "{good} đã di chuyển, {bad} thất bại",
+        "move_results": "{good} đã di chuyển, {bad} thất bại",
         "after_cut": "Dã lưu trong clipboard!\nTới folder khác để dán.",
         "Cancel clipboard": "Xoá clipboard",
         "to_clipboard_source": "Quay lại folder nguồn",
@@ -189,6 +189,10 @@
         "creation": "ngày tạo",
         "required_change_password": "Bạn được yêu cầu đổi ngay cái password",
         "Wildcards": "Wildcards (nâng cao)",
-        "Considering resume": "Lỗi kết nối. Đang kết nối lại..."
+        "Considering resume": "Lỗi kết nối. Đang kết nối lại...",
+
+        "Yes": "Có",
+        "No":  "Không",
+        "esc_again": "Nhấn ESC hai lần để đóng"
     }
 }

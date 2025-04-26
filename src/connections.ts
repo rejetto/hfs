@@ -3,6 +3,8 @@
 import { Socket } from 'net'
 import events from './events'
 import { Context } from 'koa'
+import { ip2country } from './geo'
+import _ from 'lodash'
 
 export class Connection {
     readonly started = new Date()
@@ -41,8 +43,10 @@ const all: Connection[] = []
 
 export function newConnection(socket: Socket) {
     const ip = normalizeIp(socket.remoteAddress || '')
-    if (events.emit('newSocket', { socket, ip })?.isDefaultPrevented())
-        return socket.destroy()
+    const res = events.emit('newSocket', { socket, ip })
+    const msg = res?.isDefaultPrevented() ? 'plugin (newSocket)' : res?.find(_.isString)
+    if (msg)
+        return disconnect(socket, msg)
     new Connection(socket)
 }
 
@@ -77,10 +81,19 @@ export function updateConnection(conn: Connection, change: Partial<Connection>, 
     events.emit('connectionUpdated', conn, change)
 }
 
+export const disconnectionsLog: { ts: Date, ip: string, country?: string, msg?: string }[] = []
+
 export function disconnect(what: Context | Socket, debugLog='') {
     if ('socket' in what)
         what = what.socket
+    const ip = normalizeIp(what.remoteAddress || '')
     if (debugLog)
-        console.debug("disconnection:", debugLog, normalizeIp(what.remoteAddress || ''))
+        console.debug("disconnection:", debugLog, ip)
+    ip2country(ip).then(res => {
+        const rec = { ip, country: res || undefined, ts: new Date, msg: debugLog || undefined }
+        disconnectionsLog.unshift(rec)
+        disconnectionsLog.length = Math.min(1000, disconnectionsLog.length)
+        events.emit('disconnection', rec)
+    })
     return what.destroy()
 }

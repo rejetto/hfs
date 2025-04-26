@@ -1,6 +1,6 @@
-import { prefix } from './misc'
+import { CFG, prefix } from './misc'
 import { watchLoad } from './watchLoad'
-import { proxy } from 'valtio/vanilla' // without /vanilla we trigger react dependency
+import { defineConfig } from './config'
 import Dict = NodeJS.Dict
 import { writeFile } from 'fs/promises'
 import { mapPlugins } from './plugins'
@@ -12,6 +12,7 @@ export const customHtmlSections: ReadonlyArray<string> = ['style', 'script', 'be
     'footer', 'top', 'bottom', 'afterEntryName', 'beforeLogin', 'unauthorized', 'htmlHead', 'userPanelAfterInfo']
 
 export const customHtml = watchLoadCustomHtml()
+export const disableCustomHtml = defineConfig(CFG.disable_custom_html, false)
 
 export function watchLoadCustomHtml(folder='') {
     const sections = new Map<string, string>()
@@ -33,7 +34,7 @@ export function watchLoadCustomHtml(folder='') {
 }
 
 export function getSection(name: string) {
-    return (customHtml.sections.get(name) || '')
+    return (!disableCustomHtml.get() && customHtml.sections.get(name) || '')
         + mapPlugins(pl => pl.getData().getCustomHtml()[name]).join('\n')
 }
 

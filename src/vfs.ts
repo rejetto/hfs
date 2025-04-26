@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
-    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_
+    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -15,7 +15,7 @@ import { ctxBelongsTo } from './perm'
 import { getCurrentUsername } from './auth'
 import { Stats } from 'node:fs'
 import fswin from 'fswin'
-import { DESCRIPT_ION, descriptIon } from './comments'
+import { DESCRIPT_ION, usingDescriptIon } from './comments'
 import { walkDir } from './walkDir'
 import { Readable } from 'node:stream'
 
@@ -70,9 +70,9 @@ function inheritFromParent(parent: VfsNode, child: VfsNode) {
     if (typeof parent.mime === 'object' && typeof child.mime === 'object')
         _.defaults(child.mime, parent.mime)
     else
-        child.mime ??= parent.mime
-    child.accept ??= parent.accept
-    child.default ??= parent.default
+        if (parent.mime) child.mime ??= parent.mime
+    if (parent.accept) child.accept ??= parent.accept
+    if (parent.default) child.default ??= parent.default
     return child
 }
 
@@ -142,7 +142,7 @@ export async function nodeStats(ret: VfsNode) {
 
 async function isHiddenFile(path: string) {
     return IS_WINDOWS ? new Promise(res => fswin.getAttributes(path, x => res(x?.IS_HIDDEN)))
-        : path[0] === '.'
+        : path[path.lastIndexOf('/') + 1] === '.'
 }
 
 export async function getNodeByName(name: string, parent: VfsNode) {
@@ -277,7 +277,7 @@ interface WalkNodeOptions {
     onlyFolders?: boolean,
     onlyFiles?: boolean
 }
-// it's responsibility of the caller to verify you have list permission on parent, as callers have different needs.
+// it's the responsibility of the caller to verify you have list permission on parent, as callers have different needs.
 export async function* walkNode(parent: VfsNode, {
     ctx,
     depth = Infinity,
@@ -303,7 +303,7 @@ export async function* walkNode(parent: VfsNode, {
                 taken?.add(normalizeFilename(name))
                 const item = { ...child, name }
                 if (await cantSee(item)) continue
-                if (item.source) // real items must be accessible
+                if (item.source && !item.children?.length) // real items must be accessible, unless there's more to it
                     try { await fs.access(item.source) }
                     catch { continue }
                 const isFolder = await nodeIsDirectory(child)
@@ -325,7 +325,7 @@ export async function* walkNode(parent: VfsNode, {
                 try {
                     let lastDir = prefixPath.slice(0, -1) || '.'
                     parentsCache.set(lastDir, parent)
-                    await walkDir(source, { depth, hidden: showHiddenFiles.get() }, async entry => {
+                    await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get() }, async entry => {
                         if (ctx?.isAborted()) {
                             stream.push(null)
                             return null
@@ -333,7 +333,7 @@ export async function* walkNode(parent: VfsNode, {
                         const {path} = entry
                         const isFolder = entry.isDirectory()
                         const name = prefixPath + (parent.rename?.[path] || path)
-                        if (descriptIon.get() && basename(name) === DESCRIPT_ION)
+                        if (usingDescriptIon() && basename(name) === DESCRIPT_ION)
                             return
                         if (taken?.has(normalizeFilename(name))) // taken by vfs node above
                             return false // false just in case it's a folder
@@ -399,6 +399,7 @@ export function masksCouldGivePermission(masks: Masks | undefined, perm: keyof V
 }
 
 export function parentMaskApplier(parent: VfsNode) {
+    // rules are met in the parent.masks object from nearest to farthest, but since we finally apply with _.defaults, the nearest has precedence in the final result
     const matchers = onlyTruthy(_.map(parent.masks, (mods, k) => {
         if (!mods) return
         const mustBeFolder = (() => { // undefined if no restriction is requested
@@ -409,7 +410,8 @@ export function parentMaskApplier(parent: VfsNode) {
             k = k.slice(0, i) // remove
             return type === 'folders'
         })()
-        k = k.startsWith('**/') ? k.slice(3) : !k.includes('/') ? k : '' // ** globstar matches also zero subfolders, so this mask must be applied here too
+        const m = /^(!?)\*\*\//.exec(k) // ** globstar matches also zero subfolders, so this mask must be applied here too
+        k = m ? m[1] + k.slice(m[0].length) : !k.includes('/') ? k : ''
         return k && { mods, matcher: makeMatcher(k), mustBeFolder }
     }))
     return async (item: VfsNode, virtualBasename=basename(getNodeName(item))) => { // we basename for depth>0
@@ -431,20 +433,17 @@ function inheritMasks(item: VfsNode, parent: VfsNode, virtualBasename=getNodeNam
     if (!masks) return
     const o: Masks = {}
     for (const [k,v] of Object.entries(masks)) {
-        const neg = k[0] === '!' && k[1] !== '(' ? '!' : ''
-        let withoutNeg = neg ? k.slice(1) : k
-        if (withoutNeg.startsWith('**')) {
+        if (k.startsWith('**')) {
             o[k] = v
-            if (withoutNeg[2] === '/')
-                withoutNeg = withoutNeg.slice(3) // this mask will apply also at the current level
+            continue
         }
-        if (withoutNeg.startsWith('*/'))
-            o[neg + withoutNeg.slice(2)] = v
-        else if (withoutNeg.startsWith(virtualBasename + '/'))
-            o[neg + withoutNeg.slice(virtualBasename.length + 1)] = v
+        const i = k.indexOf('/')
+        if (i < 0) continue
+        if (!matches(virtualBasename, k.slice(0, i))) continue
+        o[k.slice(i + 1)] = v
     }
     if (Object.keys(o).length)
-        item.masks = _.defaults(item.masks, o)
+        item.masks = Object.assign(o, item.masks) // don't change item.masks object as it is the same object of item.original
 }
 
 function renameUnderPath(rename:undefined | Record<string,string>, path: string) {

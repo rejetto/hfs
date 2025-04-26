@@ -4,12 +4,19 @@ import { consoleLog } from './consoleLog'
 import { HTTP_BAD_REQUEST, HTTP_NOT_ACCEPTABLE, HTTP_NOT_FOUND, wait } from './cross'
 import { apiAssertTypes } from './misc'
 import events from './events'
-import { loggers } from './log'
+import { getRotatedFiles, loggers } from './log'
+import { stat } from 'fs/promises'
 import { SendListReadable } from './SendList'
 import { forceDownload, serveFile } from './serveFile'
 import { ips } from './ips'
+import { disconnectionsLog } from './connections'
 
 export default {
+    async get_log_info() {
+        const current = Object.fromEntries(await Promise.all(loggers.map(async x => [x.name, await stat(x.path).then(s => s.size, () => 0)])))
+        return { current, rotated: await getRotatedFiles() }
+    },
+
     async get_log_file({ file = 'log', range = '' }, ctx) { // this is limited to logs on file, and serves the file instead of a list of records
         const log = _.find(loggers, { name: file })
         if (!log)
@@ -30,11 +37,15 @@ export default {
         return new SendListReadable({
             bufferTime: 10,
             async doAtStart(list) {
+                if (file === 'disconnections') {
+                    for (const x of disconnectionsLog) list.add(x)
+                    ctx.res.once('close', events.on('disconnection', x => list.add(x)))
+                    return list.ready()
+                }
                 if (file === 'ips') {
                     for await (const [k, v] of ips.iterator())
                         list.add({ ip: k, ...v })
-                    list.ready()
-                    return
+                    return list.ready()
                 }
                 if (file === 'console') {
                     for (const chunk of _.chunk(consoleLog, 1000)) { // avoid occupying the thread too long
@@ -42,9 +53,8 @@ export default {
                             list.add(x)
                         await wait(0)
                     }
-                    list.ready()
                     ctx.res.once('close', events.on('console', x => list.add(x)))
-                    return
+                    return list.ready()
                 }
                 // for other logs we only provide updates. Use get_log_file to download past content
                 if (_.some(files, x => !_.find(loggers, { name: x })) )

@@ -5,7 +5,7 @@ import { sendErrorPage } from './errorPages'
 import events from './events'
 import {
     ADMIN_URI, FRONTEND_URI, HTTP_BAD_REQUEST, HTTP_FORBIDDEN, HTTP_METHOD_NOT_ALLOWED, HTTP_NOT_FOUND,
-    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI
+    HTTP_UNAUTHORIZED, HTTP_SERVER_ERROR, HTTP_OK, ICONS_URI, HTTP_FAILED_DEPENDENCY
 } from './cross-const'
 import { uploadWriter } from './upload'
 import formidable from 'formidable'
@@ -17,7 +17,9 @@ import { allowAdmin, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
-import { asyncGeneratorToReadable, deleteNode, filterMapGenerator, pathEncode, try_ } from './misc'
+import { asyncGeneratorToReadable, filterMapGenerator, pathEncode, try_ } from './misc'
+import { rm } from 'fs/promises'
+import { setCommentFor } from './comments'
 import { basicWeb, detectBasicAgent } from './basicWeb'
 import { customizedIcons, ICONS_FOLDER } from './icons'
 import { getPluginInfo } from './plugins'
@@ -55,7 +57,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (ctx.method === 'PUT') { // curl -T file url/
         const decPath = decodeURIComponent(path)
         let rest = basename(decPath)
-        const folderUri = dirname(path)
+        const folderUri = pathEncode(dirname(decPath)) // re-encode to get readable urls
         const folder = await urlToNode(folderUri, ctx, vfs, v => rest = v+'/'+rest)
         if (!folder)
             return sendErrorPage(ctx, HTTP_NOT_FOUND)
@@ -68,11 +70,14 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
             })
             ctx.req.on('close', () => dest.end())
             const uri = await dest.lockMiddleware  // we need to wait more than just the stream
-            ctx.body = { uri }
+            if (uri) // falsy = aborted
+                ctx.body = { uri }
+            else
+                ctx.status = 400 // nodejs already sent 400, but koa ignores it (ctx.headersSent is false and ctx.status is 404), so we adjust to have correct data in the log
         }
         return
     }
-    if (/^\/favicon.ico(\??.*)/.test(ctx.originalUrl) && favicon.get()) // originalUrl to not be subject to changes (vhosting plugin)
+    if (/^\/favicon.ico(\??.*)/.test(ctx.originalUrl) && favicon.get() && ctx.method === 'GET') // originalUrl to not be subject to changes (vhosting plugin)
         return serveFile(ctx, favicon.get())
     let node = await urlToNode(path, ctx)
     if (!node)
@@ -104,16 +109,21 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
         return
     }
     if (ctx.method === 'DELETE') {
-        const res = await deleteNode(ctx, node, ctx.path)
-        if (typeof res === 'number')
-            return ctx.status = res
-        if (res instanceof Error) {
-            ctx.body = res.message || String(res)
+        const { source } = node
+        if (!source)
+            return ctx.status = HTTP_METHOD_NOT_ALLOWED
+        if (statusCodeForMissingPerm(node, 'can_delete', ctx))
+            return
+        try {
+            if ((await events.emitAsync('deleting', { node, ctx }))?.isDefaultPrevented())
+                return ctx.status = HTTP_FAILED_DEPENDENCY
+            await rm(source, { recursive: true })
+            void setCommentFor(source, '') // necessary only to clean a possible descript.ion or kvstorage
+            return ctx.status = HTTP_OK
+        } catch (e: any) {
+            ctx.body = String(e)
             return ctx.status = HTTP_SERVER_ERROR
         }
-        if (res)
-            return ctx.status = HTTP_OK
-        return
     }
     const { get } = ctx.query
     if (node.default && path.endsWith('/') && !get) { // final/ needed on browser to make resource urls correctly with html pages
@@ -159,7 +169,7 @@ async function sendFolderList(node: VfsNode, ctx: Koa.Context) {
         const { URL } = ctx
         const base = prepend === undefined && baseUrl.get()
             || URL.protocol + '//' + URL.host + ctx.state.revProxyPath
-        prepend = base + ctx.originalUrl.split('?')[0]! as string
+        prepend = base + pathEncode(decodeURI(ctx.path)) // redo the encoding our way, keeping unicode chars unchanged
     }
     const walker = walkNode(node, { ctx, depth: depth === '*' ? Infinity : Number(depth) })
     ctx.body = asyncGeneratorToReadable(filterMapGenerator(walker, async el => {

@@ -19,7 +19,9 @@ import _ from 'lodash'
 import FileField from './FileField'
 import { alertDialog, toast, useDialogBarColors } from './dialog'
 import yaml from 'yaml'
-import { Add, Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save } from '@mui/icons-material'
+import {
+    Add, Check, ContentCopy, ContentCut, ContentPaste, Delete, Edit, QrCode2, Save, RestartAlt
+} from '@mui/icons-material'
 import { moveVfs } from './VfsTree'
 import QrCreator from 'qr-creator';
 import MenuButton from './MenuButton'
@@ -27,10 +29,9 @@ import addFiles, { addLink, addVirtual } from './addFiles'
 import { SYS_ICONS } from '@hfs/frontend/src/sysIcons'
 import { hIcon } from '@hfs/frontend/src/misc'
 import { TextEditorField } from './TextEditor'
+import { Account, account2icon } from './AccountsPage'
 
 const ACCEPT_LINK = "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept"
-
-export interface Account { username: string }
 
 interface FileFormProps {
     file: VfsNode
@@ -79,13 +80,16 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
     }
     const defaultIcon = !values.icon
     const embeddedIcon = values.icon && !values.icon.includes('.')
+    const nameFromSource = source && basename(source)
+    const nameIsDerivedFromSource = nameFromSource === values.name
     return h(Form, {
         values,
         set(v, k) {
             setValues(values => {
-                const nameIsVirtual = k === 'source' && values.name && values.source?.endsWith(values.name)
-                const name = nameIsVirtual ? basename(v) : values.name // update name if virtual
-                return { ...values, name, [k]: v }
+                // updating the source, if the name is virtual, we must update that too
+                if (k === 'source' && nameIsDerivedFromSource)
+                    values.name = basename(v)
+                return { ...values, [k]: v }
             })
         },
         barSx: { gap: 2, width: '100%', ...barColors },
@@ -151,7 +155,9 @@ export default function FileForm({ file, addToBar, statusApi, accounts, saved }:
         fields: [
             isRoot ? h(Alert, { severity: 'info' }, "This is Home, the root of your shared files. Options set here will be applied to all files.")
                 : isDir && hasSource && h(Alert, { severity: 'info' }, `To set permissions on individual items in folder, add them by clicking Add button, and then "from disk"`),
-            !isRoot && { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk" },
+            !isRoot && { k: 'name', required: true, xl: true, helperText: hasSource && "You can decide a name that's different from the one on your disk",
+                end: nameFromSource && !nameIsDerivedFromSource && h(Btn, { icon: RestartAlt, title: "Reset", onClick: () => setValues({ ...values, name: nameFromSource }) }),
+            },
             isLink ? { k: 'url', label: "URL", lg: 12, required: true }
                 : { k: 'source', label: "Disk source", xl: true, comp: FileField, files: isUnknown || !isDir, folders: isUnknown || isDir,
                     placeholder: "none",
@@ -249,7 +255,7 @@ interface WhoFieldProps extends FieldProps<Who | undefined> {
 function WhoField({ value, onChange, parent, inherit, accounts, helperText, otherPerms, byMasks,
         hideValues, isChildren, isDir, contentText="folder content", setApi, ...rest }: WhoFieldProps): ReactElement {
     const defaultLabel = who2desc(byMasks ?? inherit)
-        + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "inherited" : "default", ')')
+        + prefix(' (', byMasks !== undefined ? "from masks" : parent !== undefined ? "as parent folder" : "default", ')')
     const objectMode = isWhoObject(value)
     const thisValue = objectMode ? value.this : value
 
@@ -279,10 +285,14 @@ function WhoField({ value, onChange, parent, inherit, accounts, helperText, othe
         }),
         h(Collapse, { in: arrayMode, timeout },
             arrayMode && h(MultiSelectField as Field<string[]>, {
-                label: accounts?.length ? "Accounts for " + rest.label : "You didn't create any account yet",
+                label: accounts?.length ? "Accounts " + rest.label : "You didn't create any account yet",
                 value: thisValue,
                 onChange,
-                options: accounts?.map(a => ({ value: a.username, label: a.username })) || [],
+                options: accounts?.map(a => ({ value: a.username, label: a.username, a })) || [],
+                placeholder: "none",
+                ...thisValue.length === 0 && { helperText: "Select some account", error: true },
+                // show icon only for groups, to save space inside the field (not the list)
+                renderOption: (x: any) => h('span', {}, x.a?.isGroup && account2icon(x.a), ' ', x.label),
             }) ),
         h(FormHelperText, {},
             helperText,
@@ -352,6 +362,7 @@ function LinkField({ value, statusApi }: LinkFieldProps) {
         !urls ? 'error' : // check data is ok
         h(DisplayField, {
             label: "Link",
+            className: 'maskInTests',
             value: link || `outside of configured main address (${baseHost})`,
             error,
             InputProps: link ? { inputComponent: RenderLink } : undefined,
@@ -448,8 +459,8 @@ export async function changeBaseUrl() {
                             async onClick() {
                                 if (v !== base_url)
                                     await apiCall('set_config', { values: { [CFG.base_url]: v.replace(/\/$/, '') } })
-                                resolve(v)
                                 close()
+                                resolve(v)
                             },
                         }) ),
                 )

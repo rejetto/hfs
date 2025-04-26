@@ -11,7 +11,19 @@
   </head>
   <body>
   <style class="removeAtBoot">@media (prefers-color-scheme: dark) { html { background-color: #000; color: #888; } }</style>
-  <div id="root"></div>
+  <div id="root">Loading... <span id="loadingPerc"/></div>
   <script nomodule>document.getElementById('root').innerText = "Please use a newer browser"</script>
+  <script>
+    (function(){ // legacy way to not pollute global scope
+      const total = 2600*1000 // no need to be precise, but stay on the abundant side
+      const t = setInterval(function() {
+        const e = document.getElementById('loadingPerc')
+        if (!e) // when load is complete the element will be removed
+          return clearInterval(t)
+        const v = performance.getEntriesByType('resource').reduce((acc, res) => acc + (res.transferSize || 0), 0)
+        e.innerText = Math.min(100, Math.round(v / total * 100)) + '%'
+      }, 200)
+    })()
+  </script>
   </body>
 </html>

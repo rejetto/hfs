@@ -5,7 +5,7 @@ import {
     useCallback, useEffect, useMemo, useRef, useState
 } from 'react'
 import { useIsMounted, useWindowSize, useMediaQuery } from 'usehooks-ts'
-import { Callback, Falsy } from '.'
+import { Callback, domOn, Falsy } from '.'
 import _ from 'lodash'
 
 export function useStateMounted<T>(init: T) {
@@ -52,7 +52,7 @@ export function useRequestRender() {
 export function useBatch<Job=unknown,Result=unknown>(
     worker: Falsy | ((jobs: Job[]) => Promise<Result[]>),
     job: undefined | Job,
-    { delay=0 }={}
+    { delay=0, expireAfter=0 }={}
 ) {
     interface Env {
         batch: Set<Job>
@@ -78,6 +78,11 @@ export function useBatch<Job=unknown,Result=unknown>(
                         jobs.forEach((job, i) =>
                             env.cache.set(job, res[i] ?? null) )
                     }).finally(resolve)
+                    if (expireAfter)
+                        setTimeout(() => {
+                            for (const job of jobs)
+                                env.cache.delete(job)
+                        }, expireAfter)
                 }
                 finally {
                     env.waiter = undefined
@@ -121,36 +126,37 @@ export function useIsMobile() {
     return useMediaQuery('(pointer:coarse)')
 }
 
-// calls back with [width, height]
+// returns props to assign to your component, and a copy of the ref; calls back with [width, height]
 export function useOnResize(cb: Callback<[number, number]>) {
     const observer = useMemo(() =>
-        new ResizeObserver(_.debounce(([{contentRect: r}]) => cb([r.width, r.height]), 10)),
+        new ResizeObserver(_.debounce(([{ contentRect: r, target }]) => {
+            const style = getComputedStyle(target)
+            const pw = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+            const ph = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+            cb([r.width + pw, r.height + ph])
+        }, 10)),
         [])
-
-    return useMemo(() => ({
-        ref(el: any) {
+    const ref = useRef<HTMLElement>()
+    return {
+        ref,
+        refToPass: useCallback((el: any) => {
             observer.disconnect()
             if (el)
                 observer.observe(el)
-        }
-    }), [observer])
+            ref.current = el
+        }, [observer])
+    }
 }
 
-export function useGetSize({ refProp='ref' }={}) {
+export function useGetSize() {
     const [size, setSize] = useState<[number,number]>()
-    const ref = useRef<HTMLElement>()
-    const props = useOnResize(setSize)
-    const propsRef = useCallback((el: any) => passRef(el, ref, props.ref), [props])
+    const { refToPass, ref } = useOnResize(setSize)
     return useMemo(() => ({
         w: size?.[0],
         h: size?.[1],
         ref,
-        props: {
-            ...props,
-            ...refProp !== 'ref' && { ref: undefined },
-            [refProp]: propsRef
-        }
-    }), [size, ref, propsRef])
+        refToPass
+    }), [size, ref])
 }
 
 export function useEffectOnce(cb: Callback, deps: any[]) {
@@ -185,4 +191,25 @@ export function noAriaTitle(title: string) {
 export const isMac = navigator.platform.match('Mac')
 export function isCtrlKey(ev: KeyboardEvent) {
     return (ev.ctrlKey || isMac && ev.metaKey) && ev.key
+}
+
+export function useAutoScroll(dependency: any) {
+    const ref = useRef<any>()
+    const lastScrollListenerRef = useRef<any>()
+    const [goBottom, setGoBottom] = useState(true)
+    useEffect(() => {
+        const { current: el } = ref
+        if (goBottom)
+            el?.scrollTo(0, el.scrollHeight)
+    }, [goBottom, dependency])
+    return useCallback((el: any) => {
+        ref.current = el
+        // reinstall listener
+        lastScrollListenerRef.current?.()
+        lastScrollListenerRef.current = domOn('scroll', ev => {
+            const el = ev.target as HTMLDivElement
+            if (!el) return
+            setGoBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 3)
+        }, { target: el })
+    }, [])
 }

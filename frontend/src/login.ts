@@ -5,26 +5,31 @@ import { state, useSnapState } from './state'
 import { alertDialog, newDialog, toast } from './dialog'
 import {
     getHFS, hIcon, makeSessionRefresher, srpClientSequence, working, fallbackToBasicAuth,
-    HTTP_CONFLICT, HTTP_UNAUTHORIZED, CFG,
+    HTTP_CONFLICT, HTTP_UNAUTHORIZED, HTTP_METHOD_NOT_ALLOWED, ALLOW_SESSION_IP_CHANGE,
 } from './misc'
 import { createElement as h, Fragment, useEffect, useRef } from 'react'
 import { reloadList } from './useFetchList'
 import { Checkbox, CustomCode } from './components'
 import { changePassword } from './UserPanel'
+import _ from 'lodash'
 import i18n from './i18n'
 const { t, useI18N } = i18n
 
 async function login(username:string, password:string, extra?: object) {
     const stopWorking = working()
-    return srpClientSequence(username, password, apiCall, extra).then(res => {
+    return srpClientSequence(username, password, apiCall, extra).catch(err => {
+        if (err.code == HTTP_METHOD_NOT_ALLOWED || !password) // allow alternative authentications without a password
+            return apiCall('login', { username, password, ...extra })
+        throw err
+    }).then(res => {
         refreshSession(res)
         state.loginRequired = false
         return res
-    }, (err: any) => {
-        throw Error(err.message === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
-            : err.code === HTTP_UNAUTHORIZED ? t('login_bad_credentials', "Invalid credentials")
+    }, err => {
+        throw Error(err.data === 'trust' ? t('login_untrusted', "Login aborted: server identity cannot be trusted")
+            : err.code === HTTP_UNAUTHORIZED && !err.data ? t('login_bad_credentials', "Invalid credentials") // err.data is empty on standard errors, but a plugin may want to show differently
                 : err.code === HTTP_CONFLICT ? t('login_bad_cookies', "Cookies not working - login failed")
-                    : t(err.message || String(err)))
+                    : t(err.message || String(err)) )
     }).finally(stopWorking)
 }
 
@@ -71,11 +76,11 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                 return h('form', {
                     onSubmit(ev:any) {
                         ev.preventDefault()
-                        go()
+                        go(ev)
                     }
                 },
                     h(CustomCode, { name: 'beforeLogin' }),
-                    h('div', { className: 'field' },
+                    h(CustomCode, { name: 'loginUsernameField' }, h('div', { className: 'field' },
                         h('label', { htmlFor: 'login_username' }, t`Username`),
                         h('input', {
                             ref: usrRef,
@@ -85,8 +90,8 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                             required: true,
                             onKeyDown
                         }),
-                    ),
-                    h('div', { className: 'field' },
+                    )),
+                    h(CustomCode, { name: 'loginPasswordField' }, h('div', { className: 'field' },
                         h('label', { htmlFor: 'login_password' }, t`Password`),
                         h('input', {
                             ref: pwdRef,
@@ -97,12 +102,13 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                             required: true,
                             onKeyDown
                         }),
-                    ),
-                    h('div', { style: { textAlign: 'right' } },
+                    )),
+                    h(CustomCode, { name: 'beforeLoginSubmit' }),
+                    h('div', { className: 'submit' },
                         h('button', { type: 'submit' }, t`Continue`)),
                     h('div', { id: 'login-options' },
-                        h(Checkbox, { ref: ipRef, id: 'allow_session_ip_change' },
-                            t('allow_session_ip_change', "Allow IP change during this session")),
+                        h(Checkbox, { ref: ipRef, id: ALLOW_SESSION_IP_CHANGE },
+                            t(ALLOW_SESSION_IP_CHANGE, "Allow IP change during this session")),
                     ),
                 )
 
@@ -111,18 +117,21 @@ export async function loginDialog(closable=true, reloadAfter=true) {
                     if (key === 'Escape')
                         return close(null)
                     if (key === 'Enter')
-                        return go()
+                        return go(ev)
                 }
 
-                async function go(ev?: Event) {
-                    ev?.stopPropagation()
-                    const usr = usrRef.current?.value.trim()
-                    const pwd = pwdRef.current?.value
-                    if (going || !usr || !pwd) return
+                async function go(ev: Event) {
+                    const form = ev.target instanceof HTMLElement && ev.target.closest('form')
+                    if (!form) return
+                    ev.stopPropagation()
+                    const { username, password, ...rest } = _.pickBy(Object.fromEntries(new FormData(form).entries()), _.isString) // skip files
+                    const u = username.trim()
+                    if (going || !u) return
                     going = true
                     try {
-                        const res = await login(usr, pwd, {
-                            [CFG.allow_session_ip_change]: ipRef.current?.checked
+                        const res = await login(u, password, {
+                            [ALLOW_SESSION_IP_CHANGE]: ipRef.current?.checked,
+                            ...rest
                         })
                         await close(true)
                         toast(t`Logged in`, 'success')

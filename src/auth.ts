@@ -1,9 +1,9 @@
 import { Account, getAccount, normalizeUsername, updateAccount } from './perm'
-import { HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
+import { ALLOW_SESSION_IP_CHANGE, HTTP_NOT_ACCEPTABLE, HTTP_SERVER_ERROR } from './cross-const'
 import { SRPParameters, SRPRoutines, SRPServerSession } from 'tssrp6a'
 import { Context } from 'koa'
 import { srpClientPart } from './srp'
-import { CFG, DAY } from './cross'
+import { DAY } from './cross'
 import { expiringCache } from './expiringCache'
 import { createHash } from 'node:crypto'
 import events from './events'
@@ -38,6 +38,19 @@ export function getCurrentUsername(ctx: Context): string {
     return ctx.state.account?.username || ''
 }
 
+export async function clearTextLogin(ctx: Context, u: string, p: string, via: string) {
+    if ((await events.emitAsync('attemptingLogin', { ctx, username: u, via }))?.isDefaultPrevented()) return
+    const plugins = await events.emitAsync('clearTextLogin', { ctx, username: u, password: p, via }) // provide clear password to plugins
+    const a = plugins?.some(x => x === true) ? getAccount(u) : await srpCheck(u, p)
+    if (a) {
+        await setLoggedIn(ctx, a.username)
+        ctx.headers['x-username'] = a.username // give an easier way to determine if the login was successful
+    }
+    else if (u)
+        events.emit('failedLogin', ctx, { username: u, via })
+    return a
+}
+
 // centralized log-in state
 export async function setLoggedIn(ctx: Context, username: string | false) {
     const s = ctx.session
@@ -51,9 +64,10 @@ export async function setLoggedIn(ctx: Context, username: string | false) {
     }
     const a = ctx.state.account = getAccount(username)
     if (!a) return
+    await events.emitAsync('finalizingLogin', { ctx, username, inputs: { ...ctx.state.params, ...ctx.query } })
     s.username = normalizeUsername(username)
     s.ts = Date.now()
-    const k = CFG.allow_session_ip_change
+    const k = ALLOW_SESSION_IP_CHANGE
     s[k] = k in ctx.query || Boolean(ctx.state.params?.[k]) || undefined // login APIs will get ctx.state.params, others can rely on ctx.query
     if (!a.expire && a.days_to_live)
         updateAccount(a, { expire: new Date(Date.now() + a.days_to_live! * DAY) })

@@ -54,8 +54,8 @@ export interface FieldProps<T> {
 type Dict<T=any> = Record<string,T>
 
 export interface FormProps<Values> extends Partial<BoxProps> {
-    fields: (FieldDescriptor | ReactElement | null | undefined | false)[]
-    defaults?: (f:FieldDescriptor) => any
+    fields: (FieldDescriptor | ReactElement<unknown> | null | undefined | false)[]
+    defaults?: (f:FieldDescriptor) => Partial<FieldDescriptor>
     values: Values
     set: (v: any, fieldK: keyof Values) => void
     save: false | Partial<Parameters<typeof Button>[0]> | (()=>any)
@@ -123,14 +123,18 @@ export function Form<Values extends Dict>({
                     return null
                 if (isValidElement(row))
                     return h(Grid, { key: idx, xs: 12 }, row)
-                const { k, fromField=_.identity, toField=_.identity, getError, error, ...field } = row
+                if (defaults)
+                    row = { ...defaults?.(row), ...row }
+                const { k, fromField=_.identity, toField=_.identity, getError, error,
+                    xs=12, sm, md, lg, xl, comp=StringField, before, after, parentProps,
+                    ...field } = row
                 let errMsg = errors[k] || error || fieldExceptions[k]
                 if (errMsg === true)
                     errMsg = "Not valid"
                 if (k) {
                     const originalValue = row.hasOwnProperty('value') ? row.value : values?.[k]
-                    const whole = { ...row, ...field }
                     Object.assign(field, {
+                        name: k,
                         value: toField(originalValue),
                         error: Boolean(errMsg || error) || undefined,
                         setApi(api) { apis[k] = api },
@@ -155,27 +159,23 @@ export function Form<Values extends Dict>({
                         field.helperText = h(Fragment, {}, ...field.helperText)
                     if (errMsg) // special rendering when we have both error and helperText. "hr" would be nice but issues a warning because contained in a <p>
                         field.helperText = !field.helperText ? errMsg
-                            : h(Fragment, {},
-                                h('span', { style: { borderBottom: '1px solid' } }, errMsg),
-                                h(Box, { color: 'text.primary', component: 'span', /*avoid console warning*/ display: 'block' },
-                                    field.helperText),
+                            : h(Box, { color: 'text.primary', component: 'span' },
+                                h(Box, {
+                                    color: 'error.main',
+                                    style: { borderBottom: '1px solid' },
+                                    component: 'span', display: 'block' // avoid console warning, but keep it on separate line
+                                }, errMsg),
+                                field.helperText,
                             )
                     if (field.label === undefined)
                         field.label = labelFromKey(k)
-                    _.defaults(field, defaults?.(whole))
                 }
-                {
-                    const { xs=12, sm, md, lg, xl, comp=StringField, before, after, parentProps,
-                        fromField, toField, // don't propagate
-                        ...rest } = field
-                    Object.assign(rest, { name: k })
-                    const n = (keyMet[k] = (keyMet[k] || 0) + 1)
-                    return h(Grid, { key: k ? k + n : idx, xs, sm, md, lg, xl, ...parentProps },
-                        before,
-                        isValidElement(comp) ? comp : h(comp, rest),
-                        after
-                    )
-                }
+                const n = (keyMet[k] = (keyMet[k] || 0) + 1)
+                return h(Grid, { key: k ? k + n : idx, xs, sm, md, lg, xl, ...parentProps },
+                    before,
+                    isValidElement(comp) ? comp : h(comp, field),
+                    after
+                )
             })
         ),
         saveBtn && h(Box, {
@@ -221,10 +221,17 @@ export function Form<Values extends Dict>({
             if (!f || isValidElement(f) || !f.k) continue
             const { k } = f
             const v = values?.[k]
-            const err = await apis[k]?.getError?.(v, { values, fields })
-                || await f.getError?.(v, { values, fields })
-                || fieldExceptions[k]
-            errs[k] = err || false
+            let err: ReactNode
+            try {
+                err = await apis[k]?.getError?.(v, { values, fields })
+                    || await f.getError?.(v, { values, fields })
+                    || fieldExceptions[k]
+                    || false
+            }
+            catch(e) {
+                err = String(e) // keep exception as error
+            }
+            errs[k] = err
             if (!submitAfterValidation.current && k === validateUpTo.current) break
             if (!mounted.current) return // abort
         }

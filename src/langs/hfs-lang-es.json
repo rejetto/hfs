@@ -143,7 +143,7 @@
         "Upload not available": "Carga no disponible",
         "Cut": "Cortar",
         "n_items": "{n,plural, one{# elemento} other{# elementos}}",
-        "good_bad": "{good} movido, {bad} fallado",
+        "move_results": "{good} movido, {bad} fallado",
         "after_cut": "Su selección está ahora en el portapapeles.\nVaya a la carpeta de destino para pegar.",
         "Cancel clipboard": "Cancelar portapapeles",
         "to_clipboard_source": "Volver a la carpeta de origen",
@@ -188,6 +188,10 @@
         "creation": "creación",
         "required_change_password": "Debe cambiar su contraseña",
         "Wildcards": "Comodines",
-        "Considering resume": "Considerando reanudar"
+        "Considering resume": "Considerando reanudar",
+
+        "Yes": "Si",
+        "No":  "No",
+        "esc_again": "Presione ESC dos veces para cerrar"
     }
 }

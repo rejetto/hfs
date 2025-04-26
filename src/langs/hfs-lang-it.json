@@ -130,7 +130,7 @@
         "Upload not available": "Upload non disponibile",
         "Cut": "Taglia",
         "n_items": "{n,plural, one{# elemento} other{# elementi}}",
-        "good_bad": "{good} spostati, {bad} falliti",
+        "move_results": "{good} spostati{bad,plural, =0{} =1{, 1 fallito} other{, # falliti}}",
         "after_cut": "Hai messo negli appunti, ora spostati fino alla destinazione e premi \"Incolla\".",
         "Cancel clipboard": "Annulla appunti",
         "to_clipboard_source": "Torna alla cartella d'origine",
@@ -175,6 +175,10 @@
         "creation": "creazione",
         "required_change_password": "È necessario cambiare la password",
         "Wildcards": "Caratteri jolly",
-        "Considering resume": "Ripristino upload"
+        "Considering resume": "Ripristino upload",
+
+        "Yes": "Sì",
+        "No":  "No",
+        "esc_again": "Premi ESC due volte per chiudere"
     }
 }

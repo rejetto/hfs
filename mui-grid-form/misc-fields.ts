@@ -24,7 +24,7 @@ export function NumberField({ value, onChange, setApi, required, min=0, max, ste
                 : (value < min ? "too low" : value > max ? "too high" : false)
         }
     })
-    const size = useGetSize({ refProp: 'fieldRef' })
+    const size = useGetSize()
     return h(StringField, {
         type: 'number',
         value: value == null ? '' : String(value),
@@ -54,7 +54,7 @@ export function NumberField({ value, onChange, setApi, required, min=0, max, ste
             }, unit),
         }),
         ...props,
-        ...size.props,
+        fieldRef: size.refToPass,
     })
 }
 

@@ -104,10 +104,16 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
             ev.preventDefault()
             ev.stopPropagation()
         }
-    }, [setExpanded])
+    }, [setExpanded, statusApi.data])
     const ref = useRef<HTMLUListElement>(null)
-    const [expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({ icon: exp ? UnfoldLess : UnfoldMore, sx: { rotate: exp ? 0 : '180deg' } }))
-    useEffectOnce(() => setExpanded(expandAll ? Array.from(id2node.keys()) : ['/']), [expandAll])
+    const [expandAll, toggleBtn] = useToggleButton("Collapse all", "Expand all", exp => ({
+        icon: exp ? UnfoldLess : UnfoldMore,
+        sx: { rotate: exp ? 0 : '180deg' },
+    }))
+    useEffectOnce(() => {
+        setExpanded(expandAll ? Array.from(id2node.keys())
+            : ['/', ...vfs?.children?.length === 1 ? [vfs.children[0].id] : []]) // in case there's only one child, expand that too
+    }, [expandAll, Boolean(vfs)]) // vfs is undefined on first render, we want to be called again as soon as it is loaded first time and not at reloads
     // be sure selected element is visible
     const treeId = 'vfs'
     const first = selectedFiles[0]

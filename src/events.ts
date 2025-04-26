@@ -18,7 +18,7 @@ export class BetterEventEmitter {
             cbs.add(listener)
             if (cbs.size > warnAfter)
                 console.warn("Warning: many event listeners for ", e)
-            this.emit(e + LISTENERS_SUFFIX, cbs)
+            this.emit(e + LISTENERS_SUFFIX, cbs, listener)
         }
         if (callNow)
             try { listener() }
@@ -37,13 +37,15 @@ export class BetterEventEmitter {
         return this.on(event + LISTENERS_SUFFIX, listener)
     }
     once(event: string, listener?: Listener) {
-        return new Promise<any[]>(resolve => {
-            const off = this.on(event, function(...args){
+        let off: () => unknown
+        const pro = new Promise<any[]>(resolve => {
+            off = this.on(event, function(...args){
                 off()
-                resolve(args)
-                return listener?.(...arguments)
+                resolve(args.slice(0, -1)) // remove the extra argument at the end of our emit()
+                return listener?.(...args)
             })
         })
+        return Object.assign(off!, { then: pro.then.bind(pro) } satisfies PromiseLike<any> as Promise<any>)
     }
     multi(map: { [eventName: string]: Listener }) {
         const cbs = Object.entries(map).map(([name, cb]) => this.on(name.split(' '), cb))
@@ -74,7 +76,7 @@ export class BetterEventEmitter {
     async emitAsync(event: string, ...args: any[]) {
         const syncRet = this.emit(event, ...args)
         if (!syncRet) return
-        const asyncRet = await Promise.all(syncRet)
+        const asyncRet: typeof syncRet = await Promise.all(syncRet)
         return Object.assign(asyncRet, {
             isDefaultPrevented: () => syncRet.isDefaultPrevented()
                 || asyncRet.some((r: any) => r === this.preventDefault)

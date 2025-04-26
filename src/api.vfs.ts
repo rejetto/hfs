@@ -1,7 +1,9 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
-    permsFromParent, nodeIsLink } from './vfs'
+import {
+    getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
+    permsFromParent, nodeIsLink, VfsNodeStored
+} from './vfs'
 import _ from 'lodash'
 import { mkdir, stat } from 'fs/promises'
 import { ApiError, ApiHandlers } from './apiMiddleware'
@@ -25,7 +27,8 @@ async function urlToNodeOriginal(uri: string) {
     return n?.isTemp ? n.original : n
 }
 
-const ALLOWED_KEYS = ['name','source','masks','default','accept','rename','mime','url','target','comment','icon','order', ...PERM_KEYS]
+const ALLOWED_KEYS: (keyof VfsNodeStored)[] = ['name', 'source', 'masks', 'default', 'accept', 'rename', 'mime', 'url',
+    'target', 'comment', 'icon', 'order', ...PERM_KEYS]
 
 export interface LsEntry { n:string, s?:number, m?:string, c?:string, k?:'d' }
 
@@ -37,7 +40,7 @@ const apis: ApiHandlers = {
         async function recur(node=vfs): Promise<VfsNodeAdminSend> {
             const { source } = node
             const stats = !source ? undefined : (node.stats || await stat(source!).catch(() => undefined))
-            const isDir = !nodeIsLink(node) && (!source || (stats?.isDirectory() ?? node.children?.length! > 0))
+            const isDir = !nodeIsLink(node) && (!source || (stats?.isDirectory() ?? (source.endsWith('/') || node.children?.length! > 0)))
             const copyStats: Pick<VfsNodeAdminSend, 'size' | 'birthtime' | 'mtime'> = stats ? _.pick(stats, ['size', 'birthtime', 'mtime'])
                 : { size: source ? -1 : undefined }
             if (copyStats.mtime && (stats?.mtimeMs! - stats?.birthtimeMs!) < 1000)
@@ -92,7 +95,6 @@ const apis: ApiHandlers = {
         const n = await urlToNodeOriginal(uri)
         if (!n)
             return new ApiError(HTTP_NOT_FOUND, 'path not found')
-        props = pickProps(props, ALLOWED_KEYS) // sanitize
         if (props.name && props.name !== getNodeName(n)) {
             if (!isValidFileName(props.name))
                 return new ApiError(HTTP_BAD_REQUEST, 'bad name')
@@ -102,7 +104,7 @@ const apis: ApiHandlers = {
         }
         if (props.masks && typeof props.masks !== 'object')
             delete props.masks
-        Object.assign(n, props)
+        Object.assign(n, pickProps(props, ALLOWED_KEYS))
         simplifyName(n)
         saveVfs()
         return n
@@ -187,7 +189,7 @@ const apis: ApiHandlers = {
 
     get_disk_spaces: getDiskSpaces,
 
-    get_ls({ path, files=true, fileMask }, ctx) {
+    get_ls({ path, files, fileMask }, ctx) {
         return new SendListReadable<LsEntry>({
             async doAtStart(list) {
                 if (!path && IS_WINDOWS) {
@@ -203,7 +205,7 @@ const apis: ApiHandlers = {
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
-                    await walkDir(path, {}, async entry => {
+                    await walkDir(path, { ctx }, async entry => {
                         if (ctx.isAborted())
                             return null
                         const {path:name} = entry
@@ -268,8 +270,8 @@ const apis: ApiHandlers = {
 
 export default apis
 
-// pick only selected props, and consider null and empty string as undefined
-function pickProps(o: any, keys: string[]) {
+// pick only selected props, and consider null and empty string as undefined, as it's the default value and we don't want to store it
+export function pickProps(o: any, keys: string[]) {
     const ret: any = {}
     if (o && typeof o === 'object')
         for (const k of keys)

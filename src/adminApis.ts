@@ -16,13 +16,13 @@ import netApis from './api.net'
 import logApis from './api.log'
 import certApis from './api.cert'
 import { getConnections } from './connections'
-import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, typedEntries, waitFor } from './misc'
-import { accountCanLoginAdmin, accountsConfig } from './perm'
+import { apiAssertTypes, debounceAsync, isLocalHost, makeNetMatcher, try_, typedEntries, waitFor } from './misc'
+import { accountCanLoginAdmin, accounts } from './perm'
 import Koa from 'koa'
 import { cloudflareDetected, getProxyDetected } from './middlewares'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { customHtmlSections, customHtml, saveCustomHtml } from './customHtml'
+import { customHtmlSections, customHtml, saveCustomHtml, disableCustomHtml } from './customHtml'
 import _ from 'lodash'
 import {
     autoCheckUpdateResult, getUpdates, getVersions, localUpdateAvailable, update, updateSupported, previousAvailable
@@ -106,6 +106,7 @@ export const adminApis = {
 
     get_custom_html() {
         return {
+            enabled: !disableCustomHtml.get(),
             sections: Object.fromEntries([
                 ...customHtmlSections.concat(getErrorSections()).map(k => [k,'']), // be sure to output all sections
                 ...customHtml.sections // override entries above
@@ -160,7 +161,17 @@ export const adminApis = {
         const optionals = _.pickBy({ expire, comment }, v => v !== undefined) // passing undefined-s would override values in merge
         addBlock({ ip, ...optionals }, merge)
         return {}
-    }
+    },
+
+    async geo_ip({ ip }) {
+        apiAssertTypes({ string: { ip } })
+        return { country: await ip2country(ip) }
+    },
+
+    validate_net_mask({ mask }) {
+        apiAssertTypes({ string: { mask } })
+        return { result: Boolean(try_(() => makeNetMatcher(mask))) }
+    },
 
 } satisfies ApiHandlers
 
@@ -199,7 +210,7 @@ const frpDebounced = debounceAsync(async () => {
 }, { retain: 10_000 })
 
 export function anyAccountCanLoginAdmin() {
-    return Boolean(_.find(accountsConfig.get(), accountCanLoginAdmin))
+    return Boolean(_.find(accounts.get(), accountCanLoginAdmin))
 }
 
 export function allowAdmin(ctx: Koa.Context) {

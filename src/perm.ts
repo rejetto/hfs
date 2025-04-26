@@ -1,7 +1,7 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import _ from 'lodash'
-import { getOrSet, HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
+import { HTTP_BAD_REQUEST, objRenameKey, objSameKeys, setHidden, typedEntries, wantArray } from './misc'
 import { defineConfig, saveConfigAsap } from './config'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import events from './events'
@@ -23,11 +23,11 @@ export interface Account {
     expire?: Date
     days_to_live?: number // this is not inherited, but it will affect sub-accounts via 'expire'
     allow_net?: string
-    require_password_change?: boolean
+    require_password_change?: boolean // not inherited
+    notes?: string
+    plugin?: { id?: string, auth?: boolean, [rest: string]: unknown }
 }
 interface Accounts { [username:string]: Account }
-
-let accounts: Accounts = {}
 
 // provides the username and all other usernames it inherits based on the 'belongs' attribute. Useful to check permissions
 export function expandUsername(who: string): string[] {
@@ -45,18 +45,18 @@ export function expandUsername(who: string): string[] {
 
 // check if current username or any ancestor match the provided usernames
 export function ctxBelongsTo(ctx: Koa.Context, usernames: string[]) {
-    return getOrSet(ctx.state, 'usernames', () => expandUsername(getCurrentUsername(ctx))) // cache ancestors' usernames inside context state
+    return (ctx.state.usernames ||= expandUsername(getCurrentUsername(ctx))) // cache ancestors' usernames inside context state
         .some((u: string) => usernames.includes(u))
 }
 
 export function getUsernames() {
-    return Object.keys(accounts)
+    return Object.keys(accounts.get())
 }
 
 export function getAccount(username:string, normalize=true) : Account | undefined {
     if (normalize)
         username = normalizeUsername(username)
-    return username ? accounts[username] : undefined
+    return username ? accounts.get()[username] : undefined
 }
 
 export function saveSrpInfo(account:Account, salt:string | bigint, verifier: string | bigint) {
@@ -98,7 +98,7 @@ export async function updateAccount(account: Account, change: Partial<Account> |
     if (account.belongs) {
         account.belongs = wantArray(account.belongs)
         _.remove(account.belongs, b => {
-            if (accounts.hasOwnProperty(b)) return
+            if (accounts.get().hasOwnProperty(b)) return
             console.error(`account ${username} belongs to non-existing ${b}`)
             return true
         })
@@ -114,10 +114,10 @@ export async function updateAccount(account: Account, change: Partial<Account> |
 
 const saveAccountsAsap = saveConfigAsap
 
-export const accountsConfig = defineConfig('accounts', {} as Accounts)
-accountsConfig.sub(obj => {
-    // consider some validation here
-    _.each(accounts = obj, (rec,k) => {
+export const accounts = defineConfig('accounts', {} as Accounts)
+accounts.sub(_.debounce(obj => {
+    // consider some validation here, in case of manual edit of the config
+    _.each(obj, (rec,k) => {
         const norm = normalizeUsername(k)
         if (rec?.username !== norm) {
             if (!rec) // an empty object in yaml is parsed as null
@@ -128,7 +128,7 @@ accountsConfig.sub(obj => {
         }
         void updateAccount(rec, {}) // work fields
     })
-})
+})) // don't trigger in the middle of a series of deletion, as we may have an inconsistent state
 
 export function normalizeUsername(username: string) {
     return username.toLocaleLowerCase()
@@ -136,25 +136,24 @@ export function normalizeUsername(username: string) {
 
 export function renameAccount(from: string, to: string) {
     from = normalizeUsername(from)
+    const as = accounts.get()
     to = normalizeUsername(to)
-    if (!to || !accounts[from] || accounts[to])
+    if (!to || !as[from] || as[to])
         return false
     if (to === from)
         return true
-    objRenameKey(accounts, from, to)
-    updateReferences()
+    objRenameKey(as, from, to)
+    setHidden(as[to], { username: to })
+    // update references
+    for (const a of Object.values(as)) {
+        const idx = a.belongs?.indexOf(from)
+        if (idx !== undefined && idx >= 0)
+            a.belongs![idx] = to
+    }
+    accounts.set(as)
+    events.emit('accountRenamed', from, to) // everybody, take care of your stuff
     saveAccountsAsap()
     return true
-
-    function updateReferences() {
-        setHidden(accounts[to], { username: to })
-        for (const a of Object.values(accounts)) {
-            const idx = a.belongs?.indexOf(from)
-            if (idx !== undefined && idx >= 0)
-                a.belongs![idx] = to
-        }
-        events.emit('accountRenamed', from, to) // everybody, take care of your stuff
-    }
 }
 
 export function addAccount(username: string, props: Partial<Account>, updateExisting=false) {
@@ -164,7 +163,7 @@ export function addAccount(username: string, props: Partial<Account>, updateExis
     if (account && !updateExisting) return
     account = setHidden(account || {}, { username })  // hidden so that stringification won't include it
     Object.assign(account, _.pickBy(props, Boolean))
-    accountsConfig.set(accounts =>
+    accounts.set(accounts =>
         Object.assign(accounts, { [username]: account }))
     return updateAccount(account, account).then(() => account!)
 }
@@ -172,8 +171,7 @@ export function addAccount(username: string, props: Partial<Account>, updateExis
 export function delAccount(username: string) {
     if (!getAccount(username))
         return false
-    accountsConfig.set(accounts =>
-        _.omit(accounts, normalizeUsername(username)) )
+    accounts.set(x => _.omit(x, normalizeUsername(username)) )
     saveAccountsAsap()
     return true
 }
@@ -197,7 +195,7 @@ export function accountHasPassword(account: Account) {
 }
 
 export function accountCanLogin(account: Account) {
-    return accountHasPassword(account) && !allDisabled(account)
+    return (accountHasPassword(account) || account.plugin?.auth) && !allDisabled(account)
 }
 
 function allDisabled(account: Account): boolean {
@@ -208,7 +206,7 @@ function allDisabled(account: Account): boolean {
 }
 
 export function accountCanLoginAdmin(account: Account) {
-    return accountCanLogin(account) && Boolean(getFromAccount(account, a => a.admin))
+    return accountCanLogin(account) && getFromAccount(account, a => a.admin) || false
 }
 
 export async function changeSrpHelper(account: Account, salt: string, verifier: string) {

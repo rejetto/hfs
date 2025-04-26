@@ -1,6 +1,6 @@
 import {
     dontBotherWithKeys, formatBytes, getHFS, hfsEvent, hIcon, newDialog, prefix, with_, working,
-    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId, err2msg
+    pathEncode, closeDialog, anyDialogOpen, Falsy, operationSuccessful, randomId, err2msg, HIDE_IN_TESTS
 } from './misc'
 import { createElement as h, Fragment, isValidElement, MouseEvent, ReactNode, useState } from 'react'
 import { Btn, Bytes, Spinner } from './components'
@@ -26,17 +26,17 @@ interface FileMenuEntry {
     href?: string
     icon?: string
     toggled?: boolean
-    onClick?: (ev:MouseEvent<Element>) => any
+    onClick?: (ev:MouseEvent) => any
 }
 
-export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy | FileMenuEntry | 'open' | 'delete' | 'show')[]) {
+export async function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy | FileMenuEntry | 'open' | 'delete' | 'show')[]) {
     const { uri, isFolder, s } = entry
     const canRead = !entry.p?.includes('r')
     const canList = !entry.p?.match(/L/i)
     const forbidden = entry.cantOpen === DirEntry.FORBIDDEN
     const cantDownload = forbidden || isFolder && !(canRead && entry.canArchive() && canList) // folders needs list+read+archive
     const menu = [
-        !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download' },
+        !cantDownload && { id: 'download', label: t`Download`, href: uri + (isFolder ? '?get=zip' : '?dl'), icon: 'download', target: '_blank' },
         state.props?.can_comment && { id: 'comment', label: t`Comment`, icon: 'comment', onClick: () => editComment(entry) },
         ...addToMenu.map(x => {
             if (x === 'open') {
@@ -67,16 +67,16 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
                 }
             return x
         }),
-        state.props?.can_delete && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
-        state.props?.can_delete && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
-        isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list' },
+        entry.canDelete() && { id: 'rename', label: t`Rename`, icon: 'edit', onClick: () => rename(entry) },
+        entry.canDelete() && { id: 'cut', label: t`Cut`, icon: 'cut', onClick: () => close(cut([entry])) },
+        isFolder && !entry.web && !entry.cantOpen && { id: 'list', label: t`Get list`, href: uri + '?get=list&folders=*', icon: 'list', target: '_blank' },
     ].filter(Boolean)
-    const folder = entry.n.slice(0, -entry.name.length - (entry.isFolder ? 2 : 1))
+    const folder = entry.n.slice(0, -1 - entry.name.length)
     const props = [
         { id: 'name', label: t`Name`, value: entry.name },
         typeof s === 'number' && { id: 'size', label: t`Size`,
-            value: h(Fragment, {}, formatBytes(s), h('small', {}, prefix(' (', s > getHFS().kb && s.toLocaleString(), ')')) ) },
-        entry.t && { id: 'timestamp', label: t`Timestamp`, value: entry.t.toLocaleString() },
+            value: h(Fragment, {}, formatBytes(s), h('small', { className: HIDE_IN_TESTS }, prefix(' (', s > getHFS().kb && s.toLocaleString(), ')')) ) },
+        entry.m && { id: 'timestamp', label: t`Timestamp`, value: entry.m.toLocaleString() },
         entry.c && { id: 'creation', label: t`Creation`, value: entry.c.toLocaleString() },
         folder && {
             id: 'folder',
@@ -88,7 +88,7 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
         },
         isFolder && !entry.cantOpen && { id: 'folderSize', label: t`Size`, value: h(FolderSize) },
     ].filter(Boolean)
-    const res = hfsEvent('fileMenu', { entry, menu, props })
+    const res = await Promise.all(hfsEvent('fileMenu', { entry, menu, props }))
     menu.push(...res.flat()) // flat because each plugin may return an array of entries
     _.remove(menu, (x, i) => _.find(menu, y => x.id ? x.id === y.id : (!y.id && x.label === y.label), i + 1)) // avoid duplicates, keeping later ones
     const ico = getEntryIcon(entry)
@@ -111,9 +111,9 @@ export function openFileMenu(entry: DirEntry, ev: MouseEvent, addToMenu: (Falsy 
                     dontBotherWithKeys(showProps.map(prop => isValidElement(prop) ? prop
                         : _.isPlainObject(prop) ? h('div', { id: `menu-prop-${prop.id}` }, h('dt', {}, prop.label), h('dd', {}, prop.value))
                             : null
-                    ))
+                    )),
+                    entry.cantOpen && h('div', {}, hIcon('password', { style: { marginRight: '.5em', marginTop: '.5em' } }), t(MISSING_PERM)),
                 ),
-                entry.cantOpen && h(Fragment, {}, hIcon('password', { style: { marginRight: '.5em', marginTop: '.5em' } }), t(MISSING_PERM)),
                 h('div', { className: 'file-menu' },
                     dontBotherWithKeys(menu.map((entry: FileMenuEntry, i) => // render menu entries
                         isValidElement(entry) ? entry
@@ -178,10 +178,10 @@ async function rename(entry: DirEntry) {
     await apiCall('rename', { uri, dest }, { modal: working })
     const MSG = t`Operation successful`
     if (uri === location.pathname) //current folder
-        return alertDialog(MSG).then(() =>
+        return alertDialog(MSG)?.then(() =>
             getHFS().navigate(uri + '../' + pathEncode(dest) + '/') )
     // update state instead of re-getting the list
-    const newN = n.replace(/(.*?)[^/]+(\/?)$/, (_,before,after) => before + dest + after)
+    const newN = n.replace(/(.*?)[^/]+$/, (_,before) => before + dest)
     const newEntry = new DirEntry(newN, { key: n, ...entry }) // by keeping old key, we avoid unmounting the element, that's causing focus lost
     const i = _.findIndex(state.list, { n })
     state.list[i] = newEntry

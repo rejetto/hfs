@@ -27,7 +27,6 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 - https
 - easy certificate generation
-- unicode
 - virtual file system
 - mobile friendly
 - search
@@ -35,8 +34,8 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - resumable downloads & uploads
 - download folders as zip archive
 - delete, move and rename files
+- plug-ins (anti-brute-force, thumbnails, ldap, themes, and more)
 - simple website serving
-- plug-ins
 - real-time monitoring of connections
 - [show some files](https://github.com/rejetto/hfs/discussions/270)
 - speed throttler
@@ -44,7 +43,6 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 - admin web interface
 - multi-language front-end
 - virtual hosting
-- anti-brute-force (plug-in)
 - [reverse-proxy support](https://github.com/rejetto/hfs/wiki/Reverse-proxy)
 - comments in file descript.ion
 - integrated media player
@@ -53,11 +51,9 @@ This is a full rewrite of [the Delphi version](https://github.com/rejetto/hfs2).
 
 ## Installation
 
-For service installation instructions, [see our wiki](https://github.com/rejetto/hfs/wiki/Service-installation).
+If you need [Docker installation](https://github.com/damienzonly/hfs-docker) or [Service installation](https://github.com/rejetto/hfs/wiki/Service-installation), click the links.
 
-For Docker installation, [see dedicated repo](https://github.com/damienzonly/hfs-docker).
-
-NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of Node.js 18)
+Minimum Windows version required is 10 or Server 2019. If you have a previous version, you can still follow instructions for [Other systems](#other-systems)  
 
 1. go to https://github.com/rejetto/hfs/releases
 2. click on `Assets`
@@ -66,6 +62,8 @@ NB: minimum Windows version required is 8.1 , Windows Server 2012 R2 (because of
      you can hold `control` key while clicking, then click `open`.
    - If you cannot find your system in the list, see next section [Other systems](#other-systems).
 4. the browser should automatically open on `localhost` address, so you can configure the rest in the Admin-panel.
+
+Got problems?
    - if a browser cannot be opened on the computer where you are installing HFS, 
      you should enter this command in the HFS console: `create-admin <PASSWORD>`
    - if you cannot access the console (like when you are running as a service), 
@@ -79,9 +77,9 @@ If you don't like this behavior, disable it in the Admin-panel or enter this con
 
 ### Other systems
 
-If your system is not Windows/Linux/Mac or you just don't want to run the binaries, you can try this alternative version:
+If can't or don't want to run our binary versions, you can try this:
 
-1. [install node.js](https://nodejs.org) version 18.20
+1. [install node.js](https://nodejs.org) version 18.20 (or greater, but then compatibility is not guaranteed)
 2. execute at command line `npx hfs@latest`
 
 The `@latest` part is optional, and ensures that you are always up to date.

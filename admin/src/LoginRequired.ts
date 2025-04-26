@@ -2,7 +2,7 @@
 
 import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { CFG, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, makeSessionRefresher } from './misc'
+import { ALLOW_SESSION_IP_CHANGE, HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, makeSessionRefresher } from './misc'
 import { BoolField, Form } from '@hfs/mui-grid-form'
 import { apiCall } from './api'
 import { srpClientSequence } from '@hfs/shared'
@@ -22,7 +22,7 @@ export function LoginRequired({ children }: any) {
 }
 
 function LoginForm() {
-    const [values, setValues] = useState({ username: '', password: '', ipChange: false })
+    const [values, setValues] = useState({ username: '', password: '', [ALLOW_SESSION_IP_CHANGE]: false })
     const [error, setError] = useState('')
     const formRef = useRef<HTMLFormElement>()
     const empty = formRef.current?.querySelector('input[value=""]')
@@ -39,7 +39,7 @@ function LoginForm() {
             fields: [
                 { k: 'username', autoComplete: 'username', autoFocus: true, required: true },
                 { k: 'password', type: 'password', autoComplete: 'current-password', required: true },
-                { k: 'ipChange', comp: BoolField, label: "Allow IP change during this session" },
+                { k: ALLOW_SESSION_IP_CHANGE, comp: BoolField, label: "Allow IP change during this session" },
             ],
             addToBar: [ error && h(Alert, { severity: 'error', sx: { flex: 1 } }, error) ],
             saveOnEnter: true,
@@ -50,7 +50,7 @@ function LoginForm() {
                     try {
                         setError('')
                         await login(values.username, values.password, {
-                            [CFG.allow_session_ip_change]: values.ipChange
+                            [ALLOW_SESSION_IP_CHANGE]: values[ALLOW_SESSION_IP_CHANGE]
                         })
                     }
                     catch(e) {

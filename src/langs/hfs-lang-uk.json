@@ -135,7 +135,7 @@
         "Upload not available": "Завантаження недоступне",
         "Cut": "Вирізати",
         "n_items": "{n,plural, one{# елемент} few{# елементи} many{# елементів}}",
-        "good_bad": "{good} {good,plural, one{переміщений} other{переміщено}}, {bad} неуспішно",
+        "move_results": "{good} {good,plural, one{переміщений} other{переміщено}}, {bad} неуспішно",
         "after_cut": "Вибране скопійовано до буфера обміну.\nПерейдіть до теки призначення для вставки.",
         "Cancel clipboard": "Очистити буфер обміну",
         "to_clipboard_source": "У теку",
@@ -178,6 +178,10 @@
         "creation": "створення",
         "required_change_password": "Вам необхідно змінити пароль",
         "Wildcards": "Шаблони",
-        "Considering resume": "Оцінка відновлення"
+        "Considering resume": "Оцінка відновлення",
+
+        "Yes": "Так",
+        "No":  "Ні",
+        "esc_again": "Натисніть ESC два рази для закриття"
     }
 }

@@ -1,24 +1,26 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, useState, useEffect, Fragment, useMemo } from "react"
+import { createElement as h, useState, useEffect, Fragment, useMemo, ReactNode } from "react"
 import { apiCall, useApiEx } from './api'
 import { Alert, Box, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material'
-import { Close, Delete, DoNotDisturb, Group, MilitaryTech, Person, PersonAdd, Schedule } from '@mui/icons-material'
-import { newDialog, with_, md } from './misc'
-import { Btn, Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint } from './mui'
+import {
+    AccountTree, ChevronRight, Close, Delete, DoNotDisturb, ExpandMore, Group, MilitaryTech, Person, PersonAdd, Schedule
+} from '@mui/icons-material'
+import { newDialog, with_, md, Jsonify } from './misc'
+import { Btn, Flex, IconBtn, iconTooltip, reloadBtn, useBreakpoint, useToggleButton } from './mui'
 import { TreeItem, TreeView } from '@mui/x-tree-view'
 import MenuButton from './MenuButton'
 import AccountForm from './AccountForm'
 import _ from 'lodash'
 import { alertDialog, confirmDialog, toast } from './dialog'
-import { useSnapState } from './state'
+import { state, useSnapState } from './state'
 import { importAccountsCsv } from './importAccountsCsv'
 import apiAccounts from '../../src/api.accounts'
 
-export type Account = ReturnType<typeof apiAccounts.get_accounts>['list'][0]
+export type Account = Jsonify<ReturnType<typeof apiAccounts.get_accounts>['list'][0]>
 
 export default function AccountsPage() {
-    const { username } = useSnapState()
+    const { username, accountsAsTree } = useSnapState()
     const { data, reload, element } = useApiEx<typeof apiAccounts.get_accounts>('get_accounts')
     const [sel, setSel] = useState<string[] | 'new-group' | 'new-user'>([])
     const selectionMode = Array.isArray(sel)
@@ -26,7 +28,7 @@ export default function AccountsPage() {
         if (Array.isArray(data?.list) && selectionMode)
             setSel( sel.filter(u => data!.list.find((e:any) => e?.username === u)) ) // remove elements that don't exist anymore
     }, [data]) //eslint-disable-line -- Don't fall for its suggestion to add `sel` here: we modify it and declaring it as a dependency would cause a logical loop
-    const list = useMemo(() => data && _.sortBy(data.list, ['hasPassword', x => !x.adminActualAccess, 'username']), [data])
+    const list = useMemo(() => data && _.sortBy(data.list, [x => !x.isGroup, x => !x.adminActualAccess, 'username']), [data])
     const selectedAccount = selectionMode && _.find(list, { username: sel[0] })
     const sideBreakpoint = 'md'
     const isSideBreakpoint = useBreakpoint(sideBreakpoint)
@@ -45,7 +47,7 @@ export default function AccountsPage() {
             : with_(selectedAccount || newAccount(), a =>
                 h(AccountForm, {
                     account: a,
-                    groups: list.filter(x => !x.hasPassword).map( x => x.username ),
+                    groups: list.filter(x => x.isGroup).map(x => x.username),
                     addToBar: isSideBreakpoint && [
                         h(Box, { flex:1 }),
                         account2icon(a, { fontSize: 'large', sx: { p: 1 }}),
@@ -64,7 +66,7 @@ export default function AccountsPage() {
         const { close } = newDialog({
             title: _.isString(sel) ? _.startCase(sel)
                 : sel.length > 1 ? "Multiple selection"
-                    : selectedAccount ? (selectedAccount.hasPassword ? "User: " : "Group: ") + selectedAccount.username
+                    : selectedAccount ? (selectedAccount.isGroup ? "Group: " : "User: ") + selectedAccount.username
                         : '?', // never
             Content: () => sideContent,
             onClose: selectNone,
@@ -73,6 +75,8 @@ export default function AccountsPage() {
     }, [isSideBreakpoint, sel, selectedAccount])
 
     const scrollProps = { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' } as const
+    const [showTree, showTreeBtn] = useToggleButton("Show tree", "Show list", () => ({ icon: AccountTree }), accountsAsTree)
+    state.accountsAsTree = showTree
     return element || h(Grid, { container: true, rowSpacing: 1, columnSpacing: 2, top: 0, flex: '1 1 auto', height: 0 },
         h(Grid, { item: true, xs: 12, [sideBreakpoint]: 5, lg: 4, xl: 5, ...scrollProps },
             h(Box, {
@@ -99,6 +103,7 @@ export default function AccountsPage() {
                     ]
                 }, "Add"),
                 reloadBtn(reload),
+                showTreeBtn,
                 list?.length! > 0 && h(Typography, { p: 1 }, `${list!.length} account(s)`),
             ),
             !list?.length && h(Alert, { severity: 'info' }, md`To access administration <u>remotely</u> you will need to create a user account with admin permission`),
@@ -106,34 +111,38 @@ export default function AccountsPage() {
                     multiSelect: true,
                     sx: { pr: 4, pb: 2, minWidth: '15em' },
                     selected: selectionMode ? sel : [],
+                    defaultCollapseIcon: h(ExpandMore),
+                    defaultExpandIcon: h(ChevronRight),
                     onNodeSelect(ev, ids) {
-                        setSel(ids)
+                        if (!(ev.target as any)?.closest?.('.MuiTreeItem-iconContainer')) // don't select if clicked the expansion button, mostly for mobile users
+                            setSel(ids)
                     }
                 },
-                list?.map(ac =>
-                    h(TreeItem, {
-                        key: ac.username,
-                        nodeId: ac.username,
-                        label: h(Box, {
-                                sx: {
-                                    display: 'flex',
-                                    flexWrap: 'wrap',
-                                    padding: '.2em 0',
-                                    columnGap: '.5em',
-                                    alignItems: 'center',
-                                }
-                            },
-                            account2icon(ac),
-                            (ac.disabled || ac.canLogin === false)
+                list && (function recur(thisLevel): ReactNode {
+                    return thisLevel.map(ac =>
+                        h(TreeItem, {
+                            key: ac.username,
+                            nodeId: ac.username,
+                            label: h(Box, {
+                                    sx: {
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        padding: '.2em 0',
+                                        columnGap: '.5em',
+                                        alignItems: 'center',
+                                    }
+                                },
+                                account2icon(ac),
+                                (ac.disabled || ac.canLogin === false)
                                 && iconTooltip(DoNotDisturb, ac.disabled ? "Disabled" : "Disabled by its groups", ac.disabled ? undefined : { color: 'text.secondary' }),
-                            (ac.expire || ac.days_to_live) && h(Schedule),
-                            ac.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin"),
-                            ac.username,
-                            Boolean(ac.belongs?.length) && h(Box, { sx: { color: 'text.secondary', fontSize: 'small' } },
-                                '(', ac.belongs?.join(', '), ')')
-                        ),
-                    })
-                )
+                                (ac.expire || ac.days_to_live) && h(Schedule),
+                                ac.adminActualAccess && iconTooltip(MilitaryTech, "Can login into Admin"),
+                                ac.username,
+                                Boolean(ac.belongs?.length) && h(Box, { sx: { color: 'text.secondary', fontSize: 'small' } },
+                                    '(', ac.belongs?.join(', '), ')')
+                            ),
+                        }, showTree && recur(list.filter(x => ac.directMembers?.includes(x.username)))))
+                })(showTree ? list.filter(ac => !list.some(x => x.members?.includes(ac.username))) : list)
             )
         ),
         isSideBreakpoint && sideContent && h(Grid, { item: true, [sideBreakpoint]: true, maxWidth: '100%', ...scrollProps },
@@ -148,7 +157,9 @@ export default function AccountsPage() {
             adminActualAccess: false,
             invalidated: undefined,
             canLogin: true,
+            isGroup: sel === 'new-group',
             members: [],
+            directMembers: [],
         } satisfies Account
     }
 
@@ -170,7 +181,8 @@ export default function AccountsPage() {
             return alertDialog("Following elements couldn't be deleted: " + errors.join(', '), 'error')
     }
 
-    function account2icon(ac: Account, props={}) {
-        return h(ac.hasPassword ? Person : Group, props)
-    }
+}
+
+export function account2icon(ac: Account, props={}) {
+    return h(ac.isGroup ? Group : Person, props)
 }

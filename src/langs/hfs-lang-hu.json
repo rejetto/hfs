@@ -144,7 +144,7 @@
         "Upload not available": "A feltöltés nem lehetséges",
         "Cut": "Kivágás",
         "n_items": "{n,többes szám, egy{# item} egyéb{# items}}",
-        "good_bad": "{good} áthelyezve, {bad} sikertelen",
+        "move_results": "{good} áthelyezve, {bad} sikertelen",
         "after_cut": "A kiválasztott elemek a vágólapra kerültek\nMenjen a célkönyvtárba és illessze be őket",
         "Cancel clipboard": "Vágólap ürítésé",
         "to_clipboard_source": "Vissza a kiinduló mappába",
@@ -189,6 +189,10 @@
         "creation": "létrehozás",
         "required_change_password": "Meg kell változtatnia a jelszavát",
         "Wildcards": "Helyettesítő karakterek",
-        "Considering resume": "Feltöltés folytatásának ellenőrzése"
+        "Considering resume": "Feltöltés folytatásának ellenőrzése",
+
+        "Yes": "Igen",
+        "No":  "Nem",
+        "esc_again": "ESC megadva 2 alkalommal"
     }
 }

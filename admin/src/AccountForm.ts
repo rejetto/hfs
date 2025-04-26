@@ -6,7 +6,7 @@ import { Alert, Box } from '@mui/material'
 import { apiCall } from './api'
 import { alertDialog, useDialogBarColors } from './dialog'
 import { formatTimestamp, isEqualLax, prefix, reactJoin, useIsMobile, wantArray } from './misc'
-import { IconBtn, NetmaskField, propsForModifiedValues, WildcardsSupported } from './mui'
+import { Btn, IconBtn, NetmaskField, propsForModifiedValues } from './mui'
 import { Account } from './AccountsPage'
 import { createVerifierAndSalt, SRPParameters, SRPRoutines } from 'tssrp6a'
 import { AutoDelete, Delete } from '@mui/icons-material'
@@ -27,10 +27,10 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             ref.current?.querySelector('input')?.focus()
     }, [JSON.stringify(account)]) //eslint-disable-line
     const add = !account.username
-    const group = !values.hasPassword
+    const { isGroup } = values
     const ref = useRef<HTMLFormElement>()
-    const expired = Boolean(values.expire)
     const { members } = account
+    const pluginAuth = account.plugin?.auth
     return h(Form, {
         formRef: ref,
         values,
@@ -57,44 +57,58 @@ export default function AccountForm({ account, done, groups, addToBar, reload }:
             ...wantArray(addToBar),
         ],
         fields: [
-            { k: 'username', label: group ? 'Group name' : undefined, autoComplete: 'off', required: true, lg: group ? 12 : 4,
+            { k: 'username', label: isGroup ? 'Group name' : undefined, autoComplete: 'off', required: true, md: isGroup && !pluginAuth ? 12 : 4,
                 getError: v => v !== account.username && apiCall('get_account', { username: v })
                     .then(got => got?.username === account.username ? "usernames are case-insensitive" : "already used", () => false),
             },
-            !group && { k: 'password', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', required: add,
+            pluginAuth && { k: '', md: 8, comp: h(Alert, { severity: 'info' }, " Authentication handled by a plugin") },
+            !isGroup && !pluginAuth && { k: 'password', xs: 6, md: 4, type: 'password', autoComplete: 'new-password', required: add,
                 label: add ? "Password" : "Change password"
             },
-            !group && { k: 'password2', md: 6, lg: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
+            !isGroup && !pluginAuth && { k: 'password2', xs: 6, md: 4, type: 'password', autoComplete: 'new-password', label: 'Repeat password',
                 getError: (x, { values }) => (x||'') !== (values.password||'') && "Enter same password" },
+
             { k: 'disabled', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Enabled", xs: 12, sm: 6, lg: 8,
-                helperText: !values.disabled && values.canLogin === false ? h(Box, { color: 'warning.main', component: 'span' }, "Login is prevented because all of its groups are disabled")
-                    : "Login is prevented if account is disabled, or all its groups are disabled" },
-            { k: 'ignore_limits', comp: BoolField, xs: true,
+                helperText:  values.disabled || values.canLogin !== false ? "Login is prevented if account is disabled, or all its groups are disabled"
+                    : h(Box, { color: 'warning.main', component: 'span' },
+                        new Date(account.expire!) < new Date() ? "Login is prevented because account is expired" // use account instead of values, so to use the value currently applied
+                            : "Login is prevented because all of its groups are disabled")
+            },
+            { k: 'ignore_limits', comp: BoolField, xs: 12, sm: 6, lg: 4,
                 helperText: values.ignore_limits ? "Speed limits don't apply to this account" : "Speed limits apply to this account" },
-            { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: 6, lg: 4,
+
+            { k: 'admin', comp: BoolField, fromField: (v:boolean) => v||null, label: "Admin-panel access", xs: 12, sm: isGroup ? 6 : 4, lg: isGroup ? 8 : 4,
                 helperText: "To access THIS interface you are using right now",
                 ...!account.admin && account.adminActualAccess && { value: true, disabled: true, helperText: "This permission is inherited. To disable it, act on the groups." },
             },
-            { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: true },
-            { k: 'require_password_change', comp: BoolField, xs: 12, lg: 4, helperText: "At first login" },
+            { k: 'disable_password_change', comp: BoolField, fromField: x=>!x, toField: x=>!x, label: "Allow password change", xs: 12, sm: 4 },
+            !isGroup && { k: 'require_password_change', comp: BoolField, xs: 12, sm: 4, helperText: "At first login" },
+
             !members ? null
-                : group && !members.length ? h(Box, {}, "No members")
+                : isGroup && !members.length ? h(Box, {}, "No members")
                     : members.length > 0 && h(Box, {}, `${members.length} members: `,
-                        reactJoin(', ', account.members?.map((u: string) => h(groups.includes(u) ? 'i' : 'span', {}, u))) ),
-            group && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
+                        reactJoin(', ', account.members?.map(u => h(groups.includes(u) ? 'i' : 'span', {}, u))),
+                        h(Btn, {
+                            icon: Delete,
+                            confirm: `Delete ${account.members.length} accounts?`,
+                            onClick: () => apiCall('del_account', { username: account.members }).then(reload),
+                            sx: { verticalAlign: 'text-top' }
+                        }),
+                ),
+            isGroup && h(Alert, { severity: 'info' }, `To add users to this group, select the user and then click "Inherit"`),
             { k: 'belongs', comp: MultiSelectField, label: "Inherit from groups", options: belongsOptions, sm: 6,
                 helperText: "Specify groups to inherit permissions from"
-                    + (!group ? '' : ". A group can inherit from another group")
+                    + (!isGroup ? '' : ". A group can inherit from another group")
                     + (belongsOptions.length ? '' : ". Now disabled because there are no groups to select, create one first.")
             },
-            { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", helperText: h(WildcardsSupported), sm: 6,
-                placeholder: "Allow from any address" },
-            { k: 'expire', label: "Expiration", xs: true, comp: DateTimeField, toField: x => x && new Date(x),
+            { k: 'allow_net', comp: NetmaskField, label: "Allowed network address", sm: 6, placeholder: "Allow from any address" },
+            { k: 'expire', label: "Expiration", xs: values.expire ? 12 : 6, comp: DateTimeField, toField: x => x && new Date(x),
                 helperText: "When expired, login won't be allowed" },
-            { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, disabled: expired, step: 'any', min: 1/1000, // 10 minutes
-                helperText: "Used to set expiration on first login" + (expired ? " (already expired)" : '') },
-            { k: 'redirect', comp: VfsPathField, placeholder: "no",
+            !values.expire && { k: 'days_to_live', xs: 12, sm: 6, comp: NumberField, step: 'any', min: 1/1000, // 10 minutes
+                helperText: "Used to set expiration on first login" },
+            { k: 'redirect', comp: VfsPathField, placeholder: "no", sm: 6,
                 helperText: "If you want this account to be redirected to a specific folder/address (or even file) at login time" },
+            { k: 'notes', multiline: true, sm: 6 },
         ],
         onError: alertDialog,
         save: {

@@ -1,13 +1,16 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
 import { apiCall, useApiEx, useApiList } from './api'
-import { createElement as h, Fragment, useEffect } from 'react'
-import { Box, Link } from '@mui/material'
+import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
+import { Box, Breakpoint, Link, Paper, Table, TableCell, TableRow, useTheme } from '@mui/material'
 import { DataTable, DataTableColumn } from './DataTable'
 import {
-    Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, PlayCircle, Settings, StopCircle, Upgrade
+    Clear, Delete, Error as ErrorIcon, FormatPaint as ThemeIcon, ListAlt, PlayCircle, Settings, StopCircle, Upgrade
 } from '@mui/icons-material'
-import { CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate } from './misc'
+import {
+    CFG, Html, HTTP_FAILED_DEPENDENCY, md, newObj, prefix, with_, xlate, formatTime, formatDate, replaceStringToReact,
+    callable, tryJson, useAutoScroll
+} from './misc'
 import { alertDialog, confirmDialog, formDialog, toast } from './dialog'
 import _ from 'lodash'
 import { Account } from './AccountsPage'
@@ -15,11 +18,15 @@ import { BoolField, Field, FieldProps, MultiSelectField, NumberField, SelectFiel
 import { ArrayField } from './ArrayField'
 import FileField from './FileField'
 import { PLUGIN_ERRORS } from './PluginsPage'
-import { Btn, hTooltip, IconBtn, iconTooltip, usePauseButton } from './mui'
+import { Btn, Flex, hTooltip, IconBtn, iconTooltip, NetmaskField, usePauseButton } from './mui'
 import VfsPathField from './VfsPathField'
+import { DateTimeField } from './DateTimeField'
 
+// updates=true will show the "check updates" version of the page
 export default function InstalledPlugins({ updates }: { updates?: true }) {
-    const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins')
+    const { list, error, setList, initializing } = useApiList(updates ? 'get_plugin_updates' : 'get_plugins', {}, {
+        map(x: any) { x.config &&= tryJson(x.config, s => eval('()=>('+s+')')()) }
+    })
     useEffect(() => {
         setList(list =>
             _.sortBy(list, x => (x.error ? 0 : x.started ? 1 : 2) + treatPluginName(x.id)))
@@ -28,12 +35,14 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
     const { pause, pauseButton } = usePauseButton("plugins", () => getSingleConfig(CFG.suspend_plugins).then(x => !x), {
         onClick: () => apiCall('set_config', { values: { [CFG.suspend_plugins]: !pause } })
     })
+    const theme = useTheme()
     return h(DataTable, {
         error: xlate(error, PLUGIN_ERRORS),
         rows: list.length ? list : [], // workaround for DataGrid bug causing 'no rows' message to be not displayed after 'loading' was also used
         fillFlex: true,
         initializing,
         disableColumnSelector: true,
+        getRowHeight: updates && (({ model }) => model.changelog ? 'auto' as const : 50),
         noRows: updates && `No updates available. Only plugins available on "search online" are checked.`,
         columns: [
             {
@@ -43,12 +52,13 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 minWidth: 150,
                 renderCell: renderName,
                 valueGetter({ row }) { return row.repo || row.id },
-                mergeRender: { description: { fontSize: 'x-small' } }
+                mergeRender: { [updates ? 'changelog' : 'description']: { fontSize: 'x-small' } }
             },
             {
                 field: 'version',
                 width: 70,
                 hideUnder: 'sm',
+                mergeRender: { installedVersion: { fontSize: 'x-small' } }
             },
             themeField,
             {
@@ -56,6 +66,29 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 flex: 1,
                 hideUnder: 'sm',
             },
+            {
+                field: 'installedVersion',
+                hideUnder: true,
+                dialogHidden: true,
+                renderCell: ({ value }) => value && `Yours ${value}`
+            },
+            {
+                field: 'changelog',
+                headerName: "Change log",
+                flex: 2,
+                hideUnder: !updates || 'sm',
+                sx: { flexDirection: 'column', alignItems: 'flex-start' },
+                renderCell({ value, row }) {
+                    if (!Array.isArray(value)) return null
+                    return h(Table, { sx: { td: { p: 0 } } },
+                        _.uniq(_.sortBy(value, 'version').filter(x => _.isString(x.message) && x.message && x.version > row.installedVersion))
+                            .map((x, i) => h(TableRow, { key: i },
+                                h(TableCell, { sx: { whiteSpace: 'pre', verticalAlign: 'top' } }, `• ${x.version}: `),
+                                h(TableCell, {}, md(x.message))
+                            ))
+                    )
+                }
+            }
         ],
         footerSide: () => !updates && pauseButton,
         actions: ({ row, id }) => updates ? [
@@ -90,26 +123,69 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                 onClick: () => startPlugin(id),
             }),
             h(IconBtn, {
-                icon: Settings,
-                title: "Options",
+                icon: row.config || !row.started || !row.log ? Settings : ListAlt,
+                title: row.config || !row.log ? "Options" : "Log",
                 size,
                 disabled: !row.started && "Start plugin to access options"
-                    || !row.config && "No options available for this plugin",
+                    || !row.config && !row.log && "No options and no log for this plugin",
                 async onClick() {
                     const { config: lastSaved } = await apiCall('get_plugin', { id })
+                    // support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
+                    let maxWidth = with_(row.configDialog, x => theme.breakpoints.values[x?.maxWidth as Breakpoint] || x?.sx?.maxWidth || xlate(x?.maxWidth, { xs: 0 }) || 432)
+                    if (typeof maxWidth === 'number')  // @ts-ignore
+                        maxWidth += 'px'
+                    const showOptions = Boolean(row.config)
                     const values = await formDialog({
-                        title: `Options for ${id}`,
+                        title: showOptions ? `Options for ${id}` : `Log for ${id}`,
                         form: values => ({
-                            before: h(Box, { mx: 2, mb: 3 }, row.description),
-                            fields: makeFields(row.config, values),
-                            save: { children: "Save and close" },
+                            before: row.description && h(Box, { mx: 2, mb: 2 }, row.description),
+                            fields: makeFields(callable(row.config, values) || {}, values),
+                            save: showOptions ? { children: "Save and close" } : false,
                             barSx: { gap: 1 },
                             addToBar: [h(Btn, { variant: 'outlined', onClick: () => save(values) }, "Save")],
                         }),
                         values: lastSaved,
                         dialogProps: _.merge({ maxWidth: 'md', sx: { m: 'auto' } }, // center content when it is smaller than mobile (because of full-screen)
-                            with_(row.configDialog?.maxWidth, x => x?.length === 2 ? { maxWidth: x } : x ? { sx: { maxWidth: x } } : null), // this makes maxWidth support css values without having to wrap in sx, as in DialogProps it only supports breakpoints
-                            row.configDialog),
+                            row.configDialog,
+                            { maxWidth: false,  sx: { maxWidth: null } }, // cancel maxWidth to move it to the Box below
+                        ),
+                        Wrapper({ children }: any) {
+                            const { list } = useApiList('get_plugin_log', { id }, {
+                                map(x) { x.ts = new Date(x.ts) }
+                            })
+                            const autoScroll = useAutoScroll(list)
+                            let lastDate: any
+                            return h(Flex, { alignItems: 'stretch', justifyContent: 'center', flexWrap: 'wrap', flexDirection: showOptions ? undefined : 'column' },
+                                h(Box, { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ }, children),
+                                list.length > 0 ? h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
+                                    h(Box, { my: .5, pb: .5, borderBottom: '1px solid' }, "Output"),
+                                    h(Box, {
+                                        position: 'absolute', bottom: 0, top: '1.8em', left: 0, right: 0, sx: { overflowY: 'auto' },
+                                        ref: autoScroll,
+                                    },
+                                        h(Box, {
+                                            sx: {
+                                                textIndent: '-1em', pl: '1em',
+                                                position: 'absolute', width: 'calc(100% - 1.2em)', ml: '2px', pt: '.2em',
+                                            }
+                                        }, list.map(x => {
+                                            formatDate(x.ts)
+                                            const thisDate = formatDate(x.ts)
+                                            return h(Fragment, { key: x.id },
+                                                thisDate !== lastDate && (lastDate = thisDate),
+                                                h(Box, {},
+                                                    h(Box, { title: thisDate, display: 'inline', color: 'text.secondary', mr: 1 }, formatTime(x.ts)),
+                                                    replaceStringToReact(x.msg, /https?:\/\/\S+/, m => h(Link, {
+                                                        href: m[0],
+                                                        target: '_blank'
+                                                    }, m[0])) // make links clickable
+                                                )
+                                            )
+                                        }))
+                                    )
+                                ) : showOptions ? null : h(Box, { p: '1em', pt: 0 }, "Log is empty")
+                            )
+                        }
                     })
                     if (values && !_.isEqual(lastSaved, values))
                         return save(values)
@@ -169,24 +245,31 @@ export function renderName({ row, value }: any) {
 
 function makeFields(config: any, values: any) {
     return Object.entries(config).map(([k,o]: [string,any]) => {
-        let { type, defaultValue, fields, frontend, helperText, showIf, ...rest } = o
+        if (!o) return
+        let { type, defaultValue, frontend, showIf, ...rest } = o
         try {
+            rest.getError = eval(rest.getError)
             if (typeof showIf === 'string') // compile once
-                o.showIf = showIf = eval(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
+                rest.showIf = showIf = eval(showIf) // eval is normally considered a threat, but this code is coming from a plugin that's already running on your server, so you already decided to trust it. Here it will run in your browser, and inside the page that administrating the same server.
             if (showIf && !showIf(values))
                 return
         }
         catch {}
-        if (helperText)
-            helperText = md(helperText, { html: false })
+        rest.helperText &&= md(rest.helperText, { html: false })
         const comp = (type2comp as any)[type] as Field<any> | undefined
+        if (values === false && type === 'date_time')
+            rest.$type = 'dateTime'
         if (comp === ArrayField) {
-            rest.valuesForAdd = newObj(fields, x => x.defaultValue)
-            fields = makeFields(fields, values)
+            let {fields} = rest
+            rest.valuesForAdd = newObj(callable(fields, false), x => x.defaultValue)
+            if (typeof fields === 'string')
+                fields = eval(fields)
+            rest.details ??= false
+            rest.fields = (values: unknown) => _.map(makeFields(callable(fields, values), values), (v,k) => v && ({ k, ...v, defaultValue: undefined })).filter(Boolean)
         }
         if (defaultValue !== undefined && type === 'boolean')
             rest.placeholder = `Default value is ${JSON.stringify(defaultValue)}`
-        return { k, comp, fields, helperText, ...rest }
+        return { k, comp, ...rest }
     })
 }
 
@@ -202,6 +285,8 @@ const type2comp = {
     username: UsernameField,
     color: ColorField,
     showHtml: ({ html }: any) => h(Html, {}, String(html)),
+    date_time: DateTimeField,
+    net_mask: NetmaskField,
 }
 
 export async function startPlugin(id: string) {
@@ -219,7 +304,7 @@ function UsernameField({ value, onChange, multiple, groups, ...rest }: FieldProp
     const { data, element, loading } = useApiEx<{ list: Account[] }>('get_accounts')
     return !loading && element || h((multiple ? MultiSelectField : SelectField) as Field<string>, {
         value, onChange,
-        options: data?.list.filter(x => groups === undefined || groups === !x.hasPassword).map(x => x.username),
+        options: data?.list.filter(x => groups === undefined || groups === x.isGroup).map(x => x.username),
         ...rest,
     })
 }
@@ -260,7 +345,7 @@ export const descriptionField: DataTableColumn = {
 export const themeField: DataTableColumn = {
     field: 'isTheme',
     headerName: "is theme",
-    hidden: true,
+    hideUnder: true,
     dialogHidden: true,
     type: 'boolean',
     renderCell({ value }) {

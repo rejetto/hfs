@@ -23,13 +23,13 @@ export function ClipBar() {
         h(Btn, { label: t('clipboard', { content: t('n_items', { n: clip.length }, "{n,plural, one{# item} other{# items}}"), }, `Clipboard ({content})`),
             onClick: show, style: { flex: 1 } }),
         h(Btn, { label: t`Paste`, icon: 'paste', onClick: paste, disabled: here === there || !props?.can_upload }),
-        h(Btn, { label: t`Cancel clipboard`, icon: 'close', onClick: cancel }),
+        h(Btn, { label: t`Cancel clipboard`, icon: 'close', onClick: emptyIt }),
         h(Btn, { label: t('to_clipboard_source', "Back to source folder"), icon: 'parent', onClick: goBack, disabled: here === there,
             tooltip: t('to_clipboard_source_tooltip', "Go to the folder where the clipboard contents are located"),
         }),
     )
 
-    function cancel() {
+    function emptyIt() {
         cut([])
     }
 
@@ -44,27 +44,10 @@ export function ClipBar() {
         ))
     }
 
-    function paste() {
-        if (hfsEvent('paste', { from: state.clip, to: here }).isDefaultPrevent()) return
-        return apiCall('move_files', {
-            uri_from: clip.map(x => x.uri),
-            uri_to: here,
-        }).then(res => {
-            const bad = _.sumBy(res.errors, x => x ? 1 : 0)
-            const msg = t('good_bad', { bad, good: clip.length - bad }, "{good} moved, {bad} failed")
-            if (!bad)
-                toast(msg, 'success')
-            else
-                alertDialog(h(Fragment, {},
-                    msg,
-                    h('ul', {}, res.errors.map(((e: any, i: number) => {
-                        e = xlate(e, HTTP_MESSAGES)
-                        return e && h('li', {}, clip[i].name + ': ' + e)
-                    }))),
-                ), 'warning')
-            cancel()
-            reloadList()
-        }, alertDialog)
+    async function paste() {
+        if (hfsEvent('paste', { from: state.clip, to: here }).isDefaultPrevented()) return
+        if (await moveFiles(clip.map(x => x.uri), here))
+            emptyIt()
     }
 }
 
@@ -72,4 +55,23 @@ export function cut(files: DirList) {
     state.clip = files
     if (files.length)
         return toast(t('after_cut', "Your selection is now in the clipboard.\nGo to destination folder to paste."), 'info')
+}
+
+export function moveFiles(uri_from: string[], uri_to: string) {
+    return apiCall('move_files', { uri_from, uri_to }).then(res => {
+        const bad = _.sumBy(res.errors, x => x ? 1 : 0)
+        const msg = t(['move_results', 'good_bad'], { bad, good: uri_from.length - bad }, "{good} moved{bad,plural, =0{} other{, # failed}}")
+        if (!bad)
+            toast(msg, 'success')
+        else
+            alertDialog(h(Fragment, {},
+                msg,
+                h('ul', {}, res.errors.map(((e: any, i: number) => {
+                    e = xlate(e, HTTP_MESSAGES)
+                    return e && h('li', {}, decodeURI(uri_from[i]) + ': ' + e)
+                }))),
+            ), 'warning')
+        reloadList()
+        return true
+    }, e => void alertDialog(e))
 }

@@ -119,7 +119,7 @@ a {
 button {
     background-color: var(--button-bg);
     color: var(--button-text);
-    padding: .5em;
+    padding: .4em .6em;
     display: inline-flex; align-items: center; justify-content: center; // get closer results between chrome and safari
     &:not(.before-sliding) { min-width: min-content; }
     &.small { padding: 0 0.4em; height: 30px; }
@@ -170,7 +170,7 @@ input, select, ul a {
 
 .icon-button {
     padding: .1em;
-    font-size: 104%; height: 1.8em; // same height as text buttons (30px)
+    font-size: 108%; height: 1.8em; // same height as text buttons (31px)
     width: 2em;
 }
 
@@ -203,6 +203,9 @@ kbd {
     padding: 2px 4px;
     white-space: nowrap;
     margin-right: .5em;
+}
+.drop-over {
+    box-shadow: 0 0 .3em .3em var(--warning);
 }
 
 .before-sliding {
@@ -513,8 +516,14 @@ button .icon + .label {
         margin-bottom: .5em;
         margin-left: .1em;
     }
+    .submit { text-align: right; }
 }
-#search-dialog form label:not(:first-of-type) { display: block; margin-top: 1em }
+#search-dialog form {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    .submit { text-align: right; }
+}
 
 form label+input { margin-top: .2em; }
 
@@ -734,6 +743,7 @@ form label+input { margin-top: .2em; }
         text-align: center;
         display: flex;
         justify-content: center;
+        text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000;
         &>div { position: absolute;
             margin: 1em;
         }
@@ -783,7 +793,7 @@ form label+input { margin-top: .2em; }
         user-select: none;
         transition: opacity .3s;
         &:hover { opacity: .7; }
-        &.nav-hidden:not(:hover) { opacity: 0 }
+        &.nav-hidden:not(:hover) { opacity: .3 }
     }
     .bar {
         padding: .5em min(2vw, 1em);
@@ -826,7 +836,7 @@ form label+input { margin-top: .2em; }
             border: 1px solid var(--ghost-contrast)
         }
     }
-    button { padding: .5em 1em; }
+    button { padding: .4em .8em; }
 }
 @media (max-width: 42em) {
     :root { --ghost-contrast: #8883; } /* phones have different curve */
@@ -852,7 +862,7 @@ form label+input { margin-top: .2em; }
     }
 }
 
-@media (max-height: 600px) {
+@media (max-height: 600px) and (orientation: landscape) {
     .file-dialog {
         .dialog-content {
             display: flex;
@@ -871,5 +881,6 @@ form label+input { margin-top: .2em; }
 }
 
 @media (pointer: coarse) {
+    .file-show .nav { height: 1.6em; } // correct centering on android
     #root>.tiles-mode .file-menu-button { font-size: 1em; margin-top: 0.3em; } // easier to tap
 }

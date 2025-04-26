@@ -14,6 +14,7 @@ const allowUnknown = defineConfig(CFG.geo_allow_unknown, false)
 enabled.sub(checkFiles)
 setInterval(checkFiles, DAY) // keep updated at run-time
 
+// benchmark: memoize can make this 44x faster
 export const ip2country = _.memoize((ip: string) => ip2location.getCountryShortAsync(ip).then(v => v === '-' ? '' : v, () => ''))
 
 export const geoFilter: Middleware = async (ctx, next) => {

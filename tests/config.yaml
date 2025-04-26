@@ -4,33 +4,35 @@ allowed_referer: x.com
 localhost_admin: false
 vfs:
   masks:
-    "!tests/page/*.png":
+    "**/config.yaml*|test.ts|work":
+      can_see: false
+    tests/page/!*.png:
       mime: text/plain
     protectFromAbove/child/*.txt:
       can_read: false
     cantSearchForMasks/page:
       can_list: false
   children:
-    - source: tests/alfa.txt
+    - source: ../alfa.txt
       name: x%#x
     - name: protectFromAbove
       children:
         - name: child
           children:
-            - source: tests/alfa.txt
+            - source: ../alfa.txt
               can_see: true
             - name: renamed
-              source: tests/alfa.txt
+              source: ../alfa.txt
     - name: f1
       children:
         - name: f2
           children:
-            - source: tests/alfa.txt
+            - source: ../alfa.txt
         - name: pic
           mime: png
-          source: tests/page/gpl.png
+          source: ../page/gpl.png
         - name: page
-          source: tests/page
+          source: ../page
           default: index.html
     - name: for-admins
       can_read:
@@ -39,51 +41,54 @@ vfs:
       can_see: can_read
       children:
         - name: upload
-          source: tests
+          source: ..
           can_upload:
             - admins
           can_delete:
             - admins
-        - source: tests/alfa.txt
+        - source: ../alfa.txt
     - name: for-disabled
       can_list:
         - disabled_account
-    - source: tests
+    - source: ..
+      masks:
+        "**/!*.png|files|":
+          can_see: false
     - name: renameChild
       children:
-        - source: tests
+        - source: ..
           rename:
             alfa.txt: renamed1
             page/gpl.png: renamed2
     - name: cantListBut
-      source: tests
+      source: ..
       can_list: false
       masks:
         "*":
           can_list: true
     - name: cantSearchForMasks
-      source: tests
+      source: ..
     - name: cantReadBut
-      source: tests
+      source: ..
       can_read: false
       masks:
         "*":
           can_read: true
     - name: cantReadButChild
-      source: tests
+      source: ..
       can_read: false
       children:
-        - source: tests/alfa.txt
+        - source: ../alfa.txt
           can_read:
             - rejetto
     - name: cantListPage
-      source: tests
+      source: ..
       masks:
         page:
           can_see: false
           can_list: false
     - name: cantListPageAlt
-      source: tests
+      source: ..
       masks:
         page:
           can_see: false
@@ -93,13 +98,13 @@ vfs:
           can_read:
             - rejetto
     - name: cantReadPage
-      source: tests
+      source: ..
       masks:
         page|*.ts|*.yaml*:
           can_read: false
           can_list: false
     - name: cantReadRealFolder
-      source: tests
+      source: ..
       can_read: false
       can_list: false
     - name: cantSeeThis
@@ -113,7 +118,7 @@ vfs:
         this: false
       children:
         - name: hi
-          source: tests
+          source: ..
       masks:
         "*/page":
           can_list: false
@@ -143,7 +148,7 @@ accounts:
   admins:
     allow_net: ::1
     admin: true
-version: 0.56.0
+version: 0.57.0-rc10
 max_downloads_per_account: 2
 max_downloads: 1
 roots:

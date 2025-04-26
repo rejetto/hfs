@@ -28,6 +28,15 @@ The list above may become outdated, but you can always find an updated version a
 
 For example, put a file "login.png" into "icons" to customize that icon.
 
+## Definitions
+
+In this document we define some types using pseudo-typescript syntax.
+We use some predefined types for brevity:
+
+`Promisable<Type> = Type | Promise<Type>` where Type can be wrapped in a promise or not (direct).
+
+`Functionable<Type, Arguments> = Type | ((...args: Arguments) => Type)` where Type can be returned by a function or not (direct).
+
 ## Exported object
 
 `plugin.js` is a javascript module (executed by Node.js), and its main way to communicate with HFS is by exporting things.
@@ -93,11 +102,13 @@ All the following properties are optional unless otherwise specified.
       Note that in this example we are pointing to a github repo just for clarity. You are not supposed to use this
       complicated object form to link github, use the string form.
       Plugins with custom repos are not included in search results, but the update feature will still work.
+- `changelog: { version: number, message: string }[]` the UI will show only entries with version greater than currently installed.
+  You can use `md` syntax for the message.
 
-WARNING: All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
+**WARNING:** All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
 
-- `init: (api: object) => void | object | function` described in the previous section. If an object is returned, 
+- `init: (api: object) => (void | object | function)` described in the previous section. If an object is returned, 
   it will be merged with other "exported" properties described in this section, so you can return `{ unload }` for example.
   If you return a function, this is just a shorter way to return the `unload`.
 - `frontend_css: string | string[]` path to one or more css files that you want the frontend to load. These are to be placed in the `public` folder (refer below).
@@ -124,7 +135,7 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 - `onDirEntry: ({ entry: DirEntry, listUri: string, ctx, node: VfsNode  }) => Promisable<void | false>` 
   by providing this callback you can manipulate the record that is sent to the frontend (`entry`),
   or you can return false to exclude this entry from the results. Refer to source `frontend/src/state.ts`.
-- `config: { [key]: FieldDescriptor }` declare a set of admin-configurable values owned by the plugin
+- `config: Functionable<{ [key]: FieldDescriptor }, values:object>` declare a set of admin-configurable values owned by the plugin
   that will be displayed inside Admin-panel for change. Each property is identified by its key,
   and the descriptor is another object with options about the field. 
 
@@ -142,11 +153,12 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 
   When necessary your plugin will read its value using `api.getConfig('message')` in the backend, 
   or `HFS.getPluginConfig('message')` in the frontend, but the latter must be enabled using the `frontend` flag in the config.
+  To handle more complex cases, you can pass a function to `config` instead of an object. The function will receive a parameter `values`.
   
 - `configDialog: DialogOptions` object to override dialog options. Please refer to sources for details.
-- `onFrontendConfig: (config: object) => void | object` manipulate config values exposed to frontend.
+- `onFrontendConfig: (config: object) => (void | object)` manipulate config values exposed to frontend.
 - `customHtml: object | () => object` return custom-html sections programmatically.
-- `customRest: { [name]: (parameters: object) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
+- `customRest: { [name]: (parameters: object, ctx) => any }` declare backend functions to be called by frontend with `HFS.customRestCall`
   E.g. 
   ```js
   exports.customRest = {
@@ -159,16 +171,18 @@ used must be strictly JSON (thus, no single quotes, only double quotes for strin
 ### FieldDescriptor
 
 A FieldDescriptor is an object and can be empty. Currently, these optional properties are supported:
-- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color'` . Default is `string`.
+- `type: 'string' | 'number' | 'boolean' | 'select' | 'multiselect' | 'real_path' | 'vfs_path' | 'array' | 'username' | 'color' | 'date_time'` . Default is `string`.
 - `label: string` what name to display next to the field. Default is based on `key`.
 - `defaultValue: any` value to be used when nothing is set. Default is undefined.
 - `helperText: string` extra text printed next to the field.
 - `showIf: (values: object) => boolean` only show this field if the function returns truthy. 
   Must not reference variables of the outer scope. [See example](https://github.com/rejetto/rich-folder/blob/main/dist/plugin.js).
 - `frontend: boolean` expose this setting on the frontend, so that javascript can access it 
-   using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`.
-   Hint: if you need to use a numeric config in CSS but you need to add a unit (like `em`),
-   the trick is to use something like this `calc(var(--plugin-something) * 1em)`.
+  using `HFS.getPluginConfig()[CONFIG_KEY]` but also css can access it as `var(--PLUGIN_NAME-CONFIG_KEY)`.
+  Hint: if you need to use a numeric config in CSS but you need to add a unit (like `em`),
+  the trick is to use something like this `calc(var(--plugin-something) * 1em)`.
+- `getError: (value: any, { values: object, fields: object }) => (boolean | string)` a validator for the field. 
+  Return false if value is valid, true for generic error, or a string for specific error.
 
 Based on `type`, other properties are supported:
 - `string`
@@ -196,12 +210,18 @@ Based on `type`, other properties are supported:
 - `vfs_path` path to VFS
     - `folders: boolean` set false to forbid selection of folders. Default is true.
     - `files: boolean | string` set force to forbid selection of files. If you set a string, it will be used as a file-mask. 
-       E.g. `*.jpg|*.png` Default is true. 
+       E.g. `*.jpg|*.png` Default is true.
+    Note: the path you configure inside the admin-panel may differ to what the frontend sees, because:
+    - a "root" is applied to the specific host/domain;
+    - a reverse-proxy may add something in front.
+    For this reason, if your config is marked with `frontend: true`, the value that will be actually sent to the frontend may be adjusted if necessary.  
 - `username`
     - `groups: undefined | boolean` true if you want only groups, false if you want only users. Default is undefined.
     - `multiple: boolean` if you set this to true, the field will allow the selection of multiple accounts, 
-      and the resulting value will be array of strings, instead of a string. Default is false.
-- `showHtml`
+      and the resulting value will be an array of strings, instead of a string. Default is false.
+- `date_time` a string in the form yyyy-mm-ddThh:mm:ss.cccZ 
+- `net_mask` a string
+- `showHtml` not a real field, but let you display some static content
     - `html: string` HTML code to display.
 
 ## api object
@@ -215,7 +235,7 @@ The `api` object you get as parameter of the `init` contains the following:
 - `setConfig(key: string, value: any)` set plugin's config value.
 
 - `subscribeConfig(key: string | string[], callback: (value: any) => void): Unsubscriber`
-  will call `callback` with initial value and then at each change.
+  will immediately call `callback` with initial value, and then at each change.
   Passing an array of keys, the `value` parameter becomes an object with the specified keys and respective values.
   Will be automatically unsubscribed at plugin's unload.
 
@@ -283,18 +303,22 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `getAccount(username: string): Account | undefined` retrieve an account object, or undefined of not found.
   The `Account` object has the following properties:
-      `username: string` 
-      `srp?: string` if this value is not present, then it's a group
-      `belongs?: string[]` list of groups this account belongs to
-      `ignore_limits?: boolean` don't apply limits to this account
-      `disable_password_change?: boolean` don't allow password change
-      `admin?: boolean` allow access to admin-panel
-      `redirect?: string` redirect to this URL as soon as the user logs in
-      `disabled?: boolean` forbid login
-      `expire?: Date` account expiration date
-      `days_to_live?: number` set expiration date (after this many days) automatically at next login 
-      `allow_net?: string` allow login of this account only from this network mask
-      `require_password_change?: boolean` ask user to change password at next login
+    `username: string` 
+    `srp?: string` if this value is not present, then it's a group
+    `belongs?: string[]` list of groups this account belongs to
+    `ignore_limits?: boolean` don't apply limits to this account
+    `disable_password_change?: boolean` don't allow password change
+    `admin?: boolean` allow access to admin-panel
+    `redirect?: string` redirect to this URL as soon as the user logs in
+    `disabled?: boolean` forbid login
+    `expire?: Date` account expiration date
+    `days_to_live?: number` set expiration date (after this many days) automatically at next login 
+    `allow_net?: string` allow login of this account only from this network mask
+    `require_password_change?: boolean` ask user to change password at next login
+    `plugin?: object` this can contain any information needed by plugins. It's free-form, but some fields are standard:
+      - `id?: string` name of the plugin responsible for this account
+      - `auth?: true` if the plugin is responsible for this authentication.
+        It will cause HFS to fallback to `clearTextLogin`, and the plugin shall respond to its corresponding event. 
 
 - `getAccounts(): string[]` retrieve list of all usernames
 
@@ -309,13 +333,25 @@ The `api` object you get as parameter of the `init` contains the following:
 
 - `_` [lodash library](https://lodash.com/docs/)
 
-## Frontend specific
+- `setInterval`, `setTimeout` same as standard js functions, but will automatically cancel if the plugin is unloaded. 
 
-The following information applies to the default frontend, and may not apply to a custom one.
+## Frontend JS
 
-Once your script is loaded into the frontend (via `frontend_js`), you will have access to the `HFS` object in the global scope.
+The following information applies to the frontend bundled with HFS.
 
-The HFS object contains many properties:
+Once your script is loaded into the frontend (via `frontend_js`, refer above), it will be executed as any other script in the browser.
+
+To avoid conflicts with other plugins, we suggest to wrap all your code like this:
+```js
+'use strict';{
+    // your code here
+    console.log('hi')
+}    
+```
+
+### HFS object
+
+In frontend you will have access to the `HFS` object of the global scope, which has many properties:
 - `onEvent` this is the main API function inside the frontend. Refer to dedicated section below.
 - `apiCall`
 - `useApi`
@@ -324,9 +360,10 @@ The HFS object contains many properties:
 - `prefixUrl: string` normally an empty string, it will be set in case a [reverse-proxy wants to mount HFS on a path](https://github.com/rejetto/hfs/wiki/Reverse-proxy).
 - `state: StateObject` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
   - you'll find here some interesting values, like `username` and `loading`. 
-- `watchState(key: string, callback): function`
+- `watchState(key: string, callback, now?: boolean): function`
     - watch the `key` property of the state object above
     - `callback(newValue)` will be called at each change
+    - pass `true` for the third parameter to also call the callback immediately, with current value 
     - use returned callback to stop watching
 - `useSnapState(): StateObject` React hook version of the `state` object above 
 - `React` whole React object, as for `require('react')` (JSX syntax is not supported here)
@@ -345,6 +382,9 @@ The HFS object contains many properties:
 - `Icon: ReactComponent` Properties:
     - `name: string` refer to file `icons.ts` for names, but you can also enter an emoji instead.
 - `iconBtn(icon: string, onClick: function, props?: any)` render a React Icon Button. For icons, refer to `Icon` component.
+- `Btn: ReactComponent}` Properties:
+  - `icon?: string`, `label?: string`, `tooltip?: string`, `toggled?: boolean`, `onClick?: function`, 
+    `onClickAnimation?: boolean`, `asText?: boolean`, `successFeedback?: boolean`
 - `domOn(eventName: string, cb: function, { target }?): function` convenient alternative to addEventListener/removeEventListener.
   The default target is window. Returns a callback to remove the listener. 
 - `useBatch(worker, job): { data }` this is a bit complicated, please refer to source `shared/react.ts`. 
@@ -383,29 +423,29 @@ HFS object is the same you access globally. Here just for legacy, consider it de
 Some frontend events can return HTML, which can be expressed in several ways:
 - as a string containing markup
 - as DOM Nodes, using methods like `document.createElement()`
-- as a ReactElement
-- as an array of ReactNode
-- `null`, `undefined`, `false`, and empty strings will be discarded
+- as a ReactNode or an array of them
+- as a Promise for any of the above
 
-These events will receive a `def` property (in addition event's specific properties),
-with the default content that will be displayed if no callback return a valid output.
-You can decide to embed such default content inside your content.
+So when referring to type `Html`, below, we are actually meaning `Promisable<string | Element | ReactNode | ReactNode[]>`.
+
+These events will receive, in addition event's specific properties, a `def` property
+with the *default* content that will be displayed if no callback return a valid output.
+It is useful if you want to embed such default content inside your content.
+Most events have this `def` undefined as they have no default content and are designed for custom insertions,
+but when this is not the case, you can replace the default content with nothing by returning `null`.
 You can produce output for such events also by adding sections (with same name as the event) to file `custom.html`.
 
 This is a list of available frontend-events, with respective object parameter and output.
 
 - `additionalEntryDetails`
   - you receive each entry of the list, and optionally produce HTML code that will be added in the `entry-details` container.
-  - parameter `{ entry: DirEntry }`
-
-    The `DirEntry` type is an object with the following properties:
+  - parameter `{ entry: DirEntry }` current entry. The `DirEntry` type is an object with the following properties:
     - `name: string` name of the entry.
     - `ext: string` just the extension part of the name, dot excluded and lowercase.
     - `isFolder: boolean` true if it's a folder.
     - `n: string` name of the entry, including relative path when searched in sub-folders.
-    - `uri: string` relative url of the entry.
+    - `uri: string` absolute uri of the entry.
     - `s?: number` size of the entry, in bytes. It may be missing, for example for folders.
-    - `t?: Date` generic timestamp, combination of creation-time and modified-time.
     - `c?: Date` creation-time.
     - `m?: Date` modified-time.
     - `p?: string` permissions missing
@@ -417,7 +457,7 @@ This is a list of available frontend-events, with respective object parameter an
 - `entry`
   - you receive each entry of the list, and optionally produce HTML code that will completely replace the entry row/slot.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
-  - output `Html | null` return null if you want to hide this entry
+  - output `Html` 
 - `afterEntryName`
   - you receive each entry of the list, and optionally produce HTML code that will be added after the name of the entry.
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
@@ -432,11 +472,22 @@ This is a list of available frontend-events, with respective object parameter an
 - `beforeLogin`
   - no parameter
   - output `Html`
+  - you can generate inputs with a name, and they will be sent to the login API
+- `beforeLoginSubmit`
+  - no parameter
+  - output `Html`
+  - you can generate inputs with a name, and they will be sent to the login API
+- `loginUsernameField`
+  - no parameter
+  - output `Html`
+- `loginPasswordField`
+  - no parameter
+  - output `Html`
 - `fileMenu`
   - add or manipulate entries of the menu. If you return something, that will be added to the menu.
     You can also delete or replace the content of the `menu` array.
   - parameter `{ entry: DirEntry, menu: FileMenuEntry[], props: FileMenuProp[] }`
-  - output `undefined | FileMenuEntry | FileMenuEntry[]`
+  - output `Promisable<undefined | FileMenuEntry | FileMenuEntry[]>`
     ```typescript
     interface FileMenuEntry {
       id?: string, 
@@ -561,6 +612,16 @@ This section is still partially documented, and you may need to have a look at t
   - async supported
   - preventable
 - `failedLogin`
+- `clearTextLogin` give plugins the chance to authenticate users
+  - parameters: { ctx, username, password, via: 'url' | 'header' }
+  - async supported
+  - return: `true` to consider authentication done
+- `finalizingLogin`
+  - parameters: { ctx, username, inputs }
+    - inputs: object
+      - merge of all inputs both from body and URL
+      - all fields with a `name` attribute in the form, included those added by plugins, are included 
+  - async supported
 - `config ready`
 - `config.KEY` where KEY is the key of a config that has changed
 - `connectionClosed`
@@ -580,6 +641,8 @@ This section is still partially documented, and you may need to have a look at t
 - `pluginUninstalled`
 - `pluginStopped`
 - `pluginStarted`
+- `httpsServerOptions` if you need to customize the options of the https server.
+  - return: object with some properties [documented here](https://nodejs.org/api/https.html#httpscreateserveroptions-requestlistener).  
 - `uploadStart`
   - parameters: { ctx, writeStream } 
   - preventable
@@ -588,12 +651,21 @@ This section is still partially documented, and you may need to have a look at t
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
 - `newSocket`
-  - parameters: { socket,ip }
+  - parameters: { socket, ip }
   - preventable
+  - return: you can return a string with a message that will be logged, and it will also cause disconnection
 - `getList` called when get=list on legit requests to ?get=list
     - parameters: { node, ctx }
     - async supported
     - stoppable
+- `listDiskFolder` called when a list is read from the disk; useful to implement a cache
+  - parameters: { path, ctx? } 
+  - async supported 
+  - return: to prevent the default listing and provide such a list yourself, return an array or iterator;
+    to let the default behavior while getting the content of the list, return a function, and it will be called for each
+    entry, passed as first parameter (an object of standard class fs.Dirent), and when the list is over it will be called
+    with a boolean, true if the list is completed and false if it was aborted
+    
 
 # Notifications (backend-to-frontend events)
 
@@ -720,8 +792,9 @@ HFS will scan through them in inverted alphabetical order searching for a compat
 
 ## React developers
 
+Using React is a good option to create a frontend parts for your plugin.
 Most React developers are used to JSX, which is not (currently) supported here.
-If you want, you can try solutions to JSX support, like transpiling.
+If you want, you can try solutions to support JSX, like transpiling.
 Anyway, React is not JSX, and can be easily used without.
 
 Any time in JSX you do
@@ -767,123 +840,135 @@ HFS._.set(HFS.lang, 'en.translate.Options', 'Settings')
 This works because all translations are stored inside `HFS.lang`.
 Using `HFS._.set` is not necessary, but in this case is convenient, because the language-code key may not exist.
 
-If you want to override a text regardless of the language, use the special language-code `all`.
+If you want to override a text regardless of the language, use the special language-code `all`. 
 
 ## API version history
 
-- 11.6 (v0.56.0)
-    - api.setError 
-    - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
-    - config.type.vfs_path: folders, files
-    - api.subscribeConfig supports multiple keys
-    - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
-    - automatic unload of api.subscribeConfig
-    - api._
-    - config.type=showHtml
-- 10.3 (v0.55.0)
-    - HFS.copyTextToClipboard
-    - HFS.urlParams
-    - exports.beforePlugin + afterPlugin
-    - config.type: color
-    - config.showIf
-    - init can now return directly the unload function
-    - api.i18n
-    - frontend event: newListEntries
-    - HFS.fileShowComponents
-    - api.ctxBelongsTo
-    - api.getCurrentUsername
-- 9.6 (v0.54.0)
-    - frontend event: showPlay
-    - api.addBlock 
-    - api.misc
-    - frontend event: paste
-    - exports.customRest + HFS.customRestCall
-    - config.type: vfs_path
-    - frontend event: sortCompare
-    - HFS.userBelongsTo
-    - HFS.DirEntry
-    - frontend event: appendMenuBar
-    - config.helperText: basic md formatting
-    - HFS.onEvent.setOrder
-    - backend event: newSocket
-- 8.891 (v0.53.0)
-    - api.openDb
-    - frontend event: menuZip
-    - config.type:username
-    - api.events class has changed
-    - frontend event "fileMenu": changed props format
-    - api.getConfig() without parameters
-    - api.notifyClient + HFS.getNotifications
-    - HFS.html
-    - HFS.useSnapState
-    - HFS.debounceAsync
-    - HFS.loadScript
-    - HFS.iconBtn
-    - middleware: ctx.stop()
-      - the old way of returning true is now deprecated
-    - exports.customHtml
-    - more functions in HFS.misc
-    - frontend event 'entry' can now ask to skip an entry
-    - backend events: login attemptingLogin failedLogin
-- 8.72 (v0.52.0)
-    - HFS.toast
-    - HFS.misc functions
-    - HFS.state.uri
-    - ~~frontend event: uriChanged~~
-- 8.65 (v0.51.0)
-    - plugin's own hfs-lang files
-    - HFS.state.props.can_overwrite
-    - ctx.state.considerAsGui
-    - frontend event: userPanelAfterInfo
-    - breaking: moved custom properties from ctx to ctx.state
-    - HFS.navigate
-    - internationalization
-- 8.5 (v0.49.0)
-    - frontend event: entry
-    - exports.onDirEntry: entry.icon
-    - customApiCall supports any number of parameters
-- 8.4 (v0.48.2)
-    - HFS.fileShow
-    - api.Const (api.const is now deprecated)
-- 8.3 (v0.47.0)
-    - HFS.useBatch
-    - FileMenuEntry.id, .subLabel
-- 8.23 (v0.46.0)
-    - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
-    - platform-dependent distribution
-    - HFS.watchState, emit, useApi
-    - api.storageDir, customApiCall
-    - exports.depend
-    - frontend event: fileShow
-- 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
-    - full URL support for frontend_js and frontend_css
-    - custom.html
-    - entry.cantOpen, ext, isFolder
-    - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
-    - second parameter of onEvent is now deprecated
-    - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
-    - frontend event: entryIcon
-- 8 (v0.43.0)
-    - entry.name & .uri
-    - tools.dialogLib
-    - HFS.getPluginConfig()
-- 7 (v0.42.0)
-    - frontend event: fileMenu
-    - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
-- 6 (v0.38.0)
-    - config.frontend
-- 5 (v0.33.0)
-    - frontend event: afterEntryName
-- 4.1 (v0.23.4)
-    - config.type:array added $width, $column and fixed height
-- 4 (v0.23.0)
-    - config.type:real_path
-    - api.subscribeConfig
-    - api.setConfig
-    - api.getHfsConfig
-- 3 (v0.21.0)
-    - config.defaultValue
-    - async for init/unload
-    - api.log
 - 2
-    - config.type:array
+  - config.type:array
+- 3 (v0.21.0)
+  - config.defaultValue
+  - async for init/unload
+  - api.log
+- 4 (v0.23.0)
+  - config.type:real_path
+  - api.subscribeConfig
+  - api.setConfig
+  - api.getHfsConfig
+- 4.1 (v0.23.4)
+  - config.type:array added $width, $column and fixed height
+- 5 (v0.33.0)
+  - frontend event: afterEntryName
+- 6 (v0.38.0)
+  - config.frontend
+- 7 (v0.42.0)
+  - frontend event: fileMenu
+  - HFS.SPECIAL_URI, PLUGINS_PUB_URI, FRONTEND_URI,
+- 8 (v0.43.0)
+  - entry.name & .uri
+  - tools.dialogLib
+  - HFS.getPluginConfig()
+- 8.1 (v0.45.0) should have been 0.44.0 but forgot to update number
+  - full URL support for frontend_js and frontend_css
+  - custom.html
+  - entry.cantOpen, ext, isFolder
+  - HFS.apiCall, reloadList, logout, h, React, state, t, _, dialogLib, Icon, getPluginPublic
+  - second parameter of onEvent is now deprecated
+  - renamed: additionalEntryProps > additionalEntryDetails & entry-props > entry-details
+  - frontend event: entryIcon
+- 8.23 (v0.46.0)
+  - entry.getNext, getPrevious, getNextFiltered, getPreviousFiltered, getDefaultIcon
+  - platform-dependent distribution
+  - HFS.watchState, emit, useApi
+  - api.storageDir, customApiCall
+  - exports.depend
+  - frontend event: fileShow
+- 8.3 (v0.47.0)
+  - HFS.useBatch
+  - FileMenuEntry.id, .subLabel
+- 8.4 (v0.48.2)
+  - HFS.fileShow
+  - api.Const (api.const is now deprecated)
+- 8.5 (v0.49.0)
+  - frontend event: entry
+  - exports.onDirEntry: entry.icon
+  - customApiCall supports any number of parameters
+- 8.65 (v0.51.0)
+  - plugin's own hfs-lang files
+  - HFS.state.props.can_overwrite
+  - ctx.state.considerAsGui
+  - frontend event: userPanelAfterInfo
+  - breaking: moved custom properties from ctx to ctx.state
+  - HFS.navigate
+  - internationalization
+- 8.72 (v0.52.0)
+  - HFS.toast
+  - HFS.misc functions
+  - HFS.state.uri
+  - ~~frontend event: uriChanged~~
+- 8.891 (v0.53.0)
+  - api.openDb
+  - frontend event: menuZip
+  - config.type:username
+  - api.events class has changed
+  - frontend event "fileMenu": changed props format
+  - api.getConfig() without parameters
+  - api.notifyClient + HFS.getNotifications
+  - HFS.html
+  - HFS.useSnapState
+  - HFS.debounceAsync
+  - HFS.loadScript
+  - HFS.iconBtn
+  - middleware: ctx.stop()
+    - the old way of returning true is now deprecated
+  - exports.customHtml
+  - more functions in HFS.misc
+  - frontend event 'entry' can now ask to skip an entry
+  - backend events: login attemptingLogin failedLogin
+- 9.6 (v0.54.0)
+  - frontend event: showPlay
+  - api.addBlock
+  - api.misc
+  - frontend event: paste
+  - exports.customRest + HFS.customRestCall
+  - config.type: vfs_path
+  - frontend event: sortCompare
+  - HFS.userBelongsTo
+  - HFS.DirEntry
+  - frontend event: appendMenuBar
+  - config.helperText: basic md formatting
+  - HFS.onEvent.setOrder
+  - backend event: newSocket
+- 10.3 (v0.55.0)
+  - HFS.copyTextToClipboard
+  - HFS.urlParams
+  - exports.beforePlugin + afterPlugin
+  - config.type: color
+  - config.showIf
+  - init can now return directly the unload function
+  - api.i18n
+  - frontend event: newListEntries
+  - HFS.fileShowComponents
+  - api.ctxBelongsTo
+  - api.getCurrentUsername
+- 11.6 (v0.56.0)
+  - api.setError 
+  - frontend events: afterBreadcrumbs, afterFolderStats, afterFilter
+  - config.type.vfs_path: folders, files
+  - api.subscribeConfig supports multiple keys
+  - api.getAccount, addAccount, delAccount, updateAccount, renameAccount, getUsernames
+  - automatic unload of api.subscribeConfig
+  - api._
+  - config.type=showHtml
+- 12.3 (v0.57.0)
+  - backend event: finalizingLogin, httpsServerOptions, clearTextLogin, listDiskFolder
+  - frontend events: beforeLoginSubmit, loginUsernameField, loginPasswordField
+  - exports.changelog
+  - automatic unload of api.events listeners
+  - removed DirEntry.t
+  - api.setInterval, setTimeout
+  - HFS.Btn
+  - HFS.watchState added third parameter
+  - frontend events: async for fileMenu and html-producers
+  - config.type: date_time, net_mask
+  - config.getError

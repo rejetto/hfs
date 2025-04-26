@@ -184,17 +184,13 @@ function sort(list: DirList) {
         || folders_first && -compareScalar(a.isFolder, b.isFolder)
         || invert * (bySize ? compareScalar(a.s||0, b.s||0)
             : byExt ? localCompare(a.ext, b.ext)
-                : byTime ? compareScalar(a.t, b.t)
+                : byTime ? compareScalar(a.m, b.m)
                     : byCreation ? compareScalar(a.c, b.c)
                         : 0
         )
         || sort_numerics && (invert * compareNumerics(a.n, b.n))
-        || invert * localCompare(nameToCompare(a), nameToCompare(b)) // fallback to name/path
+        || invert * localCompare(a.n, b.n) // fallback to name/path
     )
-
-    function nameToCompare(x: DirEntry) { // try to avoid slicing. When searching, we need to consider the path
-        return !x.isFolder ? x.n : !state.remoteSearch ? x.name : x.n.slice(0, -1)
-    }
 
     function compareNumerics(a: string, b: string) {
         const re = /\d/g
