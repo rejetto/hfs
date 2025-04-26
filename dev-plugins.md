@@ -651,13 +651,21 @@ This section is still partially documented, and you may need to have a look at t
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
 - `newSocket`
-  - parameters: { socket,ip }
+  - parameters: { socket, ip }
   - preventable
   - return: you can return a string with a message that will be logged, and it will also cause disconnection
 - `getList` called when get=list on legit requests to ?get=list
     - parameters: { node, ctx }
     - async supported
     - stoppable
+- `listDiskFolder` called when a list is read from the disk; useful to implement a cache
+  - parameters: { path, ctx? } 
+  - async supported 
+  - return: to prevent the default listing and provide such a list yourself, return an array or iterator;
+    to let the default behavior while getting the content of the list, return a function, and it will be called for each
+    entry, passed as first parameter (an object of standard class fs.Dirent), and when the list is over it will be called
+    with a boolean, true if the list is completed and false if it was aborted
+    
 
 # Notifications (backend-to-frontend events)
 
@@ -952,8 +960,8 @@ If you want to override a text regardless of the language, use the special langu
   - automatic unload of api.subscribeConfig
   - api._
   - config.type=showHtml
-- 12.2 (v0.57.0)
-  - backend event: finalizingLogin, httpsServerOptions, clearTextLogin
+- 12.3 (v0.57.0)
+  - backend event: finalizingLogin, httpsServerOptions, clearTextLogin, listDiskFolder
   - frontend events: beforeLoginSubmit, loginUsernameField, loginPasswordField
   - exports.changelog
   - automatic unload of api.events listeners

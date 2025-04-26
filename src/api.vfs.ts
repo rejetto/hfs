@@ -205,7 +205,7 @@ const apis: ApiHandlers = {
                 try {
                     const matching = makeMatcher(fileMask)
                     path = isWindowsDrive(path) ? path + '\\' : resolve(path || '/')
-                    await walkDir(path, {}, async entry => {
+                    await walkDir(path, { ctx }, async entry => {
                         if (ctx.isAborted())
                             return null
                         const {path:name} = entry

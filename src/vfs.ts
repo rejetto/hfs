@@ -277,7 +277,7 @@ interface WalkNodeOptions {
     onlyFolders?: boolean,
     onlyFiles?: boolean
 }
-// it's responsibility of the caller to verify you have list permission on parent, as callers have different needs.
+// it's the responsibility of the caller to verify you have list permission on parent, as callers have different needs.
 export async function* walkNode(parent: VfsNode, {
     ctx,
     depth = Infinity,
@@ -325,7 +325,7 @@ export async function* walkNode(parent: VfsNode, {
                 try {
                     let lastDir = prefixPath.slice(0, -1) || '.'
                     parentsCache.set(lastDir, parent)
-                    await walkDir(source, { depth, hidden: showHiddenFiles.get() }, async entry => {
+                    await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get() }, async entry => {
                         if (ctx?.isAborted()) {
                             stream.push(null)
                             return null

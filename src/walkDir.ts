@@ -3,7 +3,10 @@ import { stat, opendir } from 'fs/promises'
 import { IS_WINDOWS } from './const'
 import { join } from 'path'
 import { pendingPromise, Promisable } from './cross'
-import { Stats, Dirent } from 'node:fs'
+import { Stats, Dirent, Dir } from 'node:fs'
+import events from './events'
+import _ from 'lodash'
+import { Context } from 'koa'
 import fswin from 'fswin'
 import { isDirectory } from './util-files'
 
@@ -15,9 +18,10 @@ export interface DirStreamEntry extends Dirent {
 const dirQ = makeQ(3)
 
 // cb returns void = just go on, null = stop, false = go on but don't recur (in case of depth)
-export function walkDir(path: string, { depth = 0, hidden = true }: {
+export function walkDir(path: string, { depth = 0, hidden = true, ctx }: {
     depth?: number,
-    hidden?: boolean
+    hidden?: boolean,
+    ctx?: Context
 }, cb: (e: DirStreamEntry) => Promisable<void | null | false>) {
     let stopped = false
     const closingQ: string[] = []
@@ -37,7 +41,12 @@ export function walkDir(path: string, { depth = 0, hidden = true }: {
         const subDirsDone: Promise<any>[] = []
         let n = 0
         let last: DirStreamEntry | undefined
-        if (IS_WINDOWS) { // use native apis to read 'hidden' attribute
+
+        const res = (await events.emitAsync('listDiskFolder', { path: base, ctx }))?.[0] // consider only first result
+        const pluginReceiver = _.isFunction(res) && res || null
+        const pluginIterator = _.isFunction(res?.[Symbol.asyncIterator] || res?.[Symbol.iterator]) && res as Dir
+
+        if (IS_WINDOWS && !pluginIterator) { // use native apis to read the 'hidden' attribute
             const direntMethods = {
                 isDir: false,
                 isFile(){ return !this.isDir },
@@ -55,12 +64,14 @@ export function walkDir(path: string, { depth = 0, hidden = true }: {
                     stats: { size: f.SIZE, birthtime: f.CREATION_TIME, mtime: f.LAST_WRITE_TIME } as Stats
                 }))
             }, true))
+            pluginReceiver?.(!stopped)
+            return
         }
-        else for await (let entry of await opendir(base)) {
+        for await (let entry of (pluginIterator || await opendir(base))) {
             if (stopped) break
-            if (!hidden && entry.name[0] === '.')
+            if (!hidden && entry.name[0] === '.' && !IS_WINDOWS)
                 continue
-            const stats = entry.isSymbolicLink() && await stat(join(base, entry.name)).catch(() => null)
+            const stats = entry.isSymbolicLink?.() && await stat(join(base, entry.name)).catch(() => null)
             if (stats === null) continue
             if (stats)
                 entry = new DirentFromStats(entry.name, stats)
@@ -69,9 +80,11 @@ export function walkDir(path: string, { depth = 0, hidden = true }: {
                 expanded.stats = stats
             await work(expanded)
         }
+        pluginReceiver?.(!stopped)
 
         async function work(entry: DirStreamEntry) {
             entry.path = (relativePath && relativePath + '/') + entry.name
+            pluginReceiver?.(entry)
             if (last && closingQ.length) // pending entries
                 last.closingBranch = Promise.resolve(closingQ.shift()!)
             last = entry
