@@ -76,7 +76,7 @@
     "buffer-crc32": "^1.0.0",
     "fast-glob": "^3.3.3",
     "find-process": "^1.4.7",
-    "formidable": "^3.5.1",
+    "formidable": "^3.5.4",
     "fs-x-attributes": "^1.0.2",
     "fswin": "^3.24.829",
     "iconv-lite": "^0.6.3",
