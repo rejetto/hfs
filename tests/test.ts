@@ -131,8 +131,9 @@ describe('basics', () => {
     test('upload.need account', reqUpload( UPLOAD_DEST, 401))
     test('upload.post', () => // this is also testing basic-auth
         promisify(exec)(`curl -u ${username}:${password} -F upload=@${SAMPLE_FILE_PATH} ${BASE_URL}${UPLOAD_ROOT}`).then(x => {
-            const fn = resolve(__dirname, basename(decodeURI(tryJson(x.stdout)?.uris?.[0])))
+            let fn = tryJson(x.stdout)?.uris?.[0]
             if (!fn) throw "unexpected output " + (x.stdout || x.stderr)
+            fn = resolve(__dirname, basename(decodeURI(fn)))
             const stats = statSync(fn)
             rm(fn).catch(() => {}) // clear
             if (stats?.size !== statSync(SAMPLE_FILE_PATH).size)

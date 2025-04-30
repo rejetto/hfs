@@ -225,6 +225,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                         void setCommentFor(dest, String(ctx.query.comment))
                     obj.uri = enforceFinal('/', baseUri) + pathEncode(basename(dest))
                     events.emit('uploadFinished', obj)
+                    console.debug("upload finished", dest)
                     if (resEvent) for (const cb of resEvent)
                         if (_.isFunction(cb))
                             cb(obj)
@@ -307,14 +308,13 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         uploadingFiles.delete(fullPath)
     }
 
-    function fail(status?: number, msg?: string) {
-        console.debug('upload failed', status||'', msg||'')
+    function fail(status=ctx.status, msg?: string) {
+        console.debug('upload failed', status, msg||'')
         releaseFile()
-        if (status)
-            ctx.status = status
+        ctx.status = status
         if (msg)
             ctx.body = msg
-        notifyClient(ctx, UPLOAD_REQUEST_STATUS, { [path]: ctx.status }) // allow browsers to detect failure while still sending body
+        notifyClient(ctx, UPLOAD_REQUEST_STATUS, { [path]: status }) // allow browsers to detect failure while still sending body
     }
 }
 
