@@ -64,10 +64,8 @@ export function walkDir(path: string, { depth = 0, hidden = true, ctx }: {
                     stats: { size: f.SIZE, birthtime: f.CREATION_TIME, mtime: f.LAST_WRITE_TIME } as Stats
                 }))
             }, true))
-            pluginReceiver?.(!stopped)
-            return
         }
-        for await (let entry of (pluginIterator || await opendir(base))) {
+        else for await (let entry of (pluginIterator || await opendir(base))) {
             if (stopped) break
             if (!hidden && entry.name[0] === '.' && !IS_WINDOWS)
                 continue
@@ -81,6 +79,13 @@ export function walkDir(path: string, { depth = 0, hidden = true, ctx }: {
             await work(expanded)
         }
         pluginReceiver?.(!stopped)
+        const branchDone = Promise.allSettled(subDirsDone)
+        if (last) // using streams, we don't know when the entries are received, so we need to notify on last item
+            last.closingBranch = branchDone.then(() => relativePath)
+        else
+            closingQ.push(relativePath) // ok, we'll ask next one to carry this info
+        // don't return the promise directly, as this job ends here, but communicate to caller the promise for the whole branch
+        return { branchDone, n }
 
         async function work(entry: DirStreamEntry) {
             entry.path = (relativePath && relativePath + '/') + entry.name
@@ -106,13 +111,6 @@ export function walkDir(path: string, { depth = 0, hidden = true, ctx }: {
             dirQ.add(job) // this won't start until next tick
             subDirsDone.push(branchDone)
         }
-        const branchDone = Promise.allSettled(subDirsDone).then(() => {})
-        if (last) // using streams, we don't know when the entries are received, so we need to notify on last item
-            last.closingBranch = branchDone.then(() => relativePath)
-        else
-            closingQ.push(relativePath) // ok, we'll ask next one to carry this info
-        // don't return the promise directly, as this job ends here, but communicate to caller the promise for the whole branch
-        return { branchDone, n }
     }
 }
 
