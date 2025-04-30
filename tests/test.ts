@@ -22,7 +22,8 @@ const username = 'rejetto'
 const password = 'password'
 const API = '/~/api/'
 const ROOT = 'tests/'
-const BASE_URL = 'http://localhost:81'
+const BASE_URL = 'http://[::1]:81'
+const BASE_URL_127 = 'http://127.0.0.1:81'
 const UPLOAD_ROOT = '/for-admins/upload/'
 const UPLOAD_RELATIVE = 'temp/gpl.png'
 const UPLOAD_DEST = UPLOAD_ROOT + UPLOAD_RELATIVE
@@ -59,7 +60,7 @@ describe('basics', () => {
     test('bad range', req('/f1/f2/alfa.txt', 416, {
         headers: { Range: 'bytes=7-' }
     }))
-    test('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL.replace('localhost', '127.0.0.1') })) // host 127.0.0.1 is rooted in /f1
+    test('roots', req('/f2/alfa.txt', 200, { baseUrl: BASE_URL_127 })) // host 127.0.0.1 is rooted in /f1
     test('website', req('/f1/page/', { re:/This is a test/, mime:'text/html' }))
     test('traversal', req('/f1/page/.%2e/.%2e/README.md', 418))
     test('custom mime from above', req('/tests/page/index.html', { status: 200, mime:'text/plain' }))
@@ -144,10 +145,10 @@ describe('basics', () => {
     test('delete.need account', req(UPLOAD_ROOT, 401, { method: 'delete'}))
     test('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
     test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => {}))
-    test('allow_net.canLogin', () => login('rejetto')) // localhost is normally resolved as ::1
+    test('allow_net.canLogin', () => login(username))
     test('allow_net.cantLogin', () => {
-        defaultBaseUrl = BASE_URL.replace('localhost', '127.0.0.1')
-        return login('rejetto').then(() => { throw Error('logged in') }, () => {})
+        defaultBaseUrl = BASE_URL_127 // 127.0.0.1 is not allowed for this account
+        return login(username).then(() => { throw Error('logged in') }, () => {})
             .finally(() => defaultBaseUrl = BASE_URL)
     })
 
