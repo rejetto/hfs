@@ -18,9 +18,10 @@ export interface DirStreamEntry extends Dirent {
 const dirQ = makeQ(3)
 
 // cb returns void = just go on, null = stop, false = go on but don't recur (in case of depth)
-export function walkDir(path: string, { depth = 0, hidden = true, ctx }: {
+export function walkDir(path: string, { depth = 0, hidden = true, parallelizeRecursion = false, ctx }: {
     depth?: number,
     hidden?: boolean,
+    parallelizeRecursion?: boolean,
     ctx?: Context
 }, cb: (e: DirStreamEntry) => Promisable<void | null | false>) {
     let stopped = false
@@ -99,6 +100,7 @@ export function walkDir(path: string, { depth = 0, hidden = true, ctx }: {
             n++
             if (!depth || !entry.isDirectory()) return
             const branchDone = pendingPromise() // per-job
+            subDirsDone.push(branchDone)
             const job = () =>
                 readDir(entry.path, depth - 1) // recur
                     .then(x => x, () => {}) // mute errors
@@ -108,8 +110,10 @@ export function walkDir(path: string, { depth = 0, hidden = true, ctx }: {
                         Promise.resolve(res?.branchDone).then(() =>
                             branchDone.resolve())
                     })
-            dirQ.add(job) // this won't start until next tick
-            subDirsDone.push(branchDone)
+            if (parallelizeRecursion)
+                dirQ.add(job)
+            else
+                await job()
         }
     }
 }

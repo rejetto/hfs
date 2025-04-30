@@ -275,7 +275,8 @@ interface WalkNodeOptions {
     prefixPath?: string,
     requiredPerm?: undefined | keyof VfsPerms,
     onlyFolders?: boolean,
-    onlyFiles?: boolean
+    onlyFiles?: boolean,
+    parallelizeRecursion?: boolean,
 }
 // it's the responsibility of the caller to verify you have list permission on parent, as callers have different needs.
 export async function* walkNode(parent: VfsNode, {
@@ -285,6 +286,7 @@ export async function* walkNode(parent: VfsNode, {
     requiredPerm,
     onlyFolders = false,
     onlyFiles = false,
+    parallelizeRecursion = true,
 }: WalkNodeOptions = {}) {
     let started = false
     const stream = new Readable({
@@ -325,7 +327,7 @@ export async function* walkNode(parent: VfsNode, {
                 try {
                     let lastDir = prefixPath.slice(0, -1) || '.'
                     parentsCache.set(lastDir, parent)
-                    await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get() }, async entry => {
+                    await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
                         if (ctx?.isAborted()) {
                             stream.push(null)
                             return null
@@ -368,7 +370,7 @@ export async function* walkNode(parent: VfsNode, {
             }
             finally {
                 for (const [item, name] of visitLater)
-                    for await (const x of walkNode(item, { ctx, depth: depth - 1, prefixPath: name + '/', requiredPerm, onlyFolders }))
+                    for await (const x of walkNode(item, { depth: depth - 1, prefixPath: name + '/', ctx, requiredPerm, onlyFolders, parallelizeRecursion }))
                         stream.push(x)
                 stream.push(null)
             }
