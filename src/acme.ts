@@ -1,4 +1,6 @@
-import { DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, MINUTE, repeat } from './misc'
+import {
+    DAY, Dict, haveTimeout, HOUR, HTTP_BAD_REQUEST, HTTP_FAILED_DEPENDENCY, HTTP_OK, MINUTE, repeat, formatDate
+} from './misc'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { Middleware } from 'koa'
 import { getNatInfo, upnpClient } from './nat'
@@ -126,6 +128,6 @@ const renewCert = debounceAsync(async () => {
     if (now > new Date(cert.validFrom) && now < validTo && validTo.getTime() - now.getTime() >= 30 * DAY)
         return console.log("certificate still good")
     await makeCert(domain, undefined, altNames)
-        .catch(e => console.log(acmeRenewError = `Error renewing certificate, expiring ${validTo.toLocaleDateString()}: ${String(e.message || e)}`))
+        .catch(e => console.log(acmeRenewError = `Error renewing certificate, expiring ${formatDate(validTo)}: ${String(e.message || e)}`))
 }, { retain: DAY, retainFailure: HOUR })
 
