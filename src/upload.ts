@@ -2,7 +2,7 @@ import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_BAD_REQUEST,
-    UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
+    UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH, HTTP_NO_CONTENT,
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
@@ -196,7 +196,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
                 }
-                if (ctx.query.partial) return // this upload is partial, and we are supposed to leave the upload as unfinished, with the temp name
+                if (ctx.query.partial) // this upload is partial, and we are supposed to leave the upload as unfinished, with the temp name
+                    return ctx.status = HTTP_NO_CONTENT // lockMiddleware contains an empty string, so we must take care of the status
                 let dest = fullPath
                 if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
                     if (overwriteRequestedButForbidden) {
