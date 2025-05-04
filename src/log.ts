@@ -123,10 +123,10 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         ctx.logExtra(ctx.vfsNode && {
             speed: Math.round(length / duration),
             ...ctx.state.includesLastByte && ctx.res.finished && { dl: 1 }
-        } || ctx.state.uploadPath && {
+        } || ctx.state.uploadSize !== undefined && {
             ul: ctx.state.uploads,
-            size: ctx.state.opTotal,
-            speed: Math.round((ctx.state.opTotal! - (ctx.state.opOffset || 0)) / duration)
+            size: ctx.state.uploadSize,
+            speed: Math.round(ctx.state.uploadSize / duration),
         })
         if (conn?.country)
             ctx.logExtra({ country: conn.country })

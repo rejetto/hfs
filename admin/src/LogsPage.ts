@@ -340,10 +340,11 @@ export function LogFile({ file, footerSide, hidden, limit, filter, ...rest }: Lo
         if (extra?.ua && !showAgent)
             setShowAgent(true)
         if (row.uri) {
-            const partial = stringAfter('?', row.uri).includes('partial=')
             const upload = row.method === 'PUT' || extra?.ul
+            const partial = upload && stringAfter('?', row.uri).includes('partial=')
             if (upload)
-                row.length = extra?.size ?? 0
+                row.length =  (extra?.size ?? 0)
+                    + (!partial && Number(row.uri.match(/\?.*resume=(\d+)/)?.[1]) || 0) // show full size for full uploads
             row.notes = extra?.dl ? "full download " + (extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : '') // 'dl' here is not the '?dl' of the url, and has a different meaning
                 : upload ? `${partial ? "partial " : ""} upload ${extra.speed ? formatSpeed(extra.speed, { sep: ' ' }) : ''}`
                     : row.status === HTTP_UNAUTHORIZED && row.uri?.startsWith(API_URL + 'loginSrp') ? "login failed" + prefix(':\n', extra?.u)

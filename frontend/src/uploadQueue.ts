@@ -155,7 +155,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
             notificationChannel,
             giveBack: toUpload.file.lastModified,
-            ...partial && { partial: fullSize - offset },
+            ...partial && { partial: fullSize - offset }, // how much space we need
             ...offset && { resume: offset, preserveTempFile },
             ...toUpload.comment && { comment: toUpload.comment },
             ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default

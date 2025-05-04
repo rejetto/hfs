@@ -90,9 +90,10 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     fullPath = join(base.source!, path)
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
-    const reqSize = Number(ctx.headers["content-length"])
-    const fullSize = Math.max(reqSize, Number(ctx.query.partial) || 0)
-    if (isNaN(fullSize)) {
+    const contentLength = Number(ctx.headers["content-length"])
+    const isPartial = ctx.query.partial !== undefined // while the presence of "partial" conveys the upload is split...
+    const stillToWrite = Math.max(contentLength, Number(ctx.query.partial) || 0) // ...the number is used to tell how much space we need (fullSize - offset)
+    if (isNaN(stillToWrite)) {
         if (min)
             return fail(HTTP_BAD_REQUEST, 'content-length mandatory')
     }
@@ -108,7 +109,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             const { free } = res
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
-            if (fullSize > free - (min || 0))
+            if (stillToWrite > free - (min || 0))
                 return fail(HTTP_INSUFFICIENT_STORAGE)
         }
         catch(e: any) { // warn, but let it through
@@ -162,12 +163,13 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         const resuming = resume && resumableTempName
         if (!resuming)
             resume = 0
-        const writeStream = createStreamLimiter(reqSize ?? Infinity)
+        const writeStream = createStreamLimiter(contentLength ?? Infinity)
         if (resume && resumableTempName && !splitAndPreserving) {
             fs.rm(tempName, () => {})
             tempName = resumableTempName
         }
         cancelDeletion(tempName)
+        const fullSize = stillToWrite + resume
         ctx.state.uploadDestinationPath = tempName
         // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
         const obj = { ctx, writeStream, uri: '' }
@@ -183,20 +185,21 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         writeStream.pipe(fileStream)
         Object.assign(obj, { fileStream })
         trackProgress()
-        // the file stream doesn't have an event for data being written, so we use 'data' of its feeder, which happens before, so we postpone a bit, trying have a fresher view
+        // the file stream doesn't have an event for data being written, so we use 'data' of its feeder, which happens before, so we postpone a bit, trying to have a fresher number
         writeStream.on('data', () => setTimeout(checkIfNewUploadBecameLargerThanResumable))
 
-        const lockMiddleware = pendingPromise<string>() // outside we need to know when all operations stopped
+        const lockMiddleware = pendingPromise<string>() // expose when all operations stopped
         writeStream.once('close', async () => {
             try {
-                await new Promise(res => fileStream.close(res)) // this only seem to be necessary on Windows
+                ctx.state.uploadSize = bytesGot() // in case content-length is not specified
+                await new Promise(res => fileStream.close(res)) // this only seems necessary on Windows
                 if (ctx.isAborted()) {
                     if (isWritingSecondFile) // we don't want to be left with 2 temp files
                         return rm(altTempName).catch(console.warn)
                     const sec = deleteUnfinishedUploadsAfter.get()
                     return _.isNumber(sec) && delayedDelete(tempName, sec)
                 }
-                if (ctx.query.partial) // this upload is partial, and we are supposed to leave the upload as unfinished, with the temp name
+                if (isPartial) // we are supposed to leave the upload as unfinished, with the temp name
                     return ctx.status = HTTP_NO_CONTENT // lockMiddleware contains an empty string, so we must take care of the status
                 let dest = fullPath
                 if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
@@ -243,26 +246,29 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         })
         return Object.assign(obj.writeStream, { lockMiddleware })
 
+        function bytesGot() {
+            return fileStream.bytesWritten + fileStream.writableLength
+        }
+
         function trackProgress() {
             let lastGot = 0
             let lastGotTime = 0
-            const opTotal = fullSize + resume
-            Object.assign(ctx.state, { opTotal, opOffset: resume / opTotal, opProgress: 0 })
+            Object.assign(ctx.state, { opTotal: fullSize, opOffset: resume / fullSize, opProgress: 0 })
             const conn = updateConnectionForCtx(ctx)
             if (!conn) return
             const h = setInterval(() => {
                 const now = Date.now()
-                const got = fileStream.bytesWritten
+                const got = bytesGot()
                 const inSpeed = roundSpeed((got - lastGot) / (now - lastGotTime))
                 lastGot = got
                 lastGotTime = now
-                updateConnection(conn, { inSpeed, got }, { opProgress: (resume + got) / opTotal })
+                updateConnection(conn, { inSpeed, got }, { opProgress: (resume + got) / fullSize })
             }, 1000)
             writeStream.once('close', () => clearInterval(h) )
         }
 
         function checkIfNewUploadBecameLargerThanResumable() {
-            const currentSize = fileStream.bytesWritten + resume
+            const currentSize = bytesGot() + resume
             if (isWritingSecondFile && currentSize > firstResumableStats?.size!)
                 try { // better be sync here, as we don't want the upload to finish in the middle of the rename
                     fs.renameSync(tempName, firstTempName) // try to rename $upload2 to $upload, overwriting
@@ -322,5 +328,6 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
 declare module "koa" {
     interface DefaultState {
         uploadDestinationPath?: string
+        uploadSize?: number
     }
 }
