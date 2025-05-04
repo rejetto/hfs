@@ -25,7 +25,7 @@ const { t, useI18N } = i18n
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
     const { can_upload, can_delete, can_archive } = props ? { ...defaultPerms, ...props } : {} as VfsPerms
-    const { uploading, qs }  = useSnapshot(uploadState)
+    const { uploading, qs, uploadDialogIsOpen }  = useSnapshot(uploadState)
     useEffect(() => {
         if (!showFilter)
             state.selected = {}
@@ -77,7 +77,7 @@ export function MenuPanel() {
                 label: t`Upload`,
                 disabled: !changingButton,
                 tabIndex: changingButton ? undefined : -1,
-                className: changingButton ? 'show-sliding ' + (uploading ? 'ani-working' : '') : 'before-sliding',
+                className: changingButton ? 'show-sliding ' + (uploading && !uploadDialogIsOpen ? 'ani-working' : '') : 'before-sliding',
                 onClick: showUpload,
             }),
             h(Btn, showFilter && can_delete ? {

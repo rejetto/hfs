@@ -59,7 +59,6 @@ let bytesSent = 0
 setInterval(() => {
     const now = Date.now()
     const passed = (now - bytesSentTimestamp) / 1000
-    if (passed < 3 && uploadState.speed) return
     uploadState.speed = bytesSent / passed
     if (now - stuckSince >= 10_000) { // this will normally cause the upload to be retried after 10+10 seconds of no progress
         overrideStatus = RETRY_UPLOAD // try again
@@ -72,9 +71,9 @@ setInterval(() => {
     const qBytes = _.sumBy(uploadState.qs, q => _.sumBy(q.entries, x => x.file.size))
     const left = (qBytes  - uploadState.partial)
     uploadState.eta = uploadState.speed && Math.round(left / uploadState.speed)
-}, 5_000)
+}, 2_000)
 
-let req: XMLHttpRequest | undefined
+let currentReq: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
 let notificationSource: EventSource | undefined
@@ -100,11 +99,14 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     let offset = resume
     let stopLooping = false
     do { // at least one iteration, even for empty files
-        req = new XMLHttpRequest()
+        const req = currentReq = new XMLHttpRequest()
+        req.timeout = 10_000
         const finished = pendingPromise()
+        let aborted = false
+        req.onabort = () => aborted = true
         req.onloadend = () => {
             finished.resolve()
-            if (req?.readyState !== 4) return
+            currentReq = undefined
             if (overrideStatus === RETRY_UPLOAD) {
                 overrideStatus = 0
                 stopLooping = true
@@ -119,10 +121,12 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                 stopLooping = true
                 return
             }
-            if (!status || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
+            if (aborted || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
                 uploadState.skipped.push(toUpload)
             else if (status >= 400)
                 error(status)
+            else if (!status) // since no aborted, the request failed at a network level, so try again
+                return
             else {
                 if (splitSize) {
                     offset += splitSize
@@ -255,7 +259,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 }
 
 export function abortCurrentUpload() {
-    req?.abort()
+    currentReq?.abort()
 }
 subscribe(uploadState, () => {
     const [cur] = uploadState.qs

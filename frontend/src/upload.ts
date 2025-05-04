@@ -166,21 +166,21 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
     useEffect(() => setAll(false), [entries.length])
     const MAX = all ? Infinity : _.round(_.clamp(100 * cpuSpeedIndex, 10, 100))
     const rest = Math.max(0, snapEntries.length - MAX)
+    const title = formatPerc(progress)
     return !snapEntries.length ? null : h('table', { className: 'upload-list', width: '100%' },
         h('tbody', {},
             snapEntries.slice(0, MAX).map((e, i) => {
                 const working = e.file === uploading?.file // e is a proxy, so we check 'file' as it's a ref
-                const title = formatPerc(progress)
                 return h(Fragment, { key: i },
                     h('tr', {},
                         h('td', { className: 'nowrap '}, ..._.map(actions, (cb, icon) =>
                             cb && iconBtn(icon, () => cb(entries[i]), { className: `action-${icon}` })) ),
                         h('td', {}, formatBytes(e.file.size)),
                         h('td', {},
-                            h('span', { className: working ? 'ani-working' : undefined }, e.name || getFilePath(entries[i].file)),
+                            h('span', {}, e.name || getFilePath(entries[i].file)),
                             working && h('span', { className: 'upload-progress', title }, formatBytes(partial)),
                             working && hashing && h('span', { className: 'upload-hashing' }, t`Considering resume`, ' (', formatPerc(hashing), ')'),
-                            working && h('progress', { className: 'upload-progress-bar', title, value: progress, max: 1 }),
+                            working && h('progress', { className: 'upload-progress-bar', title, max: 1, value: _.round(progress, 3)  }), // round for fewer dom updates
                         ),
                     ),
                     e.comment && h('tr', {}, h('td', { colSpan: 3 }, h('div', { className: 'entry-comment' }, e.comment)) )
