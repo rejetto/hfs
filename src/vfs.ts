@@ -333,6 +333,8 @@ export async function* walkNode(parent: VfsNode, {
                             stream.push(null)
                             return null
                         }
+                        if (usingDescriptIon() && entry.name === DESCRIPT_ION)
+                            return
                         const {path} = entry
                         const isFolder = entry.isDirectory()
                         let renamed = root.rename?.[path]
@@ -342,8 +344,6 @@ export async function* walkNode(parent: VfsNode, {
                                 renamed = dir + '/' + renamed
                         }
                         const name = prefixPath + (renamed || path)
-                        if (usingDescriptIon() && basename(name) === DESCRIPT_ION)
-                            return
                         if (taken?.has(normalizeFilename(name))) // taken by vfs node above
                             return false // false just in case it's a folder
                         if (depth) {
