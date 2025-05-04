@@ -111,7 +111,7 @@ test('search1', async ({ page }) => {
   await page.getByRole('button', { name: 'Search' }).click();
   await page.locator('input[name="name"]').fill('a');
   await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByText('files, 12 folders, 23 KB').click();
+  await page.getByText('files, 12 folders, 29.3 KB').click();
   await page.getByRole('link', { name: 'cantListPage/ alfa.txt' }).click();
   await page.getByRole('button', { name: 'Close' }).click();
   await page.getByRole('button', { name: 'Clear search' }).click();

@@ -98,6 +98,7 @@ describe('basics', () => {
     test('renameChild.get', req('/renameChild/tests/renamed1', /abc/))
     test('renameChild.deeper', reqList('/renameChild/tests/page', { inList:['renamed2'] }))
     test('renameChild.get deeper', req('/renameChild/tests/page/renamed2', /PNG/))
+    test('renameChild.search', reqList('/renameChild/tests', { inList:['renamed1', 'page/renamed2'] }, { search: 'ren' }))
 
     test('cantSeeThis', reqList('/', { outList:['cantSeeThis/'] }))
     test('cantSeeThis.children', reqList('/cantSeeThis', { outList:['hi/'] }))

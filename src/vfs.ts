@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
     makeMatcher, setHidden, onlyTruthy, isValidFileName, throw_, VfsPerms, Who,
-    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches
+    isWhoObject, WHO_ANY_ACCOUNT, defaultPerms, PERM_KEYS, removeStarting, HTTP_SERVER_ERROR, try_, matches, with_
 } from './misc'
 import Koa from 'koa'
 import _ from 'lodash'
@@ -327,6 +327,7 @@ export async function* walkNode(parent: VfsNode, {
                 try {
                     let lastDir = prefixPath.slice(0, -1) || '.'
                     parentsCache.set(lastDir, parent)
+                    const root = parent
                     await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
                         if (ctx?.isAborted()) {
                             stream.push(null)
@@ -334,7 +335,13 @@ export async function* walkNode(parent: VfsNode, {
                         }
                         const {path} = entry
                         const isFolder = entry.isDirectory()
-                        const name = prefixPath + (parent.rename?.[path] || path)
+                        let renamed = root.rename?.[path]
+                        if (renamed) {
+                            const dir = dirname(path) // if `path` isn't just the name, copy its dir in renamed
+                            if (dir !== '.')
+                                renamed = dir + '/' + renamed
+                        }
+                        const name = prefixPath + (renamed || path)
                         if (usingDescriptIon() && basename(name) === DESCRIPT_ION)
                             return
                         if (taken?.has(normalizeFilename(name))) // taken by vfs node above
@@ -345,12 +352,7 @@ export async function* walkNode(parent: VfsNode, {
                                 parent = parentsCache.get(lastDir = dir)
                         }
 
-                        const item: VfsNode = {
-                            name,
-                            isFolder,
-                            source: join(source, path),
-                            rename: renameUnderPath(parent.rename, path),
-                        }
+                        const item: VfsNode = { name, isFolder, source: join(source, path) }
                         if (await cantSee(item)) // can't see: don't produce and don't recur
                             return false
                         if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
