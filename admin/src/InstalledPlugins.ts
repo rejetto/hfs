@@ -150,19 +150,23 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                             { maxWidth: false,  sx: { maxWidth: null } }, // cancel maxWidth to move it to the Box below
                         ),
                         Wrapper({ children }: any) {
-                            const { list } = useApiList('get_plugin_log', { id }, {
+                            const { list, setList } = useApiList('get_plugin_log', { id }, {
                                 map(x) { x.ts = new Date(x.ts) }
                             })
                             const autoScroll = useAutoScroll(list)
                             let lastDate: any
                             return h(Flex, { alignItems: 'stretch', justifyContent: 'center', flexWrap: 'wrap', flexDirection: showOptions ? undefined : 'column' },
                                 h(Box, { maxWidth, minWidth: 'min-content' /*in case content requires more space (eg: reverse-proxy's table)*/ }, children),
-                                list.length > 0 ? h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
-                                    h(Box, { my: .5, pb: .5, borderBottom: '1px solid' }, "Output"),
+                                h(Paper, { elevation: 1, sx: { position: 'relative', fontFamily: 'monospace', flex: 1, minWidth: 'min(40em, 90vw)', minHeight: '20em', px: .5 } },
+                                    h(Box, { my: .5, pb: .5, borderBottom: '1px solid', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+                                        "Output",
+                                        h(Btn, { size: 'small', sx: { p: 0 }, onClick() { setList([]) } }, "Clear")
+                                    ),
                                     h(Box, {
-                                        position: 'absolute', bottom: 0, top: '1.8em', left: 0, right: 0, sx: { overflowY: 'auto' },
+                                        position: 'absolute', bottom: 0, top: '31px', left: 0, right: 0, sx: { overflowY: 'auto' },
                                         ref: autoScroll,
                                     },
+                                        !list.length && h(Box, { p: 1 }, "Log is empty"),
                                         h(Box, {
                                             sx: {
                                                 textIndent: '-1em', pl: '1em',
@@ -183,7 +187,7 @@ export default function InstalledPlugins({ updates }: { updates?: true }) {
                                             )
                                         }))
                                     )
-                                ) : showOptions ? null : h(Box, { p: '1em', pt: 0 }, "Log is empty")
+                                )
                             )
                         }
                     })
