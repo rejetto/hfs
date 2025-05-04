@@ -297,7 +297,6 @@ export async function* walkNode(parent: VfsNode, {
             const { children, source } = parent
             const taken = prefixPath ? undefined : new Set()
             const maskApplier = parentMaskApplier(parent)
-            const parentsCache = new Map() // we use this only if depth > 0
             const visitLater: any = []
             if (children) for (const child of children) {
                 const nodeName = getNodeName(child)
@@ -312,7 +311,7 @@ export async function* walkNode(parent: VfsNode, {
                 if (onlyFiles ? !isFolder : (!onlyFolders || isFolder))
                     stream.push(item)
                 if (!depth || !isFolder || cantRecur(item)) continue
-                parentsCache.set(name, item)
+                inheritMasks(item, parent)
                 visitLater.push([item, name]) // prioritize siblings
             }
 
@@ -325,9 +324,6 @@ export async function* walkNode(parent: VfsNode, {
                     return
 
                 try {
-                    let lastDir = prefixPath.slice(0, -1) || '.'
-                    parentsCache.set(lastDir, parent)
-                    const root = parent
                     await walkDir(source, { depth, ctx, hidden: showHiddenFiles.get(), parallelizeRecursion }, async entry => {
                         if (ctx?.isAborted()) {
                             stream.push(null)
@@ -337,7 +333,7 @@ export async function* walkNode(parent: VfsNode, {
                             return
                         const {path} = entry
                         const isFolder = entry.isDirectory()
-                        let renamed = root.rename?.[path]
+                        let renamed = parent.rename?.[path]
                         if (renamed) {
                             const dir = dirname(path) // if `path` isn't just the name, copy its dir in renamed
                             if (dir !== '.')
@@ -346,11 +342,6 @@ export async function* walkNode(parent: VfsNode, {
                         const name = prefixPath + (renamed || path)
                         if (taken?.has(normalizeFilename(name))) // taken by vfs node above
                             return false // false just in case it's a folder
-                        if (depth) {
-                            const dir = dirname(name)
-                            if (dir !== lastDir)
-                                parent = parentsCache.get(lastDir = dir)
-                        }
 
                         const item: VfsNode = { name, isFolder, source: join(source, path) }
                         if (await cantSee(item)) // can't see: don't produce and don't recur
@@ -359,16 +350,11 @@ export async function* walkNode(parent: VfsNode, {
                             stream.push(item)
                         if (cantRecur(item))
                             return false
-                        if (isFolder)
-                            parentsCache.set(name, item)
-                        entry.closingBranch?.then(p =>
-                            parentsCache.delete(p || '.'))
                     })
                 }
                 catch(e) {
                     console.debug('walkNode', source, e) // ENOTDIR, or lacking permissions
                 }
-                parentsCache.clear() // hoping for faster GC
             }
             finally {
                 for (const [item, name] of visitLater)
@@ -378,8 +364,7 @@ export async function* walkNode(parent: VfsNode, {
             }
 
             function cantRecur(item: VfsNode) {
-                if (ctx && !hasPermission(item, 'can_list', ctx)) return true
-                inheritMasks(item, parent)
+                return ctx && !hasPermission(item, 'can_list', ctx)
             }
 
             // item will be changed, so be sure to pass a temp node
