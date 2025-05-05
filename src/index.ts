@@ -64,7 +64,7 @@ function errorHandler(err:Error & { code:string, path:string }) {
 }
 
 process.on('uncaughtException', (err: any) => {
-    if (err.syscall !== 'watch' && err.code !== 'ECONNRESET')
+    if (err.syscall !== 'watch' && err.code !== 'ECONNRESET' && err.code !== 'EIO') // EIO seems to happen when the terminal is closed
         try { console.error("uncaught:", err) }
         catch {} // in case we are writing to a closed terminal, we may throw with "write eio at afterwritedispatched", causing an infinite loop
 })
