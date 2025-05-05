@@ -1,6 +1,6 @@
 import {
     HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
-    buildUrlQueryString, dirname, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait
+    buildUrlQueryString, dirname, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait, waitFor,
 } from '@hfs/shared'
 import { state } from './state'
 import { getNotifications } from '@hfs/shared/api'
@@ -60,9 +60,9 @@ setInterval(() => {
     const now = Date.now()
     const passed = (now - bytesSentTimestamp) / 1000
     uploadState.speed = bytesSent / passed
-    if (now - stuckSince >= 10_000) { // this will normally cause the upload to be retried after 10+10 seconds of no progress
+    if (currentReq && now - stuckSince >= 10_000) { // this will normally cause the upload to be retried after 10+10 seconds of no progress
         overrideStatus = RETRY_UPLOAD // try again
-        abortCurrentUpload()
+        currentReq.abort()
     }
     bytesSent = 0 // reset counter
     bytesSentTimestamp = now
@@ -76,8 +76,11 @@ setInterval(() => {
 let currentReq: XMLHttpRequest | undefined
 let overrideStatus = 0
 let notificationChannel = ''
+let userAborted = false
 let notificationSource: EventSource | undefined
 let closeLastDialog: undefined | (() => void)
+let currentNotificationHandler: (name: string, data: any) => void
+const { OPEN } = EventSource
 
 let reloadOnClose = false
 export function resetReloadOnClose() {
@@ -87,13 +90,15 @@ export function resetReloadOnClose() {
 }
 
 export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
-    console.debug('start upload', getFilePath(toUpload.file))
+    console.debug('start upload', getFilePath(toUpload.file), resume)
     let resuming = false
     let preserveTempFile = undefined
     overrideStatus = 0
     uploadState.uploading = toUpload
-    await subscribeNotifications()
-    const waitSecondChunk = pendingPromise() // this will avoid race condition, in case the notification arrives after the first chunk is finished
+    uploadState.progress = 0
+    userAborted = false
+    await subscribeNotifications() // subscribe before the request
+    const waitSecondChunk = pendingPromise() // to avoid race condition in case the notification arrives after the first chunk is finished
     const splitSize = getHFS().splitUploads
     const fullSize = toUpload.file.size
     let offset = resume
@@ -102,46 +107,49 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         const req = currentReq = new XMLHttpRequest()
         req.timeout = 10_000
         const finished = pendingPromise()
-        let aborted = false
-        req.onabort = () => aborted = true
-        req.onloadend = () => {
-            finished.resolve()
-            currentReq = undefined
-            if (overrideStatus === RETRY_UPLOAD) {
-                overrideStatus = 0
-                stopLooping = true
-                startUpload(toUpload, to, offset)
-                return
-            }
-            const status = overrideStatus || req.status
-            if (!partial) // if the upload ends here, the offer for resuming must stop
-                closeLastDialog?.()
-            if (resuming) { // resuming requested
-                resuming = false // this behavior is only for once, for cancellation of the upload that is in the background while resume is confirmed
-                stopLooping = true
-                return
-            }
-            if (aborted || status === HTTP_CONFLICT) // 0 = user-aborted, HTTP_CONFLICT = skipped because existing
-                uploadState.skipped.push(toUpload)
-            else if (status >= 400)
-                error(status)
-            else if (!status) // since no aborted, the request failed at a network level, so try again
-                return
-            else {
-                if (splitSize) {
-                    offset += splitSize
-                    if (offset < fullSize) return // continue looping
-                }
-                uploadState.done.push({ ...toUpload, res: tryJson(req.responseText) })
-                uploadState.doneByte += toUpload!.file.size
-                reloadOnClose = true
-            }
-            next()
-        }
+        stuckSince = Date.now()
+        let errored = false
         req.onerror = () => {
-            error(0)
-            finished.resolve()
-            stopLooping = true
+            errored = true
+            setTimeout(() => finished.resolve(), 2000) // retry on error, but not too often
+        }
+        req.onloadend = async () => {
+            if (errored && !userAborted) return
+            try {
+                currentReq = undefined
+                if (overrideStatus === RETRY_UPLOAD) {
+                    finished.resolve()
+                    overrideStatus = 0
+                    stopLooping = true
+                    startUpload(toUpload, to, offset)
+                    return
+                }
+                const status = overrideStatus || req.status
+                if (resuming) { // resuming requested
+                    finished.resolve()
+                    resuming = false // this behavior is only for once, for cancellation of the upload that is in the background while resume is confirmed
+                    stopLooping = true
+                    return
+                }
+                if (userAborted || status === HTTP_CONFLICT) // HTTP_CONFLICT = skipped because existing
+                    uploadState.skipped.push(toUpload)
+                else if (status >= 400)
+                    error(status)
+                else if (!status) // request failed at a network level, so try again, but not too often
+                    return await wait(2000)
+                else {
+                    offset += splitSize || Infinity
+                    if (offset < fullSize)  return // go on with the next chunk
+                    waitSecondChunk.resolve() // finished, there's no second chunk
+                    uploadState.done.push({ ...toUpload, res: tryJson(req.responseText) })
+                    uploadState.doneByte += toUpload!.file.size
+                    reloadOnClose = true
+                }
+                finished.then(next)
+            }
+            finally {
+                finished.resolve()
+            }
         }
         let lastProgress = 0
         req.upload.onprogress = (e:any) => {
@@ -166,58 +174,63 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         }), true)
         req.send(toUpload.file.slice(offset, splitSize ? offset + splitSize : undefined))
         await finished
-        if (!resume)
+        if (!resume && notificationSource?.readyState === OPEN) // wait only if notifications are currently available
             await waitSecondChunk
     } while (!stopLooping && offset < fullSize)
 
     async function subscribeNotifications() {
-        if (notificationChannel) return
+        // we want to getNotifications once, as establishing a connection is slow in the case of many small files;
+        // since our handler refers to closures and needs updates, we use indirection via currentNotificationHandler
+        currentNotificationHandler = notificationHandler
+        if (notificationChannel) // already subscribed
+            return waitFor(() => userAborted || notificationSource?.readyState === OPEN) // ensure the system is still alive
         notificationChannel = 'upload-' + randomId()
+        notificationSource = await getNotifications(notificationChannel, async (name, data) => currentNotificationHandler(name, data))
+    }
+
+    async function notificationHandler(name: string, data: any) {
+        const {uploading} = uploadState
+        if (!uploading) return
         const PREFIX = 'resume hash/'
-        notificationSource = await getNotifications(notificationChannel, async (name, data) => {
-            const {uploading} = uploadState
-            if (!uploading) return
-            if (name === UPLOAD_RESUMABLE_HASH)
-                return hfsEvent(PREFIX + data.path, data.hash)
-            if (name === UPLOAD_RESUMABLE) {
-                waitSecondChunk.resolve()
-                const path = getFilePath(uploading.file)
-                if (path !== data.path) return // is it about current file?
-                const {size} = data //TODO use toUpload?
-                if (!size) {
-                    preserveTempFile = undefined
-                    return
-                }
-                preserveTempFile = true // this is affecting only split-uploads, because is undefined on first chunk (or no chunking)
-                if (size > toUpload.file.size) return
-                if (data.giveBack) {
-                    // lastModified doesn't necessarily mean the file has changed, but it seems ok for the time being
-                    if (data.giveBack !== String(toUpload.file.lastModified)) // query params are always string
-                        return console.debug('upload timestamp changed')
-                    console.debug('upload unchanged')
-                }
-                else { // timestamp may miss if the file is left by old version, or HFS was killed
-                    const hashFromServer = new Promise<any>(res => onHfsEvent(PREFIX + path, res))
-                    const hashed = await calcHash(uploading.file, size) // therefore, we attempt a check using the hash
-                    if (!hashed) return // too late, we are working on another file
-                    if (hashed !== await hashFromServer) return console.debug('upload hash mismatch')
-                    console.debug('upload hash is matching')
-                }
-                closeLastDialog?.()
-                resuming = true
-                console.debug('resuming upload', size.toLocaleString())
+        if (name === UPLOAD_RESUMABLE_HASH)
+            return hfsEvent(PREFIX + data.path, data.hash)
+        if (name === UPLOAD_RESUMABLE) {
+            waitSecondChunk.resolve()
+            const path = getFilePath(uploading.file)
+            if (path !== data.path) return // is it about current file?
+            const {size} = data //TODO use toUpload?
+            if (!size) {
                 preserveTempFile = undefined
-                abortCurrentUpload()
-                await wait(500) // be sure the server had the time to react to the abort() and unlocked the file, or our next request will fail
-                return startUpload(toUpload, to, size)
-            }
-            if (name === UPLOAD_REQUEST_STATUS) {
-                overrideStatus = data?.[getFilePath(uploading.file)]
-                if (overrideStatus >= 400)
-                    abortCurrentUpload()
                 return
             }
-        })
+            preserveTempFile = true // this is affecting only split-uploads, because is undefined on first chunk (or no chunking)
+            if (size > toUpload.file.size) return
+            if (data.giveBack) {
+                // lastModified doesn't necessarily mean the file has changed, but it seems ok for the time being
+                if (data.giveBack !== String(toUpload.file.lastModified)) // query params are always string
+                    return console.debug('upload timestamp changed')
+                console.debug('upload unchanged')
+            }
+            else { // timestamp may miss if the file is left by old version, or HFS was killed
+                const hashFromServer = new Promise<any>(res => onHfsEvent(PREFIX + path, res))
+                const hashed = await calcHash(uploading.file, size) // therefore, we attempt a check using the hash
+                if (!hashed) return // too late, we are working on another file
+                if (hashed !== await hashFromServer) return console.debug('upload hash mismatch')
+                console.debug('upload hash is matching')
+            }
+            resuming = true
+            console.debug('resuming upload', size.toLocaleString())
+            preserveTempFile = undefined
+            abortCurrentUpload()
+            await wait(500) // be sure the server had the time to react to the abort() and unlocked the file, or our next request will fail
+            return startUpload(toUpload, to, size)
+        }
+        if (name === UPLOAD_REQUEST_STATUS) {
+            overrideStatus = data?.[getFilePath(uploading.file)]
+            if (overrideStatus >= 400)
+                abortCurrentUpload()
+            return
+        }
     }
 
     function error(status: number) {
@@ -259,6 +272,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
 }
 
 export function abortCurrentUpload() {
+    userAborted = true // must track because abort event isn't trigger if connection isn't established yet
     currentReq?.abort()
 }
 subscribe(uploadState, () => {

@@ -148,7 +148,7 @@ export function useApiList<T=any, S=T>(cmd:string|Falsy, params: Dict={}, { map,
                         }
                         return ret
                     })
-                    if (src?.readyState === src?.CLOSED)
+                    if (src.readyState === src.CLOSED)
                         stop()
             }
         })

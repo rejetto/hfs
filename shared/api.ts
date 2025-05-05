@@ -158,7 +158,7 @@ export function useApiEvents<T=any>(cmd: string, params: Dict={}) {
                 case 'closed':
                     return stop()
                 case 'msg':
-                    if (src?.readyState === src?.CLOSED)
+                    if (src.readyState === src.CLOSED)
                         return stop()
                     return setData(data)
             }

@@ -146,7 +146,7 @@ export default function useFetchList() {
                         if (op === LIST.add)
                             buffer.push(new DirEntry(par.n, par))
                     }
-                    if (src?.readyState === src?.CLOSED)
+                    if (src.readyState === src.CLOSED)
                         return state.stopSearch?.()
             }
         })
