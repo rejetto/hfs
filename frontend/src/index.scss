@@ -224,7 +224,7 @@ kbd {
     white-space: nowrap;
 }
 
-.ani-working { animation:1s blink infinite }
+.ani-working { animation:2s blink infinite }
 
 @keyframes spin {
     100% { transform: rotate(360deg); }
