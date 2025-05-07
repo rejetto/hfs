@@ -121,7 +121,6 @@ button {
     color: var(--button-text);
     padding: .4em .6em;
     display: inline-flex; align-items: center; justify-content: center; // get closer results between chrome and safari
-    &:not(.before-sliding) { min-width: min-content; }
     &.small { padding: 0 0.4em; height: 30px; }
     .icon { margin: -.2em 0; }
     .font-icon { vertical-align: middle; }
@@ -208,20 +207,14 @@ kbd {
     box-shadow: 0 0 .3em .3em var(--warning);
 }
 
-.before-sliding {
-    width: 0 !important;
-    flex: 0 !important;
-    margin: 0 !important;
-    height: 0 !important;
-    padding: 0 !important;
+.sliding {
+    transition: flex .5s, flex-basis 0.5s ease, opacity 0.5s ease;
     overflow: hidden !important;
-    transition: flex .5s;
 }
-.show-sliding {
-    transition: flex .5s;
-    overflow: clip;
-    flex: 1;
+.hide-sliding {
     white-space: nowrap;
+    margin: 0 !important;
+    flex: 0 !important;
 }
 
 .ani-working { animation:2s blink infinite }

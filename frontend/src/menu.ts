@@ -77,7 +77,7 @@ export function MenuPanel() {
                 label: t`Upload`,
                 disabled: !changingButton,
                 tabIndex: changingButton ? undefined : -1,
-                className: changingButton ? 'show-sliding ' + (uploading && !uploadDialogIsOpen ? 'ani-working' : '') : 'before-sliding',
+                className: 'sliding ' + (changingButton ? '' : 'hide-sliding') + (uploading && !uploadDialogIsOpen ? '  ani-working' : ''),
                 onClick: showUpload,
             }),
             h(Btn, showFilter && can_delete ? {
