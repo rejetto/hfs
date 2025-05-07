@@ -720,6 +720,8 @@ form label+input { margin-top: .2em; }
 
 #root // heavier selector
 .file-show {
+    backdrop-filter: none; background: #888e; // less GPU, as file-show can stay on for long
+
     &>div {
         height: 100%;
         width: 100%;
