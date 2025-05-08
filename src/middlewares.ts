@@ -65,7 +65,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
         if (!ctx.state.skipFilters && applyBlock(ctx.socket, ctx.ip))
             return
 
-        if (!ctx.ips.length && ctx.get('X-Forwarded-For') // empty ctx.ips implies we didn't configure for proxies
+        if (ctx.get('X-Forwarded-For')
         // we have some dev-proxies to ignore
         && !(DEV && [process.env.FRONTEND_PROXY, process.env.ADMIN_PROXY].includes(ctx.get('X-Forwarded-port')))) {
             proxyDetected = ctx
@@ -89,7 +89,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
 
 // limited to http proxies
 export function getProxyDetected() {
-    if (proxyDetected?.state.whenProxyDetected < Date.now() - DAY)
+    if (proxyDetected?.state.whenProxyDetected < Date.now() - DAY) // detection is reset after a day
         proxyDetected = undefined
     return proxyDetected && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
 }

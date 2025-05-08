@@ -102,7 +102,7 @@ export default function HomePage() {
         status.frpDetected && entry('warning', `FRP is detected. It should not be used with "type = tcp" with HFS. Possible solutions are`,
             h('ol',{},
                 h('li',{}, `configure FRP with type=http (best solution)`),
-                h('li',{}, md(`configure FRP to connect to HFS <u>not</u> with 127.0.0.1 (safe, but you won't see users' IPs)`)),
+                h('li',{}, md(`configure FRP to connect to HFS <u>not</u> with localhost (safe, but you won't see users' IPs)`)),
                 h('li',{}, `disable "admin access for localhost" in HFS (safe, but you won't see users' IPs)`),
             )),
         entry('', wikiLink('', "See the documentation"), " and ", h(Link, { target: 'support', href: REPO_URL + 'discussions' }, "get support")),
