@@ -91,7 +91,7 @@ export const someSecurity: Koa.Middleware = (ctx, next) => {
 export function getProxyDetected() {
     if (proxyDetected?.state.whenProxyDetected < Date.now() - DAY) // detection is reset after a day
         proxyDetected = undefined
-    return proxyDetected && { from: proxyDetected.ip, for: proxyDetected.get('X-Forwarded-For') }
+    return proxyDetected && { from: proxyDetected.socket.remoteAddress, for: proxyDetected.get('X-Forwarded-For') }
 }
 
 export const prepareState: Koa.Middleware = async (ctx, next) => {
