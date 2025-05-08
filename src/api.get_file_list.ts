@@ -47,9 +47,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     const walker = walkNode(node, { ctx: admin ? undefined : ctx, onlyFolders, onlyFiles, depth })
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
-    const fakeChild = await applyParentToChild({ source: 'dummy-file', original: undefined }, node) // used to check permission; simple but can produce false results; 'original' to simulate a non-vfs node
-    const can_delete = admin || hasPermission(fakeChild, 'can_delete', ctx)
-    const can_archive = admin || hasPermission(fakeChild, 'can_archive', ctx)
+    const can_delete = admin || hasPermission(node, 'can_delete', ctx)
+    const can_archive = admin || hasPermission(node, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
     const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
     const comment = node.comment ?? await getCommentFor(node.source)
