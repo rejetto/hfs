@@ -612,7 +612,8 @@ This section is still partially documented, and you may need to have a look at t
   - async supported
   - preventable
 - `failedLogin`
-- `clearTextLogin` give plugins the chance to authenticate users
+  - parameters: { ctx, username, via? }
+- - `clearTextLogin` give plugins the chance to authenticate users
   - parameters: { ctx, username, password, via: 'url' | 'header' }
   - async supported
   - return: `true` to consider authentication done
@@ -633,7 +634,6 @@ This section is still partially documented, and you may need to have a look at t
 - `spam`
 - `log`
 - `error_log`
-- `failedLogin`
 - `accountRenamed`
 - `pluginDownload`
 - `pluginUpdated`
@@ -648,6 +648,7 @@ This section is still partially documented, and you may need to have a look at t
   - preventable
   - return: callback to call when upload is finished
 - `uploadFinished`
+  - parameters: { ctx, uri, writeStream }
 - `publicIpsChanged`
   - parameters: { IPs, IP4, IP6, IPX }
 - `newSocket`

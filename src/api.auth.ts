@@ -87,7 +87,7 @@ export const loginSrp2: ApiHandler = async ({ pubKey, proof }, ctx) => {
     catch(e) {
         ctx.logExtra({ u: username })
         ctx.state.dontLog = false // log even if log_api is false
-        events.emit('failedLogin', ctx, { username })
+        events.emit('failedLogin', { ctx, username })
         return new ApiError(HTTP_UNAUTHORIZED, e ? String(e) : undefined)
     }
     finally {
