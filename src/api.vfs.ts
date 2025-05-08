@@ -2,7 +2,7 @@
 
 import {
     getNodeName, isSameFilenameAs, nodeIsDirectory, saveVfs, urlToNode, vfs, VfsNode, applyParentToChild,
-    permsFromParent, nodeIsLink, VfsNodeStored
+    permsFromParent, nodeIsLink, VfsNodeStored, isRoot
 } from './vfs'
 import _ from 'lodash'
 import { mkdir, stat } from 'fs/promises'
@@ -58,7 +58,7 @@ const apis: ApiHandlers = {
                 website: Boolean(node.children?.find(isSameFilenameAs('index.html')))
                     || isDir && source && await stat(join(source, 'index.html')).then(() => true, () => undefined)
                     || undefined,
-                name: node === vfs ? '' : getNodeName(node),
+                name: getNodeName(node),
                 type: isDir ? 'folder' : undefined,
                 children: node.children && await Promise.all(node.children.map(async child =>
                     recur(await applyParentToChild(child, node)) ))
@@ -72,7 +72,7 @@ const apis: ApiHandlers = {
         const fromNode = await urlToNodeOriginal(from)
         if (!fromNode)
             return new ApiError(HTTP_NOT_FOUND, 'from not found')
-        if (fromNode === vfs)
+        if (isRoot(fromNode))
             return new ApiError(HTTP_BAD_REQUEST, 'from is root')
         if (parent.startsWith(from))
             return new ApiError(HTTP_BAD_REQUEST, 'incompatible parent')

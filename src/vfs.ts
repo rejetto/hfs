@@ -190,12 +190,18 @@ export function saveVfs() {
     return setConfig({ vfs: _.cloneDeep(vfs) }, true)
 }
 
+export function isRoot(node: VfsNode) {
+    return node === vfs
+}
+
 export function getNodeName(node: VfsNode) {
-    const { name, source } = node
-    if (name)
-        return name
+    if (isRoot(node))
+        return ''
+    if (node.name)
+        return node.name
+    const { source } = node
     if (!source)
-        return '' // should happen only for root
+        return '' // shoulnd't happen
     if (source === '/')
         return 'root' // better name than
     if (/^[a-zA-Z]:\\?$/.test(source))

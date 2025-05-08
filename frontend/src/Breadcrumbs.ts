@@ -45,10 +45,10 @@ function Breadcrumb({ path, label, current, ...rest }: { current?: boolean, path
         to: path || '/',
         ...!current && dragFilesDestination, // we don't really know if this folder allows upload, but in the worst case the user will get an error
         ...rest,
-        async onClick(ev) {
+        onClick(ev) {
             if (!current) return
             ev.preventDefault()
-            openFileMenu(new DirEntry(decodeURIComponent(path), { p }), ev, [
+            void openFileMenu(new DirEntry(decodeURIComponent(path), { p }), ev, [
                 props?.can_upload && {
                     id: 'create-folder',
                     label: t`Create folder`,

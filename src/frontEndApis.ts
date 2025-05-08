@@ -11,7 +11,7 @@ import {
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import {
-    hasPermission, nodeIsDirectory, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    hasPermission, isRoot, nodeIsDirectory, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
@@ -83,11 +83,11 @@ export const frontEndApis: ApiHandlers = {
     async rename({ uri, dest }, ctx) {
         apiAssertTypes({ string: { uri, dest } })
         ctx.logExtra(null, { target: decodeURI(uri), destination: decodeURI(dest) })
-        if (dest.includes('/') || dirTraversal(dest))
-            throw new ApiError(HTTP_FORBIDDEN)
         const node = await urlToNode(uri, ctx)
         if (!node)
             throw new ApiError(HTTP_NOT_FOUND)
+        if (isRoot(node) || dest.includes('/') || dirTraversal(dest))
+            throw new ApiError(HTTP_FORBIDDEN)
         if (!hasPermission(node, 'can_delete', ctx))
             throw new ApiError(HTTP_UNAUTHORIZED)
         try {
