@@ -11,8 +11,9 @@ import {
     HTTP_NOT_FOUND, HTTP_SERVER_ERROR, HTTP_UNAUTHORIZED
 } from './const'
 import {
-    hasPermission, isRoot, nodeIsDirectory, nodeStats, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
+    hasPermission, isRoot, nodeIsDirectory, nodeStats, saveVfs, statusCodeForMissingPerm, urlToNode, VfsNode, walkNode
 } from './vfs'
+import { simplifyName } from './api.vfs'
 import fs from 'fs'
 import { mkdir, rename, copyFile, unlink } from 'fs/promises'
 import { basename, dirname, join } from 'path'
@@ -91,19 +92,15 @@ export const frontEndApis: ApiHandlers = {
         if (!hasPermission(node, 'can_delete', ctx))
             throw new ApiError(HTTP_UNAUTHORIZED)
         try {
-            if (node.name) // virtual name = virtual rename
-                node.name = dest
-            else {
-                if (!node.source)
-                    throw new ApiError(HTTP_FAILED_DEPENDENCY)
-                const destSource = join(dirname(node.source), dest)
-                await rename(node.source, destSource)
-                getCommentFor(node.source).then(c => {
-                    if (!c) return
-                    void setCommentFor(node.source!, '')
-                    void setCommentFor(destSource, c)
-                })
-            }
+            if (!node.source)
+                throw new ApiError(HTTP_FAILED_DEPENDENCY)
+            const destSource = join(dirname(node.source), dest)
+            await rename(node.source, destSource)
+            getCommentFor(node.source).then(c => {
+                if (!c) return
+                void setCommentFor(node.source!, '')
+                void setCommentFor(destSource, c)
+            })
             return {}
         }
         catch (e: any) {

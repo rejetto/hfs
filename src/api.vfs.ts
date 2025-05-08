@@ -280,7 +280,7 @@ export function pickProps(o: any, keys: string[]) {
     return ret
 }
 
-function simplifyName(node: VfsNode) {
+export function simplifyName(node: VfsNode) {
     const { name, ...noName } = node
     if (getNodeName(noName) === name)
         delete node.name

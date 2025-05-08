@@ -143,7 +143,7 @@ describe('basics', () => {
         }))
     test('create_folder', reqApi('create_folder', { uri: UPLOAD_ROOT, name: 'temp' }, 401))
     test('delete.no perm', req('/for-admins/', 405, { method: 'delete' }))
-    test('delete.need account', req(UPLOAD_ROOT, 401, { method: 'delete'}))
+    test('delete.need account', req(UPLOAD_ROOT + 'alfa.txt', 401, { method: 'delete'}))
     test('rename.no perm', reqApi('rename', { uri: '/for-admins', dest: 'any' }, 401))
     test('of_disabled.cantLogin', () => login('of_disabled').then(() => { throw Error('logged in') }, () => {}))
     test('allow_net.canLogin', () => login(username))

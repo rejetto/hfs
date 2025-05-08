@@ -88,7 +88,7 @@ function normalizeFilename(x: string) {
 
 export async function applyParentToChild(child: VfsNode | undefined, parent: VfsNode, name?: string) {
     const ret: VfsNode = {
-        original: child, // leave it possible for child to override this
+        original: child, // this can be overridden by passing an 'original' in `child`
         ...child,
         isFolder: child?.isFolder ?? (child?.children?.length! > 0 || undefined), // isFolder is hidden in original node, so we must read it to copy it
         isTemp: true,
@@ -164,7 +164,7 @@ export async function getNodeByName(name: string, parent: VfsNode) {
         }
         if (!isValidFileName(onDisk)) return
         ret.source = join(parent.source, onDisk)
-        ret.original = undefined // overwrite in applyParentToChild, so we know this is not part of the vfs
+        ret.original = undefined // this will overwrite the 'original' set in applyParentToChild, so we know this is not part of the vfs
         return ret
     }
 }
@@ -247,7 +247,8 @@ export function statusCodeForMissingPerm(node: VfsNode, perm: keyof VfsPerms, ct
     return ret
 
     function getCode() {
-        if (!node.source && (perm === 'can_upload' || perm === 'can_delete')) // Upload possible only if we know where to store. First check node.source because is supposedly faster.
+        if ((isRoot(node) || node.original) && perm === 'can_delete' // we currently don't allow deleting of vfs nodes from frontend
+        || !node.source && perm === 'can_upload') // Upload possible only if we know where to store. First check node.source because is supposedly faster.
             return HTTP_FORBIDDEN
         // calculate value of permission resolving references to other permissions, avoiding infinite loop
         let who: Who | undefined
@@ -308,7 +309,7 @@ export async function* walkNode(parent: VfsNode, {
                 const nodeName = getNodeName(child)
                 const name = prefixPath + nodeName
                 taken?.add(normalizeFilename(name))
-                const item = { ...child, name }
+                const item = { ...child, original: child, name }
                 if (await cantSee(item)) continue
                 if (item.source && !item.children?.length) // real items must be accessible, unless there's more to it
                     try { await fs.access(item.source) }
