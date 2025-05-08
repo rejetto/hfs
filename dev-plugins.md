@@ -635,6 +635,7 @@ This section is still partially documented, and you may need to have a look at t
 - `log`
 - `error_log`
 - `accountRenamed`
+  - parameters: { from, to } 
 - `pluginDownload`
 - `pluginUpdated`
 - `pluginInstalled`

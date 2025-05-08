@@ -168,15 +168,6 @@ export function useEffectOnce(cb: Callback, deps: any[]) {
     }, deps)
 }
 
-type FunctionRef<T=HTMLElement> = (instance: (T | null)) => void
-export function passRef<T=any>(el: T, ...refs: (MutableRefObject<T> | FunctionRef<T>)[]) {
-    for (const ref of refs)
-        if (_.isFunction(ref))
-            ref(el)
-        else if (ref)
-            ref.current = el
-}
-
 export function AriaOnly({ children }: { children?: ReactNode }) {
     return children ? h('div', { className: 'ariaOnly' }, children) : null
 }

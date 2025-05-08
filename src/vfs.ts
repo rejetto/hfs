@@ -444,7 +444,7 @@ function renameUnderPath(rename:undefined | Record<string,string>, path: string)
     return _.isEmpty(rename) ? undefined : rename
 }
 
-events.on('accountRenamed', (from, to) => {
+events.on('accountRenamed', ({ from, to }) => {
     ;(function renameInNode(n: VfsNode) {
         for (const k of PERM_KEYS)
             renameInPerm(n[k])

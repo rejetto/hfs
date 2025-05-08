@@ -151,7 +151,7 @@ export function renameAccount(from: string, to: string) {
             a.belongs![idx] = to
     }
     accounts.set(as)
-    events.emit('accountRenamed', from, to) // everybody, take care of your stuff
+    events.emit('accountRenamed', { from, to }) // everybody, take care of your stuff
     saveAccountsAsap()
     return true
 }
