@@ -133,7 +133,8 @@ export const logMw: Koa.Middleware = async (ctx, next) => {
         if (logUA.get())
             ctx.logExtra({ ua: ctx.get('user-agent') || undefined })
         const extra = ctx.state.logExtra
-        events.emit(logger.name, Object.assign(_.pick(ctx, ['ip', 'method','status']), { length, user, ts: now, uri, extra }))
+        if (events.anyListener(logger.name)) // small optimization: this event can happen often, while most times there's no listener, and the parameters object is constructed pointlessly. A benchmark measured it 20% faster (just the line), while maybe it was not necessary.
+            events.emit(logger.name, { ctx, length, user, ts: now, uri, extra })
         debounce(() => // once in a while we check if the file is still good (not deleted, etc), or we'll reopen it
             stat(logger.path).catch(() => logger.reopen())) // async = smoother but we may lose some entries
         stream!.write(util.format( format,

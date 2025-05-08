@@ -61,7 +61,8 @@ export default {
                     return list.error(HTTP_NOT_FOUND, true)
                 list.ready()
                 // unsubscribe when connection is interrupted
-                ctx.res.once('close', events.on(files, x => list.add(x)))
+                ctx.res.once('close', events.on(files, x =>
+                    list.add(Object.assign(_.pick(x.ctx, ['ip', 'method','status']), x, { ctx: undefined }))))
             }
         })
 

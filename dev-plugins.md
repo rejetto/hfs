@@ -633,7 +633,9 @@ This section is still partially documented, and you may need to have a look at t
 - `httpsReady`
 - `spam`
 - `log`
+  - parameters: { ctx, length, user, ts, uri, extra }
 - `error_log`
+  - parameters: { ctx, length, user, ts, uri, extra }
 - `accountRenamed`
   - parameters: { from, to } 
 - `pluginDownload`

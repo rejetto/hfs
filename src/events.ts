@@ -53,6 +53,9 @@ export class BetterEventEmitter {
             for (const cb of cbs) cb()
         }
     }
+    anyListener(event: string) {
+        return Boolean(this.listeners.get(event)?.size)
+    }
     emit(event: string, ...args: any[]) {
         let cbs = this.listeners.get(event)
         if (!cbs?.size) return
