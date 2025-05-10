@@ -196,7 +196,10 @@ async function editComment(entry: DirEntry) {
     const res = await inputComment(entry.name, entry.comment)
     if (res === undefined) return
     await apiCall('comment', { uri: entry.uri, comment: res }, { modal: working })
-    updateEntry(entry, e => e.comment = res)
+    if (entry.uri === location.pathname) // current folder = breadcrumb
+        _.set(state, 'props.comment', res)
+    else
+        updateEntry(entry, e => e.comment = res)
     operationSuccessful()
 }
 

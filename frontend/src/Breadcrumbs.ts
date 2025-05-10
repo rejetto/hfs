@@ -48,7 +48,7 @@ function Breadcrumb({ path, label, current, ...rest }: { current?: boolean, path
         onClick(ev) {
             if (!current) return
             ev.preventDefault()
-            void openFileMenu(new DirEntry(decodeURIComponent(path), { p }), ev, [
+            void openFileMenu(new DirEntry(decodeURIComponent(path), { p, comment: props?.comment }), ev, [
                 props?.can_upload && {
                     id: 'create-folder',
                     label: t`Create folder`,
