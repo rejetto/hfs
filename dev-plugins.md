@@ -976,3 +976,5 @@ If you want to override a text regardless of the language, use the special langu
   - frontend events: async for fileMenu and html-producers
   - config.type: date_time, net_mask
   - config.getError
+- 12.4 (v0.57.2)
+  - changed parameters for events log, error_log, failedLogin, accountRenamed
