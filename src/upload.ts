@@ -153,21 +153,21 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                     size: resumableSize,
                     // a resumable file exists without a record? then we record it (delayedDelete), plus we provide a hash ASAP, since there's no previous giveBack to compare with
                     ...resumeInfo || _.omit(delayedDelete(path, deleteUnfinishedUploadsAfter.get() || 0), 'giveBack'), // giveBack makes sense only if coming from resumeObject
-                    timeout: undefined
+                    timeout: undefined // this entry is here to remove the property copied in the previous line
                 })
                 if (x && !resumeInfo)
                     notifyClient(ctx, UPLOAD_RESUMABLE_HASH, { path, hash: await parseFile(x!, calcHash) })  // negligible memory leak
             })
-        let isWritingSecondFile = tempName === altTempName
         // append if resuming
         const resuming = resume && resumableTempName
         if (!resuming)
             resume = 0
         const writeStream = createStreamLimiter(contentLength ?? Infinity)
-        if (resume && resumableTempName && !splitAndPreserving) {
-            fs.rm(tempName, () => {})
+        if (resume && resumableTempName && !splitAndPreserving) { // we want to resume the firstTempName, actually
+            fs.rm(altTempName, () => {})
             tempName = resumableTempName
         }
+        let isWritingSecondFile = tempName === altTempName
         cancelDeletion(tempName)
         const fullSize = stillToWrite + resume
         ctx.state.uploadDestinationPath = tempName
@@ -185,8 +185,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         writeStream.pipe(fileStream)
         Object.assign(obj, { fileStream })
         trackProgress()
-        // the file stream doesn't have an event for data being written, so we use 'data' of its feeder, which happens before, so we postpone a bit, trying to have a fresher number
-        writeStream.on('data', () => setTimeout(checkIfNewUploadBecameLargerThanResumable))
+        // the file stream doesn't have an event for data being written, so we use 'data' of its feeder
+        writeStream.on('data', _.debounce(checkIfNewUploadBecameLargerThanResumable, 1000, { maxWait: 1000 }))
 
         const lockMiddleware = pendingPromise<string>() // expose when all operations stopped
         writeStream.once('close', async () => {
@@ -269,7 +269,9 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
 
         function checkIfNewUploadBecameLargerThanResumable() {
             const currentSize = bytesGot() + resume
-            if (isWritingSecondFile && currentSize > firstResumableStats?.size!)
+            if (!isWritingSecondFile)
+                notifyClient(ctx, UPLOAD_RESUMABLE, { path, written: currentSize }) // keep the client updated in case it needs to resume on disconnection
+            else if (currentSize > firstResumableStats?.size!)
                 try { // better be sync here, as we don't want the upload to finish in the middle of the rename
                     fs.renameSync(tempName, firstTempName) // try to rename $upload2 to $upload, overwriting
                     tempName = firstTempName
