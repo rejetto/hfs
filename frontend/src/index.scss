@@ -44,7 +44,7 @@
             color: #ccc;
             .icon { color: #aaa; }
         }
-        .dialog-backdrop { background: #333b; }
+        #root .dialog-backdrop { background: #333b; }
         .error-msg { color: #b88; background-color: #623; }
         button.toggled, a.toggled { color: #eee;
             text-shadow: 0 0 3px #fff;
