@@ -89,8 +89,8 @@ export function resetReloadOnClose() {
     return true
 }
 
-export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
-    console.debug('start upload', getFilePath(toUpload.file), resume)
+export async function startUpload(toUpload: ToUpload, to: string, startingResume=0) {
+    console.debug('start upload', getFilePath(toUpload.file), startingResume)
     let resuming = false
     let preserveTempFile = undefined
     overrideStatus = 0
@@ -101,9 +101,12 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
     const waitSecondChunk = pendingPromise() // to avoid race condition in case the notification arrives after the first chunk is finished
     const splitSize = getHFS().splitUploads
     const fullSize = toUpload.file.size
-    let offset = resume
+    let offset = startingResume
+    let splitResume = startingResume // keep track of "split" advancements
+    let lastWrittenReceived = 0
     let stopLooping = false
     do { // at least one iteration, even for empty files
+        offset = Math.max(splitResume, lastWrittenReceived)
         const req = currentReq = new XMLHttpRequest()
         req.timeout = 10_000
         const finished = pendingPromise()
@@ -138,8 +141,8 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
                 else if (!status) // request failed at a network level, so try again, but not too often
                     return await wait(2000)
                 else {
-                    offset += splitSize || Infinity
-                    if (offset < fullSize)  return // go on with the next chunk
+                    splitResume += splitSize || Infinity
+                    if (splitResume < fullSize)  return // go on with the next chunk
                     waitSecondChunk.resolve() // finished, there's no second chunk
                     uploadState.done.push({ ...toUpload, res: tryJson(req.responseText) })
                     uploadState.doneByte += toUpload!.file.size
@@ -174,7 +177,7 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
         }), true)
         req.send(toUpload.file.slice(offset, splitSize ? offset + splitSize : undefined))
         await finished
-        if (!resume && notificationSource?.readyState === OPEN) // wait only if notifications are currently available
+        if (!startingResume && notificationSource?.readyState === OPEN) // wait only if notifications are currently available
             await waitSecondChunk
     } while (!stopLooping && offset < fullSize)
 
@@ -198,11 +201,11 @@ export async function startUpload(toUpload: ToUpload, to: string, resume=0) {
             waitSecondChunk.resolve()
             const path = getFilePath(uploading.file)
             if (path !== data.path) return // is it about current file?
+            if (data.written)
+                return lastWrittenReceived = data.written
             const {size} = data //TODO use toUpload?
-            if (!size) {
-                preserveTempFile = undefined
-                return
-            }
+            if (!size)
+                return preserveTempFile = undefined
             preserveTempFile = true // this is affecting only split-uploads, because is undefined on first chunk (or no chunking)
             if (size > toUpload.file.size) return
             if (data.giveBack) {
