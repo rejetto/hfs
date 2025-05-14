@@ -9,7 +9,7 @@ import { formatTimestamp } from './cross'
 import { argv } from './argv'
 export * from './cross-const'
 
-export const API_VERSION = 12.4
+export const API_VERSION = 12.5
 export const COMPATIBLE_API_VERSION = 1 // while changes in the api are not breaking, this number stays the same, otherwise it is made equal to API_VERSION
 
 // you can add arguments with this file, currently used for the update process on mac/linux

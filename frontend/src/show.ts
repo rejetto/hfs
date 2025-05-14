@@ -20,7 +20,10 @@ enum ZoomMode {
     contain, // leave this as last
 }
 
+// return falsy if entry is not supported
 export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=false } = {}) {
+    if (!getShowComponent(entry))
+        return
     let escOnce = false
     let onClose: any
     let firstUri: string
@@ -370,6 +373,7 @@ export function fileShow(entry: DirEntry, { startPlaying=false, startShuffle=fal
             }
         }
     })
+    return true
 }
 
 export function getShowComponent(entry: DirEntry) {

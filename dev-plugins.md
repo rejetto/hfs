@@ -17,7 +17,7 @@ The simplest way to develop is to create your folder inside the .hfs/plugins fol
 Each time you make a change, you'll see it reflected in the running server.
 This is probably the easiest form to start with.
 
-A neater way is to keep it both in the for of github repo and installed plugin.
+A neater way is to keep it both in the form of github repo and installed plugin.
 If you want to do so, have a folder with your github repo in it, *outside* your `.hfs` folder.
 As you'll see in the [[Publish your plug-in]] section, you should keep your files inside the `dist` subfolder.
 Then you'll need to link it inside the plugins folder.
@@ -420,7 +420,8 @@ In frontend you will have access to the `HFS` object of the global scope, which 
   Returns true if the specified name is the one of the logged in account.
 - `DirEntry: class_constructor(n :string, otherProps?: DirEntry)` this is the class of the objects inside `HFS.state.list`;
   in case you need to add to the list, do it by instantiating this class. E.g. `new HFS.DirEntry(name)`
-- `fileShow(entry: DirEntry, options?: { startPlaying: true )` open file-show on the specified entry.
+- `fileShow(entry: DirEntry, options?: { startPlaying: true ): boolean` open file-show on the specified entry.
+  Returns falsy if entry is not supported.
 - `copyTextToClipboard(text: string)` self-explanatory.
 - `urlParams: object` you'll find each parameter in the URL mapped in this object as string.
 - `fileShowComponents: { Video, Audio }` exposes standard components used by file-show. Can be useful if you need extend them, inside `fileShow` event.  
@@ -993,5 +994,6 @@ If you want to override a text regardless of the language, use the special langu
   - frontend events: async for fileMenu and html-producers
   - config.type: date_time, net_mask
   - config.getError
-- 12.4 (v0.57.2)
+- 12.5 (v0.57.2)
   - changed parameters for events log, error_log, failedLogin, accountRenamed
+  - HFS.fileShow return value
