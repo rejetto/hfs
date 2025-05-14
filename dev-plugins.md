@@ -11,6 +11,27 @@ Each plug-in has access to the same set of features.
 Normally you'll have a plug-in that's a theme, and another that's a firewall,
 but nothing is preventing a single plug-in from doing both tasks.
 
+## Development environment
+
+The simplest way to develop is to create your folder inside the .hfs/plugins folder, and work there.
+Each time you make a change, you'll see it reflected in the running server.
+This is probably the easiest form to start with.
+
+A neater way is to keep it both in the for of github repo and installed plugin.
+If you want to do so, have a folder with your github repo in it, *outside* your `.hfs` folder.
+As you'll see in the [[Publish your plug-in]] section, you should keep your files inside the `dist` subfolder.
+Then you'll need to link it inside the plugins folder.
+If you go in your .hfs/plugins folder on linux and mac, and enter
+
+    ln -s /PATH_TO_YOUR_REPO/dist MY_PLUGIN_NAME
+
+On Windows it may be something like
+
+    mklink /d C:\path\to\hfs\plugins\my_plugin C:\my_code\my_plugin\dist
+
+You'll install your repo so that you can edit the sources and see effects in real-time.
+This allows you to continue editing your repo and be ready to commit changes.
+
 ## Backend / Frontend
 
 Plugins can run both in backend (the server) and frontend (the browser). Frontend files reside in the "public" folder, while all the rest is backend.
@@ -758,6 +779,9 @@ You can decide if you want to use some building system/transpiler, but you'll ha
 
 ## Publish your plug-in
 
+While you may just put a zip on any website, that would require manual installation.
+If you want to appear in the Admin-panel, for easier finding and installation, please do as follows.
+
 Suggested method for publishing is to have a dedicated repository on GitHub, with topic `hfs-plugin`.
 To set the topic go on the repo home and click on the gear icon near the "About" box.
 Be sure to also fill the "exports.description" field, especially with words that people may search for.
@@ -767,13 +791,6 @@ This is good way to have a clearer repository name on github, while avoiding bei
 
 The files intended to be installed must go in a folder named `dist`.
 You can keep other files outside.
-
-Hint: if you go in your .hfs/plugins folder on linux and mac, and enter 
-
-    ln -s /PATH_TO_YOUR_REPO/dist MY_PLUGIN_NAME
-
-You'll install your repo so that you can edit the sources and see effects in real-time. 
-This allows you to continue editing your repo and be ready to commit changes.
 
 If you have platform-dependent files, you can put those files in `dist-PLATFORM` or `dist-PLATFORM-ARCHITECTURE`.
 For example, if you want some files to be installed only on Windows with Intel CPUs, put them in `dist-win32-x64`.
