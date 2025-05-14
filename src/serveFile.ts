@@ -27,10 +27,14 @@ function toAsciiEquivalent(s: string) {
     return iconv.encode(iconv.decode(Buffer.from(s), 'utf-8'), 'ascii').toString().replaceAll('?', '')
 }
 
-export function forceDownload(ctx: Koa.Context, name='') {
+export function forceDownload(ctx: Koa.Context, name: string) {
+    disposition(ctx, name, true)
+}
+
+export function disposition(ctx: Koa.Context, name: string, forceDownload=false) {
     // ctx.attachment is not working well on Windows. Eg: for file "èÖ.txt" it is producing `Content-Disposition: attachment; filename="??.txt"`. Koa uses module content-disposition, that actually produces a better result anyway: ``
-    ctx.set('Content-Disposition', 'attachment'
-        + (name && `; filename="${toAsciiEquivalent(name)}"; filename*=UTF-8''${encodeURI(name).replace(/#/g, '%23')}`))
+    ctx.set('Content-Disposition', (forceDownload ? 'attachment; ' : '')
+        + `filename="${toAsciiEquivalent(name)}"; filename*=UTF-8''${encodeURI(name).replace(/#/g, '%23')}`)
 }
 
 export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
@@ -47,9 +51,9 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
 
     ctx.vfsNode = // legacy pre-0.51 (download-quota)
     ctx.state.vfsNode = node // useful to tell service files from files shared by the user
-    if ('dl' in ctx.query) // please, download
-        forceDownload(ctx, name)
-    else if (ctx.get('referer')?.endsWith('/') && with_(ctx.get('accept'), x => x && !x.includes('text')))
+    const download = 'dl' in ctx.query
+    disposition(ctx, name, download)
+    if (!download && ctx.get('referer')?.endsWith('/') && with_(ctx.get('accept'), x => x && !x.includes('text')))
         ctx.state.considerAsGui = true
     await serveFile(ctx, source||'', mimeString)
 
