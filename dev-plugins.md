@@ -373,11 +373,26 @@ To avoid conflicts with other plugins, we suggest to wrap all your code like thi
 ### HFS object
 
 In frontend you will have access to the `HFS` object of the global scope, which has many properties:
-- `onEvent` this is the main API function inside the frontend. Refer to dedicated section below.
-- `apiCall`
-- `useApi`
-- `reloadList`
-- `logout`
+- `onEvent` this is the main hook inside the frontend. Refer to dedicated section below.
+- `apiCall(cmd: string, params?: object, options?: object): Promise<any>` request an [HTTP API](https://hfs-3.apidog.io/), 
+  where `cmd` is the name and `params` are the respective parameters. Options are:
+  - `timeout?: number | false` in seconds
+  - `onResponse?: (res: Response, body: any) => any`
+  - `method?: string`
+  - `skipParse?: boolean`
+  - `skipLog?: boolean`
+  - `restUri?: string`
+- `useApi(cmd: string | Falsy, params?: object, options?: object): object` hook form of `apiCall`.
+  The returned object contains:
+  - `data: any` result of the api
+  - `error: any` in case the api resulted in an error
+  - `reload: function` call it if you want to call the api again
+  - `loading: boolean` true if the api is loading
+  - `getData(): any` if you need to access to `data` inside closures, where it is stale if accessed directly
+  - `setData(value: any)` if you need to overwrite `data`
+  - `sub: function(callback)` if you need to subscribe for when the api is called again
+- `reloadList()` cause the list of files to be reloaded
+- `logout(): Promise` logout the current user  
 - `prefixUrl: string` normally an empty string, it will be set in case a [reverse-proxy wants to mount HFS on a path](https://github.com/rejetto/hfs/wiki/Reverse-proxy).
 - `state: StateObject` [object with many values in it](https://github.com/rejetto/hfs/blob/main/frontend/src/state.ts)
   - you'll find here some interesting values, like `username` and `loading`. 
@@ -436,12 +451,13 @@ The following properties are accessible only immediately at top-level; don't cal
 API at this level is done with frontend-events, that you can handle by calling
 
 ```typescript
-HFS.onEvent(eventName: string, callback: (parameters: object) => any)
+HFS.onEvent(eventName: string, callback: (parameters: object, extra: object) => any)
 ``` 
 
-Parameters of your callback and meaning of returned value varies with the event name.
+All events of this type have all parameters in a single object, so it's technically a single parameter.
+Its content, and what you can return in your callback, vary with the event name.
 Refer to the specific event for further information.
-HFS object is the same you access globally. Here just for legacy, consider it deprecated.
+Second parameter is explained in the dedicated section, below.
 
 Some frontend events can return HTML, which can be expressed in several ways:
 - as a string containing markup
@@ -457,6 +473,16 @@ It is useful if you want to embed such default content inside your content.
 Most events have this `def` undefined as they have no default content and are designed for custom insertions,
 but when this is not the case, you can replace the default content with nothing by returning `null`.
 You can produce output for such events also by adding sections (with same name as the event) to file `custom.html`.
+
+#### Extra object
+
+This is an advanced topic, rarely needed.
+The "extra" object is the second parameter of your callback, and has the following properties:
+- `output: any[]` array of values returned by all plugin/callbacks.
+- `setOrder(order: number)` if you need to prioritize your output (and see it before) with respect to other plugins, 
+  you can specify a negative number. Use a positive number to get the opposite. 
+
+#### List of frontend events
 
 This is a list of available frontend-events, with respective object parameter and output.
 
