@@ -424,7 +424,8 @@ In frontend you will have access to the `HFS` object of the global scope, which 
   Returns falsy if entry is not supported.
 - `copyTextToClipboard(text: string)` self-explanatory.
 - `urlParams: object` you'll find each parameter in the URL mapped in this object as string.
-- `fileShowComponents: { Video, Audio }` exposes standard components used by file-show. Can be useful if you need extend them, inside `fileShow` event.  
+- `fileShowComponents: { Video, Audio }` exposes standard components used by file-show. Can be useful if you need extend them, inside `fileShow` event.
+- `isShowSupported(entry: DirEntry): boolean` true if the entry is supported by Show. 
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -533,6 +534,12 @@ This is a list of available frontend-events, with respective object parameter an
     or if you like lodash, you can simply `HFS._.remove(menu, { id: 'show' })`
 - `fileShow`
   - you receive an entry of the list, and optionally produce React Component for visualization.
+    Your component will be rendered with the following props:
+    - `src`: string, uri of the entry
+    - `className`: string, must be reported in your component
+    - `onLoad`
+    - `onError`
+    - `onPlay`
   - parameter `{ entry: DirEntry }` (refer above for DirEntry object)
   - output `ReactComponent`
 - `showPlay`
@@ -997,3 +1004,4 @@ If you want to override a text regardless of the language, use the special langu
 - 12.5 (v0.57.2)
   - changed parameters for events log, error_log, failedLogin, accountRenamed
   - HFS.fileShow return value
+  - HFS.isShowSupported
