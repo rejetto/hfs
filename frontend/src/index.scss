@@ -121,7 +121,7 @@ button {
     color: var(--button-text);
     padding: .4em .6em;
     display: inline-flex; align-items: center; justify-content: center; // get closer results between chrome and safari
-    &.small { padding: 0 0.4em; height: 30px; }
+    &.small { padding: .1em .4em; min-height: 30px; }
     .icon { margin: -.2em 0; }
     .font-icon { vertical-align: middle; }
     border: transparent;
