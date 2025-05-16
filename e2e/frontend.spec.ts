@@ -269,7 +269,7 @@ test('admin1', async ({ page }) => {
   await clickMenu('Internet');
   await expect(page.getByRole('button', { name: 'Verify' })).toBeVisible({ timeout: 10000 }); // wait for data (get_nat can be very slow)
   await page.mouse.click(1, 1); // avoid focus inconsistencies
-  await screenshot(page, '.ip,.port')
+  await screenshot(page)
   await clickMenu('Logout');
   await screenshot(page);
 });

@@ -13,7 +13,7 @@ export const UPLOAD_RESUMABLE_HASH = 'upload.hash'
 export const UPLOAD_REQUEST_STATUS = 'upload.status'
 export const PREVIOUS_TAG = 'previous'
 export const ALLOW_SESSION_IP_CHANGE = 'allow_session_ip_change'
-export const HIDE_IN_TESTS = 'hideInTests'
+export const HIDE_IN_TESTS = 'hideInTests' // elements that have variable size, where masking would produce changes, must be hidden
 
 export const HTTP_OK = 200
 export const HTTP_NO_CONTENT = 204
