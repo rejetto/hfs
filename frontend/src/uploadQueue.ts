@@ -108,7 +108,6 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
     do { // at least one iteration, even for empty files
         offset = Math.max(splitResume, lastWrittenReceived)
         const req = currentReq = new XMLHttpRequest()
-        req.timeout = 10_000
         const finished = pendingPromise()
         stuckSince = Date.now()
         let errored = false
