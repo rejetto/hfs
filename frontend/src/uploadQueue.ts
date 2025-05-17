@@ -51,7 +51,6 @@ window.onbeforeunload = ev => {
     return ev.returnValue = t("Uploading") // modern browsers ignore this message
 }
 
-const RETRY_UPLOAD = -1
 let stuckSince = Infinity
 // keep track of speed
 let bytesSentTimestamp = Date.now()
@@ -60,10 +59,8 @@ setInterval(() => {
     const now = Date.now()
     const passed = (now - bytesSentTimestamp) / 1000
     uploadState.speed = bytesSent / passed
-    if (currentReq && now - stuckSince >= 10_000) { // this will normally cause the upload to be retried after 10+10 seconds of no progress
-        overrideStatus = RETRY_UPLOAD // try again
+    if (currentReq && now - stuckSince >= 10_000) // this will normally cause the upload to be retried after long time of no progress
         currentReq.abort()
-    }
     bytesSent = 0 // reset counter
     bytesSentTimestamp = now
 
@@ -110,22 +107,9 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
         const req = currentReq = new XMLHttpRequest()
         const finished = pendingPromise()
         stuckSince = Date.now()
-        let errored = false
-        req.onerror = () => {
-            errored = true
-            setTimeout(() => finished.resolve(), 2000) // retry on error, but not too often
-        }
         req.onloadend = async () => {
-            if (errored && !userAborted) return
             try {
                 currentReq = undefined
-                if (overrideStatus === RETRY_UPLOAD) {
-                    finished.resolve()
-                    overrideStatus = 0
-                    stopLooping = true
-                    startUpload(toUpload, to, offset)
-                    return
-                }
                 const status = overrideStatus || req.status
                 if (resuming) { // resuming requested
                     finished.resolve()
