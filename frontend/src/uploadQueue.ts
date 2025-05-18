@@ -124,9 +124,12 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                 else if (!status) // request failed at a network level, so try again, but not too often
                     return await wait(2000)
                 else {
-                    splitResume += splitSize || Infinity
-                    if (splitResume < fullSize)  return // go on with the next chunk
-                    waitSecondChunk.resolve() // finished, there's no second chunk
+                    if (splitSize) {
+                        splitResume += splitSize
+                        if (splitResume < fullSize) return // go on with the next chunk
+                    }
+                    stopLooping = true
+                    waitSecondChunk.resolve() // we finished, no need to wait
                     uploadState.done.push({ ...toUpload, res: tryJson(req.responseText) })
                     uploadState.doneByte += toUpload!.file.size
                     reloadOnClose = true
