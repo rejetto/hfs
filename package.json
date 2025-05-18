@@ -96,7 +96,7 @@
     "tssrp6a": "^3.0.0",
     "unzip-stream": "^0.3.4",
     "valtio": "^1.10.3",
-    "xxhash-wasm": "^1.1.0",
+    "xxhashjs": "^0.2.2",
     "yaml": "^2.0.0-10"
   },
   "devDependencies": {

@@ -24,6 +24,7 @@ import { expiringCache } from './expiringCache'
 import { onProcessExit } from './first'
 import { once, Transform } from 'stream'
 import { utimes } from 'node:fs/promises'
+import XXH from 'xxhashjs'
 
 export const deleteUnfinishedUploadsAfter = defineConfig<undefined|number>('delete_unfinished_uploads_after', 86_400)
 export const minAvailableMb = defineConfig('min_available_mb', 100)
@@ -52,7 +53,7 @@ function setUploadMeta(path: string, ctx: Koa.Context) {
 }
 
 async function calcHash(fn: string, limit=Infinity) {
-    const hash = await makeXXHash()
+    const hash = XXH.h32()
     const stream = new Transform({
         transform(chunk, enc, done) {
             hash.update(chunk)
@@ -64,11 +65,6 @@ async function calcHash(fn: string, limit=Infinity) {
     await once(stream, 'finish')
     console.debug('hashed', fn)
     return hash.digest().toString(16)
-}
-
-async function makeXXHash(seed?: string) {
-    const lib = await import('xxhash-wasm')
-    return (await lib.default()).create32(seed ? parseInt(seed, 16) : undefined)
 }
 
 const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
