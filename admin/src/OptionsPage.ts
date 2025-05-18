@@ -287,6 +287,8 @@ export default function OptionsPage() {
         if (onHttps && certChange && !await confirmDialog("You may disrupt https service, kicking you out"))
             return
         await apiCall('set_config', { values: changes })
+        if ('split_uploads' in changes)
+            await alertDialog("Users need to reload for the \"split uploads\" option to take effect", 'warning')
         const ip = ipForUrl(loc.hostname)
         const path = loc.pathname + loc.hash
         const redirect = newPort <= 0 ? `${onHttps ? 'http:' : 'https:'}//${ip}:${otherPort}${path}` // jump protocol also in case of random port, because people must know their port while using GUI
