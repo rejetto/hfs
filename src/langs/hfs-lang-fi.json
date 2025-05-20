@@ -1,7 +1,7 @@
 {
     "author": "Pultsari & Win_7",
-    "version": 1.32,
-    "hfs_version": "0.56.0",
+    "version": 1.33,
+    "hfs_version": "0.57.3-beta1",
     "translate": {
         "Select": "Valitse",
         "n_files": "{n,plural,one{# tiedosto} other{# tiedostoa}}",
@@ -192,6 +192,6 @@
 
         "Yes": "Kyllä",
         "No":  "Ei",
-        "esc_again": "Paina ESC kaksi kertaa sulkea"
+        "esc_again": "Paina ESC kahdesti sulkeaksesi"
     }
 }
