@@ -143,7 +143,7 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
             ref: sizeGrid.refToPass,
             ...rest,
             sx: {
-                ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex
+                ...fillFlex && { height: 0, flex: 'auto' }, // limit table to available screen space, if parent is flex. Consider using fillFlexParentSx
                 '& .MuiDataGrid-virtualScroller': { minHeight: '3em' }, // without this, no-entries gets just 1px
                 '& .MuiTablePagination-root': { scrollbarWidth: 'none'},
                 ...rest.sx,
@@ -227,3 +227,6 @@ export function DataTable({ columns, initialState={}, actions, actionsProps, ini
 function CustomFooter({ add, ...props }: { add: ReactNode }) {
     return h(GridFooterContainer, props, h(Box, { ml: { sm: 1 } }, add), h(GridFooter, { sx: { border: 'none' } }))
 }
+
+// required in case of fillFlex:true
+export const fillFlexParentSx = { display: 'flex', flexDirection: 'column' } as const

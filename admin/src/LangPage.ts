@@ -2,7 +2,7 @@
 
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react';
 import { apiCall, useApiEx, useApiList } from './api'
-import { DataTable } from './DataTable';
+import { DataTable, fillFlexParentSx } from './DataTable'
 import { Alert, Box } from '@mui/material'
 import { Delete, Upload } from '@mui/icons-material'
 import { CFG, readFile, selectFiles } from './misc'
@@ -19,7 +19,7 @@ export default function LangPage({ setTitleSide }: PageProps) {
         h(Alert, { severity: 'info', sx: { display: { xs: 'none', sm: 'inherit' }  } }, "Translation is limited to Front-end, it doesn't apply to Admin-panel"),
         []))
     return h(Fragment, {},
-        h(Box, { mt: 1, maxWidth: '50em', flex: 1, display: 'flex', flexDirection: 'column' },
+        h(Box, { mt: 1, maxWidth: '50em', flex: 1, ...fillFlexParentSx },
             h(Box, { mb: 1, display: 'flex' },
                 h(Btn, { icon: Upload, onClick: add }, "Add"),
                 h(Box, { flex: 1 }),

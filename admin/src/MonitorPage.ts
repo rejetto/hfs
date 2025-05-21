@@ -5,7 +5,7 @@ import { createElement as h, useMemo, Fragment, useState } from "react"
 import { apiCall, useApiEvents, useApiEx, useApiList } from "./api"
 import { LinkOff as DisconnectIcon, Lock, FolderZip, Upload, Download, ChevronRight, ChevronLeft, History } from '@mui/icons-material'
 import { Alert, Box, Chip, ChipProps, Grid } from '@mui/material'
-import { DataTable } from './DataTable'
+import { DataTable, fillFlexParentSx } from './DataTable'
 import {
     formatBytes, ipForUrl, CFG, formatSpeed, with_, createDurationFormatter, formatTimestamp, formatPerc, md, Callback,
     reactJoin, SPECIAL_URI,
@@ -141,11 +141,12 @@ function Connections() {
                 wantLogButton),
         ),
         h(Grid, { container: true, flex: 1, columnSpacing: 1 },
-            h(Grid, { item: true, xs: 12 - logSize },
+            h(Grid, { item: true, xs: 12 - logSize, sx: fillFlexParentSx },
                 h(DataTable, {
                     persist: 'connections',
                     error,
                     rows,
+                    fillFlex: true,
                     noRows: monitorOnlyFiles && "No downloads/uploads at the moment",
                     footerSide: () => h(Flex, {},
                         pauseButton,
@@ -266,7 +267,7 @@ function Connections() {
                     ]
                 }),
             ),
-            logAble && wantLog && h(Grid, { item: true, xs: logSize, display: 'flex', flexDirection: 'column' },
+            logAble && wantLog && h(Grid, { item: true, xs: logSize, ...fillFlexParentSx },
                 h(LogFile, {
                     file: `${CFG.log}|${CFG.error_log}`,
                     filter: monitorOnlyFiles ? (row => !row.uri.startsWith(SPECIAL_URI)) : undefined,

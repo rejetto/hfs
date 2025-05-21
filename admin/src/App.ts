@@ -16,6 +16,7 @@ import { useSnapState } from './state'
 import { useEventListener } from 'usehooks-ts'
 import { AriaOnly, isMac, xlate } from './misc'
 import { getLocale } from './locale'
+import { fillFlexParentSx } from './DataTable'
 
 // always use useMemo with setTitleSide
 export interface PageProps { setTitleSide: (content: ReactNode, fullWidth?: boolean) => void }
@@ -103,8 +104,7 @@ function Routed() {
                     pb: { xs, md: 2 },
                     boxSizing: 'border-box', // keep padding inside the viewport
                     position: 'relative',
-                    display: 'flex',
-                    flexDirection: 'column',
+                    ...fillFlexParentSx,
                     width: '100%',
                     overflowX: 'clip', // keep wide things in space
                 }
