@@ -256,7 +256,7 @@ test('admin1', async ({ page }) => {
   await dataTableLoading()
   if (!isPhone)
     await expect(page.getByText('author', { exact: true })).toBeVisible(); // wait for layout to be stable
-  await screenshot(page);
+  await screenshot(page, '.MuiDataGrid-root');
   await clickMenu('Plugins');
   await expect(page.getByText('antibrute')).toBeVisible(); // wait for data
   await screenshot(page);

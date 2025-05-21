@@ -38,8 +38,8 @@ export default defineConfig({
       use: { ...devices['Pixel 7'] },
     },
     {
-      name: 'iPhone SE',
-      use: { ...devices['iPhone SE'] },
+      name: 'iPhone 6',
+      use: { ...devices['iPhone 6'] },
     },
 /*
     {
