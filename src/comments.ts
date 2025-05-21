@@ -1,8 +1,7 @@
 import { defineConfig } from './config'
 import { dirname, basename, join } from 'path'
 import { CFG } from './cross'
-import { parseFileContent, parseFileCache } from './util-files'
-import { createWriteStream } from 'fs'
+import { parseFileContent, parseFileCache, safeWriteStream } from './util-files'
 import { loadFileAttr, singleWorkerFromBatchWorker, storeFileAttr } from './misc'
 import _ from 'lodash'
 import iconv from 'iconv-lite'
@@ -56,7 +55,7 @@ const setCommentDescriptIon = singleWorkerFromBatchWorker(async (jobs: [path: st
         if (!comments.size)
             return unlink(path)
         // encode comments in descript.ion format
-        const ws = createWriteStream(path)
+        const ws = await safeWriteStream(path)
         comments.forEach((comment, filename) => {
             const multiline = comment.includes('\n')
             const line = (filename.includes(' ') ? `"${filename}"` : filename)
@@ -66,6 +65,7 @@ const setCommentDescriptIon = singleWorkerFromBatchWorker(async (jobs: [path: st
                 ws.write(MULTILINE_SUFFIX, 'binary')
             ws.write('\n')
         })
+        await new Promise(res => ws.end(res))
     }))
 })
 

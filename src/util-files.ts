@@ -2,7 +2,7 @@
 
 import { access, mkdir, readFile, stat } from 'fs/promises'
 import { Promisable, try_, wait, isWindowsDrive } from './misc'
-import { createWriteStream, mkdirSync, watch } from 'fs'
+import { createWriteStream, mkdirSync, watch, ftruncate } from 'fs'
 import { basename, dirname } from 'path'
 import glob from 'fast-glob'
 import { IS_WINDOWS } from './const'
@@ -85,8 +85,7 @@ export async function unzip(stream: Readable, cb: (path: string) => Promisable<f
                     if (!dest || type !== 'File')
                         return entry.autodrain()
                     console.debug('unzip', dest)
-                    await prepareFolder(dest)
-                    const thisFile = entry.pipe(createWriteStream(dest).on('error', reject))
+                    const thisFile = entry.pipe(await safeWriteStream(dest))
                     await once(thisFile, 'finish')
                 }) )
     )
@@ -107,12 +106,34 @@ export async function prepareFolder(path: string, dirnameIt=true) {
 
 export function createFileWithPath(path: string, options?: Parameters<typeof createWriteStream>[1]) {
     const folder = dirname(path)
-    if (!isWindowsDrive(folder))
+    if (!isWindowsDrive(folder)) // can't use prepareFolder because it's async
         try { mkdirSync(folder, { recursive: true }) }
         catch {
             return
         }
     return createWriteStream(path, options)
+}
+
+export async function safeWriteStream(path: string, options?: Parameters<typeof createWriteStream>[1]) {
+    await prepareFolder(path)
+    return new Promise<ReturnType<typeof createWriteStream>>((resolve, reject) => {
+        const first = createWriteStream(path, options)
+            .on('open', () => resolve(first))
+            .on('error', (e: any) => {
+                if (!IS_WINDOWS || e.code !== 'EPERM')  // Windows throws EPERM for hidden files with flags 'w' and 'a'
+                    return reject(e)
+                if (typeof options === 'string')
+                    options = { encoding: options }
+                else
+                    options ||= {}
+                if (options.flags && options.flags !== 'w') // we only handle the 'w' case
+                    return reject(e)
+                options.flags = 'r+'
+                const second = createWriteStream(path, options)
+                    .on('open', fd => ftruncate(fd, 0, () => resolve(second)))
+                    .on('error', reject)
+            })
+    })
 }
 
 export function isValidFileName(name: string) {

@@ -196,6 +196,6 @@ debugLogFile.once('open', () => {
     repeat(DAY, () => { // do it sync, to avoid overlapping
         if (statSync(path).size < LIMIT) return // no need
         renameSync(path, 'old-' + path)
-        debugLogFile = createWriteStream(path, { flags: 'w' }) // new file
+        debugLogFile = createWriteStream(path) // new file
     })
 }).on('error', () => console.log("cannot create debug.log"))
