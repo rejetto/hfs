@@ -219,7 +219,7 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
             asText: true,
             successFeedback: true,
             onClick() {
-                copyTextToClipboard(done.map(x => location.origin + x.res.uri).join('\n'))
+                copyTextToClipboard(done.map(x => location.origin + x.response.uri).join('\n'))
                 operationSuccessful()
             }
         }),

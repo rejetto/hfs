@@ -12,12 +12,12 @@ export class Connection {
     got = 0
     outSpeed?: number
     inSpeed?: number
-    ctx?: Context
+    ctx?: Context // this is set externally, during koa middleware, using updateConnectionForCtx, but only for regular requests; some connections may never have a ctx
     country?: string
     private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 
-    constructor(readonly socket: Socket) {
+    constructor(public readonly socket: Socket) {
         all.push(this)
         socket.on('close', () => {
             all.splice(all.indexOf(this), 1)
@@ -83,7 +83,7 @@ export function updateConnection(conn: Connection, change: Partial<Connection>, 
 
 export const disconnectionsLog: { ts: Date, ip: string, country?: string, msg?: string }[] = []
 
-export function disconnect(what: Context | Socket, debugLog='') {
+export function disconnect(what: Context | Socket | Connection, debugLog='') {
     if ('socket' in what)
         what = what.socket
     const ip = normalizeIp(what.remoteAddress || '')

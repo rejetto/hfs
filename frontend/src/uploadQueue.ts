@@ -16,7 +16,7 @@ const { t } = i18n
 
 export interface ToUpload { file: File, comment?: string, name?: string, to?: string, error?: string }
 export const uploadState = proxy<{
-    done: (ToUpload & { res?: any })[]
+    done: (ToUpload & { response?: any })[] // res will contain the response from the server,
     doneByte: number
     errors: ToUpload[]
     skipped: ToUpload[]
@@ -105,14 +105,13 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
     do { // at least one iteration, even for empty files
         offset = Math.max(splitResume, lastWrittenReceived)
         const req = currentReq = new XMLHttpRequest()
-        const finished = pendingPromise()
+        const requestIsOver = pendingPromise()
         stuckSince = Date.now()
         req.onloadend = async () => {
             try {
                 currentReq = undefined
                 const status = overrideStatus || req.status
                 if (resuming) { // resuming requested
-                    finished.resolve()
                     resuming = false // this behavior is only for once, for cancellation of the upload that is in the background while resume is confirmed
                     stopLooping = true
                     return
@@ -121,8 +120,8 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                     uploadState.skipped.push(toUpload)
                 else if (status >= 400)
                     error(status)
-                else if (!status) // request failed at a network level, so try again, but not too often
-                    return await wait(2000)
+                else if (!status) // request failed at a network level, so try again same file (return), but not too often (wait)
+                    return await wait(2000) // wait before resolving `finished`
                 else {
                     if (splitSize) {
                         splitResume += splitSize
@@ -130,14 +129,14 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                     }
                     stopLooping = true
                     waitSecondChunk.resolve() // we finished, no need to wait
-                    uploadState.done.push({ ...toUpload, res: tryJson(req.responseText) })
+                    uploadState.done.push({ ...toUpload, response: tryJson(req.responseText) })
                     uploadState.doneByte += toUpload!.file.size
                     reloadOnClose = true
                 }
-                finished.then(next)
+                requestIsOver.then(workNextFile)
             }
             finally {
-                finished.resolve()
+                requestIsOver.resolve()
             }
         }
         let lastProgress = 0
@@ -162,7 +161,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
             ...with_(state.uploadOnExisting, x => x !== 'rename' && { existing: x }), // rename is the default
         }), true)
         req.send(toUpload.file.slice(offset, splitSize ? offset + splitSize : undefined))
-        await finished
+        await requestIsOver
         if (!startingResume && notificationSource?.readyState === OPEN) // wait only if notifications are currently available
             await waitSecondChunk
     } while (!stopLooping && offset < fullSize)
@@ -210,7 +209,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
             resuming = true
             console.debug('resuming upload', size.toLocaleString())
             preserveTempFile = undefined
-            abortCurrentUpload()
+            abortCurrentUpload() // `resuming` will avoid this to be considered skipped
             await wait(500) // be sure the server had the time to react to the abort() and unlocked the file, or our next request will fail
             return startUpload(toUpload, to, size)
         }
@@ -235,7 +234,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
         closeLastDialog = alertDialog(msg, 'error')?.close
     }
 
-    function next() {
+    function workNextFile() {
         stopLooping = true
         uploadState.uploading = undefined
         uploadState.partial = 0
