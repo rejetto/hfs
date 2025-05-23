@@ -1,5 +1,6 @@
 import {
-    HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
+    HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE,
+    UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
     buildUrlQueryString, dirname, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait, waitFor,
 } from '@hfs/shared'
 import { state } from './state'
@@ -90,7 +91,6 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
     console.debug('start upload', getFilePath(toUpload.file), startingResume)
     let resuming = false
     let preserveTempFile = undefined
-    overrideStatus = 0
     uploadState.uploading = toUpload
     uploadState.progress = 0
     userAborted = false
@@ -106,11 +106,16 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
         offset = Math.max(splitResume, lastWrittenReceived)
         const req = currentReq = new XMLHttpRequest()
         const requestIsOver = pendingPromise()
+        overrideStatus = 0
         stuckSince = Date.now()
         req.onloadend = async () => {
             try {
                 currentReq = undefined
                 const status = overrideStatus || req.status
+                if (status === HTTP_RANGE_NOT_SATISFIABLE) {
+                    lastWrittenReceived = 0
+                    return
+                }
                 if (resuming) { // resuming requested
                     resuming = false // this behavior is only for once, for cancellation of the upload that is in the background while resume is confirmed
                     stopLooping = true
