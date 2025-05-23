@@ -185,7 +185,7 @@ export const frontEndApis: ApiHandlers = {
 
 export function notifyClient(channel: string | Koa.Context, name: string, data: any) {
     if (typeof channel !== 'string')
-        channel = String(channel.query.notificationChannel)
+        channel = String(channel.query.notifications)
     events.emit(NOTIFICATION_PREFIX + channel, name, data)
 }
 

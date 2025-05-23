@@ -1,5 +1,5 @@
 import {
-    HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE,
+    HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NOT_MODIFIED,
     UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
     buildUrlQueryString, dirname, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait, waitFor,
 } from '@hfs/shared'
@@ -127,7 +127,8 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                 }
                 else if (status >= 400)
                     error(status)
-                else if (!status) // request failed at a network level, so try again same file (return), but not too often (wait)
+                else if (!status // request failed at a network level, so try again same file (return), but not too often (wait)
+                    || status === HTTP_NOT_MODIFIED) // our previous request didn't release the lock yet
                     return await wait(2000) // wait before resolving `finished`
                 else {
                     if (splitSize) {
@@ -160,7 +161,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
             uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
         const partial = splitSize && offset + splitSize < fullSize
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
-            notificationChannel,
+            notifications: notificationChannel,
             giveBack: toUpload.file.lastModified,
             ...partial && { partial: fullSize - offset }, // how much space we need
             ...offset && { resume: offset, preserveTempFile },
@@ -171,7 +172,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
         await requestIsOver
         if (!startingResume && notificationSource?.readyState === OPEN) // wait only if notifications are currently available
             await waitSecondChunk
-    } while (!stopLooping && offset < fullSize)
+    } while (!stopLooping)
 
     async function subscribeNotifications() {
         // we want to getNotifications once, as establishing a connection is slow in the case of many small files;

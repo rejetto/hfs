@@ -2,7 +2,7 @@ import { getNodeByName, statusCodeForMissingPerm, VfsNode } from './vfs'
 import Koa from 'koa'
 import {
     HTTP_CONFLICT, HTTP_FOOL, HTTP_INSUFFICIENT_STORAGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_BAD_REQUEST,
-    UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH, HTTP_NO_CONTENT,
+    UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH, HTTP_NO_CONTENT, HTTP_NOT_MODIFIED,
 } from './const'
 import { basename, dirname, extname, join } from 'path'
 import fs from 'fs'
@@ -68,7 +68,7 @@ async function calcHash(fn: string, limit=Infinity) {
 }
 
 const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
-const uploadingFiles = new Set()
+const uploadingFiles = new Map<string, Koa.Context>()
 // stay sync because we use this function with formidable()
 export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
     let fullPath = ''
@@ -114,9 +114,10 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     // optionally 'skip'
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT, 'exists')
-    if (uploadingFiles.has(fullPath))
-        return fail(HTTP_CONFLICT, 'already uploading')
-    uploadingFiles.add(fullPath)
+    const already = uploadingFiles.get(fullPath) // this can be checked so early because this function is sync
+    if (already) // if it's the same client, we tell to retry later
+        return fail(ctx.query.notifications && ctx.query.notifications === already.query.notifications ? HTTP_NOT_MODIFIED : HTTP_CONFLICT,
+            'already uploading')
     let overwriteRequestedButForbidden = false
     try {
         const sendCurrentSize = _.debounce(() => notifyClient(ctx, UPLOAD_RESUMABLE, { path, written: getCurrentSize() }), 1000, { maxWait: 1000 })
@@ -182,6 +183,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         writeStream.pipe(fileStream)
         Object.assign(obj, { fileStream })
         trackProgress()
+        uploadingFiles.set(fullPath, ctx)
+        console.debug('upload started')
         // the file stream doesn't have an event for data being written, so we use 'data' of its feeder, which happens before, so we postpone a bit, trying to have a fresher number
         writeStream.on('data', () => setTimeout(checkIfNewUploadBecameLargerThanResumable))
 
@@ -190,7 +193,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             try {
                 ctx.state.uploadSize = bytesGot() // in case content-length is not specified
                 await new Promise(res => fileStream.close(res)) // this only seems necessary on Windows
-                if (ctx.isAborted()) {
+                if (ctx.isAborted()) { // in the very unlikely case the connection is interrupted between last-byte and here, we still consider it unfinished, as the client had no way to know, and will resume, but it would get an error if we finish the process
                     if (isWritingSecondFile) // we don't want to be left with 2 temp files
                         return rm(altTempName).catch(console.warn)
                     const sec = deleteUnfinishedUploadsAfter.get()
@@ -202,6 +205,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                 if (dontOverwriteUploading.get() && !await overwriteAnyway() && fs.existsSync(dest)) {
                     if (overwriteRequestedButForbidden) {
                         await rm(tempName).catch(console.warn)
+                        releaseFile()
                         return fail()
                     }
                     const ext = extname(dest)
@@ -220,6 +224,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
                         cancelDeletion(firstTempName)
                         await rm(firstTempName) // wait, so the client can count on the temp-file being gone
                     }
+                    releaseFile()
                     ctx.state.uploadDestinationPath = dest
                     void setUploadMeta(dest, ctx)
                     if (ctx.query.comment)
@@ -319,7 +324,6 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
 
     function fail(status=ctx.status, msg?: string) {
         console.debug('upload failed', status, msg||'')
-        releaseFile()
         ctx.status = status
         if (msg)
             ctx.body = msg
