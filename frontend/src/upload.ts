@@ -117,11 +117,11 @@ export function showUpload() {
             h(UploadStatus, { margin: '.5em 0' }),
             qs.length > 0 && h('div', {},
                 h(Flex, { center: true, borderTop: '1px dashed', padding: '.5em' },
-                    [queueStr, etaStr, speed && formatSpeed(speed)].filter(Boolean).join(', '),
+                    [etaStr, speed && formatSpeed(speed), queueStr].filter(Boolean).join(', '),
                     inQ > 0 && iconBtn('delete', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
-                    }),
+                    }, { title: t`Clear` }),
                     inQ > 0 && iconBtn(paused ? 'play' : 'pause', () => {
                         uploadState.paused = !uploadState.paused
                         if (!everPaused) {
