@@ -121,8 +121,10 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                     stopLooping = true
                     return
                 }
-                if (userAborted || status === HTTP_CONFLICT) // HTTP_CONFLICT = skipped because existing
+                if (userAborted || status === HTTP_CONFLICT) { // HTTP_CONFLICT = skipped because existing, or upload in progress
+                    toUpload.error = status ? t('upload_conflict', "already exists") : t`Interrupted` // the I is uppercase because we are just recycling an old string (with all its translations)
                     uploadState.skipped.push(toUpload)
+                }
                 else if (status >= 400)
                     error(status)
                 else if (!status) // request failed at a network level, so try again same file (return), but not too often (wait)
