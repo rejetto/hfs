@@ -192,8 +192,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
             return hfsEvent(PREFIX + data.path, data.hash)
         if (name === UPLOAD_RESUMABLE) {
             waitSecondChunk.resolve()
-            const path = getFilePath(uploading.file)
-            if (path !== data.path) return // is it about current file?
+            if (uploading.name !== data.path) return // is it about current file?
             if (data.written)
                 return lastWrittenReceived = data.written
             const {size} = data //TODO use toUpload?
@@ -208,7 +207,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                 console.debug('upload unchanged')
             }
             else { // timestamp may miss if the file is left by old version, or HFS was killed
-                const hashFromServer = new Promise<any>(res => onHfsEvent(PREFIX + path, res))
+                const hashFromServer = new Promise<any>(res => onHfsEvent(PREFIX + getFilePath(uploading.file), res, { once: true }))
                 const hashed = await calcHash(uploading.file, size) // therefore, we attempt a check using the hash
                 if (!hashed) return // too late, we are working on another file
                 if (hashed !== await hashFromServer) return console.debug('upload hash mismatch')

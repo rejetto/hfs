@@ -64,9 +64,9 @@ export function hfsEvent(name: string, params?:Dict) {
     })
 }
 
-export function onHfsEvent(name: string, cb: (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }, output: any[]) => any) {
+export function onHfsEvent(name: string, cb: (params:any, extra: { output: any[], setOrder: Callback<number>, preventDefault: Callback }, output: any[]) => any, options?: { once?: boolean }) {
     const key = 'hfs.' + name
-    document.addEventListener(key, wrapper)
+    document.addEventListener(key, wrapper, options)
     return () => document.removeEventListener(key, wrapper)
 
     function wrapper(ev: Event) {

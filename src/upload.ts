@@ -166,7 +166,6 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             tempName = resumableTempName
         }
         let isWritingSecondFile = tempName === altTempName
-        cancelDeletion(tempName)
         const fullSize = stillToWrite + resume
         ctx.state.uploadDestinationPath = tempName
         // allow plugins to mess with the write-stream, because the read-stream can be complicated in case of multipart
@@ -183,6 +182,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         writeStream.pipe(fileStream)
         Object.assign(obj, { fileStream })
         trackProgress()
+        cancelDeletion(tempName)
         uploadingFiles.set(fullPath, ctx)
         console.debug('upload started')
         // the file stream doesn't have an event for data being written, so we use 'data' of its feeder, which happens before, so we postpone a bit, trying to have a fresher number
@@ -274,9 +274,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         }
 
         function checkIfNewUploadBecameLargerThanResumable() {
-            if (!isWritingSecondFile)
-                return sendCurrentSize() // keep the client updated in case it needs to resume on disconnection
-            if (getCurrentSize() > firstResumableStats?.size!)
+            sendCurrentSize() // keep the client updated in case it needs to resume on disconnection
+            if (isWritingSecondFile && getCurrentSize() > firstResumableStats?.size!)
                 try { // better be sync here, as we don't want the upload to finish in the middle of the rename
                     fs.renameSync(tempName, firstTempName) // try to rename $upload2 to $upload, overwriting
                     tempName = firstTempName
