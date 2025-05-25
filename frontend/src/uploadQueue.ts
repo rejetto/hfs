@@ -1,7 +1,7 @@
 import {
     HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NOT_MODIFIED,
     UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
-    buildUrlQueryString, dirname, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait, waitFor,
+    buildUrlQueryString, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait, waitFor,
 } from '@hfs/shared'
 import { state } from './state'
 import { getNotifications } from '@hfs/shared/api'
@@ -15,7 +15,7 @@ import { hfsEvent, onHfsEvent } from './misc'
 import i18n from './i18n'
 const { t } = i18n
 
-export interface ToUpload { file: File, comment?: string, name?: string, to?: string, error?: string }
+export interface ToUpload { file: File, comment?: string, path?: string, to?: string, error?: string }
 export const uploadState = proxy<{
     done: (ToUpload & { response?: any })[] // res will contain the response from the server,
     doneByte: number
@@ -156,9 +156,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                 stuckSince = Date.now()
             lastProgress = e.loaded
         }
-        let uploadPath = getFilePath(toUpload.file)
-        if (toUpload.name)
-            uploadPath = prefix('', dirname(uploadPath), '/') + toUpload.name
+        const uploadPath = toUpload.path || getFilePath(toUpload.file)
         const partial = splitSize && offset + splitSize < fullSize
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
             notifications: notificationChannel,
@@ -192,7 +190,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
             return hfsEvent(PREFIX + data.path, data.hash)
         if (name === UPLOAD_RESUMABLE) {
             waitSecondChunk.resolve()
-            if (uploading.name !== data.path) return // is it about current file?
+            if (uploading.path !== data.path) return // is it about current file?
             if (data.written)
                 return lastWrittenReceived = data.written
             const {size} = data //TODO use toUpload?
