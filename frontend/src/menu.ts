@@ -4,8 +4,7 @@ import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, formDialog, toast } from './dialog'
 import {
-    defaultPerms, err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, VfsPerms, working,
-    buildUrlQueryString, hIcon, WIKI_URL
+    err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, working, buildUrlQueryString, hIcon, WIKI_URL
 } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
@@ -24,7 +23,7 @@ const { t, useI18N } = i18n
 
 export function MenuPanel() {
     const { showFilter, remoteSearch, stopSearch, searchManuallyInterrupted, selected, props } = useSnapState()
-    const { can_upload, can_delete, can_archive } = props ? { ...defaultPerms, ...props } : {} as VfsPerms
+    const { can_upload, can_delete_children, can_archive } = props || {}
     const { uploading, qs, uploadDialogIsOpen }  = useSnapshot(uploadState)
     useEffect(() => {
         if (!showFilter)
@@ -48,8 +47,8 @@ export function MenuPanel() {
     const [changingButton, setChangingButton] = useState<'' | 'upload' | 'delete'>('')
     useEffect(() => {
         if (can_upload !== undefined)
-            setChangingButton(showFilter && can_delete ? 'delete' : (can_upload || qs.length > 0) ? 'upload' : '')
-    }, [showFilter, can_delete, can_upload, qs.length])
+            setChangingButton(showFilter && can_delete_children ? 'delete' : (can_upload || qs.length > 0) ? 'upload' : '')
+    }, [showFilter, can_delete_children, can_upload, qs.length])
     return h('div', { id: 'menu-panel' },
         h('div', { id: 'menu-bar' },
             h(LoginButton),
@@ -80,7 +79,7 @@ export function MenuPanel() {
                 className: 'sliding ' + (changingButton ? '' : 'hide-sliding') + (uploading && !uploadDialogIsOpen ? '  ani-working' : ''),
                 onClick: showUpload,
             }),
-            h(Btn, showFilter && can_delete ? {
+            h(Btn, showFilter && can_delete_children ? {
                 id: 'cut-button',
                 icon: 'cut',
                 label: t`Cut`,

@@ -27,6 +27,19 @@ test('around1', async ({ page }) => {
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click();
   await screenshot(page);
+
+  // selecting in this folder should enable bulk delete button
+  await page.getByRole('link', { name: 'for-admins, Folder' }).click();
+  await page.getByRole('link', { name: 'upload, Folder' }).click();
+  await page.getByRole('link', { name: 'alfa.txt' }).click();
+  await expect(page.getByText('Delete')).toBeVisible(); // first check single-delete command
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Select' }).click();
+  await page.getByRole('checkbox', { name: 'alfa.txt' }).check();
+  await expect(page.getByRole('button', { name: 'Delete' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Select' }).click();
+  await page.getByRole('link', { name: 'home' }).click();
+
   await page.getByRole('button', { name: username }).click();
   await page.getByRole('button', { name: 'Logout' }).click();
   await page.getByText('Logged out').click();

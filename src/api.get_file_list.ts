@@ -48,11 +48,13 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
     const onDirEntryHandlers = mapPlugins(plug => plug.onDirEntry)
     const can_upload = admin || hasPermission(node, 'can_upload', ctx)
     const can_delete = admin || hasPermission(node, 'can_delete', ctx)
+    const fakeChild = await applyParentToChild({ source: 'dummy-file', original: undefined }, node) // used to check permission; simple but can produce false results; 'original' to simulate a non-vfs node
+    const can_delete_children = admin || hasPermission(fakeChild, 'can_delete', ctx)
     const can_archive = admin || hasPermission(node, 'can_archive', ctx)
     const can_comment = can_upload && areCommentsEnabled()
     const can_overwrite = can_upload && (can_delete || !dontOverwriteUploading.get())
     const comment = node.comment ?? await getCommentFor(node.source)
-    const props = { can_archive, can_upload, can_delete, can_overwrite, can_comment, comment, accept: node.accept, icon: getNodeIcon(node) }
+    const props = { can_archive, can_upload, can_delete, can_delete_children, can_overwrite, can_comment, comment, accept: node.accept, icon: getNodeIcon(node) }
     ctx.state.browsing = uri.replace(/\/{2,}/g, '/')
     updateConnectionForCtx(ctx)
     if (!list)
@@ -118,6 +120,7 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
                 if (!isFolder || !node.children?.length) // folders with virtual children, keep them
                     throw e
             }) : undefined
+            // permissions of entries are sent as a difference with permissions of parent
             const pl = node.can_list === WHO_NO_ONE ? 'l'
                 : !hasPermission(node, 'can_list', ctx) ? 'L'
                 : ''
@@ -125,7 +128,8 @@ export const get_file_list: ApiHandler = async ({ uri='/', offset, limit, c, onl
             const pr = node.can_read === WHO_NO_ONE && !(isFolder && filesInsideCould()) ? 'r'
                 : !hasPermission(node, 'can_read', ctx) ? 'R'
                 : ''
-            const pd = Boolean(can_delete) === hasPermission(node, 'can_delete', ctx) ? '' : can_delete ? 'd' : 'D'
+            // for delete, the diff is based on can_delete_children instead of can_delete, because it will produce fewer data
+            const pd = Boolean(can_delete_children) === hasPermission(node, 'can_delete', ctx) ? '' : can_delete_children ? 'd' : 'D'
             const pa = Boolean(can_archive) === hasPermission(node, 'can_archive', ctx) ? '' : can_archive ? 'a' : 'A'
             const pu = !isFolder || Boolean(can_upload) === hasPermission(node, 'can_upload', ctx) ? '' : can_upload ? 'u' : 'U'
             return {

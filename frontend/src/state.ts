@@ -29,6 +29,7 @@ export const state = proxy<typeof FRONTEND_OPTIONS & {
         can_upload?: boolean
         accept?: string
         can_delete?: boolean
+        can_delete_children?: boolean
         can_archive?: boolean
         can_comment?: boolean
         can_overwrite?: boolean
@@ -156,7 +157,7 @@ export class DirEntry implements ServerDirEntry {
         return this.p?.includes('A') || state.props?.can_archive && !this.p?.includes('a')
     }
     canDelete() {
-        return !this.isRoot() && (this.p?.includes('D') || state.props?.can_delete && !this.p?.includes('d'))
+        return !this.isRoot() && (this.p?.includes('D') || state.props?.can_delete_children && !this.p?.includes('d'))
     }
     canUpload() {
         return this.isFolder && (this.p?.includes('U') || state.props?.can_upload && !this.p?.includes('u'))
