@@ -71,3 +71,7 @@ Additionally, you have the following folders:
   the complexity of the admin-panel.
 
   Of course this comes with a price to pay on the programmer's side, more work to do.
+
+# Thanks to
+
+[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSource)
