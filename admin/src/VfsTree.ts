@@ -78,7 +78,7 @@ export default function VfsTree({ id2node, statusApi }:{ id2node: Map<string, Vf
                             host && iconTooltip(Home, `home for ${host}`))
                     ),
                 ),
-                isRoot ? "Home" : (() => { // special rendering if the whole source is not too long, and the name was not customized
+                isRoot ? "Home folder" : (() => { // special rendering if the whole source is not too long, and the name was not customized
                     const ps = node.parent?.source
                     const { source } = node
                     const rel = ps && source?.startsWith(ps) && source > ps ? '.' + source.slice(ps.length) : source
