@@ -121,6 +121,8 @@ setInterval(() => {
     }
 }, 1000)
 
-events.on('connection', (c: Connection) =>
-    c.socket.on('data', data =>
-        totalGot.set(x => x + data.length) ))
+events.on('connection', (c: Connection) => {
+    const count = (data: Buffer | string) => totalGot.set(x => x + data.length)
+    c.socket.on('data', count)
+    c.socket.on('secure', s => s.on('data', count)) // secure sockets won't forward 'data' events to the plain ones
+})

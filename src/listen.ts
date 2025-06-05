@@ -6,7 +6,8 @@ import { app } from './index'
 import * as https from 'https'
 import { watchLoad } from './watchLoad'
 import { networkInterfaces } from 'os';
-import { newConnection } from './connections'
+import { getConnections, newConnection } from './connections'
+import { TLSSocket } from 'node:tls'
 import open from 'open'
 import {
     CFG, debounceAsync, ipForUrl, makeNetMatcher, MINUTE, objSameKeys, onlyTruthy, prefix, runAt, wait, xlate
@@ -145,13 +146,18 @@ const considerHttps = debounceAsync(async () => {
     }
     port = await startServer(httpsSrv, { port, host: listenInterface.get() })
     if (!port) return
-    httpsSrv.on('connection', newConnection)
+    httpsSrv.on('connection', newConnection) // this event is emitted as soon as the tcp layer is connected
+    httpsSrv.on('secureConnection', (socket: TLSSocket) => { // emitted when the TLS layer is connected
+        for (const c of getConnections()) // TLSSocket shares same ip:port, so we can find its matching Connection
+            if (socket.remoteAddress === c.socket.remoteAddress
+            && socket.remotePort === c.socket.remotePort)
+                return c.socket.emit('secure', socket) // let know Connection about the secure socket
+    })
     printUrls(httpsSrv.name)
     events.emit('httpsReady')
     defaultBaseUrl.proto = 'https'
     defaultBaseUrl.port = getCurrentPort(httpsSrv) ?? 0
 }, { wait: 200 }) // give time to have key and cert ready
-
 
 export const cert = defineConfig('cert', '')
 export const privateKey = defineConfig('private_key', '')

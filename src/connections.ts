@@ -17,6 +17,7 @@ export class Connection {
     private _cachedIp?: string
     [rest:symbol]: any // let other modules add extra data, but using symbols to avoid name collision
 
+    // the sockets we collect are the plain ones, as soon as the tcp layer is connected
     constructor(public readonly socket: Socket) {
         all.push(this)
         socket.on('close', () => {
@@ -45,9 +46,9 @@ export function newConnection(socket: Socket) {
     const ip = normalizeIp(socket.remoteAddress || '')
     const res = events.emit('newSocket', { socket, ip })
     const msg = res?.isDefaultPrevented() ? 'plugin (newSocket)' : res?.find(_.isString)
-    if (msg)
-        return disconnect(socket, msg)
-    new Connection(socket)
+    if (!msg)
+        return new Connection(socket)
+    disconnect(socket, msg)
 }
 
 export function getConnections(): Readonly<typeof all> {
