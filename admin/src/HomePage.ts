@@ -136,9 +136,9 @@ export default function HomePage() {
         ),
         h(Flex, { flexWrap: 'wrap' },
             !otherVersions && status.updatePossible && status.previousVersionAvailable
-                && h(Btn, { icon: Restore, onClick: () => update(PREVIOUS_TAG) }, "Install previous version"),
+                && h(Btn, { icon: Restore, onClick: () => update(PREVIOUS_TAG) }, "Reinstall previous version"),
             !status.updatePossible ? entry('', h(Link, { href: REPO_URL + 'releases/', target: 'repo' }, "All releases"))
-                : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions, ...rightClickToInstallFromUrl }, "Install other version")
+                : !otherVersions ? h(Btn, { icon: Colorize, onClick: getOtherVersions, ...rightClickToInstallFromUrl }, "Get another version")
                     : h(Flex, { vert: true }, otherVersions.map((x: any) => h(Update, {
                         info: x,
                         key: x.name,
