@@ -1,5 +1,6 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'fs'
+import { wait } from '../src/cross'
 
 const username = 'rejetto'
 const password = 'password'
@@ -287,8 +288,9 @@ test('admin1', async ({ page }) => {
   await screenshot(page);
 });
 
-function screenshot(page: Page, selectorForMask='') {
+async function screenshot(page: Page, selectorForMask='') {
   if (selectorForMask)
     selectorForMask = ',' + selectorForMask
+  await wait(1000) // this accounts especially for our DataTable component which takes time to set the layout
   return expect(page).toHaveScreenshot({ fullPage: true, mask: [page.locator(`.maskInTests${selectorForMask}`)] });
 }

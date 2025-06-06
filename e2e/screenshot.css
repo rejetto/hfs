@@ -4,3 +4,8 @@ main *:hover { background: none !important; }
 
 .hideInTests, /* use for elements with variable size, where masking would produce changes anyway */
 .list-wrapper:not([uri="/"]) .entry-ts { display: none } /* ignore changing timestamps inside folders */
+
+.MuiTooltip-tooltip { /* tooltips are subjected to small displacements */
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
