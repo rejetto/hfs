@@ -133,8 +133,7 @@ export async function urlToNode(url: string, ctx?: Koa.Context, parent: VfsNode=
 
 export async function nodeStats(ret: VfsNode) {
     if (ret.stats)
-        if (_.isPlainObject(ret.stats)) delete ret.stats // legacy pre-55-alpha1
-        else return ret.stats
+        return ret.stats
     const stats = ret.source ? await fs.stat(ret.source) : undefined
     setHidden(ret, { stats })
     return stats

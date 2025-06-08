@@ -49,7 +49,6 @@ export async function serveFileNode(ctx: Koa.Context, node: VfsNode) {
             return ctx.status = HTTP_FORBIDDEN
     }
 
-    ctx.vfsNode = // legacy pre-0.51 (download-quota)
     ctx.state.vfsNode = node // useful to tell service files from files shared by the user
     const download = 'dl' in ctx.query
     disposition(ctx, name, download)

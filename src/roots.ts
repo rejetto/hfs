@@ -1,4 +1,4 @@
-import { defineConfig, getConfig } from './config'
+import { defineConfig } from './config'
 import {
     ADMIN_URI, API_URI, Callback, CFG, isLocalHost, join, makeMatcher, removeStarting, SPECIAL_URI, try_,
     enforceFinal, enforceStarting
@@ -15,10 +15,6 @@ export const roots = defineConfig(CFG.roots, {} as { [hostMask: string]: string 
     return (host: string) => values[matchers.findIndex(m => m(host))]
 })
 const forceAddress = defineConfig(CFG.force_address, false)
-forceAddress.sub((v, { version }) => { // convert from legacy configs
-    if (version?.olderThan('0.53.0-alpha2'))
-        forceAddress.set(getConfig('force_base_url') || getConfig('roots_mandatory') || false)
-})
 
 export const rootsMiddleware: Koa.Middleware = (ctx, next) =>
     (() => {
