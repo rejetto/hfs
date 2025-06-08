@@ -4,7 +4,8 @@ import { state, useSnapState } from './state'
 import { createElement as h, Fragment, useEffect, useMemo, useState } from 'react'
 import { alertDialog, confirmDialog, ConfirmOptions, formDialog, toast } from './dialog'
 import {
-    err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, working, buildUrlQueryString, hIcon, WIKI_URL
+    err2msg, ErrorMsg, onlyTruthy, prefix, useStateMounted, working, buildUrlQueryString, hIcon,
+    WIKI_URL, HTTP_NOT_FOUND
 } from './misc'
 import { loginDialog } from './login'
 import { showOptions } from './options'
@@ -193,7 +194,8 @@ export async function deleteFiles(uris: string[]) {
         return false
     const stop = working()
     const errors = onlyTruthy(await Promise.all(uris.map(uri =>
-        apiCall('delete', {}, { restUri: uri }).then(() => null, err => ({ uri, err }))
+        apiCall('delete', {}, { restUri: uri })
+            .then(() => null, err => err?.code !== HTTP_NOT_FOUND && { uri, err })
     )))
     stop()
     reloadList()
