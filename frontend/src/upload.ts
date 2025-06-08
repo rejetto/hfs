@@ -121,7 +121,7 @@ export function showUpload() {
             h(UploadStatus, { margin: '.5em 0' }),
             qs.length > 0 && h('div', {},
                 h(Flex, { center: true, borderTop: '1px dashed', padding: '.5em' },
-                    [etaStr, speed && formatSpeed(speed), queueStr].filter(Boolean).join(', '),
+                    [etaStr, formatSpeed(speed), queueStr].filter(Boolean).join(', '),
                     inQ > 0 && iconBtn('delete', ()=>  {
                         uploadState.qs = []
                         abortCurrentUpload()
