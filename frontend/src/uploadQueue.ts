@@ -234,8 +234,8 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
         }
         const specifier = (ERRORS as any)[status] || HTTP_MESSAGES[status]
         toUpload.error = specifier
-        if (uploadState.errors.push(toUpload)) return
-        const msg = t('failed_upload', toUpload, "Couldn't upload {name}") + prefix(': ', specifier)
+        if (uploadState.errors.push(toUpload) > 1) return
+        const msg = t('failed_upload', { name: toUpload.path }, "Couldn't upload {name}") + prefix(': ', specifier)
         closeLastDialog?.()
         closeLastDialog = alertDialog(msg, 'error')?.close
     }
