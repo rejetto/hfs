@@ -416,7 +416,7 @@ export async function changeBaseUrl() {
         const urls: string[] = res.urls.https || res.urls.http
         const domainsFromRoots = Object.keys(roots).map(x => x.split('|')).flat().filter(x => !/[*?]/.test(x))
         const proto = splitAt('//', urls[0])[0] + '//'
-        urls.push(...domainsFromRoots.map(x => proto + x))
+        urls.push(..._.difference(domainsFromRoots.map(x => proto + x), urls))
         const { close } = newDialog({
             title: "Main address",
             Content() {
