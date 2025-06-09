@@ -326,7 +326,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         ctx.status = status
         if (msg)
             ctx.body = msg
-        notifyClient(ctx, UPLOAD_REQUEST_STATUS, { [path]: status }) // allow browsers to detect failure while still sending body
+        notifyClient(ctx, UPLOAD_REQUEST_STATUS, { path, status }) // allow browsers to detect failure while still sending body
     }
 }
 

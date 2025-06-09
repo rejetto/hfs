@@ -54,7 +54,11 @@ export function showUpload() {
         const size = formatBytes(adding.reduce((a, x) => a + x.file.size, 0))
         const isMobile = useIsMobile()
 
-        return h(FlexV, { gap: '.5em', props: acceptDropFiles((files, to) => uploadState.adding.push(...files.map(f => ({ file: ref(f), to })))) },
+        return h(FlexV, {
+            gap: '.5em',
+            props: acceptDropFiles( (files, to) =>
+                uploadState.adding.push(...files.map(f => ({ file: ref(f), path: getFilePath(f), to }))) )
+        },
             h(FlexV, { className: 'upload-toolbar' },
                 !props?.can_upload ? t('no_upload_here', "No upload permission for the current folder")
                     : h(FlexV, {},
@@ -104,13 +108,13 @@ export function showUpload() {
                         rec.comment = s || undefined
                     },
                     async edit(rec) {
-                        const value = rec.path || getFilePath(rec.file)
+                        const was = rec.path
                         const s = await promptDialog(t('upload_name', "Upload with new name"), {
-                            value,
+                            value: was,
                             onField: el => {
-                                const ofs = value.lastIndexOf('/') + 1 // browsers picking a folder use / as separator even on Windows
-                                const end = value.slice(ofs).lastIndexOf('.')
-                                el.setSelectionRange(ofs, end < 0 ? value.length : ofs + end)
+                                const ofs = was.lastIndexOf('/') + 1 // browsers picking a folder use / as separator even on Windows
+                                const end = was.slice(ofs).lastIndexOf('.')
+                                el.setSelectionRange(ofs, end < 0 ? was.length : ofs + end)
                             },
                         })
                         if (!s) return
@@ -124,7 +128,7 @@ export function showUpload() {
                     [etaStr, formatSpeed(speed), queueStr].filter(Boolean).join(', '),
                     inQ > 0 && iconBtn('delete', ()=>  {
                         uploadState.qs = []
-                        abortCurrentUpload()
+                        abortCurrentUpload(true)
                     }, { title: t`Clear` }),
                     inQ > 0 && iconBtn(paused ? 'play' : 'pause', () => {
                         uploadState.paused = !uploadState.paused
@@ -142,7 +146,7 @@ export function showUpload() {
                             actions: {
                                 cancel: f => {
                                     if (f === uploadState.uploading)
-                                        return abortCurrentUpload()
+                                        return abortCurrentUpload(true)
                                     const q = uploadState.qs[idx]
                                     _.pull(q.entries, f)
                                     if (!q.entries.length)
@@ -156,7 +160,8 @@ export function showUpload() {
 
         function pickFiles(options: Parameters<typeof selectFiles>[1]) {
             selectFiles(list => {
-                uploadState.adding.push( ...Array.from(list || []).filter(simulateBrowserAccept).map(f => ({ file: ref(f) })) )
+                uploadState.adding.push( ...Array.from(list || []).filter(simulateBrowserAccept)
+                    .map(f => ({ file: ref(f), path: getFilePath(f) })) )
             }, options)
         }
     }
@@ -181,7 +186,7 @@ function FileList({ entries, actions }: { entries: ToUpload[], actions: { [icon:
                             cb && iconBtn(icon, () => cb(entries[i]), { className: `action-${icon}` })) ),
                         h('td', {}, formatBytes(e.file.size)),
                         h('td', {},
-                            h('span', {}, e.path || getFilePath(entries[i].file)),
+                            h('span', {}, e.path),
                             working && h('span', { className: 'upload-progress', title }, formatBytes(partial)),
                             working && hashing && h('span', { className: 'upload-hashing' }, t`Considering resume`, ' (', formatPerc(hashing), ')'),
                             working && h('progress', { className: 'upload-progress-bar', title, max: 1, value: _.round(progress, 3)  }), // round for fewer dom updates
@@ -239,11 +244,9 @@ export function UploadStatus({ snapshot, ...props }: { snapshot?: INTERNAL_Snaps
                 [msgErrors, errors]
             ] as const).map(([msg, list], i) =>
                 msg && h('div', { key: i }, msg, h('ul', {},
-                    list.map((x, i) => h('li', { key: i },
-                        x.path || getFilePath(x.file),
-                        prefix(' (', x.error, ')')
-                    ))
-                ))
+                    list.map((x, i) =>
+                        h('li', { key: i }, x.path, prefix(' (', x.error, ')'))
+                )))
             )
         ))
     }

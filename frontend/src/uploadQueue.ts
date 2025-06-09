@@ -15,7 +15,7 @@ import { hfsEvent, onHfsEvent } from './misc'
 import i18n from './i18n'
 const { t } = i18n
 
-export interface ToUpload { file: File, comment?: string, path?: string, to?: string, error?: string }
+export interface ToUpload { file: File, comment?: string, path: string, to?: string, error?: string }
 export const uploadState = proxy<{
     done: (ToUpload & { response?: any })[] // res will contain the response from the server,
     doneByte: number
@@ -88,7 +88,8 @@ export function resetReloadOnClose() {
 }
 
 export async function startUpload(toUpload: ToUpload, to: string, startingResume=0) {
-    console.debug('start upload', getFilePath(toUpload.file), startingResume)
+    const uploadPath = toUpload.path
+    console.debug('start upload', uploadPath, startingResume)
     let resuming = false
     let preserveTempFile = undefined
     uploadState.uploading = toUpload
@@ -99,15 +100,16 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
     const splitSize = getHFS().splitUploads
     const fullSize = toUpload.file.size
     let offset = startingResume
-    let splitResume = startingResume // keep track of "split" advancements
+    let resume = startingResume // this will advance with splitSize
     let lastWrittenReceived = 0
     let stopLooping = false
     do { // at least one iteration, even for empty files
-        offset = Math.max(splitResume, lastWrittenReceived)
+        offset = Math.max(resume, lastWrittenReceived)
         const req = currentReq = new XMLHttpRequest()
         const requestIsOver = pendingPromise()
         overrideStatus = 0
         stuckSince = Date.now()
+        // beware of 'abort' event: it isn't triggered if connection isn't established yet
         req.onloadend = async () => {
             try {
                 currentReq = undefined
@@ -132,8 +134,8 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                     return await wait(2000) // wait before resolving `finished`
                 else {
                     if (splitSize) {
-                        splitResume += splitSize
-                        if (splitResume < fullSize) return // go on with the next chunk
+                        resume += splitSize
+                        if (resume < fullSize) return // go on with the next chunk
                     }
                     stopLooping = true
                     waitSecondChunk.resolve() // we finished, no need to wait
@@ -156,7 +158,6 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                 stuckSince = Date.now()
             lastProgress = e.loaded
         }
-        const uploadPath = toUpload.path || getFilePath(toUpload.file)
         const partial = splitSize && offset + splitSize < fullSize
         req.open('PUT', to + pathEncode(uploadPath) + buildUrlQueryString({
             notifications: notificationChannel,
@@ -185,12 +186,11 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
     async function notificationHandler(name: string, data: any) {
         const {uploading} = uploadState
         if (!uploading) return
-        const PREFIX = 'resume hash/'
         if (name === UPLOAD_RESUMABLE_HASH)
-            return hfsEvent(PREFIX + data.path, data.hash)
+            return hfsEvent(UPLOAD_RESUMABLE_HASH + data.path, data.hash)
         if (name === UPLOAD_RESUMABLE) {
             waitSecondChunk.resolve()
-            if (uploading.path !== data.path) return // is it about current file?
+            if (uploadPath !== data.path) return // is it about current file?
             if (data.written)
                 return lastWrittenReceived = data.written
             const {size} = data //TODO use toUpload?
@@ -205,7 +205,7 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
                 console.debug('upload unchanged')
             }
             else { // timestamp may miss if the file is left by old version, or HFS was killed
-                const hashFromServer = new Promise<any>(res => onHfsEvent(PREFIX + getFilePath(uploading.file), res, { once: true }))
+                const hashFromServer = new Promise<any>(res => onHfsEvent(UPLOAD_RESUMABLE_HASH + uploadPath, res, { once: true }))
                 const hashed = await calcHash(uploading.file, size) // therefore, we attempt a check using the hash
                 if (!hashed) return // too late, we are working on another file
                 if (hashed !== await hashFromServer) return console.debug('upload hash mismatch')
@@ -219,7 +219,8 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
             return startUpload(toUpload, to, size)
         }
         if (name === UPLOAD_REQUEST_STATUS) {
-            overrideStatus = data?.[getFilePath(uploading.file)]
+            if (uploadPath !== data.path) return // is it about current file?
+            overrideStatus = data.status
             if (overrideStatus >= 400)
                 abortCurrentUpload()
             return
@@ -264,8 +265,8 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
     }
 }
 
-export function abortCurrentUpload() {
-    userAborted = true // must track because abort event isn't trigger if connection isn't established yet
+export function abortCurrentUpload(userAskedForIt=false) {
+    userAborted = userAskedForIt
     currentReq?.abort()
 }
 subscribe(uploadState, () => {
@@ -283,13 +284,13 @@ export async function enqueueUpload(entries: ToUpload[], to=location.pathname) {
     if (_.remove(entries, x => !simulateBrowserAccept(x.file)).length)
         await alertDialog(t('upload_file_rejected', "Some files were not accepted"), 'warning')
 
-    entries = _.uniqBy(entries, x => getFilePath(x.file))
+    entries = _.uniqBy(entries, x => x.path)
     if (!entries.length) return
     entries = entries.map(x => ({ ...x, file: ref(x.file) })) // avoid valtio to mess with File object
     const q = _.find(uploadState.qs, { to })
     if (!q)
         return uploadState.qs.push({ to, entries })
-    const missing = _.differenceBy(entries, q.entries, x => getFilePath(x.file))
+    const missing = _.differenceBy(entries, q.entries, x => x.path)
     q.entries.push(...missing.map(ref))
 }
 

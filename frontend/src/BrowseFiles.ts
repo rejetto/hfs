@@ -14,7 +14,7 @@ import { alertDialog } from './dialog'
 import useFetchList, { usePath } from './useFetchList'
 import { useAuthorized } from './login'
 import { acceptDropFiles } from './upload'
-import { enqueueUpload } from './uploadQueue'
+import { enqueueUpload, getFilePath } from './uploadQueue'
 import _ from 'lodash'
 import { makeOnClickOpen, openFileMenu } from './fileMenu'
 import { ClipBar } from './clip'
@@ -41,7 +41,7 @@ export function BrowseFiles() {
     const propsDropFiles = useMemo(() => ({
         id: 'files-dropper',
         ...acceptDropFiles((files, to) =>
-            props?.can_upload ? enqueueUpload(files.map(file => ({ file })), location.pathname + to)
+            props?.can_upload ? enqueueUpload(files.map(file => ({ file, path: getFilePath(file) })), location.pathname + to)
                 : alertDialog(t("Upload not available"), 'warning')
         ),
     }), [props])
