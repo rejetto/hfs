@@ -1,7 +1,7 @@
 {
     "author": "Hussein M. Alghazal (hmg3099)",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "اختر",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -188,6 +188,7 @@
 
         "Yes": "نعم",
         "No":  "لا",
-        "esc_again": "انقر على ESC ثانية لاغلاق"
+        "esc_again": "انقر على ESC ثانية لاغلاق",
+        "insufficient storage": "مساحة تخزين غير كافية"
     }
 }

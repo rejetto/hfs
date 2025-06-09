@@ -1,7 +1,7 @@
 {
     "author": "Phoenix",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "選擇",
         "n_files": "{n,plural,one{# 個檔案} other{# 個檔案}}",
@@ -188,6 +188,7 @@
 
         "Yes": "是",
         "No":  "否",
-        "esc_again": "按 ESC 兩次關閉"
+        "esc_again": "按 ESC 兩次關閉",
+        "insufficient storage": "儲存空間不足"
     }
 }

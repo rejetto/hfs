@@ -1,7 +1,7 @@
 {
     "author": "Mefistofell, SanokKule, ItsNeverLight",
     "version": 2.71,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Выбор",
         "n_files": "{n,plural, one{# файл} few{# файла} many{# файлов}}",
@@ -191,6 +191,7 @@
 
         "Yes": "Да",
         "No":  "Нет",
-        "esc_again": "Нажмите ESC дважды для закрытия"
+        "esc_again": "Нажмите ESC дважды для закрытия",
+        "insufficient storage": "недостаточно места"
     }
 }

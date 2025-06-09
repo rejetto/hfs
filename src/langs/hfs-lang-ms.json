@@ -1,7 +1,7 @@
 {
     "author": "ChatGPT",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Pilih",
         "n_files": "{n,plural, one{# fail} other{# fail}}",
@@ -149,6 +149,7 @@
 
         "Yes": "Ya",
         "No":  "Tidak",
-        "esc_again": "Tekan ESC dua kali untuk menutup"
+        "esc_again": "Tekan ESC dua kali untuk menutup",
+        "insufficient storage": "ruang storan tidak mencukupi"
     }
 }

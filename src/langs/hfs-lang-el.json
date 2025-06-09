@@ -1,7 +1,7 @@
 {
     "author": "Konstantinos (konmaz)",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Επιλογή",
         "n_files": "{n,plural,one{# αρχείο} other{# αρχεία}}",
@@ -189,6 +189,7 @@
 
         "Yes": "Ναι",
         "No":  "Οχι",
-        "esc_again": "Πατήστε ESC δυο φορές για να κλειστειτε"
+        "esc_again": "Πατήστε ESC δυο φορές για να κλειστειτε",
+        "insufficient storage": "ανεπαρκής χώρος αποθήκευσης"
     }
 }

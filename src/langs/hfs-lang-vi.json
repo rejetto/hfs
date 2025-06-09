@@ -2,7 +2,7 @@
     "_comment_": "This is Vietnamese translation for HFS (Đây là file ngôn ngữ tiếng việt của HFS)",
     "author": "thenoppy12 (Nguyễn Văn Ngu)",
     "version": 3.1,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Chọn",
         "n_files": "{n,plural,one{# tập tin} other{# tập tin}}",
@@ -193,6 +193,7 @@
 
         "Yes": "Có",
         "No":  "Không",
-        "esc_again": "Nhấn ESC hai lần để đóng"
+        "esc_again": "Nhấn ESC hai lần để đóng",
+        "insufficient storage": "không đủ dung lượng"
     }
 }

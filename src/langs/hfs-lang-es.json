@@ -1,7 +1,7 @@
 {
     "author": "Eidy Estupiñan Varona, Arturo Fernández Rivas",
     "version": 1.3,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Seleccionar",
         "n_files": "{n,plural,one{# archivo} other {# archivos}}",
@@ -192,6 +192,7 @@
 
         "Yes": "Si",
         "No":  "No",
-        "esc_again": "Presione ESC dos veces para cerrar"
+        "esc_again": "Presione ESC dos veces para cerrar",
+        "insufficient storage": "almacenamiento insuficiente"
     }
 }

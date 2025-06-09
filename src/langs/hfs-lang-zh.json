@@ -1,7 +1,7 @@
 {
     "author": "yx3016 & MircoH0 & CMJNB & Cheuksing",
     "version": 1.5,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "选择",
         "n_files": "{n} 个文件",
@@ -192,6 +192,7 @@
 
         "Yes": "是",
         "No":  "否",
-        "esc_again": "按 ESC 两次关闭"
+        "esc_again": "按 ESC 两次关闭",
+        "insufficient storage": "存储空间不足"
     }
 }

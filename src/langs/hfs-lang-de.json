@@ -1,7 +1,7 @@
 {
     "author": "Uwe Wennmann",
     "version": 0.1,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Auswählen",
         "n_files": "{n,plural,one{# Datei} other{# Dateien}}",
@@ -178,6 +178,7 @@
 
         "Yes": "Ja",
         "No":  "Nein",
-        "esc_again": "Drucken Sie ESC zwei Mal, um das Fenster zu schließen."
+        "esc_again": "Drucken Sie ESC zwei Mal, um das Fenster zu schließen.",
+        "insufficient storage": "nicht genügend Speicherplatz"
     }
 }

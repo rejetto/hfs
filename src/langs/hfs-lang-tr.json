@@ -1,7 +1,7 @@
 {
     "author": "cbr00t",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Seç",
         "n_files": "{n,plural,one{# dosya} other{# dosya}}",
@@ -188,6 +188,7 @@
 
         "Yes": "Evet",
         "No":  "Hayır",
-        "esc_again": "ESC'i iki kere basarak kapat"
+        "esc_again": "ESC'i iki kere basarak kapat",
+        "insufficient storage": "yetersiz depolama alanı"
     }
 }

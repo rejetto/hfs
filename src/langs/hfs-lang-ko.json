@@ -1,7 +1,7 @@
 {
     "author": "배서연, Hawk1335",
     "version": 1.1,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "선택",
         "n_files": "{n,plural,one{1개의 파일} =2 =3{파일 #개} other{#개 파일}}",
@@ -188,6 +188,7 @@
 
         "Yes": "영",
         "No":  "안",
-        "esc_again": "ESC 두번 페스하기"
+        "esc_again": "ESC 두번 페스하기",
+        "insufficient storage": "저장 공간 부족"
     }
 }

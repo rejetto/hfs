@@ -1,7 +1,7 @@
 {
     "author": "Massimo Melina",
     "version": 2.53,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Seleziona",
         "n_files": "{n} file",
@@ -179,6 +179,7 @@
 
         "Yes": "Sì",
         "No":  "No",
-        "esc_again": "Premi ESC due volte per chiudere"
+        "esc_again": "Premi ESC due volte per chiudere",
+        "insufficient storage": "spazio insufficiente"
     }
 }

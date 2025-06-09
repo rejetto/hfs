@@ -1,7 +1,7 @@
 {
     "author": "OgamiWK",
     "version": 1.2,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Selecionar",
         "n_files": "{n,plural,one{# Arquivo} other{# Arquivos}}",
@@ -187,6 +187,7 @@
 
         "Yes": "Sim",
         "No":  "Nao",
-        "esc_again": "Pressione ESC duas vezes para fechar"
+        "esc_again": "Pressione ESC duas vezes para fechar",
+        "insufficient storage": "armazenamento insuficiente"
     }
 }

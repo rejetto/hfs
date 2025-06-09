@@ -1,7 +1,7 @@
 {
     "author": "<0x1g3n>",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Selectează",
         "n_files": "{n,plural,one{# fișier} other{# fișiere}}",
@@ -188,6 +188,7 @@
 
         "Yes": "Da",
         "No":  "Nu",
-        "esc_again": "Apasa ESC de doua ori pentru a inchide"
+        "esc_again": "Apasa ESC de doua ori pentru a inchide",
+        "insufficient storage": "spațiu de stocare insuficient"
     }
 }

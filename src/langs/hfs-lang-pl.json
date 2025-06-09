@@ -1,7 +1,7 @@
 {
 	"author": "Flis666",
 	"version": 1.0,
-	"hfs_version": "0.56.0",
+	"hfs_version": "0.57.5",
 	"translate": {
         "Select": "Wybierz",
         "n_files": "{n,plural,one{# plik} other{# plików}}",
@@ -187,6 +187,7 @@
 
         "Yes": "Tak",
         "No":  "Nie",
-        "esc_again": "Naciśnij ESC dwukrotnie do zamkniecia"
+        "esc_again": "Naciśnij ESC dwukrotnie do zamkniecia",
+        "insufficient storage": "za mało miejsca"
     }
 }

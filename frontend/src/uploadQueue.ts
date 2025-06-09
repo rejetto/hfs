@@ -1,6 +1,6 @@
 import {
     HTTP_CONFLICT, HTTP_MESSAGES, HTTP_PAYLOAD_TOO_LARGE, HTTP_RANGE_NOT_SATISFIABLE, HTTP_NOT_MODIFIED,
-    UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
+    HTTP_INSUFFICIENT_STORAGE, UPLOAD_RESUMABLE, UPLOAD_REQUEST_STATUS, UPLOAD_RESUMABLE_HASH,
     buildUrlQueryString, getHFS, pathEncode, pendingPromise, prefix, randomId, tryJson, with_, wait, waitFor,
 } from '@hfs/shared'
 import { state } from './state'
@@ -231,8 +231,9 @@ export async function startUpload(toUpload: ToUpload, to: string, startingResume
         const ERRORS = {
             [HTTP_PAYLOAD_TOO_LARGE]: t`file too large`,
             [HTTP_CONFLICT]: t('upload_conflict', "already exists"),
+            [HTTP_INSUFFICIENT_STORAGE]: t`insufficient storage`,
         }
-        const specifier = (ERRORS as any)[status] || HTTP_MESSAGES[status]
+        const specifier = (ERRORS as any)[status] || HTTP_MESSAGES[status] || status
         toUpload.error = specifier
         if (uploadState.errors.push(toUpload) > 1) return
         const msg = t('failed_upload', { name: toUpload.path }, "Couldn't upload {name}") + prefix(': ', specifier)

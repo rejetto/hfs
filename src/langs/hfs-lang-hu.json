@@ -1,7 +1,7 @@
 {
     "author": "killersolyom",
     "version": 0.5,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Kiválasztás",
         "n_files": "{n,többes szám,egy{# file} egyéb{# file}}",
@@ -193,6 +193,7 @@
 
         "Yes": "Igen",
         "No":  "Nem",
-        "esc_again": "ESC megadva 2 alkalommal"
+        "esc_again": "ESC megadva 2 alkalommal",
+        "insufficient storage": "elégtelen tárhely"
     }
 }

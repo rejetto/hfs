@@ -1,7 +1,7 @@
 {
     "author": "NAME OF THE AUTHOR(S) OF THIS TRANSLATION",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Select",
         "n_files": "{n,plural,one{# file} other{# files}}",
@@ -187,6 +187,7 @@
 
         "Yes": "Yes",
         "No":  "No",
-        "esc_again": "Press ESC twice to close"
+        "esc_again": "Press ESC twice to close",
+        "insufficient storage": "insufficient storage"
     }
 }

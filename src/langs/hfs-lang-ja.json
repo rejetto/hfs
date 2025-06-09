@@ -1,7 +1,7 @@
 {
     "author": "Kuruton8",
     "version": 1.1,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "選択",
         "n_files": "{n,plural,one{# ファイル} other{# ファイル}}",
@@ -188,6 +188,7 @@
 
         "Yes": "はい",
         "No":  "いいえ",
-        "esc_again": "ESCを2回押して閉じます"
+        "esc_again": "ESCを2回押して閉じます",
+        "insufficient storage": "ストレージ容量不足"
     }
 }

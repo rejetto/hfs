@@ -1,7 +1,7 @@
 {
     "author": "Soonthorn Srichomkwan",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "เลือก",
         "n_files": "{n} ไฟล์",
@@ -188,6 +188,7 @@
 
         "Yes": "ใช่",
         "No":  "ไม่",
-        "esc_again": "กด ESC สองครั้งเพื่อปิด"
+        "esc_again": "กด ESC สองครั้งเพื่อปิด",
+        "insufficient storage": "พื้นที่จัดเก็บไม่เพียงพอ"
     }
 }

@@ -1,7 +1,7 @@
 { 
     "author": "Горан", 
     "version": 1.6,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": { 
         "Select": "Изабери", 
         "n_files": "{n,plural, one {# документ} other{# документа}}", 
@@ -188,6 +188,7 @@
 
         "Yes": "Да",
         "No":  "Не",
-        "esc_again": "Пritisnite ESC два пута за затварање"
+        "esc_again": "Пritisnite ESC два пута за затварање",
+        "insufficient storage": "недовољно простора"
     } 
 }

@@ -192,6 +192,7 @@
 
         "Yes": "Kyllä",
         "No":  "Ei",
-        "esc_again": "Paina ESC kahdesti sulkeaksesi"
+        "esc_again": "Paina ESC kahdesti sulkeaksesi",
+        "insufficient storage": "riittämätön tallennustila"
     }
 }

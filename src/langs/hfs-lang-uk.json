@@ -1,7 +1,7 @@
 {
     "author": "m.ksy",
     "version": 1.0,
-    "hfs_version": "0.56.0",
+    "hfs_version": "0.57.5",
     "translate": {
         "Select": "Вибір",
         "n_files": "{n,plural, one{# файл} few{# файли} many{# файлів}}",
@@ -182,6 +182,7 @@
 
         "Yes": "Так",
         "No":  "Ні",
-        "esc_again": "Натисніть ESC два рази для закриття"
+        "esc_again": "Натисніть ESC два рази для закриття",
+        "insufficient storage": "недостатньо місця"
     }
 }
