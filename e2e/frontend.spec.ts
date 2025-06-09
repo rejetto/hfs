@@ -4,13 +4,27 @@ import { wait } from '../src/cross'
 
 const username = 'rejetto'
 const password = 'password'
+const fileToUpload = 'dev-plugins.md'
+const uploadName = 'uploaded'
+const URL = 'http://localhost:81/'
 
 const t = Date.UTC(2025, 0, 20, 3, 0, 0, 0) / 1000 // a fixed timestamp, for visual comparison
 
+test.beforeAll(clearUploads)
+
+function clearUploads() {
+  fs.unlink('tests/' + uploadName, () => {});
+  resetTimestamp()
+}
+
+function resetTimestamp() {
+  fs.utimesSync('tests', t, t);
+}
+
 // a generic test touch several parts
 test('around1', async ({ page }) => {
-  fs.utimesSync('tests', t, t);
-  await page.goto('http://localhost:81/');
+  resetTimestamp();
+  await page.goto(URL);
   await expect(page).toHaveTitle(/File server/);
   await screenshot(page);
   await page.getByRole('button', { name: 'Login' }).click();
@@ -39,8 +53,8 @@ test('around1', async ({ page }) => {
   await page.getByRole('checkbox', { name: 'alfa.txt' }).check();
   await expect(page.getByRole('button', { name: 'Delete' })).toBeEnabled();
   await page.getByRole('button', { name: 'Select' }).click();
-  await page.getByRole('link', { name: 'home' }).click();
 
+  await page.getByRole('link', { name: 'home' }).click();
   await page.getByRole('button', { name: username }).click();
   await page.getByRole('button', { name: 'Logout' }).click();
   await page.getByText('Logged out').click();
@@ -119,9 +133,52 @@ test('around1', async ({ page }) => {
   await expect(page.getByText('file, 10 folders, 6 B')).toBeVisible();
 });
 
+test('upload1', async ({ page, context, browserName, browser }) => {
+  if (page.viewportSize()?.width! < 1000 || browserName !== 'chromium') return // test only for desktop, as safari has no cdpSession, and to disconnect i need only 1 upload at a time
+  await page.goto(URL);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByRole('textbox', { name: 'Username' }).fill(username);
+  await page.getByRole('textbox', { name: 'Username' }).press('Tab');
+  await page.getByRole('textbox', { name: 'Password' }).fill(password);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.locator('div').filter({ hasText: 'Logged in' }).nth(3).click();
+
+  await page.getByRole('link', { name: 'for-admins, Folder' }).click();
+  await page.getByRole('link', { name: 'upload, Folder' }).click();
+
+  await page.getByRole('button', { name: 'Options' }).click();
+  const pageAdminPromise = page.waitForEvent('popup');
+  await page.getByRole('button', { name: 'Admin-panel' }).click();
+  const pageAdmin = await pageAdminPromise;
+  await pageAdmin.goto(URL + '~/admin/#/monitoring'); // cross-device way of changing page
+  await page.locator('div').filter({ hasText: 'xOptionsAdmin-panelSort by:' }).nth(2).click();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Upload' }).click();
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Pick files' }).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(fileToUpload);
+  const cdpSession = await context.newCDPSession(page)
+  await cdpSession.send('Network.emulateNetworkConditions', NETWORK_PRESETS.Regular2G)
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('textbox').fill(uploadName);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Send 1 file' }).click();
+  await wait(2000)
+  await pageAdmin.getByRole('cell', { name: uploadName }).click();
+  await pageAdmin.getByRole('button', { name: '(Disconnect)' }).click();
+  await pageAdmin.getByRole('button', { name: '(Close)' }).click();
+  await pageAdmin.close()
+  await page.getByText('Copy links').click();
+  await page.getByText('Operation successful').click();
+  await page.getByRole('button', { name: 'Close' }).click();
+  await cdpSession?.send('Network.emulateNetworkConditions', NETWORK_PRESETS.NoThrottle)
+  clearUploads()
+});
+
 test('search1', async ({ page }) => {
   fs.utimesSync('tests', t, t)
-  await page.goto('http://localhost:81/');
+  await page.goto(URL);
   await page.getByRole('button', { name: 'Search' }).click();
   await page.locator('input[name="name"]').fill('a');
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -177,7 +234,7 @@ test('search1', async ({ page }) => {
 });
 
 test('frontend-admin', async ({ page }) => {
-  await page.goto('http://localhost:81/');
+  await page.goto(URL);
   await page.getByRole('button', { name: 'Options' }).click();
   // no admin button yet,
   await expect(page.getByRole('dialog')).toMatchAriaSnapshot(`
@@ -217,7 +274,7 @@ test('frontend-admin', async ({ page }) => {
 
 test('admin1', async ({ page }) => {
   await fs.promises.rm('tests/work/logs', {force: true, recursive: true}); // clear logs to have consistent screenshots
-  await page.goto('http://localhost:81/~/admin/');
+  await page.goto(URL + '~/admin/');
   await page.getByRole('textbox', { name: 'Username' }).fill(username);
   await page.getByRole('textbox', { name: 'Password' }).fill(password);
   await page.getByRole('textbox', { name: 'Password' }).press('Enter');
@@ -237,7 +294,6 @@ test('admin1', async ({ page }) => {
   function dataTableLoading() {
     return expect(page.getByRole('grid').getByRole('img')).toBeVisible({ visible: false });
   }
-//  const dataTableContent = '.MuiDataGrid-overlayWrapperInner,.MuiDataGrid-virtualScroller'
 
   await clickMenu('Internet'); // initiate the get_nat process, so we'll have to wait less, later
   await clickMenu('Shared files')
@@ -294,3 +350,26 @@ async function screenshot(page: Page, selectorForMask='') {
   await wait(1000) // this accounts especially for our DataTable component which takes time to set the layout
   return expect(page).toHaveScreenshot({ fullPage: true, mask: [page.locator(`.maskInTests${selectorForMask}`)] });
 }
+
+const NETWORK_PRESETS = {
+  Offline: {
+    offline: true,
+    downloadThroughput: 0,
+    uploadThroughput: 0,
+    latency: 0,
+    connectionType: 'none',
+  },
+  NoThrottle: {
+    offline: false,
+    downloadThroughput: -1,
+    uploadThroughput: -1,
+    latency: 0,
+  },
+  Regular2G: {
+    offline: false,
+    downloadThroughput: (250 * 1024) / 8,
+    uploadThroughput: (120 * 1024) / 8,
+    latency: 300,
+    connectionType: 'cellular2g',
+  },
+} as const;
