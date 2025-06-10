@@ -121,7 +121,7 @@ export function iconBtn(icon: string, onClick: MouseEventHandler, { title, ...pr
         title: title ?? t(_.capitalize(icon)),
         onClick,
         ...props,
-        className: 'icon-button',
+        className: 'icon-button ' + (props.className || ''),
     }, icon.length > 1 ? hIcon(icon) : icon )
 }
 
