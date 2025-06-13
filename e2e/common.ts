@@ -1,0 +1,20 @@
+import { test } from '@playwright/test'
+import fs from 'fs'
+
+export const username = 'rejetto'
+export const password = 'password'
+export const URL = 'http://localhost:81/'
+export const uploadName = 'uploaded'
+
+const t = Date.UTC(2025, 0, 20, 3, 0, 0, 0) / 1000 // a fixed timestamp, for visual comparison
+
+test.beforeAll(clearUploads)
+
+export function clearUploads() {
+    fs.unlink('tests/' + uploadName, () => {});
+    resetTimestamp()
+}
+
+export function resetTimestamp() {
+    fs.utimesSync('tests', t, t);
+}

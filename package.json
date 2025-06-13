@@ -22,7 +22,7 @@
     "test-with-server": "rm -rf tests/work && (node dist/src --cwd tests/work --config tests & echo $! > .server_pid) && sleep 2 && node --import tsx --test tests/test.ts; _exit=$?; SERVER_PID=$(cat ./.server_pid); kill \"$SERVER_PID\" 2>/dev/null || true; rm -f ./.server_pid; exit $_exit",
     "test-ui": "npx playwright test --ui",
     "pub": "cd dist && npm publish",
-    "dist": "npm run build-all && npx playwright test && npm run dist-bin",
+    "dist": "npm run build-all && npx playwright test frontend && npx playwright test serial && npm run dist-bin",
     "dist-bin": "npm run dist-modules && npm run dist-bin-win && npm run dist-bin-linux && npm run dist-bin-mac && npm run dist-bin-mac-arm",
     "dist-modules": "cp package*.json central.json dist && cd dist && npm ci --omit=dev && cd .. && node prune_modules",
     "dist-pre": "cd dist && rm -rf node_modules/@node-rs/crc32-*",
