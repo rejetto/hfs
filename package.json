@@ -1,6 +1,6 @@
 {
   "name": "hfs",
-  "version": "0.57.5",
+  "version": "0.57.6",
   "description": "HTTP File Server",
   "keywords": ["file server", "http server"],
   "homepage": "https://rejetto.com/hfs",
@@ -71,7 +71,7 @@
   "dependencies": {
     "@gregoranders/csv": "^0.0.13",
     "@node-rs/crc32": "^1.10.6",
-    "@rejetto/kvstorage": "^0.13.2",
+    "@rejetto/kvstorage": "^0.14.0",
     "acme-client": "^5.4.0",
     "buffer-crc32": "^1.0.0",
     "fast-glob": "^3.3.3",
