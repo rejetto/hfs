@@ -404,6 +404,7 @@ enablePlugins.sub(rescanAsap)
 export const suspendPlugins = defineConfig(CFG.suspend_plugins, false)
 
 export const pluginsConfig = defineConfig('plugins_config', {} as Record<string,any>)
+export const PLUGIN_MAIN_FILE = 'plugin.js'
 
 const pluginWatchers = new Map<string, ReturnType<typeof watchPlugin>>()
 
@@ -418,7 +419,7 @@ export async function rescan() {
         const id = path.split('/').slice(-1)[0]!
         met.push(id)
         if (!pluginWatchers.has(id))
-            pluginWatchers.set(id, watchPlugin(id, join(path, 'plugin.js')))
+            pluginWatchers.set(id, watchPlugin(id, join(path, PLUGIN_MAIN_FILE)))
     }
     for (const [id, cancelWatcher] of pluginWatchers.entries())
         if (!met.includes(id)) {
@@ -647,16 +648,16 @@ onProcessExit(() =>
 
 export function parsePluginSource(id: string, source: string) {
     const pl: AvailablePlugin = { id }
-    pl.description = tryJson(/exports.description *= *(".*")/.exec(source)?.[1])
-    pl.repo = tryJson(/exports.repo *= *(.*);? *$/m.exec(source)?.[1])
-    pl.version = Number(/exports.version *= *(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
-    pl.apiRequired = tryJson(/exports.apiRequired *= *([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
-    pl.isTheme = tryJson(/exports.isTheme *= *(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
-    pl.preview = tryJson(/exports.preview *= *(.+)/.exec(source)?.[1]) ?? undefined
-    pl.depend = tryJson(/exports.depend *= *(\[[\s\S]*?])/m.exec(source)?.[1])?.filter((x: any) =>
+    pl.description = tryJson(/exports.description\s*=\s*(".*")/.exec(source)?.[1])
+    pl.repo = tryJson(/exports.repo\s*=\s*(\S*)/.exec(source)?.[1])
+    pl.version = Number(/exports.version\s*=\s*(\d*\.?\d+)/.exec(source)?.[1]) ?? undefined
+    pl.apiRequired = tryJson(/exports.apiRequired\s*=\s*([ \d.,[\]]+)/.exec(source)?.[1]) ?? undefined
+    pl.isTheme = tryJson(/exports.isTheme\s*=\s*(true|false|"light"|"dark")/.exec(source)?.[1]) ?? (id.endsWith('-theme') || undefined)
+    pl.preview = tryJson(/exports.preview\s*=\s*(.+)/.exec(source)?.[1]) ?? undefined
+    pl.depend = tryJson(/exports.depend\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])?.filter((x: any) =>
         typeof x.repo === 'string' && x.version === undefined || typeof x.version === 'number'
             || console.warn("plugin dependency discarded", x) )
-    pl.changelog = tryJson(/exports.changelog *= *(\[[\s\S]*?])/m.exec(source)?.[1])
+    pl.changelog = tryJson(/exports.changelog\s*=\s*(\[[\s\S]*?])/m.exec(source)?.[1])
     if (Array.isArray(pl.apiRequired) && (pl.apiRequired.length !== 2 || !pl.apiRequired.every(_.isFinite))) // validate [from,to] form
         pl.apiRequired = undefined
     calculateBadApi(pl)

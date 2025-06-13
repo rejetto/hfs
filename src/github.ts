@@ -6,7 +6,8 @@ import {
 } from './misc'
 import {
     DISABLING_SUFFIX, enablePlugin, findPluginByRepo, getAvailablePlugins, getPluginInfo, isPluginRunning, mapPlugins,
-    parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER, DELETE_ME_SUFFIX
+    parsePluginSource, PATH as PLUGINS_PATH, Repo, startPlugin, stopPlugin, STORAGE_FOLDER, DELETE_ME_SUFFIX,
+    PLUGIN_MAIN_FILE
 } from './plugins'
 import { ApiError } from './apiMiddleware'
 import _ from 'lodash'
@@ -14,7 +15,7 @@ import {
     HFS_REPO, HFS_REPO_BRANCH, HTTP_BAD_REQUEST, HTTP_CONFLICT, HTTP_FORBIDDEN, HTTP_NOT_ACCEPTABLE,
     HTTP_SERVER_ERROR, VERSION
 } from './const'
-import { rename, rm } from 'fs/promises'
+import { readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import { storedMap } from './persistence'
@@ -50,14 +51,15 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
         repo = repo.main
     if (downloading[repo])
         throw new ApiError(HTTP_CONFLICT, "already downloading")
-    const msg = await isPluginBlacklisted(repo)
+    const msg = await isPluginBlacklisted(repo) // check before downloading, in case other filters were passed somehow
     if (msg)
         throw new ApiError(HTTP_FORBIDDEN, "blacklisted: " + msg)
     console.log('downloading plugin', repo)
     downloadProgress(repo, true)
     try {
         const pl = findPluginByRepo(repo)
-        if (repo.includes('//')) { // custom repo
+        const customRepo = repo.includes('//')
+        if (customRepo) { // custom repo
             if (!pl)
                 throw new ApiError(HTTP_BAD_REQUEST, "bad repo")
             const customRepo = ((pl as any).getData?.() || pl).repo
@@ -95,6 +97,18 @@ export async function downloadPlugin(repo: Repo, { branch='', overwrite=false }=
                 dest = join(tempInstallPath, dest)
                 return rm(dest, { force: true }).then(() => dest, () => false)
             })
+            if (!customRepo) {
+                const mainFile = join(tempInstallPath, PLUGIN_MAIN_FILE)
+                const content = await readFile(mainFile, 'utf8')
+                // force github plugins to have correct repo, in case it is missing, wrong, or just outdated after a rename
+                if (repo !== parsePluginSource('', content).repo) {
+                    const correct = `exports.repo = ${JSON.stringify(repo)}\n`
+                    let newContent = content.replace(/exports.repo\s*=\s*\S*/g, correct)
+                    if (newContent === content)
+                        newContent = correct + content
+                    await writeFile(mainFile, newContent) // first, as our parsing will consider that (unlike javascript)
+                }
+            }
             // ready to replace
             const wasRunning = isPluginRunning(folder)
             if (wasRunning)
@@ -144,7 +158,7 @@ export async function readOnlinePlugin(repo: Repo, branch='') {
         return parsePluginSource(main, await httpString(main)) // use 'repo' as 'id' client-side
     }
     branch ||= await getGithubDefaultBranch(repo)
-    const res = await readGithubFile(`${repo}/${branch}/${DIST_ROOT}/plugin.js`)
+    const res = await readGithubFile(`${repo}/${branch}/${DIST_ROOT}/${PLUGIN_MAIN_FILE}`)
     const pl = parsePluginSource(repo, res) // use 'repo' as 'id' client-side
     pl.branch = branch
     return pl
@@ -224,6 +238,7 @@ export async function searchPlugins(text='', { skipRepos=[''] }={}) {
         const pl = await readOnlineCompatiblePlugin(repo, it.default_branch).catch(() => undefined)
         if (!pl) return
         Object.assign(pl, { // inject some extra useful fields
+            repo, // overwrite parsed value, that may be wrong
             downloading: downloading[repo],
             license: it.license?.spdx_id,
         }, _.pick(it, ['pushed_at', 'stargazers_count', 'default_branch']))
