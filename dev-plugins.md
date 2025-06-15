@@ -3,7 +3,7 @@
 If the information you are searching for is not in this document, [please ask](https://github.com/rejetto/hfs/discussions). 
 
 A plug-in is a folder with a `plugin.js` file in it. To install a plugin you just copy the folder into the `plugins` folder.
-You will find `plugins` folder near `config.yaml`, and then in `USER_FOLDER/.hfs` for Linux and MacOS, or near `hfs.exe` on Windows. 
+You will find `plugins` folder near `config.yaml`, and then in `USER_FOLDER/.hfs` for Linux and macOS, or near `hfs.exe` on Windows. 
 
 Plug-ins can be hot-swapped, and to some extent can be edited without restarting the server.
 
@@ -124,7 +124,7 @@ All the following properties are optional unless otherwise specified.
       complicated object form to link github, use the string form.
       Plugins with custom repos are not included in search results, but the update feature will still work.
 - `changelog: { version: number, message: string }[]` the UI will show only entries with version greater than currently installed.
-  You can use `md` syntax for the message.
+  You can use `md` syntax inside the message. (JSON syntax)
 
 **WARNING:** All the properties above are a bit special and must go in `exports` only (thus, not returned in `init`) and the syntax
 used must be strictly JSON (thus, no single quotes, only double quotes for strings and objects), and must fit one line.
@@ -441,6 +441,9 @@ In frontend you will have access to the `HFS` object of the global scope, which 
 - `urlParams: object` you'll find each parameter in the URL mapped in this object as string.
 - `fileShowComponents: { Video, Audio }` exposes standard components used by file-show. Can be useful if you need extend them, inside `fileShow` event.
 - `isShowSupported(entry: DirEntry): boolean` true if the entry is supported by Show. 
+- `textSortCompare(a: string, b: string): number` the function HFS will use for text sorting. 
+  Returns a negative if `a` must go before `b`, a positive if `b` must go before `a`, or zero they have same order.
+  It's exposed for you to use, or to overwrite if you need.
 
 The following properties are accessible only immediately at top-level; don't call it later in a callback.
 - `getPluginConfig()` returns object of all config keys that are declared frontend-accessible by this plugin.
@@ -1032,3 +1035,5 @@ If you want to override a text regardless of the language, use the special langu
   - changed parameters for events log, error_log, failedLogin, accountRenamed
   - HFS.fileShow return value
   - HFS.isShowSupported
+- 12.6 (v0.57.6)
+  - HFS.textSortCompare

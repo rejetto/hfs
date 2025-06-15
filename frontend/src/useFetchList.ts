@@ -8,7 +8,7 @@ import { subscribeKey } from 'valtio/utils'
 import { useIsMounted } from 'usehooks-ts'
 import { alertDialog } from './dialog'
 import {
-    hfsEvent, LIST, urlParams, xlate, objFromKeys,
+    hfsEvent, LIST, urlParams, xlate, objFromKeys, getHFS,
     HTTP_MESSAGES, HTTP_METHOD_NOT_ALLOWED, HTTP_UNAUTHORIZED,
 } from './misc'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -168,7 +168,7 @@ export function reloadList() {
     state.listReloader = Date.now()
 }
 
-const { compare: localCompare } = new Intl.Collator(navigator.language)
+getHFS().textSortCompare = new Intl.Collator(navigator.language).compare // expose it, so that it can be overridden
 
 function sort(list: DirList) {
     const { sort_by, folders_first, sort_numerics } = state
@@ -178,18 +178,19 @@ function sort(list: DirList) {
     const byTime = sort_by === 'time'
     const byCreation = sort_by === 'creation'
     const invert = state.invert_order ? -1 : 1
+    const {textSortCompare} = getHFS()
     return list.sort((a, b) =>
         -compareScalar(a.order||0, b.order||0)
         || hfsEvent('sortCompare', { a, b }).find(Boolean)
         || folders_first && -compareScalar(a.isFolder, b.isFolder)
         || invert * (bySize ? compareScalar(a.s||0, b.s||0)
-            : byExt ? localCompare(a.ext, b.ext)
+            : byExt ? textSortCompare(a.ext, b.ext)
                 : byTime ? compareScalar(a.m, b.m)
                     : byCreation ? compareScalar(a.c, b.c)
                         : 0
         )
         || sort_numerics && (invert * compareNumerics(a.n, b.n))
-        || invert * localCompare(a.n, b.n) // fallback to name/path
+        || invert * textSortCompare(a.n, b.n) // fallback to name/path
     )
 
     function compareNumerics(a: string, b: string) {
