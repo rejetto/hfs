@@ -3,6 +3,7 @@ import legacy from '@vitejs/plugin-legacy'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    base: '',
     build: {
         outDir: '../dist/frontend',
         emptyOutDir: true,
@@ -20,7 +21,7 @@ export default defineConfig({
             }
         }
     },
-    plugins: [
+    plugins: [] || [
         legacy({
             renderModernChunks: false, // single version, legacy one
             polyfills: false, // keeping polyfills at a minimum, manually
