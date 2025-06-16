@@ -16,7 +16,7 @@ setDefaultApiCallOptions({
     async onResponse(res: Response, body: any) {
         if (res.status === HTTP_UNAUTHORIZED) {
             state.loginRequired = body?.possible !== false || HTTP_FORBIDDEN
-            throw new ApiError(res.status, "Unauthorized")
+            throw new ApiError(res.status, body)
         }
     }
 })

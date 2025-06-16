@@ -64,7 +64,7 @@ function LoginForm() {
 
 async function login(username: string, password: string, extra?: object) {
     const res = await srpClientSequence(username, password, apiCall, extra).catch(err => {
-        throw err?.code === HTTP_UNAUTHORIZED ? "Wrong username or password"
+        throw err?.code === HTTP_UNAUTHORIZED ? err.message || "Wrong username or password"
             : err === 'trust' ? "Login aborted: server identity cannot be trusted"
             : err?.name === 'AbortError' ? "Server didn't respond"
             : (err?.message || "Unknown error")
