@@ -38,6 +38,9 @@ export default {
                 if (ignore(conn)) return
                 list.remove(getConnAddress(conn))
             },
+            connectionNewIp(conn: Connection, oldIp: string, newIp: string) {
+                list.update(getConnAddress(conn, oldIp), { ip: newIp })
+            },
             connectionUpdated(conn: Connection, change: Change) {
                 if (conn.socket.closed || ignore(conn) || ignore(change as any) || _.isEmpty(change)) return
                 if (change.ctx) {
@@ -109,9 +112,9 @@ function ignore(conn: Connection) {
     return false //conn.socket && isLocalHost(conn)
 }
 
-function getConnAddress(conn: Connection) {
+function getConnAddress(conn: Connection, overrideIp?: string) {
     return {
-        ip: conn.ip,
+        ip: overrideIp ?? conn.ip,
         port: conn.socket.remotePort,
     }
 }

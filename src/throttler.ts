@@ -41,7 +41,7 @@ export const throttler: Koa.Middleware = async (ctx, next) => {
     // we wrap the stream also for unlimited connections to get speed and other features
     const noLimit = ctx.state.account?.ignore_limits || isLocalHost(ctx)
     const ipGroup = ip2group[noLimit ? '' : ctx.ip] ||= {
-        count:0,
+        count: 0,
         group: new ThrottleGroup(noLimit ? Infinity : maxKbpsPerIp.get(), noLimit ? undefined : mainThrottleGroup),
     }
     const conn = getConnection(ctx)

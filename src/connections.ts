@@ -28,6 +28,10 @@ export class Connection {
     }
 
     get ip() { // prioritize ctx.ip as it supports proxies, but fallback for when ctx is not yet available
+        if (this._cachedIp && this.ctx && this._cachedIp !== this.ctx.ip) {
+            events.emit('connectionNewIp', this, this._cachedIp, this.ctx.ip)
+            this._cachedIp = undefined
+        }
         return this.ctx?.ip || (this._cachedIp ??= normalizeIp(this.socket.remoteAddress||''))
     }
 
