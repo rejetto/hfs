@@ -3,7 +3,6 @@
 import { basename } from 'path'
 import Koa from 'koa'
 import { Connection } from './connections'
-import assert from 'assert'
 export * from './util-http'
 export * from './util-files'
 export * from './fileAttr'
@@ -25,7 +24,7 @@ export function pattern2filter(pattern: string){
 }
 
 export function isLocalHost(c: Connection | Koa.Context | string) {
-    const ip = typeof c === 'string' ? c : c.socket.remoteAddress // don't use Context.ip as it is subject to proxied ips, and that's no use for localhost detection
+    const ip = typeof c === 'string' ? c : c.ip
     return ip && isIpLocalHost(ip)
 }
 
