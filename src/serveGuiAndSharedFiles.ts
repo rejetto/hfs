@@ -13,7 +13,7 @@ import { Writable } from 'stream'
 import { serveFile, serveFileNode } from './serveFile'
 import { BUILD_TIMESTAMP, DEV, MIME_AUTO, VERSION } from './const'
 import { zipStreamFromFolder } from './zip'
-import { allowAdmin, favicon } from './adminApis'
+import { preventAdminAccess, favicon } from './adminApis'
 import { serveGuiFiles } from './serveGuiFiles'
 import mount from 'koa-mount'
 import { baseUrl } from './listen'
@@ -42,8 +42,7 @@ export const serveGuiAndSharedFiles: Koa.Middleware = async (ctx, next) => {
     if (path.length === ADMIN_URI.length - 1 && ADMIN_URI.startsWith(path))
         return ctx.redirect(ctx.state.revProxyPath + ADMIN_URI)
     if (path.startsWith(ADMIN_URI))
-        return allowAdmin(ctx) ? serveAdminPrefixed(ctx,next)
-            : sendErrorPage(ctx, HTTP_FORBIDDEN)
+        return preventAdminAccess(ctx) ? sendErrorPage(ctx, HTTP_FORBIDDEN) : serveAdminPrefixed(ctx, next)
     if (path.startsWith(ICONS_URI)) {
         const a = path.substring(ICONS_URI.length).split('/')
         const iconName = a.at(-1)

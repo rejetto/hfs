@@ -177,8 +177,6 @@ export const adminApis = {
 
 for (const [k, was] of typedEntries(adminApis))
     (adminApis[k] as any) = ((params, ctx) => {
-        if (!allowAdmin(ctx))
-            return new ApiError(HTTP_FORBIDDEN)
         if (ctxAdminAccess(ctx))
             return was(params, ctx)
         const props = { possible: anyAccountCanLoginAdmin() }
@@ -193,8 +191,10 @@ export const favicon = defineConfig('favicon', '')
 export const title = defineConfig('title', "File server")
 
 export function ctxAdminAccess(ctx: Koa.Context) {
-    return !ctx.ips.length // we consider localhost_admin only if no proxy is being used
-        && localhostAdmin.get() && isLocalHost(ctx)
+    if (preventAdminAccess(ctx))
+        return false
+    // for extra security, skip localhost_admin via proxy, even tho this prevents using it with local proxies, which is legit in principle
+    return !ctx.ips.length && localhostAdmin.get() && isLocalHost(ctx)
         || ctx.state.account && accountCanLoginAdmin(ctx.state.account)
 }
 
@@ -213,6 +213,6 @@ export function anyAccountCanLoginAdmin() {
     return Boolean(_.find(accounts.get(), accountCanLoginAdmin))
 }
 
-export function allowAdmin(ctx: Koa.Context) {
-    return isLocalHost(ctx) || adminNet.compiled()(ctx.ip)
+export function preventAdminAccess(ctx: Koa.Context) {
+    return !isLocalHost(ctx) && !adminNet.compiled()(ctx.ip)
 }
