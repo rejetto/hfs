@@ -3,7 +3,7 @@
 import _ from 'lodash';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-    Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait, buildUrlQueryString, Jsonify,
+    Callback, Dict, Falsy, getPrefixUrl, pendingPromise, useStateMounted, wait, buildUrlQueryString, Jsonify, formatTime
 } from '.'
 import { BetterEventEmitter } from '../src/events'
 
@@ -41,6 +41,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         console.debug('API TIMEOUT', cmd, params??'')
     }, ms)
     const asRest = options.restUri
+    const started = new Date
     // rebuilding the whole url makes it resistant to url-with-credentials
     return Object.assign(fetch(`${location.origin}${getPrefixUrl()}${asRest || (API_URL + cmd)}`, {
         method: asRest ? cmd : (options.method || 'POST'),
@@ -54,7 +55,7 @@ export function apiCall<T=any>(cmd: string, params?: Dict, options: ApiCallOptio
         try { data = options.skipParse ? body : JSON.parse(body) }
         catch { data = body }
         if (!options?.skipLog)
-            console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', data)
+            console.debug(res.ok ? 'API' : 'API FAILED', cmd, params??'', '>>', data, { started: formatTime(started), duration: (Date.now() - +started) })
         await options.onResponse?.(res, data)
         if (!res.ok)
             throw new ApiError(res.status, data === body ? body : `Failed API ${cmd}: ${res.statusText}`, data)
