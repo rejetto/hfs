@@ -418,6 +418,7 @@ export async function suggestMakingCert() {
             if (loaded) // when undefined we are not in this page
                 Object.assign(loaded, saved)
             setTimeout(exposedReloadStatus!, 1000) // give some time for backend to apply
+            setTimeout(exposedReloadStatus!, 2000) // try again in case it's very slow
             Object.assign(state.config, saved)
             alertDialog("Certificate saved", 'success')
         }
