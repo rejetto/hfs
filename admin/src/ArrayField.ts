@@ -1,6 +1,6 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { createElement as h, Fragment, useMemo, useState } from 'react'
+import { createElement as h, Fragment, useMemo, useState, isValidElement } from 'react'
 import { callable, DialogOptions, Dict, Functionable, isOrderedEqual, setHidden, swap } from './misc'
 import { Add, Edit, Delete, ArrowUpward, ArrowDownward, Undo, Check } from '@mui/icons-material'
 import { FormDialog, formDialog } from './dialog'
@@ -71,6 +71,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                 },
                 columns: [
                     ...callable(fields, false).map(f => {
+                        if (isValidElement(f)) return
                         const def = byType[f.$type]?.column
                         return _.defaults({
                             field: f.k,
@@ -85,7 +86,7 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                             hideUnder: f.$hideUnder,
                             ...f.$column,
                         }, def)
-                    }),
+                    }).filter(Boolean),
                     {
                         field: '',
                         type: 'actions',
