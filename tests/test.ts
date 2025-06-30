@@ -1,7 +1,7 @@
 import test, { describe, before, after } from 'node:test';
 import { promisify } from 'util'
 import { srpClientSequence } from '../src/srp'
-import { createReadStream, statSync } from 'fs'
+import { createReadStream, statfsSync, statSync } from 'fs'
 import { basename, dirname, resolve } from 'path'
 import { exec } from 'child_process'
 import _ from 'lodash'
@@ -238,6 +238,17 @@ describe('after-login', () => {
     test('delete.method', req(UPLOAD_DEST, 200, { method: 'DELETE' }))
     test('delete.miss deleted', req(UPLOAD_DEST, 404, { method: 'delete' }))
     test('upload.too much', reqUpload(UPLOAD_ROOT + 'temp/tooMuch', 400, BIG_CONTENT, BIG_CONTENT.length / 2)) // 400 is caused by nodejs itself, intercepting the mismatch
+    test('upload.free space', async () => {
+        const res = statfsSync(ROOT)
+        const free = res.bavail * res.bsize
+        const fakeSize = Math.round(free * 0.51)
+        const r1 = reqUpload(UPLOAD_ROOT + 'temp/free1', 400, makeReadableThatTakes(1000), fakeSize)()
+        setTimeout(r1.abort, 1500)
+        await Promise.all([
+            r1.catch(() => {}),
+            wait(100).then(() => reqUpload(UPLOAD_ROOT + 'temp/free2', 507, makeReadableThatTakes(500), fakeSize)())
+        ])
+    })
     test('max_dl.account', async () => {
         const uri = UPLOAD_ROOT + 'temp/big'
         await reqUpload(uri, 200, BIG_CONTENT)()
@@ -251,7 +262,7 @@ function login(usr: string, pwd=password) {
         reqApi(cmd, params, (x,res)=> res.statusCode < 400)())
 }
 
-function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume?: number) {
+function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?: number, resume=0) {
     if (resume)
         dest += '?resume=' + resume
     size ??= (body as any)?.length ?? statSync(SAMPLE_FILE_PATH).size  // it's ok that Readable.length is undefined
@@ -270,7 +281,7 @@ function reqUpload(dest: string, tester: Tester, body?: string | Readable, size?
         }
     return req(dest, tester, {
         method: 'PUT',
-        headers: { 'content-length': size === undefined ? size : size - (resume||0) },
+        headers: { connection: 'close', 'content-length': size === undefined ? size : size - resume },
         body: body ?? createReadStream(SAMPLE_FILE_PATH)
     })
 }
@@ -313,11 +324,16 @@ const jar = {}
 function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }: XRequestOptions & { throttle?: number, baseUrl?: string }={}) {
     // passing 'path' keeps it as it is, avoiding internal resolving
     let abortable // copy abortable interface to returned promise
-    return () => Object.assign((abortable = httpStream((baseUrl || defaultBaseUrl) + url, { path: url, jar, ...requestOptions })).catch(e => {
-        if (e.code === 'ECONNREFUSED')
-            throw e
-        return e.cause
-    }).then(process), _.pick(abortable, 'abort'))
+    return () => Object.assign(
+        (abortable = httpStream((baseUrl || defaultBaseUrl) + url, { path: url, jar, ...requestOptions }))
+            .catch(e => {
+                if (e.code === 'ECONNREFUSED')
+                    throw e
+                return e.cause
+            })
+            .then(process),
+        _.pick(abortable, 'abort')
+    )
 
     async function process(res:any) {
         //console.debug('sent', requestOptions, 'got', res instanceof Error ? String(res) : [res.status])
@@ -326,7 +342,7 @@ function req(url: string, test:Tester, { baseUrl, throttle, ...requestOptions }:
         if (typeof test === 'number')
             test = { status: test }
         const stream = throttle ? res.pipe(new ThrottledStream(new ThrottleGroup(throttle))) : res
-        const data = await stream2string(stream)
+        const data = await stream2string(stream).catch(() => '')
         const obj = tryJson(data)
         if (typeof test === 'object') {
             let { status, mime, re, inList, outList, length, permInList } = test

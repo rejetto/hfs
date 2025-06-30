@@ -68,10 +68,9 @@ async function calcHash(fn: string, limit=Infinity) {
 }
 
 const diskSpaceCache = expiringCache<ReturnType<typeof getDiskSpaceSync>>(3_000) // invalidate shortly
-const uploadingFiles = new Map<string, Koa.Context>()
+const uploadingFiles = new Map<string, { ctx: Koa.Context, size: number, got: number }>()
 // stay sync because we use this function with formidable()
 export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: Koa.Context) {
-    let fullPath = ''
     if (dirTraversal(path))
         return fail(HTTP_FOOL)
     if (statusCodeForMissingPerm(base, 'can_upload', ctx)) {
@@ -83,7 +82,11 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         return fail()
     }
     // enforce minAvailableMb
-    fullPath = join(base.source!, path)
+    const fullPath = join(base.source!, path)
+    const already = uploadingFiles.get(fullPath) // this can be checked so early because this function is sync
+    if (already) // if it's the same client, we tell to retry later
+        return fail(ctx.query.notifications && ctx.query.notifications === already.ctx.query.notifications ? HTTP_NOT_MODIFIED : HTTP_CONFLICT,
+            'already uploading')
     const dir = dirname(fullPath)
     const min = minAvailableMb.get() * (1 << 20)
     const contentLength = Number(ctx.headers["content-length"])
@@ -105,7 +108,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
             const { free } = res
             if (typeof free !== 'number' || isNaN(free))
                 throw ''
-            if (stillToWrite > free - (min || 0))
+            const reservedSpace = _.sumBy(Array.from(uploadingFiles.values()), x => x.size - x.got)
+            if (stillToWrite > free - (min || 0) - reservedSpace)
                 return fail(HTTP_INSUFFICIENT_STORAGE)
         }
         catch(e: any) { // warn, but let it through
@@ -114,10 +118,6 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
     // optionally 'skip'
     if (ctx.query.existing === 'skip' && fs.existsSync(fullPath))
         return fail(HTTP_CONFLICT, 'exists')
-    const already = uploadingFiles.get(fullPath) // this can be checked so early because this function is sync
-    if (already) // if it's the same client, we tell to retry later
-        return fail(ctx.query.notifications && ctx.query.notifications === already.query.notifications ? HTTP_NOT_MODIFIED : HTTP_CONFLICT,
-            'already uploading')
     let overwriteRequestedButForbidden = false
     try {
         const sendCurrentSize = _.debounce(() => notifyClient(ctx, UPLOAD_RESUMABLE, { path, written: getCurrentSize() }), 1000, { maxWait: 1000 })
@@ -183,7 +183,8 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         Object.assign(obj, { fileStream })
         trackProgress()
         cancelDeletion(tempName)
-        uploadingFiles.set(fullPath, ctx)
+        const tracked = { ctx, got: 0, size: stillToWrite }
+        uploadingFiles.set(fullPath, tracked)
         console.debug('upload started')
         // the file stream doesn't have an event for data being written, so we use 'data' of its feeder, which happens before, so we postpone a bit, trying to have a fresher number
         writeStream.on('data', () => setTimeout(checkIfNewUploadBecameLargerThanResumable))
@@ -274,6 +275,7 @@ export function uploadWriter(base: VfsNode, baseUri: string, path: string, ctx: 
         }
 
         function checkIfNewUploadBecameLargerThanResumable() {
+            tracked.got = bytesGot()
             sendCurrentSize() // keep the client updated in case it needs to resume on disconnection
             if (isWritingSecondFile && getCurrentSize() > firstResumableStats?.size!)
                 try { // better be sync here, as we don't want the upload to finish in the middle of the rename
