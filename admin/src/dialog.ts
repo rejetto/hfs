@@ -153,15 +153,18 @@ export async function formDialog<T>(
         Wrapper?: FC
     },
 ) : Promise<T> {
+    let exposedValues: typeof values
     return new Promise(resolve => {
         const dialog = newDialog({
             className: 'dialog-form',
-            onClose: resolve,
+            onClose: x => resolve(x || exposedValues),
             ...options,
             Content() {
                 const [curValues, setCurValues] = useState<Partial<T>>(values||{})
                 const { onChange, before, ...props } = typeof form === 'function' ? form(curValues) : form
-                return h(Wrapper || Fragment, {},
+                if (props.save === false)
+                    exposedValues = curValues
+                return h(Fragment, {},
                     before,
                     h(Form, {
                         ...props,

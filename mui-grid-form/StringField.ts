@@ -78,7 +78,6 @@ export function StringField({ value, onChange, min, max, required, setApi, typin
     })
     return !suggestions ? render(null)
         : h(Autocomplete, {
-            value,
             freeSolo: true,
             options: suggestions,
             renderInput: render,

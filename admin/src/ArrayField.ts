@@ -27,18 +27,23 @@ type ArrayFieldProps<T> = FieldProps<T[] | Dict<T>> & {
     dialog?: Partial<DialogOptions>,
     details?: boolean
     objectK?: string
+    saveOn?: 'change' | 'close'
 }
-export function ArrayField<T extends object>({ label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight, dialog, form, details, objectK, ...rest }: ArrayFieldProps<T>) {
+export function ArrayField<T extends object>({
+    label, helperText, fields, value, onChange, onError, setApi, reorder, prepend, noRows, valuesForAdd, autoRowHeight,
+    dialog, form, details, objectK, saveOn, ...rest
+}: ArrayFieldProps<T>) {
     const valueA = Array.isArray(value) ? value
         : !objectK || !value ? [] // avoid crash if non-array values are passed, especially developing plugins
             : Object.entries(value).map(([k, v]) => ({ [objectK]: k, ...v }))
     const rows = useMemo(() => valueA!.map((x,$idx) =>
             setHidden({ ...x } as any, x.hasOwnProperty('id') ? { $idx } : { id: $idx })),
         [JSON.stringify(valueA)]) //eslint-disable-line
-    const formProp = (values: any) => ({
+    const getFormProp = (more: any) => (values: any) => ({
         fields: callable(fields, values).map(({ $width, $column, $type, $hideUnder, showIf, $render, $mergeRender, ...rest }) =>
             (!showIf || showIf(values)) && _.defaults(rest, byType[$type]?.field)),
         ...form,
+        ...more,
     })
     setApi?.({ isEqual: isOrderedEqual }) // don't rely on stringify, as it wouldn't work with non-json values
     const [undo, setUndo] = useState<typeof valueA>()
@@ -98,14 +103,19 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                     icon: Add,
                                     title,
                                     size: 'small',
-                                    onClick: ev =>
-                                        formDialog<T>({ form: formProp, title, values: valuesForAdd, dialogProps: dialog }).then(x => {
-                                            if (!x) return
-                                            const newValue = valueA.slice() || []
-                                            if (prepend) newValue.unshift(x)
-                                            else newValue.push(x)
-                                            set(newValue, ev)
+                                    async onClick(ev) {
+                                        const res = await formDialog<T>({
+                                            form: getFormProp({}),
+                                            title,
+                                            values: valuesForAdd,
+                                            dialogProps: dialog
                                         })
+                                        if (!res) return
+                                        const newValue = valueA.slice() || []
+                                        if (prepend) newValue.unshift(res)
+                                        else newValue.push(res)
+                                        set(newValue, ev)
+                                    }
                                 }),
                                 undo !== undefined && h(IconBtn, {
                                     icon: Undo,
@@ -127,12 +137,17 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
                                         ev.stopPropagation()
                                         const res = await formDialog<T>({
                                             values: row as any,
-                                            form: formProp,
+                                            form: getFormProp(saveOn === 'change' && {
+                                                save: false,
+                                                onChange(values: T) {
+                                                    updateRec($idx, values, 'change')
+                                                }
+                                            } || saveOn && { save: false }),
                                             title: h(Fragment, {}, title, label && ' - ', label),
                                             dialogProps: dialog
                                         })
                                         if (res)
-                                            set(valueA.map((oldRec, i) => i === $idx ? res : oldRec), ev)
+                                            updateRec($idx, res, ev)
                                     }
                                 }),
                                 h(GridActionsCellItem as any, {
@@ -170,10 +185,15 @@ export function ArrayField<T extends object>({ label, helperText, fields, value,
         )
     )
 
+    function updateRec($idx: number, rec: T, ev?: any) {
+        set(valueA.map((oldRec, i) => i === $idx ? rec : oldRec), ev)
+    }
+
     function set(newValue: typeof valueA, event?: any) {
         onChange(!objectK ? newValue : Object.fromEntries((newValue as any).map(({ [objectK]: k, ...v }) => [k, v])),
             { was: value, event })
-        setUndo(valueA)
+        if (saveOn !== 'change')
+            setUndo(valueA)
     }
 
 }
