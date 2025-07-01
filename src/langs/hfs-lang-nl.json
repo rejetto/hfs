@@ -188,6 +188,7 @@
         "Yes": "Ja",
         "No":  "Nee",
         "esc_again": "Druk ESC twee keer om te sluiten",
-        "insufficient storage": "onvoldoende opslagruimte"
+        "insufficient storage": "onvoldoende opslagruimte",
+        "Account disabled": "Account uitgeschakeld"
 	}
 }

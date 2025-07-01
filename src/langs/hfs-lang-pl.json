@@ -188,6 +188,7 @@
         "Yes": "Tak",
         "No":  "Nie",
         "esc_again": "Naciśnij ESC dwukrotnie do zamkniecia",
-        "insufficient storage": "za mało miejsca"
+        "insufficient storage": "za mało miejsca",
+        "Account disabled": "Konto wyłączone"
     }
 }

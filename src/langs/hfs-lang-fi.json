@@ -193,6 +193,7 @@
         "Yes": "Kyllä",
         "No":  "Ei",
         "esc_again": "Paina ESC kahdesti sulkeaksesi",
-        "insufficient storage": "riittämätön tallennustila"
+        "insufficient storage": "riittämätön tallennustila",
+        "Account disabled": "Tili on poistettu käytöstä"
     }
 }

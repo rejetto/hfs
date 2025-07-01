@@ -179,6 +179,7 @@
         "Yes": "Ja",
         "No":  "Nein",
         "esc_again": "Drucken Sie ESC zwei Mal, um das Fenster zu schließen.",
-        "insufficient storage": "nicht genügend Speicherplatz"
+        "insufficient storage": "nicht genügend Speicherplatz",
+        "Account disabled": "Konto deaktiviert"
     }
 }

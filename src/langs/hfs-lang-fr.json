@@ -193,6 +193,7 @@
 		"Yes": "Oui",
 		"No":  "Non",
 		"esc_again": "Appuyez ESC deux fois pour fermer",
-		"insufficient storage": "espace insuffisant"
+		"insufficient storage": "espace insuffisant",
+		"Account disabled": "Compte désactivé"
 	}
 }

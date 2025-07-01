@@ -189,6 +189,7 @@
         "Yes": "نعم",
         "No":  "لا",
         "esc_again": "انقر على ESC ثانية لاغلاق",
-        "insufficient storage": "مساحة تخزين غير كافية"
+        "insufficient storage": "مساحة تخزين غير كافية",
+        "Account disabled": "تم تعطيل الحساب"
     }
 }

@@ -195,14 +195,14 @@ export function accountHasPassword(account: Account) {
 }
 
 export function accountCanLogin(account: Account) {
-    return (accountHasPassword(account) || account.plugin?.auth) && !allDisabled(account)
+    return (accountHasPassword(account) || account.plugin?.auth) && !accountIsDisabled(account)
 }
 
-function allDisabled(account: Account): boolean {
+export function accountIsDisabled(account: Account): boolean {
     return Boolean(account.disabled
         || account.expire as any < Date.now()
         || account.belongs?.length // don't every() on empty array, as it returns true
-        && account.belongs.map(u => getAccount(u, false)).every(a => a && allDisabled(a)) )
+        && account.belongs.map(u => getAccount(u, false)).every(a => a && accountIsDisabled(a)) )
 }
 
 export function accountCanLoginAdmin(account: Account) {

@@ -183,6 +183,7 @@
         "Yes": "Так",
         "No":  "Ні",
         "esc_again": "Натисніть ESC два рази для закриття",
-        "insufficient storage": "недостатньо місця"
+        "insufficient storage": "недостатньо місця",
+        "Account disabled": "Обліковий запис вимкнено"
     }
 }

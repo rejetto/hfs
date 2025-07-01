@@ -188,6 +188,7 @@
         "Yes": "Taip",
         "No":  "Ne",
         "esc_again": "Paspauskite ESC du kartus, kad uždarytumėte",
-        "insufficient storage": "nepakanka vietos"
+        "insufficient storage": "nepakanka vietos",
+        "Account disabled": "Paskyra išjungta"
     }
 }

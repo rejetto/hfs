@@ -189,6 +189,7 @@
         "Yes": "是",
         "No":  "否",
         "esc_again": "按 ESC 兩次關閉",
-        "insufficient storage": "儲存空間不足"
+        "insufficient storage": "儲存空間不足",
+        "Account disabled": "帳戶已停用"
     }
 }

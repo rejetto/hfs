@@ -194,6 +194,7 @@
         "Yes": "Có",
         "No":  "Không",
         "esc_again": "Nhấn ESC hai lần để đóng",
-        "insufficient storage": "không đủ dung lượng"
+        "insufficient storage": "không đủ dung lượng",
+        "Account disabled": "Tài khoản đã bị vô hiệu hóa"
     }
 }

@@ -189,6 +189,7 @@
         "Yes": "ใช่",
         "No":  "ไม่",
         "esc_again": "กด ESC สองครั้งเพื่อปิด",
-        "insufficient storage": "พื้นที่จัดเก็บไม่เพียงพอ"
+        "insufficient storage": "พื้นที่จัดเก็บไม่เพียงพอ",
+        "Account disabled": "บัญชีถูกปิดใช้งานแล้ว"
     }
 }

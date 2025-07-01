@@ -188,6 +188,7 @@
         "Yes": "Yes",
         "No":  "No",
         "esc_again": "Press ESC twice to close",
-        "insufficient storage": "insufficient storage"
+        "insufficient storage": "insufficient storage",
+        "Account disabled": "Account disabled"
     }
 }

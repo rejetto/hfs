@@ -182,11 +182,12 @@
     "creation": "създаване",
     "required_change_password": "Трябва да смените паролата си",
     "Wildcards": "Заместващи символи",
-    "Considering resume": "Разглеждане на възобновяване",
+    "Considering resume": "Проверка за възобновяване на качването",
 
     "Yes": "Да",
     "No": "Не",
     "esc_again": "Натиснете ESC два пъти за затваряне",
-    "insufficient storage": "недостатъчно пространство"
+    "insufficient storage": "недостатъчно пространство",
+    "Account disabled": "Акаунтът е деактивиран"
   }
 }

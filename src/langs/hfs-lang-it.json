@@ -180,6 +180,7 @@
         "Yes": "Sì",
         "No":  "No",
         "esc_again": "Premi ESC due volte per chiudere",
-        "insufficient storage": "spazio insufficiente"
+        "insufficient storage": "spazio insufficiente",
+        "Account disabled": "Account disattivato"
     }
 }

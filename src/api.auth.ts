@@ -1,6 +1,8 @@
 // This file is part of HFS - Copyright 2021-2023, Massimo Melina <a@rejetto.com> - License https://www.gnu.org/licenses/gpl-3.0.txt
 
-import { Account, accountCanLogin, changeSrpHelper, expandUsername, getAccount, getFromAccount } from './perm'
+import {
+    Account, accountCanLogin, accountIsDisabled, changeSrpHelper, expandUsername, getAccount, getFromAccount
+} from './perm'
 import { ApiError, ApiHandler } from './apiMiddleware'
 import { SRPServerSessionStep1 } from 'tssrp6a'
 import {
@@ -47,7 +49,7 @@ export const loginSrp1: ApiHandler = async ({ username }, ctx) => {
     if (!account || !accountCanLogin(account)) { // TODO simulate fake account to prevent knowing valid usernames
         ctx.logExtra({ u: username })
         ctx.state.dontLog = false // log even if log_api is false
-        return new ApiError(HTTP_UNAUTHORIZED)
+        return new ApiError(HTTP_UNAUTHORIZED, account && accountIsDisabled(account) ? 'Account disabled' : undefined)
     }
     if (failAllowNet(ctx, account))
         return new ApiError(HTTP_UNAUTHORIZED)

@@ -192,6 +192,7 @@
         "Yes": "Да",
         "No":  "Нет",
         "esc_again": "Нажмите ESC дважды для закрытия",
-        "insufficient storage": "недостаточно места"
+        "insufficient storage": "недостаточно места",
+        "Account disabled": "Учетная запись отключена"
     }
 }

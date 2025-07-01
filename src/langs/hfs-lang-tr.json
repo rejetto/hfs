@@ -189,6 +189,7 @@
         "Yes": "Evet",
         "No":  "Hayır",
         "esc_again": "ESC'i iki kere basarak kapat",
-        "insufficient storage": "yetersiz depolama alanı"
+        "insufficient storage": "yetersiz depolama alanı",
+        "Account disabled": "Hesap devre dışı bırakıldı"
     }
 }

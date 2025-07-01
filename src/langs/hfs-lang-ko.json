@@ -189,6 +189,7 @@
         "Yes": "영",
         "No":  "안",
         "esc_again": "ESC 두번 페스하기",
-        "insufficient storage": "저장 공간 부족"
+        "insufficient storage": "저장 공간 부족",
+        "Account disabled": "계정이 비활성화되었습니다"
     }
 }

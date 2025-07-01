@@ -188,6 +188,7 @@
         "Yes": "Sim",
         "No":  "Nao",
         "esc_again": "Pressione ESC duas vezes para fechar",
-        "insufficient storage": "armazenamento insuficiente"
+        "insufficient storage": "armazenamento insuficiente",
+        "Account disabled": "Conta foi desativada"
     }
 }

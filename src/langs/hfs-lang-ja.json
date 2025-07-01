@@ -189,6 +189,7 @@
         "Yes": "はい",
         "No":  "いいえ",
         "esc_again": "ESCを2回押して閉じます",
-        "insufficient storage": "ストレージ容量不足"
+        "insufficient storage": "ストレージ容量不足",
+        "Account disabled": "アカウントは無効です"
     }
 }

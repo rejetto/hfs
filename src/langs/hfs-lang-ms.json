@@ -150,6 +150,7 @@
         "Yes": "Ya",
         "No":  "Tidak",
         "esc_again": "Tekan ESC dua kali untuk menutup",
-        "insufficient storage": "ruang storan tidak mencukupi"
+        "insufficient storage": "ruang storan tidak mencukupi",
+        "Account disabled": "Akaun dinyahdayakan"
     }
 }

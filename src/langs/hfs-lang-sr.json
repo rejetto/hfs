@@ -189,6 +189,7 @@
         "Yes": "Да",
         "No":  "Не",
         "esc_again": "Пritisnite ESC два пута за затварање",
-        "insufficient storage": "недовољно простора"
+        "insufficient storage": "недовољно простора",
+        "Account disabled": "Налог је деактивиран"
     } 
 }

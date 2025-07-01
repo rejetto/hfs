@@ -194,6 +194,7 @@
         "Yes": "Igen",
         "No":  "Nem",
         "esc_again": "ESC megadva 2 alkalommal",
-        "insufficient storage": "elégtelen tárhely"
+        "insufficient storage": "elégtelen tárhely",
+        "Account disabled": "A fiók deaktiválva"
     }
 }
