@@ -79,7 +79,7 @@ If you don't like this behavior, disable it in the Admin-panel or enter this con
 
 If can't or don't want to run our binary versions, you can try this:
 
-1. [install node.js](https://nodejs.org) version 18.20 (or greater, but then compatibility is not guaranteed)
+ 1. [install node.js](https://nodejs.org) version 20 (or greater, but then compatibility is not guaranteed)
 2. execute at command line `npx hfs@latest`
 
 The `@latest` part is optional, and ensures that you are always up to date.
