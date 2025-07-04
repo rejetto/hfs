@@ -143,7 +143,7 @@ export default function FilePicker({ onSelect, multiple=true, files=true, folder
                 h(Flex, { alignItems: 'stretch' },
                     (multiple || folders || !files) && h(Button, {
                         variant: 'contained',
-                        disabled: !cwd || !folders && !sel.length && files,
+                        disabled: !sel.length && (!cwd || !folders && files), // !cwd is the drive selection on Windows, which is not a path
                         sx: { minWidth: 'max-content' },
                         onClick() {
                             onSelect(sel.length ? sel.map(x => cwdDelimiter + x) : [cwd])
